@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.20 2000/09/27 14:54:22 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.21 2000/09/28 03:06:28 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -477,7 +477,7 @@ SOURCEFILE is the file name from whence tokstream came."
       (error "Not valid outside the scope of a BNF file"))
   ;; Do the work
   (let* ((fname (file-name-nondirectory (buffer-file-name)))
-	 (tok (semantic-bovinate-toplevel 0 t t))
+	 (tok (semantic-bovinate-toplevel t))
 	 (bb (current-buffer))
 	 (dest (semantic-bnf-find-table-destination tok))
 	 (keydest (semantic-bnf-find-keyword-destination tok))
