@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.6 2002/03/03 23:04:42 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.7 2002/06/29 18:14:01 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -55,7 +55,7 @@
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-03-03 22:01+0100
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-20 15:06+0200
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -185,7 +185,7 @@
             vals nil))))
        (put_name_list
         ((BRACE_BLOCK)
-         (wisent-bovinate-from-nonterminal-full
+         (semantic-bovinate-from-nonterminal-full
           (car $region1)
           (cdr $region1)
           'put_names)))
@@ -195,11 +195,10 @@
         ((RBRACE)
          nil)
         ((any_symbol)
-         (list
-          (list $1 'put-name nil nil))))
+         (list $1 'put-name nil nil)))
        (put_value_list
         ((BRACE_BLOCK)
-         (wisent-bovinate-from-nonterminal-full
+         (semantic-bovinate-from-nonterminal-full
           (car $region1)
           (cdr $region1)
           'put_values)))
@@ -209,8 +208,7 @@
         ((RBRACE)
          nil)
         ((put_value)
-         (list
-          (list "" 'put-value nil $1 nil))))
+         (list "" 'put-value nil $1 nil)))
        (put_value
         ((any_symbol any_value)
          (cons $1 $2)))
@@ -241,54 +239,57 @@
         ((rule)
          (list $1)))
        (rule
-        (nil
-         (wisent-token "empty" 'rule nil nil nil nil nil))
-        ((level action_opt)
-         (wisent-token "empty" 'rule nil nil $1 $2 nil))
-        ((elements)
-         (let
-             (action name)
-           (if
-               (consp
-                (car $1))
-               (setq action
-                     (caar $1)
-                     $1
-                     (nreverse
-                      (cdr $1)))
-             (setq action nil $1
-                   (nreverse $1)))
-           (setq name
-                 (if $1
+        ((rhs)
+         (let*
+             ((rhs $1)
+              name type comps prec action elt)
+           (while rhs
+             (setq elt
+                   (car rhs)
+                   rhs
+                   (cdr rhs))
+             (cond
+              ((vectorp elt)
+               (if prec
+                   (message "Duplicate %%prec in a rule, keep latest"))
+               (setq prec
+                     (aref elt 0)))
+              ((consp elt)
+               (if
+                   (or action comps)
+                   (setq comps
+                         (cons elt comps))
+                 (setq action
+                       (car elt))))
+              (t
+               (setq comps
+                     (cons elt comps)))))
+           (if comps
+               (setq type "group" name
                      (mapconcat
                       #'(lambda
                           (e)
                           (if
                               (consp e)
                               "{}" e))
-                      $1 " ")
-                   "empty"))
-           (wisent-token name 'rule nil $1 nil action nil)))
-        ((elements level action_opt)
-         (let
-             (name)
-           (setq $1
-                 (nreverse $1)
-                 name
-                 (mapconcat
-                  #'(lambda
-                      (e)
-                      (if
-                          (consp e)
-                          "{}" e))
-                  $1 " "))
-           (wisent-token name 'rule nil $1 $2 $3 nil))))
+                      comps " "))
+             (setq type "empty" name ";;EMPTY"))
+           (wisent-cooked-token name 'rule type comps prec action nil))))
+       (rhs
+        (nil)
+        ((rhs item)
+         (cons $2 $1))
+        ((rhs action)
+         (cons
+          (list $2)
+          $1))
+        ((rhs level)
+         (cons
+          (vector $2)
+          $1)))
        (level
         ((PERCENT PREC item)
          (identity $3)))
-       (action_opt
-        (nil)
-        ((action)))
        (action
         ((PAREN_BLOCK))
         ((BRACE_BLOCK)
@@ -306,15 +307,6 @@
                              (substring s 0
                                         (match-beginning 0))))
                    s))))
-       (elements
-        ((elements element)
-         (cons $2 $1))
-        ((element)
-         (list $1)))
-       (element
-        ((action)
-         (list $1))
-        ((item)))
        (items
         ((lifo_items)
          (nreverse $1)))
@@ -347,7 +339,7 @@
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-03-03 22:01+0100
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-20 15:06+0200
    (semantic-flex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -368,7 +360,7 @@
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-03-03 22:01+0100
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-20 15:06+0200
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -400,9 +392,10 @@
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-03-03 22:01+0100
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-20 15:06+0200
   (progn
-    (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
+    (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
+          semantic-bovinate-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-wy-automaton
           semantic-flex-keywords-obarray wisent-wy-keywords
           wisent-flex-tokens-obarray wisent-wy-tokens)
@@ -477,7 +470,7 @@ EXPANDER is the Semantic function called to expand NONTERM"
 $I is the placeholder value to expand.
 NONTERM is the nonterminal symbol to start with."
   (or (wisent-wy-EXPANDTHING
-       $i nonterm 'wisent-bovinate-from-nonterminal)
+       $i nonterm 'semantic-bovinate-from-nonterminal)
       (error "Invalid form (EXPAND %s %s)" $i nonterm)))
 
 (defun wisent-wy-EXPANDFULL ($i nonterm)
@@ -485,7 +478,7 @@ NONTERM is the nonterminal symbol to start with."
 $I is the placeholder value to expand.
 NONTERM is the nonterminal symbol to start with."
   (or (wisent-wy-EXPANDTHING
-       $i nonterm 'wisent-bovinate-from-nonterminal-full)
+       $i nonterm 'semantic-bovinate-from-nonterminal-full)
       (error "Invalid form (EXPANDFULL %s %s)" $i nonterm)))
 
 (defconst wisent-wy-builtins
@@ -586,7 +579,8 @@ Warn if other TYPE tokens exist."
   "Return setupcode expressions as a string."
   (format
    "(progn\n\
-      (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel\n\
+      (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal\n\
+            semantic-bovinate-parser-name \"LALR\"\n\
             semantic-toplevel-bovine-table %s\n\
             semantic-flex-keywords-obarray %s\n\
             wisent-flex-tokens-obarray %s)\n\
