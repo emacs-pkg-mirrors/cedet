@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.22 2002/07/16 21:13:14 ponced Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.23 2002/07/29 03:42:35 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -262,7 +262,15 @@ If ARG is nil, then toggle."
 
 
 ;; This turns on semantic partial reparsing
-(add-hook 'semantic-change-hooks #'semantic-change-function-mark-dirty)
+
+;; The old version
+;(add-hook 'semantic-change-hooks #'semantic-change-function-mark-dirty)
+;(setq semantic-bovinate-incremental-parser #'semantic-cleanup-dirty-tokens)
+
+;; The new version
+(add-hook 'semantic-change-hooks #'semantic-edits-change-function-handle-changes)
+;; This should be done in a more integral way, but this will work for now.
+(add-hook 'semantic-before-toplevel-cache-flush-hook #'semantic-edits-flush-changes)
 
 (defvar semantic-load-turn-everything-on nil
   "Non-nil means turn on all features in the semantic package.")
@@ -286,13 +294,16 @@ other criteria.")
 				     (imenu-add-to-menubar "TOKENS"))))
 
   (when semantic-load-turn-everything-on
-    (global-semantic-show-dirty-mode 1))
+    (global-semantic-show-dirty-mode 1)
+    (global-semantic-highlight-edits-mode 1)
+    )
 
   (global-senator-minor-mode 1)
   (global-semantic-show-unmatched-syntax-mode 1)
   (global-semantic-auto-parse-mode 1)
   (global-semanticdb-minor-mode 1)
   (global-semantic-summary-mode 1)
+  (global-semantic-show-parser-state-mode 1)
  )
 
 (provide 'semantic-load)
