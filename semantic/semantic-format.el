@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.16 2004/03/11 02:33:32 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.17 2004/03/19 23:51:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -92,7 +92,7 @@ Images can be used as icons instead of some types of text strings."
   "Test all outputs from `semantic-format-tag-functions'.
 Output is generated from the function under `point'."
   (interactive)
-  (semantic-bovinate-toplevel t)
+  (semantic-fetch-tags)
   (let* ((tag (semantic-current-tag))
 	 (par (or (semantic-current-tag-parent)
 		  (if (semantic-tag-function-parent tag)
