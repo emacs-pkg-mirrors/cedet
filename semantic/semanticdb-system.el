@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.2 2003/04/09 01:10:08 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.3 2003/11/29 23:14:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -107,6 +107,7 @@ name in a secondary directory."
 (defvar semanticdb-system-database-query-history nil
   "History variable when asking for a type of system database.")
 
+;;;###autoload
 (defun semanticdb-create-system-database (path &optional class)
   "Create a system database starting at PATH.
 PATH should be a top level directory for a series of files containing
