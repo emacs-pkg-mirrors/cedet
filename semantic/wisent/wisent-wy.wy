@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.wy,v 1.2 2002/02/26 18:54:20 ponced Exp $
+;; X-RCS: $Id: wisent-wy.wy,v 1.3 2002/02/27 23:03:40 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -30,6 +30,8 @@
         ;; Numbers
         (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
                 "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
+        ;; C-like character literals
+        semantic-flex-extensions wisent-wy-flex-extensions
         ;; Parent/Child separator
         semantic-type-relation-separator-character '(":")
         ;; Names
@@ -46,7 +48,7 @@
         '(
           (code         . default)
           (keyword      . font-lock-keyword-face)
-          (token        . font-lock-constant-face)
+          (token        . font-lock-type-face)
           (nonterminal  . font-lock-function-name-face)
           (rule         . default)
           )
@@ -96,6 +98,7 @@
 %token <string>        STRING
 %token <symbol>        SYMBOL
 %token <number>        NUMBER
+%token <char>          CHARACTER
 
 ;; Blocks
 %token <semantic-list> PAREN_BLOCK "^("
@@ -212,18 +215,18 @@ start_decl:
   ;
 
 left_decl:
-    LEFT symbols
-    (list (car $2) 'left nil (cdr $2) nil)
+    LEFT items
+    (list $1 'assoc nil $2 nil)
   ;
 
 right_decl:
-    RIGHT symbols
-    (list (car $2) 'right nil (cdr $2) nil)
+    RIGHT items
+    (list $1 'assoc nil $2 nil)
   ;
 
 nonassoc_decl:
-    NONASSOC symbols
-    (list (car $2) 'nonassoc nil (cdr $2) nil)
+    NONASSOC items
+    (list $1 'assoc nil $2 nil)
   ;
 
 put_decl:
@@ -334,7 +337,7 @@ rule:
   ;
 
 level:
-    PERCENT PREC SYMBOL
+    PERCENT PREC item
     (identity $3)
   ;
        
@@ -363,8 +366,25 @@ elements:
   ;
 
 element:
-    action_opt SYMBOL
+    action_opt item
     (cons $1 $2)
+  ;
+
+items:
+    lifo_items
+    (nreverse $1)
+  ;
+
+lifo_items:
+    lifo_items item
+    (cons $2 $1)
+  | item
+    (list $1)
+  ;
+
+item:
+    SYMBOL
+  | CHARACTER
   ;
 
 ;;; wisent-wy.wy ends here
