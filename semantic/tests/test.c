@@ -1,10 +1,9 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.3 2001/08/17 21:22:30 zappo Exp $
+ * $Id: test.c,v 1.4 2001/09/14 20:30:25 zappo Exp $
  *
  */
-
 /* types of include files */
 #include "includeme1.h"
 #include <includeme2.h>
@@ -145,7 +144,7 @@ struct mystrct1 funk1(arg_31, arg_32)
   sv = 4;
 }
 
-enum myenum1 funk2(arg_41, arg_42)
+enum myenum1 *funk2(arg_41, arg_42)
      char *arg_41;
      union myunion1 *arg_42;
 {
@@ -155,7 +154,9 @@ enum myenum1 funk2(arg_41, arg_42)
 int funk3(arg_51, arg_53)
      int arg_51, *arg_53;
 {
-  sv = 6;
+  char q = 'a';
+  int sv = 6;
+
   funcall(sv, arg51);
   fv = 7;
 }
