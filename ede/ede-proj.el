@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.16 1999/09/08 23:05:59 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.17 1999/09/20 19:33:07 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -597,8 +597,12 @@ MFILENAME is the makefile to generate."
       (while fields ;  reset to defaults those that dont appear.
 	(if (and (not (assoc (car fields) l))
 		 (not (eq (car fields) 'file)))
-	    (oset-engine this (car fields)
-			 (oref-default-engine this (car fields))))
+	    (let ((eieio-skip-typecheck t))
+	      ;; This is a hazardous thing, for some elements
+	      ;; might not be bound.  Skip typechecking and duplicate
+	      ;; unbound slots along the way.
+	      (oset-engine this (car fields)
+			   (oref-default-engine this (car fields)))))
 	(setq fields (cdr fields)))
       (while l
 	(let ((field (car l)) (val (car (cdr l))))
