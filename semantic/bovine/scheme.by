@@ -3,7 +3,7 @@
 ;; Copyright (C) 2001, 2003 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: scheme.by,v 1.3 2003/02/17 02:22:49 zappo Exp $
+;; X-RCS: $Id: scheme.by,v 1.4 2003/03/13 02:05:11 zappo Exp $
 ;;
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -59,15 +59,15 @@ scheme-list : OPENPAREN scheme-in-list CLOSEPAREN
 	    ;
 
 scheme-in-list: DEFINE symbol expression
-		( $2 variable nil $3 nil )
+		(VARIABLE-TAG $2 nil $3 )
 	      | DEFINE name-args opt-doc sequence
-		( (car ,$2) function (cdr ,$2) nil ,$3 )
+		(FUNCTION-TAG (car ,$2) nil (cdr ,$2) )
 	      | DEFINE-MODULE name-args
-		( (nth (length $2) $2 ) provide nil)
+		(PACKAGE-TAG (nth (length $2) $2 ) nil)
 	      | LOAD string
-		( (file-name-nondirectory (read $2)) require (read $2) )
+		(INCLUDE-TAG (file-name-nondirectory (read $2)) (read $2) )
 	      | symbol
-		( $1 code )
+		(TAG $1 code )
 	      ;
 
 name-args: semantic-list
