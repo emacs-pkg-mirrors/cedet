@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.3 2001/10/05 02:11:30 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.4 2001/10/24 01:11:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -132,12 +132,12 @@ If ARG is nil, then toggle."
   :type 'hook)
 
 (defcustom semantic-show-dirty-mode-on-hook nil
-  "Hook run when show-unmatched-syntax minor mode is turned on."
+  "Hook run when show-dirty minor mode is turned on."
   :group 'semantic
   :type 'hook)
   
 (defcustom semantic-show-dirty-mode-off-hook nil
-  "Hook run when show-unmatched-syntax minor mode is turned off."
+  "Hook run when show-dirty minor mode is turned off."
   :group 'semantic
   :type 'hook)
 
