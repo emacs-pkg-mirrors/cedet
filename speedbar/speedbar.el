@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.185 2000/09/22 02:26:27 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.186 2000/09/30 02:30:11 zappo Exp $
 
 (defvar speedbar-version "0.13beta3"
   "The current version of speedbar.")
@@ -736,6 +736,7 @@ to toggle this value.")
   (suppress-keymap speedbar-key-map t)
 
   ;; control
+  (define-key speedbar-key-map "t" 'speedbar-toggle-updates)
   (define-key speedbar-key-map "g" 'speedbar-refresh)
 
   ;; navigation
@@ -2017,7 +2018,11 @@ Groups may optionally contain a position."
   (and (stringp (car-safe sublst))
        (number-or-marker-p (car-safe (cdr-safe sublst)))
        (listp (cdr-safe (cdr-safe sublst)))
-       (speedbar-generic-list-tag-p (car-safe (cdr-safe (cdr-safe sublst))))))
+       (let ((rest (car-safe (cdr-safe (cdr-safe sublst)))))
+	 (or (speedbar-generic-list-tag-p rest)
+	     (speedbar-generic-list-group-p rest)
+	     (speedbar-generic-list-positioned-group-p rest)
+	     ))))
 
 (defun speedbar-generic-list-tag-p (sublst)
   "Non nil if SUBLST is a tag."
@@ -2295,7 +2300,8 @@ name will have the function FIND-FUN and not token."
 				     (car (car lst)) ;button name
 				     nil nil 'speedbar-tag-face
 				     (1+ level)))
-	    (t (speedbar-message "Ooops!")))
+	    (t (speedbar-message "speedbar-insert-generic-list: malformed list!")
+	       ))
       (setq lst (cdr lst)))))
 
 (defun speedbar-insert-imenu-list (indent lst)
