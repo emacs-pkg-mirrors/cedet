@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.85 2000/10/11 02:50:28 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.86 2000/11/30 22:39:54 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -1629,11 +1629,11 @@ This is usually a symbol that starts with `:'."
 (put 'invalid-slot-name 'error-message "Invalid slot name")
 
 (intern "invalid-slot-type")
-(put 'invalid-slot-type 'error-conditions '(invalid-slot-type nil))
+(put 'invalid-slot-type 'error-conditions '(invalid-slot-type error nil))
 (put 'invalid-slot-type 'error-message "Invalid slot type")
 
 (intern "unbound-slot")
-(put 'unbound-slot 'error-condition '(unbound-slot nil))
+(put 'unbound-slot 'error-conditions '(unbound-slot error nil))
 (put 'unbound-slot 'error-message "Unbound slot")
 
 ;;; Here are some CLOS items that need the CL package
