@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.5 2001/05/07 18:59:33 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.6 2001/05/09 02:33:53 zappo Exp $
 
 (defvar cogre-version "0.0"
   "Current version of Cogre.")
@@ -115,19 +115,19 @@ displayed in.")
 a connected graph contains a series of nodes and links which are
 rendered in a buffer, or serialized to disk.")
 
-(defclass cogre-graph-element ()
+(defclass cogre-graph-element (eieio-named)
   ((dirty :initform t
 	  :documentation
 	  "Non-nil if this graph element is dirty.
 Elements are made dirty when they are erased from the screen.
 Elements must be erased before any graphical fields are changed.")
-   (name :initarg :name
-	 :initform "Name"
-	 :type string
-	 :custom string
-	 :documentation
-	 "The name of this node.
-Node names must be unique within the current graph so that save
+   (name-default :initform "Name"
+		 :type string
+		 :custom string
+		 :allocation class
+		 :documentation
+     "The object-name of this node.
+Node object-names must be unique within the current graph so that save
 references in links can be restored.")
    (menu :initform nil
 	 :type list
@@ -155,7 +155,7 @@ a list of strings representing the body of the node."
    (blank-lines-top :allocation class
 		    :initform 1
 		    :documentation
-		    "Number of blank lines above the name.")
+		    "Number of blank lines above the object-name.")
    (blank-lines-bottom :allocation class
 		       :initform 1
 		       :documentation
@@ -185,13 +185,13 @@ a status, or values.")
 	  :initform nil
 	  :type (or null string cogre-node-child)
 	  :documentation "The starting node.
-As a string, the name of the node we start on.
+As a string, the object-name of the node we start on.
 As an object, the node we start on.")
    (end :initarg :end
 	  :initform nil
 	  :type (or null string cogre-node-child)
 	  :documentation "The ending node.
-As a string, the name of the node we end on.
+As a string, the object-name of the node we end on.
 As an object, the node we end on.")
    (start-glyph :initarg :start-glyph
 		:initform [ nil nil nil nil ]
@@ -299,6 +299,7 @@ arrows or circles.")
      )
     ("Change" :filter cogre-change-forms-menu)
     "--"
+    [ "Delete" cogre-delete (cogre-current-element) ]
     [ "Refresh" cogre-refresh t ]
     ))
 
@@ -315,9 +316,12 @@ Argument MENU-DEF is the easy-menu definition."
 	;; Added (car elements) to the menu.
 	(setq newmenu (cons
 		       (vector (car (car elements))
-			       (list 'cogre-new-node
-				     (point)
-				     (intern (car (car elements))))
+			       `(progn
+				 (cogre-new-node
+				  (point)
+				  (intern ,(car (car elements))))
+				 (cogre-render-buffer cogre-graph)
+				 )
 			       t)
 		       newmenu))
 	(setq elements (cdr elements)))
@@ -472,7 +476,8 @@ NODETYPE is the eieio class name for the node to insert."
     (if (not nodetype) (setq nodetype 'cogre-node))
     (let* ((x (current-column))
 	   (y (cogre-current-line))
-	   (n (make-instance nodetype "Node" :position (vector x y)))
+	   (n (make-instance nodetype (oref nodetype name-default)
+			     :position (vector x y)))
 	   )
       (if (interactive-p)
 	  (cogre-render-buffer cogre-graph))
@@ -519,9 +524,9 @@ LINKTYPE is the eieio class name for the link to insert."
   "Set the name of the current NODE to NAME."
   (interactive (let ((e (cogre-node-at-point-interactive)))
 		 (list e  (read-string "New Name: " ""
-				       nil (oref e name)))))
+				       nil (oref e object-name)))))
   (cogre-erase node)
-  (oset node name (cogre-unique-name cogre-graph name))
+  (oset node object-name (cogre-unique-name cogre-graph name))
   (if (interactive-p)
       (cogre-render-buffer cogre-graph))
   )
@@ -616,12 +621,12 @@ If ARG is unspecified, assume 1."
 (defmethod cogre-unique-name ((graph cogre-graph) name)
   "Within GRAPH, make NAME unique."
   (let ((newname name)
-	(obj (object-assoc name :name (oref graph elements)))
+	(obj (object-assoc name :object-name (oref graph elements)))
 	(inc 1))
     (while obj
       (setq newname (concat name (int-to-string inc)))
       (setq inc (1+ inc))
-      (setq obj (object-assoc newname :name (oref graph elements))))
+      (setq obj (object-assoc newname :object-name (oref graph elements))))
     newname))
 
 (defmethod cogre-set-dirty ((element cogre-graph-element) dirty-state)
@@ -633,13 +638,19 @@ If ARG is unspecified, assume 1."
   (if dirty-state (oset node rectangle nil))
   (call-next-method))
 
+(defmethod initialize-instance ((elt cogre-graph-element) fields)
+  "Initialize ELT's name before the main FIELDS are initialized."
+  (let ((n (oref elt name-default)))
+    (object-set-name-string elt n))
+  (call-next-method))
+
 (defmethod initialize-instance :AFTER ((elt cogre-graph-element) fields)
   "When creating a new element, add it to the current graph.
 Argument ELT is the element being created.
 Argument FIELDS are ignored."
-  (let ((n (oref elt name)))
+  (let ((n (oref elt object-name)))
     ;; make sure our name is unique.
-    (oset elt name (cogre-unique-name cogre-graph n)))
+    (oset elt object-name (cogre-unique-name cogre-graph n)))
   (cogre-add-element cogre-graph elt))
 
 ;;; Buffer Rendering
@@ -791,7 +802,7 @@ Always make the width 2 greater than the widest string."
 (defmethod cogre-node-title ((node cogre-node))
   "Return a list of strings representing the title of the NODE.
 For example: ( \"Title\" ) or ( \"<Type>\" \"Title\" )"
-  (list (oref node name)))
+  (list (oref node object-name)))
 
 (defmethod cogre-node-slots ((node cogre-node))
   "For NODE, return a list of slot lists.
@@ -801,7 +812,7 @@ Each list will be prefixed with a line before it."
 
 (defmethod cogre-node-widest-string ((node cogre-node))
   "Return the widest string in NODE."
-  (let ((namel (length (oref node name)))
+  (let ((namel (length (oref node object-name)))
 	(slots (cogre-node-slots node))
 	(names nil)
 	(ws 0))
