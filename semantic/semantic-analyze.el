@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.24 2004/02/05 03:16:02 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.25 2004/02/05 14:48:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -275,7 +275,7 @@ it should strip out those not accessable by methods of TYPE."
       (let ((oneparent
 	     (semantic-analyze-find-tag
 	      (cond ((stringp p) p)
-		    ((semantic-tag-p p) (seamntic-tag-name p))
+		    ((semantic-tag-p p) (semantic-tag-name p))
 		    ((and (listp p) (stringp (car p)))
 		     (car p)))
 	      'type)))
