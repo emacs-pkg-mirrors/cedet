@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.68 2004/01/27 14:38:35 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.69 2004/03/19 23:40:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -211,12 +211,12 @@ If OBJ's file is not loaded, read it in first."
 
 (defmethod semanticdb-refresh-table ((obj semanticdb-table))
   "If the tag list associated with OBJ is loaded, refresh it.
-This will call `semantic-bovinate-toplevel' if that file is in memory."
+This will call `semantic-fetch-tags' if that file is in memory."
   (let ((ff (semanticdb-full-filename obj)))
     (if (get-file-buffer ff)
 	(save-excursion
 	  (semanticdb-set-buffer obj)
-	  (semantic-bovinate-toplevel t)))))
+	  (semantic-fetch-tags)))))
 
 (defmethod semanticdb-needs-refresh-p ((obj semanticdb-table))
   "Return non-nil of OBJ's tag list is out of date.
@@ -449,13 +449,13 @@ Sets up the semanticdb environment."
 	 ;; Make sure it has a value.
 	 (oset ctbl unmatched-syntax nil)
 	 ))
-      (semantic-set-toplevel-bovine-cache (oref ctbl tags))
+      (semantic--set-buffer-cache (oref ctbl tags))
       (semantic--tag-link-cache-to-buffer)
       )
     ))
 
-(defun semanticdb-post-bovination (new-table)
-  "Function run after a bovination.
+(defun semanticdb-synchronize-table (new-table)
+  "Function run after parsing.
 Argument NEW-TABLE is the new table of tags."
   (if semanticdb-current-table
       (oset semanticdb-current-table tags new-table)))
@@ -466,7 +466,7 @@ If there is a semantic cache, slurp out the overlays, an store
 it in our database.  If that buffer has not cache, ignore it, we'll
 handle it later if need be."
   (if (and (semantic-active-p)
-	   semantic-toplevel-bovine-cache
+	   semantic--buffer-cache
 	   semanticdb-current-table)
       (progn
 	(oset semanticdb-current-table pointmax (point-max))
@@ -487,7 +487,7 @@ Save all the databases."
 ;;
 (defvar semanticdb-hooks
   '((semanticdb-semantic-init-hook-fcn semantic-init-db-hooks)
-    (semanticdb-post-bovination semantic-after-toplevel-cache-change-hook)
+    (semanticdb-synchronize-table semantic-after-toplevel-cache-change-hook)
     (semanticdb-kill-hook kill-buffer-hook)
     (semanticdb-kill-emacs-hook kill-emacs-hook)
     )
