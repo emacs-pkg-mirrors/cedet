@@ -9,6 +9,7 @@
     :name "autoloads"
     :path ""
     :autoload-file "semantic-al.el"
+    :autoload-dirs '("." "bovine" "wisent")
     )
    (ede-proj-target-elisp "maintenance"
     :name "maintenance"
