@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: ezimage.el,v 1.2 2003/07/18 05:17:16 zappo Exp $
+;; X-RCS: $Id: ezimage.el,v 1.3 2003/08/06 18:34:41 ponced Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -128,7 +128,7 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
 	    'buffer)
 	 (error nil))
        ,docstring)
-     (put `,variable 'ezimage t)))
+     (put ',variable 'ezimage t)))
 
 )))
 
