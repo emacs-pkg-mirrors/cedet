@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.22 2002/09/16 01:43:55 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.23 2002/12/31 17:11:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -278,7 +278,7 @@ beginning and end of a command."
 
 (define-overload semantic-beginning-of-command ()
   "Move to the beginning of the current command.
-Be default, users `semantic-command-separation-character'.")
+Be default, uses `semantic-command-separation-character'.")
 
 (defun semantic-beginning-of-command-default ()
   "Move to the beginning of the current command.
