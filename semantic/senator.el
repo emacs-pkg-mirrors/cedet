@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.100 2004/06/19 15:00:27 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.101 2004/12/01 14:22:45 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -2269,7 +2269,7 @@ If semantic tags are available, use them to navigate."
 
 (defvar senator-add-log-tags '(function variable type)
   "When advising `add-log-current-defun', tag classes used.
-Semantic tags that are of these classses will be used to find the name
+Semantic tags that are of these classes will be used to find the name
 used by add log.")
 (semantic-varalias-obsolete 'senator-add-log-tokens
                             'senator-add-log-tags)
@@ -2277,12 +2277,13 @@ used by add log.")
 (defadvice add-log-current-defun (around senator activate)
   "Return name of function definition point is in, or nil."
   (if senator-minor-mode
-      (let ((cd (semantic-find-tag-by-overlay))
+      (let ((cd (nreverse (semantic-find-tag-by-overlay)))
             (name nil))
         (while (and cd (not name))
-          (if (member (semantic-tag-class (car cd)) senator-add-log-tags)
-              (setq name (semantic-tag-name (car cd))))
-          (setq cd (cdr cd)))
+          (if (memq (semantic-tag-class (car cd))
+                    senator-add-log-tags)
+              (setq name (semantic-tag-name (car cd)))
+            (setq cd (cdr cd))))
         (if name
             (setq ad-return-value name)
           ad-do-it))
