@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.15 2001/01/31 15:31:46 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.16 2001/02/02 04:15:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,7 +42,6 @@
  ( type)
  ( function)
  ( variable)
- ( prototype)
  ( define)
  ) ; end declaration
  (bovine-inner-scope
@@ -85,6 +84,40 @@
   ,(semantic-lambda
   (list nil)))
  ) ; end structsubparts
+ (classparts
+ ( semantic-list
+  ,(semantic-lambda
+ 
+ (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'classsubparts)
+ ))
+ ) ; end classparts
+ (classsubparts
+ ( variable)
+ ( define)
+ ( function)
+ ( opt-class-protection punctuation "\\b:\\b"
+  ,(semantic-lambda
+  (list nil)))
+ ( open-paren "{"
+  ,(semantic-lambda
+  (list nil)))
+ ( close-paren "}"
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end classsubparts
+ (opt-class-parents
+ ( punctuation "\\b:\\b" opt-class-protection symbol
+  ,(semantic-lambda
+  (list (nth 2 vals))))
+ (
+  ,(semantic-lambda
+ ))
+ ) ; end opt-class-parents
+ (opt-class-protection
+ ( PUBLIC)
+ ( PRIVATE)
+ ( PROTECTED)
+ ) ; end opt-class-protection
  (enumparts
  ( semantic-list
   ,(semantic-lambda
@@ -119,6 +152,9 @@
  ( ENUM opt-name enumparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
+ ( CLASS symbol opt-class-parents classparts
+  ,(semantic-lambda
+  (list (nth 1 vals) 'type (nth 0 vals) (nth 3 vals)) (nth 2 vals) (list nil nil)))
  ( TYPEDEF typeform symbol
   ,(semantic-lambda
   (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
@@ -137,10 +173,10 @@
   (list 0)))
  ) ; end opt-stars
  (declmods
- ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)" declmods
+ ( symbol symbol "\\b\\\\(_\\+\\\\)\\?\\\\(extern\\\\|static\\\\|const\\\\|volatile\\\\|signed\\\\|unsigned\\\\|virtual\\\\)\\b" declmods
   ,(semantic-lambda
   ( cons (nth 0 vals) (nth 1 vals))))
- ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)"
+ ( symbol symbol "\\b\\\\(_\\+\\\\)\\?\\\\(extern\\\\|static\\\\|const\\\\|volatile\\\\|signed\\\\|unsigned\\\\|virtual\\\\)\\b"
   ,(semantic-lambda
   (list (nth 0 vals))))
  (
@@ -230,6 +266,22 @@
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end varnamelist
+ (opt-class
+ ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b"
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ (
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end opt-class
+ (opt-destructor
+ ( punctuation "\\b~\\b"
+  ,(semantic-lambda
+  (list t)))
+ (
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end opt-destructor
  (arg-list
  ( symbol "\\<__?P\\>" semantic-list
  ,(lambda (vals start end)
@@ -274,10 +326,44 @@
   ,(semantic-lambda
   (list nil)))
  ) ; end arg-sub-list
- (functiondef
- ( declmods typeform symbol arg-list
+ (operatorsym
+ ( punctuation "\\b<\\b" punctuation "\\b<\\b"
   ,(semantic-lambda
-  (list (nth 2 vals) 'function (nth 1 vals) (nth 3 vals) ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals))) nil)))
+  (list "<<")))
+ ( punctuation "\\b>\\b" punctuation "\\b>\\b"
+  ,(semantic-lambda
+  (list ">>")))
+ ( punctuation "\\b=\\b" punctuation "\\b=\\b"
+  ,(semantic-lambda
+  (list "==")))
+ ( punctuation "\\b<\\b" punctuation "\\b=\\b"
+  ,(semantic-lambda
+  (list "<=")))
+ ( punctuation "\\b>\\b" punctuation "\\b=\\b"
+  ,(semantic-lambda
+  (list ">=")))
+ ( punctuation "\\b!\\b" punctuation "\\b=\\b"
+  ,(semantic-lambda
+  (list "!=")))
+ ( punctuation "\\b<\\b")
+ ( punctuation "\\b>\\b")
+ ( punctuation "\\b\\*\\b")
+ ( punctuation "\\b\\+\\b")
+ ( punctuation "\\b-\\b")
+ ( punctuation "\\b/\\b")
+ ) ; end operatorsym
+ (functionname
+ ( OPERATOR operatorsym
+  ,(semantic-lambda
+  (nth 1 vals)))
+ ( symbol
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ) ; end functionname
+ (functiondef
+ ( declmods typeform opt-class opt-destructor functionname arg-list
+  ,(semantic-lambda
+  (nth 4 vals) (list 'function (nth 1 vals) (nth 5 vals) ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'parent ( car (nth 2 vals)) 'destructor ( car (nth 3 vals))) nil)))
  ) ; end functiondef
  (prototype
  ( functiondef punctuation "\\b;\\b"
@@ -285,10 +371,18 @@
   (nth 0 vals)))
  ) ; end prototype
  (function
- ( functiondef semantic-list
+ ( functiondef fun-or-proto-end
   ,(semantic-lambda
   (nth 0 vals)))
  ) ; end function
+ (fun-or-proto-end
+ ( punctuation "\\b;\\b"
+  ,(semantic-lambda
+  (list t)))
+ ( semantic-list
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end fun-or-proto-end
  (opt-expression
  ( expression)
  (
@@ -307,7 +401,7 @@
  ))
  ) ; end expression
  )
-            "C language specification.")
+                           "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -400,11 +494,17 @@ machine."
       ("union" . UNION)
       ("enum" . ENUM)
       ("typedef" . TYPEDEF)
+      ("class" . CLASS)
+      ("operator" . OPERATOR)
+      ("public" . PUBLIC)
+      ("private" . PRIVATE)
+      ("protected" . PROTECTED)
       )
    '(
      ("struct" type t)
      ("union" type t)
      ("typedef" type t)
+     ("class" type t)
      ))
   "Some keywords used in C.")
 
@@ -427,6 +527,7 @@ machine."
 )
 
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
+(add-hook 'c++-mode-hook 'semantic-default-c-setup)
 
 (provide 'semantic-c)
 
