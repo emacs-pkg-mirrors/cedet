@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.128 2003/02/25 14:36:54 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.129 2003/09/09 17:03:43 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.18"
   "Current version of EIEIO.")
@@ -1044,7 +1044,7 @@ created by the :initarg tag."
   (if (not (symbolp field))
       (signal 'wrong-type-argument (list 'symbolp field)))
   (let* ((class (if (class-p obj) obj (aref obj object-class)))
-	 (c (eieio-field-name-index class field)))
+	 (c (eieio-field-name-index class obj field)))
     (if (not c)
 	;; It might be missing because it is a :class allocated field.
 	;; Lets check that info out.
@@ -1094,7 +1094,7 @@ Fills in OBJ's FIELD with it's default value."
   (if (not (or (object-p obj) (class-p obj))) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let* ((cl (if (object-p obj) (aref obj object-class) obj))
-	 (c (eieio-field-name-index cl field)))
+	 (c (eieio-field-name-index cl obj field)))
     (if (not c)
 	;; It might be missing because it is a :class allocated field.
 	;; Lets check that info out.
@@ -1139,7 +1139,7 @@ with in the :initarg slot.  VALUE can be any Lisp object."
 Fills in OBJ's FIELD with VALUE."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let ((c (eieio-field-name-index (object-class-fast obj) field)))
+  (let ((c (eieio-field-name-index (object-class-fast obj) obj field)))
     (if (not c)
 	;; It might be missing because it is a :class allocated field.
 	;; Lets check that info out.
@@ -1171,7 +1171,7 @@ Fills in the default value in CLASS' in FIELD with VALUE."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let* ((scoped-class class)
-	 (c (eieio-field-name-index class field)))
+	 (c (eieio-field-name-index class nil field)))
     (if (not c)
 	;; It might be missing because it is a :class allocated field.
 	;; Lets check that info out.
@@ -1439,10 +1439,13 @@ so that we can protect private slots."
 	(setq par (cdr par)))
       ret)))
 
-(defun eieio-field-name-index (class field)
-  "In CLASS find the index of the named FIELD.
+(defun eieio-field-name-index (class obj field)
+  "In CLASS for OBJ find the index of the named FIELD.
 The field is a symbol which is installed in CLASS by the `defclass'
-call.  If FIELD is the value created with :initarg instead,
+call.  OBJ can be nil, but if it is an object, and the slot in question
+is protected, access will be allowed if obj is a child of the currently
+`scoped-class'.
+If FIELD is the value created with :initarg instead,
 reverse-lookup that name, and recurse with the associated slot value."
   ;; Removed checks to outside this call
   (let* ((fsym (intern-soft (symbol-name field)
@@ -1454,7 +1457,10 @@ reverse-lookup that name, and recurse with the associated slot value."
 	 ((not (get fsym 'protection))
 	  (+ 3 fsi))
 	 ((and (eq (get fsym 'protection) 'protected)
-	       (and scoped-class (child-of-class-p class scoped-class)))
+	       scoped-class
+	       (or (child-of-class-p class scoped-class)
+		   (and (object-p obj)
+			(child-of-class-p class (object-class obj)))))
 	  (+ 3 fsi))
 	 ((and (eq (get fsym 'protection) 'private)
 	       (or (and scoped-class
@@ -1463,7 +1469,7 @@ reverse-lookup that name, and recurse with the associated slot value."
 	  (+ 3 fsi))
 	 (t nil))
       (let ((fn (eieio-initarg-to-attribute class field)))
-	(if fn (eieio-field-name-index class fn) nil)))))
+	(if fn (eieio-field-name-index class obj fn) nil)))))
 
 (defun eieio-class-field-name-index (class field)
   "In CLASS find the index of the named FIELD.
