@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.44 2001/08/28 12:52:38 ponced Exp $
+@c $Id: semantic.texi,v 1.45 2001/09/12 04:52:52 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -926,7 +926,11 @@ specifier to a plain text string which is the name of that parent.
 
 @item (dereference .  INT)
 Number of levels of dereference.
-In C, the number of `*' characters indicating pointers.
+In C, the number of array dimentions.
+
+@item (pointer . INT)
+Number of levels of pointers.
+In C, the number of @code{*} characrers.
 
 @item (typemodifiers .  ( "text" ... ))
 Keyword modifiers for a type.  In C, such words would include
@@ -953,6 +957,11 @@ signals that a function or variable is user visible.  In Emacs Lisp,
 this means a function is @dfn{interactive}.
 @end table
 
+@item (prototype . t)
+For functions or variables that are not declared locally, a prototype
+is something that will define that function or variable for use.
+In C, the term represents prototypes generally used in header files.
+In Emacs Lisp, the @code{autoload} statement creates prototypes.
 
 @node Compiling, Debugging, BNF conversion, Top
 @chapter Compiling a language file with the bovinator
