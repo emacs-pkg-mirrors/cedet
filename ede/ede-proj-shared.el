@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-shared.el,v 1.5 2000/09/24 15:51:45 zappo Exp $
+;; RCS: $Id: ede-proj-shared.el,v 1.6 2000/09/25 01:24:42 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -90,7 +90,8 @@ Use ldlibs to add addition libraries.")
        "\t@-rm -f .deps/$(*F).p\n\n"))
   )
 
-(defmethod ede-proj-configure-add-missing ((this ede-proj-target))
+(defmethod ede-proj-configure-add-missing
+  ((this ede-proj-target-makefile-shared-object))
   "Query if any files needed by THIS provided by automake are missing.
 Results in --add-missing being passed to automake."
   (not (and (ede-expand-filename (ede-toplevel) "ltconfig")
