@@ -1,0 +1,48 @@
+CEDET: Collection of Emacs Development Enviromnent Tools
+
+CEDET is a top-level project containing several individual package for Emacs,
+includeing:
+
+   EIEIO - CLOS layer for Emacs Lisp
+   Semantic - Parser Infrastructure for Emacs
+   Speedbar - Everything browser
+   EDE - File manager/ Makefile generator
+   COGRE - Connected Graph Editor
+
+You can install all these packagees at once with the CEDET build and
+install scripts:
+
+1) Copy source files somewhere.
+
+2) Byte compile
+
+   a) make
+
+   -OR-
+
+   b) make EMACS=<your favorite emacs>
+
+  You might also have trouble with makeinfo.  If you need to upgrade
+  makeinfo, you can do this:
+
+  c) make MAKEINFO=/usr/local/bin/makeinfo
+
+3) Install load hooks into your .emacs file.
+
+;; Configuration variables here:
+(setq semantic-load-turn-useful-things-on t)
+;; Load CEDET
+(load-file "~/cedet-VERSION/common/cedet.el")
+
+4) Configuration:
+
+You can configure how the individual packages load in the above example
+by adding settings in the comment section.  Please read individual
+INSTALL files for each package for details on configuring them.
+See the texinfo manuals for details on more specific configurations.
+
+5) To send bug reports, or participate in discussions about semantic,
+   use the mailing list cedet-semantic@sourceforge.net via the URL:
+
+   http://lists.sourceforge.net/lists/listinfo/cedet-semantic
+
