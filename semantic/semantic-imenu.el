@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.47 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.48 2003/11/20 15:00:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -252,7 +252,7 @@ Optional argument STREAM is the stream of tags for the current buffer."
 			(or (semantic-create-imenu-index-1 stream nil)
 			    ;; No tags in this file
 			    'file-only))))
-	  (tables (oref semanticdb-current-database tables)))
+	  (tables (semanticdb-get-database-tables semanticdb-current-database)))
       (working-status-forms "Imenu Directory Index" "done"
 	(while tables
 	  (let ((semantic-imenu-directory-current-file
