@@ -65,6 +65,22 @@ M-x semantic-speedbar-analysis
 intelligent references.  Sometimes you need to press <tt>g</tt> to
 force an update.
 
+<p>If speedbar is not your thing and you want more manual access to
+  smart completion, add these lines to your .emacs file:
+
+<pre>
+  (require 'semantic-ia)
+</pre>
+
+The commands available (for binding to a key) are:
+
+<ul>
+<li>semantic-ia-complete-symbol
+<li>semantic-ia-complete-symbol-menu
+<li>semantic-ia-complete-tip
+</ul>
+
+
 <h2>Semantic Analyzer FAQ</h2>
 
 Quastions are for C/C++:
@@ -73,7 +89,11 @@ Quastions are for C/C++:
 Q) When I type the name of a struct or class and press "." nothing
    happens:
 
-A) The context analyzer has a bug that requires at least on symbol
+A1) Nothing is supposed to happen when you press ".".  you need to
+    explicitly use the command `semantic-analyze-possible-completions'
+   or (better) `semantic-ia-complete-symbol'.
+
+A2) The context analyzer has a bug that requires at least on symbol
    character to appear after the "." and before the end of the
    function context.  It could be a part of the symbol completing, or
    just some other command on another line.
