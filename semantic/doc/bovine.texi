@@ -373,6 +373,21 @@ association list of the form:
 @example
 ( ( symbol1 . value1) (symbol2 . value2) ... )
 @end example
+@item (TAG "name" class &rest attributes)
+This creats one tag in the current buffer.  @var{name} is a string
+that represents the tag in the langauge.  The @var{class} is the kind
+of tag being create, such as @code{function}, or @code{variable},
+though any symbol will work.  @var{attributes} is a set of labeled
+values such as @code{:const t :parent "parenttype"}.
+@item (TAG-VARIABLE "name" type default-value &rest attributes)
+@itemx (TAG-FUNCTION "name" type arg-list &rest attributes)
+@itemx (TAG-TYPE "name" type members parents &rest attributes)
+@itemx (TAG-INCLUDE "name" system-flag &rest attributes)
+@itemx (TAG-PACKAGE "name" detail &rest attributes)
+@itemx (TAG-CODE "name" detail &rest attributes)
+Create a tag with @var{name} of the given @var{class}.
+See @inforef{Creating Tags, , semantic-appdev.info} for the lisp
+functions these translate into.
 @end table
 
 If the symbol @code{%quotemode backquote} is specified, then use
