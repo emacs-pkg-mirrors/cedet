@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.2 2002/02/26 18:50:17 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.3 2002/02/27 22:51:17 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,78 +55,60 @@
 
 (defconst wisent-calc-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-02-25 23:43+0100
+    ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-02-27 23:40+0100
     (wisent-compile-grammar
-     '((NUM NL EQ PLUS MINUS MULT DIV EXP LPAREN RPAREN)
-       ((left PLUS MINUS MULT DIV NEG)
-        (right EXP)
-        (nonassoc EQ))
+     '((NUM)
+       ((nonassoc 61)
+        (left 45 43)
+        (left 42 47)
+        (left NEG)
+        (right 94))
        (input
-        (nil
-         (identity ""))
+        ((line))
         ((input line)
-         (format "%s%s" $1 $2)))
+         (format "%s %s" $1 $2)))
        (line
-        ((NL)
-         (format "%s " $1))
-        ((exp NL)
-         (format "%s%s " $1 $2)))
+        ((59)
+         (progn ";"))
+        ((exp 59)
+         (format "%s;" $1)))
        (exp
         ((NUM)
          (string-to-number $1))
-        ((exp EQ exp)
-         (progn
-           (if
-               (not
-                (= $1 $3))
-               (message "wisent-calc error: %d != %d" $1 $3))
-           (= $1 $3)))
-        ((exp PLUS exp)
+        ((exp 61 exp)
+         (= $1 $3))
+        ((exp 43 exp)
          (+ $1 $3))
-        ((exp MINUS exp)
+        ((exp 45 exp)
          (- $1 $3))
-        ((exp MULT exp)
+        ((exp 42 exp)
          (* $1 $3))
-        ((exp DIV exp)
+        ((exp 47 exp)
          (/ $1 $3))
-        ((MINUS exp)
+        ((45 exp)
          [NEG]
          (- $2))
-        ((exp EXP exp)
+        ((exp 94 exp)
          (expt $1 $3))
-        ((LPAREN exp RPAREN)
-         (identity $2))))
+        ((40 exp 41)
+         (progn $2))))
      'nil)
     )
   "Parser automaton.")
 
 (defconst wisent-calc-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-02-25 23:43+0100
+   ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-02-27 23:40+0100
    (wisent-flex-make-token-table
-    '(("close-paren"
-       (RPAREN . ")"))
-      ("open-paren"
-       (LPAREN . "("))
-      ("punctuation"
-       (EXP . "^")
-       (DIV . "/")
-       (MULT . "*")
-       (MINUS . "-")
-       (PLUS . "+")
-       (EQ . "=")
-       (NL . ";"))
-      ("number"
+    '(("number"
        (NUM)))
-    '(("punctuation" string t)
-      ("close-paren" string t)
-      ("open-paren" string t)))
+    'nil)
    )
   "Tokens.")
 
 (defun wisent-calc-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-02-25 23:43+0100
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-02-27 23:40+0100
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
           semantic-toplevel-bovine-table wisent-calc-automaton
