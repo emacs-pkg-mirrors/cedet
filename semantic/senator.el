@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.42 2001/07/13 16:07:05 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.43 2001/08/04 21:01:49 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1898,7 +1898,8 @@ versions of Emacs."
         found)
     (if sym
         (progn
-          (setq found (if semanticdb-current-database
+          (setq found (if (and (featurep 'semanticdb)
+                               semanticdb-current-database)
                           (cdr
                            (car (semanticdb-find-nonterminal-by-name
                                  (car sym) nil t)))
@@ -1913,7 +1914,8 @@ versions of Emacs."
           (setq sym (semantic-ctxt-current-function))
           (if sym
               (progn
-                (setq found (if semanticdb-current-database
+                (setq found (if (and (featurep 'semanticdb)
+                                     semanticdb-current-database)
                                 (cdr
                                  (car (semanticdb-find-nonterminal-by-name
                                        (car sym) nil t)))
