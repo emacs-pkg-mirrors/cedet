@@ -1,12 +1,12 @@
 ;;; wisent-java.el --- Java LALR parser for Emacs
 
-;; Copyright (C) 2001 David Ponce
+;; Copyright (C) 2001, 2002 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.24 2002/06/30 22:26:56 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.25 2002/07/16 21:17:03 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,6 +34,7 @@
 ;;; Code:
 
 (require 'wisent-bovine)
+(require 'wisent-java-lex)
 (require 'semantic-java)
 (eval-when-compile
   (require 'semantic-util)
@@ -48,7 +49,7 @@
 
 (defconst wisent-java-parser-tables
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-06-30 23:26+0200
+    ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-16 22:08+0200
     (wisent-compile-grammar
      '((LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP NULL_LITERAL BOOLEAN_LITERAL IDENTIFIER STRING_LITERAL NUMBER_LITERAL ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED)
        nil
@@ -568,7 +569,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-06-30 23:26+0200
+   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-16 22:08+0200
    (semantic-flex-make-keyword-table
     '(("abstract" . ABSTRACT)
       ("boolean" . BOOLEAN)
@@ -724,7 +725,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-06-30 23:26+0200
+   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-16 22:08+0200
    (wisent-flex-make-token-table
     '(("number"
        (NUMBER_LITERAL))
@@ -784,18 +785,14 @@ unnecessary stuff to improve performance.")
        (LBRACK . "[")
        (LBRACE . "{")
        (LPAREN . "(")))
-    '(("punctuation" multiple t)
-      ("symbol" string t)
-      ("close-paren" string t)
-      ("open-paren" string t)
-      ("punctuation" string t)))
+    'nil)
    )
   "Java tokens.")
 
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-06-30 23:26+0200
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-16 22:08+0200
   (progn
     (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
           semantic-bovinate-parser-name "LALR"
@@ -815,16 +812,16 @@ Use the alternate LALR(1) parser."
      t ;; They can be changed in mode hook by more specific ones
      )
     (setq
+     ;; Lexical analysis
+     semantic-lex-number-expression semantic-java-number-regexp
+     semantic-lex-depth nil
+     semantic-lex-analyzer 'wisent-java-lexer
+     wisent-lexer-function 'wisent-lex
+     ;; Parsing
      semantic-expand-nonterminal 'wisent-java-expand-nonterminal
-     ;; How `semantic-flex' will setup the lexer input stream.
-     semantic-flex-depth nil
-     ;; Tell `semantic-flex' to handle Java numbers
-     semantic-number-expression semantic-java-number-regexp
-     ;; function to use when creating items in imenu
+     ;; Environment
      semantic-imenu-summary-function 'semantic-prototype-nonterminal
-     ;; function to use for creating the imenu
      imenu-create-index-function 'semantic-create-imenu-index
-     ;; Character used to separation a parent/child relationship
      semantic-type-relation-separator-character '(".")
      semantic-command-separation-character ";"
      document-comment-start "/**"
@@ -832,16 +829,16 @@ Use the alternate LALR(1) parser."
      document-comment-end " */"
      ;; speedbar and imenu buckets name
      semantic-symbol->name-assoc-list-for-type-parts
-     ;; In type parts
+     ;; in type parts
      '((type     . "Classes")
        (variable . "Variables")
        (function . "Methods"))
      semantic-symbol->name-assoc-list
-     ;; Everywhere
+     ;; everywhere
      (append semantic-symbol->name-assoc-list-for-type-parts
              '((include  . "Imports")
                (package  . "Package")))
-     ;; Semantic navigation inside 'type children
+     ;; navigation inside 'type children
      senator-step-at-token-ids '(function variable)
      )
     ;; Setup javadoc stuff
