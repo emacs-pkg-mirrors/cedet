@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.87 2001/02/24 15:17:29 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.88 2001/02/28 00:43:22 zappo Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -567,8 +567,9 @@ Optional argument CHECKCACHE indicates if the cache check should be made."
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer.
-If the optional argument CHECKCACHE is non-nil, then flush the cache iff
-there has been a size change."
+If the optional argument CHECKCACHE is non-nil, then make sure the cached
+token list is up to date.  If a partial reparse is possible, do that,
+otherwise, do a full reparse."
   (cond
    ((and semantic-bovinate-toplevel-override
 	 ;; We cannot predict partial reparsing for these parsers.  Let them
@@ -586,12 +587,19 @@ there has been a size change."
     ;; We have a cache, and some dirty tokens
     (let ((semantic-bovination-working-type 'dynamic))
       (working-status-forms (buffer-name) "done"
-	(while semantic-dirty-tokens
+	(while (and semantic-dirty-tokens
+		    (not (semantic-bovine-toplevel-full-reparse-needed-p
+			  checkcache)))
 	  (semantic-rebovinate-token (car semantic-dirty-tokens))
 	  (setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
 	  (working-dynamic-status))
-	(working-dynamic-status t)))
-    semantic-toplevel-bovine-cache
+	(working-dynamic-status t))
+      (setq semantic-dirty-tokens nil)
+      )
+    (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
+	;; If the partial reparse fails, jump to a full reparse.
+	(semantic-bovinate-toplevel checkcache)
+      semantic-toplevel-bovine-cache)
     )
    ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
     (semantic-clear-toplevel-cache)
@@ -694,7 +702,7 @@ The parser returns raw tokens with positional data START/END.
 We convert it from that to a cooked state with a property list and an overlay.
 Change the token with side effects and returns TOKEN."
   (let* ((result nil)
-	 (tmpet nil)
+	 (expandedtokens nil)
 	 (ncdr (- (length token) 2))
 	 (propcdr (if (natnump ncdr) (nthcdr ncdr token)))
 	 (overcdr (cdr propcdr))
@@ -720,17 +728,17 @@ Change the token with side effects and returns TOKEN."
 	;; no expanders
 	(setq result (cons token result))
       ;; Glom generated tokens
-      (setq tmpet (funcall semantic-expand-nonterminal token))
-      (if (not tmpet)
+      (setq expandedtokens (funcall semantic-expand-nonterminal token))
+      (if (not expandedtokens)
 	  (progn (setq result (cons token result))
 		 (semantic-overlay-stack-add o))
 	;; Fixup all overlays, start by deleting the old one
-	(let ((motok tmpet) o start end)
-	  (while motok
-	    (setq propcdr (nthcdr (- (length (car motok)) 2)
-				   (car motok))
-		  overcdr (nthcdr (- (length (car motok)) 1)
-				   (car motok))
+	(let ((tokenloop expandedtokens) o start end)
+	  (while tokenloop
+	    (setq propcdr (nthcdr (- (length (car tokenloop)) 2)
+				   (car tokenloop))
+		  overcdr (nthcdr (- (length (car tokenloop)) 1)
+				   (car tokenloop))
 		  ;; this will support new overlays created by
 		  ;; the special function, or recycles
 		  start (if (semantic-overlay-live-p (car overcdr))
@@ -743,13 +751,13 @@ Change the token with side effects and returns TOKEN."
 					   (current-buffer)))
 	    (if (semantic-overlay-live-p (car overcdr))
 		(semantic-overlay-delete (semantic-token-overlay
-					  (car motok))))
+					  (car tokenloop))))
 	    (semantic-overlay-stack-add o)
 	    (setcar propcdr nil)
 	    (setcar overcdr o)
-	    (semantic-overlay-put o 'semantic (car motok))
-	    (setq motok (cdr motok))))
-	(setq result (append tmpet result))))
+	    (semantic-overlay-put o 'semantic (car tokenloop))
+	    (setq tokenloop (cdr tokenloop))))
+	(setq result (append expandedtokens result))))
     result))
 
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
@@ -803,12 +811,23 @@ the current results on a parse error."
 			  'bovine-toplevel))
 	 (new (semantic-bovinate-nonterminal flexbits
 					     semantic-toplevel-bovine-table
-					     nonterminal)))
+					     nonterminal))
+	 (cooked nil)
+	 )
     (setq new (car (cdr new)))
     (if (not new)
-	;; Clever reparse failed, queuing full reparse.
-	(setq semantic-toplevel-bovine-cache-check t)
-      (semantic-raw-to-cooked-token new)
+        ;; Clever reparse failed, queuing full reparse.
+        (setq semantic-toplevel-bovine-cache-check t)
+      (setq cooked (semantic-raw-to-cooked-token new))
+      (if (not (eq new (car cooked)))
+          (if (= (length cooked) 1)
+              ;; Cooking did a 1 to 1 replacement.  Use it.
+              (setq new (car cooked))
+            ;; If cooking results in multiple things, do a full reparse.
+            (setq semantic-toplevel-bovine-cache-check t))))
+    ;; Don't do much if we have to do a full recheck.
+    (if semantic-toplevel-bovine-cache-check
+        nil
       (let ((oo (semantic-token-overlay token))
 	    (o (semantic-token-overlay new)))
 	;; Copy all properties of the old overlay here.
@@ -825,7 +844,8 @@ the current results on a parse error."
 	  (while p
 	    (semantic-token-put new (car (car p)) (cdr (car p)))
 	    (setq p (cdr p))))
-	(semantic-token-put new 'reparse-symbol nonterminal)
+	(if (not (eq nonterminal 'bovine-toplevel))
+	    (semantic-token-put new 'reparse-symbol nonterminal))
 	(semantic-token-put new 'dirty nil)
 	;; Splice into the main list.
 	(setcdr token (cdr new))
