@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.157 2002/08/07 17:58:07 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.158 2002/08/08 16:06:11 ponced Exp $
 
-(defvar semantic-version "2.0alpha3"
+(defvar semantic-version "2.0alpha4"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -191,15 +191,6 @@ Use this when writing programs that could cause a full
 reparse, but will not change the tag structure, such
 as adding or updating top-level comments.")
 
-(defvar semantic-toplevel-bovine-cache-check nil
-  "Non nil if the bovine cache is out of date.
-This is tracked with `semantic-change-function'.")
-(make-variable-buffer-local 'semantic-toplevel-bovine-cache-check)
-
-(defvar semantic-toplevel-bovine-force-reparse nil
-  "Non nil if the next token request forces a reparse.")
-(make-variable-buffer-local 'semantic-toplevel-bovine-force-reparse)
-
 (defvar semantic-bovinate-nonterminal-check-obarray nil
   "Obarray of streams already parsed for nonterminal symbols.")
 (make-variable-buffer-local 'semantic-bovinate-nonterminal-check-obarray)
@@ -214,11 +205,6 @@ syntax tokens created by the semantic lexer.  Use the functions
 `semantic-flex-start', `semantic-flex-end' and `semantic-flex-text' to
 get information about these tokens.  The current buffer is the buffer
 these tokens are derived from.")
-
-(defvar semantic-bovinate-toplevel-override nil
-  "Local variable set by major modes which provide their own bovination.
-This function should behave as the function `semantic-bovinate-toplevel'.")
-(make-variable-buffer-local 'semantic-bovinate-toplevel-override)
 
 (defvar semantic-before-toplevel-bovination-hook nil
   "Hooks run before a toplevel token parse.
@@ -263,6 +249,38 @@ during a flush when the cache is given a new value of nil.")
   "Optional name of the parser used to parse input stream.")
 (make-variable-buffer-local 'semantic-parser-name)
 
+;;; Parse tree state management API
+;;
+(defvar semantic-parse-tree-state 'needs-rebuild
+  "State of the current parse tree.")
+(make-variable-buffer-local 'semantic-parse-tree-state)
+
+(defmacro semantic-parse-tree-set-needs-update ()
+  "Indicate that the current parse tree needs to be updated.
+The parse tree can be updated by `semantic-parse-changes'."
+  `(setq semantic-parse-tree-state 'needs-update))
+
+(defmacro semantic-parse-tree-needs-update-p ()
+  "Return non-nil if the current parse tree needs to be updated."
+  `(eq semantic-parse-tree-state 'needs-update))
+
+(defmacro semantic-parse-tree-set-needs-rebuild ()
+  "Indicate that the current parse tree needs to be rebuilt.
+The parse tree must be rebuilt by `semantic-parse-region'."
+  `(setq semantic-parse-tree-state 'needs-rebuild))
+
+(defmacro semantic-parse-tree-needs-rebuild-p ()
+  "Return non-nil if the current parse tree needs to be rebuilt."
+  `(eq semantic-parse-tree-state 'needs-rebuild))
+
+(defmacro semantic-parse-tree-set-up-to-date ()
+  "Indicate that the current parse tree is up to date."
+  `(setq semantic-parse-tree-state nil))
+
+(defmacro semantic-parse-tree-up-to-date-p ()
+  "Return non-nil if the current parse tree is up to date."
+  `(null semantic-parse-tree-state))
+
 ;;; Overlay.
 ;;
 (defun semantic-delete-overlay-maybe (overlay)
@@ -281,27 +299,15 @@ This hook is for database functions which intend to swap in a token table.
 This guarantees that the DB will go before other modes that require
 a parse of the buffer.")
 
-(defun semantic-active-p ()
+(defsubst semantic-active-p ()
   "Return non-nil if the current buffer was set up for parsing."
-  (or semantic-toplevel-bovine-table
-      semantic-bovinate-toplevel-override))
+  semantic-toplevel-bovine-table)
 
-(defsubst semantic-bovine-toplevel-full-reparse-needed-p (&optional checkcache)
-  "Return non-nil if the current buffer needs a full reparse.
-Optional argument CHECKCACHE indicates if the cache check should be made."
-  (or semantic-toplevel-bovine-force-reparse
-      (and
-       checkcache
-       semantic-toplevel-bovine-cache-check)))
-
-(defsubst semantic-bovine-umatched-syntax-refresh-needed-p  (&optional checkcache)
+(defsubst semantic-bovine-umatched-syntax-refresh-needed-p  ()
   "Return non-nil if the unmatched syntax cache needs a refresh.
-That is if the cache is dirty or if the current buffer needs a full or
-partial reparse.  Optional argument CHECKCACHE indicates if the
-toplevel cache check should be made."
+That is if it is dirty or if the current parse tree isn't up to date."
   (or semantic-unmatched-syntax-cache-check
-      (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-      (semantic-bovine-toplevel-partial-reparse-needed-p checkcache)))
+      (not (semantic-parse-tree-up-to-date-p))))
 
 (defun semantic-new-buffer-fcn ()
   "Setup Semantic in the current buffer.
@@ -316,7 +322,7 @@ Runs `semantic-init-hook' if the major mode is setup to use Semantic."
     ;; of a mode does not choose to do so.
     (semantic-lex-init)
     ;; Setup for a needed reparse.
-    (setq semantic-toplevel-bovine-force-reparse t)
+    (semantic-parse-tree-set-needs-rebuild)
     ;; Call DB hooks before regular init hooks
     (run-hooks 'semantic-init-db-hooks)
     ;; Lastly, set up semantic modes
@@ -357,7 +363,7 @@ This makes sure semantic-init type stuff can occur."
 (defun semantic-rebovinate-quickly-hook ()
   "For use in a hook.  When only a partial reparse is needed, reparse."
   (condition-case nil
-      (if (semantic-bovine-toplevel-partial-reparse-needed-p nil)
+      (if (semantic-parse-tree-needs-update-p)
 	  (semantic-bovinate-toplevel))
     (error nil)))
 
@@ -398,184 +404,8 @@ the output buffer."
     (require 'pp)
     (erase-buffer)
     (insert (pp-to-string out))))
-
-;;; Parsing functions
-;;
-(defun semantic-set-unmatched-syntax-cache (unmatched-syntax)
-  "Set the unmatched syntax cache.
-Argument UNMATCHED-SYNTAX is the syntax to set into the cache."
-  ;; This function is not actually called by the main parse loop.
-  ;; This is intended for use by semanticdb.
-  (setq semantic-unmatched-syntax-cache unmatched-syntax
-	semantic-unmatched-syntax-cache-check nil)
-    ;; Refresh the display of unmatched syntax tokens if enabled
-  (run-hook-with-args 'semantic-unmatched-syntax-hook
-                      semantic-unmatched-syntax-cache))
-
-(defun semantic-clear-unmatched-syntax-cache ()
-  "Clear the cache of unmatched syntax tokens."
-  (setq semantic-unmatched-syntax-cache nil
-        semantic-unmatched-syntax-cache-check t))
-
-(defun semantic-bovinate-unmatched-syntax (&optional checkcache)
-  "Return the list of unmatched syntax tokens.
-If the optional argument CHECKCACHE is non-nil, then make sure the
-cached token list is up to date."
-  ;; If the cache need refresh then do a full re-parse.
-  (if (semantic-bovine-umatched-syntax-refresh-needed-p checkcache)
-      ;; To avoid a recursive call, temporarily disable
-      ;; `semantic-unmatched-syntax-hook'.
-      (let (semantic-unmatched-syntax-hook)
-        (condition-case nil
-            (progn
-              (semantic-clear-toplevel-cache)
-              (semantic-bovinate-toplevel))
-          (quit
-           (message "semantic-bovinate-unmatched-syntax: parsing of buffer canceled."))
-          )))
-    semantic-unmatched-syntax-cache)
-
-(defun semantic-clear-toplevel-cache ()
-  "Clear the toplevel bovine cache for the current buffer.
-Clearing the cache will force a complete reparse next time a token
-stream is requested."
-  (interactive)
-  (run-hooks 'semantic-before-toplevel-cache-flush-hook)
-  (setq semantic-toplevel-bovine-cache nil)
-  (semantic-clear-unmatched-syntax-cache)
-  ;; Nuke all semantic overlays.  This is faster than deleting based
-  ;; on our data structure.
-  (let ((l (semantic-overlay-lists)))
-    (mapcar 'semantic-delete-overlay-maybe (car l))
-    (mapcar 'semantic-delete-overlay-maybe (cdr l))
-    )
-  ;; Clear the dirty tokens... no longer relevant
-  (setq semantic-dirty-tokens nil)
-  (setq semantic-toplevel-bovine-force-reparse t)
-  ;; Remove this hook which tracks if a buffer is up to date or not.
-  (remove-hook 'after-change-functions 'semantic-change-function t)
-  ;; Old model.  Delete someday.
-  ;;(run-hooks 'semantic-after-toplevel-bovinate-hook)
-
-  (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
-		      semantic-toplevel-bovine-cache)
-  )
-
-(defun semantic-set-toplevel-bovine-cache (tokenlist)
-  "Set the toplevel bovine cache to TOKENLIST."
-  (setq semantic-toplevel-bovine-cache tokenlist
-	semantic-toplevel-bovine-cache-check nil
-	semantic-toplevel-bovine-force-reparse nil
-        semantic-unmatched-syntax-cache-check nil
-        semantic-bovinate-nonterminal-check-obarray nil)
-  (semantic-make-local-hook 'after-change-functions)
-  (add-hook 'after-change-functions 'semantic-change-function nil t)
-  (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
-		      semantic-toplevel-bovine-cache)
-  ;; Refresh the display of unmatched syntax tokens if enabled
-  (run-hook-with-args 'semantic-unmatched-syntax-hook
-                      semantic-unmatched-syntax-cache)
-  ;; Old Semantic 1.3 hook API.  Maybe useful forever?
-  (run-hooks 'semantic-after-toplevel-bovinate-hook)
-  )
-
-(defvar semantic-bovination-working-type 'percent
-  "*The type of working message to use when bovinating.
-'percent means we are doing a linear parse through the buffer.
-'dynamic means we are rebovinating specific tokens.")
-
-(defsubst semantic-bovination-working-message (&optional arg)
-  "Return the message string displayed while parsing.
-If optional argument ARG is non-nil it is appended to the message
-string.  See also the function `working-status-forms'."
-  (if semantic-parser-name
-      (format "%s/%s" semantic-parser-name (or arg ""))
-    (format "%s" (or arg ""))))
-
 
-;;; Application Parser Entry Point
-;;
-;; The best way to call the parser from programs is via
-;; `semantic-bovinate-toplevel'.  This, in turn, uses other internal
-;; API functions which plug-in parsers can take advantage of.
-
-;;;###autoload
-(defun semantic-bovinate-toplevel (&optional checkcache)
-  "Bovinate the entire current buffer.
-If the optional argument CHECKCACHE is non-nil, then make sure the
-cached token list is up to date.  If a partial reparse is possible, do
-that, otherwise, do a full reparse."
-  (cond
-   ((not (run-hook-with-args-until-failure
-	  'semantic-before-toplevel-bovination-hook))
-    ;; If any hook returns nil, we must return the cache as the buffer
-    ;; is supposedly unsafe for parsing.
-    semantic-toplevel-bovine-cache
-    )
-   ((and semantic-bovinate-toplevel-override
-	 ;; We cannot predict partial reparsing for these parsers.  Let them
-	 ;; fend for themselves.  We can, however, handle the main cache for them.
-	 (or (semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
-	     (semantic-bovine-toplevel-full-reparse-needed-p checkcache)))
-    (semantic-clear-toplevel-cache)
-    ;; Call a custom function
-    (let ((res (funcall semantic-bovinate-toplevel-override checkcache)))
-      (semantic-set-toplevel-bovine-cache res))
-    ;; Check: The below is not needed because of the -set- command above?
-    ;;(run-hooks 'semantic-after-toplevel-bovinate-hook)
-    semantic-toplevel-bovine-cache
-    )
-   ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
-    ;; Use the incremental parser to do a fast update.
-    (garbage-collect)
-    (let* ((gc-cons-threshold 10000000)
-           (changes (semantic-parse-changes)))
-      (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-          ;; If the partial reparse fails, jump to a full reparse.
-          (semantic-bovinate-toplevel checkcache)
-        ;; Clear the cache of unmatched syntax tokens
-	;;
-	;; NOTE TO SELF:
-	;;
-	;; Move this into the incremental parser.  This is a bug.
-	;;
-        (semantic-clear-unmatched-syntax-cache)
-        ;; After partial reparse is completed, let hooks know the updated
-        ;; tokens
-        (run-hook-with-args 'semantic-after-partial-cache-change-hook
-                            changes)
-        semantic-toplevel-bovine-cache))
-    )
-   ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-    ;; Reparse the whole system
-    (garbage-collect)
-    (let ((gc-cons-threshold 10000000)
-          res)
-      ;; Parse!
-      (working-status-forms
-          (semantic-bovination-working-message (buffer-name))
-          "done"
-	(setq res (semantic-parse-region (point-min) (point-max)))
-	(working-status t))
-      ;; Clear the caches when we see there were no errors.
-      ;;
-      ;; NOTE: We need to be careful about the unmatched syntax cache!
-      ;;       What to do?
-      (semantic-clear-toplevel-cache)
-      ;; Set up the new overlays
-      (semantic-overlay-list res)
-      ;; Set up the cache with the new results
-      (semantic-set-toplevel-bovine-cache res)
-      ;; Return
-      semantic-toplevel-bovine-cache)
-    )
-   (t
-    ;; We have a cache with stuff in it, so return it
-    semantic-toplevel-bovine-cache
-    )))
-
-
-;;; Parser API Plugin Functions
+;;; Functions of the parser plug-in API
 ;;
 ;; Overload these functions to create new types of parsers.
 ;;
@@ -638,6 +468,159 @@ unterminated syntax."
     (setq tokens (semantic-repeat-parse-whole-stream
                   lexbits nonterminal depth returnonerror))
     (nreverse tokens)))
+
+;;; Parsing functions
+;;
+(defun semantic-set-unmatched-syntax-cache (unmatched-syntax)
+  "Set the unmatched syntax cache.
+Argument UNMATCHED-SYNTAX is the syntax to set into the cache."
+  ;; This function is not actually called by the main parse loop.
+  ;; This is intended for use by semanticdb.
+  (setq semantic-unmatched-syntax-cache unmatched-syntax
+	semantic-unmatched-syntax-cache-check nil)
+    ;; Refresh the display of unmatched syntax tokens if enabled
+  (run-hook-with-args 'semantic-unmatched-syntax-hook
+                      semantic-unmatched-syntax-cache))
+
+(defun semantic-clear-unmatched-syntax-cache ()
+  "Clear the cache of unmatched syntax tokens."
+  (setq semantic-unmatched-syntax-cache nil
+        semantic-unmatched-syntax-cache-check t))
+
+(defun semantic-bovinate-unmatched-syntax ()
+  "Return the list of unmatched syntax tokens."
+  ;; If the cache need refresh then do a full re-parse.
+  (if (semantic-bovine-umatched-syntax-refresh-needed-p)
+      ;; To avoid a recursive call, temporarily disable
+      ;; `semantic-unmatched-syntax-hook'.
+      (let (semantic-unmatched-syntax-hook)
+        (condition-case nil
+            (progn
+              (semantic-clear-toplevel-cache)
+              (semantic-bovinate-toplevel))
+          (quit
+           (message "semantic-bovinate-unmatched-syntax:\
+ parsing of buffer canceled"))
+          )))
+    semantic-unmatched-syntax-cache)
+
+(defun semantic-clear-toplevel-cache ()
+  "Clear the toplevel bovine cache for the current buffer.
+Clearing the cache will force a complete reparse next time a token
+stream is requested."
+  (interactive)
+  (run-hooks 'semantic-before-toplevel-cache-flush-hook)
+  (setq semantic-toplevel-bovine-cache nil)
+  (semantic-clear-unmatched-syntax-cache)
+  ;; Nuke all semantic overlays.  This is faster than deleting based
+  ;; on our data structure.
+  (let ((l (semantic-overlay-lists)))
+    (mapcar 'semantic-delete-overlay-maybe (car l))
+    (mapcar 'semantic-delete-overlay-maybe (cdr l))
+    )
+  ;; Clear the dirty tokens... no longer relevant
+  (setq semantic-dirty-tokens nil)
+  (semantic-parse-tree-set-needs-rebuild)
+  ;; Remove this hook which tracks if a buffer is up to date or not.
+  (remove-hook 'after-change-functions 'semantic-change-function t)
+  ;; Old model.  Delete someday.
+  ;;(run-hooks 'semantic-after-toplevel-bovinate-hook)
+
+  (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
+		      semantic-toplevel-bovine-cache)
+  )
+
+(defun semantic-set-toplevel-bovine-cache (tokenlist)
+  "Set the toplevel bovine cache to TOKENLIST."
+  (setq semantic-toplevel-bovine-cache tokenlist
+        semantic-unmatched-syntax-cache-check nil
+        semantic-bovinate-nonterminal-check-obarray nil)
+  (semantic-parse-tree-set-up-to-date)
+  (semantic-make-local-hook 'after-change-functions)
+  (add-hook 'after-change-functions 'semantic-change-function nil t)
+  (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
+		      semantic-toplevel-bovine-cache)
+  ;; Refresh the display of unmatched syntax tokens if enabled
+  (run-hook-with-args 'semantic-unmatched-syntax-hook
+                      semantic-unmatched-syntax-cache)
+  ;; Old Semantic 1.3 hook API.  Maybe useful forever?
+  (run-hooks 'semantic-after-toplevel-bovinate-hook)
+  )
+
+(defvar semantic-bovination-working-type 'percent
+  "*The type of working message to use when bovinating.
+'percent means we are doing a linear parse through the buffer.
+'dynamic means we are rebovinating specific tokens.")
+
+(defsubst semantic-bovination-working-message (&optional arg)
+  "Return the message string displayed while parsing.
+If optional argument ARG is non-nil it is appended to the message
+string.  See also the function `working-status-forms'."
+  (if semantic-parser-name
+      (format "%s/%s" semantic-parser-name (or arg ""))
+    (format "%s" (or arg ""))))
+
+;;; Application Parser Entry Point
+;;
+;; The best way to call the parser from programs is via
+;; `semantic-bovinate-toplevel'.  This, in turn, uses other internal
+;; API functions which plug-in parsers can take advantage of.
+
+;;;###autoload
+(defun semantic-bovinate-toplevel (&optional checkcache)
+  "Bovinate the entire current buffer.
+Do an incremental reparse if possible, otherwise do a full reparse.
+
+The optional argument CHECKCACHE is ignored.  It is maintained for
+compatibility with previous versions of Semantic."
+  (and
+   ;; Application hooks say the buffer is safe for parsing
+   (run-hook-with-args-until-failure
+    'semantic-before-toplevel-bovination-hook)
+   ;; The parse tree actually needs to be refreshed
+   (not (semantic-parse-tree-up-to-date-p))
+   ;; So do it!
+   (let* ((gc-cons-threshold (max gc-cons-threshold 10000000))
+          (res nil))
+     (garbage-collect)
+     (cond
+   
+;;;; Try the incremental parser to do a fast update.
+     ((semantic-parse-tree-needs-update-p)
+      (setq res (semantic-parse-changes))
+      (if (semantic-parse-tree-needs-rebuild-p)
+          ;; If the partial reparse fails, jump to a full reparse.
+          (semantic-bovinate-toplevel)
+        ;; Clear the cache of unmatched syntax tokens
+        ;;
+        ;; NOTE TO SELF:
+        ;;
+        ;; Move this into the incremental parser.  This is a bug.
+        ;;
+        (semantic-clear-unmatched-syntax-cache)
+        (run-hook-with-args ;; Let hooks know the updated tokens
+         'semantic-after-partial-cache-change-hook res))
+      )
+   
+;;;; Parse the whole system.
+     ((semantic-parse-tree-needs-rebuild-p)
+      (working-status-forms
+          (semantic-bovination-working-message (buffer-name)) "done"
+        (setq res (semantic-parse-region (point-min) (point-max)))
+        (working-status t))
+      ;; Clear the caches when we see there were no errors.
+      ;;
+      ;; NOTE: We need to be careful about the unmatched syntax cache!
+      ;;       What to do?
+      (semantic-clear-toplevel-cache)
+      ;; Set up the new overlays
+      (semantic-overlay-list res)
+      ;; Set up the cache with the new results
+      (semantic-set-toplevel-bovine-cache res)
+      ))))
+  
+  ;; Always return the current parse tree.
+  semantic-toplevel-bovine-cache)
 
 ;;; Tokens and Overlays
 ;;
@@ -754,7 +737,6 @@ a list of cooked tokens."
                          (append expandedtokens result)
                        (cons token result))))
       result)))
-
 
 ;;; Iterative parser helper function
 ;;
@@ -813,7 +795,6 @@ This function returns tokens with overlays."
                   (point-max)))
 	    (working-dynamic-status))))
     result))
-
 
 ;;; Parser action helper functions
 ;;
@@ -843,7 +824,6 @@ If VALUE is nil, then KEY is excluded from the return association list."
 The return list is a lambda expression to be used in a bovine table."
   `(lambda (vals start end)
      (append ,@return-val (list start end))))
-
 
 ;;; Backwards Compatible API functions
 ;;
@@ -895,4 +875,3 @@ a START and END part."
 ;; Semantic-util is a part of the semantic API.  Include it last
 ;; because it depends on semantic.
 (require 'semantic-util)
-(require 'semantic-edit)
