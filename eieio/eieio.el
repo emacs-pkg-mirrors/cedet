@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.47 1999/09/06 10:18:07 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.48 1999/09/08 00:19:48 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -874,8 +874,8 @@ Fills in OBJ's FIELD with it's default value."
   ;; typep is in cl-macs
   (or (eq spec t)
       (if (class-p spec)
-	  (or (child-of-class-p value spec)
-	      (obj-of-class-p value spec))
+	  (or (and (class-p value) (child-of-class-p value spec))
+	      (and (object-p value) (obj-of-class-p value spec)))
 	(typep value spec))))
 
 (defun eieio-validate-slot-value (class field-idx value)
@@ -1037,18 +1037,20 @@ If EXTRA, include that in the string returned to represent the symbol."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (same-class-fast-p obj class))
 
-(defun obj-of-class-p (obj class) "Return t if OBJ inherits anything from CLASS."
+(defun obj-of-class-p (obj class)
+  "Return non-nil if OBJ is an instance of CLASS or CLASS' subclasses."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   ;; class will be checked one layer down
   (child-of-class-p (aref obj object-class) class))
 
-(defun child-of-class-p (child class) "If CHILD inherits anything from CLASS, return CLASS."
+(defun child-of-class-p (child class)
+  "If CHILD class is a subclass of CLASS."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (class-p child)) (signal 'wrong-type-argument (list 'class-p child)))
   (while (and child (not (eq child class)))
     ;; The car below is because parents is a list.  Fix for multi-inherit
     (setq child (car (aref (class-v child) class-parent))))
-  child)
+  (if child nil))
 
 (defun obj-fields (obj) "List of fields available in OBJ."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
