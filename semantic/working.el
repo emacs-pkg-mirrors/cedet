@@ -193,9 +193,9 @@ is t to display the done string, or the percentage to display."
   "Return a string with a bar-graph showing percent.
 LENGTH is the amount of display that has been used.  PERCENT
 is t to display the done string, or the percentage to display."
-  (let ((bs (- (frame-width (or (frame-parameter (selected-frame) 'minibuffer)
-				default-minibuffer-frame))
-	       length 4)))
+  (let* ((mbw (frame-parameter (selected-frame) 'minibuffer))
+	 (fr (if mbw (window-frame mbw) default-minibuffer-frame))
+	 (bs (- (frame-width fr) length 4)))
     (cond ((eq percent t)
 	   (concat ": [" (make-string bs ?#) "] " working-donestring))
 	  ((< bs 0) "")
