@@ -1,9 +1,9 @@
 ;;; semantic-make.el --- Makefile parsing rules.
 
-;; Copyright (C) 2000 Eric M. Ludlam
+;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.6 2000/09/14 20:04:00 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.7 2001/01/24 21:19:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,28 +36,28 @@
      ( variable)
      ( rule)
      ( conditional)
-     ) ; end Makefile
+     )					; end Makefile
     (variable
      ( symbol equals elements
 	      ,(semantic-lambda
-		 (list (nth 0 vals) 'variable nil nil (nth 2 vals) nil nil)))
-     ) ; end variable
+		(list (nth 0 vals) 'variable nil (nth 2 vals) nil nil)))
+     )					; end variable
     (rule
      ( symbol colons elements commands
 	      ,(semantic-lambda
-		 (list (nth 0 vals) 'function nil (nth 2 vals) nil nil)))
-     ) ; end rule
+		(list (nth 0 vals) 'function nil (nth 2 vals) nil nil)))
+     )					; end rule
     (conditional
      ( symbol "if" symbol newline
 	      ,(semantic-lambda
-		 (list nil)))
+		))
      ( symbol "else" newline
 	      ,(semantic-lambda
-		 (list nil)))
+		))
      ( symbol "endif" newline
 	      ,(semantic-lambda
-		 (list nil)))
-     ) ; end conditional
+		))
+     )					; end conditional
     (equals
      ( punctuation ":" punctuation "="
 		   ,(semantic-lambda
@@ -68,7 +68,7 @@
      ( punctuation "="
 		   ,(semantic-lambda
 		     ))
-     ) ; end equals
+     )					; end equals
     (colons
      ( punctuation ":" punctuation ":"
 		   ,(semantic-lambda
@@ -76,28 +76,28 @@
      ( punctuation ":"
 		   ,(semantic-lambda
 		     ))
-     ) ; end colons
+     )					; end colons
     (elements
      ( symbol elements
 	      ,(semantic-lambda
-		 (list (nth 0 vals)) (nth 1 vals)))
+		(list (nth 0 vals)) (nth 1 vals)))
      ( symbol newline
 	      ,(semantic-lambda
-		 (list (nth 0 vals))))
+		(list (nth 0 vals))))
      ( newline
        ,(semantic-lambda
 	 ))
-     ) ; end elements
+     )					; end elements
     (commands
      ( shell-command newline commands
 		     ,(semantic-lambda
-		        (list (nth 0 vals)) (nth 1 vals)))
+		       (list (nth 0 vals)) (nth 1 vals)))
      (
       ,(semantic-lambda
 	))
-     ) ; end commands
+     )					; end commands
     )
-  "Table for parsing Makefiles.")
+    "Table for parsing Makefiles.")
 
 (defvar semantic-flex-make-extensions
   '(("^\\(\t\\)" . semantic-flex-make-command)
@@ -141,7 +141,7 @@ These command lines continue to additional lines when the end with \\"
 	semantic-flex-enable-newlines t
 	imenu-create-index-function 'semantic-create-imenu-index
 	)
-
+ 
   ;; End code generated from make.bnf
   )
 
