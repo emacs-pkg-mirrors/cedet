@@ -5,9 +5,9 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.112 2001/08/21 02:10:29 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.113 2001/09/14 20:16:31 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "0.17beta2"
+(defvar eieio-version "0.17beta3"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
