@@ -1,0 +1,884 @@
+\input texinfo  @c -*-texinfo-*-
+@c %**start of header
+@setfilename grammar-fw.info
+@set TITLE  Semantic Grammar Framework Manual
+@set AUTHOR Eric M. Ludlam, David Ponce, and Richard Y. Kim
+@settitle @value{TITLE}
+
+@c *************************************************************************
+@c @ Header
+@c *************************************************************************
+
+@c Merge all indexes into a single index for now.
+@c We can always separate them later into two or more as needed.
+@syncodeindex vr cp
+@syncodeindex fn cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+@c @footnotestyle separate
+@c @paragraphindent 2
+@c @@smallbook
+@c %**end of header
+
+@copying
+This manual documents Grammar Development with Semantic.
+
+Copyright @copyright{} 2004 Eric M. Ludlam
+Copyright @copyright{} 2004 David Ponce
+Copyright @copyright{} 2004 Richard Y. Kim
+
+@c If this document includes aspects of previous documents, we need
+@c the dates to go back in time to include when those were written.
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being list their titles, with the Front-Cover Texts
+being list, and with the Back-Cover Texts being list.  A copy of the
+license is included in the section entitled ``GNU Free Documentation
+License''.
+@end quotation
+@end copying
+
+@ifinfo
+@dircategory Emacs
+@direntry
+* Semantic Grammar Framework: (semantic-grammar-fw).
+@end direntry
+@end ifinfo
+
+@iftex
+@finalout
+@end iftex
+
+@c @setchapternewpage odd
+@c @setchapternewpage off
+
+@ifinfo
+This file documents Grammar Development with Semantic.
+
+Copyright @copyright{} 2004 @value{AUTHOR}
+@end ifinfo
+
+@titlepage
+@sp 10
+@title @value{TITLE}
+@author by @value{AUTHOR}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 2004 @value{AUTHOR}
+@page
+@vskip 0pt plus 1 fill
+@insertcopying
+@end titlepage
+@page
+
+@c MACRO inclusion
+@include semanticheader.texi
+
+
+@c *************************************************************************
+@c @ Document
+@c *************************************************************************
+@paragraphindent none
+
+@node top
+@top @value{TITLE}
+
+The Semantic Grammar Framework provides a consistent way to write
+rule based grammars for use in Emacs.  This document describes how to
+use the grammar writing environment, and how to write in the rule
+based language.
+
+@menu
+* Overview::                    
+* Grammar File::                
+* Working with grammars::       
+* Adding a new grammar mode::   
+* GNU Free Documentation License::  
+* Index::                       
+@end menu
+
+@node Overview
+@chapter Overview
+
+@semantic{} version 2 introduced a new grammar framework to provide a
+clean and consistent view into parser writing.
+
+All grammars are specified in a common rule based language derived
+from the input grammar language used by the GNU parser generator
+Bison.  The main differences are that:
+
+@itemize @minus
+@item
+The C-like syntax is replaced by Emacs Lisp syntax.
+@item
+Percent declarations are specific to @semantic{}.
+@end itemize
+
+Nevertheless, for those who are a familiar with Bison grammar
+syntax, and have some knowledge of Emacs Lisp, writing @semantic{}
+grammars won't hard.  Moreover, the grammar framework
+provides Emacs goodies (indentation, syntax coloring, etc.) to help
+edit grammars.
+
+Grammars written in the common rule based language
+must be translated into Emacs Lisp code so a @semantic{} parser can
+use it.  The framework defines a reusable and flexible
+@acronym{API} that simplifies the implementation of grammar-to-lisp
+translators.
+
+The @emph{abstract} major mode @code{semantic-grammar-mode} provides
+the core functionalities to edit and translate input grammars.
+
+@emph{Concrete} grammar modes, derived from
+@code{semantic-grammar-mode}, implement the common @acronym{API} that
+translates the input grammar format into Emacs Lisp code
+understandable by a particular parser.  An unique file extension
+associates input grammars to a @emph{concrete} grammar mode, that is
+to a particular translator and parser.
+
+@semantic{} defines these @emph{concrete} grammar modes:
+
+@table @code
+@item bovine-grammar-mode
+Associated to the @file{.by} file extension.  It produces Emacs Lisp
+code forms handled by the @semantic{} specific @acronym{LL} parser: the
+@emph{bovinator}.
+@item wisent-grammar-mode
+Associated to the @file{.wy} extension.  It produces Emacs Lisp code
+forms handled by the @acronym{LALR} parser @emph{wisent}.
+@end table
+
+Here is a quick view of the framework:
+
+@flushleft
+@example
+
+ ^                        +-----------------+
+ !                        | Common Semantic |
+Grammar                   |  Grammar Mode   |
+Frame-                    +-----------------+
+work                               |
+ !                  +--------------+--------------+   ... ----------+
+ !                  |                             |                 |
+ !                  V                             V                 V
+ !    
+ !     .. "bovine" Parser ........   .. "wisent" Parser ........   ...
+ !     :                         :   :                         :
+ !     : +- "by" grammar mode -+ :   : +- "wy" grammar mode -+ :   ...
+ !     : |                     | :   : |                     | :
+ !     : | +-----------------+ | :   : | +-----------------+ | :
+ !     : | | ELisp generator | | :   : | | ELisp generator | | :   ...
+ !     : | +-----------------+ | :   : | +-----------------+ | :
+ v     : +---------------------+ :   : +---------------------+ :
+       :            |            :   :            |            :
+ ^     :            |            :   :            V            :
+ !     :            |            :   :   +-----------------+   :
+Parser :            |            :   :   |  LALR Compiler  |   :   ...
+Frame- :            |            :   :   +-----------------+   :
+work   :            |            :   :            |            :
+ !     :            V            :   :            V            :
+ !     :   +-----------------+   :   :   +-----------------+   :
+ !     :   | LL Parser Engine|   :   :   | LR Parser Engine|   :   ...
+ !     :   +-----------------+   :   :   +-----------------+   :
+ v     :.........................:   :.........................:
+
+@end example
+@end flushleft
+
+@node Grammar File
+@chapter Grammar File
+
+@c If there is only one subsection, perhaps it should be promoted?
+
+@menu
+* Grammar outline::             
+@end menu
+
+@node Grammar outline
+@section Grammar outline
+
+A @semantic{} grammar file has four main sections, and looks like this:
+
+@example
+  %@{
+    PROLOGUE
+  %@}
+
+  DECLARATIONS
+
+  %%
+  GRAMMAR RULES
+  %%
+
+  EPILOGUE
+@end example
+
+Comments are like Emacs Lisp ones but start with two consecutive
+semicolons (@code{;;}) instead of a single one. The single semicolon
+(@code{;}) is the end of rule delimiter.
+
+@menu
+* Prologue::                    
+* Declarations::                
+* Grammar Rules::               
+* Epilogue::                    
+@end menu
+
+@node Prologue
+@subsection Prologue
+
+The @var{prologue} section contains definitions of Emacs Lisp
+variables, function and macros that are used in the actions in the
+grammar rules.
+
+These are copied to the beginning of the generated parser file so that
+they precede the definition of the grammar rules actions.  You can use
+`require' to get the declarations from other libraries.  If you don't
+need any Emacs Lisp declarations, you may omit this section.
+
+You may have more than one @var{prologue} section, intermixed with
+other @var{declarations}.  All @var{prologue} sections are copied to
+the generated parser file in the order they appear in the grammar.
+
+@node Declarations
+@subsection Declarations
+
+The @var{declarations} section contains declarations that define
+terminal symbols, specify precedence, and so on.  In some simple
+grammars you may not need any declarations.
+
+Declarations of terminal symbols defines the symbols (lexical tokens) used in
+formulating the grammar and the type associated to categories of
+tokens.
+
+All token names (but not single-character literal tokens such as
+@code{'+'} and @code{'*'}) must be declared.
+
+For more on lexical analysis,
+see @inforef{Writing Lexers, ,semantic-langdev}.
+
+@menu
+* package Decl::                
+* languagemode Decl::           
+* keyword Decl::                
+* put Decl::                    
+* token Decl::                  
+* type Decl::                   
+* precedence Decl::             
+* default-prec Decl::           
+* quotemode Decl::              
+* scopestart Decl::             
+* start Decl::                  
+* use-macros Decl::             
+@end menu
+
+@node package Decl
+@subsubsection package Decl
+
+@c Perhaps the declaration below could be
+@c %package @var{package-name}
+@c or
+@c %library @var{library-name}
+@c ??
+
+@deffn %-Decl %package library-name
+@sp 1
+Declare the Emacs Lisp library created from the grammar.
+
+This will generate an Emacs Lisp file named
+@file{@var{library-name}.el}, and provide the @var{library-name}
+feature at the end of the generated file with:
+
+@lisp
+(provide '@var{library-name})
+@end lisp
+
+All variable and function names generated from the @var{declarations}
+section will be prefixed by @code{@var{library-name}-}, following
+Emacs standard coding conventions.
+
+If there is no @code{%package} statement, a default @var{library-name}
+is used, of the form:
+
+@lisp
+@var{grammar_filename_sans_extention}-@var{grammar_filename_extention}
+@end lisp
+
+For instance, the default library name for the grammar in the
+@file{foo.wy} file is @code{foo-wy}.
+@end deffn
+
+@node languagemode Decl
+@subsubsection languagemode Decl
+
+@deffn %-Decl %languagemode @var{mode}...
+@sp 1
+Declare in which major modes Emacs edits the sources that @semantic{}
+parses using this grammar.
+
+For instance, the following declares that the grammar will be used to
+parse files edited in @code{c-mode} or @code{c++-mode} by Emacs.
+
+@example
+%languagemode c-mode c++-mode
+@end example
+
+Typically, when a parser file is re-generated from a modified grammar,
+language modes are used to refresh local parser settings in buffers
+currently edited in those major modes.
+@end deffn
+
+@node keyword Decl
+@subsubsection keyword Decl
+
+@deffn %-Decl %keyword @var{keyword-name} @var{keyword-value}
+@sp 1
+Declare a language keyword (a reserved word).
+
+@table @var
+@item keyword-name
+Is the terminal symbol used in grammar rules to represent this
+reserved word.
+@item keyword-value
+Is the actual value of the keyword as a string.
+@end table
+
+Here is how the @code{if}, @code{else}, @code{endif} keywords might be
+declared:
+
+@example
+%keyword IF    "if"
+%keyword ELSE  "else"
+%keyword ENDIF "endif"
+@end example
+
+Keywords have the implicit reserved type @code{keyword} (see
+@pxref{type Decl}).
+@end deffn
+
+In the generated library, keyword declarations are defined in the
+constant @code{@var{library-name}--keyword-table}.  The keyword table
+value is an Emacs Lisp obarray, available at run time in the parsed
+buffer, in the buffer local variable
+@code{semantic-flex-keywords-obarray}.
+
+@c Oh dear.  Perhaps it's time to obsolete and rename that variable. 
+
+However you shouldn't use that variable directly.  @semantic{} provides
+the following @acronym{API} to use with language keywords at run
+time.
+
+@defun semantic-lex-keyword-symbol name
+@anchor{semantic-lex-keyword-symbol}
+Return keyword symbol with @var{NAME} or @code{nil} if not found.
+Return @code{nil} otherwise.
+@end defun
+
+@defun semantic-lex-keyword-p name
+@anchor{semantic-lex-keyword-p}
+Return non-@code{nil} if a keyword with @var{NAME} exists in the keyword table.
+Return @code{nil} otherwise.
+@obsolete{semantic-flex-keyword-p,semantic-lex-keyword-p}
+@end defun
+
+@defun semantic-lex-keyword-set name value
+@anchor{semantic-lex-keyword-set}
+Set value of keyword with @var{NAME} to @var{VALUE} and return @var{VALUE}.
+@end defun
+
+@defun semantic-lex-keyword-value name
+@anchor{semantic-lex-keyword-value}
+Return value of keyword with @var{NAME}.
+Signal an error if a keyword with @var{NAME} does not exist.
+@end defun
+
+@defun semantic-lex-map-keywords fun &optional property
+@anchor{semantic-lex-map-keywords}
+Call function @var{FUN} on every semantic keyword.
+If optional @var{PROPERTY} is non-@code{nil}, call @var{FUN} only on every keyword which
+as a @var{PROPERTY} value.  @var{FUN} receives a semantic keyword as argument.
+@obsolete{semantic-flex-map-keywords,semantic-lex-map-keywords}
+@end defun
+
+@defun semantic-lex-keywords &optional property
+@anchor{semantic-lex-keywords}
+Return a list of semantic keywords.
+If optional @var{PROPERTY} is non-@code{nil}, return only keywords which have a
+@var{PROPERTY} set (see also @pxref{put Decl}).
+@obsolete{semantic-flex-keywords,semantic-lex-keywords}
+@end defun
+
+@node put Decl
+@subsubsection put Decl
+
+The @code{%put} statement assigns properties to keywords
+(@pxref{keyword Decl}).  For instance, the predefined @code{summary}
+property assigns a help string to a keyword.  The help string is
+used by @code{semantic-idle-summary-mode} for on-the-fly help.
+
+@deffn %-Decl %put @var{keyword-name} @var{property value}
+@sp 1
+Give to @var{keyword-name} a single @var{property} with @var{value}.
+
+@deffnx %-Decl %put @var{keyword-name} @{@var{property1} @var{value1} @dots{}@}
+@sp 1
+Give to @var{keyword-name} a set of @var{properties} with @var{values}.
+
+@deffnx %-Decl %put @{@var{keyword-name1} @dots{}@} @var{property} @var{value}
+@sp 1
+Give to several @var{keyword-name} a single @var{property} with @var{value}.
+
+@deffnx %-Decl %put @{@var{keyword-name1} @dots{}@} @{@var{property1} @var{value1} @dots{}@}
+@sp 1
+Give to several @var{keyword-name} a set of @var{property} with @var{value}.
+
+@table @var
+@item keyword-name
+Is a terminal symbol defined as a keyword.
+@item property
+Is a property name, which is a valid Emacs Lisp symbol.
+@item value
+Is a property value, a valid Emacs Lisp constant expression.
+@end table
+@end deffn
+
+Keyword properties are stored in the keyword table (see also
+@pxref{keyword Decl}).  The following @acronym{API} can be used to
+handle properties at run time.
+
+@defun semantic-lex-keyword-put name property value
+@anchor{semantic-lex-keyword-put}
+For keyword with @var{NAME}, set its @var{PROPERTY} to @var{VALUE}.
+@obsolete{semantic-flex-keyword-put,semantic-lex-keyword-put}
+@end defun
+
+@defun semantic-lex-keyword-get name property
+@anchor{semantic-lex-keyword-get}
+For keyword with @var{NAME}, return its @var{PROPERTY} value.
+@obsolete{semantic-flex-keyword-get,semantic-lex-keyword-get}
+@end defun
+
+@node token Decl
+@subsubsection token Decl
+
+The @code{%token} statement declares a terminal symbol (a @dfn{token})
+which is not a keyword.
+
+@deffn %-Decl %token [<@var{type-name}>] @var{token-name} @var{token-value}
+@c Perhaps token-match instead of token-value?
+@sp 1
+Declare one token with an optional type, and a value.
+
+@deffnx %-Decl %token [<@var{type-name}>] @var{token-name1} @dots{}
+@sp 1
+Declare several tokens with the optional same type, and no value.
+
+@table @var
+@item type-name
+Is an optional symbol, enclosed between @code{<} and @code{>}, that
+specifies (and implicitly declares) a @dfn{type} for this token (see
+@pxref{type Decl}).  If omitted the token has no type.
+@item token-name
+Is the terminal symbol used in grammar rules to represent this token.
+@item token-value
+Is an optional token value as a string.  Depending on @var{type-name}
+properties, the string value will be interpreted as an ordinary
+string, a regular expression, or have a more elaborate meaning.  If
+omitted the token value will be @code{nil}, which means that this
+token will be considered as the default token of its type (see
+@pxref{type Decl} for more information).
+@end table
+@end deffn
+
+@table @strong
+@item Please note:
+For historical compatibility, the form @w{@samp{%token @var{name}
+@var{value}}} actually declares a keyword, and is strictly equivalent
+to @w{@samp{%keyword @var{name} @var{value}}}.  Because the former is
+ambiguous and could be abandoned in future releases of @semantic{}, we
+highly recommend to use the latter to declare keywords!@refill
+@end table
+
+In the generated library, token definitions are stored in the table of
+declared types (see @pxref{type Decl}).
+
+@node type Decl
+@subsubsection type Decl
+
+@deffn %-Decl %type <@var{type-name}> [@var{property1} @var{value1} @dots{}]
+@sp 1
+@c ``type'' has a lot of different meanings in semantic, so you may
+@c want to define ``token type'' here.  In tags, we had changed the
+@c name to ``class'' for a similar feature.
+
+Explicitly declare a lexical type, and optionally give it properties.
+
+@table @var
+@item type-name
+Is a symbol that identifies the type.
+@item property
+Is a property name, a valid Emacs Lisp symbol.
+@item value
+Is a property value, a valid Emacs Lisp constant expression.
+@end table
+
+Even if @code{%token}, @code{%keyword}, and precedence declarations can
+implicitly declare types, an explicit declaration is required for
+every type:
+
+@itemize @minus
+@item To assign it properties.
+@item To auto-generate a lexical rule that detects tokens of this type.
+For more information, see @ref{Auto-generation of lexical rules}.
+@end itemize
+@end deffn
+
+@table @strong
+@item Please note:
+Because the grammar framework is implemented in Emacs Lisp, which is a
+dynamically typed language, the meaning of @dfn{type} is notably
+different between @semantic{} and Bison.  In Bison grammars,
+@dfn{type} means @dfn{data type}, and associates an internal
+representation to lexical tokens.  In @semantic{} grammars, @dfn{type}
+specifies how lexical analysis will scan tokens of this type.
+@end table
+
+@node precedence Decl
+@subsubsection precedence Decl
+
+@deffn  %-Decl %left [<@var{type-name}>] @var{token1} @dots{}
+@deffnx %-Decl %right [<@var{type-name}>] @var{token1} @dots{}
+@deffnx %-Decl %nonassoc [<@var{type-name}>] @var{token1} @dots{}
+@sp 1
+See also @code{%prec} in @ref{Grammar Rules}.
+@end deffn
+
+@c is this true?
+Defining precedence in a grammar that provides tagging information
+for @semantic does not usually necessary.
+
+@node default-prec Decl
+@subsubsection default-prec Decl
+
+@deffn  %-Decl %default-prec
+@deffnx %-Decl %no-default-prec
+@sp 1
+@end deffn
+
+Defining precedence in a grammar that provides tagging information
+for @semantic does not usually necessary.
+
+@node quotemode Decl
+@subsubsection quotemode Decl
+
+@deffn %-Decl %quotemode @var{symbol}
+@sp 1
+This is a mechanism used to specify how quoting worked in optional
+lambda expressions.
+@inforef{Optional Lambda Expression, , bovine}
+@end deffn
+
+@node scopestart Decl
+@subsubsection scopestart Decl
+
+@deffn %-Decl %scopestart @var{nonterminal}
+@sp 1
+The @code{scopestart} declaration specifies the name of a nonterminal
+that is used for parsing the body of functional code.  This is used
+in the local context parser to find locally defined variables.
+@end deffn
+
+@node start Decl
+@subsubsection start Decl
+
+@deffn %-Decl %start @var{nonterminal1} @dots{}
+@sp 1
+@end deffn
+
+@node use-macros Decl
+@subsubsection use-macros Decl
+
+@deffn %-Decl %use-macros @var{library} @{@var{macro-name1} @dots{}@}
+@sp 1
+@end deffn
+
+@node Grammar Rules
+@subsection Grammar Rules
+
+@node Epilogue
+@subsection Epilogue
+
+The @var{epilogue} section contains arbitrary Emacs Lisp code which is
+copied verbatim to the end of the parser file, just as the
+@var{prologue} is copied to the beginning.  This is the most
+convenient place to put anything that you want to have in the parser
+file.
+
+For example, it could be convenient to put the definition of the lexer
+in the @var{epilogue}, particularly if it includes lexical rules
+auto-generated from declarations in the grammar.
+
+If the @var{epilogue} section is empty, you may omit the @code{%%}
+that separates it from the grammar rules.
+
+@table @strong
+@item Please note:
+You can put a @dfn{footer} comment:
+
+@example
+;;; my-grammar.by ends here
+@end example
+
+At the end of the grammar.  It will not be copied to the parser file
+to avoid confusion with the Emacs Lisp library own footer.
+@end table
+
+@node Working with grammars
+@chapter Working with grammars
+
+@menu
+* Common facilities::
+* BY grammars::
+* WY grammars::
+@end menu
+
+@node Common facilities
+@section Common facilities
+
+@menu
+* Editing grammars::            
+* Auto-generation of lexical rules::  
+* Macros::                      
+@end menu
+
+@node Editing grammars
+@subsection Editing grammars
+
+@c Document here the various commands and keyboard shortcuts
+@c available in semantic-grammar-mode. 
+
+@deffn Command semantic-grammar-create-package &optional force
+@anchor{semantic-grammar-create-package}
+Create package Lisp code from grammar in current buffer.
+Does nothing if the Lisp code seems up to date.
+If optional argument @var{FORCE} is non-@code{nil}, unconditionally re-generate the
+Lisp code.
+@end deffn
+
+You can run the command @command{semantic-grammar-create-package} with
+@w{@kbd{C-c C-c}} (or @w{@kbd{C-u C-c C-c}} to unconditionally
+re-generate the Lisp code).@refill
+
+@deffn Command semantic-grammar-indent
+@anchor{semantic-grammar-indent}
+Indent the current line.
+Use the Lisp or grammar indenter depending on point location.
+@end deffn
+
+You can run the command @command{semantic-grammar-indent} with
+@kbd{@key{TAB}}.
+
+@deffn Command semantic-grammar-complete
+@anchor{semantic-grammar-complete}
+Attempt to complete the symbol under point.
+Completion is position sensitive.  If the cursor is in a match section of
+a rule, then nonterminals symbols are scanned.  If the cursor is in a Lisp
+expression then Lisp symbols are completed.
+@end deffn
+
+You can run the command @command{semantic-grammar-complete} with
+@w{@kbd{@key{META} @key{TAB}}}.@refill
+
+@deffn Command semantic-grammar-find-macro-expander macro-name library
+@anchor{semantic-grammar-find-macro-expander}
+Visit the Emacs Lisp library where a grammar macro is implemented.
+@var{MACRO-NAME} is a symbol that identifies a grammar macro.
+@var{LIBRARY} is the name (sans extension) of the Emacs Lisp library where
+to start searching the macro implementation.  Lookup in included
+libraries, if necessary.
+Find a function tag (in current tags table) whose name contains @var{MACRO-NAME}.
+Select the buffer containing the tag's definition, and move point there.
+@end deffn
+
+You can run the command @command{semantic-grammar-find-macro-expander}
+with @w{@kbd{C-c m}}.@refill
+
+The characters @w{@kbd{| ; % ( ) :}} are @dfn{electric punctuations}.
+Each time you type one, the line is re-indented after the character is
+inserted.@refill
+
+@node Auto-generation of lexical rules
+@subsection Auto-generation of lexical rules
+
+Using a @code{%type} statement, combined with @code{%keyword} and
+@code{%token} ones, permits the declaration of a lexical type and
+associates it with patterns that define how to match lexical tokens of
+that type.
+
+The grammar construction process exploits that information to
+@emph{automagically} generate the definition of a lexical rule (aka a
+@dfn{single analyzer}) for each explicitly declared lexical type.
+
+It is then easy to put predefined and auto-generated lexical rules
+together to build ad-hoc lexical analyzers.
+
+This chapter details the auto-generation process, and how you can
+control it to produce the lexical rules needed to scan your language.
+
+@menu
+* The principle::               
+* Type properties with a special meaning::  
+* Predefined well-known types::  
+@end menu
+
+@node The principle
+@subsubsection The principle
+
+@node Type properties with a special meaning
+@subsubsection Type properties with a special meaning
+
+@table @code
+@item syntax
+
+The value of the @code{syntax} property should be a @dfn{syntactic
+regexp}, that is a regexp that matches buffer data based on the
+current Emacs @dfn{syntax table}.
+
+For instance, to grab constituents of @code{symbol} or @code{keyword}
+types, the @code{syntax} property value will probably be:
+
+@samp{"\\(\\sw\\|\\s_\\)+"}
+
+For well known types, the @code{syntax} property has a predefined
+value that should suit standard needs (see @pxref{Predefined
+well-known types}).
+
+@item matchdatatype
+
+The value of the @code{matchdatatype} property is a symbol that
+specifies which algorithm to use to match the tokens of this type.
+These match algorithms are defined:
+
+@table @code
+@item regexp
+@item string
+@item block
+@item sexp
+@item keyword
+@end table
+
+@end table
+
+@node Predefined well-known types
+@subsubsection Predefined well-known types
+
+Default values are provided for well known types like <keyword>,
+<symbol>, <string>, <number>, <punctuation>, and <block>.  Those types
+assume that the correct patterns are provided by %keyword and %token
+statements, a simple "%type <type>" declaration should generally
+suffice to auto-generate a suitable lexical rule.
+
+@table @code
+@item keyword
+@item symbol
+@item string
+@item number
+@item punctuation
+@item block
+@end table
+
+@node Macros
+@subsection Macros
+
+@c This refers to ASSOC, EXPANDFULL, and TAG?
+
+@node BY grammars
+@section BY grammars
+
+@c Document here specificities of BY grammars.  Particularly how to
+@c write semantic actions, and the generated Elisp code.
+
+@c This is in bovine.texi
+
+@node WY grammars
+@section WY grammars
+
+@c Document here specificities of WY grammars.  Particularly how to
+@c write semantic actions, and the generated Elisp code.
+
+@c This is in wisent.texi
+
+@node Adding a new grammar mode
+@chapter Adding a new grammar mode
+
+Each specialized grammar mode is responsible for implementing the
+following @acronym{API}.  Implementations are done with
+@emph{overload methods}.
+@inforef{Semantic Overload Mechanism, , semantic-langdev}.
+
+@itemize @minus
+@item A keyword table builder.
+
+Can use the default implementation provided.
+
+@example
+   (define-overload semantic-grammar-keywordtable-builder ()
+     "Return the keyword table table value.")
+@end example
+
+@item A token table builder.
+
+Can use the default implementation provided.
+
+@example
+   (define-overload semantic-grammar-tokentable-builder ()
+     "Return the value of the table of lexical tokens.")
+@end example
+
+@item A parser table builder
+
+Must be provided, there is no default implementation.
+
+@example
+   (define-overload semantic-grammar-parsetable-builder ()
+     "Return the parser table value.")
+@end example
+
+@item A Parser setup code builder.
+
+Must be provided, there is no default implementation.
+
+@example
+   (define-overload semantic-grammar-setupcode-builder ()
+     "Return the parser setup code form.")
+@end example
+
+@item Grammar macros.
+
+A set of predefined macros is provided.
+
+@end itemize
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@include fdl.texi
+
+@node Index
+@unnumbered Index
+@printindex cp
+
+@iftex
+@contents
+@summarycontents
+@end iftex
+
+@bye
+
+@c Following comments are for the benefit of ispell.
+
+@c  LocalWords:  bovinator wisent LALR Elisp automagically Decl
