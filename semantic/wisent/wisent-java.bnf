@@ -6,7 +6,7 @@
 ## Maintainer: David Ponce <david@dponce.com>
 ## Created: 07 Aug 2001
 ## Keywords: syntax
-## X-RCS: $Id: wisent-java.bnf,v 1.4 2001/08/30 07:18:05 ponced Exp $
+## X-RCS: $Id: wisent-java.bnf,v 1.5 2001/08/30 14:02:49 ponced Exp $
 ##
 ## This file is not part of GNU Emacs.
 ##
@@ -58,7 +58,9 @@
     )
    (setq
     ;; Override the default parser to setup the alternate LALR one.
-    semantic-bovinate-toplevel-override 'wisent-java-bovinate-toplevel
+    semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
+    ;; Setup the lexer used by the LALR parser.
+    wisent-flex-function 'wisent-java-lex
     ;; Java is case sensitive
     semantic-case-fold nil
     ;; function to use when creating items in imenu
@@ -82,6 +84,8 @@
     )
    ;; Needed by `semantic-find-doc-snarf-comment'.
    (set (make-local-variable 'block-comment-end) "\\s-*\\*/")
+   ;; Setup javadoc stuff
+   (semantic-java-doc-setup)
    )%
 
 # ---------------------
