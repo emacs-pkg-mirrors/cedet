@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.27 2004/02/06 14:11:43 ponced Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.28 2004/02/08 21:52:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -177,9 +177,12 @@ within that types field.  Also handles anonymous types."
 	    ;; that is a perfect match.
 	    (while (and taglist (not typetag))
 	      ;; FIXME: Do better matching.
+	      ;; TODO: use a prototype of a type only if the real deal
+	      ;;          is not available
 	      (if (and (car taglist)
 		       (eq (semantic-tag-class (car taglist)) 'type))
 		  (setq typetag (car taglist)))
+
 	      (setq taglist (cdr taglist)))))
 
       ;; We now have a tag associated with the type.
@@ -293,7 +296,11 @@ it should strip out those not accessable by methods of TYPE."
 	  (let* ((alltags (semantic-analyze-type-parts oneparent))
 		 (accessabletags (semantic-find-tags-by-scope-protection
 				  'public oneparent alltags)))
-	    (setq ret (append ret accessabletags)))))
+	    (setq ret (append ret accessabletags)))
+	  ;; is this right?
+	  (setq ret (append ret (semantic-analyze-inherited-tags
+				 oneparent scope)))
+	  ))
 	;; Continue on
       (setq parents (cdr parents)))
     ret))
@@ -322,10 +329,17 @@ Tags returned are not in the global name space, but are instead
 scoped inside a class or namespace.  Such items can be referenced
 without use of \"object.function()\" style syntax due to an
 implicit \"object\"."
-  (apply #'append (mapcar #'semantic-analyze-type-parts typelist))
-  ;; We also need to get all parents of typelist, and include public or
-  ;; protected methods of those!
-  )
+  (let ((currentscope nil))
+    ;; Loop over the types (which should be sorted by postion
+    ;; adding to the scopelist as we go, and using the scopelist
+    ;; for additional searching!
+    (while typelist
+      (setq currentscope (append
+			  currentscope
+			  (semantic-analyze-type-parts (car typelist)
+						       currentscope)))
+      (setq typelist (cdr typelist)))
+    currentscope))
 
 (defun semantic-analyze-scope-nested-tags (&optional position scopetypes)
   "Return a list of types in order of nesting for the context of POSITION.
