@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.44 2001/08/01 01:54:04 zappo Exp $
+@c $Id: eieio.texi,v 1.45 2001/08/08 00:47:04 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -115,6 +115,13 @@ This CLOS method tag is non-functional.
 @section EIEIO example programs that are almost useful.
 
 @table @asis
+@item linemark
+Manage line highlighting, where individual lines are given a
+background color, or some other graphic feature.  Lines can be
+highlighted in files not currently loaded in Emacs.  When they are
+read in, the lines are given the graphic properties.
+
+Includes an MS Visual Studio like bookmark facility.
 @item tree
 Draw a structured tree by building a series of embedded lists of
 `tree-node' class objects.  Includes the functions `eieio-class-tree' to
