@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.5 1999/02/18 18:14:43 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.6 1999/02/25 17:24:48 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -87,12 +87,27 @@ This is the next line of documentation.")
       slottype
     (cond ((eq slottype 'object)
 	   'object-edit)
+	  ((and (listp slottype)
+		(eq (car slottype) 'object))
+	   (cons 'object-edit (cdr slottype)))
 	  ((equal slottype '(repeat object))
 	   '(repeat object-edit))
+	  ((and (listp slottype)
+		(equal (car slottype) 'repeat)
+		(listp (car (cdr slottype)))
+		(equal (car (car (cdr slottype))) 'object))
+	   (list 'repeat
+		 (cons 'object-edit
+		       (cdr (car (cdr slottype))))))
 	  (t slottype))))
 
 (defun eieio-object-value-create (widget)
   "Create the value of WIDGET."
+  (if (not (widget-get widget :value))
+      (widget-put widget
+		  :value (funcall (class-constructor
+				   (widget-get widget :objecttype))
+				  "Custom-new")))
   (let* ((chil nil)
 	 (obj (widget-get widget :value))
 	 (cv (class-v (object-class-fast obj)))
@@ -101,8 +116,8 @@ This is the next line of documentation.")
 	 (fcust (aref cv class-public-custom)))
     ;; First line describes the object, but is not editable.
     (setq chil (cons (widget-create-child-and-convert
-		      widget 'const
-		      (concat "Object " (object-name-string obj)))
+		      widget 'string :tag "Object "
+		      (object-name-string obj))
 		     chil))
     ;; Loop over all the fields, creating child widgets.
     (while fields
@@ -150,7 +165,9 @@ This is the next line of documentation.")
 (defun eieio-object-value-get (widget)
   "Get the value of WIDGET."
   (let* ((obj (widget-get widget :value))
-	 (chil (nthcdr 1 (widget-get widget :children)))
+	 (wids (widget-get widget :children))
+	 (name (car (widget-apply (car wids) :value-inline)))
+	 (chil (nthcdr 1 wids))
 	 (cv (class-v (object-class-fast obj)))
 	 (fields (aref cv class-public-a))
 	 (fcust (aref cv class-public-custom)))
@@ -167,6 +184,8 @@ This is the next line of documentation.")
 	    (setq chil (cdr (cdr chil)))))
       (setq fields (cdr fields)
 	    fcust (cdr fcust)))
+    ;; Set any name updates on it.
+    (aset obj object-name name)
     ;; This is the same object we had before.
     obj))
 
