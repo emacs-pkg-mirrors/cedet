@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.46 2004/09/15 07:26:36 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.47 2004/09/15 09:16:33 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -89,17 +89,20 @@ line ends at the end of the buffer, leave the point there."
     (when (= (point)
              (progn
                (cond
-                ;; skip over python strings
+                ;; Skip over python strings.
                 ((looking-at wisent-python-string-re)
                  (wisent-python-forward-string))
-                ;; skip over lists, strings, etc
-                ((looking-at "\\(\\s(\\|\\s\"\\|\\s<\\)")
+                ;; At a comment start just goto end of line.
+                ((looking-at "\\s<")
+                 (end-of-line))
+                ;; Skip over generic lists and strings.
+                ((looking-at "\\(\\s(\\|\\s\"\\)")
                  (forward-sexp 1))
                 ;; At the explicit line continuation character
                 ;; (backslash) move to next line.
                 ((looking-at "\\s\\")
                  (forward-line 1))
-                ;; skip over white space, word, symbol, punctuation,
+                ;; Skip over white space, word, symbol, punctuation,
                 ;; and paired delimiter (backquote) characters.
                 ((skip-syntax-forward "-w_.$)")))
                (point)))
@@ -125,6 +128,7 @@ identation of the current line."
       (wisent-python-forward-line-skip-indented))
     ;; Don't include final comments in current block bounds
     (forward-comment (- (point-max)))
+    (or (bolp) (forward-line 1))
     ))
 
 ;; Indentation stack, what the Python (2.3) language spec. says:
