@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.30 2005/01/06 12:17:45 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.31 2005/01/28 10:14:39 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -146,12 +146,12 @@ That function is for internal use only."
       (semantic--tag-set-overlay tag (vector start end)))))
 
 (defsubst semantic-tag-buffer (tag)
-  "Return the buffer TAG resides in."
+  "Return the buffer TAG resides in.
+Return nil if there is no buffer for this tag."
   (let ((o (semantic-tag-overlay tag)))
-    (if (semantic-overlay-p o)
-        (semantic-overlay-buffer o)
-      ;; We have no buffer for this tag (It's not in Emacs right now.)
-      nil)))
+    (and (semantic-overlay-p o)
+         (semantic-overlay-live-p o)
+         (semantic-overlay-buffer o))))
 
 (defsubst semantic--tag-attributes-cdr (tag)
   "Return the cons cell whose car is the ATTRIBUTES part of TAG.
