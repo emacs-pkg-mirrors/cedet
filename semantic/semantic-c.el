@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.16 2001/02/02 04:15:28 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.17 2001/02/09 11:48:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -173,16 +173,25 @@
   (list 0)))
  ) ; end opt-stars
  (declmods
- ( symbol symbol "\\b\\\\(_\\+\\\\)\\?\\\\(extern\\\\|static\\\\|const\\\\|volatile\\\\|signed\\\\|unsigned\\\\|virtual\\\\)\\b" declmods
+ ( DECLMOD declmods
   ,(semantic-lambda
   ( cons (nth 0 vals) (nth 1 vals))))
- ( symbol symbol "\\b\\\\(_\\+\\\\)\\?\\\\(extern\\\\|static\\\\|const\\\\|volatile\\\\|signed\\\\|unsigned\\\\|virtual\\\\)\\b"
+ ( DECLMOD
   ,(semantic-lambda
-  (list (nth 0 vals))))
+  (nth 0 vals)))
  (
   ,(semantic-lambda
  ))
  ) ; end declmods
+ (DECLMOD
+ ( EXTERN)
+ ( STATIC)
+ ( CONST)
+ ( VOLATILE)
+ ( SIGNED)
+ ( UNSIGNED)
+ ( VIRTUAL)
+ ) ; end DECLMOD
  (typeform
  ( typeformbase opt-stars
   ,(semantic-lambda
@@ -401,7 +410,7 @@
  ))
  ) ; end expression
  )
-                           "C language specification.")
+  "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -490,6 +499,13 @@ machine."
   (semantic-flex-make-keyword-table 
    `( ("include" . INCLUDE)
       ("define" . DEFINE)
+      ("extern" . EXTERN)
+      ("static" . STATIC)
+      ("const" . CONST)
+      ("volatile" . VOLATILE)
+      ("signed" . SIGNED)
+      ("unsigned" . UNSIGNED)
+      ("virtual" . VIRTUAL)
       ("struct" . STRUCT)
       ("union" . UNION)
       ("enum" . ENUM)
@@ -518,6 +534,8 @@ machine."
 	semantic-flex-extensions semantic-flex-c-extensions
 	semantic-dependency-include-path semantic-default-c-path
 	imenu-create-index-function 'semantic-create-imenu-index
+	semantic-type-relation-separator-character '("." "->")
+	semantic-command-separation-character ";"
 	document-comment-start "/*"
 	document-comment-line-prefix " *"
 	document-comment-end " */"
