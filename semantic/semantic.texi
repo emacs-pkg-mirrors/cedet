@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.57 2001/11/23 20:31:28 emacsman Exp $
+@c $Id: semantic.texi,v 1.58 2001/11/26 00:45:44 emacsman Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -220,6 +220,7 @@ shown below.
 Normally, you do not need to call this function.
 It is usually called by @emph{semantic-bovinate-toplevel} for you.
 
+@anchor{semantic-flex}
 @defun semantic-flex start end &optional depth length
 Using the syntax table, do something roughly equivalent to
 flex. Semantically check between @var{START} and @var{END}.  Optional
@@ -235,12 +236,220 @@ specifies that @dfn{semantic-flex} should only return
 @end defun
 
 @menu
+* Lexer Overview::
+* Lexer Output::
 * Lexer Options::
 * Keywords::
 * Keyword Properties::
 @end menu
 
-@node Lexer Options, Keywords, Lexing, Lexing
+@node Lexer Overview, Lexer Output, Lexing, Lexing
+@section Lexer Overview
+
+Semantic lexer breaks up the content of an Emacs buffer into a list of
+tokens. This process is based mostly on regular expressions which in
+turn depend on the syntax table of the buffer's major mode being setup
+properly.
+@xref{Major Modes,,,emacs}.
+@xref{Syntax Tables,,,elisp}.
+@xref{Regexps,,,emacs}.
+
+Specifically, the following regular expressions which rely on syntax
+tables are used:
+
+@table @code
+@item @code{\\s-}
+whitespace characters
+@item @code{\\sw}
+word constituent
+@item @code{\\s_}
+symbol constituent
+@item @code{\\s.}
+punctuation character
+@item @code{\\s<}
+comment starter
+@item @code{\\s>}
+comment ender
+@item @code{\\s\\}
+escape character
+@item @code{\\s)}
+close parenthesis character
+@item @code{\\s$}
+paired delimiter
+@item @code{\\s\"}
+string quote
+@item @code{\\s\'}
+expression prefix
+@end table
+
+In addition, Emacs' built-in features such as
+@code{comment-start-skip},
+@code{forward-comment},
+@code{forward-list},
+and
+@code{forward-sexp}
+are employed.
+
+@node Lexer Output, Lexer Options, Lexer Overview, Lexing
+@section Lexer Output
+
+The lexer, @ref{semantic-flex}, scans the content of a buffer then
+returns a token list.
+Let's illustrate this using this simple example.
+
+@example
+00: /*
+01:  * Simple program to demonstrate semantic.
+02:  */
+03:
+04: #include <stdio.h>
+05:
+06: int i_1;
+07:
+08: int
+09: main(int argc, char** argv)
+10: @{
+11:     printf("Hello world.\n");
+12: @}
+@end example
+
+Evaluating @code{(semantic-flex (point-min) (point-max))} expression
+within the buffer with the code above returns the following token list.
+The input line and string that produced each token is shown after
+each semi-colon.
+
+@example
+((punctuation     52 .  53)     ; 04: #
+ (INCLUDE         53 .  60)     ; 04: include
+ (punctuation     61 .  62)     ; 04: <
+ (symbol          62 .  67)     ; 04: stdio
+ (punctuation     67 .  68)     ; 04: .
+ (symbol          68 .  69)     ; 04: h
+ (punctuation     69 .  70)     ; 04: >
+ (INT             72 .  75)     ; 06: int
+ (symbol          76 .  79)     ; 06: i_1
+ (punctuation     79 .  80)     ; 06: ;
+ (INT             82 .  85)     ; 08: int
+ (symbol          86 .  90)     ; 08: main
+ (semantic-list   90 . 113)     ; 08: (int argc, char** argv)
+ (semantic-list  114 . 147)     ; 09-12: body of main function
+ )
+@end example
+
+As shown above, the token list is a list of ``tokens''.
+Each token in turn is a list of the form
+
+@example
+(TOKEN-TYPE BEGINNING-POSITION . ENDING-POSITION)
+@end example
+
+@noindent
+where TOKEN-TYPE is a symbol, and the other two are integers indicating
+the buffer position that delimit the token such that
+
+@lisp
+(buffer-substring BEGINNING-POSITION ENDING-POSITION)
+@end lisp
+
+@noindent
+would return the string form of the token.
+
+Note that one line (line 4 above) can produce seven tokens while
+the whole body of the function produces a single token.
+This is because the @var{depth} parameter of @code{semantic-flex} was
+not specified.
+Let's see the output of setting @var{depth} to 1, i.e.,
+evaluating @code{(semantic-flex (point-min) (point-max) 1)} expression.
+Note the third argument of @code{1}.
+
+@example
+((punctuation    52 .  53)     ; 04: #
+ (INCLUDE        53 .  60)     ; 04: include
+ (punctuation    61 .  62)     ; 04: <
+ (symbol         62 .  67)     ; 04: stdio
+ (punctuation    67 .  68)     ; 04: .
+ (symbol         68 .  69)     ; 04: h
+ (punctuation    69 .  70)     ; 04: >
+ (INT            72 .  75)     ; 06: int
+ (symbol         76 .  79)     ; 06: i_1
+ (punctuation    79 .  80)     ; 06: ;
+ (INT            82 .  85)     ; 08: int
+ (symbol         86 .  90)     ; 08: main
+
+ (open-paren     90 .  91)     ; 08: (
+ (INT            91 .  94)     ; 08: int
+ (symbol         95 .  99)     ; 08: argc
+ (punctuation    99 . 100)     ; 08: ,
+ (CHAR          101 . 105)     ; 08: char
+ (punctuation   105 . 106)     ; 08: *
+ (punctuation   106 . 107)     ; 08: *
+ (symbol        108 . 112)     ; 08: argv
+ (close-paren   112 . 113)     ; 08: )
+
+ (open-paren    114 . 115)     ; 10: @{
+ (symbol        120 . 126)     ; 11: printf
+ (semantic-list 126 . 144)     ; 11: ("Hello world.\n")
+ (punctuation   144 . 145)     ; 11: ;
+ (close-paren   146 . 147)     ; 12: @}
+ )
+@end example
+
+The @var{depth} parameter ``peeled away'' one more level of ``list''
+delimited by matching parenthesis or brace.
+The depth parameter can be specified to be any number.
+However the parser needs to be able to handle the extra tokens.
+
+This is an interesting benefit of the lexer having the full
+resources of Emacs at it's disposal.
+Skipping over matched parenthesis is achieved simply by calling
+built-in functions @code{forward-list} and @code{forward-sexp}.
+
+All common token symbols are enumerated below. Additional token
+symbols aside from these can be generated by the lexer if user option
+@var{semantic-flex-extensions} is set. It is up to the user to add
+matching extensions to the parser to deal with the lexer
+extensions. An example use of @var{semantic-flex-extensions} is in
+@file{semantic-make.el} where @var{semantic-flex-extensions} is set to
+the value of @var{semantic-flex-make-extensions} which may generate
+@code{shell-command} tokens.
+
+@table @code
+@item charquote
+String sequence that match @code{\\s\\+} regexp.
+@item close-paren
+Character that match "\\s)" regexp.
+This is typically @code{)}, @code{@}}, @code{]}, etc.
+@item comment
+A comment chunk.
+These token types are not produces by default.
+This is produces only if the user modified the value of
+@var{semantic-ignore-comments} user option from @code{t} to @code{nil}.
+@item newline
+character matching @code{\\s-*\\(\n\\)} regexp.
+This token is produced only if the user changed the default value of
+@code{nil} for @var{semantic-flex-enable-newlines} variable to
+non-@code{nil}.
+@item open-paren
+Character that match @code{\\s(} regexp.
+This is typically @code{(}, @code{@{}, @code{[}, etc.
+Note that this is not usually generated unless the @var{depth}
+argument to @ref{semantic-flex} is greater than 0.
+@item punctuation
+characters matching @code{\\(\\s.\\|\\s$\\|\\s'\\)} regexp.
+@item semantic-list
+string of code delimited by matching parenthesis, brace, etc.
+that the lexer skipped over, because the @var{depth} parameter
+to @ref{semantic-flex} was not high enough.
+@item string
+quoted string, i.e., a string sequence that start and end with
+character matching @code{\\s\"} regexp.
+The lexer relies on @code{forward-sexp} built-in function to find the
+matching end.
+@item symbol
+String sequence that match @code{\\(\\sw\\|\\s_\\)+} regexp.
+@end table
+
+@node Lexer Options, Keywords, Lexer Output, Lexing
 @section Lexer Options
 
 Although most lexer functions are called for you by other semantic
