@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.11 2001/04/13 10:28:53 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.12 2001/04/26 07:26:27 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -428,7 +428,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-        "Java language specification.")
+           "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -481,6 +481,16 @@
       ("void" . VOID)
       ("volatile" . VOLATILE)
       ("while" . WHILE)
+      ("author" . AUTHOR)
+      ("version" . VERSION)
+      ("param" . PARAM)
+      ("exception" . EXCEPTION)
+      ("see" . SEE)
+      ("since" . SINCE)
+      ("serial" . SERIAL)
+      ("serialData" . SERIALDATA)
+      ("serialField" . SERIALFIELD)
+      ("deprecated" . DEPRECATED)
       )
    '(
      ("abstract" summary "Class|Method declaration modifier: abstract {class|<type>} <name> ...")
@@ -527,6 +537,18 @@
      ("void" summary "Method return type: void <name> ...")
      ("volatile" summary "Field declaration modifier: volatile <type> <name> ...")
      ("while" summary "while (<expr>) <stmt> | do <stmt> while (<expr>);")
+     ("author" javadoc (seq 1 usage (type)))
+     ("version" javadoc (seq 2 usage (type) opt t))
+     ("param" javadoc (seq 3 usage (function) with-name t))
+     ("return" javadoc (seq 4 usage (function)))
+     ("exception" javadoc (seq 5 usage (function) with-name t))
+     ("throws" javadoc (seq 6 usage (function) with-name t))
+     ("see" javadoc (seq 7 usage (type function variable) opt t with-ref t))
+     ("since" javadoc (seq 8 usage (type function variable) opt t))
+     ("serial" javadoc (seq 9 usage (variable) opt t))
+     ("serialData" javadoc (seq 10 usage (function) opt t))
+     ("serialField" javadoc (seq 11 usage (variable) opt t))
+     ("deprecated" javadoc (seq 12 usage (type function variable) opt t))
      ))
   "Java keywords.")
 
@@ -654,27 +676,6 @@ Handle multiple variable declarations in the same statement."
   "Move point forward, skipping Java whitespaces."
   `(skip-chars-forward " \n\r\t"))
 
-(defun semantic-java-clean-docstring (start end)
-  "Return a clean docstring from javadoc between START and END.
-That is remove leading \"/**\" and \"*\" and trailing \"*/\" from the
-javadoc string."
-  (let ((ct (buffer-substring-no-properties
-             (+ start 3)                ; skip "/**"
-             (- end   2))))             ; skip "*/"
-    ;; Remove first newline after "/**"
-    (if (string-match "^\\s-*[\r\n]" ct)
-        (setq ct (concat (substring ct 0 (match-beginning 0))
-                         (substring ct (match-end 0)))))
-    ;; Remove leading "*"
-    (while (string-match "^\\s-*[*]" ct)
-      (setq ct (concat (substring ct 0 (match-beginning 0))
-                       (substring ct (match-end 0)))))
-    ;; Remove last newline before "*/"
-    (if (string-match "[\r\n]\\s-*$" ct)
-        (setq ct (concat (substring ct 0 (match-beginning 0))
-                         (substring ct (match-end 0)))))
-    ct))
-
 (defun semantic-java-find-documentation (&optional token nosnarf)
   "Find documentation from TOKEN and return it as a clean string.
 Java have documentation set in a comment preceeding TOKEN's
@@ -690,32 +691,171 @@ Override `semantic-find-documentation'."
         ;; If the point already at "/**" (this occurs after a doc fix)
         (if (looking-at "/\\*\\*")
             nil
-          ;; Skip previous spaces...
+          ;; Skip previous spaces
           (semantic-java-skip-spaces-backward)
-          ;; Verify the point is after "*/" (javadoc block comment end)
+          ;; Ensure point is after "*/" (javadoc block comment end)
           (condition-case nil
               (backward-char 2)
             (error nil))
           (when (looking-at "\\*/")
-          ;; Move the point backward across the comment
-            (forward-char 2)              ; return just after "*/"
-            (forward-comment -1)          ; to skip the entire block
+            ;; Move the point backward across the comment
+            (forward-char 2)            ; return just after "*/"
+            (forward-comment -1)        ; to skip the entire block
             ))
         ;; Verify the point is at "/**" (javadoc block comment start)
         (if (looking-at "/\\*\\*")
             (let ((p (point))
                   (c (semantic-find-doc-snarf-comment 'flex)))
               (when c
-                ;; Verify that the token just following the doc comment is
-                ;; the current one!
+                ;; Verify that the token just following the doc
+                ;; comment is the current one!
                 (goto-char (semantic-flex-end c))
                 (semantic-java-skip-spaces-forward)
-                (if (eq token (semantic-current-nonterminal))
-                    (if (eq nosnarf 'flex)
-                        c
-                      (semantic-java-clean-docstring
-                       (car (cdr c))
-                       (cdr (cdr c)))))))))))
+                (when (eq token (semantic-current-nonterminal))
+                  (goto-char p)
+                  (semantic-find-doc-snarf-comment nosnarf))))))))
+
+;;;;
+;;;; Javadoc elements
+;;;;
+
+(defvar semantic-java-doc-line-tags nil
+  "Valid javadoc line tags.
+Ordered following Sun's Tag Convention at
+<http://java.sun.com/products/jdk/javadoc/writingdoccomments/index.html>")
+
+(defvar semantic-java-doc-with-name-tags nil
+  "Javadoc tags which have a name.")
+
+(defvar semantic-java-doc-with-ref-tags nil
+  "Javadoc tags which have a reference.")
+
+;; Optional javadoc tags by token category
+;;
+(defvar semantic-java-doc-extra-type-tags nil
+  "Optional tags used in class/interface documentation.
+Ordered following Sun's Tag Convention.")
+
+(defvar semantic-java-doc-extra-function-tags nil
+  "Optional tags used in method/constructor documentation.
+Ordered following Sun's Tag Convention.")
+
+(defvar semantic-java-doc-extra-variable-tags nil
+  "Optional tags used in field documentation.
+Ordered following Sun's Tag Convention.")
+
+;; All javadoc tags by token category
+;;
+(defvar semantic-java-doc-type-tags nil
+  "Tags allowed in class/interface documentation.
+Ordered following Sun's Tag Convention.")
+
+(defvar semantic-java-doc-function-tags nil
+  "Tags allowed in method/constructor documentation.
+Ordered following Sun's Tag Convention.")
+
+(defvar semantic-java-doc-variable-tags nil
+  "Tags allowed in field documentation.
+Ordered following Sun's Tag Convention.")
+
+(defun semantic-java-doc-keyword-before-p (k1 k2)
+  "Return non-nil if javadoc keyword K1 is before K2."
+  (let ((seq1 (and (semantic-flex-keyword-p k1)
+                   (plist-get (semantic-flex-keyword-get k1 'javadoc)
+                              'seq)))
+        (seq2 (and (semantic-flex-keyword-p k2)
+                   (plist-get (semantic-flex-keyword-get k2 'javadoc)
+                              'seq))))
+    (if (and (numberp seq1) (numberp seq2))
+        (<= seq1 seq2)
+      ;; Unknown tags (probably custom ones) are always after official
+      ;; ones and are not themselves ordered.
+      (or (numberp seq1)
+          (and (not seq1) (not seq2))))))
+
+(defun semantic-java-doc-keywords-map (fun &optional property)
+  "Run function FUN for each javadoc keyword.
+Return the list of FUN results.  If optional PROPERTY is non nil only
+call FUN for javadoc keyword which have a value for PROPERTY.  FUN
+receives two arguments: the javadoc keyword and its associated
+'javadoc property list. It can return any value.  Nil values are
+removed from the result list."
+  (delq nil
+        (mapcar
+         #'(lambda (k)
+             (let ((plist (semantic-flex-keyword-get k 'javadoc)))
+               (if (or (not property) (plist-get plist property))
+                   (funcall fun k plist))))
+         semantic-java-doc-line-tags)))
+
+(defun semantic-java-doc-setup ()
+  "Lazy initialization of javadoc elements."
+  (or semantic-java-doc-line-tags
+      (setq semantic-java-doc-line-tags
+            (sort (mapcar #'symbol-name
+                          (semantic-flex-keywords 'javadoc))
+                  #'semantic-java-doc-keyword-before-p)))
+
+  (or semantic-java-doc-with-name-tags
+      (setq semantic-java-doc-with-name-tags
+            (semantic-java-doc-keywords-map
+             #'(lambda (k p)
+                 k)
+             'with-name)))
+
+  (or semantic-java-doc-with-ref-tags
+      (setq semantic-java-doc-with-ref-tags
+            (semantic-java-doc-keywords-map
+             #'(lambda (k p)
+                 k)
+             'with-ref)))
+
+  (or semantic-java-doc-extra-type-tags
+      (setq semantic-java-doc-extra-type-tags
+            (semantic-java-doc-keywords-map
+             #'(lambda (k p)
+                 (if (memq 'type (plist-get p 'usage))
+                     k))
+             'opt)))
+
+  (or semantic-java-doc-extra-function-tags
+      (setq semantic-java-doc-extra-function-tags
+            (semantic-java-doc-keywords-map
+             #'(lambda (k p)
+                 (if (memq 'function (plist-get p 'usage))
+                     k))
+             'opt)))
+
+  (or semantic-java-doc-extra-variable-tags
+      (setq semantic-java-doc-extra-variable-tags
+            (semantic-java-doc-keywords-map
+             #'(lambda (k p)
+                 (if (memq 'variable (plist-get p 'usage))
+                     k))
+             'opt)))
+
+  (or semantic-java-doc-type-tags
+      (setq semantic-java-doc-type-tags
+            (semantic-java-doc-keywords-map
+             #'(lambda (k p)
+                 (if (memq 'type (plist-get p 'usage))
+                     k)))))
+
+  (or semantic-java-doc-function-tags
+      (setq semantic-java-doc-function-tags
+            (semantic-java-doc-keywords-map
+             #'(lambda (k p)
+                 (if (memq 'function (plist-get p 'usage))
+                     k)))))
+
+  (or semantic-java-doc-variable-tags
+      (setq semantic-java-doc-variable-tags
+            (semantic-java-doc-keywords-map
+             #'(lambda (k p)
+                 (if (memq 'variable (plist-get p 'usage))
+                     k)))))
+  
+  )
 
 ;;;;
 ;;;; Mode Hook
@@ -735,30 +875,36 @@ Override `semantic-find-documentation'."
   (setq semantic-toplevel-bovine-table semantic-toplevel-java-bovine-table
         semantic-toplevel-bovine-table-source "java.bnf")
   (setq semantic-flex-keywords-obarray semantic-java-keyword-table)
-  (setq
-   ;; Java is case sensitive
-   semantic-case-fold nil
-   ;; special handling of multiple variable declarations/statement
-   semantic-expand-nonterminal 'semantic-expand-java-nonterminal
-   ;; function to use when creating items in imenu
-   semantic-imenu-summary-function 'semantic-prototype-nonterminal
-   ;; function to use for creating the imenu
-   imenu-create-index-function 'semantic-create-imenu-index
-   ;; Character used to separation a parent/child relationship
-   semantic-type-relation-separator-character '(".")
-   semantic-command-separation-character ";"
-   document-comment-start "/**"
-   document-comment-line-prefix " *"
-   document-comment-end " */"
-   ;; speedbar and imenu buckets name
-   semantic-symbol->name-assoc-list '((type     . "Classes")
-                                      (variable . "Variables")
-                                      (function . "Methods")
-                                      (include  . "Imports")
-                                      (package  . "Package"))
-   )
+  (progn
+    (setq
+     ;; Java is case sensitive
+     semantic-case-fold nil
+     ;; special handling of multiple variable declarations/statement
+     semantic-expand-nonterminal 'semantic-expand-java-nonterminal
+     ;; function to use when creating items in imenu
+     semantic-imenu-summary-function 'semantic-prototype-nonterminal
+     ;; function to use for creating the imenu
+     imenu-create-index-function 'semantic-create-imenu-index
+     ;; Character used to separation a parent/child relationship
+     semantic-type-relation-separator-character '(".")
+     semantic-command-separation-character ";"
+     document-comment-start "/**"
+     document-comment-line-prefix " *"
+     document-comment-end " */"
+     ;; speedbar and imenu buckets name
+     semantic-symbol->name-assoc-list '((type     . "Classes")
+                                        (variable . "Variables")
+                                        (function . "Methods")
+                                        (include  . "Imports")
+                                        (package  . "Package"))
+     )
+    ;; Needed by `semantic-find-doc-snarf-comment'.
+    (set (make-local-variable 'block-comment-end) "\\s-*\\*/")
+    )
  
- ;; End code generated from java.bnf
+  ;; End code generated from java.bnf
+
+  (semantic-java-doc-setup)
  )
 
 (add-hook 'java-mode-hook 'semantic-default-java-setup)
