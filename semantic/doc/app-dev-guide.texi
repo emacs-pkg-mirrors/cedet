@@ -329,6 +329,12 @@ with side effects that could effect the tag cache.
 There are some existing utility functions which will reorganize the
 tag list for you.
 
+@defun semantic-unique-tag-table-by-name tags
+@anchor{semantic-unique-tag-table-by-name}
+Scan a list of @var{TAGS}, removing duplicates.
+This must first sort the tags by name alphabetically ascending.
+@end defun
+
 @defun semantic-bucketize tags &optional parent filter
 Sort @var{TAGS} into a group of buckets based on tag class.
 Unknown classes are placed in a Misc bucket.
