@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.116 2001/09/12 15:53:06 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.117 2001/09/21 14:13:06 ponced Exp $
 
 (defvar semantic-version "1.4beta10"
   "Current version of Semantic.")
@@ -330,7 +330,7 @@ Not used yet; part of the next generation reparse mechanism.")
 ie, the symbol 'variable, 'function, 'type, or other."
   `(nth 1 ,token))
 
-(defun semantic-token-name (token)
+(defsubst semantic-token-name (token)
   "Retrieve the name of TOKEN."
   (car token))
 
@@ -369,7 +369,7 @@ If VALUE is nil, then remove the property from TOKEN."
 	  (setcar c (cons (cons key value) (car c)))))
     ))
 
-(defun semantic-token-get (token key)
+(defsubst semantic-token-get (token key)
   "For TOKEN, get the value for property KEY."
   (cdr (assoc key (semantic-token-properties token))))
 
@@ -389,24 +389,29 @@ The returned item may be an overlay or an unloaded buffer representation."
 	 (list (semantic-overlay-start o) (semantic-overlay-end o))
        (list (aref o 0) (aref o 1)))))
 
-(defun semantic-token-start (token)
+(defsubst semantic-token-start (token)
   "Retrieve the start location of TOKEN."
   (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-start o) (aref o 0))))
+    (if (semantic-overlay-p o)
+        (semantic-overlay-start o)
+      (aref o 0))))
 
-(defun semantic-token-end (token)
+(defsubst semantic-token-end (token)
   "Retrieve the end location of TOKEN."
   (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-end o) (aref o 1))))
+    (if (semantic-overlay-p o)
+        (semantic-overlay-end o)
+      (aref o 1))))
 
-(defun semantic-token-buffer (token)
+(defsubst semantic-token-buffer (token)
   "Retrieve the buffer TOKEN resides in."
   (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-buffer o)
+    (if (semantic-overlay-p o)
+        (semantic-overlay-buffer o)
       ;; We have no buffer for this token (It's not in Emacs right now.)
       nil)))
 
-(defun semantic-token-p (token)
+(defsubst semantic-token-p (token)
   "Return non-nil if TOKEN is most likely a semantic token."
   (and (listp token)
        (stringp (car token))
@@ -565,7 +570,7 @@ stream is requested."
 'percent means we are doing a linear parse through the buffer.
 'dynamic means we are rebovinating specific tokens.")
 
-(defun semantic-bovine-toplevel-full-reparse-needed-p (&optional checkcache)
+(defsubst semantic-bovine-toplevel-full-reparse-needed-p (&optional checkcache)
   "Return non-nil if the current buffer needs a full reparse.
 Optional argument CHECKCACHE indicates if the cache check should be made."
   (or semantic-toplevel-bovine-force-reparse
@@ -573,7 +578,7 @@ Optional argument CHECKCACHE indicates if the cache check should be made."
        checkcache
        semantic-toplevel-bovine-cache-check)))
 
-(defun semantic-bovine-toplevel-partial-reparse-needed-p (&optional checkcache)
+(defsubst semantic-bovine-toplevel-partial-reparse-needed-p (&optional checkcache)
   "Return non-nil if the current buffer needs a partial reparse.
 This only returns non-nil if `semantic-bovine-toplevel-full-reparse-needed-p'
 returns nil.
@@ -632,7 +637,9 @@ that, otherwise, do a full reparse."
     semantic-toplevel-bovine-cache
     )
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
-    (let ((changes (semantic-remove-dirty-children)))
+    (garbage-collect)
+    (let* ((gc-cons-threshold 10000000)
+           (changes (semantic-remove-dirty-children)))
       ;; We have a cache, and some dirty tokens
       (let ((semantic-bovination-working-type 'dynamic))
         (working-status-forms (buffer-name) "done"
@@ -655,21 +662,23 @@ that, otherwise, do a full reparse."
         semantic-toplevel-bovine-cache))
     )
    ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-    (semantic-clear-toplevel-cache)
+    (garbage-collect)
     ;; Reparse the whole system
-    (let ((ss (semantic-flex (point-min) (point-max)))
-	  (res nil)
-	  (semantic-overlay-error-recovery-stack nil))
+    (let ((gc-cons-threshold 10000000)
+          res semantic-overlay-error-recovery-stack)
+      (semantic-clear-toplevel-cache)
       ;; Init a dump
-      (if semantic-dump-parse (semantic-dump-buffer-init))
+      (if semantic-dump-parse
+          (semantic-dump-buffer-init))
       ;; Parse!
       (working-status-forms (buffer-name) "done"
-	(setq res
-	      (semantic-bovinate-nonterminals
-	       ss 'bovine-toplevel semantic-flex-depth))
+	(setq res (semantic-bovinate-nonterminals
+                   (semantic-flex (point-min) (point-max))
+                   'bovine-toplevel semantic-flex-depth))
 	(working-status t))
       (semantic-set-toplevel-bovine-cache (nreverse res))
-      semantic-toplevel-bovine-cache))
+      semantic-toplevel-bovine-cache)
+    )
    (t
     ;; We have a cache with stuff in it, so return it
     semantic-toplevel-bovine-cache
