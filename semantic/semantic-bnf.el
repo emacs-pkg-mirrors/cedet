@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.37 2001/04/12 01:10:24 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.38 2001/04/28 01:54:02 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@
 		    ;; When loading lisp rules, use READ to convert
 		    ;; into a list we can pretty print later.
 		    ,(semantic-lambda
-		      (let ((r (buffer-substring
+		      (let ((r (buffer-substring-no-properties
 				(car (car vals))
 				(cdr (car vals)))))
 			(list (symbol-name (car (read r))) 'setting r))))
@@ -108,7 +108,7 @@
 	  ,(semantic-lambda
 	    (list (nth 1 vals) 'put
 		  (list (nth 1 vals))
-		  (list (cons (nth 2 vals) (nth 3 vals))))))
+		  (list (apply 'list (nth 2 vals) 'property (nth 3 vals))))))
      (PUT symbol semantic-list
 	  ,(semantic-lambda
 	    (list (nth 1 vals) 'put
@@ -122,7 +122,7 @@
 			  (car (nth 1 vals)) (cdr (nth 1 vals))
 			  `put-name-list)))
 	      (list (car (car names)) 'put names
-		    (list (cons (nth 2 vals) (nth 3 vals)))))))
+		    (list (apply 'list (nth 2 vals) 'property (nth 3 vals)))))))
      (PUT semantic-list semantic-list
 	  ,(semantic-lambda
 	    (let ((names (semantic-bovinate-from-nonterminal-full
@@ -146,7 +146,7 @@
 		     (list (nth 1 vals) 'languagemode)))
      (LANGUAGEMODE semantic-list
 		   ,(semantic-lambda
-		     (let ((r (buffer-substring
+		     (let ((r (buffer-substring-no-properties
 			       (car (nth 1 vals))
 			       (cdr (nth 1 vals)))))
 		       (list r 'languagemode))))
@@ -160,13 +160,13 @@
     (put-name-list
      (open-paren ,(semantic-lambda (list nil)))
      (close-paren ,(semantic-lambda (list nil)))
-     (symbol ,(semantic-lambda (list (nth 0 vals)))))
+     (symbol ,(semantic-lambda (list (nth 0 vals) 'name))))
     (put-value-list
      (open-paren ,(semantic-lambda (list nil)))
      (close-paren ,(semantic-lambda (list nil)))
      (symbol put-value
 	     ,(semantic-lambda
-	       (cons (nth 0 vals) (nth 1 vals))))
+	       (apply 'list (nth 0 vals) 'property (nth 1 vals))))
      )
     (put-value
      (symbol ,(semantic-lambda (list (nth 0 vals))))
@@ -646,7 +646,7 @@ SOURCEFILE is the file name from whence tokstream came."
 		      (insert "  ("
 			      (nth 3 a) " "
 			      (car (car pairs)) " "
-			      (car (cdr (car pairs))) ")\n ")
+			      (car (cdr (cdr (car pairs)))) ")\n ")
 		      (setq pairs (cdr pairs)))))
 		(setq keys (cdr keys)))
 	      (setq put (cdr put)))
@@ -902,9 +902,28 @@ Once found, put it in a buffer, and return it."
    '( (abbreviate-nonterminal . semantic-bnf-abbreviate-nonterminal)
       (summarize-nonterminal . semantic-bnf-summarize-nonterminal)
       (eldoc-current-symbol-info . semantic-bnf-ecsi)
+      (nonterminal-children . semantic-bnf-nonterminal-children)
       )
    t)
   (run-hooks 'semantic-bnf-mode-hook))
+
+(defun semantic-bnf-nonterminal-children (token &optional positiononly)
+  "Return the children belonging to TOKEN.
+These children may or not be full tokens for bnf files, but will have
+overlays associated with them.
+Optional argument POSITIONONLY is passed to the default function but is not
+used locally."
+  (if (eq (semantic-token-token token) 'put)
+      (let ((a (nth 2 token))
+	    (b (nth 3 token)))
+	(if (not (semantic-token-with-position-p (car a)))
+	    (setq a nil))
+	(if (not (semantic-token-with-position-p (car b)))
+	    (setq b nil))
+	(append a b)
+	)
+    (semantic-nonterminal-children-default token))
+  )
 
 (defun semantic-bnf-abbreviate-nonterminal (token &optional parent)
   "Return a string abbreviation of TOKEN.
