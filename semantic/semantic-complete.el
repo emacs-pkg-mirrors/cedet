@@ -1,10 +1,10 @@
 ;;; semantic-complete.el --- Routines for performing tag completion
 
-;;; Copyright (C) 2003 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.19 2003/12/13 02:21:25 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.20 2004/01/09 02:11:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -706,11 +706,12 @@ has been run first."
 		      (< (length (semantic-tag-name (car twws))) cutlen))
 	    (setq idx (1+ idx)
 		  twws (semanticdb-find-result-nth compare idx)))
-	  ;; If COMPARE has succeeded, then we should take the very
-	  ;; first match, and extend prefix by one character.
-	  (oset obj last-whitespace-completion
-		(substring (semantic-tag-name (car twws))
-			   0 cutlen)))
+	  (when (and twws (car-safe twws))
+	    ;; If COMPARE has succeeded, then we should take the very
+	    ;; first match, and extend prefix by one character.
+	    (oset obj last-whitespace-completion
+		  (substring (semantic-tag-name (car twws))
+			     0 cutlen))))
       )))
 
 
