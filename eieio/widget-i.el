@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: widget-i.el,v 1.17 1996/12/12 03:32:44 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.18 1996/12/19 21:18:25 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -609,13 +609,16 @@ in a standard format."
 	(uo (if (oref this unit)
 		(transform-dataobject (oref this unit) this 
 				      (concat (object-name-string this) "-unit-data")
-				      fix))))
+				      fix)))
+	(lf (if (not (equal (oref this box-face) (oref-default this box-face)))
+		(oref this box-face) 'widget-default-face)))
     (if (get-children this)
 	nil
       ;; If we have no children ,create some.
       (if lo
 	  (create-widget-parent (concat (object-name-string this) "-label")
 				widget-label this
+				:face lf
 				:x 0 :y 0 :label-value lo))
       (create-widget-parent (concat (object-name-string this) "-text-field")
 			    widget-text-field this
@@ -647,16 +650,21 @@ more sophisticated widget systems."
     (if tv (oset this value tv)
       (error "Text value not a data object")))
   ;; build the data objects for our labels.
-  (let ((lo (transform-dataobject (oref this label) this 
-				  (concat (object-name-string this) "-label-data")
-				  fix))
-	(is (data-object "option-index" :value 0)))
+  (let* ((lo (transform-dataobject (oref this label) this 
+				   (concat (object-name-string this) "-label-data")
+				   fix))
+	 (is (data-object "option-index" :value -1))
+	 (lf (if (not (equal (oref this box-face) (oref-default this box-face)))
+		 (oref this box-face) 
+	       'widget-default-face))
+	 (objname (get-value lo)))
     (if (get-children this)
 	nil
       ;; If we have no children ,create some.
       (if lo
 	  (create-widget-parent (concat (object-name-string this) "-label")
 				widget-label this
+				:face lf
 				:x 0 :y 0 :label-value lo))
       (create-widget-parent (concat (object-name-string this) "-text-field")
 			    widget-text-field this
@@ -670,15 +678,35 @@ more sophisticated widget systems."
 			    :option-list (oref this option-list)
 			    :option-indicator nil
 			    :label-value "[V]"
+			    ;; This creates a menu title guessed at
+			    ;; based on the label used to prefix this
+			    ;; object
+			    :title (if (string-match " *: *$" objname)
+				       (substring objname 0
+						  (match-beginning 0))
+				     objname)
 			    :state is)
-      (create-widget-parent (concat (object-name-string this) "-translator")
+      (create-widget-parent (concat (object-name-string this) "-translator-1")
 			    widget-gadget-translator this
 			    :watch is
 			    :change (oref this value)
 			    :translate-function
 			    (lambda (watch change)
-			      (let ((l (oref (oref this parent) option-list)))
-				(set-value change (nth (get-value watch) l)))
+			      (if (/= (get-value watch) -1)
+				  (let ((l (oref (oref this parent) option-list)))
+				    (set-value change (nth (get-value watch) l)))
+				)))
+      (create-widget-parent (concat (object-name-string this) "-translator-2")
+			    widget-gadget-translator this
+			    :watch (oref this value)
+			    :change is
+			    :translate-function
+			    ;; when the text is changed, set the option-button
+			    ;; to -1 so that when the option button is
+			    ;; chosen to reselect the last item, the
+			    ;; text is changed with it.
+			    (lambda (watch change)
+			      (set-value change -1)
 			      ))
       )))
 
@@ -787,7 +815,7 @@ into a list of substrings which was separated by carriage returns."
 
 (defmethod update-symbol ((this widget-label) sym)
   "If sym is our :label-value field, then update ourselves"
-  (message "updating label")
+  ;; (message "updating label")
   (save-excursion
     (if (eq sym (oref this label-value))
 	(progn
