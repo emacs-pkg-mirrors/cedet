@@ -1,10 +1,10 @@
 ;;; ede-proj-nusc.el --- EDE Generic Project Emacs Lisp support
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-misc.el,v 1.2 1999/11/09 20:36:09 zappo Exp $
+;; RCS: $Id: ede-proj-misc.el,v 1.3 2000/06/20 02:19:33 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -32,7 +32,7 @@
 ;;; Code:
 (defclass ede-proj-target-makefile-miscelaneous (ede-proj-target-makefile)
   ((submakefile :initarg :submakefile
-		:initform "makefile.misc"
+		:initform ""
 		:type string
 		:custom string
 		:documentation
@@ -45,7 +45,7 @@ All listed sources are included in the distribution.")
 
 (defmethod ede-want-file-p ((obj ede-proj-target-makefile-miscelaneous) file)
   "Return t if OBJ wants to own FILE."
-  (string-match "\\.texi?$" file))
+  t)
 
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-miscelaneous))
   "Return the variable name for THIS's sources."
@@ -54,13 +54,17 @@ All listed sources are included in the distribution.")
 (defmethod ede-proj-makefile-dependency-files
   ((this ede-proj-target-makefile-miscelaneous))
   "Return a list of files which THIS target depends on."
-  (list (oref this submakefile)))
+  (with-slots (submakefile) this
+      (or (not (string= submakefile "")) (list submakefile))))
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile-miscelaneous))
   "Create the make rule needed to create an archive for THIS."
   (call-next-method)
-  (insert (ede-name this) ": " (oref this submakefile) "\n"
-	  "\t$(MAKE) -f " (oref this submakefile) "\n\n"))
+  (insert (ede-name this) ": ")
+  (with-slots (submakefile) this
+    (if (string= submakefile "")
+	(insert "\n\t@\n\n")
+      (insert submakefile "\n" "\t$(MAKE) -f " submakefile "\n\n"))))
 
 (provide 'ede-proj-misc)
 
