@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: eieio-doc.el,v 1.3 1996/12/12 03:37:54 zappo Exp $
+;;; RCS: $Id: eieio-doc.el,v 1.4 1997/01/07 23:08:08 zappo Exp $
 ;;; Keywords: OO, lisp, docs
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -40,6 +40,14 @@
 
 (defvar eieiodoc-current-section-level nil
   "String represending what type of section header to use")
+
+(defvar eieiodoc-prev-class nil
+  "This has a value while eieiodoc-recurse is running, and can be
+referenced from the recursed function.")
+
+(defvar eieiodoc-next-class nil
+  "This has a value while eieiodoc-recurse is running, and can be
+referenced from the recursed function.")
 
 (defun eieiodoc-class (root-class indexstring &optional skiplist)
   "Create documentation starting with ROOT-CLASS.  The first job is to
@@ -90,7 +98,8 @@ amount.  SKIPLIST is a list of objects to skip"
   (insert "@end menu\n"))
 
 (defun eieiodoc-one-node (class level)
-  "Create a node for CLASS, and for all subclasses of CLASS in order"
+  "Create a node for CLASS, and for all subclasses of CLASS in order.  This
+function should only be called by `eieiodoc-class'"
   (message "Building node for %s" class)
   (insert "\n@node " (symbol-name class) ", "
 	  (if eieiodoc-next-class (symbol-name eieiodoc-next-class) " ") ", "
@@ -118,6 +127,7 @@ amount.  SKIPLIST is a list of objects to skip"
 	      "\n")
       (setq revlist (cdr revlist)
 	    depth (1+ depth)))
+    ;; the value of rclass is brought in from caller
     (let ((clist (reverse (aref (class-v rclass) class-children))))
       (if (not clist)
 	  (insert "No children")
@@ -151,7 +161,7 @@ amount.  SKIPLIST is a list of objects to skip"
 	  (setq anchor (point))
 	  (insert "@item Public Slots:\n\n@table @code\n")
 	  (while names
-	    (if (eieiodoc-one-attribute class (car names) (car docs))
+	    (if (eieiodoc-one-attribute class (car names) (car docs) deflt)
 		(setq set-one t))
 	    (setq names (cdr names)
 		  docs (cdr docs)
@@ -165,7 +175,7 @@ amount.  SKIPLIST is a list of objects to skip"
 		anchor (point))
 	  (insert "@item Private Slots:\n\n@table @code\n")
 	  (while pnames
-	    (if (eieiodoc-one-attribute class (car pnames) (car pdocs))
+	    (if (eieiodoc-one-attribute class (car pnames) (car pdocs) deflt)
 		(setq set-one t))
 	    (setq pnames (cdr pnames)
 		  pdocs (cdr pdocs)
@@ -177,7 +187,7 @@ amount.  SKIPLIST is a list of objects to skip"
     (insert "@end table\n")
     ))
 
-(defun eieiodoc-one-attribute (class attribute doc)
+(defun eieiodoc-one-attribute (class attribute doc deflt)
   "Create documentation for a single attribute.  Assume this attribute
 is inside a table, so it is initiated with the @item indicator.  If
 this attribute is not inserted (because it is contained in the parent)
@@ -201,14 +211,6 @@ then return nil, else return t"
 ;;;
 ;;; Utilities
 ;;;
-(defvar eieiodoc-prev-class nil
-  "This has a value while eieiodoc-recurse is running, and can be
-referenced from the recursed function.")
-
-(defvar eieiodoc-next-class nil
-  "This has a value while eieiodoc-recurse is running, and can be
-referenced from the recursed function.")
-
 (defun eieiodoc-recurse (rclass func &optional level skiplist)
   "Recurse down all children of RCLASS, calling FUNC on each one.
 LEVEL indicates the current depth below the first call we are.  The
