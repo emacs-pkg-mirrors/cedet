@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic tag tables
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.124 2003/09/02 14:49:47 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.125 2004/03/20 00:14:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -67,11 +67,11 @@ If FILE is not loaded, check to see if `semanticdb' feature exists,
    and use it to get tags from files not in memory.
 If FILE is not loaded, and semanticdb is not available, find the file
    and parse it.
-Optional argument CHECKCACHE is passed to `semantic-bovinate-toplevel'."
+Optional argument CHECKCACHE is passed to `semantic-fetch-tags'."
   (if (get-file-buffer file)
       (save-excursion
 	(set-buffer (get-file-buffer file))
-	(semantic-bovinate-toplevel checkcache))
+	(semantic-fetch-tags checkcache))
     ;; File not loaded
     (if (and (fboundp 'semanticdb-minor-mode-p)
 	     (semanticdb-minor-mode-p))
@@ -80,7 +80,7 @@ Optional argument CHECKCACHE is passed to `semantic-bovinate-toplevel'."
       ;; Get the stream ourselves.
       (save-excursion
 	(set-buffer (find-file-noselect file))
-	(semantic-bovinate-toplevel checkcache)))))
+	(semantic-fetch-tags)))))
 
 (semantic-alias-obsolete 'semantic-file-token-stream
 			 'semantic-file-tag-table)
@@ -98,13 +98,13 @@ buffer, or a filename.  If SOMETHING is nil return nil."
    ((bufferp something)
     (save-excursion
       (set-buffer something)
-      (semantic-bovinate-toplevel t)))
+      (semantic-fetch-tags)))
    ;; A Tag: Get that tag's buffer
    ((and (semantic-tag-with-position-p something)
 	 (semantic-tag-buffer something))
     (save-excursion
       (set-buffer (semantic-tag-buffer something))
-      (semantic-bovinate-toplevel t)))
+      (semantic-fetch-tags)))
    ;; Tag with a file name in it
    ((and (semantic-tag-p something)
 	 (semantic-tag-file-name something)
@@ -122,7 +122,7 @@ buffer, or a filename.  If SOMETHING is nil return nil."
     (semanticdb-get-tags something something))
    ;; Use the current buffer for nil
 ;;   ((null something)
-;;    (semantic-bovinate-toplevel t))
+;;    (semantic-fetch-tags))
    ;; don't know what it is
    (t nil)))
 
@@ -144,7 +144,7 @@ THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON.
 "
   (save-excursion
     (set-buffer buffer)
-    (let* ((stream (semantic-bovinate-toplevel))
+    (let* ((stream (semantic-fetch-tags))
 	   (includelist (or (semantic-find-tags-by-class 'include stream)
 			    "empty.silly.thing"))
 	   (found (semantic-find-first-tag-by-name name stream))
@@ -155,7 +155,7 @@ THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON.
 	      (save-excursion
 		(set-buffer (find-file-noselect fn))
 		(message "Scanning %s" (buffer-file-name))
-		(setq stream (semantic-bovinate-toplevel))
+		(setq stream (semantic-fetch-tags))
 		(setq found (semantic-find-first-tag-by-name name stream))
 		(if found
 		    (setq found (cons (current-buffer) (list found)))
@@ -186,7 +186,7 @@ STREAM is the list of tokens to complete from.
 FILTER is provides a filter on the types of things to complete.
 FILTER must be a function to call on each element."
   (if (not default) (setq default (thing-at-point 'symbol)))
-  (if (not stream) (setq stream (semantic-bovinate-toplevel)))
+  (if (not stream) (setq stream (semantic-fetch-tags)))
   (setq stream
 	(if filter
 	    (semantic--find-tags-by-function filter stream)
@@ -244,14 +244,14 @@ STREAM is the list of tags to complete from."
 
 
 
-;;; Interactive Functions for bovination
+;;; Interactive Functions for 
 ;;
-(defun semantic-describe-token (&optional token)
+(defun semantic-describe-tag (&optional token)
   "Describe TOKEN in the minibuffer.
 If TOKEN is nil, describe the token under the cursor."
   (interactive)
   (if (not token) (setq token (semantic-current-tag)))
-  (semantic-bovinate-toplevel t)
+  (semantic-fetch-tags)
   (if token (message (semantic-format-tag-summarize token))))
 
 
@@ -263,7 +263,7 @@ If TOKEN is not specified, use the token at point."
   (interactive "sLabel: \nXValue (eval): ")
   (if (not token)
       (progn
-	(semantic-bovinate-toplevel t)
+	(semantic-fetch-tags)
 	(setq token (semantic-current-tag))))
   (semantic--tag-put-property token (intern label) value)
   (message "Added label %s with value %S" label value))
@@ -274,7 +274,7 @@ If TOKEN is not specified, use the token at point."
   (interactive "sLabel: ")
   (if (not token)
       (progn
-	(semantic-bovinate-toplevel t)
+	(semantic-fetch-tags)
 	(setq token (semantic-current-tag))))
   (message "%s: %S" label (semantic--tag-get-property token (intern label))))
 
@@ -297,7 +297,7 @@ Argument P is the point to search from in the current buffer."
   (interactive)
   (let (
 	;(name (thing-at-point 'symbol))
-	(strm (cdr (semantic-bovinate-toplevel)))
+	(strm (cdr (semantic-fetch-tags)))
 	(res nil))
 ;    (if name
 	(setq res
@@ -342,7 +342,7 @@ CACHE, and OVER are the semantic cache, and the overlay list.
 NOTFIRST indicates that this was not the first call in the recursive use."
   (interactive)
   (if (and (not cache) (not over) (not notfirst))
-      (setq cache semantic-toplevel-bovine-cache
+      (setq cache semantic--buffer-cache
 	    over (semantic-overlays-in (point-min) (point-max))))
   (while cache
     (let ((chil (semantic-tag-components-with-overlays (car cache))))
