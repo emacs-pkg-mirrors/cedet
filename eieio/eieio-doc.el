@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.11 1999/09/08 23:08:27 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.12 1999/09/10 01:01:54 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -42,11 +42,11 @@
   "String represending what type of section header to use.")
 
 (defvar eieiodoc-prev-class nil
-  "Non-nil when while eieiodoc-recurse is running.
+  "Non-nil when while `eieiodoc-recurse' is running.
 Can be referenced from the recursed function.")
 
 (defvar eieiodoc-next-class nil
-  "Non-nil when eieiodoc-recurse is running.
+  "Non-nil when `eieiodoc-recurse' is running.
 Can be referenced from the recursed function.")
 
 (defun eieiodoc-class (root-class indexstring &optional skiplist)
