@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.4 1999/02/03 18:10:50 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.5 1999/02/18 18:14:43 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -99,6 +99,11 @@ This is the next line of documentation.")
 	 (fields (aref cv class-public-a))
 	 (fdoc (aref cv class-public-doc))
 	 (fcust (aref cv class-public-custom)))
+    ;; First line describes the object, but is not editable.
+    (setq chil (cons (widget-create-child-and-convert
+		      widget 'const
+		      (concat "Object " (object-name-string obj)))
+		     chil))
     ;; Loop over all the fields, creating child widgets.
     (while fields
       ;; Output this slot if it has a customize flag associated with it.
@@ -110,19 +115,28 @@ This is the next line of documentation.")
 			      widget
 			      (eieio-filter-slot-type widget (car fcust))
 			      :tag
-			      (concat "   Slot `"
-				      (symbol-name
-				       (or (class-slot-initarg
-					    (object-class-fast obj)
-					    (car fields))
-					   (car fields)))
-				      "'")
+			      (concat
+			       (make-string
+				(or (widget-get widget :indent) 0)
+				? )
+			       "  Slot "
+			       (let ((s (symbol-name
+					 (or (class-slot-initarg
+					      (object-class-fast obj)
+					      (car fields))
+					     (car fields)))))
+				 (capitalize
+				  (if (string-match "^:" s)
+				      (substring s (match-end 0))
+				    s))))
 			      :value (slot-value obj (car fields)))
 			     chil))
 	    (setq chil (cons (widget-create-child-and-convert
 			      widget 'documentation-string
-			      :format "    %v"
-			      :tag ""
+			      :format "%t   %v"
+			      :tag (make-string
+				    (or (widget-get widget :indent) 0)
+				    ? )
 			      :value (if (car fdoc) (car fdoc)
 				       "Slot not Documented."))
 			     chil))
@@ -136,7 +150,7 @@ This is the next line of documentation.")
 (defun eieio-object-value-get (widget)
   "Get the value of WIDGET."
   (let* ((obj (widget-get widget :value))
-	 (chil (widget-get widget :children))
+	 (chil (nthcdr 1 (widget-get widget :children)))
 	 (cv (class-v (object-class-fast obj)))
 	 (fields (aref cv class-public-a))
 	 (fcust (aref cv class-public-custom)))
@@ -169,7 +183,7 @@ object widget."
       ;; Delete all the overlays.
       (mapcar 'delete-overlay (car all))
       (mapcar 'delete-overlay (cdr all)))
-    (widget-insert "Edit object " (object-name obj) "\n")
+    (widget-insert "Edit object " (object-name obj) "\n\n")
     ;; Create the widget editing the object.
     (make-local-variable 'eieio-wo)
     (setq eieio-wo (eieio-custom-widget-insert obj))
