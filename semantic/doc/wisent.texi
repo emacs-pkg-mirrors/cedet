@@ -1,14 +1,11 @@
-\input texinfo   @c -*-texinfo-*-
-@c
-@c $Id: wisent.texi,v 1.1 2003/08/31 01:29:01 zappo Exp $
-@c
-@setfilename wisent.info
-@settitle Wisent: the Bison-compatible Parser Generator for Emacs
+@ignore
+@node Wisent Parsers
+@subsection Wisent Parsers
+@c This ignore section fools texinfo-all-menus-update into creating
+@c the proper menus for this chapter.
+@end ignore
 
-@copying
-This manual documents Wisent, the Bison-compatible Parser Generator
-for Emacs.
-
+This section is:
 Copyright @copyright{} 2001, 2002, 2003 David Ponce
 
 Some texts are borrowed or adapted from the manual of Bison version
@@ -28,12 +25,10 @@ being list, and with the Back-Cover Texts being list.  A copy of the
 license is included in the section entitled ``GNU Free Documentation
 License''.
 @end quotation
-@end copying
 
-@dircategory Emacs
-@direntry
-* Wisent: (wisent).	The Bison-compatible Parser Generator for Emacs
-@end direntry
+@ignore
+
+This needs to be merged up one level, or is it already?  - Eric
 
 @c Combine indices.
 @synindex cp fn
@@ -51,9 +46,7 @@ License''.
 @insertcopying
 @end titlepage
 @page
-
-@node Top
-@top Wisent
+@end ignore
 
 Wisent (the European Bison ;-) is an Emacs Lisp implementation of the
 GNU Compiler Compiler Bison.
@@ -66,60 +59,15 @@ It also describes how Wisent is used with the Semantic tool set
 described in the @ref{Top, Semantic Manual, Semantic Manual, semantic}.
 
 @menu
-* Overview::                    
-* Grammar::                     
-* Parsing::                     
+* Wisent Overview::                    
+* Wisent Grammar::                     
+* Wisent Parsing::                     
 * Wisent Semantic::             
-* GNU Free Documentation License::  
-* Index::                       
-
-@detailmenu
- --- The Detailed Node Listing ---
-
-Grammar
-
-* Grammar format::              
-* Example::                     
-* Compiling a grammar::         
-* Conflicts::                   
-
-Conflicts
-
-* Grammar Debugging::           
-* Understanding the automaton::  
-
-Parsing
-
-* Writing a lexer::             
-* Actions goodies::             
-* Report errors::               
-* Error recovery::              
-* Debugging actions::           
-
-How to use Wisent with Semantic
-
-* WY grammar format::           
-* WY Major Mode::               
-* Grammar styles::              
-* Wisent Lex::                  
-
-WY grammar format
-
-* Percent-keywords::            
-
-Grammar styles
-
-* Iterative style::             
-* Bison style::                 
-* Mixed style::                 
-* Start nonterminals::          
-* Useful functions::            
-
-@end detailmenu
+* Wisent Index::                       
 @end menu
 
-@node Overview
-@chapter Overview
+@node Wisent Overview
+@subsection Wisent Overview
 
 @dfn{Wisent} (the European Bison) is an implementation in Emacs Lisp
 of the GNU Compiler Compiler Bison. Its code is a port of the C code
@@ -186,8 +134,8 @@ example, this is particularly useful to parse a region of an Emacs
 buffer.  Semantic heavily depends on the availability of this feature.
 @end itemize
 
-@node Grammar
-@chapter Grammar
+@node Wisent Grammar
+@subsection Wisent Grammar
 
 @cindex context-free grammar
 @cindex rule
@@ -557,7 +505,7 @@ The LALR(1) automaton is a vector of the form:
 @item actions
 A state/token matrix telling the parser what to do at every state
 based on the current look-ahead token.  That is shift, reduce, accept
-or error.  See also @ref{Parsing}.
+or error.  See also @ref{Wisent Parsing}.
 
 @item gotos
 A state/nonterminal matrix telling the parser the next state to go to
@@ -577,7 +525,7 @@ an Emacs Lisp function (lambda expression).
 @section Conflicts
 
 Normally, a grammar should produce an automaton where at each state
-the parser has only one action to do (@pxref{Parsing}).
+the parser has only one action to do (@pxref{Wisent Parsing}).
 
 @cindex ambiguous grammar
 In certain cases, a grammar can produce an automaton where, at some
@@ -1035,8 +983,8 @@ state 12
 The end of input is shifted @samp{$EOI shift,} and the parser exits
 successfully (@samp{go to state 12}, that terminates).
 
-@node Parsing
-@chapter Parsing
+@node Wisent Parsing
+@subsection Wisent Parsing
 
 @cindex bottom-up parser
 @cindex shift-reduce parser
@@ -1456,10 +1404,10 @@ Show the source of @var{automaton}'s semantic action @var{function}.
 @end deffn
 
 @node Wisent Semantic
-@chapter How to use Wisent with Semantic
+@subsection How to use Wisent with Semantic
 
 @cindex semantic parse tree
-This chapter presents how the Wisent's parser can be used to produce
+This section presents how the Wisent's parser can be used to produce
 @dfn{parse trees} for the Semantic tool set.
 
 @cindex semantic token
@@ -2290,13 +2238,8 @@ tokens produced by @code{semantic-lex}.  Pop the next token available
 and convert it to a form suitable for the Wisent's parser.
 @end defun
 
-@node GNU Free Documentation License
-@appendix GNU Free Documentation License
-
-@include fdl.texi
-
-@node Index
-@unnumbered Index
+@node Wisent Index
+@unnumbered Wisent Index
 
 @printindex fn
 
