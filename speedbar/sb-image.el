@@ -1,10 +1,10 @@
 ;;; sb-image --- Image management for speedbar
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Free Software Foundation
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-image.el,v 1.8 2002/03/23 03:11:07 zappo Exp $
+;; X-RCS: $Id: sb-image.el,v 1.9 2003/02/21 18:02:48 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -48,8 +48,9 @@
 	 window-system) ; old emacs & xemacs
        (or (not (fboundp 'image-type-available-p)) ; xemacs?
 	   (image-type-available-p 'xpm))) ; emacs 21
-  "*Non nil if speedbar should display icons."
+  "*Non-nil if speedbar should display icons."
   :group 'speedbar
+  :version "21.1"
   :type 'boolean)
 
 ;;; Some images if defimage is available:
@@ -62,7 +63,7 @@
       
 (defmacro defimage-speedbar (variable imagespec docstring)
   "Don't bother loading up an image...
-Argument VARIABLE is the varible to define.
+Argument VARIABLE is the variable to define.
 Argument IMAGESPEC is the list defining the image to create.
 Argument DOCSTRING is the documentation for VARIABLE."
   `(defvar ,variable nil ,docstring))
@@ -84,14 +85,14 @@ Argument DOCSTRING is the documentation for VARIABLE."
     r))
 
 (defun speedbar-convert-emacs21-imagespec-to-xemacs (spec)
-  "Convert the Emacs21 Image SPEC into an XEmacs image spec."
+  "Convert the Emacs21 image SPEC into an XEmacs image spec."
   (let* ((sl (car spec))
 	 (itype (nth 1 sl))
 	 (ifile (nth 3 sl)))
     (vector itype ':file (speedbar-find-image-on-load-path ifile))))
 
 (defmacro defimage-speedbar (variable imagespec docstring)
-  "Devine VARIABLE as an image if `defimage' is not available..
+  "Define VARIABLE as an image if `defimage' is not available.
 IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
   `(defvar ,variable
      ;; The Emacs21 version of defimage looks just like the XEmacs image
