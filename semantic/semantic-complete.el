@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.2 2003/04/26 12:07:32 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.3 2003/04/26 18:22:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -114,12 +114,20 @@ Value should be a ... what?")
   (let ((km (make-sparse-keymap)))
     (define-key km " " 'semantic-complete-complete-space)
     (define-key km "\t" 'semantic-complete-complete-tab)
-    (define-key km "\C-h" 'semantic-complete-help)
     (define-key km "\C-m" 'semantic-complete-done)
     (define-key km "\C-g" 'abort-recursive-edit)
+    (define-key km "\M-n" 'next-history-element)
+    (define-key km "\M-p" 'previous-history-element)
+    (define-key km "\C-n" 'next-history-element)
+    (define-key km "\C-p" 'previous-history-element)
     ;; Add history navigation
     km)
   "Keymap used while completing across a list of tags.")
+
+(defvar semantic-completion-default-history nil
+  "Default history variable for any unhistoried prompt.
+Keeps STRINGS only in the history.")
+
 
 ;;;###autoload
 (defun semantic-complete-read-tag-engine (collector displayor prompt
@@ -146,7 +154,8 @@ HISTORY is a symbol representing a variable to story the history in."
 				initial-input
 				semantic-complete-key-map
 				nil
-				history
+				(or history
+				    'semantic-completion-default-history)
 				(semantic-tag-name default-tag)))
     ;; Convert the answer, a string, back into a tag using
     ;; the collector
@@ -168,17 +177,14 @@ HISTORY is a symbol representing a variable to story the history in."
   (interactive)
   (semantic-complete-do-completion))
 
-(defun semantic-complete-help ()
-  "Display help about Semantic Tag Completion."
-  (interactive)
-  (describe-mode)
-  )
-
 (defun semantic-complete-done ()
   "Accept the current input."
   (interactive)
   (semantic-complete-do-completion)
-  (exit-minibuffer))
+  (if (oref collector match-list)
+      (exit-minibuffer)
+    (semantic-completion-message " [No Match]")
+    ))
 
 (defun semantic-complete-do-completion (&optional partial)
   "Do a completion for the current minibuffer.
@@ -220,7 +226,7 @@ If PARTIAL, do partial completion stopping at spaces."
 		    (when (not (string= (buffer-string)
 					(semantic-tag-name (car comp))))
 		      ;; A fully unique completion was available.
-		      (erase-buffer)
+		      (delete-minibuffer-contents)
 		      (insert (semantic-tag-name (car comp))))
 		    ;; The match is complete
 		    (if (= (length comp) 1)
