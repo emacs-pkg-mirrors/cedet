@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.72 2000/12/16 02:47:07 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.73 2000/12/16 03:09:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1199,7 +1199,7 @@ apply those properties"
 	(setq propertyalist (cdr propertyalist))))
     obarray))
 
-(defun semantic-flex-is-keyword (text)
+(defun semantic-flex-keyword-p (text)
   "Return a symbol if TEXT is a keyword."
   (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
     (if sym (symbol-value sym))))
@@ -1280,7 +1280,7 @@ LENGTH tokens."
 	      ((looking-at "\\(\\sw\\|\\s_\\)+")
 	       (setq ts (cons (cons
 			       ;; Get info on if this is a keyword or not
-			       (or (semantic-flex-is-keyword (match-string 0))
+			       (or (semantic-flex-keyword-p (match-string 0))
 				   'symbol)
 			       (cons (match-beginning 0) (match-end 0)))
 			      ts)))
