@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.173 2003/09/02 14:50:25 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.174 2003/12/28 17:55:22 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -210,6 +210,16 @@ during a flush when the cache is given a new value of nil.")
   "State of the current parse tree.")
 (make-variable-buffer-local 'semantic-parse-tree-state)
 
+(defmacro semantic-parse-tree-unparseable ()
+  "Indicate that the current buffer is unparseable.
+It is also true that the parse tree will need either updating or
+a rebuild.  This state will be changed when the user edits the buffer."
+  `(setq semantic-parse-tree-state 'unparseable))
+
+(defmacro semantic-parse-tree-unparseable-p ()
+  "Return non-nil if the current buffer has been marked unparseable."
+  `(eq semantic-parse-tree-state 'unparseable))
+
 (defmacro semantic-parse-tree-set-needs-update ()
   "Indicate that the current parse tree needs to be updated.
 The parse tree can be updated by `semantic-parse-changes'."
@@ -247,9 +257,13 @@ This hook is for database functions which intend to swap in a token table.
 This guarantees that the DB will go before other modes that require
 a parse of the buffer.")
 
+(defvar semantic-new-buffer-fcn-was-run nil
+  "Non nil after `semantic-new-buffer-fcn' has been executed.")
+(make-variable-buffer-local 'semantic-new-buffer-fcn-was-run)
+
 (defsubst semantic-active-p ()
   "Return non-nil if the current buffer was set up for parsing."
-  semantic-toplevel-bovine-table)
+  semantic-new-buffer-fcn-was-run)
 
 (defsubst semantic-bovine-umatched-syntax-refresh-needed-p  ()
   "Return non-nil if the unmatched syntax cache needs a refresh.
@@ -262,8 +276,8 @@ That is if it is dirty or if the current parse tree isn't up to date."
 Runs `semantic-init-hook' if the major mode is setup to use Semantic."
   ;; Make sure variables are set up for this mode.
   (semantic-activate-mode-bindings)
-  ;; Do stuff if semantic is active in this buffer.b
-  (when (semantic-active-p)
+  ;; Do stuff if semantic was activated by a mode hook in this buffer.
+  (when semantic-toplevel-bovine-table
     ;; Force this buffer to have its cache refreshed.
     (semantic-clear-toplevel-cache)
     ;; Here are some buffer local variables we can initialize ourselves
@@ -271,6 +285,8 @@ Runs `semantic-init-hook' if the major mode is setup to use Semantic."
     (semantic-lex-init)
     ;; Setup for a needed reparse.
     (semantic-parse-tree-set-needs-rebuild)
+    ;; Specify that this function has done it's work.
+    (setq semantic-new-buffer-fcn-was-run t)
     ;; Call DB hooks before regular init hooks
     (run-hooks 'semantic-init-db-hooks)
     ;; Lastly, set up semantic modes
@@ -347,7 +363,7 @@ the output buffer."
 	 (end (current-time)))
     (message "Retrieving tokens took %.2f seconds."
 	     (semantic-elapsed-time start end))
-    (when (not (and (numberp clear) (> 0 clear)))
+    (when (or (null clear) (not (listp clear)))
       (pop-to-buffer "*BOVINATE*")
       (require 'pp)
       (erase-buffer)
@@ -533,6 +549,9 @@ compatibility with previous versions of Semantic."
    ;; Application hooks say the buffer is safe for parsing
    (run-hook-with-args-until-failure
     'semantic-before-toplevel-bovination-hook)
+   ;; If the buffer was previously marked unparseable,
+   ;; then don't waste our time.
+   (not (semantic-parse-tree-unparseable-p))
    ;; The parse tree actually needs to be refreshed
    (not (semantic-parse-tree-up-to-date-p))
    ;; So do it!
