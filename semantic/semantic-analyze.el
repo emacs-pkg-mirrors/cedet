@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.34 2004/03/05 03:10:20 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.35 2004/03/06 15:08:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -790,6 +790,17 @@ Used as options when completing."
       ;; Be default, we don't know.
       nil)))
 
+(defun semantic-analyze-tags-of-class-list (tags classlist)
+  "Return the tags in TAGS that are of classes in CLASSLIST."
+  (let ((origc tags))
+    ;; Accept only tags that are of the datatype specified by
+    ;; the desired classes.
+    (setq tags (apply 'append
+		      (mapcar (lambda (class)
+				(semantic-find-tags-by-class class origc))
+			      classlist)))
+    tags))
+
 ;;;###autoload
 (defun semantic-analyze-possible-completions (context)
   "Return a list of semantic tags which are possible completions.
@@ -808,7 +819,10 @@ Context type matching can identify the following:
 When called interactively, displays the list of possible completions
 in a buffer."
   (interactive "d")
-  (let* ((s (semantic-fetch-overload 'analyze-possible-completions))
+  (let* ((context
+	  (if (semantic-analyze-context-child-p context) context
+	    (semantic-analyze-current-context context)))
+	 (s (semantic-fetch-overload 'analyze-possible-completions))
 	 (ans
 	  (if s (funcall s context)
 	    (semantic-analyze-possible-completions-default context))))
@@ -830,9 +844,7 @@ in a buffer."
 (defun semantic-analyze-possible-completions-default (context)
   "Default method for producing smart completions.
 Argument CONTEXT is an object specifying the locally derived context."
-  (let* ((a (if (semantic-analyze-context-child-p context)
-		context
-	      (semantic-analyze-current-context context)))
+  (let* ((a context)
 	 (fnargs (save-excursion
 		   (semantic-get-local-arguments
 		    (car (oref a bounds)))))
@@ -924,14 +936,7 @@ Argument CONTEXT is an object specifying the locally derived context."
 	    ))))
 
     (when desired-class
-      (let ((origc c))
-	;; Accept only tags that are of the datatype specified by
-	;; the desired classes.
-	(setq c (apply 'append
-		       (mapcar (lambda (class)
-				 (semantic-find-tags-by-class class origc))
-			       desired-class)))
-	))
+      (setq c (semantic-analyze-tags-of-class-list c desired-class)))
 
     ;; Pull out trash.
     ;; NOTE TO SELF: Is this too slow?
