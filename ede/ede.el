@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.4 1999/01/21 21:29:25 zappo Exp $
+;; RCS: $Id: ede.el,v 1.5 1999/02/03 18:14:58 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -75,7 +75,6 @@
   "Emacs Development Environment gloss."
   :group 'tools
   :group 'convenience
-;  :version "20.3"
   )
 
 (require 'eieio)
@@ -83,14 +82,14 @@
 ;;; Top level classes for projects and targets
 ;;
 (defclass ede-project-autoload ()
-  ((name :initarg :name :docstring "Name of this project type")
-   (file :initarg :file :docstring "The lisp file belonging to this class.")
-   (proj-file :initarg :proj-file 
-	      :docstring "Name of a project file of this type.")
+  ((name :initarg :name :documentation "Name of this project type")
+   (file :initarg :file :documentation "The lisp file belonging to this class.")
+   (proj-file :initarg :proj-file
+	      :documentation "Name of a project file of this type.")
    (load-type :initarg :load-type
-	      :docstring "Fn symbol used to load this project file.")
+	      :documentation "Fn symbol used to load this project file.")
    (class-sym :initarg :class-sym
-	      :docstring "Symbol representing the project class to use."))
+	      :documentation "Symbol representing the project class to use."))
   "Class representing minimal knowledge set to run preliminary EDE functions.
 When more advanced functionality is needed from a project type, that projects
 type is required and the load function used.")
@@ -115,17 +114,18 @@ type is required and the load function used.")
 (defclass ede-target ()
   ((name :initarg :name
 	 :custom string
-	 :docstring "Name of this target.")
+	 :documentation "Name of this target.")
    (path :initarg :path
 	 :custom string
-	 :docstring "The path to this target.")
+	 :documentation "The path to this target.")
    (takes-compile-command
     :initarg :takes-compile-command
     :initform nil
-    :docstring "Non-nil if this target requires a user approved command."
+    :documentation "Non-nil if this target requires a user approved command."
     :allocation :class)
    (source :initarg :source
-	   :custom (repeat object)
+	   :type 'list
+	   :custom (repeat (string :tag "File"))
 	   :documentation "Source files in this target.")   )
   "A top level target to build.")
 
@@ -133,21 +133,22 @@ type is required and the load function used.")
   ((name :initarg :name
 	 :initform "Untitled"
 	 :custom string
-	 :docstring "The name used when generating distribution files.")
+	 :documentation "The name used when generating distribution files.")
    (version :initarg :version
 	    :initform "1.0"
 	    :custom string
-	    :docstring "The version number used when distributing files.")
+	    :documentation "The version number used when distributing files.")
    (file :initarg :file
-	 :docstring "File name where this project is stored.")
+	 :documentation "File name where this project is stored.")
    (root :initarg :root
-	 :docstring "The root project file")
+	 :documentation "The root project file if this is a subproject.")
    (targets :initarg :targets
 	    :custom (repeat object)
-	    :docstring "List of top level targets in this project.")
+	    :documentation "List of top level targets in this project.")
    (subproj :initarg :subproj
 	    :custom (repeat object)
-	    :docstring "Sub projects controlled by this project.")
+	    :documentation "Sub projects controlled by this project.
+For Automake based projects, each directory is treated as a project.")
    )
   "Top level EDE project specification.
 All specific project types must derive from this project.")
@@ -209,7 +210,7 @@ Do not set this to non-nil globally.  It is used internally.")
     (define-key pmap "l" 'ede-load-project-file)
     (define-key pmap "C" 'ede-compile-project)
     (define-key pmap "c" 'ede-compile-target)
-    (define-key pmap "d" 'ede-debug-target)
+    (define-key pmap "D" 'ede-debug-target)
     ;; bind our submap into map
     (define-key map "\C-c." pmap)
     map)
@@ -243,6 +244,10 @@ Do not set this to non-nil globally.  It is used internally.")
        "---"
        [ "Speedbar" speedbar t ]
        [ "Speedbar Project" ede-speedbar t ]
+       [ "Customize Project" ede-customize-project (ede-current-project) ]
+       [ "Customize Target" ede-customize-target
+	 (and ede-object
+              (not (obj-of-class-p ede-object ede-project))) ]
        )))
 
 ;; Allow re-insertion of a new keymap
@@ -393,6 +398,23 @@ ARGS are additional arguments to pass to method sym."
   (let ((ede-object (ede-current-project)))
     (ede-invoke-method 'project-make-dist)))
 
+(eval-when-compile (require 'eieio-custom))
+
+(defun ede-customize-project ()
+  "Edit fields of the current project through EIEIO & Custom."
+  (interactive)
+  (require 'eieio-custom)
+  (eieio-customize-object (ede-current-project)))
+
+(defun ede-customize-target ()
+  "Edit fields of the current target through EIEIO & Custom."
+  (interactive)
+  (require 'eieio-custom)
+  (if (and ede-object
+	   (obj-of-class-p ede-object ede-project))
+      (error "No logical target to customize"))
+  (eieio-customize-object ede-object))
+
 
 ;;; EDE project target baseline methods.
 ;;
@@ -405,16 +427,19 @@ ARGS are additional arguments to pass to method sym."
 ;;  methods based on those below.
 
 (defmethod project-interactive-select-target ((this ede-project) prompt)
-  "Interactivly query for a target that exists in project THIS."
+  "Interactivly query for a target that exists in project THIS.
+Argument PROMPT is the prompt to use when querying the user for a target."
   (let ((ob (object-assoc-list :name (oref this :targets))))
     (cdr (assoc (completing-read prompt ob nil t) ob))))
 
 (defmethod project-add-file ((ot ede-target) file)
-  "Add the current buffer into a project."
+  "Add the current buffer into project project target OT.
+Argument FILE is the file to add."
   (error "add-file not supported by %s" (object-name ot)))
 
 (defmethod project-remove-file ((ot ede-target) fnnd)
-  "Remove the current buffer from any project targets."
+  "Remove the current buffer from project target OT.
+Argument FNND is an argument."
   (error "remove-file not supported by %s" (object-name ot)))
 
 (defmethod project-edit-file-target ((ot ede-target))
@@ -445,7 +470,7 @@ Argument COMMAND is the command to use for compiling the target."
 
 (defmethod project-make-dist ((this ede-project))
   "Build a distribution for the project based on THIS target."
-  (error "make-dist not supported by %s" (object-name this)))
+  (error "Make-dist not supported by %s" (object-name this)))
 
 ;;; Default methods for EDE classes
 ;;
@@ -469,7 +494,7 @@ Do this by extracting the lowest directory name."
 (defmethod ede-description ((this ede-project))
   "Return a description suitible for the minibuffer about THIS."
   (format "Project %s: %d subprojects, %d targets."
-	  (ede-name this) (length (oref this :subproj)) 
+	  (ede-name this) (length (oref this :subproj))
 	  (length (oref this :targets))))
 
 (defmethod ede-description ((this ede-target))
@@ -484,7 +509,7 @@ Default to making it project relative."
 	(fp (expand-file-name path)))
     (if (string-match (regexp-quote pp) fp)
 	(substring fp (match-end 0))
-      (error "Cannot convert relativize path %s." fp))))
+      (error "Cannot convert relativize path %s" fp))))
 
 ;;; EDE project-autoload methods
 ;;
@@ -567,6 +592,25 @@ This depends on an up to day `ede-project-class-files' variable."
   (let ((po (ede-current-project)))
     (if po (setq ede-object (ede-find-target po buffer)))))
 
+(defmethod ede-target-in-project-p ((proj ede-project) target)
+  "Is PROJ the parent of TARGET?
+If TARGET belongs to a subproject, return that project file."
+  (if (assoc target (oref proj targets))
+      proj
+    (let ((s (oref proj subproj))
+	  (ans nil))
+      (while (and s (not ans))
+	(setq ans (ede-target-in-project-p (car s))))
+      ans)))
+
+(defun ede-target-parent (target)
+  "Return the project which is the parent of TARGET.
+It is recommended you track the project a different way as this function
+could become slow in time."
+  (let ((ans nil) (projs ede-projects))
+    (while (and (not ans) projs)
+      (setq ans (ede-target-in-project-p (car projs) target)))))
+
 (defun ede-maybe-checkout (&optional buffer)
   "Check BUFFER out of VC if necessary."
   (save-excursion
@@ -582,7 +626,7 @@ This depends on an up to day `ede-project-class-files' variable."
 
 (add-hook 'edebug-setup-hook
 	  (lambda ()
-	    (def-edebug-spec ede-with-projectfile 
+	    (def-edebug-spec ede-with-projectfile
 	      (form def-body))))
 
 (autoload 'ede-speedbar "ede-speedbar" "Run speedbar in EDE project mode." t)
