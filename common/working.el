@@ -1,9 +1,10 @@
 ;;; working --- Display a "working" message in the minibuffer.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003  Eric M. Ludlam
+;; Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003,
+;;               2004  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 1.4
+;; Version: 1.5
 ;; Keywords: status
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -99,8 +100,13 @@
 ;; 1.3 Added `working-status-timeout' and `working-status-call-process'.
 ;;     Added test fns `working-wait-for-keypress' and `working-verify-sleep'.
 ;;
+;; 1.4 ???
+;;
+;; 1.5 Use features from the fame library.
+;;
 
 (require 'custom)
+(require 'fame)
 
 ;;; Code:
 (defgroup working nil
@@ -200,38 +206,27 @@ percentage display.  A number such as `2' means `2%'."
 ;;; Programmer functions
 ;;
 (eval-when-compile
-  (or (fboundp 'noninteractive)
-      ;; Silence the Emacs byte compiler
-      (defun noninteractive nil))
-  (or (boundp 'noninteractive)
-      ;; Silence the XEmacs byte compiler
-      (defvar noninteractive))
-  )
+  (cond
+   ((boundp 'noninteractive)
+    ;; Silence the Emacs byte compiler
+    (defun noninteractive nil)
+    (defsubst working-noninteractive ()
+      "Return non-nil if running without interactive terminal."
+      noninteractive))
+   ((fboundp 'noninteractive)
+    ;; Silence the XEmacs byte compiler
+    (defvar noninteractive)
+    (defalias 'working-noninteractive 'noninteractive))
+   ))
 
-(defun working-message-emacs (&rest args)
+(defun working-message-echo (&rest args)
   "Print but don't log a one-line message at the bottom of the screen.
 See the function `message' for details on ARGS."
-  (or noninteractive
-      (let ((message-log-max nil)) ;; No logging
-        (apply 'message args))))
+  (or (working-noninteractive)
+      (apply 'fame-message-nolog args)))
 
-(defun working-message-xemacs (&rest args)
-  "Print but don't log a one-line message at the bottom of the screen.
-See the function `message' for details on ARGS."
-  (or (noninteractive)
-      (let ((log-message-filter-function #'ignore)) ;; No logging
-        (apply 'message args))))
-
-(eval-and-compile
-  (defalias 'working-message-echo
-    (if (boundp 'log-message-filter-function)
-	'working-message-xemacs
-      'working-message-emacs))
-  (defalias 'working-current-message
-    (if (fboundp 'current-message)
-        'current-message
-      'ignore))
-  )
+(defalias 'working-current-message 'fame-current-message)
+(defalias 'working-temp-message 'fame-temp-message)
 
 (defun working-message (&rest args)
   "Display a message using `working-message-echo' or in mode line.
@@ -244,48 +239,6 @@ See the function `message' for details on ARGS."
       (working-mode-line-update)
       (sit-for 0)
       )))
-
-;;; Display messages temporarily
-;;
-(cond
- ;; We need timers to display messages temporarily
- ((fboundp 'run-with-timer)
-
-  (defvar working-temp-message-delay 1
-    "Lifetime of a temporary message, in seconds.")
-  
-  (defvar working-temp-message-timer nil)
-  (defvar working-temp-message-saved nil)
-  
-  (defun working-temp-restore-message ()
-    "Restore a previous non temporary message."
-    (when (timerp working-temp-message-timer)
-      (cancel-timer working-temp-message-timer)
-      (setq working-temp-message-timer nil))
-    (when working-temp-message-saved
-      (working-message-echo "%s" working-temp-message-saved)
-      (setq working-temp-message-saved nil)))
-  
-  (defun working-temp-message (string &rest args)
-    "Display a message temporarily.
-Pass STRING and ARGS to the function `message'.
-The original message is restored to the echo area after
-`working-temp-message-delay' seconds."
-    ;;(declare (debug t))
-    (condition-case nil
-        (progn
-          (working-temp-restore-message)
-          (setq working-temp-message-saved (working-current-message))
-          (apply 'message string args)
-          (setq working-temp-message-timer
-                (run-with-timer working-temp-message-delay nil
-                                'working-temp-restore-message)))
-      (error
-       (working-temp-restore-message))))
-  )
- (t
-  (defalias 'working-temp-message 'message)
-  ))
 
 ;;; Compatibility
 (cond ((fboundp 'run-with-timer)
