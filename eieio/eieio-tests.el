@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.24 2002/06/27 02:59:19 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.25 2002/08/17 14:08:52 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -141,6 +141,21 @@ Argument C is the class bound to this static method."
   (error (error "Failed to call static method.")))
 (if (not (eq (oref static-method-class some-slot) t))
     (error "Call to static method did not run."))
+
+(defclass static-method-class-2 (static-method-class)
+  ()
+  "A second class after the previous for static methods.")
+
+(defmethod static-method-class-method :STATIC ((c static-method-class-2))
+  "Test static methods.
+Argument C is the class bound to this static method."
+  (oset-default c some-slot 'moose))
+
+(condition-case nil
+    (static-method-class-method static-method-class-2)
+  (error (error "Failed to call 2nd static method.")))
+(if (not (eq (oref static-method-class-2 some-slot) 'moose))
+    (error "Call to 2nd static method did not run."))
 
 
 ;;; Perform method testing
