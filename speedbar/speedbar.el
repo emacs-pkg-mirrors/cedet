@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.220 2002/03/27 01:03:38 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.221 2002/08/17 14:07:36 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -1036,7 +1036,7 @@ in the selected file.
     (setq truncate-lines t)
     (make-local-variable 'frame-title-format)
     (setq frame-title-format (concat "Speedbar " speedbar-version))
-
+    (setq case-fold-search nil)
     (toggle-read-only 1)
     (speedbar-set-mode-line-format)
     ;; Add in our dframe hooks.
@@ -3097,15 +3097,13 @@ directory with these items."
 	(while (/= depth -1)
 	  (if (not (re-search-backward (format "^%d:" depth) nil t))
 	      (error "Error building path of tag")
-	    (cond ((looking-at "[0-9]+:\\s-*<->\\s-+\\([^\n]+\\)$")
-		   (setq path (concat (buffer-substring-no-properties
-				       (match-beginning 1) (match-end 1))
+	    (cond ((looking-at "[0-9]+:\\s-*<->\\s-+\\([^\n]+\\)")
+		   (setq path (concat (speedbar-line-text)
 				      "/"
 				      path)))
-		  ((looking-at "[0-9]+:\\s-*[-]\\s-+\\([^\n]+\\)$")
+		  ((looking-at "[0-9]+:\\s-*[-]\\s-+\\([^\n]+\\)")
 		   ;; This is the start of our path.
-		   (setq path (buffer-substring-no-properties
-			       (match-beginning 1) (match-end 1))))))
+		   (setq path (speedbar-line-text)))))
 	  (setq depth (1- depth)))
 	(if (and path
 		 (string-match (concat speedbar-indicator-regex "$")
