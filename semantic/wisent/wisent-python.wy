@@ -1,12 +1,12 @@
 ;;; wisent-python.wy -- LALR grammar for Python
 ;;
-;; Copyright (C) 2002, 2003 Richard Kim
+;; Copyright (C) 2002, 2003, 2004 Richard Kim
 ;;
 ;; Author: Richard Kim <ryk@dspwiz.com>
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.30 2003/08/02 08:20:55 ponced Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.31 2004/05/22 14:42:40 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -626,7 +626,7 @@ suite
   : simple_stmt
     (list $1)
   | NEWLINE indented_block
-    (nreverse $2)
+    (list $2)
   ;
 
 indented_block
