@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.23 2004/03/19 23:35:13 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.24 2004/06/09 06:56:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -450,6 +450,19 @@ See `semantic-edits-change-leaf-token' for details on parents."
   (run-hooks 'semantic-edits-incremental-reparse-failed-hooks)
   )
 
+;; Error symbol for expected parse changes failures
+(put 'semantic-parse-changes-failed 'error-conditions
+     '(error semantic-parse-changes-failed))
+(put 'semantic-parse-changes-failed 'error-message
+     "Semantic parse changes failed")
+
+(defun semantic-parse-changes-failed (&rest args)
+  "Signal that Semantic failed to parse changes.
+Make error message by passing all args to `format'."
+  (while t
+    (signal 'semantic-parse-changes-failed
+            (list (apply 'format args)))))
+
 ;;;###autoload
 (defun semantic-edits-incremental-parser ()
   "Incrementally reparse the current buffer.
@@ -476,7 +489,7 @@ the semantic cache to see what needs to be changed."
           (or changes
               ;; If we were called, and there are no changes, then we
               ;; don't know what to do.  Force a full reparse.
-              (error "Don't know what to do"))
+              (semantic-parse-changes-failed "Don't know what to do"))
           ;; Else, we have some changes.  Loop over them attempting to
           ;; patch things up.
           (while changes
@@ -504,7 +517,8 @@ the semantic cache to see what needs to be changed."
 
 	      ;; REMOVE LATER
 	      (if (eq (car changes) (car change-group))
-		  (error "Possible infinite loop detected"))
+		  (semantic-parse-changes-failed
+                   "Possible infinite loop detected"))
 
               ;; Store this change in this change group.
               (setq change-group (cons (car changes) change-group))
@@ -612,7 +626,7 @@ the semantic cache to see what needs to be changed."
 
 ;;;; Unhandled case.
                    ;; Throw error, and force full reparse.
-                   ((error "Unhandled change group")))
+                   ((semantic-parse-changes-failed "Unhandled change group")))
                   ))
                ;; Is this change inside the previous parse group?
                ;; We already checked start.
@@ -620,7 +634,8 @@ the semantic cache to see what needs to be changed."
                 nil)
                ;; This change extends the current parse group.
                ;; Find any new tokens, and see how to append them.
-               ((error "Unhandled secondary change overlapping boundary"))
+               ((semantic-parse-changes-failed
+                 "Unhandled secondary change overlapping boundary"))
                )
               ;; Prepare for the next iteration.
               (setq changes (cdr changes)))
@@ -710,7 +725,7 @@ the semantic cache to see what needs to be changed."
               )
 
 ;;;; Some unhandled case.
-             ((error "Don't know what to do")))
+             ((semantic-parse-changes-failed "Don't know what to do")))
 
             ;; We got this far, and we didn't flag a full reparse.
             ;; Clear out this change group.
@@ -726,7 +741,7 @@ the semantic cache to see what needs to be changed."
           (semantic-parse-tree-set-up-to-date))
 
       ;; Force a full reparse.
-      (error
+      (semantic-parse-changes-failed
        (message (error-message-string errobj))
        (semantic-edits-incremental-fail)))
 
