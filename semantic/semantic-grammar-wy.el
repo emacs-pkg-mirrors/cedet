@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2004-01-18 10:52:15+0100
+;; Created: 2004-01-19 11:46:30+0100
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.10 2004/01/18 15:43:54 ponced Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.11 2004/01/19 18:51:41 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -73,26 +73,42 @@ Used internally to retrieve value of EXPADFULL tags."
       (SEMI . ";")
       (COLON . ":"))
      ("close-paren"
-      (RBRACE . "}"))
+      (RBRACE . "}")
+      (RPAREN . ")"))
      ("open-paren"
-      (LBRACE . "{"))
-     ("semantic-list"
-      (BRACE_BLOCK . "^{")
-      (PAREN_BLOCK . "^("))
+      (LBRACE . "{")
+      (LPAREN . "("))
+     ("block"
+      (BRACE_BLOCK . "(LBRACE RBRACE)")
+      (PAREN_BLOCK . "(LPAREN RPAREN)"))
      ("code"
       (EPILOGUE . "%%...EOF")
       (PROLOGUE . "%{...%}"))
      ("sexp"
-      (PREFIXED_LIST . "\\s'\\s-*(")
       (SEXP))
+     ("qlist"
+      (PREFIXED_LIST))
      ("char"
       (CHARACTER))
      ("symbol"
-      (PERCENT_PERCENT . "%%")
+      (PERCENT_PERCENT . "\\`%%\\'")
       (SYMBOL))
      ("string"
       (STRING)))
-   'nil)
+   '(("punctuation" :declared t)
+     ("block" :declared t)
+     ("sexp" matchdatatype sexp)
+     ("sexp" syntax "\\=")
+     ("sexp" :declared t)
+     ("qlist" matchdatatype sexp)
+     ("qlist" syntax "\\s'\\s-*(")
+     ("qlist" :declared t)
+     ("char" syntax semantic-grammar-lex-c-char-re)
+     ("char" :declared t)
+     ("symbol" syntax ":?\\(\\sw\\|\\s_\\)+")
+     ("symbol" :declared t)
+     ("string" :declared t)
+     ("keyword" :declared t)))
   "Table of lexical tokens.")
 
 (defconst semantic-grammar-wy--parse-table
@@ -100,7 +116,7 @@ Used internally to retrieve value of EXPADFULL tags."
     (eval-when-compile
       (require 'wisent-comp))
     (wisent-compile-grammar
-     '((DEFAULT-PREC NO-DEFAULT-PREC KEYWORD LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN TYPE USE-MACROS STRING SYMBOL PERCENT_PERCENT CHARACTER SEXP PREFIXED_LIST PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT)
+     '((DEFAULT-PREC NO-DEFAULT-PREC KEYWORD LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN TYPE USE-MACROS STRING SYMBOL PERCENT_PERCENT CHARACTER PREFIXED_LIST SEXP PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LPAREN RPAREN LBRACE RBRACE COLON SEMI OR LT GT)
        nil
        (grammar
         ((prologue))
@@ -424,9 +440,83 @@ Used internally to retrieve value of EXPADFULL tags."
 ;;
 (require 'semantic-lex)
 
+(define-lex-sexp-type-analyzer semantic-grammar-wy--<sexp>-sexp-analyzer
+  "sexp analyzer for <sexp> tokens."
+  "\\="
+  'SEXP)
+
+(define-lex-sexp-type-analyzer semantic-grammar-wy--<qlist>-sexp-analyzer
+  "sexp analyzer for <qlist> tokens."
+  "\\s'\\s-*("
+  'PREFIXED_LIST)
+
+(define-lex-keyword-type-analyzer semantic-grammar-wy--<keyword>-keyword-analyzer
+  "keyword analyzer for <keyword> tokens."
+  "\\(\\sw\\|\\s_\\)+")
+
+(define-lex-block-type-analyzer semantic-grammar-wy--<block>-block-analyzer
+  "block analyzer for <block> tokens."
+  "\\s(\\|\\s)"
+  '((("(" LPAREN PAREN_BLOCK)
+     ("{" LBRACE BRACE_BLOCK))
+    (")" RPAREN)
+    ("}" RBRACE))
+  )
+
+(define-lex-regex-type-analyzer semantic-grammar-wy--<char>-regexp-analyzer
+  "regexp analyzer for <char> tokens."
+  semantic-grammar-lex-c-char-re
+  nil
+  'CHARACTER)
+
+(define-lex-sexp-type-analyzer semantic-grammar-wy--<string>-sexp-analyzer
+  "sexp analyzer for <string> tokens."
+  "\\s\""
+  'STRING)
+
+(define-lex-regex-type-analyzer semantic-grammar-wy--<symbol>-regexp-analyzer
+  "regexp analyzer for <symbol> tokens."
+  ":?\\(\\sw\\|\\s_\\)+"
+  '((PERCENT_PERCENT . "\\`%%\\'"))
+  'SYMBOL)
+
+(define-lex-string-type-analyzer semantic-grammar-wy--<punctuation>-string-analyzer
+  "string analyzer for <punctuation> tokens."
+  "\\s.\\|\\s$\\|\\s'"
+  '((GT . ">")
+    (LT . "<")
+    (OR . "|")
+    (SEMI . ";")
+    (COLON . ":"))
+  'punctuation)
+
 
 ;;; Epilogue
 ;;
+(define-lex semantic-grammar-lexer
+  "Lexical analyzer that handles Semantic grammar buffers.
+It ignores whitespaces, newlines and comments."
+  semantic-lex-ignore-newline
+  semantic-lex-ignore-whitespace
+  ;; Must detect prologue/epilogue before other symbols/keywords!
+  semantic-grammar-lex-prologue
+  semantic-grammar-lex-epilogue
+  semantic-grammar-wy--<keyword>-keyword-analyzer
+  semantic-grammar-wy--<symbol>-regexp-analyzer
+  semantic-grammar-wy--<char>-regexp-analyzer
+  semantic-grammar-wy--<string>-sexp-analyzer
+  ;; Must detect comments after strings because `comment-start-skip'
+  ;; regexp match semicolons inside strings!
+  semantic-lex-ignore-comments
+  ;; Must detect prefixed list before punctuation because prefix chars
+  ;; are also punctuations!
+  semantic-grammar-wy--<qlist>-sexp-analyzer
+  ;; Must detect punctuations after comments because the semicolon can
+  ;; be a punctuation or a comment start!
+  semantic-grammar-wy--<punctuation>-string-analyzer
+  semantic-grammar-wy--<block>-block-analyzer
+  semantic-grammar-wy--<sexp>-sexp-analyzer
+  )
 
 (provide 'semantic-grammar-wy)
 
