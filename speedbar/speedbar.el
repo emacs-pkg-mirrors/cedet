@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7e
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.97 1998/05/06 01:28:50 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.98 1998/05/06 01:35:10 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -789,6 +789,9 @@ It is generated from the variable `completion-ignored-extensions'")
 	    ".el" ".emacs" ".l" ".lsp" ".p" ".java" ".f\\(90\\|77\\|or\\)?")
 	  (if speedbar-use-imenu-flag
 	      '(".ada" ".pl" ".tcl" ".m" ".scm" ".pm" ".py"
+		;; html is not supported by default, but an imenu tags package
+		;; is available.  Also, html files are nice to be able to see.
+		".s?html"
 		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
