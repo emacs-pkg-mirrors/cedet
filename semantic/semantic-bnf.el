@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.45 2001/10/17 13:08:52 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.46 2001/11/17 15:45:42 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1254,7 +1254,9 @@ Once found, put it in a buffer, and return it."
 	    (lambda ()
 	      (speedbar-add-supported-extension ".bnf"))))
 
+;;;###autoload
 (defalias 'bnf-mode 'semantic-bnf-mode)
+;;;###autoload
 (defun semantic-bnf-mode ()
   "Initialize a buffer for editing BNF code."
   (interactive)
