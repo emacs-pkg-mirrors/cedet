@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.114 2001/09/12 04:55:00 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.115 2001/09/12 13:28:09 zappo Exp $
 
 (defvar semantic-version "1.4beta10"
   "Current version of Semantic.")
@@ -466,9 +466,6 @@ Runs `semantic-init-hook' if the major mode is setup to use Semantic."
     (setq semantic-toplevel-bovine-force-reparse t)
     (run-hooks 'semantic-init-hooks)))
 
-(defun semantic-find-file-function ()
-  (semantic-new-buffer-fcn))
-
 (defvar semantic-changed-mode-buffers nil
   "List of buffers whose `major-mode' has changed recently.")
 
@@ -493,7 +490,7 @@ This makes sure semantic-init type stuff can occur."
   (add-hook 'post-command-hook 'semantic-post-change-major-mode-function))
 
 (add-hook 'find-file-hooks
-          'semantic-find-file-function)
+          'semantic-change-major-mode-hook-function)
 (add-hook 'change-major-mode-hook
           'semantic-change-major-mode-hook-function)
 
