@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.12 2003/04/01 03:50:30 zappo Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.13 2003/08/02 08:12:42 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -374,22 +374,19 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
 (defun bovine-grammar-setupcode-builder ()
   "Return the text of the setup code."
   (format
-   "(progn\n\
-        (setq semantic-toplevel-bovine-table %s\n\
-              semantic-debug-parser-source %S\n\
-              semantic-debug-parser-class 'semantic-bovine-debug-parser
-              semantic-flex-keywords-obarray %s\n\
-              %s)\n\
-       %s)"
+   "(setq semantic-toplevel-bovine-table %s\n\
+          semantic-debug-parser-source %S\n\
+          semantic-debug-parser-class 'semantic-bovine-debug-parser
+          semantic-flex-keywords-obarray %s\n\
+          %s)"
    (semantic-grammar-parsetable)
-   (file-name-nondirectory (buffer-file-name))
+   (buffer-name)
    (semantic-grammar-keywordtable)
    (let ((mode (semantic-grammar-languagemode)))
      ;; Is there more than one major mode?
      (if (and (listp mode) (> (length mode) 1))
          (format "semantic-equivalent-major-modes '%S\n" mode)
-       ""))
-   (semantic-grammar-setupcode-text)))
+       ""))))
 
 ;;;###autoload
 (define-derived-mode bovine-grammar-mode semantic-grammar-mode "BY"
