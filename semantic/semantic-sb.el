@@ -1,11 +1,11 @@
 ;;; semantic-sb.el --- Semantic tag display for speedbar
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.34 2002/05/07 01:31:14 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.35 2003/02/17 02:05:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -204,7 +204,7 @@ Optional MODIFIERS is additional text needed for variables."
     ))
 
 (defun semantic-sb-detail-parent ()
-  "Return the first parent token of the current like that includes a location."
+  "Return the first parent token of the current line that includes a location."
   (save-excursion
     (beginning-of-line)
     (let ((dep (if (looking-at "[0-9]+:")
@@ -219,7 +219,7 @@ Optional MODIFIERS is additional text needed for variables."
 	(let ((prop nil))
 	  (goto-char (match-beginning 1))
 	  (setq prop (get-text-property (point) 'speedbar-token))
-	  (if (numberp (semantic-token-start prop))
+	  (if (semantic-token-with-position-p prop)
 	      prop
 	    (semantic-sb-detail-parent)))
       nil)))
