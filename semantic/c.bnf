@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.9 2000/04/28 18:57:49 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.10 2000/04/29 12:54:15 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.10  2000/04/29 12:54:15  zappo
+# Added support for Linux __P items.
+# Added support for "..." fn prototypes.
+#
 # Revision 1.9  2000/04/28 18:57:49  zappo
 # Added system flag to include files.
 #
@@ -57,8 +61,8 @@
 bovine-toplevel : include
 		| macro
 		| comment
-		| variable
                 | function
+		| variable
                 | prototype
                 | type
                 | define
@@ -124,7 +128,7 @@ opt-stars : punctuation "*" opt-stars
 	    ( 0 )
           ;
 
-declmods : symbol "\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)+"
+declmods : symbol "\\(__\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)+"
 	 | EMPTY
 	   ( "" )
 	 ;
@@ -174,8 +178,12 @@ variabledef : declmods typeform varnamelist
 	      ( $3 variable $2 (string-match "const" (car $1)) nil nil nil )
 	    ;
 
-varname : opt-stars symbol opt-bits opt-array opt-assign
-	  ( $2 ,$1 ,$3 ,$4 ,$5 )
+opt-restrict : symbol "\\(__\\)?restrict"
+	     | EMPTY
+	     ;
+
+varname : opt-stars opt-restrict symbol opt-bits opt-array opt-assign
+	  ( $3 ,$1 ,$4 ,$5 ,$6 )
 	;
 
 # I should store more in this def, but leave it simple for now.
@@ -190,7 +198,9 @@ varnamelist : varname  punctuation "," varnamelist
 	      ( $1 )
 	    ;
 
-arg-list : semantic-list knr-arguments
+arg-list : symbol "__P" semantic-list
+	   (EXPAND $2 arg-list-p)
+	 | semantic-list knr-arguments
 	   ( ,$2 )
 	 | semantic-list
 	   (EXPAND $1 arg-sub-list)
@@ -202,6 +212,10 @@ knr-arguments : variablearg punctuation ";" knr-arguments
 		( $1 )
 	      ;
 
+arg-list-p : open-paren "(" semantic-list close-paren ")"
+	     (EXPAND $2 arg-sub-list)
+	   ;
+
 arg-sub-list : open-paren "(" close-paren ")"
 	       ( nil )
 	     | open-paren "(" symbol "void" close-paren ")"
@@ -212,6 +226,9 @@ arg-sub-list : open-paren "(" close-paren ")"
 	       (  ,(cons $1 $3 ) )
 	     | variablearg close-paren ")"
 	       ( $1 )
+	     | punctuation "\\." punctuation "\\." punctuation "\\."
+	       close-paren ")"
+	       ( "..." )
 	     ;
 
 functiondef : declmods typeform symbol arg-list
