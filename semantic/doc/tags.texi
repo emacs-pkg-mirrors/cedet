@@ -122,7 +122,8 @@ sometimes the overlay is replaced with an integer pair
 [ START END ]
 @end example
 when the buffer the tag belongs to is not in memory.  This happens
-when a using has activated the Semantic Database @ref{semanticdb}.
+when a using has activated the Semantic Database
+ @inforef{semanticdb, , lang-support-guide}.
 @c
 @end itemize
 
@@ -406,7 +407,8 @@ hook also executes after a datase save, when all tags are first
 unlinked from the current buffer before the save.
 @item unlink-hook
 This hook is run whenever a tag is unlinked from a buffer.  This
-ocucrs during a database save.
+ocucrs during a database save, or when a tag is modified by the
+incremental parser.
 @end table
 
 @node Misc Tag Functions

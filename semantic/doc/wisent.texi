@@ -1,12 +1,31 @@
-@ignore
-@node Wisent Parsers
-@subsection Wisent Parsers
-@c This ignore section fools texinfo-all-menus-update into creating
-@c the proper menus for this chapter.
-@end ignore
+\input texinfo  @c -*-texinfo-*-
+@c %**start of header
+@setfilename wisent.info
+@set TITLE  Wisent Parser Development
+@set AUTHOR Eric M. Ludlam, David Ponce, and Richard Y. Kim
+@settitle @value{TITLE}
 
-This section is:
-Copyright @copyright{} 2001, 2002, 2003 David Ponce
+@c *************************************************************************
+@c @ Header
+@c *************************************************************************
+
+@c Merge all indexes into a single index for now.
+@c We can always separate them later into two or more as needed.
+@syncodeindex vr cp
+@syncodeindex fn cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+@c @footnotestyle separate
+@c @paragraphindent 2
+@c @@smallbook
+@c %**end of header
+
+@copying
+This manual documents the Wisent parser generator.
+
+Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 
 Some texts are borrowed or adapted from the manual of Bison version
 1.35.  The text in section entitled ``Understanding the automaton'' is
@@ -14,7 +33,7 @@ adapted from the section ``Understanding Your Parser'' in the manual
 of Bison version 1.49.
 
 Copyright @copyright{} 1988, 1989, 1990, 1991, 1992, 1993, 1995, 1998,
-1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+1999, 2000, 2001, 2002, 2003, 2004 Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -25,28 +44,51 @@ being list, and with the Back-Cover Texts being list.  A copy of the
 license is included in the section entitled ``GNU Free Documentation
 License''.
 @end quotation
+@end copying
 
-@ignore
+@ifinfo
+@dircategory Emacs
+@direntry
+* Semantic Wisent parser development: (wisent).
+@end direntry
+@end ifinfo
 
-This needs to be merged up one level, or is it already?  - Eric
+@iftex
+@finalout
+@end iftex
 
-@c Combine indices.
-@synindex cp fn
-@syncodeindex vr fn
-@syncodeindex ky fn
-@syncodeindex pg fn
+@c @setchapternewpage odd
+@c @setchapternewpage off
+
+@ifinfo
+This file documents Application Development with Semantic.
+@emph{Infrastructure for parser based text analysis in Emacs}
+
+Copyright @copyright{} 2002 @value{AUTHOR}
+@end ifinfo
 
 @titlepage
-@sp 6
-@center @titlefont{Wisent Manual}
-@sp 4
-@author David Ponce (@email{david@dponce.com})
+@sp 10
+@title @value{TITLE}
+@author by @value{AUTHOR}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
 @page
 @vskip 0pt plus 1 fill
 @insertcopying
 @end titlepage
 @page
-@end ignore
+
+@c MACRO inclusion
+@include semanticheader.texi
+
+
+@c *************************************************************************
+@c @ Document
+@c *************************************************************************
+
+@node top
+@top @value{TITLE}
 
 Wisent (the European Bison ;-) is an Emacs Lisp implementation of the
 GNU Compiler Compiler Bison.
@@ -67,7 +109,7 @@ described in the @ref{Top, Semantic Manual, Semantic Manual, semantic}.
 @end menu
 
 @node Wisent Overview
-@subsubsection Wisent Overview
+@chapter Wisent Overview
 
 @dfn{Wisent} (the European Bison) is an implementation in Emacs Lisp
 of the GNU Compiler Compiler Bison. Its code is a port of the C code
@@ -135,7 +177,7 @@ buffer.  Semantic heavily depends on the availability of this feature.
 @end itemize
 
 @node Wisent Grammar
-@subsubsection Wisent Grammar
+@chapter Wisent Grammar
 
 @cindex context-free grammar
 @cindex rule
@@ -188,7 +230,7 @@ in between, can be combined into a larger grouping of type @samp{exp}.
 
 @node Grammar format, Example, Wisent Grammar, Wisent Grammar
 @comment  node-name,  next,  previous,  up
-@subsubsection Grammar format
+@section Grammar format
 
 @cindex grammar format
 To be acceptable by Wisent a context-free grammars must respect a
@@ -407,7 +449,7 @@ matching the empty string, for which the default action is to return
 
 @node Example, Compiling a grammar, Grammar format, Wisent Grammar
 @comment  node-name,  next,  previous,  up
-@subsubsection Example
+@section Example
 
 @cindex grammar example
 Here is an example to parse simple infix arithmetic expressions.  See
@@ -521,7 +563,7 @@ Here is the corresponding Lisp form accepted by Wisent:
 
 @node Compiling a grammar, Conflicts, Example, Wisent Grammar
 @comment  node-name,  next,  previous,  up
-@subsubsection Compiling a grammar
+@section Compiling a grammar
 
 @cindex automaton
 After providing a context-free grammar in a suitable format, it must
@@ -580,7 +622,7 @@ an Emacs Lisp function (lambda expression).
 
 @node Conflicts, , Compiling a grammar, Wisent Grammar
 @comment  node-name,  next,  previous,  up
-@subsubsection Conflicts
+@section Conflicts
 
 Normally, a grammar should produce an automaton where at each state
 the parser has only one action to do (@pxref{Wisent Parsing}).
@@ -628,8 +670,8 @@ information.
 * Understanding the automaton::  
 @end menu
 
-@node Grammar Debugging, Understanding the automaton, Conflicts, Conflicts
-@subsubsection Grammar debugging
+@node Grammar Debugging
+@subsection Grammar debugging
 
 @cindex grammar debugging
 @cindex grammar verbose description
@@ -668,8 +710,8 @@ structures.
 non-@code{nil} means enable some debug stuff.
 @end defvar
 
-@node Understanding the automaton, , Grammar Debugging, Conflicts
-@subsubsection Understanding the automaton
+@node Understanding the automaton
+@subsection Understanding the automaton
 
 @cindex understanding the automaton
 This section (took from the manual of Bison 1.49) describes how to use
@@ -1042,7 +1084,7 @@ The end of input is shifted @samp{$EOI shift,} and the parser exits
 successfully (@samp{go to state 12}, that terminates).
 
 @node Wisent Parsing
-@subsubsection Wisent Parsing
+@chapter Wisent Parsing
 
 @cindex bottom-up parser
 @cindex shift-reduce parser
@@ -1117,8 +1159,8 @@ It defaults to the start symbol defined in the grammar
 * Debugging actions::           
 @end menu
 
-@node Writing a lexer, Actions goodies, Wisent Parsing, Wisent Parsing
-@subsubsection What the parser must receive
+@node Writing a lexer
+@section What the parser must receive
 
 It is important to understand that the parser does not parse
 characters, but lexical tokens, and does not know anything about
@@ -1169,8 +1211,8 @@ suitable to the Wisent parser.  See also @ref{Wisent Lex}.
 To call the lexer in a semantic action use the function
 @code{wisent-lexer}.  See also @ref{Actions goodies}.
 
-@node Actions goodies, Report errors, Writing a lexer, Wisent Parsing
-@subsubsection Variables and macros useful in grammar actions.
+@node Actions goodies
+@section Variables and macros useful in grammar actions.
 
 @vindex wisent-input
 @defvar wisent-input
@@ -1192,8 +1234,8 @@ Each element of @var{positions} is a pair (@var{start-pos} .
 @var{positions} are available.
 @end defun
 
-@node Report errors, Error recovery, Actions goodies, Wisent Parsing
-@subsubsection The error reporting function
+@node Report errors
+@section The error reporting function
 
 @cindex error reporting
 When the parser encounters a syntax error it calls a user-defined
@@ -1211,8 +1253,8 @@ using the special macro @code{wisent-error}.  When called from a
 semantic action entered by error recovery (@pxref{Error recovery}) the
 value of the variable @code{wisent-recovering} is non-@code{nil}.
 
-@node Error recovery, Debugging actions, Report errors, Wisent Parsing
-@subsubsection Error recovery
+@node Error recovery
+@section Error recovery
 
 @cindex error recovery
 The error recovery mechanism of the Wisent's parser conforms to the
@@ -1396,8 +1438,8 @@ block delimited by @samp{LBRACE} (@code{@{}) and @samp{RBRACE}
 @end example
 @end defun
 
-@node Debugging actions, , Error recovery, Wisent Parsing
-@subsubsection Debugging semantic actions
+@node Debugging actions
+@section Debugging semantic actions
 
 @cindex semantic action symbols
 Each semantic action is represented by a symbol interned in an obarray
@@ -1462,7 +1504,7 @@ Show the source of @var{automaton}'s semantic action @var{function}.
 @end deffn
 
 @node Wisent Semantic
-@subsubsection How to use Wisent with Semantic
+@chapter How to use Wisent with Semantic
 
 @cindex semantic parse tree
 This section presents how the Wisent's parser can be used to produce
@@ -1483,8 +1525,8 @@ variables, data types, classes, includes, grammar rules, etc..
 * Wisent Lex::                  
 @end menu
 
-@node WY grammar format, WY Major Mode, Wisent Semantic, Wisent Semantic
-@subsubsection WY grammar format
+@node WY grammar format
+@section WY grammar format
 
 @cindex WY grammar format
 A convenient way to use the Wisent parser with Semantic is to define
@@ -1754,8 +1796,8 @@ See also @ref{Example}.
 * Percent-keywords::            
 @end menu
 
-@node Percent-keywords, , WY grammar format, WY grammar format
-@subsubsection Percent-keywords
+@node Percent-keywords
+@subsection Percent-keywords
 
 @table @code
 @cindex %outputfile
@@ -1830,8 +1872,8 @@ exp:
 @end example
 @end table
 
-@node WY Major Mode, Grammar styles, WY grammar format, Wisent Semantic
-@subsubsection WY Major Mode
+@node WY Major Mode
+@section WY Major Mode
 
 @findex wy-mode
 @findex wisent-wy-mode
@@ -1870,8 +1912,8 @@ parser instead of its default one.  Normally, the
 enable Semantic for this particular programming language.
 @end deffn
 
-@node Grammar styles, Wisent Lex, WY Major Mode, Wisent Semantic
-@subsubsection Grammar styles
+@node Grammar styles
+@section Grammar styles
 
 @cindex grammar styles
 Semantic parsing heavily depends on how you wrote the grammar.
@@ -1889,7 +1931,7 @@ it can be worth a mix of the two styles!
 @end menu
 
 @node Iterative style, Bison style, Grammar styles, Grammar styles
-@subsubsection Iterative style
+@subsection Iterative style
 
 @cindex grammar iterative style
 The @dfn{iterative style} is the preferred style to use with Semantic.
@@ -1976,8 +2018,8 @@ At each iteration it will return a @samp{formal_parameter} raw token,
 or @code{nil} to skip unwanted (single @samp{LPAREN} or @samp{RPAREN}
 for example) or unexpected input data.
 
-@node Bison style, Mixed style, Iterative style, Grammar styles
-@subsubsection Bison style
+@node Bison style
+@subsection Bison style
 
 @cindex grammar bison style
 What we call the @dfn{Bison style} is the traditional style of Bison's
@@ -2031,8 +2073,8 @@ Return a cooked Semantic token including @var{return-val}.
 Should be used in Semantic actions to build the bovine cache.
 @end defun
 
-@node Mixed style, Start nonterminals, Bison style, Grammar styles
-@subsubsection Mixed style
+@node Mixed style
+@subsection Mixed style
 
 @cindex grammar mixed style
 @example
@@ -2123,8 +2165,8 @@ traditional Bison style with error recovery!
 In some extreme cases, it can also be convenient to extend the lexer,
 to deliver new syntactic tokens, to simplify the grammar.
 
-@node Start nonterminals, Useful functions, Mixed style, Grammar styles
-@subsubsection Start nonterminals
+@node Start nonterminals
+@subsection Start nonterminals
 
 @cindex start nonterminals
 @cindex @code{reparse-symbol} property
@@ -2220,8 +2262,8 @@ Set the @code{reparse-symbol} property of the cooked token to
 @code{wisent-cooked-token} in a semantic action, should be declared as
 a start symbol!}
 
-@node Useful functions, , Start nonterminals, Grammar styles
-@subsubsection Useful functions
+@node Useful functions
+@subsection Useful functions
 
 Here is a description of some predefined functions it might be useful
 to know when writing new code to use Wisent in Semantic:
@@ -2235,8 +2277,8 @@ See implementation of the function @code{wisent-skip-token} in
 @ref{Error recovery}, for an example of use.
 @end defun
 
-@node Wisent Lex, , Grammar styles, Wisent Semantic
-@subsubsection The Wisent Lex lexer
+@node Wisent Lex
+@section The Wisent Lex lexer
 
 @findex semantic-lex
 The lexical analysis step of Semantic is performed by the general
@@ -2296,8 +2338,8 @@ tokens produced by @code{semantic-lex}.  Pop the next token available
 and convert it to a form suitable for the Wisent's parser.
 @end defun
 
-@node Wisent Index, ,Wisent Semantic, Wisent Parsers
-@unnumbered Wisent Index
+@node Wisent Index
+@chapter Wisent Index
 
 @printindex fn
 

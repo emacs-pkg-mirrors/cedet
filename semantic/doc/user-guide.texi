@@ -1,9 +1,87 @@
-@ignore
-@node Semantic User's Guide
-@chapter Semantic User's Guide
-@c This 'ignore' section fools texinfo-all-menus-update into creating
-@c proper menus for this chapter.
-@end ignore
+\input texinfo  @c -*-texinfo-*-
+@c %**start of header
+@setfilename semantic-user.info
+@set TITLE  Semantic User's Guide
+@set AUTHOR Eric M. Ludlam, David Ponce, and Richard Y. Kim
+@settitle @value{TITLE}
+
+@c *************************************************************************
+@c @ Header
+@c *************************************************************************
+
+@c Merge all indexes into a single index for now.
+@c We can always separate them later into two or more as needed.
+@syncodeindex vr cp
+@syncodeindex fn cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+@c @footnotestyle separate
+@c @paragraphindent 2
+@c @@smallbook
+@c %**end of header
+
+@copying
+This is the Semantic User's Manual
+
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+Copyright @copyright{} 2001, 2002, 2003 David Ponce
+Copyright @copyright{} 2002, 2003 Richard Y. Kim
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being list their titles, with the Front-Cover Texts
+being list, and with the Back-Cover Texts being list.  A copy of the
+license is included in the section entitled ``GNU Free Documentation
+License''.
+@end quotation
+@end copying
+
+@ifinfo
+@dircategory Emacs
+@direntry
+* Semantic User's guide: (semantic-user).
+@end direntry
+@end ifinfo
+
+@iftex
+@finalout
+@end iftex
+
+@c @setchapternewpage odd
+@c @setchapternewpage off
+
+@ifinfo
+This is the Semantic User's Guide
+@emph{Infrastructure for parser based text analysis in Emacs}
+
+Copyright @copyright{} 2002, 2003, 2004 @value{AUTHOR}
+@end ifinfo
+
+@titlepage
+@sp 10
+@title @value{TITLE}
+@author by @value{AUTHOR}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
+@page
+@vskip 0pt plus 1 fill
+@insertcopying
+@end titlepage
+@page
+
+@c MACRO inclusion
+@include semanticheader.texi
+
+@c *************************************************************************
+@c @ Document
+@c *************************************************************************
+
+@node top
+@top @value{TITLE}
 
 This chapter describes how to use @b{applications} enabled by
 semantic.
@@ -25,7 +103,7 @@ from semantic.
 @end menu
 
 @node speedbar
-@section speedbar
+@chapter speedbar
 @cindex speedbar
 
 Speedbar supports the display of tags through the Semantic parser.  To
@@ -53,7 +131,7 @@ Two additional speedbar modes are described in @ref{Speedbar Analysis}, and
 @ref{Class Browser}.
 
 @node ECB
-@section ECB
+@chapter ECB
 @cindex ECB
 
 From the ECB Website: @url{http://ecb.sourceforge.net}:
@@ -66,7 +144,7 @@ directories, files and file-contents like methods and variables.
 
 
 @node imenu
-@section imenu
+@chapter imenu
 @cindex imenu
 
 There is special support for creating Imenu entries using semantic.
@@ -142,7 +220,7 @@ a @code{section} has interesting children.
 @end defvar
 
 @node senator
-@section senator
+@chapter senator
 @cindex senator
 
 Senator stands for SEmantic NAvigaTOR and was written by David Ponce.
@@ -150,11 +228,11 @@ Senator stands for SEmantic NAvigaTOR and was written by David Ponce.
 This library defines commands and a minor mode to navigate and manage
 semantic language tags in the current buffer.
 
-@subsection Commands
+@section Commands
 
 The following user level commands are provided by Senator.
 
-@subsubsection Navigation
+@subsection Navigation
 
 @defun senator-next-tag
 Navigate to the next Semantic tag.
@@ -181,7 +259,7 @@ When called interactively you can combine the @var{IN-CONTEXT} and
 - @kbd{C-u} @kbd{C-u}   @var{IN-CONTEXT} + @var{NO-DEFAULT}.
 @end defun
 
-@subsubsection Searching
+@subsection Searching
 
 Searching using senator mode restricts the search only to the
 definition text, such as the name of the functions or variables in a
@@ -211,7 +289,7 @@ Search forward and backward for a token matching the regular expression
 Search forward and backward for a token whose name matches @var{word}.
 @end deffn
 
-@subsubsection Completion
+@subsection Completion
 
 Completion in senator scans all known definitions in the local file,
 and uses that information to provide the completion.
@@ -229,7 +307,7 @@ it was invoked on.  To automatically split large menus this function
 use @dfn{imenu--mouse-menu} to handle the popup menu.
 @end deffn
 
-@subsubsection Copy/Paste
+@subsection Copy/Paste
 
 Token Copy/Paste is a high level form of the typical copy yank used by
 Emacs.  Copying a tag saves the meta-information related to the
@@ -264,9 +342,9 @@ kill ring.
 @end deffn
 
 For programmers, to provide specialized pasting, created an override
-function for @code{insert-foreign-tag} (see @ref{Writing Parsers}.)
+function for @code{insert-foreign-tag} (see @inforef{Writing Parsers, , semantic-langdev}.)
 
-@subsubsection Minor Mode
+@subsection Minor Mode
 
 @deffn Command senator-minor-mode
 Toggle the SEmantic NAvigaTOR key bindings in the current buffer.
@@ -298,7 +376,7 @@ senator-copy-tag
 @end table
 @end deffn
 
-@subsection Customization
+@section Customization
 
 To enable the Senator keymap in all modes that support semantic parsing,
 use this:
@@ -345,14 +423,14 @@ This will cause navigation and search commands to stop only between
 functions and variables, and to step at start and end of functions
 only.
 
-@subsection Contact information for Senator
+@section Contact information for Senator
 
 Any comments, suggestions, bug reports or upgrade requests are
 welcome.  Please send them to the semantic mailing list, or to
 David Ponce at david@@dponce.com
 
 @node Analyzer
-@section Analyzer
+@chapter Analyzer
 @cindex Analyzer
 
 The semantic analyzer is a library tool that performs context
@@ -399,7 +477,7 @@ in a buffer.
 @end menu
 
 @node Smart Completion
-@subsection Smart Completion
+@section Smart Completion
 
 The file @file{semantic-ia.el} contains two commands for performing
 smart completion using the analysis library.  Analysis to calculate
@@ -418,7 +496,7 @@ Completion options are calculated with @dfn{semantic-analyze-possible-completion
 @end deffn
 
 @node Speedbar Analysis
-@subsection Speedbar Analysis
+@section Speedbar Analysis
 
 The Analyzer output can be used through a speedbar interface.
 This interface lists details about the analysis, such as the current
@@ -450,7 +528,7 @@ You can also enter speedbar analyzer mode by selecting ``Analyze''
 from the ``Display'' menu item on speedbar's menu.
 
 @node Class Browser
-@section Class Browser
+@chapter Class Browser
 @cindex Class Browser
 
 The semantic class browser is a library that can covert a project
@@ -483,7 +561,7 @@ interactions.
 @end deffn
 
 @node Document
-@section Document
+@chapter Document
 @cindex Document
 
 The document program uses semantic tag tables to aid in the
@@ -565,7 +643,7 @@ If @var{TAG} is @code{nil}, it is derived from the deffn under @var{POINT}.
 @end deffn
 
 @node Charts
-@section Charts
+@chapter Charts
 @cindex Charts
 
 Some commands to draw charts of statistics generated from parsing:
@@ -594,10 +672,10 @@ Only the most complex items are charted.
 @end deffn
 
 @node Minor Modes
-@section Minor Modes
+@chapter Minor Modes
 @cindex Minor Modes
 
-@subsection Highlight Edits Mode
+@section Highlight Edits Mode
 
 Highlight edits mode is useful mostly for debugging the incremental
 parser.  As you change text, that effected text is highlighted, and
@@ -618,7 +696,7 @@ minor mode is enabled.
 Face used to show dirty tokens in @code{semantic-highlight-edits-mode}.
 @end deffn
 
-@subsection Parser State
+@section Parser State
 
 @deffn Command semantic-show-parser-state-mode &optional arg
 Minor mode for displaying parser cache state in the modeline.
@@ -641,7 +719,7 @@ the current buffer was set up for parsing.  Return non-@code{nil} if the
 minor mode is enabled.
 @end deffn
 
-@subsection Unmatched Syntax Highlighting
+@section Unmatched Syntax Highlighting
 
 @deffn Command semantic-show-unmatched-syntax-mode &optional arg
 Minor mode to highlight unmatched syntax tokens.
@@ -663,7 +741,7 @@ Face used to show unmatched-syntax in.
 The face is used in  @dfn{semantic-show-unmatched-syntax-mode}.
 @end deffn
 
-@subsection Auto Parse
+@section Auto Parse
 
 @deffn Command semantic-auto-parse-mode &optional arg
 Minor mode to auto parse buffer following a change.
@@ -694,7 +772,7 @@ If this value is less than or equal to @var{0}, buffers are automatically
 reparsed regardless of their size.
 @end deffn
 
-@subsection Summary Mode
+@section Summary Mode
 
 Summary mode is an enhancement of the @dfn{eldoc} package.
 
@@ -716,7 +794,7 @@ Function to use when displaying tag information with eldoc.
 Some useful functions are found in @code{semantic-format-tag-functions}.
 @end deffn
 
-@subsection Sticky Function Headers
+@section Sticky Function Headers
 
 @deffn Command semantic-stickyfunc-mode &optional arg
 Minor mode to show the title of a tag in the header line.
@@ -736,7 +814,7 @@ minor mode is enabled.
 List of tag classes which sticky func will display in the header line.
 @end defvar
 
-@subsection Tag Boundaries
+@section Tag Boundaries
 
 @deffn Command semantic-show-tag-boundaries-mode &optional arg
 Minor mode to display a boundary in front of tags.
@@ -752,7 +830,7 @@ Face used to show unmatched syntax in.
 The face is used in  @dfn{semantic-show-tag-boundaries-mode}.
 @end deffn
 
-@subsection Tag Attribute Highlighting
+@section Tag Attribute Highlighting
 
 @deffn Command semantic-highlight-by-attribute-mode &optional arg
 Minor mode to highlight tags based on some attribute.
@@ -783,7 +861,7 @@ The face is used in  @dfn{semantic-highlight-by-attribute-mode}.
 
 
 @node semanticdb
-@section Semantic Database
+@chapter Semantic Database
 @cindex semanticdb
 
 Semanticdb is a utility which tracks your parsed files, and saves the
@@ -828,7 +906,7 @@ tagging informatin, such as the symbols loaded in Emacs Lisp, or
 perhaps symbols in a Java @file{.class} file.
 @end table
 
-@subsection Semanticdb Configuration
+@section Semanticdb Configuration
 
 You can execute hooks when semanticdb is activated using its mode hook.
 
@@ -838,7 +916,7 @@ Use @dfn{semanticdb-minor-mode-p} to determine if the mode has been turned
 on or off.
 @end deffn
 
-@subsubsection Semanticdb Tag Storage
+@subsection Semanticdb Tag Storage
 
 Once you have tables of tags parsed from your files, the default
 action is to save them when Emacs exits.  You can control the file
@@ -884,7 +962,7 @@ Each function is called with one argument, the object representing
 the database recently written.
 @end deffn
 
-@subsubsection Semanticdb Search Configuration
+@subsection Semanticdb Search Configuration
 
 @deffn Option semanticdb-project-roots
 List of directories, where each directory is the root of some project.
@@ -901,7 +979,7 @@ must return a string, (the root directory).  This variable should be used
 by project management programs like @var{EDE} or @var{JDE}.
 @end defvar
 
-@subsubsection Semanticdb System Backends
+@subsection Semanticdb System Backends
 
 @defvar semanticdb-project-system-databases
 List of databases containing system library information.
@@ -915,7 +993,7 @@ value.
 Non @code{nil} if search routines are to include a system database.
 @end defvar
 
-@subsubsection Changing Backends
+@subsection Changing Backends
 
 If you want to use some other form of backend, you can use this
 variable to choose which back end class to use for your general tag
@@ -928,7 +1006,7 @@ are saved using one mechanism, and some directories via a different
 mechanism.
 @end defvar
 
-@subsubsection Script Generated Cache Files
+@subsection Script Generated Cache Files
 
 You can create new semantic databases with the @file{semanticdb.sh}
 script file.  Give this script the directory you want parsed, and it
@@ -938,7 +1016,7 @@ will create a cache file for you.
 $ semanticdb.sh *.el
 @end example
 
-@subsubsection Create System Databases
+@subsection Create System Databases
 
 If your supported langauge stores the system libraries in readilly
 available parsable source code, you can pre-generate database files
@@ -961,7 +1039,7 @@ see the ones available.  The name of the language should be part of
 the class name.
 
 @node Customizing
-@section Customizing
+@chapter Customizing
 @cindex customizing
 
 Customizations can be divided into two categories.

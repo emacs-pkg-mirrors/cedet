@@ -1,9 +1,88 @@
-@ignore
-@node Bovine Parsers
-@subsection Bovine Parsers
-@c This ignore section fools texinfo-all-menus-update into creating
-@c the proper menus for this chapter.
-@end ignore
+\input texinfo  @c -*-texinfo-*-
+@c %**start of header
+@setfilename bovine.info
+@set TITLE  Bovine parser development
+@set AUTHOR Eric M. Ludlam, David Ponce, and Richard Y. Kim
+@settitle @value{TITLE}
+
+@c *************************************************************************
+@c @ Header
+@c *************************************************************************
+
+@c Merge all indexes into a single index for now.
+@c We can always separate them later into two or more as needed.
+@syncodeindex vr cp
+@syncodeindex fn cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+@c @footnotestyle separate
+@c @paragraphindent 2
+@c @@smallbook
+@c %**end of header
+
+@copying
+This manual documents Bovine parser development in Semantic
+
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+Copyright @copyright{} 2001, 2002, 2003 David Ponce
+Copyright @copyright{} 2002, 2003 Richard Y. Kim
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being list their titles, with the Front-Cover Texts
+being list, and with the Back-Cover Texts being list.  A copy of the
+license is included in the section entitled ``GNU Free Documentation
+License''.
+@end quotation
+@end copying
+
+@ifinfo
+@dircategory Emacs
+@direntry
+* Semantic bovine parser development: (bovine).
+@end direntry
+@end ifinfo
+
+@iftex
+@finalout
+@end iftex
+
+@c @setchapternewpage odd
+@c @setchapternewpage off
+
+@ifinfo
+This file documents parser development with the bovine parser generator
+@emph{Infrastructure for parser based text analysis in Emacs}
+
+Copyright @copyright{} 2002 @value{AUTHOR}
+@end ifinfo
+
+@titlepage
+@sp 10
+@title @value{TITLE}
+@author by @value{AUTHOR}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
+@page
+@vskip 0pt plus 1 fill
+@insertcopying
+@end titlepage
+@page
+
+@c MACRO inclusion
+@include semanticheader.texi
+
+
+@c *************************************************************************
+@c @ Document
+@c *************************************************************************
+
+@node top
+@top @value{TITLE}
 
 The bovine parser is the original semantic parser, and is an
 implementation of an LL parser.  It is good for simple langauges.  It
@@ -13,7 +92,7 @@ make it less flexible than a full LALR @emph{bison} style grammar.
 Bovine parsers are stored in files with a @file{.by} extension.
 When compiled, the contents is converted into a file of the form
 @file{NAME-by.el}.  This, in turn is byte compiled.
-@ref{Grammer Programming Environment}.
+@inforef{Grammar Programming Environment, ,lang-support-guide}.
 
 A bovine parser file has the following top level structure.
 Text in <angle> brackes should be replaced with apropriate values.
@@ -43,7 +122,7 @@ The comment character is @asis{;}, as with Emacs Lisp.
 @end menu
 
 @node %start
-@subsubsection %start
+@chapter %start
 
 In Bison, one and only one nonterminal is designated as the
 ``start'' symbol.
@@ -80,7 +159,7 @@ clarified.
 @end ignore
 
 @node %languagemode
-@subsubsection %languagemode
+@chapter %languagemode
 
 @c >   A while back, I updated semantic-grammer.el to auto-run the setup
 @c > function in all modes of the correct type.  It uses %languagemode to
@@ -94,7 +173,7 @@ clarified.
 @c 
 
 @node %token
-@subsubsection %token
+@chapter %token
 
 In the bovine parser, the @b{%token} and related @b{%put} command
 control the creation of additional lexical tokens types called
@@ -106,7 +185,7 @@ The @b{%token} has two forms.
 @item %token NAME ``name''
 In this form, the new lexical token @var{NAME} is declared matched to the
 keyword ``name'', a string.  ``name'' must be a valid @emph{symbol}
-token @ref{Writing Lexers}.
+token @inforef{Writing Lexers, ,lang-support-guide}.
 @item %token <LEXICALTYPE> NAME ``regexp''
 In this form, the new lexical token @var{NAME} is created which consists of
 characters of the lexical type @var{LEXICALTYPE}.  The <angle> brackets are
@@ -115,7 +194,7 @@ a part of the syntax.  These lexical characters are matched against
 @end table
 
 Internally, symbol tokens created with the first form are added to a
-lexical keyword table @ref{Keywords}.  The other types of lexical
+lexical keyword table @inforef{Keywords, , lang-support-guide}.  The other types of lexical
 tokens are substitued into the rules, and do not appear in the Emacs
 Lisp representation of the grammar.
 
@@ -132,7 +211,7 @@ property.
 @end defun
 
 @node Bovine Grammar Rules
-@subsubsection Bovine Grammar Rules
+@chapter Bovine Grammar Rules
 
 The rules are what allow the compiler to create tags from a language
 file.  Once the setup is done in the prologue, you can start writing
@@ -228,11 +307,11 @@ will explicitly match one period when used in the above rule.
 @c @xref{Default syntactic tokens}.
 
 @node Optional Lambda Expression
-@subsubsection Optional Lambda Expressions
+@chapter Optional Lambda Expressions
 
 The OLE (Optional Lambda Expression) is converted into a bovine lambda
-(see @xref{Writing Parsers}.) This lambda has special short-cuts to simplify
-reading the Emacs BNF definition.  An OLE like this:
+This lambda has special short-cuts to simplify reading the Emacs BNF
+definition.  An OLE like this:
 
 @example
 ( $1 )
@@ -302,7 +381,7 @@ This lets you send @code{$1} as a symbol into a list instead of having
 it expanded inline.
 
 @node Bovine Examples
-@subsubsection Examples
+@chapter Examples
 
 The rule:
 
