@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.11 2002/07/02 04:07:02 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.12 2002/07/11 07:58:22 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -149,6 +149,72 @@
 	   0)
 	  ((looking-at "\\s-*\\(#\\|$\\)") -1)
 	  (t (current-indentation)))))
+
+;;;****************************************************************************
+;;;@ New Lexer
+;;;****************************************************************************
+
+(define-lex-regex-analyzer semantic-lex-python-triple-quotes
+  "Create a 'string token from strings quoted with triple double-quotes."
+  "\\(\\<r\\)?\"\"\""
+  (let ((raw-p (looking-at "r"))
+	beg end)
+    (setq beg (point))
+    (forward-char 3)
+    (search-forward "\"\"\"")
+    (setq end (point))
+    (semantic-lex-token (if raw-p
+			    'raw-string
+			  'string)
+			beg end)))
+
+(define-lex-regex-analyzer semantic-lex-python-raw-string
+  "Handle python raw-strings. Return a 'raw-string syntactic token."
+  wisent-python-raw-string-re
+  (let* ((b (point))
+         (e (condition-case nil
+                (progn
+                  (forward-char) ;; skip 'r'
+		  (cond
+		   ((looking-at "\"\"\"")
+		    (forward-char 3)
+		    (search-forward "\"\"\""))
+		   (t 
+		    (forward-sexp 1)))
+                  (point))
+              ;; This case makes flex
+              ;; robust to broken strings.
+              (error
+               (progn
+                 (goto-char
+                  (funcall
+                   semantic-flex-unterminated-syntax-end-function
+                   'string
+                   start end))
+                 (point))))))
+    (semantic-lex-token 'raw-string b e)))
+
+(define-lex semantic-python-lexer
+  "Lexical Analyzer for Python code."
+  semantic-lex-beginning-of-line
+  semantic-lex-python-triple-quotes
+  semantic-lex-python-raw-string
+  semantic-lex-newline
+  semantic-lex-ignore-whitespace
+  semantic-lex-number
+  semantic-lex-symbol-or-keyword
+  semantic-lex-charquote
+  semantic-lex-paren-or-list
+  semantic-lex-close-paren
+  semantic-lex-string
+  semantic-lex-ignore-comments
+  semantic-lex-punctuation
+  semantic-lex-default-action
+  )
+
+;;;****************************************************************************
+;;;@ Old Lexer
+;;;****************************************************************************
 
 (defun wisent-python-lex-bol ()
   "Handle BOL syntactic tokens.
@@ -342,7 +408,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-07-01 20:51-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-07-11 00:48-0700
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT RAW_STRING_LITERAL AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -948,7 +1014,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-keywords
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-07-01 20:51-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-07-11 00:48-0700
    (semantic-flex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -1012,7 +1078,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-tokens
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-07-01 20:51-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-07-11 00:48-0700
    (wisent-flex-make-token-table
     '(("raw-string"
        (RAW_STRING_LITERAL))
@@ -1093,7 +1159,7 @@ Return a 'raw-string syntactic token."
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-07-01 20:51-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-07-11 00:48-0700
   (progn
     (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
 	  semantic-bovinate-parser-name "LALR"
@@ -1129,6 +1195,8 @@ Return a 'raw-string syntactic token."
 	   (cons wisent-python-raw-string-re 'wisent-python-flex-raw-string))
 
      semantic-flex-extensions semantic-flex-python-extensions
+
+     semantic-lex-analyzer #'semantic-python-lexer
      ))
   )
 
