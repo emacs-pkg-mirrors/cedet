@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.wy,v 1.10 2003/08/02 08:20:55 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.wy,v 1.11 2003/12/05 09:18:58 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -59,9 +59,9 @@
 ;; ---------------
 ;; Block terminals
 ;; ---------------
-%token <semantic-list> PAREN_BLOCK     "^("
-%token <semantic-list> BRACE_BLOCK     "^{"
-%token <semantic-list> BRACK_BLOCK     "^\\["
+%token <block>        PAREN_BLOCK      "(LPAREN RPAREN)"
+%token <block>        BRACE_BLOCK      "(LBRACE RBRACE)"
+%token <block>        BRACK_BLOCK      "(LBRACK RBRACK)"
 
 ;; ------------------
 ;; Operator terminals
