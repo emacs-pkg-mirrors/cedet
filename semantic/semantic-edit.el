@@ -1,8 +1,8 @@
 ;;; semantic-edit.el --- Edit Management for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.18 2003/03/27 07:41:23 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.19 2003/04/02 02:14:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -203,9 +203,9 @@ Argument START, END, and LENGTH specify the bounds of the change."
   "Return non-nil of the overlay CHANGE exists solely in one leaf token.
 HITS is the list of tokens that CHANGE is in.  It can have more than
 one token in it if the leaf token is within a parent token."
-  (and (< (semantic-token-start (car hits))
+  (and (< (semantic-tag-start (car hits))
 	  (semantic-overlay-start change))
-       (> (semantic-token-end (car hits))
+       (> (semantic-tag-end (car hits))
 	  (semantic-overlay-end change))
        ;; Recurse on the rest.  If this change is inside all
        ;; of these tokens, then they are all leaves or parents
@@ -241,23 +241,23 @@ return nil."
   (let* ((start (semantic-edits-os change))
 	 (end (semantic-edits-oe change))
 	 (tokens (nreverse
-		  (semantic-find-nonterminal-by-overlay-in-region
+		  (semantic-find-tag-by-overlay-in-region
 		   start end))))
     ;; A leaf is always first in this list
     (if (and tokens
-	     (<= (semantic-token-start (car tokens)) start)
-	     (> (semantic-token-end (car tokens)) end))
+	     (<= (semantic-tag-start (car tokens)) start)
+	     (> (semantic-tag-end (car tokens)) end))
 	;; Ok, we have a match.  If this token has children,
 	;; we have to do more tests.
-	(let ((chil (semantic-nonterminal-children (car tokens) nil)))
+	(let ((chil (semantic-tag-components (car tokens))))
 	  (if (not chil)
 	      ;; Simple leaf.
 	      (car tokens)
 	    ;; For this type, we say that we encompass it if the
 	    ;; change occurs outside the range of the children.
-	    (if (or (not (semantic-token-with-position-p (car chil)))
-		    (> start (semantic-token-end (nth (1- (length chil)) chil)))
-		    (< end (semantic-token-start (car chil))))
+	    (if (or (not (semantic-tag-with-position-p (car chil)))
+		    (> start (semantic-tag-end (nth (1- (length chil)) chil)))
+		    (< end (semantic-tag-start (car chil))))
 		;; We have modifications to the definition of this parent
 		;; so we have to reparse the whole thing.
 		(car tokens)
@@ -278,26 +278,26 @@ See `semantic-edits-change-leaf-token' for details on parents."
   (let* ((start (semantic-edits-os change))
 	 (end (semantic-edits-oe change))
 	 (tokens (nreverse
-		  (semantic-find-nonterminal-by-overlay-in-region
+		  (semantic-find-tag-by-overlay-in-region
 		   start end)))
 	 (list-to-search nil))
     (if (not tokens)
 	(setq list-to-search semantic-toplevel-bovine-cache)
       ;; A leaf is always first in this list
-      (if (and (< (semantic-token-start (car tokens)) start)
-	       (> (semantic-token-end (car tokens)) end))
+      (if (and (< (semantic-tag-start (car tokens)) start)
+	       (> (semantic-tag-end (car tokens)) end))
 	  ;; We are completely encompassed in a token.
 	  (if (setq list-to-search
-		    (semantic-nonterminal-children (car tokens) nil))
+		    (semantic-tag-components (car tokens)))
 	      ;; Ok, we are completely encompassed within the first token
 	      ;; entry, AND that token has children.  This means that change
 	      ;; occured outside of all children, but inside some token
 	      ;; with children.
-	      (if (or (not (semantic-token-with-position-p (car list-to-search)))
-		      (> start (semantic-token-end
+	      (if (or (not (semantic-tag-with-position-p (car list-to-search)))
+		      (> start (semantic-tag-end
 				(nth (1- (length list-to-search))
 				     list-to-search)))
-		      (< end (semantic-token-start (car list-to-search))))
+		      (< end (semantic-tag-start (car list-to-search))))
 		  ;; We have modifications to the definition of this parent
 		  ;; and not between it's children.  Clear the search list.
 		  (setq list-to-search nil)))
@@ -311,7 +311,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 
 		;; We end when the start of the CDR is after the
 		;; end of our asked change.
-		(< (semantic-token-start (car (cdr list-to-search)))
+		(< (semantic-tag-start (car (cdr list-to-search)))
 		   end))
       (setq list-to-search (cdr list-to-search)))
     ;; Return it.  If it is nil, there is a logic bug, and we need
@@ -335,7 +335,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
   (let* ((start (semantic-edits-os change))
 	 (end (semantic-edits-oe change))
 	 (tokens (nreverse
-		  (semantic-find-nonterminal-by-overlay-in-region
+		  (semantic-find-tag-by-overlay-in-region
 		   start end)))
 	 (parent nil)
 	 (overlapped-tokens nil)
@@ -348,34 +348,34 @@ See `semantic-edits-change-leaf-token' for details on parents."
     ;; A leaf is always first in this list.
     ;; Is the leaf encompassed in this change?
     (if (and tokens
-	     (>= (semantic-token-start (car tokens)) start)
-	     (<= (semantic-token-end (car tokens)) end))
+	     (>= (semantic-tag-start (car tokens)) start)
+	     (<= (semantic-tag-end (car tokens)) end))
 	(progn
 	  ;; We encompass one whole change.
 	  (setq overlapped-tokens (list (car tokens))
-		inner-start (semantic-token-start (car tokens))
-		inner-end (semantic-token-end (car tokens))
+		inner-start (semantic-tag-start (car tokens))
+		inner-end (semantic-tag-end (car tokens))
 		tokens (cdr tokens))
 	  ;; Keep looping while tokens are inside the change.
 	  (while (and tokens
-		      (>= (semantic-token-start (car tokens)) start)
-		      (<= (semantic-token-end (car tokens)) end))
+		      (>= (semantic-tag-start (car tokens)) start)
+		      (<= (semantic-tag-end (car tokens)) end))
 
 	    ;; Check if this new all-encompassing token is a parent
 	    ;; of that which went before.  Only check end because
 	    ;; we know that start is less than inner-start since
 	    ;; tokens was sorted on that.
-	    (if (> (semantic-token-end (car tokens)) inner-end)
+	    (if (> (semantic-tag-end (car tokens)) inner-end)
 		;; This is a parent.  Drop the children found
 		;; so far.
 		(setq overlapped-tokens (list (car tokens))
-		      inner-start (semantic-token-start (car tokens))
-		      inner-end (semantic-token-end (car tokens))
+		      inner-start (semantic-tag-start (car tokens))
+		      inner-end (semantic-tag-end (car tokens))
 		      )
 	      ;; It is not a parent encompassing token
 	      (setq overlapped-tokens (cons (car tokens)
 					    overlapped-tokens)
-		    inner-start (semantic-token-start (car tokens))))
+		    inner-start (semantic-tag-start (car tokens))))
 	    (setq tokens (cdr tokens)))
 	  (if (not tokens)
 	      ;; There are no tokens left, and all tokens originally
@@ -386,12 +386,11 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	    ;; completely cover the change.  A token can only
 	    ;; do that if it is a parent after we get here.
 	    (when (and tokens
-		       (< (semantic-token-start (car tokens)) start)
-		       (> (semantic-token-end (car tokens)) end))
+		       (< (semantic-tag-start (car tokens)) start)
+		       (> (semantic-tag-end (car tokens)) end))
 	      ;; We have a parent.  Stuff in the search list.
 	      (setq parent (car tokens)
-		    list-to-search (semantic-nonterminal-children
-				    parent nil))
+		    list-to-search (semantic-tag-components parent))
 	      ;; If the first of TOKENS is a parent (see above)
 	      ;; then clear out the list.  All other tokens in
 	      ;; here must therefore be parents of the car.
@@ -400,10 +399,10 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	      ;; token or after the last, we may have overlap into
 	      ;; the characters that make up the definition of
 	      ;; the token we are parsing.
-	      (when (or (semantic-token-with-position-p (car list-to-search))
-			(< start (semantic-token-start
+	      (when (or (semantic-tag-with-position-p (car list-to-search))
+			(< start (semantic-tag-start
 				  (car list-to-search)))
-			(> end (semantic-token-end
+			(> end (semantic-tag-end
 				(nth (1- (length list-to-search))
 				     list-to-search))))
 		;; We have a problem
@@ -419,7 +418,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	    ;; Loop over the search list to find the preceeding CDR.
 	    ;; Fortunatly, (car overlapped-tokens) happens to be
 	    ;; the first token positionally.
-	    (let ((tokstart (semantic-token-start (car overlapped-tokens))))
+	    (let ((tokstart (semantic-tag-start (car overlapped-tokens))))
 	      (while (and list-to-search
 			  ;; Assume always (car (cdr list-to-search)).
 			  ;; A thrown error will be captured nicely, but
@@ -427,7 +426,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 			      
 			  ;; We end when the start of the CDR is after the
 			  ;; end of our asked change.
-			  (< (semantic-token-start (car (cdr list-to-search)))
+			  (< (semantic-tag-start (car (cdr list-to-search)))
 			     tokstart)
 			  (setq list-to-search (cdr list-to-search)))))
 	    ;; Create the return vector
@@ -517,8 +516,8 @@ the semantic cache to see what needs to be changed."
 ;;;; Are we encompassed all in one token?
                    ((setq tmp (semantic-edits-change-leaf-token (car changes)))
                     (setq tokens (list tmp)
-                          parse-start (semantic-token-start tmp)
-                          parse-end (semantic-token-end tmp)
+                          parse-start (semantic-tag-start tmp)
+                          parse-end (semantic-tag-end tmp)
                           ))
 
 ;;;; Did the change occur between some tokens?
@@ -529,11 +528,11 @@ the semantic cache to see what needs to be changed."
                     ;; Bound our reparse between these two tokens
                     (setq tokens nil
                           parent-token
-                          (car (semantic-find-nonterminal-by-overlay
+                          (car (semantic-find-tag-by-overlay
                                 parse-start)))
                     (cond
                       ;; A change at the beginning of the buffer.
-                     ((> (semantic-token-start (car cache-list))
+                     ((> (semantic-tag-start (car cache-list))
                          (semantic-overlay-end (car changes)))
                       (setq parse-start
                             ;; Don't worry about parents since
@@ -542,14 +541,14 @@ the semantic cache to see what needs to be changed."
                             ;; and the routine would fail.
                             (point-min)
                             parse-end
-                            (semantic-token-start (car cache-list)))
+                            (semantic-tag-start (car cache-list)))
                       )
                      ;; A change stuck on the first surrounding token.
-                     ((= (semantic-token-end (car cache-list))
+                     ((= (semantic-tag-end (car cache-list))
                          (semantic-overlay-start (car changes)))
                       ;; Reparse that first token.
                       (setq parse-start
-                            (semantic-token-start (car cache-list))
+                            (semantic-tag-start (car cache-list))
                             parse-end
                             (semantic-overlay-end (car changes))
                             tokens
@@ -557,15 +556,15 @@ the semantic cache to see what needs to be changed."
                       )
                      ;; A change at the end of the buffer.
                      ((not (car (cdr cache-list)))
-                      (setq parse-start (semantic-token-end
+                      (setq parse-start (semantic-tag-end
                                          (car cache-list))
                             parse-end (point-max))
                       )
                      (t
                       (setq parse-start
-                            (semantic-token-end (car cache-list))
+                            (semantic-tag-end (car cache-list))
                             parse-end
-                            (semantic-token-start (car (cdr cache-list)))
+                            (semantic-tag-start (car (cdr cache-list)))
                             ))))
 
 ;;;; Did the change completely overlap some number of tokens?
@@ -588,12 +587,12 @@ the semantic cache to see what needs to be changed."
                           (setq parse-start (point-min))
                           (if end-marker
                               (setq parse-end
-                                    (semantic-token-start end-marker))
+                                    (semantic-tag-start end-marker))
                             (setq parse-end (semantic-overlay-end
                                              (car changes)))))
                       ;; Middle of the buffer.
                       (setq parse-start
-                            (semantic-token-end (car cache-list)))
+                            (semantic-tag-end (car cache-list)))
                       ;; For the end, we need to scoot down some
                       ;; number of tokens.  We 1+ the length of tokens
                       ;; because we want to skip the first token
@@ -601,7 +600,7 @@ the semantic cache to see what needs to be changed."
                       ;; of the list (1+)
                       (let ((end-marker (nth (1+ (length tokens)) cache-list)))
                         (if end-marker
-                            (setq parse-end (semantic-token-start end-marker))
+                            (setq parse-end (semantic-tag-start end-marker))
                           ;; No marker.  It is the last token in our
                           ;; list of tokens.  Only possible if END
                           ;; already matches the end of that token.
@@ -629,12 +628,12 @@ the semantic cache to see what needs to be changed."
             ;; since that is how the multi-token parser works.  Grab
             ;; the reparse symbol from the first of the returned tokens.
             (setq reparse-symbol
-                  (semantic-token-get (car (or tokens cache-list))
-                                      'reparse-symbol))
+                  (semantic--tag-get-property (car (or tokens cache-list))
+					      'reparse-symbol))
             ;; Find a parent if not provided.
             (and (not parent-token) tokens
                  (setq parent-token
-		       (semantic-find-nonterminal-parent-by-overlay
+		       (semantic-find-tag-parent-by-overlay
 			(car tokens))))
             ;; We can do the same trick for our parent and resulting
             ;; cache list.
@@ -643,7 +642,7 @@ the semantic cache to see what needs to be changed."
                       ;; We need to get all children in case we happen
                       ;; to have a mix of positioned and non-positioned
                       ;; children.
-                      (semantic-nonterminal-children parent-token nil)))
+                      (semantic-tag-components parent-token)))
             ;; Use the boundary to calculate the new tokens found.
             (setq newf-tokens (semantic-parse-region
                                parse-start parse-end reparse-symbol))
@@ -652,7 +651,7 @@ the semantic cache to see what needs to be changed."
             ;; need the overlays.
             (let ((tmp newf-tokens))
               (while tmp
-                (semantic-overlay-token (car tmp))
+                (semantic--tag-link-to-buffer (car tmp))
                 (setq tmp (cdr tmp))))
             
             ;; See how this change lays out.
@@ -757,7 +756,7 @@ pre-positioned to a convenient location."
   (let* ((first (car oldtokens))
 	 (last (nth (1- (length oldtokens)) oldtokens))
 	 (chil (if parent
-		   (semantic-nonterminal-children parent nil)
+		   (semantic-tag-components parent)
 		 semantic-toplevel-bovine-cache))
 	 (cachestart cachelist)
 	 (cacheend nil)
@@ -788,7 +787,7 @@ pre-positioned to a convenient location."
       )
     ;; Remove old overlays of these deleted tokens
     (while oldtokens
-      (semantic-deoverlay-token (car oldtokens))
+      (semantic--tag-unlink-from-buffer (car oldtokens))
       (setq oldtokens (cdr oldtokens)))
     ))
 
@@ -800,14 +799,14 @@ CACHELIST must be searched to find where NEWTOKENS are to be inserted.
 The positions of NEWTOKENS must be synchronized with those in
 CACHELIST for this to work.  Some routines pre-position CACHLIST at a
 convenient location, so use that."
-  (let* ((start (semantic-token-start (car newtokens)))
+  (let* ((start (semantic-tag-start (car newtokens)))
 	 (newtokenendcell (nthcdr (1- (length newtokens)) newtokens))
-	 (end (semantic-token-end (car newtokenendcell)))
+	 (end (semantic-tag-end (car newtokenendcell)))
 	 )
-    (if (> (semantic-token-start (car cachelist)) start)
+    (if (> (semantic-tag-start (car cachelist)) start)
 	;; We are at the beginning.
 	(let* ((pc (if parent
-		       (semantic-nonterminal-children parent nil)
+		       (semantic-tag-components parent)
 		     semantic-toplevel-bovine-cache))
 	       (nc (cons (car pc) (cdr pc)))  ; new cons cell.
 	       )
@@ -818,7 +817,7 @@ convenient location, so use that."
 	  (setcdr pc (cdr newtokens)))
       ;; We are at the end, or in the middle.  Find our match first.
       (while (and (cdr cachelist)
-		  (> end (semantic-token-start (car (cdr cachelist)))))
+		  (> end (semantic-tag-start (car (cdr cachelist)))))
 	(setq cachelist (cdr cachelist)))
       ;; Now splice into the list!
       (setcdr newtokenendcell (cdr cachelist))
@@ -832,20 +831,17 @@ Make sure that all information in the overlay is transferred.
 It is presumed that OLDTOKEN and NEWTOKEN are both cooked.
 When this routine returns, OLDTOKEN is raw, and the data will be
 lost if not transferred into NEWTOKEN."
-  (let* ((oo (semantic-token-overlay oldtoken))
-	 (o (semantic-token-overlay newtoken))
+  (let* ((oo (semantic-tag-overlay oldtoken))
+	 (o (semantic-tag-overlay newtoken))
 	 (oo-props (semantic-overlay-properties oo)))
     (while oo-props
       (semantic-overlay-put o (car oo-props) (car (cdr oo-props)))
       (setq oo-props (cdr (cdr oo-props)))
       )
     ;; Free the old overlay(s)
-    (semantic-deoverlay-token oldtoken)
+    (semantic--tag-unlink-from-buffer oldtoken)
     ;; Recover properties
     (semantic--tag-copy-properties oldtoken newtoken)
-    ;; The below line was from the old rebovinate routine.  Now
-    ;; I'm not sure it's needed.  Lets check.
-    ;;(semantic-token-put newtoken 'reparse-symbol nonterminal)
     ;; Splice into the main list.
     (setcdr oldtoken (cdr newtoken))
     (setcar oldtoken (car newtoken))
