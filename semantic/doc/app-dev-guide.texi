@@ -21,10 +21,10 @@ developer needs to know to perform all of the tasks just listed.
 
 @menu
 * Semantic Tags::               
-* Nonterminal Streams::         Working with streams of nonterminals.
-* Nonterminals at point::       Finding nonterminals at point.
-* Nonterminal Sorting::         Reorganizing streams.
-* Nonterminal Completion::      Completing read functions.
+* Tag Tables::                  Working with streams of nonterminals.
+* Tags at Point::               Finding tags at point.
+* Tag Sorting::                 Reorganizing streams.
+* Tag Completion::              Completing read functions.
 * Override Methods::            Language dependent functions covering
                                 conversion to text strings, language dependent
                                 queries and local context information
@@ -40,14 +40,14 @@ developer needs to know to perform all of the tasks just listed.
 @include tags.texi
 @raisesections
 
-@node Nonterminal Streams
-@section Nonterminal streams
+@node Tag Tables
+@section tag tables
 
-These functions take some key, and returns information found inside
-the nonterminal stream.  Some will return one tag (the first
-matching item found.)  Others will return a list of all items matching
-a given criterion.  All these functions work regardless of a buffer
-being in memory or not.
+These functions take some key, and returns information found in a tag
+table.  Some will return one tag (the first matching item found.)
+Others will return a list of all items matching a given criterion.
+All these functions work regardless of a buffer being in memory or
+not.
 
 @defun semantic-brute-find-first-tag-by-name name streamorbuffer &optional search-parts search-include
 Find a tag @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a string.
@@ -180,15 +180,15 @@ searched for matches.
 @c @var{ME} @var{SOON}.
 @c @end defun
 
-@node Nonterminals at point
-@section Nonterminals at point
+@node Tags at Point
+@section Tags at Point
 
-When you just want to get at a nonterminal the cursor is on, there is
-a more efficient mechanism than using
-@code{semantic-find-nonterminal-by-position}.  This mechanism
-directly queries the overlays the parsing step leaves in the buffer.
-This provides for very rapid retrieval of what function or variable
-the cursor is currently in.
+When you need to get the tag the cursor is on, there is a more
+efficient mechanism than using
+@code{semantic-brute-find-tag-by-position}.  This mechanism directly
+queries the overlays the parsing step leaves in the buffer.  This
+provides for very rapid retrieval of what function or variable the
+cursor is currently in.
 @refill
 
 These functions query the current buffer's overlay system for tags.
@@ -228,13 +228,12 @@ containing a field.  Return @code{nil} if there is no parent.
 @obsolete{semantic-current-nonterminal-parent,semantic-current-tag-parent}
 @end defun
 
-@node Nonterminal Sorting
-@section Nonterminal sorting
+@node Tag Sorting
+@section Tag Sorting
 
-Sometimes it is important to reorganize a tag stream into a form
-that is better for display to a user.  It is important to not use
-functions with side effects when doing this, and that could effect
-the tag cache.
+Sometimes it is important to reorganize a tag stream into a form that
+is better for display to a user.  It is important to not use functions
+with side effects that could effect the tag cache.
 
 There are some existing utility functions which will reorganize the
 tag list for you.
@@ -251,7 +250,7 @@ The filter function will take one argument, which is a list of tags, and
 may re-organize the list with side-effects.
 @end defun
 
-@defvar semantic-bucketize-token-token
+@defvar semantic-bucketize-tag-class
 Function used to get a symbol describing the class of a token.
 This function must take one argument of a semantic token.
 It should return a symbol found in `semantic-symbol->name-assoc-list'
@@ -299,8 +298,8 @@ tag (or a copy of it) which is then integrated into the
 revised tag list.
 @end defvar
 
-@node Nonterminal Completion
-@section Nonterminal completion
+@node Tag Completion
+@section tag completion
 
 These functions provide ways reading the names of items in a buffer with
 completion.
@@ -355,14 +354,14 @@ a dependency can be found by searching a generic search path which can
 be passed in via a variable.
 
 @menu
-* Token->Text::                 Converting Tokens into text strings
-* Token Details::               Arbitrary token detail fetching
+* Format Tag::                  Converting Tokens into text strings
+* Tag Details::                 Arbitrary token detail fetching
 * Local Context::               Deriving information about a language specific local context.
 * Making New Methods::          How to add your own methods for a tool
 @end menu
 
-@node Token->Text
-@subsection Token->Text
+@node Format Tag
+@subsection Format Tag
 
 Any given token consists of Meta information which is best viewed in
 some textual form.  This could be as simple as the token's name, or as
@@ -372,7 +371,7 @@ some convenient variables that can be used with them.  Use these
 variables to allow options on output forms when displaying tags in
 your programs.
 
-@defvar semantic-token->text-functions
+@defvar semantic-format tag-functions
 List of functions which convert a token to text.
 Each function must take the parameters @var{TOKEN} &optional @var{PARENT} @var{COLOR}.
 @var{TOKEN} is the token to convert.
@@ -383,7 +382,7 @@ would claim as a parent.
 @code{font-lock}.
 @end defvar
 
-@defvar semantic-token->text-custom-list
+@defvar semantic-format tag-custom-list
 @var{A} List used by customizable variables to choose a token to text function.
 Use this variable in the @code{:type} field of a customizable variable.
 @end defvar
@@ -447,8 +446,8 @@ Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
 Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
 @end defun
 
-@node Token Details
-@subsection Token Details
+@node Tag Details
+@subsection Tag Details
 
 These functions help derive information about tokens that may not
 be obvious for non-traditional languages with their own token types.
@@ -709,13 +708,12 @@ about the current context: @xref{Context Analysis}.
 @node Parser Hooks
 @section Parser Hooks
 
-If you write a program that uses the stream of tokens in a persistent
-display or database, it is necessary to know when tokens change so
+If you write a program that uses a tag table in a persistent
+display or database, it is necessary to know when tag tables change so
 that your displays can be updated.  This is especially important as
-tokens can be replaced, changed, or deleted, and the associated
+tags can be replaced, changed, or deleted, and the associated
 overlays will then throw errors when you try to use them.  Complete
-integration with token changes can be achieved via several very
-important hooks.
+integration with tag changes can be achieved via several hooks.
 
 One interesting way to interact with the parser is to let it know that
 changes you are going to make will not require re-parsing.
@@ -747,52 +745,7 @@ Optional argument @var{CHECKCACHE} indicates if the cache check should be made
 when checking @dfn{semantic-bovine-toplevel-full-reparse-needed-p}.
 @end defun
 
-If you need very close interaction with the user's editing, then these
-two hooks can be used to find out when a given tag is being changed.
-These hooks could even be used to cut down on re-parsing if used correctly.
-
-For all hooks, make sure you are careful to add it as a local hook if
-you only want to effect a single buffer.  Setting it globally can
-cause unwanted effects if your program is concerned with a single buffer.
-
-@defvar semantic-dirty-token-hooks
-Hooks run after when a token is marked as dirty (edited by the user).
-The functions must take @var{TOKEN}, @var{START}, and @var{END} as a parameters.
-This hook will only be called once when a token is first made dirty,
-subsequent edits will not cause this to run a second time unless that
-token is first cleaned.  Any token marked as dirty will
-also be called with @code{semantic-clean-token-hooks}, unless a full
-reparse is done instead.
-@end defvar
-
-@defvar semantic-clean-token-hooks
-Hooks run after a token is marked as clean (re-parsed after user edits.)
-The functions must take a @var{TOKEN} as a parameter.
-Any token sent to this hook will have first been called with
-@code{semantic-dirty-token-hooks}.  This hook is not called for tokens
-marked dirty if the buffer is completely re-parsed.  In that case, use
-@code{semantic-after-toplevel-cache-change-hook}.
-@end defvar
-
-@defvar semantic-change-hooks
-Hooks run when semantic detects a change in a buffer.
-Each hook function must take three arguments, identical to the
-common hook @code{after-change-function}.
-@end defvar
-
-Lastly, if you just want to know when a buffer changes, use this hook.
-
-@defvar semantic-after-toplevel-bovinate-hook
-Hooks run after a toplevel token parse.
-It is not run if the toplevel parse command is called, and buffer does
-not need to be fully re-parsed.
-This function is also called when the toplevel cache is flushed, and
-the cache is emptied.
-For language specific hooks, make sure you define this as a local hook.
-
-This hook should not be used any more.
-Use @code{semantic-after-toplevel-cache-change-hook} instead.
-@end defvar
+If you just want to know when a buffer changes, use this hook.
 
 @defvar semantic-after-toplevel-cache-change-hook
 Hooks run after the buffer token list has changed.
@@ -804,7 +757,12 @@ Hook functions must take one argument, which is the new list of
 tokens associated with this buffer.
 
 For language specific hooks, make sure you define this as a local hook.
+
+@obsolete{semantic-after-toplevel-bovinate-hook}
 @end defvar
+
+If you want tighter interaction with how the user is editing
+different tags, you can use this hook instead.
 
 @defvar semantic-after-partial-cache-change-hook
 Hooks run after the buffer token list has been updated.
@@ -836,7 +794,7 @@ lots of comments, see the file @file{semantic-examples.el}.
 
 If you need a command that asks the user for a token name, you can
 get full range completion using the query functions
-@ref{Nonterminal Completion}.
+@ref{Tag Completion}.
 
 @example
 (interactive (list (semantic-read-symbol "Symbol: ")))
@@ -846,7 +804,7 @@ get full range completion using the query functions
 
 If you have the name of a function or variable, and need to find its
 location in a buffer, you need a search function.  There is a wide
-range of searches you can perform @ref{Nonterminal Streams}.
+range of searches you can perform @ref{Tag Tables}.
 
 @example
 (semantic-find-nonterminal-by-name
@@ -861,7 +819,7 @@ range of searches you can perform @ref{Nonterminal Streams}.
 If you have the name of a function or variable, and need to find its
 location somewhere in a project, you need to use the Semantic Database
 @ref{semanticdb}.  There are many search functions similar to the
-ones found in @ref{Nonterminal Streams}.
+ones found in @ref{Tag Tables}.
 
 The Semantic Database is interesting in that the return structure is
 not
@@ -900,10 +858,10 @@ files if you don't need to jump to that token.
 
 @heading Converting a token into a human readable string.
 
-A nonterminal token is a rather unpleasant Lisp structure when trying
+A tag is a rather unpleasant Lisp structure when trying
 to decipher what is going on.  As such, there is a wide range of
 functions available that can convert a token into a human readable,
-and colorful string @ref{Token->Text}.
+and colorful string @ref{Format Tag}.
 
 If you program interfaces with lots of users, you will probably want
 to have your program define a configurable variable that will let
@@ -911,26 +869,26 @@ users change the visible portion of your program.
 
 @example
 (defcustom my-summary-function 'semantic-uml-prototype-nonterminal
-  "*Function to use when showing info about my token."
+  "*Function to use when showing info about my tag."
   :group 'my-program
-  :type semantic-token->text-custom-list)
+  :type semantic-format-tag-custom-list)
 @end example
 
-Note the special type provided by semantic.
+Note the special type provided by Semantic.
 
 Next, you can call this function to create a string.
 
 @example
-(funcall my-summary-function token
-                             token-parent
+(funcall my-summary-function tag
+                             tag-parent
                              t ; use color
                              )
 @end example
 
-In this case, @var{token-parent} is an optional argument.  In many
-cases, parent is not used by the outputting function.  The parent
-may be a struct or class that contains @var{token}, or nil for
-top-level definitions.  In particular, C++ needs the parent to
+In this case, @var{tag-parent} is an optional argument.  In many
+cases, parent is not used by the outputting function.  The parent must
+be a tag whose @code{semantic-tag-componenets} contains @var{tag}, or
+nil for top-level definitions.  In particular, C++ needs the parent to
 correctly calculate the protection of each method.
 
 
