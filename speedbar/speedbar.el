@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.6.3
+;; Version: 0.6.3.a
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.73 1998/03/05 17:59:50 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.74 1998/03/05 21:51:46 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -316,6 +316,8 @@
 ;;         multiple combined indicators.
 ;;       Added new stealthy function to mark files that have associated OBJs
 ;;         Identification uses `speedbar-obj-alist' to identify files to mark.
+;;       Adding indicators now selectivly removes stale related indicators 
+;;         so for states that change, it is safe to re-evaluate
 ;;       Speedbar will now work in a non-windowing environment.
 ;;       Added navigation functions `speedbar-restricted-next' and
 ;;         `speedbar-restricted-prev' for navigation only in a
@@ -597,8 +599,9 @@ marking is based on  `speedbar-obj-alist'"
 (defvar speedbar-obj-to-do-point nil
   "Local variable maintaining the current version control check position.")
 
-(defvar speedbar-obj-indicator "#"
+(defvar speedbar-obj-indicator '("#" . "!")
   "Text used to mark files that have a corresponding hidden object file.
+The car is for an up-to-date object.  The cdr is for an out of date object.
 The expression `speedbar-obj-alist' defines who gets tagged.")
 
 (defvar speedbar-obj-alist
@@ -614,7 +617,9 @@ The expression `speedbar-obj-alist' defines who gets tagged.")
 	  "\\("
 	  (regexp-quote speedbar-vc-indicator)
 	  "\\|"
-	  (regexp-quote speedbar-obj-indicator)
+	  (regexp-quote (car speedbar-obj-indicator))
+	  "\\|"
+	  (regexp-quote (cdr speedbar-obj-indicator))
 	  "\\)*")
   "Regular expression used when identifying files.
 Permits stripping of indicator characters from a line.")
@@ -1064,9 +1069,10 @@ version control system.  (currently only RCS is supported.)  New
 version control systems can be added by examining the documentation
 for `speedbar-this-file-in-vc' and `speedbar-vc-check-dir-p'
 
-Files with a `#' character after them are source files that have an
-object file associated with them.  You can control what source/object
-associations exist through the variable `speedbar-obj-alist'.
+Files with a `#' or `!' character after them are source files that
+have an object file associated with them.  The `!' indicates that the
+files is out of date.   You can control what source/object associations
+exist through the variable `speedbar-obj-alist'.
 
 Click on the [+] to display a list of tags from that file.  Click on
 the [-] to retract the list.  Click on the file name to edit the file
@@ -2160,19 +2166,30 @@ updated."
   ;; return that we are done with this activity.
   t)
 
-(defun speedbar-add-indicator (indicator-string)
+(defun speedbar-add-indicator (indicator-string &optional replace-this)
   "Add INDICATOR-STRING to the end of this speedbar line.
-If there is already an indicator, then do not add a space."
+If INDICATOR-STRING is space, and REPLACE-THIS is a character, then
+an the existing indicator is removed. If there is already an
+indicator, then do not add a space."
   (beginning-of-line)
   ;; The nature of the beast: Assume we are in "the right place"
   (end-of-line)
   (skip-chars-backward (concat " " speedbar-vc-indicator
-			       speedbar-obj-indicator))
+			       (car speedbar-obj-indicator)
+			       (cdr speedbar-obj-indicator)))
+  (if (and (not (looking-at speedbar-indicator-regex))
+	   (not (string= indicator-string " ")))
+      (insert speedbar-indicator-separator))
   (speedbar-with-writable
-    (if (not (looking-at speedbar-indicator-regex))
-	(insert speedbar-indicator-separator))
+    (save-excursion
+      (if (and replace-this
+	       (re-search-forward replace-this (save-excursion (end-of-line)
+							       (point))
+				  t))
+	  (delete-region (match-beginning 0) (match-end 0))))
     (end-of-line)
-    (insert indicator-string)))
+    (if (not (string= " " indicator-string))
+	(insert indicator-string))))
 
 ;; Load ange-ftp only if compiling to remove errors.
 ;; Steven L Baur <steve@xemacs.org> said this was important:
@@ -2203,11 +2220,10 @@ to add more types of version control systems."
 					 nil t))
 	    (setq speedbar-vc-to-do-point (point))
 	    (if (speedbar-check-vc-this-line (match-string 1))
-		(speedbar-add-indicator speedbar-vc-indicator)
-	      ;; This requires some work still
-	      (if (looking-at speedbar-indicator-regex)
-		  (speedbar-with-writable
-		    (delete-region (match-beginning 0) (match-end 0))))))
+		(speedbar-add-indicator speedbar-vc-indicator
+					(regexp-quote speedbar-vc-indicator))
+	      (speedbar-add-indicator " "
+				      (regexp-quote speedbar-vc-indicator))))
 	  (if (input-pending-p)
 	      ;; return that we are incomplete
 	      nil
@@ -2290,12 +2306,12 @@ to add more object types."
 		      (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-]\\] "
 					 nil t))
 	    (setq speedbar-obj-to-do-point (point))
-	    (if (speedbar-check-obj-this-line (match-string 1))
-		(speedbar-add-indicator speedbar-obj-indicator)
-	      (if (looking-at speedbar-indicator-regex)
-		  ;; This needs work!
-		  (speedbar-with-writable
-		    (delete-region (match-beginning 0) (match-end 0))))))
+	    (let ((ind (speedbar-check-obj-this-line (match-string 1))))
+	      (if (not ind) (setq ind " "))
+	      (speedbar-add-indicator ind (concat
+					   (car speedbar-obj-indicator)
+					   "\\|"
+					   (cdr speedbar-obj-indicator)))))
 	  (if (input-pending-p)
 	      ;; return that we are incomplete
 	      nil
@@ -2324,8 +2340,19 @@ the file being checked."
     (let ((oa speedbar-obj-alist))
       (while (and oa (not (string-match (car (car oa)) fulln)))
 	(setq oa (cdr oa)))
-      (and oa (file-exists-p (concat (file-name-sans-extension fn)
-				     (cdr (car oa))))))))
+      (if (not (and oa (file-exists-p (concat (file-name-sans-extension fn)
+					      (cdr (car oa))))))
+	  nil
+	;; Find out if the object is out of date or not.
+	(let ((date1 (nth 5 (file-attributes fn)))
+	      (date2 (nth 5 (file-attributes (concat
+					      (file-name-sans-extension fn)
+                                              (cdr (car oa)))))))
+	  (if (or (< (car date1) (car date2))
+		  (and (= (car date1) (car date2))
+		       (< (nth 1 date1) (nth 1 date2))))
+	      (car speedbar-obj-indicator)
+	    (cdr speedbar-obj-indicator)))))))
 
 ;;; Clicking Activity
 ;;
