@@ -1,9 +1,9 @@
-# C & C++ BNF language specification
+# C/C++ BNF language specification
 #
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.48 2001/10/24 01:15:07 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.49 2001/10/28 00:50:09 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -168,7 +168,7 @@ declaration : macro
 	    ;
 
 codeblock : define
-	  | var-or-fun
+	  | codeblock-var-or-fun
 	  | type # type is less likely to be used here.
 	  ;
 
@@ -250,8 +250,8 @@ opt-class-parents : COLON class-parents
 class-parents : opt-class-protection opt-class-declmods
 		symbol COMA class-parents
 		( ,(cons $3 $5 ) )
-	      | opt-class-protection symbol
-		( $2 )
+	      | opt-class-protection opt-class-declmods symbol
+		( $3 )
 	      ;
 
 opt-class-declmods : class-declmods opt-class-declmods
@@ -302,7 +302,7 @@ enumsubparts : symbol opt-assign
 
 opt-name : symbol
 	 | EMPTY
-	   ( nil )
+	   ( "" )
          ;
 
 typesimple : struct-or-class opt-name opt-class-parents semantic-list
@@ -364,7 +364,9 @@ METADECLMOD : VIRTUAL
 
 # C++: A type can be modified into a reference by "&"
 opt-ref : AMPERSAND
+	  ( 1 )
 	| EMPTY
+	  ( 0 )
 	;
 
 typeformbase : typesimple
@@ -390,13 +392,21 @@ builtintype : VOID
 	    | DOUBLE
 	    ;
 
-var-or-fun : declmods typeformbase metadeclmod opt-ref var-or-func-decl
-	     ( ,(semantic-c-reconstitute-token ,$5 $1 $2 ) )
+codeblock-var-or-fun : declmods typeformbase metadeclmod
+		       opt-ref var-or-func-decl
+		       ( ,(semantic-c-reconstitute-token ,$5 $1 $2 ) )
+		     ;
+
+var-or-fun : codeblock-var-or-fun
+	     ( ,$1 )
 	   # it is possible for a function to not have a type, and
 	   # it is then assumed to be an int.  How annoying.
 	   # In C++, this could be a constructor or a destructor.
-	   # Even more annoying.
-	   | declmods var-decl
+	   # Even more annoying.  Only ever do this for regular
+	   # top-level items.  Ignore this problem in code blocks
+	   # so that we don't have to deal with regular code
+	   # being erroneously converted into types.
+	   | declmods var-or-func-decl
 	     ( ,(semantic-c-reconstitute-token ,$2 $1 nil ) )
 	   ;
 
@@ -430,7 +440,7 @@ opt-under-p : UNDERP
 	    ;
 
 opt-initializers: COLON symbol semantic-list opt-initializers
-		| COMA opt-initializers
+		| COMA symbol semantic-list opt-initializers
 		| EMPTY
 		;
 
@@ -492,6 +502,7 @@ variablearg : declmods typeformbase opt-stars opt-ref varname
 		 (ASSOC const (if (member "const" $1) t nil)
 			typemodifiers (delete "const" $1)
 			pointer (car ,$3)
+			reference (car ,$4)
 			)
 		 nil
 		 )
@@ -579,18 +590,25 @@ opt-expression : expression
 	       | EMPTY ( nil )
 	       ;
 
+type-cast : semantic-list
+	    ( EXPAND $1 type-cast-list )
+	  ;
+
+type-cast-list : open-paren typeformbase close-paren
+	       ;
+
 # Use expression for parsing only.  Don't actually return anything
 # for now.  Hopefully we can fix this later.
 expression : number
-	     ( )
+	     ( (identity start) (identity end) )
 	   | symbol
-	     ( )
+	     ( (identity start) (identity end) )
 	   | string
-	     ( )
-           | semantic-list expression  # A cast to some other type
-	     ( )
+	     ( (identity start) (identity end))
+           | type-cast expression  # A cast to some other type
+	     ( (identity start) (identity end) )
 	   | semantic-list
-	     ()
+	     ( (identity start) (identity end) )
 	   | punctuation "[-+*/%^|&]" expression
-	     ( nil )
+	     ( (identity start) (identity end) )
 	   ;
