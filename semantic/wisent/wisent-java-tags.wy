@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.wy,v 1.2 2002/05/15 19:22:33 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.wy,v 1.3 2002/06/29 18:12:18 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -63,6 +63,7 @@
    t         ;; They can be changed in mode hook by more specific ones
    )
   (setq
+   semantic-expand-nonterminal 'wisent-java-expand-nonterminal
    ;; Tell `semantic-flex' to handle Java numbers
    semantic-number-expression semantic-java-number-regexp
    ;; function to use when creating items in imenu
@@ -587,6 +588,8 @@ formal_parameter_list
 formal_parameters
   : LPAREN
     ()
+  | RPAREN
+    ()
   | formal_parameter COMMA
   | formal_parameter RPAREN
   ;
@@ -610,10 +613,9 @@ formal_parameter_modifier_opt
 ;; ("NAME" variable "TYPE" DEFAULT-VALUE EXTRA-SPEC "DOCSTRING")
 field_declaration
   : modifiers_opt type variable_declarators SEMICOLON
-    (wisent-java-expand-nonterminal
-      (car (wisent-token $3 'variable $2 nil
-                         (ASSOC typemodifiers $1)
-                         nil)))
+    (wisent-token $3 'variable $2 nil
+                  (ASSOC typemodifiers $1)
+                  nil)
   ;
 
 variable_declarators
