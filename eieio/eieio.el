@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.65 2000/04/13 00:32:53 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.66 2000/07/14 02:23:54 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -83,6 +83,11 @@ The immediate effect is that I can safely keep track of common-lisp
 `setf' definitions regardless of the order.  Users can add hooks to
 this variable without worrying about weather this package has been
 loaded or not.")
+
+(defvar eieio-error-unsupported-class-tags nil
+  "*Non nil to throw an error if an encountered tag us unsupported.
+This may prevent classes from CLOS applications from being used with EIEIO
+since EIEIO does not support all CLOS tags.")
 
 (defvar eieio-skip-typecheck nil
   "*If non-nil, skip all slot typechecking.
@@ -226,7 +231,11 @@ Options in CLOS not supported in EIEIO:
 
 Due to the way class options are set up, you can add any tags in you
 wish, and reference them using the function `class-option'."
-  `(eieio-defclass ',name ',superclass ',fields ',options-and-doc))
+  ;; We must `eval-and-compile' this so that when we byte compile
+  ;; an eieio program, there is no need to load it ahead of time.
+  ;; It also provides lots of nice debugging errors at compile time.
+  `(eval-and-compile
+     (eieio-defclass ',name ',superclass ',fields ',options-and-doc)))
 
 (defun eieio-defclass (cname superclasses fields options-and-doc)
   "See `defclass' for more information.
@@ -332,6 +341,24 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	     (skip-nil (class-option-assoc (aref newc class-options)
 					   :allow-nil-initform))
 	     )
+
+	(if eieio-error-unsupported-class-tags
+	    (let ((tmp field))
+	      (while tmp
+		(if (not (member (car tmp) '(:accessor
+					     :initform
+					     :initarg
+					     :documentation
+					     :protection
+					     :reader
+					     :writer
+					     :allocation
+					     :type
+					     :custom
+					     :allow-nil-initform)))
+		    (signal 'invalid-slot-type (list (car tmp))))
+		(setq tmp (cdr (cdr tmp))))))
+
 	;; Clean up the meaning of protection.
 	(cond ((eq prot 'public) (setq prot nil))
 	      ((eq prot 'private) (setq prot t))
