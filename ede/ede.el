@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.16 1999/04/21 22:22:25 zappo Exp $
+;; RCS: $Id: ede.el,v 1.17 1999/05/22 14:28:26 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -319,35 +319,46 @@ easy to edit your automake files.
 
 With argument ARG positive, turn on the mode.  Negative, turn off the
 mode.  nil means to toggle the mode."
-  (setq ede-minor-mode
-	(not (or (and (null arg) ede-minor-mode)
-		 (<= (prefix-numeric-value arg) 0))))
-  (if (and ede-minor-mode (not ede-constructing))
-      (progn
-	(ede-load-project-file default-directory)
-	(setq ede-object (ede-buffer-object))
-	(if (and (not ede-object) (ede-current-project))
-	    (ede-auto-add-to-target))
-	(if (ede-current-project)
-	    (ede-set-project-variables (ede-current-project))))))
+  (if (eq major-mode 'dired-mode)
+      (ede-dired-minor-mode arg)
+    (progn
+      (setq ede-minor-mode
+	    (not (or (and (null arg) ede-minor-mode)
+		     (<= (prefix-numeric-value arg) 0))))
+      (if (and ede-minor-mode (not ede-constructing))
+	  (progn
+	    (ede-load-project-file default-directory)
+	    (setq ede-object (ede-buffer-object))
+	    (if (and (not ede-object) (ede-current-project))
+		(ede-auto-add-to-target))
+	    (if (ede-current-project)
+		(ede-set-project-variables (ede-current-project))))))))
   
 (defun global-ede-mode (arg)
   "Turn on variable `ede-minor-mode' mode when ARG is positive.
 If ARG is negative, disable.  Toggle otherwise."
   (interactive "P")
   (if (not arg)
-      (if (member 'ede-minor-mode find-file-hooks)
+      (if (member (lambda () (ede-minor-mode 1)) find-file-hooks)
 	  (global-ede-mode -1)
 	(global-ede-mode 1))
     (if (or (eq arg t) (> arg 0))
-	(add-hook 'find-file-hooks (lambda () (ede-minor-mode 1)))
-      (remove-hook 'find-file-hooks (lambda () (ede-minor-mode 1))))
+	(progn
+	  (add-hook 'find-file-hooks (lambda () (ede-minor-mode 1)))
+	  (add-hook 'dired-mode-hook (lambda () (ede-minor-mode 1))))
+      (remove-hook 'find-file-hooks (lambda () (ede-minor-mode 1)))
+      (remove-hook 'dired-mode-hook (lambda () (ede-minor-mode 1))))
     (let ((b (buffer-list)))
       (while b
 	(if (buffer-file-name (car b))
 	    (save-excursion
 	      (set-buffer (car b))
-	      (ede-minor-mode arg)))
+	      (ede-minor-mode arg))
+	  (save-excursion
+	    (set-buffer (car b))
+	    (if (eq major-mode 'dired-mode)
+		(ede-minor-mode arg)
+	      )))
 	(setq b (cdr b))))))
 
 (defun ede-auto-add-to-target ()
