@@ -1,13 +1,14 @@
-<title>Semantic Bovinator</title>
-
+<title>Semantic</title>
 <!--#include file="rightcol.php"-->
+<table width=100% bgcolor=blue>
+<tr><td><h2><font color=yellow>Semantic:</font></h2></td></tr>
+<tr><td><font color=yellow>"Infrastructure for parser based text analysis in Emacs."</font></td></tr>
+</table>
 
 <table align=right>
 <tr><td><img src=bovine.jpg></td></tr>
 <tr><td align=center><font size=-2>Logo by David Ponce</font></td></tr>
 </table>
-
-<h2>Semantic Bovinator</h2>
 
 <p>The Semantic Bovinator is a lexer, parser-generator, and parser.
 It is written in <b>Emacs Lisp</b> and is customized to the way Emacs
@@ -20,44 +21,47 @@ a generic way.  It also provides a simple way for Mode Authors who are
 expert's in their language, to provide a parser for those tool
 authors, without knowing anything about those tools.</p>
 
-<h3>Semantic 1.4 is made up of these important pieces:</h3>
+<h3>Semantic's Core is made up of these important pieces:</h3>
 <dl>
-<dt>lexer
+<dt><b>Lexical Analyzer</b>
 <dd>Converts a language into a token stream
-<dt>parser
-<dd>Converts a token stream into a stream of nonterminals
-            defined by the language.
-<dt>parser-generator
-<dd>Converts a language definition into a table
-            usable by the parser.  (Written using the Semantic Bovinator)
-<dt>language definitions
-<dd>Parsers already existing for the parser
-            generator language (Bovine Normal Form), Emacs Lisp, and
-	    C.
-<dt>database
+<dt><b>Parser</b>
+<dd>Converts a lexical token stream into a table of tags
+    defined by the language.
+<dt><b>Parser Generator</b>
+<dd>Converts a language definition into a table usable by the parser.
+<dt><b>Language Parsers</b>
+<dd>Parsers already existing for the Parser
+    Generator language, Emacs Lisp, Java, C/C++, Makefile, and Scheme.
+<dt><b>Database</b>
 <dd>Persistent storage of parsed information.  Speeds load
-	time and provides standard way of cross referencing files.
-<dt>imenu support
+    time and provides standard way of cross referencing files.
+</dl>
+
+<h3>Semantic 1.4 Contains these additional User Tools:</h3>
+<dl>
+<dt><b>Imenu</b>
 <dd>Create hierarchical imenu menus from parsed files.
-<dt>navigator
+<dt><b>Navigator</b>
 <dd>Senator is a navigator that permits simple navigation
-	    through the parsed language.
-<dt>analyzer
+    through the parsed language.  It also includes token highlighting,
+    and magic cut & paste.
+<dt><b>Analyzer</b>
 <dd>Examines code, and references those names against a
 	database of pre-parsed files to provide detailed information.
-<dt>smart completion
+<dt><b>Smart Completion</b>
 <dd>Completes using symbols actually available in a
-    given context via the semantic-analyze.el
-<dt>speedbar browser
-<dd>Code for browsing a generated nonterminal list
-            with Speedbar.
-<dt>Documentation generator
+    given context via the Analyzer.  (Restricted to project files.)
+    Some tools call this <a href="intellisense.shtml"> intellisense.</a>
+<dt><b>Speedbar Browser</b>
+<dd>Code for browsing tag lists with Speedbar.
+<dt><b>Documentation Generator</b>
 <dd>Identifies inline documentation in source
             code, and can convert it to texinfo.  It can also create
 	    inline documenation.
-<dt>charting
+<dt><b>Charting</b>
 <dd>Draw a chart of some things semantic can quantify.
-<dt>Highlight bad code
+<dt><b>Highlight bad code</b>
 <dd>text which does not fit the language is underlined.
 </dl>
 
@@ -78,44 +82,65 @@ Complexity of semantic.el
 
 <h3>What's coming in Semantic 2.0?</h3>
 <dl>
-<dt>Bison ported to Emacs
+<td><b>New Grammar framework</b>
+<dd>A new framework for handling parsers, and the rule based language
+  used to generate parsers provides a clean and consistent view into
+  parser writing.
+<dt><b>Bison ported to Emacs</b>
 <dd>David Ponce has ported Bison to Emacs Lisp.  Languages supported
-  via the new <em>wisent</em> parser will run faster.  New langauges
-  will be easier to support as you can port directly from <tt>.y</tt>
-  sources.
-<dt>Improved incremental parser
+  via the new <em>wisent</em> parser will run faster.  New languages
+  will be easier to support as you can run a handy script to port
+  directly from <tt>.y</tt>  sources.
+<dt><b>BNF confusion removed.</b>
+<dd>The old Bovine Normal Form pun has been removed.  LL (bovine)
+  parsers are now in .by files.
+<dt><b>Improved incremental parser</b>
 <dd>Fixes the token cache in more situations than the previous
   mechanism reducing the frequency a full reparse is needed.
-<dt>Improved lex API
+<dt><b>Improved lex API</b>
 <dd>New programmers interface to the lexical analysis phase produces
   slightly faster lexers, with more flexibility.
-<dt>Language configuration improvements
+<dt><b>Language configuration improvements</b>
 <dd>Programmers supporting a language will find the new method for
   configuring semantic for their language is much improved.
+<dt><b>Database Improvements</b>
+<dd>Tools using semanticdb to query will magically have access to all
+  system libraries as well (when supported.)  More abstractions
+  allows access into pre-compiled libraries using the same old API
+  calls.  (Special support is needed for each such access mechanism.)
+<dt><b>Command Line Database Tools</b>
+<dd>A tool set of shell scripts (sh required) are provided for
+  building semantic databases before starting Emacs.
+<dt><b>More consistent function naming conventions.</b>
+<dd>Tools writing to the Semantic API may need to change when moving
+  from 1.4 to 2.0, but the confusion as to what a token or
+  nonterminal is will now be clear.
+<dt><b>More Langauges supported.</b>
+<dd>New parsers for Python, and Erlang.
 </dl>
 
 <h3>Tools I'd like to see in future versions of Semantic:</h3>
 <dl>
-<dt>dependency analysis
+<dt><b>dependency analysis</b>
 <dd>Determine if a given dependency is really needed,
 	  or if a dependency is missing.
-<dt>comment generation
+<dt><b>comment generation</b>
 <dd>Create comment templates based on the current
 	  context.
-<dt>header file manager
+<dt><b>header file manager</b>
 <dd>For languages with header files (c, c++), maintain
 	  them from the originating sources.
-<dt>Call tree management
+<dt><b>Call tree management</b>
 <dd>Find out where types and functions are used.
-<dt>Unit Test generation
+<dt><b>Unit Test generation</b>
 <dd>Analyze an API, and automatically create
           unit tests for it.
-<dt>smart templates
+<dt><b>smart templates</b>
 <dd>Insert code fragments based based intrinsically
 	  upon the language definition, and available variables and types.
 </dl>
 
-<h2>Read the docs:</h2>
+<h2>Read the Semantic 1.4 docs:</h2>
 
 <P>You can read the 
    <a href="info/semantic.html">html documentation</a>
@@ -138,7 +163,6 @@ Complexity of semantic.el
     scheme or C++.
 <li>Test semantic and send in bugs.
 <li>Help with documentation
-<li>Help create releases.
 <li>Keep semantic compatible with the many versions of [X]Emacs
 </ul>
 
