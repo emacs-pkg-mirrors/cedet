@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.49 2000/09/27 00:59:21 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.50 2000/09/27 01:35:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -411,7 +411,8 @@ this is returned instead of re-parsing the buffer.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache)
 
 (defvar semantic-toplevel-bovine-cache-check nil
-  "The size of the buffer when `semantic-toplevel-bovine-cache' was found.")
+  "Non nil if the bovine cache is out of date.
+This is tracked with `semantic-change-function'.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache-check)
 
 (defvar semantic-toplevel-bovinate-override nil
@@ -428,41 +429,6 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
 ;;
 ;; See semantic-util for a wider range of utility functions and macros.
 ;;
-(defvar semantic-overlay-error-recovery-stack nil
-  "List of overlays used during error recovery.")
-
-(defun semantic-overlay-stack-add (o)
-  "Add overlay O to the error recovery stack."
-  (setq semantic-overlay-error-recovery-stack
-	(if (listp o)
-	    (append o semantic-overlay-error-recovery-stack)
-	  (cons o semantic-overlay-error-recovery-stack))))
-
-(defun semantic-overlay-stack-clear ()
-  "Clear the overlay error recovery stack."
-  (while semantic-overlay-error-recovery-stack
-    (semantic-overlay-delete (car semantic-overlay-error-recovery-stack))
-    (setq semantic-overlay-error-recovery-stack
-	  (cdr semantic-overlay-error-recovery-stack))))
-
-(defun semantic-delete-overlay-maybe (overlay)
-  "Delete OVERLAY if it is a semantic token overlay."
-  (if (semantic-overlay-get overlay 'semantic)
-      (semantic-overlay-delete overlay)))
-
-(defun semantic-clear-toplevel-cache ()
-  "Clear the toplevel bovin cache for the current buffer."
-  (interactive)
-  (setq semantic-toplevel-bovine-cache nil)
-  ;; Nuke all semantic overlays.  This is faster than deleting based
-  ;; on our data structure.
-  (let ((l (overlay-lists)))
-    (mapcar 'semantic-delete-overlay-maybe (car l))
-    (mapcar 'semantic-delete-overlay-maybe (cdr l))
-    )
-  )
-(add-hook 'change-major-mode-hook 'semantic-clear-toplevel-cache)
-
 (defmacro semantic-token-token (token)
   "Retrieve from TOKEN the token identifier.
 ie, the symbol 'variable, 'function, 'type, or other."
@@ -506,6 +472,45 @@ If not provided, then only the POSITION can be provided."
        (stringp (car token))
        (symbolp (car (cdr token)))))
 
+;;; Parsing functions
+;;
+(defvar semantic-overlay-error-recovery-stack nil
+  "List of overlays used during error recovery.")
+
+(defun semantic-overlay-stack-add (o)
+  "Add overlay O to the error recovery stack."
+  (setq semantic-overlay-error-recovery-stack
+	(if (listp o)
+	    (append o semantic-overlay-error-recovery-stack)
+	  (cons o semantic-overlay-error-recovery-stack))))
+
+(defun semantic-overlay-stack-clear ()
+  "Clear the overlay error recovery stack."
+  (while semantic-overlay-error-recovery-stack
+    (semantic-overlay-delete (car semantic-overlay-error-recovery-stack))
+    (setq semantic-overlay-error-recovery-stack
+	  (cdr semantic-overlay-error-recovery-stack))))
+
+(defun semantic-delete-overlay-maybe (overlay)
+  "Delete OVERLAY if it is a semantic token overlay."
+  (if (semantic-overlay-get overlay 'semantic)
+      (semantic-overlay-delete overlay)))
+
+(defun semantic-clear-toplevel-cache ()
+  "Clear the toplevel bovin cache for the current buffer."
+  (interactive)
+  (setq semantic-toplevel-bovine-cache nil)
+  ;; Nuke all semantic overlays.  This is faster than deleting based
+  ;; on our data structure.
+  (let ((l (overlay-lists)))
+    (mapcar 'semantic-delete-overlay-maybe (car l))
+    (mapcar 'semantic-delete-overlay-maybe (cdr l))
+    )
+  ;; Remove this hook which tracks if a buffer is up to date or not.
+  (remove-hook 'after-change-functions 'semantic-change-function t)
+  )
+(add-hook 'change-major-mode-hook 'semantic-clear-toplevel-cache)
+
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional depth trashcomments checkcache)
   "Bovinate the entire current buffer to a list depth of DEPTH.
@@ -516,7 +521,7 @@ If third argument CHECKCACHE is non-nil, then flush the cache iff
 there has been a size change."
   (if (and semantic-toplevel-bovine-cache
 	   checkcache
-	   (not (eq (point-max) semantic-toplevel-bovine-cache-check)))
+	   semantic-toplevel-bovine-cache-check)
       (semantic-clear-toplevel-cache))
   (cond
    (semantic-toplevel-bovinate-override
@@ -540,11 +545,40 @@ there has been a size change."
 	      (semantic-bovinate-nonterminals
 	       ss 'bovine-toplevel depth trashcomments))
 	(working-status t))
-      (setq semantic-toplevel-bovine-cache
+      (setq semantic-toplevel-bovine-cache 
 	    (list (nreverse res) (point-max))
-	    semantic-toplevel-bovine-cache-check
-	    (point-max))
+	    semantic-toplevel-bovine-cache-check nil)
+      (add-hook 'after-change-functions 'semantic-change-function nil t)
       (car semantic-toplevel-bovine-cache)))))
+
+(defun semantic-change-function (start end length)
+  "Run whenever a buffer controlled by `semantic-mode' change.
+Tracks when and how the buffer is re-parsed.
+Argument START, END, and LENGTH specify the bounds of the change."
+  (when (not semantic-toplevel-bovine-cache-check)
+    (let ((tl (condition-case nil
+		  (semantic-find-nonterminal-by-overlay-in-region
+		   (1- start) (1+ end))
+		(error nil))))
+      (if tl
+	  ;; Loop over the token list
+	  (while tl
+	    (cond
+	     ;; If we are completely enclosed in this overlay, throw away.
+	     ((and (> start (semantic-token-start (car tl)))
+		   (< end (semantic-token-end (car tl))))
+	      nil)
+	     ;; If we  cover the beginning or end of this item, we must
+	     ;; reparse this object.
+	     (t
+	      (setq semantic-toplevel-bovine-cache-check t)))
+	    ;; next
+	    (setq tl (cdr tl)))
+	;; There was no hit, perhaps we need to reparse this intermediate area.
+	(setq semantic-toplevel-bovine-cache-check t)
+	)
+      (if semantic-toplevel-bovine-cache-check
+	  (message "Reparse needed...")))))
 
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
 					      depth trashcomments
@@ -626,176 +660,6 @@ the current results on a parse error."
 			   (* 100.0 (/ (float (car (cdr (car stream))))
 				       (float (point-max))))))))
     result))
-
-;;; Semantic Table debugging
-;;
-(defun semantic-dump-buffer-init ()
-  "Initialize the semantic dump buffer."
-  (save-excursion
-    (let ((obn (buffer-name)))
-      (set-buffer (get-buffer-create "*Semantic Dump*"))
-      (erase-buffer)
-      (insert "Parse dump of " obn "\n\n")
-      (insert (format "%-15s %-15s %10s %s\n\n"
-		      "Nonterm" "Comment" "Text" "Context"))
-      )))
-
-(defun semantic-dump-detail (lse nonterminal text comment)
-  "Dump info about this match.
-Argument LSE is the current syntactic element.
-Argument NONTERMINAL is the nonterminal matched.
-Argument TEXT is the text to match.
-Argument COMMENT is additional description."
-  (save-excursion
-    (set-buffer "*Semantic Dump*")
-    (goto-char (point-max))
-    (insert (format "%-15S %-15s %10s %S\n" nonterminal comment text lse)))
-  )
-
-(defvar semantic-bovinate-debug-table nil
-  "A marker where the current table we are debugging is.")
-
-(defun semantic-bovinate-debug-set-table ()
-  "Set the table for the next debug to be here."
-  (interactive)
-  (if (not (eq major-mode 'emacs-lisp-mode))
-      (error "Not an Emacs Lisp file"))
-  (beginning-of-defun)
-  (setq semantic-bovinate-debug-table (point-marker)))
-
-(defun semantic-bovinate-debug-buffer ()
-  "Bovinate the current buffer in debug mode."
-  (interactive)
-  (if (not semantic-bovinate-debug-table)
-      (error
-       "Call `semantic-bovinate-debug-set-table' from your semantic table"))
-  (let ((semantic-edebug t))
-    (delete-other-windows)
-    (split-window-vertically)
-    (switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
-    (other-window 1)
-    (semantic-clear-toplevel-cache)
-    (semantic-bovinate-toplevel nil t)))
-
-(defun semantic-bovinate-show (lse nonterminal matchlen tokenlen collection)
-  "Display some info about the current parse.
-Returns 'fail if the user quits, nil otherwise.
-LSE is the current listed syntax element.
-NONTERMINAL is the current nonterminal being parsed.
-MATCHLEN is the number of match lists tried.
-TOKENLEN is the number of match tokens tried.
-COLLECTION is the list of things collected so far."
-  (let ((ol1 nil) (ol2 nil) (ret nil))
-    (unwind-protect
-	(progn
-	  (goto-char (car (cdr lse)))
-	  (setq ol1 (semantic-make-overlay (car (cdr lse)) (cdr (cdr lse))))
-	  (semantic-overlay-put ol1 'face 'highlight)
-	  (goto-char (car (cdr lse)))
-	  (if window-system nil (sit-for 1))
-	  (other-window 1)
-	  (set-buffer (marker-buffer semantic-bovinate-debug-table))
-	  (goto-char semantic-bovinate-debug-table)
-	  (re-search-forward
-	   (concat "^\\s-*\\((\\|['`]((\\)\\(" (symbol-name nonterminal)
-		   "\\)[ \t\n]+(")
-	   nil t)
-	  (setq ol2 (semantic-make-overlay (match-beginning 2) (match-end 2)))
-	  (semantic-overlay-put ol2 'face 'highlight)
-	  (forward-char -2)
-	  (forward-list matchlen)
-	  (skip-chars-forward " \t\n(")
-	  (forward-sexp tokenlen)
-	  (message "%s: %S" lse collection)
-	  (let ((e (read-event)))
-	    (cond ((eq e ?f)		;force a failure on this symbol.
-		   (setq ret 'fail))
-		  (t nil)))
-	  (other-window 1)
-	  )
-      (semantic-overlay-delete ol1)
-      (semantic-overlay-delete ol2))
-    ret))
-
-(eval-when-compile (require 'pp))
-
-(defun bovinate (&optional clear)
-  "Bovinate the current buffer.  Show output in a temp buffer.
-Optional argument CLEAR will clear the cache before bovinating."
-  (interactive "P")
-  (if clear (semantic-clear-toplevel-cache))
-  (let ((out (semantic-bovinate-toplevel nil t)))
-    (pop-to-buffer "*BOVINATE*")
-    (require 'pp)
-    (erase-buffer)
-    (insert (pp-to-string out))
-    (goto-char (point-min))))
-
-(defun bovinate-debug ()
-  "Bovinate the current buffer and run in debug mode."
-  (interactive)
-  (let ((semantic-edebug t)
-	(out (semantic-bovinate-debug-buffer)))
-    (pop-to-buffer "*BOVINATE*")
-    (require 'pp)
-    (erase-buffer)
-    (insert (pp-to-string out))))
-
-;;; Reference Debugging
-;;
-(defvar semantic-bovinate-create-reference nil
-  "Non nil to create a reference.")
-
-(defvar semantic-bovinate-reference-token-list nil
-  "A list generated as a referece (assumed valid).
-A second pass comares return values against this list.")
-
-(defun semantic-bovinate-add-reference (ref)
-  "Add REF to the reference list."
-  (setq semantic-bovinate-reference-token-list
-	(cons ref semantic-bovinate-reference-token-list)))
-
-(defvar semantic-bovinate-compare-reference nil
-  "Non nil to compare against a reference list.")
-
-(defvar semantic-bovinate-reference-temp-list nil
-  "List used when doing a compare.")
-
-(defun semantic-bovinate-compare-against-reference (ref)
-  "Compare REF against what was returned last time."
-  (if (not (equal ref (car semantic-bovinate-reference-temp-list)))
-      (let ((debug-on-error t))
-	(error "Stop: %d %S != %S"
-	       (- (length semantic-bovinate-reference-token-list)
-		  (length semantic-bovinate-reference-temp-list))
-	       (car semantic-bovinate-reference-temp-list)
-	       ref))
-    (setq semantic-bovinate-reference-temp-list
-	  (cdr semantic-bovinate-reference-temp-list))))
-	   
-(defun bovinate-create-reference ()
-  "Create a reference list."
-  (interactive)
-  (condition-case nil
-      (progn
-	(semantic-clear-toplevel-cache)
-	(setq semantic-bovinate-create-reference t
-	      semantic-bovinate-reference-token-list nil)
-	(bovinate)
-	(setq semantic-bovinate-reference-token-list
-	      (nreverse semantic-bovinate-reference-token-list)))
-    (error nil))
-  (setq semantic-bovinate-create-reference nil))
-
-(defun bovinate-reference-compare ()
-  "Compare the current parsed output to the reference list.
-Create a reference with `bovinate-create-reference'."
-  (interactive)
-  (let ((semantic-bovinate-compare-reference t))
-    (semantic-clear-toplevel-cache)
-    (setq semantic-bovinate-reference-temp-list
-	  semantic-bovinate-reference-token-list)
-    (bovinate)))
 
 
 ;;; Semantic Bovination
@@ -1017,6 +881,153 @@ commands, use `semantic-bovinate-from-nonterminal-full'."
 				       t)
 				   ;; This says stop on an error.
 				   t)))
+
+
+;;; Debugging in bovine tables
+;;
+(defun semantic-dump-buffer-init ()
+  "Initialize the semantic dump buffer."
+  (save-excursion
+    (let ((obn (buffer-name)))
+      (set-buffer (get-buffer-create "*Semantic Dump*"))
+      (erase-buffer)
+      (insert "Parse dump of " obn "\n\n")
+      (insert (format "%-15s %-15s %10s %s\n\n"
+		      "Nonterm" "Comment" "Text" "Context"))
+      )))
+
+(defun semantic-dump-detail (lse nonterminal text comment)
+  "Dump info about this match.
+Argument LSE is the current syntactic element.
+Argument NONTERMINAL is the nonterminal matched.
+Argument TEXT is the text to match.
+Argument COMMENT is additional description."
+  (save-excursion
+    (set-buffer "*Semantic Dump*")
+    (goto-char (point-max))
+    (insert (format "%-15S %-15s %10s %S\n" nonterminal comment text lse)))
+  )
+
+(defvar semantic-bovinate-debug-table nil
+  "A marker where the current table we are debugging is.")
+
+(defun semantic-bovinate-debug-set-table ()
+  "Set the table for the next debug to be here."
+  (interactive)
+  (if (not (eq major-mode 'emacs-lisp-mode))
+      (error "Not an Emacs Lisp file"))
+  (beginning-of-defun)
+  (setq semantic-bovinate-debug-table (point-marker)))
+
+(defun semantic-bovinate-debug-buffer ()
+  "Bovinate the current buffer in debug mode."
+  (interactive)
+  (if (not semantic-bovinate-debug-table)
+      (error
+       "Call `semantic-bovinate-debug-set-table' from your semantic table"))
+  (let ((semantic-edebug t))
+    (delete-other-windows)
+    (split-window-vertically)
+    (switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
+    (other-window 1)
+    (semantic-clear-toplevel-cache)
+    (semantic-bovinate-toplevel nil t)))
+
+(defun semantic-bovinate-show (lse nonterminal matchlen tokenlen collection)
+  "Display some info about the current parse.
+Returns 'fail if the user quits, nil otherwise.
+LSE is the current listed syntax element.
+NONTERMINAL is the current nonterminal being parsed.
+MATCHLEN is the number of match lists tried.
+TOKENLEN is the number of match tokens tried.
+COLLECTION is the list of things collected so far."
+  (let ((ol1 nil) (ol2 nil) (ret nil))
+    (unwind-protect
+	(progn
+	  (goto-char (car (cdr lse)))
+	  (setq ol1 (semantic-make-overlay (car (cdr lse)) (cdr (cdr lse))))
+	  (semantic-overlay-put ol1 'face 'highlight)
+	  (goto-char (car (cdr lse)))
+	  (if window-system nil (sit-for 1))
+	  (other-window 1)
+	  (set-buffer (marker-buffer semantic-bovinate-debug-table))
+	  (goto-char semantic-bovinate-debug-table)
+	  (re-search-forward
+	   (concat "^\\s-*\\((\\|['`]((\\)\\(" (symbol-name nonterminal)
+		   "\\)[ \t\n]+(")
+	   nil t)
+	  (setq ol2 (semantic-make-overlay (match-beginning 2) (match-end 2)))
+	  (semantic-overlay-put ol2 'face 'highlight)
+	  (forward-char -2)
+	  (forward-list matchlen)
+	  (skip-chars-forward " \t\n(")
+	  (forward-sexp tokenlen)
+	  (message "%s: %S" lse collection)
+	  (let ((e (read-event)))
+	    (cond ((eq e ?f)		;force a failure on this symbol.
+		   (setq ret 'fail))
+		  (t nil)))
+	  (other-window 1)
+	  )
+      (semantic-overlay-delete ol1)
+      (semantic-overlay-delete ol2))
+    ret))
+
+;;; Reference Debugging
+;;
+(defvar semantic-bovinate-create-reference nil
+  "Non nil to create a reference.")
+
+(defvar semantic-bovinate-reference-token-list nil
+  "A list generated as a referece (assumed valid).
+A second pass comares return values against this list.")
+
+(defun semantic-bovinate-add-reference (ref)
+  "Add REF to the reference list."
+  (setq semantic-bovinate-reference-token-list
+	(cons ref semantic-bovinate-reference-token-list)))
+
+(defvar semantic-bovinate-compare-reference nil
+  "Non nil to compare against a reference list.")
+
+(defvar semantic-bovinate-reference-temp-list nil
+  "List used when doing a compare.")
+
+(defun semantic-bovinate-compare-against-reference (ref)
+  "Compare REF against what was returned last time."
+  (if (not (equal ref (car semantic-bovinate-reference-temp-list)))
+      (let ((debug-on-error t))
+	(error "Stop: %d %S != %S"
+	       (- (length semantic-bovinate-reference-token-list)
+		  (length semantic-bovinate-reference-temp-list))
+	       (car semantic-bovinate-reference-temp-list)
+	       ref))
+    (setq semantic-bovinate-reference-temp-list
+	  (cdr semantic-bovinate-reference-temp-list))))
+	   
+(defun bovinate-create-reference ()
+  "Create a reference list."
+  (interactive)
+  (condition-case nil
+      (progn
+	(semantic-clear-toplevel-cache)
+	(setq semantic-bovinate-create-reference t
+	      semantic-bovinate-reference-token-list nil)
+	(bovinate)
+	(setq semantic-bovinate-reference-token-list
+	      (nreverse semantic-bovinate-reference-token-list)))
+    (error nil))
+  (setq semantic-bovinate-create-reference nil))
+
+(defun bovinate-reference-compare ()
+  "Compare the current parsed output to the reference list.
+Create a reference with `bovinate-create-reference'."
+  (interactive)
+  (let ((semantic-bovinate-compare-reference t))
+    (semantic-clear-toplevel-cache)
+    (setq semantic-bovinate-reference-temp-list
+	  semantic-bovinate-reference-token-list)
+    (bovinate)))
 
 
 ;;; Semantic Flexing
@@ -1242,6 +1253,11 @@ return token will be larger than END.  To truly restrict scanning, using
 ;;
 (autoload 'semantic-create-imenu-index "semantic-imenu"
   "Create an imenu index for any buffer which supports Semantic.")
+(autoload 'bovinate "semantic-util"
+  "Bovinate the current buffer.  Show output in a temp buffer.
+Optional argument CLEAR will clear the cache before bovinating." t)
+(autoload 'bovinate-debug "semantic-util"
+  "Bovinate the current buffer and run in debug mode." t)
 
 (provide 'semantic)
 
