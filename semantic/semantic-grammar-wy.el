@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2004-01-22 20:36:44+0100
+;; Created: 2004-02-20 13:13:23+0100
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.12 2004/01/23 08:32:33 ponced Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.13 2004/02/20 12:19:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -36,10 +36,10 @@
 
 ;;; Prologue
 ;;
-(defsubst semantic-grammar-wy--tag-value (tag)
-    "Return the value of TAG.
-Used internally to retrieve value of EXPADFULL tags."
-    (semantic-tag-get-attribute tag :value))
+;; Current parsed nonterminal name.
+  (defvar semantic-grammar-wy--nterm nil)
+  ;; Index of rule in a nonterminal clause.
+  (defvar semantic-grammar-wy--rindx nil)
 
 ;;; Declarations
 ;;
@@ -184,35 +184,25 @@ Used internally to retrieve value of EXPADFULL tags."
          `(wisent-raw-tag
            (semantic-tag ',$2 'put :value ',(list $3))))
         ((PUT put_name put_value_list)
-         (let*
-             ((vals
-               (mapcar 'semantic-grammar-wy--tag-value $3)))
-           `(wisent-raw-tag
-             (semantic-tag ',$2 'put :value ',vals))))
+         `(wisent-raw-tag
+           (semantic-tag ',$2 'put :value ',$3)))
         ((PUT put_name_list put_value)
-         (let*
-             ((names
-               (mapcar 'semantic-grammar-wy--tag-value $2)))
-           `(wisent-raw-tag
-             (semantic-tag ',(car names)
-                           'put :rest ',(cdr names)
-                           :value ',(list $3)))))
+         `(wisent-raw-tag
+           (semantic-tag ',(car $2)
+                         'put :rest ',(cdr $2)
+                         :value ',(list $3))))
         ((PUT put_name_list put_value_list)
-         (let*
-             ((names
-               (mapcar 'semantic-grammar-wy--tag-value $2))
-              (vals
-               (mapcar 'semantic-grammar-wy--tag-value $3)))
-           `(wisent-raw-tag
-             (semantic-tag ',(car names)
-                           'put :rest ',(cdr names)
-                           :value ',vals)))))
+         `(wisent-raw-tag
+           (semantic-tag ',(car $2)
+                         'put :rest ',(cdr $2)
+                         :value ',$3))))
        (put_name_list
         ((BRACE_BLOCK)
-         (semantic-parse-region
-          (car $region1)
-          (cdr $region1)
-          'put_names 1)))
+         (mapcar 'semantic-tag-name
+                 (semantic-parse-region
+                  (car $region1)
+                  (cdr $region1)
+                  'put_names 1))))
        (put_names
         ((LBRACE)
          nil)
@@ -220,16 +210,17 @@ Used internally to retrieve value of EXPADFULL tags."
          nil)
         ((put_name)
          (wisent-raw-tag
-          (semantic-tag "name" 'put-name :value $1))))
+          (semantic-tag $1 'put-name))))
        (put_name
         ((SYMBOL))
         ((token_type)))
        (put_value_list
         ((BRACE_BLOCK)
-         (semantic-parse-region
-          (car $region1)
-          (cdr $region1)
-          'put_values 1)))
+         (mapcar 'semantic-tag-code-detail
+                 (semantic-parse-region
+                  (car $region1)
+                  (cdr $region1)
+                  'put_values 1))))
        (put_values
         ((LBRACE)
          nil)
@@ -237,7 +228,7 @@ Used internally to retrieve value of EXPADFULL tags."
          nil)
         ((put_value)
          (wisent-raw-tag
-          (semantic-tag "value" 'put-value :value $1))))
+          (semantic-tag-new-code "put-value" $1))))
        (put_value
         ((SYMBOL any_value)
          (cons $1 $2)))
@@ -289,10 +280,11 @@ Used internally to retrieve value of EXPADFULL tags."
          (list $1)))
        (use_name_list
         ((BRACE_BLOCK)
-         (semantic-parse-region
-          (car $region1)
-          (cdr $region1)
-          'use_names 1)))
+         (mapcar 'semantic-tag-name
+                 (semantic-parse-region
+                  (car $region1)
+                  (cdr $region1)
+                  'use_names 1))))
        (use_names
         ((LBRACE)
          nil)
@@ -300,14 +292,11 @@ Used internally to retrieve value of EXPADFULL tags."
          nil)
         ((SYMBOL)
          (wisent-raw-tag
-          (semantic-tag "name" 'use-name :value $1))))
+          (semantic-tag $1 'use-name))))
        (use_macros_decl
         ((USE-MACROS SYMBOL use_name_list)
-         (let*
-             ((names
-               (mapcar 'semantic-grammar-wy--tag-value $3)))
-           `(wisent-raw-tag
-             (semantic-tag "macro" 'macro :type ',$2 :value ',names)))))
+         `(wisent-raw-tag
+           (semantic-tag "macro" 'macro :type ',$2 :value ',$3))))
        (string_value
         ((STRING)
          (read $1)))
@@ -326,9 +315,11 @@ Used internally to retrieve value of EXPADFULL tags."
         ((SYMBOL)
          (list $1)))
        (nonterminal
-        ((SYMBOL COLON rules SEMI)
+        ((SYMBOL
+          (setq semantic-grammar-wy--nterm $1 semantic-grammar-wy--rindx 0)
+          COLON rules SEMI)
          (wisent-raw-tag
-          (semantic-tag $1 'nonterminal :children $3))))
+          (semantic-tag $1 'nonterminal :children $4))))
        (rules
         ((lifo_rules)
          (apply 'nconc
@@ -341,8 +332,12 @@ Used internally to retrieve value of EXPADFULL tags."
        (rule
         ((rhs)
          (let*
-             ((rhs $1)
-              name type comps prec action elt)
+             ((nterm semantic-grammar-wy--nterm)
+              (rindx semantic-grammar-wy--rindx)
+              (rhs $1)
+              comps prec action elt)
+           (setq semantic-grammar-wy--rindx
+                 (1+ semantic-grammar-wy--rindx))
            (while rhs
              (setq elt
                    (car rhs)
@@ -351,32 +346,28 @@ Used internally to retrieve value of EXPADFULL tags."
              (cond
               ((vectorp elt)
                (if prec
-                   (message "Duplicate %%prec in a rule, keep latest"))
+                   (error "duplicate %%prec in `%s:%d' rule" nterm rindx))
                (setq prec
                      (aref elt 0)))
               ((consp elt)
                (if
                    (or action comps)
                    (setq comps
-                         (cons elt comps))
+                         (cons elt comps)
+                         semantic-grammar-wy--rindx
+                         (1+ semantic-grammar-wy--rindx))
                  (setq action
                        (car elt))))
               (t
                (setq comps
                      (cons elt comps)))))
-           (if comps
-               (setq type "group" name
-                     (mapconcat
-                      #'(lambda
-                          (e)
-                          (if
-                              (consp e)
-                              "{}" e))
-                      comps " "))
-             (setq type "empty" name ";;EMPTY"))
            (wisent-cook-tag
             (wisent-raw-tag
-             (semantic-tag name 'rule :type type :value comps :prec prec :expr action))))))
+             (semantic-tag
+              (format "%s:%d" nterm rindx)
+              'rule :type
+              (if comps "group" "empty")
+              :value comps :prec prec :expr action))))))
        (rhs
         (nil)
         ((rhs item)
