@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.94 1998/05/04 22:37:09 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.95 1998/05/05 01:58:36 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -410,19 +410,20 @@
 
 ;;; Code:
 (defvar speedbar-initial-expansion-mode-alist
-  '(("files" speedbar-easymenu-definition-special
+  '(("files" speedbar-easymenu-definition-special nil
      speedbar-directory-buttons speedbar-default-directory-list)
-    ("buffers" speedbar-buffer-easymenu-definition
+    ("buffers" speedbar-buffer-easymenu-definition nil
      speedbar-buffer-buttons)
-    ("quick buffers" speedbar-buffer-easymenu-definition
+    ("quick buffers" speedbar-buffer-easymenu-definition nil
      speedbar-buffer-buttons-temp)
     )
   "List of named expansion elements for filling the speedbar frame.
 These expansion lists are only valid for regular files.  Special modes
 still get to override this list on a mode-by-mode basis.  This list of
-lists is of the form (NAME MENU FN1 FN2 ...).  NAME is a string
+lists is of the form (NAME MENU KEYMAP FN1 FN2 ...).  NAME is a string
 representing the types of things to be displayed.  MENU is an easymenu
-structure used when in this mode.  FN1 ... are functions that will be
+structure used when in this mode.  KEYMAP is a local keymap to install
+over the regular speedbar keymap.  FN1 ... are functions that will be
 called in order.  These functions will always get the default
 directory to use passed in as the first parameter, and a 0 as the
 second parameter.  The 0 indicates the uppermost indentation level.
@@ -1838,8 +1839,8 @@ will be run with the TOKEN parameter (any lisp object)"
 This is based on `speedbar-initial-expansion-list-name' referencing
 `speedbar-initial-expansion-mode-alist'."
   ;; cdr1 - name, cdr2 - menu
-  (cdr (cdr (assoc speedbar-initial-expansion-list-name
-		   speedbar-initial-expansion-mode-alist))))
+  (cdr (cdr (cdr (assoc speedbar-initial-expansion-list-name
+			speedbar-initial-expansion-mode-alist)))))
 
 (defun speedbar-initial-menu ()
   "Return the current default menu data.
@@ -1849,10 +1850,17 @@ This is based on `speedbar-initial-expansion-list-name' referencing
    (car (cdr (assoc speedbar-initial-expansion-list-name
 		    speedbar-initial-expansion-mode-alist)))))
 
+(defun speedbar-initial-keymap ()
+  "Return the current default menu data.
+This is based on `speedbar-initial-expansion-list-name' referencing
+`speedbar-initial-expansion-mode-alist'."
+  (symbol-value
+   (car (cdr (cdr (assoc speedbar-initial-expansion-list-name
+			 speedbar-initial-expansion-mode-alist))))))
+
 (defun speedbar-add-expansion-list (new-list)
   "Add NEW-LIST to the list of expansion lists."
-  (setq speedbar-initial-expansion-mode-alist
-	(cons new-list speedbar-initial-expansion-mode-alist)))
+  (add-to-list 'speedbar-initial-expansion-mode-alist new-list))
 
 (defun speedbar-change-initial-expansion-list (new-default)
   "Change speedbar's default expansion list to NEW-DEFAULT."
@@ -2147,7 +2155,7 @@ cell of the form ( 'DIRLIST . 'FILELIST )"
    ((eq method 'prefix-group)
     (let ((newlst nil)
 	  (sublst nil)
-	  (work-list nil)
+3	  (work-list nil)
 	  (junk-list nil)
 	  (short-group-list nil)
 	  (short-start-name nil)
@@ -3210,8 +3218,7 @@ level."
 	 (speedbar-with-writable
 	   (save-excursion
 	     (end-of-line) (forward-char 1)
-	     (speedbar-insert-generic-list indent
-					   token 'speedbar-tag-expand
+	     (speedbar-insert-generic-list indent token 'speedbar-tag-expand
 					   'speedbar-tag-find))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
