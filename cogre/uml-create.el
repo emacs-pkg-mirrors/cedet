@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.3 2001/05/21 19:25:51 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.4 2001/06/05 20:35:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -105,10 +105,16 @@ Optional argument FIELDS are not used."
 
 (defmethod cogre-uml-stoken->uml ((class cogre-semantic-class) stoken &optional text)
   "For CLASS convert a Semantic token STOKEN into a uml definition.
+
 Optional TEXT property is passed down."
   (call-next-method class stoken
-		    (semantic-uml-abbreviate-nonterminal
-		     stoken nil t))
+		    (save-excursion
+		      (let ((tb (semantic-token-buffer stoken)))
+			(if tb (set-buffer tb))
+			(semantic-uml-abbreviate-nonterminal
+			 stoken
+			 (oref class class)
+			 t))))
   )
 
 (defmethod cogre-entered ((class cogre-semantic-class) start end)
