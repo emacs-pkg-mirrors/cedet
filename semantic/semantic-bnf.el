@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.40 2001/05/07 11:32:26 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.1 2001/08/09 07:46:52 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -141,6 +141,9 @@
      (KEYWORDTABLE symbol
 		   ,(semantic-lambda
 		     (list (nth 1 vals) 'keywordtable)))
+     (TOKENTABLE symbol
+		   ,(semantic-lambda
+		     (list (nth 1 vals) 'tokentable)))
      (LANGUAGEMODE symbol
 		   ,(semantic-lambda
 		     (list (nth 1 vals) 'languagemode)))
@@ -156,6 +159,9 @@
      (QUOTEMODE symbol
 		,(semantic-lambda
 		  (list (nth 1 vals) 'quotemode)))
+     (PARSERMODE symbol
+		,(semantic-lambda
+		  (list (nth 1 vals) 'parsermode)))
      )
     (put-name-list
      (open-paren ,(semantic-lambda (list nil)))
@@ -211,17 +217,43 @@
       ("outputfile" . OUTPUTFILE)
       ("parsetable" . PARSETABLE)
       ("keywordtable" . KEYWORDTABLE)
+      ("tokentable" . TOKENTABLE)
       ("languagemode" . LANGUAGEMODE)
       ("setupfunction" . SETUPFUNCTION)
       ("quotemode" . QUOTEMODE)
+      ("parsermode" . PARSERMODE)
       )
    `(("put" summary "%put <keyword> <lisp expression>")
      ("token" summary "%token <keyword> [syntax] \"matchtext\"")
      ("start" summary "%start <starting rule name>")
      ("scopestart" summary "%scopestart <starting scope (code) rule name>")
      ("languagemode" summary "%languagemode [ lispsymbol | ( lispsym lispsym ...) ]")
+     ("parsermode" summary "%parsermode <mode>")
      ))
   "Keyword table used for Semantic BNF files.")
+
+
+;;; Basic API
+;;
+(defsubst semantic-bnf-token-name-symbol (token)
+  "Return TOKEN name as an interned symbol."
+  (intern (semantic-token-name token)))
+
+(defmacro semantic-bnf-token-token-type (token)
+  "Return type of a 'token TOKEN."
+  `(nth 2 ,token))
+
+(defmacro semantic-bnf-token-token-value (token)
+  "Return the lisp value of a 'token TOKEN."
+  `(condition-case nil
+       (car (read-from-string (nth 3 ,token)))
+     (error
+      ;;(message "read error on %S" (car part))
+      nil)))
+
+(defmacro semantic-bnf-token-rule-matchlist (token)
+  "Return the matching list of a 'rule TOKEN."
+  `(nth 3 ,token))
 
 
 ;;; Conversion routines
@@ -445,6 +477,94 @@ Optional argument SCOPESTART is the token to start subscopes with."
       (working-status t))
     (insert ")\n ")
     ))
+
+
+;;; LALR conversion routines
+;;
+(defun semantic-bnf-matching-to-lalr (matching)
+  "Convert the rule MATCHING from BNF to LALR internal lisp form."
+  (cons (if (string-equal (cadr matching) "EMPTY")
+            nil
+          (mapcar #'intern (cdr matching)))
+        (condition-case nil
+            (list ': (car (read-from-string (car matching))))
+          (error
+           ;;(message "read error on %S" (car matching))
+           nil))))
+
+(defsubst semantic-bnf-terminal-token-p (token)
+  "Return non-nil if BNF TOKEN is a terminal one.
+That is a token of 'keyword or 'token category."
+  (memq (semantic-token-token token) '(token keyword)))
+
+(defsubst semantic-bnf-find-terminals (tokstream)
+  "Return the list of terminal tokens from TOKSTREAM."
+  (semantic-find-nonterminal-by-function
+   #'semantic-bnf-terminal-token-p tokstream))
+
+(defsubst semantic-bnf-find-terminal-symbols (tokstream)
+  "Return the list of terminal symbols from TOKSTREAM."
+  (mapcar #'semantic-bnf-token-name-symbol
+          (semantic-bnf-find-terminals tokstream)))
+
+(defun semantic-bnf-token-table (tokstream)
+  "Return the table of 'token tokens from TOKSTREAM.
+The table is an alist of (TOK-CAT . TOK-DEFS) where TOK-CAT is a token
+category symbol.  TOK-DEFS is an alist of (TOK-KEY . TOK-VALUE) where
+TOK-KEY is a token symbol and TOK-VALUE its value as a string.
+
+For example the following BNF entries:
+
+  %token EQ     operator \":=\"
+  %token LT     operator \"<\"
+  %token LPAREN paren    \"(\"
+  %token RPAREN paren    \")\"
+
+produce the following table of tokens:
+
+  '((operator (EQ . \":=\")
+              (LT . \"<\"))
+    (paren (LPAREN . \"(\")
+           (RPAREN . \")\")))"
+  (let ((tokens (semantic-find-nonterminal-by-token 'token tokstream))
+        token ttype tvalue bin bins)
+    (while tokens
+      (setq token  (car tokens)
+            tokens (cdr tokens)
+            tsymb  (semantic-bnf-token-name-symbol token)
+            ttype  (intern (semantic-bnf-token-token-type token))
+            tvalue (semantic-bnf-token-token-value token)
+            bin    (assq ttype bins))
+      (if bin
+          (setcdr bin (cons (cons tsymb tvalue) (cdr bin)))
+        (setq bins (cons (list ttype (cons tsymb tvalue)) bins))))
+    bins))
+
+(defun semantic-bnf-to-lalr (&optional tokstream)
+  "Convert the BNF rules in TOKSTREAM to LALR internal lisp form.
+The result is inserted at point in the current buffer."
+  (setq tokstream (or tokstream (semantic-bovinate-toplevel t)))
+  (let ((terms  (semantic-bnf-find-terminal-symbols tokstream))
+        vars tok lhs rhs gram)
+    (while tokstream
+      (setq tok       (car tokstream)
+            tokstream (cdr tokstream))
+      (if (not (eq (semantic-token-token tok) 'rule))
+          nil
+        (setq lhs  (semantic-bnf-token-name-symbol tok)
+              rhs  (apply #'nconc
+                          (mapcar
+                           #'semantic-bnf-matching-to-lalr
+                           (semantic-bnf-token-rule-matchlist tok)))
+              vars (cons (cons lhs rhs) vars))))
+    (setq gram (nconc terms (nreverse vars)))
+    ;; Insert the grammar
+;;;    (insert "(wisent-compile-grammar\n'")
+    (insert "  `")
+    (pp gram (current-buffer))
+;;;    (insert ")\n")
+    ))
+
 
 ;;; Output File hacks
 ;;
@@ -582,6 +702,36 @@ SOURCEFILE is the file name from whence tokstream came."
 	      t)
 	    ))))))
 
+(defsubst semantic-bnf-find-parser-mode (tok)
+  "Find the parser mode symbol in this BNF file.
+If not found return nil."
+  (let ((gm (semantic-find-nonterminal-by-token 'parsermode tok)))
+    (if gm
+        (semantic-bnf-token-name-symbol (car gm)))))
+
+(defun semantic-bnf-find-token-destination (tokstream)
+  "Find the destination for tokens in this BNF file.
+Argument TOKSTREAM is the list of tokens in which to find the file and
+token table variable."
+  (save-excursion
+    (let ((file (semantic-find-nonterminal-by-token 'outputfile tokstream))
+	  (var (semantic-find-nonterminal-by-token 'tokentable tokstream)))
+      (if (or (not file) (not var))
+	  nil
+	;; Fix file/var to strings
+	(setq file (semantic-token-name (car file))
+	      var (semantic-token-name (car var)))
+	;; Look these items up.
+	(set-buffer (find-file-noselect file))
+	(goto-char (point-min))
+	(if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
+				       (regexp-quote var)) nil t)
+	    (progn
+	      (goto-char (match-beginning 0))
+	      (point-marker))
+	  (error "You must add a declaration for %s in %s"
+		 var file))))))
+
 (defvar semantic-bnf-indent-table t
   "Non nil means to indent the large table during creation.")
 
@@ -603,10 +753,12 @@ SOURCEFILE is the file name from whence tokstream came."
 	 (bb (current-buffer))
 	 (dest (semantic-bnf-find-table-destination tok))
 	 (keydest (semantic-bnf-find-keyword-destination tok))
+	 (tokdest (semantic-bnf-find-token-destination tok))
 	 (mode (semantic-bnf-find-languagemode tok))
 	 (start (semantic-find-nonterminal-by-token 'start tok))
 	 (scopestart (semantic-find-nonterminal-by-token 'scopestart tok))
 	 (setup-fn (semantic-find-nonterminal-by-token 'setupfunction tok))
+         (pmode (semantic-bnf-find-parser-mode tok))
 	 )
     (if (not dest)
 	(error "You must specify a destination table in your BNF file"))
@@ -652,7 +804,23 @@ SOURCEFILE is the file name from whence tokstream came."
 	      (setq put (cdr put)))
 	    (insert "))\n "))
 	  (save-excursion
-	  (indent-region start (point) nil)))
+            (indent-region start (point) nil)))
+	(eval-defun nil))
+      ;; Token table
+      (when tokdest
+	(goto-char tokdest)
+	(re-search-forward "def\\(var\\|const\\)\\s-+\\(\\w\\|\\s_\\)+\\s-*\n")
+        (if (looking-at "\\s-*\\('?(\\|nil\\)")
+            (delete-region (point) (save-excursion (forward-sexp 1) (point))))
+        (delete-blank-lines)
+	(let ((tokens (semantic-bnf-token-table tok))
+	      (start (point)))
+	  (if (not tokens)
+	      (insert "nil\n ")
+            (insert "'")
+            (pp tokens (current-buffer)))
+	  (save-excursion
+            (indent-region start (point) nil)))
 	(eval-defun nil))
       ;; Insert setup code in the startup function or hook
       (when (semantic-bnf-find-setup-code tok fname)
@@ -692,32 +860,37 @@ SOURCEFILE is the file name from whence tokstream came."
       (if (looking-at "\\s-*\\(`?(\\|nil\\)")
 	  (delete-region (point) (save-excursion (forward-sexp 1) (point))))
       (delete-blank-lines)
-      (semantic-bnf-to-bovine
-       tok (if start (semantic-token-name (car start)))
-       (if scopestart (semantic-token-name (car scopestart))))
+      (cond
+       ((eq pmode 'lalr)
+        ;; generate table for the LALR parser
+        (semantic-bnf-to-lalr tok))
+       (t
+        ;; generate table for the default parser
+        (semantic-bnf-to-bovine
+         tok (if start (semantic-token-name (car start)))
+         (if scopestart (semantic-token-name (car scopestart))))))
       (if semantic-bnf-indent-table
-	  (save-excursion
-	    (message "Indenting table....")
-	    (indent-region (progn (re-search-backward "(defvar")
-				  (goto-char (match-beginning 0))
-				  (point))
-			   (progn (forward-sexp 1) (point))
-			   nil)))
+          (save-excursion
+            (message "Indenting table....")
+            (indent-region (progn (re-search-backward "(def\\(var\\|const\\)\\s-+")
+                                  (goto-char (match-beginning 0))
+                                  (point))
+                           (progn (forward-sexp 1) (point))
+                           nil)))
       (eval-defun nil))
     (message "Done.")
     (when mode
       (save-excursion
-	(let ((bufs (buffer-list)))
-	  (while bufs
-	    (set-buffer (car bufs))
-	    (if (member major-mode mode)
-		(progn
-		  (if setup-fn
-		      (funcall (intern (semantic-token-name (car setup-fn))))
-		    (funcall mode)))
-	      )
-	    (setq bufs (cdr bufs)))))
-      )))
+  	(let ((bufs (buffer-list)))
+  	  (while bufs
+  	    (set-buffer (car bufs))
+  	    (if (member major-mode mode)
+  		(progn
+  		  (if setup-fn
+  		      (funcall (intern (semantic-token-name (car setup-fn))))
+  		    (funcall mode)))
+  	      )
+  	    (setq bufs (cdr bufs))))))))
 
 (defun semantic-bnf-generate-one-rule ()
   "Generate code for one rule in a temporary buffer."
@@ -829,7 +1002,7 @@ Once found, put it in a buffer, and return it."
 
 (defvar semantic-bnf-mode-keywords
   `((";\\s-*[^#\n ].*$" 0 font-lock-comment-face)
-    ("^\\(\\w+\\)\\s-*:" 1 font-lock-function-name-face)
+    ("^\\(\\w+\\)[ \n\r\t]*:" 1 font-lock-function-name-face)
     ("\\<\\(EMPTY\\|symbol\\|punctuation\\|string\\|semantic-list\
 \\|\\(open\\|close\\)-paren\\|comment\\)\\>"
      1 font-lock-keyword-face)
@@ -885,6 +1058,8 @@ Once found, put it in a buffer, and return it."
   (setq semantic-flex-keywords-obarray semantic-bnf-keyword-table)
   (make-local-variable 'indent-line-function)
   (setq indent-line-function 'semantic-bnf-indent)
+  (make-local-variable 'fill-paragraph-function)
+  (setq fill-paragraph-function 'semantic-bnf-fill-paragraph)
   (make-local-variable 'font-lock-defaults)
   (setq font-lock-defaults '((semantic-bnf-mode-keywords)
 			     nil ; do not do string/comment highlighting
@@ -1045,23 +1220,36 @@ Optional argument COLOR determines if color is added to the text."
     (error nil)))
 
 (defun semantic-bnf-previous-colon-indentation ()
-  "Calculation the indentation of the last colon oporator.
+  "Calculation the indentation of the last colon operator.
 Returns the previous colon's column."
   (save-excursion
     (let ((p (point))
 	  (ci (progn
-		(if (re-search-backward "^\\s-*\\(\\w\\|\\s_\\)+\\s-*:" nil t)
-		    (progn
-		      (beginning-of-line)
-		      (- (match-end 0) 1 (point)))
+                (end-of-line)
+		(if (re-search-backward "^\\s-*\\(\\w\\|\\s_\\)+[ \n\r\t]*:" nil t)
+                    (let ((here (match-end 0)))
+                      (if (save-excursion
+                            (goto-char here)
+                            (looking-at "\\s-*$"))
+                          ;; line ends with the colon
+                          2
+                        (if (save-excursion
+                              (goto-char here)
+                              (beginning-of-line)
+                              (looking-at "\\s-*:"))
+                            ;; line begin with the colon
+                            2
+                          (beginning-of-line)
+                          (- here 1 (point)))))
 		  0)))
 	  (cp (point))
 	  (sc nil))
       (goto-char p)
       (while (and (re-search-backward "^\\s-*;\\s-*$" nil t)
 		  (semantic-bnf-in-lambda-continuation-p)))
-      (if (looking-at "\\s-*;")
-	  (setq sc t))
+      (and (/= (point) p)
+           (looking-at "\\s-*;")
+           (setq sc t))
       (if sc
 	  (if (< (point) cp)
 	      ci
@@ -1103,7 +1291,7 @@ Optional argument POINT is the position on the line to indent."
 	    (delete-horizontal-space))
 	   (t
 	    (save-excursion
-	      (if (and (not (looking-at "\\s-*[|;#]"))
+	      (if (and (not (looking-at "\\s-*[:|;#]"))
 		       (/= indent 0))
 		  (setq indent (+ 2 indent))))
 	    (if (= (current-indentation) indent)
@@ -1112,6 +1300,102 @@ Optional argument POINT is the position on the line to indent."
 	      (indent-to indent))))))))
   (if (bolp) (if (looking-at "\\s-+") (end-of-line))))
 
+(defun semantic-bnf-fill-paragraph (&optional justify)
+  "Like \\[fill-paragraph], but handle BNF comments.
+If any of the current line is a comment, fill the comment or the
+paragraph of it that point is in, preserving the comment's indentation
+and initial #."
+  (interactive "P")
+  (let (
+	;; Non-nil if the current line contains a comment.
+	has-comment
+        
+	;; Non-nil if the current line contains code and a comment.
+	has-code-and-comment
+        
+        ;; If has-comment, the appropriate fill-prefix for the comment.
+	comment-fill-prefix
+	)
+
+    ;; Figure out what kind of comment we are looking at.
+    (save-excursion
+      (beginning-of-line)
+      (cond
+       
+       ;; A line with nothing but a comment on it?
+       ((looking-at "[ \t]*#[# \t]*")
+	(setq has-comment t
+	      comment-fill-prefix (buffer-substring (match-beginning 0)
+						    (match-end 0))))
+       
+       ;; A line with some code, followed by a comment?  Remember that the
+       ;; semi which starts the comment shouldn't be part of a string or
+       ;; character.
+       ((condition-case nil
+	    (save-restriction
+	      (narrow-to-region (point-min)
+				(save-excursion (end-of-line) (point)))
+	      (while (not (looking-at "#\\|$"))
+		(skip-chars-forward "^#\n\"\\\\?")
+		(cond
+		 ((eq (char-after (point)) ?\\) (forward-char 2))
+		 ((memq (char-after (point)) '(?\" ??)) (forward-sexp 1))))
+	      (looking-at "#+[\t ]*"))
+	  (error nil))
+	(setq has-comment t has-code-and-comment t)
+	(setq comment-fill-prefix
+	      (concat (make-string (/ (current-column) 8) ?\t)
+		      (make-string (% (current-column) 8) ?\ )
+		      (buffer-substring (match-beginning 0) (match-end 0)))))))
+    
+    (if (not has-comment)
+        nil
+      ;; Narrow to include only the comment, and then fill the region.
+      (save-excursion
+	(save-restriction
+	  (beginning-of-line)
+	  (narrow-to-region
+           ;; Find the first line we should include in the region to fill.
+	   (save-excursion
+	     (while (and (zerop (forward-line -1))
+			 (looking-at "^[ \t]*#")))
+	     ;; We may have gone too far.  Go forward again.
+	     (or (looking-at ".*#")
+		 (forward-line 1))
+	     (point))
+           ;; Find the beginning of the first line past the region to fill.
+	   (save-excursion
+	     (while (progn (forward-line 1)
+			   (looking-at "^[ \t]*#")))
+	     (point)))
+          
+          ;; Lines with only semicolons on them can be paragraph boundaries.
+	  (let* ((paragraph-start (concat paragraph-start "\\|[ \t#]*$"))
+		 (paragraph-separate (concat paragraph-start "\\|[ \t#]*$"))
+		 (paragraph-ignore-fill-prefix nil)
+		 (fill-prefix comment-fill-prefix)
+		 (after-line (if has-code-and-comment
+				 (save-excursion
+				   (forward-line 1) (point))))
+		 (end (progn
+			(forward-paragraph)
+			(or (bolp) (newline 1))
+			(point)))
+		 ;; If this comment starts on a line with code,
+		 ;; include that like in the filling.
+		 (beg (progn (backward-paragraph)
+			     (if (eq (point) after-line)
+				 (forward-line -1))
+			     (point))))
+	    (fill-region-as-paragraph beg end
+				      justify nil
+				      (save-excursion
+					(goto-char beg)
+					(if (looking-at fill-prefix)
+					    nil
+					  (re-search-forward comment-start-skip)
+					  (point))))))))
+    t))
 
 (defun semantic-bnf-complete ()
   "Complete the symbol under point from various sources."
