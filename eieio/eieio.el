@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.117 2002/02/22 22:25:05 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.118 2002/02/23 13:06:33 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17"
   "Current version of EIEIO.")
@@ -235,6 +235,11 @@ contains a list of all bindings to that method type.)"
   "Return the value stored for CLASS' OPTION.
 Return nil if that option doesn't exist."
   `(class-option-assoc (aref (class-v ,class) class-options) ',option))
+
+(defmacro class-abstract-p (class)
+  "Return non-nil if CLASS is abstract.
+Abstract classes cannot be instantiated."
+  `(class-option ,class :abstract))
 
 
 ;;; Defining a new class
@@ -1828,7 +1833,8 @@ This is usually a symbol that starts with `:'."
 Its fields are automatically adopted by such superclasses but not
 stored in the `parent' field.  When searching for attributes or
 methods, when the last parent is found, the search will recurse to
-this class.")
+this class."
+  :abstract t)
 
 (defalias 'standard-class 'eieio-default-superclass)
 
