@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.9 2002/06/23 04:11:58 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.10 2002/06/24 06:51:38 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,6 +34,9 @@
 ;; --------
 %{
   (setq
+   ;;"Regexp matching python raw string prefix."
+   wisent-python-raw-string-re "\\<[r]'"
+
    ;; How `semantic-flex' will setup the lexer input stream.
    semantic-flex-depth nil
    ;; python grammar requires BOL tokens to compute indent/dedent
@@ -51,7 +54,8 @@
    wisent-python-matching-pair-stack nil
 
    semantic-flex-python-extensions
-   '(("\"\"\"" . semantic-flex-python-triple-quotes))
+   (list '("\"\"\"" . semantic-flex-python-triple-quotes)
+	 (cons wisent-python-raw-string-re 'wisent-python-flex-raw-string))
 
    semantic-flex-extensions semantic-flex-python-extensions
    )
@@ -149,6 +153,9 @@
 ;; Handle 'bol tokens via function `wisent-python-lex-bol'
 %token <bol> INDENT DEDENT
 %put bol handler wisent-python-lex-bol
+
+%token <raw-string>  RAW_STRING_LITERAL
+%put raw-string handler wisent-python-raw-string-handler
 
 ;; -----------------
 ;; Keyword terminals
