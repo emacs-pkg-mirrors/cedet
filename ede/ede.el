@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.46 2001/01/24 19:08:23 zappo Exp $
+;; RCS: $Id: ede.el,v 1.47 2001/01/25 19:14:19 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -583,8 +583,10 @@ If ARG is negative, disable.  Toggle otherwise."
 	(global-ede-mode 1))
     (if (or (eq arg t) (> arg 0))
 	(progn
+	  (add-hook 'semanticdb-project-predicates 'ede-directory-project-p)
 	  (add-hook 'find-file-hooks 'ede-turn-on-hook)
 	  (add-hook 'dired-mode-hook 'ede-turn-on-hook))
+      (remove-hook 'semanticdb-project-predicates 'ede-directory-project-p)
       (remove-hook 'find-file-hooks 'ede-turn-on-hook)
       (remove-hook 'dired-mode-hook 'ede-turn-on-hook))
     (let ((b (buffer-list)))
