@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98, 99, 00 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.12
+;; Version: 0.13
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.177 2000/08/14 18:51:51 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.178 2000/08/17 03:01:59 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -744,13 +744,7 @@ PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
 	  speedbar-ignored-path-regexp (speedbar-extension-list-to-regex
 					speedbar-ignored-path-expressions)))
 
-(defvar speedbar-update-flag (and
-			      (or (fboundp 'run-with-idle-timer)
-				  (fboundp 'start-itimer)
-				  (boundp 'post-command-idle-hook))
-			      (if (fboundp 'display-graphic-p)
-				  (display-graphic-p)
-				window-system))
+(defvar speedbar-update-flag dframe-have-timer-flag
   "*Non-nil means to automatically update the display.
 When this is nil then speedbar will not follow the attached frame's path.
 When speedbar is active, use:
