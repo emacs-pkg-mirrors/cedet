@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.3 2003/04/07 08:26:48 ponced Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.4 2003/05/29 00:55:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -100,6 +100,10 @@
 ;;   => Basic search (headers ok)
 ;; Class browser - organize types into some structure
 ;;   => Brute search, or custom navigation.
+
+;; TODO:
+;;  During a search, load any unloaded DB files based on paths in the
+;;  current project.
 
 (require 'semanticdb)
 
