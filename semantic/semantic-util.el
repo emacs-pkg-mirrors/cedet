@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.122 2003/08/29 12:33:39 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.123 2003/08/29 16:14:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,6 +36,8 @@
   (condition-case nil
       (require 'newcomment)
     (error nil))
+  ;; Semanticdb calls
+  (require 'semanticdb)
   )
 
 ;;; Code:
