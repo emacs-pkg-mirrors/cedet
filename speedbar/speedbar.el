@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.111 1998/06/14 12:59:25 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.112 1998/06/16 12:53:18 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -3429,7 +3429,9 @@ expanded.  INDENT is the current indentation level."
   "Speedbar click handler for default directory buttons.
 TEXT is the button clicked on.  TOKEN is the directory to follow.
 INDENT is the current indentation level and is unused."
-  (setq default-directory token)
+  (if (string-match "^[A-Z]:$" token)
+      (setq default-directory (concat token "\\"))
+    (setq default-directory token))
   ;; Because we leave speedbar as the current buffer,
   ;; update contents will change directory without
   ;; having to touch the attached frame.
