@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.153 2002/07/31 19:47:01 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.154 2002/08/02 01:38:54 zappo Exp $
 
 (defvar semantic-version "2.0alpha2"
   "Current version of Semantic.")
@@ -507,6 +507,7 @@ that, otherwise, do a full reparse."
     semantic-toplevel-bovine-cache
     )
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
+    ;; Use the incremental parser to do a fast update.
     (garbage-collect)
     (let* ((gc-cons-threshold 10000000)
            (changes (funcall semantic-bovinate-incremental-parser)))
@@ -514,43 +515,54 @@ that, otherwise, do a full reparse."
           ;; If the partial reparse fails, jump to a full reparse.
           (semantic-bovinate-toplevel checkcache)
         ;; Clear the cache of unmatched syntax tokens
+	;;
+	;; NOTE TO SELF:
+	;;
+	;; Move this into the incremental parser.  This is a bug.
+	;;
         (semantic-clear-unmatched-syntax-cache)
-        ;; After partial reparse completed, let hooks know the updated
+        ;; After partial reparse is completed, let hooks know the updated
         ;; tokens
         (run-hook-with-args 'semantic-after-partial-cache-change-hook
                             changes)
         semantic-toplevel-bovine-cache))
     )
    ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-    (garbage-collect)
     ;; Reparse the whole system
+    (garbage-collect)
     (let ((gc-cons-threshold 10000000)
-	  ;; Capture the lexical tokens here so that if an error is
-	  ;; thrown, the cache is still safe.
-	  (lex (semantic-lex (point-min) (point-max)))
           res)
-      ;; Init a dump
-      (if semantic-dump-parse
-          (semantic-dump-buffer-init))
-      ;; Clear the caches
-      (semantic-clear-toplevel-cache)
       ;; Parse!
       (working-status-forms
           (semantic-bovination-working-message (buffer-name))
           "done"
-	(setq res (semantic-bovinate-nonterminals
-                   lex nil semantic-lex-depth))
+	(setq res (semantic-bovinate-region (point-min) (point-max)))
 	(working-status t))
-      (setq res (nreverse res))
-      ;; Set up the new overlays, and then reset the cache.
+      ;; Clear the caches when we see there were no errors.
+      ;;
+      ;; NOTE: We need to be careful about the unmatched syntax cache!
+      ;;       What to do?
+      (semantic-clear-toplevel-cache)
+      ;; Set up the new overlays
       (semantic-overlay-list res)
+      ;; Set up the cache with the new results
       (semantic-set-toplevel-bovine-cache res)
+      ;; Return
       semantic-toplevel-bovine-cache)
     )
    (t
     ;; We have a cache with stuff in it, so return it
     semantic-toplevel-bovine-cache
     )))
+
+(define-overload semantic-bovinate-region (start end &optional parse-symbol)
+  "Bovinate the area between START and END, and return any tokens found.
+If END needs to be extended due to a lexical token being too large,
+it will be silently ignored.
+Optional argument SYMBOL is the rule to start parsing at if it
+is known.  This can be used for anything a given parser wants to use.
+This function returns tokens wich have been cooked (repositioned properly)
+but which DO NOT HAVE OVERLAYS associated with them.")
 
 (defun semantic-set-toplevel-bovine-cache (tokenlist)
   "Set the toplevel bovine cache to TOKENLIST."
