@@ -1,11 +1,11 @@
 ;;; semantic-ex.el --- Semantic details for some languages
 
-;;; Copyright (C) 1999 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.12 1999/12/17 20:51:24 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.13 2000/04/15 20:58:29 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -123,7 +123,7 @@
      ( comment)
      ) ; end bovine-toplevel
     (include
-     ( punctuation "#" symbol "include" punctuation "<" symbol punctuation "." symbol punctuation ">"
+     ( punctuation "#" symbol "include" punctuation "<" symbol punctuation "\\." symbol punctuation ">"
 		   ,(lambda (vals start end)
 		      (append  (list ( concat (nth 3 vals) (nth 4 vals) (nth 5 vals)) 'include nil)
 			       (list start end))))
