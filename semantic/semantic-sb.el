@@ -1,10 +1,10 @@
 ;;; semantic-sb.el --- Semantic tag display for speedbar
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999-2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.49 2004/03/21 07:46:16 ponced Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.50 2005/01/11 17:12:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -80,14 +80,7 @@ If it returns nil, then a => icon is created.")
 
 (defun semantic-sb-tag-children-to-expand-default (tag)
   "For TAG, the children for type, variable, and function classes."
-  (let ((class (semantic-tag-class tag)))
-    (cond ((eq class 'type)
-	   (semantic-tag-type-members tag))
-	  ((eq class 'variable)
-	   (semantic-tag-variable-default tag))
-	  ((eq class 'function)
-	   (semantic-tag-function-arguments tag))
-	  )))
+  (semantic-tag-components tag))
 
 (defun semantic-sb-one-button (tag depth &optional prefix)
   "Insert TAG as a speedbar button at DEPTH.
