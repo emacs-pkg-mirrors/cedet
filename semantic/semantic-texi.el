@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.14 2003/04/02 02:20:37 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.15 2003/04/09 00:54:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,10 +30,12 @@
 ;; overrides `semantic-parse-region'.
 
 (require 'semantic)
+(require 'semantic-format)
 (require 'texinfo)
 
 (eval-when-compile
   (require 'semanticdb)
+  (require 'semanticdb-find)
   (require 'semantic-ctxt)
   (require 'semantic-imenu)
   (require 'document)
@@ -304,9 +306,9 @@ If TAG is nil, determine a tag based on the current position."
   (let* ((name (semantic-tag-name tag))
 	 (tags (mapcar
                 #'cdr
-                ;; `semanticdb-find-nonterminal-by-name' returns a
+                ;; `semanticdb-find-first-tag-by-name' returns a
                 ;; list ((DB-TABLE . TOKEN) ...)
-                (semanticdb-find-nonterminal-by-name name nil t nil t t)))
+                (semanticdb-deep-find-tags-by-name name nil t)))
 	 (docstring nil)
 	 (doctag nil))
     (save-excursion
@@ -394,7 +396,7 @@ If TAG is nil, it is derived from the deffn under POINT."
                 #'cdr
                 ;; `semanticdb-find-nonterminal-by-name' returns a
                 ;; list ((DB-TABLE . TOKEN) ...)
-                (semanticdb-find-nonterminal-by-name name nil t nil t t)))
+                (semanticdb-deep-find-tags-by-name name nil t)))
 	 (done nil)
 	 )
     (save-excursion
