@@ -1,9 +1,9 @@
 ;;; semantic-load.el --- Autoload definitions for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.32 2002/09/07 02:15:00 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.33 2003/03/17 01:17:49 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -79,6 +79,9 @@ other criteria.")
   (global-semantic-show-parser-state-mode 1)
 
   (global-semanticdb-minor-mode 1)
+
+  (when (boundp header-line-format)
+    (global-semantic-stickyfunc-mode 1))
 
   ;; This loads any created system databases which get linked into
   ;; any searches performed.
