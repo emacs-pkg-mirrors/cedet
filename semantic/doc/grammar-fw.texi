@@ -139,19 +139,14 @@ understandable by a particular parser.  An unique file extension
 associates input grammars to a @emph{concrete} grammar mode, that is
 to a particular translator and parser.
 
-@semantic{} defines these @emph{concrete} grammar modes:
+@semantic{} provides these @emph{concrete} grammar modes:
 
-@table @code
-@item bovine-grammar-mode
-Associated to the @file{.by} file extension.  It produces Emacs Lisp
-code forms handled by the @semantic{} specific @acronym{LL} parser: the
-@emph{bovinator}.
-@item wisent-grammar-mode
-Associated to the @file{.wy} extension.  It produces Emacs Lisp code
-forms handled by the @acronym{LALR} parser @emph{wisent}.
-@end table
+@itemize @minus
+@item @code{bovine-grammar-mode}, @xref{BY grammars}.
+@item @code{wisent-grammar-mode}, @xref{WY grammars}.
+@end itemize
 
-Here is a quick view of the framework:
+The following diagram presents a global view of the framework:
 
 @flushleft
 @image{grammar-fw-ov}
@@ -1118,18 +1113,26 @@ are declared.  @xref{use-macros Decl}.
 @node BY grammars
 @section BY grammars
 
-@c Document here specificities of BY grammars.  Particularly how to
-@c write semantic actions, and the generated Elisp code.
+@acronym{BY} grammars are in files with the @file{.by} extension
+associated to the @code{bovine-grammar-mode} major mode.
 
-@c This is in bovine.texi
+In that mode, grammars are converted into an Emacs Lisp form
+understandable by the original @semantic{} @acronym{LL} parser.
 
+For more details on how the @acronym{LL} parser works,
+@inforef{top, the Bovine Parser Manual, bovine}.
+ 
 @node WY grammars
 @section WY grammars
 
-@c Document here specificities of WY grammars.  Particularly how to
-@c write semantic actions, and the generated Elisp code.
+@acronym{WY} grammars are in files with the @file{.wy} extension
+associated to the @code{wisent-grammar-mode} major mode.
 
-@c This is in wisent.texi
+In that mode, grammars are converted into an Emacs Lisp form
+understandable by the @semantic{} Bison-like @acronym{LALR} parser.
+
+For more details on how the @acronym{LALR} parser works,
+@inforef{top, the Wisent Parser Manual, wisent}.
 
 @node Adding a new grammar mode
 @chapter Adding a new grammar mode
