@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.2 2000/06/11 18:46:42 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.3 2000/06/13 14:27:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -148,6 +148,7 @@ These command lines continue to additional lines when the end with \\"
 	'((variable . "Variables")
 	  (function . "Rules")
 	  (include . "Dependencies"))
+	imenu-create-index-function 'semantic-create-imenu-index
 	))
 
 (add-hook 'makefile-mode-hook 'semantic-default-make-setup)
@@ -157,5 +158,3 @@ These command lines continue to additional lines when the end with \\"
 (provide 'semantic-make)
 
 ;;; semantic-make.el ends here
-
-
