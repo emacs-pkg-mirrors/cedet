@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.59.2.9 2003/04/04 09:42:16 berndl Exp $
+# X-RCS: $Id: c.bnf,v 1.59.2.10 2003/04/04 12:19:38 berndl Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -623,7 +623,8 @@ typeformbase : typesimple
 #	     | symbol template-specifier
 #	       ( $1 type "class" )
 #	     | namespace-symbol opt-stars opt-template-specifier
-	     | namespace-symbol opt-template-specifier
+#	     | namespace-symbol opt-template-specifier
+	     | namespace-symbol
 #	       ( ,$1 )
 	       ( ,$1 type "class" )
 	     | symbol
@@ -813,11 +814,25 @@ varnamelist : varname COMA varnamelist
 	      ( $1 )
 	    ;
 
-namespace-symbol : symbol COLON COLON namespace-symbol
-		   ( (concat $1 "::" (car $4)) )
-		 | symbol
+# Klaus Berndl <klaus.berndl@sdm.de>: 
+# Is necessary to parse stuff like 
+#     class list_of_facts : public list<fact>, public entity
+# and
+#     list <shared_ptr<item> >::const_iterator l;
+# Parses also invalid(?) and senseless(?) c++-syntax like
+#     symbol<template-spec>::symbol1<template-spec1>::test_iterator
+# but better parsing too much than to less
+namespace-symbol : symbol opt-template-specifier COLON COLON namespace-symbol
+		   ( (concat $1 "::" (car $5)) )
+		 | symbol opt-template-specifier
 		   ( $1 )
 		 ;
+
+#namespace-symbol : symbol COLON COLON namespace-symbol
+#		   ( (concat $1 "::" (car $4)) )
+#		 | symbol
+#		   ( $1 )
+#		 ;
 
 namespace-opt-class : symbol COLON COLON namespace-opt-class
 		      ( (concat $1 "::" (car $4)) )

@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.10 2003/02/01 18:16:39 berndl Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.11 2003/04/04 12:19:37 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -463,7 +463,7 @@
  ( builtintype
   ,(semantic-lambda
   (nth 0 vals)))
- ( namespace-symbol opt-template-specifier
+ ( namespace-symbol
   ,(semantic-lambda
   (nth 0 vals) (list 'type "class")))
  ( symbol
@@ -638,10 +638,10 @@
   (list (nth 0 vals))))
  ) ; end varnamelist
  (namespace-symbol
- ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b" namespace-symbol
+ ( symbol opt-template-specifier punctuation "\\b:\\b" punctuation "\\b:\\b" namespace-symbol
   ,(semantic-lambda
-  (list ( concat (nth 0 vals) "::" ( car (nth 3 vals))))))
- ( symbol
+  (list ( concat (nth 0 vals) "::" ( car (nth 4 vals))))))
+ ( symbol opt-template-specifier
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end namespace-symbol
