@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.53 2003/03/08 16:34:11 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.54 2003/03/11 00:42:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -220,6 +220,13 @@ The database base class does not save itself persistently.
 Subclasses could save themselves to a file, or to a database, or other
 form."
   nil)
+
+(defun semanticdb-save-current-db ()
+  "Save the current token database."
+  (interactive)
+  (message "Saving current token summaries...")
+  (semanticdb-save-db semanticdb-current-database)
+  (message "Saving current token summaries...done"))
 
 (defun semanticdb-save-all-db ()
   "Save all semantic token databases."
