@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.40 2003/08/29 16:11:43 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.41 2003/08/31 15:05:24 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -733,7 +733,6 @@ Also load the specified macro libraries."
       (insert header
               "\n;;; Prologue\n;;\n"
               prologue
-              "\n;;; Declarations\n;;\n"
               )
       ;; Evaluate the prologue now, because it might provide definition
       ;; of grammar macro expanders.
@@ -742,6 +741,8 @@ Also load the specified macro libraries."
       (save-excursion
         
 ;;;; Declarations
+        
+        (insert "\n;;; Declarations\n;;\n")
         
         ;; `eval-defun' is not necessary to reset `defconst' values.
         (semantic-grammar-insert-defconst
