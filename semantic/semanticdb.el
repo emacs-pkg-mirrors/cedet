@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.26 2001/04/30 22:14:09 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.27 2001/05/09 18:37:56 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -481,11 +481,12 @@ it returns the results of function `semanticdb-current-database'."
 			(expand-file-name default-directory))
 	  (setq root (car roots)))
       (setq roots (cdr roots)))
-    (let ((regexp (concat "^" (regexp-quote (expand-file-name root)))))
-      (while (and root adb)
-	(if (string-match regexp (oref (car adb) file))
-	    (setq dbs (cons (car adb) dbs)))
-	(setq adb (cdr adb))))
+    (if root
+        (let ((regexp (concat "^" (regexp-quote (expand-file-name root)))))
+          (while (and root adb)
+            (if (string-match regexp (oref (car adb) file))
+                (setq dbs (cons (car adb) dbs)))
+            (setq adb (cdr adb)))))
     dbs))
 
 ;;; Search routines
