@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.13 2001/05/14 16:27:21 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.14 2001/06/03 14:38:47 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -383,10 +383,10 @@ METHOD is the method that was attempting to be called."
 (if (and
      (child-of-class-p class-ab class-a)
      (child-of-class-p class-ab class-b)
-     (obj-of-class-p a class-a)
-     (obj-of-class-p ab class-a)
-     (obj-of-class-p ab class-b)
-     (obj-of-class-p ab class-ab)
+     (object-of-class-p a class-a)
+     (object-of-class-p ab class-a)
+     (object-of-class-p ab class-b)
+     (object-of-class-p ab class-ab)
      (eq (class-parents class-a) nil)
      (equal (class-parents class-ab) '(class-a class-b))
      (same-class-p a class-a)
