@@ -5,7 +5,7 @@
 ;; Author: Richard Y. Kim, <ryk@ap.com>
 ;; Maintainer: Richard Y. Kim, <ryk@ap.com>
 ;; Created: Fri Jun 16 17:23:11 2000
-;; Version: $Id: sb-texinfo.el,v 1.4 2000/07/13 20:18:25 zappo Exp $
+;; Version: $Id: sb-texinfo.el,v 1.5 2000/07/19 01:17:48 zappo Exp $
 ;; Keywords:
 
 ;; This program is free software; you can redistribute it and/or
@@ -36,7 +36,7 @@
 ;; interface.
 
 ;; Installtation procedure:
-;;   Install speedbar 0.11 or later.
+;;   Install speedbar 0.12 or later.
 ;;   Add the following to your ~/.emacs file:
 ;;   (eval-after-load "speedbar" '(load-library "sb-texinfo"))
 
@@ -58,7 +58,7 @@
 
 ;;; Change Log:
 ;;;
-;;; 1.6 - Eric Ludlam
+;;; 1.6 - By Eric Ludlam <zappo@gnu.org>
 ;;;       speedbar-insert-texinfo-list no longer sets sthm to nil.
 ;;;       speedbar-format-texinfo-list uses new positioned group for
 ;;;       any chapter w/ sections (etc)  Also set new
