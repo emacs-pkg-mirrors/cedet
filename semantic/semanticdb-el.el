@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.12 2003/09/07 02:53:33 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.13 2003/11/20 14:53:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,17 +64,24 @@
 
 ;;; Filename based methods
 ;;
-(defmethod semanticdb-file-table ((obj semanticdb-project-database-emacs-lisp) filename)
-  "From OBJ, return FILENAME's associated table object.
-For Emacs Lisp, creates a specialized table."
-  ;; Scan for it on the load path.  Make a nice table for it.
-  (if (slot-boundp obj 'tables)
-      (car (oref obj tables))
-    (let ((newtable (semanticdb-table-emacs-lisp filename)))
+(defmethod semanticdb-get-database-tables ((obj semanticdb-project-database-emacs-lisp))
+  "For an Emacs Lisp database, there are no explicit tables.
+Create one of our special tables that can act as an intermediary."
+  ;; We need to return something since there is always the "master table"
+  ;; The table can then answer file name type questions.
+  (when (not (slot-boundp obj 'tables))
+    (let ((newtable (semanticdb-table-emacs-lisp "tmp")))
       (oset obj tables (list newtable))
       (oset newtable parent-db obj)
       (oset newtable tags nil)
-      newtable)))
+      ))
+  (call-next-method))
+
+(defmethod semanticdb-file-table ((obj semanticdb-project-database-emacs-lisp) filename)
+  "From OBJ, return FILENAME's associated table object.
+For Emacs Lisp, creates a specialized table."
+  (car (semanticdb-get-database-tables obj))
+  )
 
 (defmethod semanticdb-get-tags ((table semanticdb-table-emacs-lisp ))
   "Return the list of tags belonging to TABLE."
@@ -108,10 +115,9 @@ This was snarfed out of eldoc."
                 prelim-def))
          (arglist (cond ((null def) nil)
 			((byte-code-function-p def)
-                         (cond ((fboundp 'compiled-function-arglist)
-                                (funcall 'compiled-function-arglist def))
-                               (t
-                                (aref def 0))))
+			 ;; This is an eieio compatibility function.
+			 ;; We depend on EIEIO, so use this.
+			 (eieio-compiled-function-arglist def))
                         ((eq (car-safe def) 'lambda)
                          (nth 1 def))
                         (t nil))))
@@ -129,7 +135,9 @@ TOKTYPE is a hint to the type of tag desired."
 	    nil	;; return type
 	    (semantic-elisp-desymbolify
 	     (semanticdb-elisp-sym-function-arglist sym)) ;; arg-list
-	    'user-visible (interactive-form sym)
+	    'user-visible (condition-case nil
+			      (interactive-form sym)
+			    (error nil))
 	    ))
 	  ((and (eq toktype 'variable) (boundp sym))
 	   (semantic-tag-new-variable
