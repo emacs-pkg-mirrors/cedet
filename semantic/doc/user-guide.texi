@@ -47,7 +47,7 @@ details which can be seen, such as return type, or arguments to
 functions.
 
 If you use @file{semantic-load.el}, you do not need to add the above
-lines in your .emacs file.
+lines in your @file{.emacs} file.
 
 Two additional speedbar modes are described in @ref{Speedbar Analysis}, and
 @ref{class browser}.
@@ -87,7 +87,7 @@ tags to show the current function.  The semantic support for this
 function uses overlays, which is much faster.
 
 If you use @file{semantic-load.el}, you do not need to add the above
-lines in your .emacs file.
+lines in your @file{.emacs} file.
 
 You can customize imenu with the following options:
 
@@ -176,9 +176,9 @@ If optional @var{IN-CONTEXT} is non-@code{nil} jump in the local type's context
 When called interactively you can combine the @var{IN-CONTEXT} and
 @var{NO-DEFAULT} switches like this:
 
-- \[universal-argument]       @var{IN-CONTEXT}.
-- \[universal-argument] -     @var{NO-DEFAULT}.
-- \[universal-argument] \[universal-argument]   @var{IN-CONTEXT} + @var{NO-DEFAULT}.
+- @kbd{C-u}       @var{IN-CONTEXT}.
+- @kbd{C-u} -     @var{NO-DEFAULT}.
+- @kbd{C-u} @kbd{C-u}   @var{IN-CONTEXT} + @var{NO-DEFAULT}.
 @end defun
 
 @subsubsection Searching
@@ -277,9 +277,9 @@ mode is enabled:
 
 @table @key
 @item C-c , n
-senator-next-token
+senator-next-tag
 @item C-c , p
-senator-previous-token
+senator-previous-tag
 @item C-c , i
 senator-isearch-toggle-semantic-mode
 @item C-c , j
@@ -287,13 +287,13 @@ senator-jump
 @item C-c , TAB
 senator-complete-symbol
 @item C-c , SPC
-senator-completion-menu-keyboard-popup
+senator-completion-menu-popup
 @item C-c , C-y
-senator-yank-token
+senator-yank-tag
 @item C-c , C-w
-senator-kill-token
+senator-kill-tag
 @item C-c , M-w
-senator-copy-token
+senator-copy-tag
 @item C-c ,
 @end table
 @end deffn
@@ -307,25 +307,28 @@ use this:
 (add-hook 'semantic-init-hooks 'senator-minor-mode)
 @end example
 
+If you use @file{semantic-load.el}, you do not need to add the above
+lines in your @file{.emacs} file.
+
 To customize navigation around different types of tokens, use the
 following variables:
 
-@deffn Option senator-step-at-token-ids
-List of token identifiers where to step.
-Token identifier is symbol @code{'variable}, @code{'function}, @code{'type}, or other.  If
-@code{nil} navigation steps at any token found.  This is a buffer local
-variable.  It can be set in a mode hook to get a specific language
+@deffn Option senator-step-at-tag-classes
+List of tag classes where to step.
+A tag class is a symbol like @code{'variable}, @code{'function}, @code{'type}, or other.
+If @code{nil} navigation steps at any tag found.  This is a buffer local
+variable.  It can be set in a mode hook to get a specific langage
 navigation.
 @end deffn
 
-@deffn Option senator-step-at-start-end-token-ids
-List of token identifiers where to step at start and end.
-Token identifier is symbol @code{'variable}, @code{'function}, @code{'type}, or other.  If
-@code{nil} navigation only step at beginning of tokens.  If @code{t} step at start
-and end of any token where it is allowed to step.  Also, stepping at
-start and end of a token prevent stepping inside its children.  This
-is a buffer local variable.  It can be set in a mode hook to get a
-specific language navigation.
+@deffn Option senator-step-at-start-end-tag-classes
+List of tag classes where to step at start and end.
+A tag class is a symbol like @code{'variable}, @code{'function}, @code{'type}, or other.
+If @code{nil}, navigation only step at beginning of tags.  If @code{t}, step at
+start and end of any tag where it is allowed to step.  Also, stepping
+at start and end of a tag prevent stepping inside its components.
+This is a buffer local variable.  It can be set in a mode hook to get
+a specific langage navigation.
 @end deffn
 
 To have a mode specific customization, do something like this in a hook:
@@ -333,8 +336,8 @@ To have a mode specific customization, do something like this in a hook:
 @example
 (add-hook 'mode-hook
           (lambda ()
-            (setq senator-step-at-token-ids '(function variable))
-            (setq senator-step-at-start-end-token-ids '(function))
+            (setq senator-step-at-tag-classes '(function variable))
+            (setq senator-step-at-start-end-tag-classes '(function))
             ))
 @end example
 
@@ -345,11 +348,12 @@ only.
 @subsection Contact information for Senator
 
 Any comments, suggestions, bug reports or upgrade requests are
-welcome.  Please send them to David Ponce at david@@dponce.com
+welcome.  Please send them to the semantic mailing list, or to
+David Ponce at david@@dponce.com
 
-@node analyzer
-@section analyzer
-@cindex analyzer
+@node Analyzer
+@section Analyzer
+@cindex Analyzer
 
 The semantic analyzer is a library tool that performs context
 analysis and can derive useful information.
@@ -361,39 +365,32 @@ in a separate buffer.
 Returns an object based on symbol @dfn{semantic-analyze-context}.
 @end deffn
 
-While this can be used as a command, it is mostly useful that way
-while debugging the analyzer, or tools using the return value.  Use
-the Emacs command @dfn{describe-class} to learn more about using
+While this can be used as a command, it is mostly useful while
+debugging the analyzer, or tools using the return value.  Use the
+Emacs command @dfn{describe-class} to learn more about using
 @code{semantic-analyze-context}.
 
-Another command that uses the analyzer context derives a completion
+Another command that uses the analyzer context can derive a completion
 list.
 
 @deffn Command semantic-analyze-possible-completions context
 Return a list of semantic tokens which are possible completions.
-@var{CONTEXT} is either a position (such as point), or a pre-calculated
+@var{CONTEXT} is either a position (such as point), or a precalculated
 context.  Passing in a context is useful if the caller also needs
 to access parts of the analysis.
-
 Completions run through the following filters:
-
 @table @asis
 @item Elements currently in scope
 @item Constants currently in scope
 @item Elements match the @code{:prefix} in the @var{CONTEXT}.
-@item Type of the completion matches the type of the context.
-@end table
-
+@item Type of the completion matches the type of the context. 
 Context type matching can identify the following:
-
-@table @asis
 @item No specific type
 @item Assignment into a variable of some type.
 @item Argument to a function with type constraints.
+When called interactively, displays the list of possible completions
+in a buffer.
 @end table
-
-When called interactively, this function displays the list of
-possible completions.  This is useful for debugging.
 @end deffn
 
 @menu
@@ -401,8 +398,7 @@ possible completions.  This is useful for debugging.
 * Speedbar Analysis::           
 @end menu
 
-@node Smart Completion, Speedbar Analysis, analyzer, analyzer
-@comment  node-name,  next,  previous,  up
+@node Smart Completion
 @subsection Smart Completion
 
 The file @file{semantic-ia.el} contains two commands for performing
@@ -413,18 +409,15 @@ to key bindings.
 
 @deffn Command semantic-ia-complete-symbol point
 Complete the current symbol at @var{POINT}.
-Completion options are calculated with
-@dfn{semantic-analyze-possible-completions}.
+Completion options are calculated with @dfn{semantic-analyze-possible-completions}.
 @end deffn
 
 @deffn Command semantic-ia-complete-symbol-menu point
 Complete the current symbol via a menu based at @var{POINT}.
-Completion options are calculated with
-@dfn{semantic-analyze-possible-completions}.
+Completion options are calculated with @dfn{semantic-analyze-possible-completions}.
 @end deffn
 
-@node Speedbar Analysis,  , Smart Completion, analyzer
-@comment  node-name,  next,  previous,  up
+@node Speedbar Analysis
 @subsection Speedbar Analysis
 
 The Analyzer output can be used through a speedbar interface.
@@ -433,7 +426,7 @@ function, local arguments and variables, details on the prefix (the
 symbol the cursor is on), and a list of all possible completions.
 Completions are specified in
 @dfn{semantic-analyze-possible-completions}
-@ref{analyzer}.
+@ref{Analyzer}.
 
 Each entry can be jumped to by clicking on the name.  For strongly
 typed languages, this means you will jump to the definition of the
@@ -456,14 +449,14 @@ list of possible completions.
 You can also enter speedbar analyzer mode by selecting ``Analyze''
 from the ``Display'' menu item on speedbar's menu.
 
-@node class browser
-@section class browser
-@cindex class browser
+@node Class Browser
+@section Class Browser
+@cindex Class Browser
 
 The semantic class browser is a library that can covert a project
-group of files into an EIEIO based structure that contains links
-between structures so that the inheritance links between semantic
-tokens can be easily navigated.
+group of files into an object structure that contains links between
+structures so that the inheritance links between semantic tokens can
+be easily navigated.
 
 The core to this library is one function in @file{semantic-cb.el}.
 
@@ -474,7 +467,7 @@ the slot `:types', a list of all top-level types.  Each element is a
 class of type @dfn{semantic-cb-token}, or @dfn{semantic-cb-type}.
 @end defun
 
-Use the Emacs function `describe-class' to learn more about these
+Use the Emacs function @dfn{describe-class} to learn more about these
 classes.
 
 You can access the class inheritance structure through a speedbar
@@ -489,11 +482,11 @@ the class hierarchy can then be navigated using traditional speedbar
 interactions.
 @end deffn
 
-@node document
-@section document
-@cindex document
+@node Document
+@section Document
+@cindex Document
 
-The document program uses semantic token streams to aid in the
+The document program uses semantic tag tables to aid in the
 creation of texinfo documentation.
 For example, the following is a code fragment from @file{document.el}
 that comes with semantic:
@@ -513,7 +506,7 @@ After asking for the texinfo file name, which in this case is
 @file{semantic.texi}, this will update the texinfo
 documentation of the @code{document} function in that file.
 The result is that the following texinfo text will be either created
-or updated in @file{semantic.texi} file:
+or updated in @file{user-guide.texi} file:
 
 @example
 @@deffn Command document &optional resetfile
@@ -530,9 +523,10 @@ the @@var command and the @code{nil} code fragment is marked with
 @@code command.
 This example provides just a glimpse of what is possible with the
 syntactic information provided by semantic.
+@refill
 
-The main entry point for the
-documentation generator are the following commands:
+The main entry point for the documentation generator are the following
+commands:
 
 @deffn Command document &optional resetfile
 Document the function or variable the cursor is in.
@@ -544,8 +538,8 @@ When non-@code{nil}, query for a new documentation file.
 Document the current function with an inline comment.
 @end deffn
 
-@deffn Command document-insert-defun-comment nonterm buffer
-Insert mode-comment documentation about @var{NONTERM} from @var{BUFFER}.
+@deffn Command document-insert-defun-comment tag buffer
+Insert mode-comment documentation about @var{TAG} from @var{BUFFER}.
 @end deffn
 
 @deffn Command document-insert-new-file-header header
@@ -557,79 +551,111 @@ In addition to these base documentation commands, the texinfo semantic
 parser includes a two convenience functions when working directly with
 texinfo files.
 
-@deffn Command semantic-texi-update-doc &optional token
-Update the documentation for @var{TOKEN}.
+@deffn Command semantic-texi-update-doc &optional tag
+Update the documentation for @var{TAG}.
 If the current buffer is a texinfo file, then find the source doc, and
 update it.  If the current buffer is a source file, then get the
 documentation for this item, find the existing doc in the associated
 manual, and update that.
 @end deffn
 
-@deffn Command semantic-texi-goto-source &optional token
-Jump to the source for the definition in the texinfo file @var{TOKEN}.
-If @var{TOKEN} is @code{nil}, it is derived from the deffn under @var{POINT}.
+@deffn Command semantic-texi-goto-source &optional tag
+Jump to the source for the definition in the texinfo file @var{TAG}.
+If @var{TAG} is @code{nil}, it is derived from the deffn under @var{POINT}.
 @end deffn
 
-@node charts
-@section charts
-@cindex charts
+@node Charts
+@section Charts
+@cindex Charts
 
 Some commands to draw charts of statistics generated from parsing:
 
-@deffn Command semantic-chart-nonterminals-by-token &optional buffer-or-stream
-Create a bar chart representing the number of nonterminals for a token.
-Each bar represents how many toplevel nonterminal in @var{BUFFER-OR-STREAM}
-exist with a given token type.  See `semantic-symbol->name-assoc-list'
+@deffn Command semantic-chart-tags-by-class &optional tagtable
+Create a bar chart representing the number of tags for a given tag class.
+Each bar represents how many toplevel tags in @var{TAGTABLE}
+exist with a given class.  See @code{semantic-symbol->name-assoc-list}
 for tokens which will be charted.
+@var{TAGTABLE} is passedto @dfn{semantic-something-to-tag-table}.
 @end deffn
 
-@deffn Command semantic-chart-database-size &optional buffer-or-stream
+@deffn Command semantic-chart-database-size &optional tagtable
 Create a bar chart representing the size of each file in semanticdb.
-Each bar represents how many toplevel nonterminals in @var{BUFFER-OR-STREAM}
+Each bar represents how many toplevel nonterminals in @var{TAGTABLE}
 exist in each database entry.
+@var{TAGTABLE} is passedto @dfn{semantic-something-to-tag-table}.
 @end deffn
 
-@deffn Command semantic-chart-nonterminal-complexity-token &optional symbol buffer-or-stream
+@deffn Command semantic-chart-tag-complexity &optional class tagtable
 Create a bar chart representing the complexity of some tokens.
-Complexity is calculated for tokens with a token of @var{SYMBOL}.  Each bar
-represents the complexity of some nonterminal in @var{BUFFER-OR-STREAM}.
+Complexity is calculated for tokens with a tag of @var{CLASS}.  Each bar
+represents the complexity of some nonterminal in @var{TAGTABLE}.
 Only the most complex items are charted.
+@var{TAGTABLE} is passedto @dfn{semantic-something-to-tag-table}.
 @end deffn
 
 @node Minor Modes
 @section Minor Modes
 @cindex Minor Modes
 
-@deffn Command semantic-show-dirty-mode &optional arg
-Minor mode for highlighting dirty tokens.
+@subsection Highlight Edits Mode
+
+Highlight edits mode is useful mostly for debugging the incremental
+parser.  As you change text, that effected text is highlighted, and
+you can visual predict what actions the incremental parser will need
+to make.
+
+@deffn Command semantic-highlight-edits-mode &optional arg
+Minor mode for highlighting changes made in a buffer.
+Changes are tracked by semantic so that the incremental parser can work
+properly.
 With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-@code{nil} if the
 minor mode is enabled.
 @end deffn
 
-@deffn Command global-semantic-show-dirty-mode &optional arg
-Toggle global use of @code{semantic-show-dirty-mode}.
-If @var{ARG} is positive, enable, if it is negative, disable.
-If @var{ARG} is @code{nil}, then toggle.
+@deffn Face semantic-highlight-edits-face
+Face used to show dirty tokens in @code{semantic-highlight-edits-mode}.
 @end deffn
 
-@deffn Option semantic-dirty-token-face
-Face used to show dirty tokens in @code{semantic-show-dirty-token-mode}.
+@subsection Parser State
+
+@deffn Command semantic-show-parser-state-mode &optional arg
+Minor mode for displaying parser cache state in the modeline.
+The cache can be in one of three states.  They are
+Up to date, Partial reprase needed, and Full reparse needed.
+The state is indicated in the modeline with the following characters:
+@table @code
+@item -
+The cache is up to date.
+@item !
+The cache requires a full update.
+@item ~
+The cache needs to be incrementally parsed.
+@item @@
+Auto-parse in progress (not set here.)
+@end table
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
 @end deffn
+
+@subsection Unmatched Syntax Highlighting
 
 @deffn Command semantic-show-unmatched-syntax-mode &optional arg
-Minor mode to highlight unmatched-syntax tokens.
+Minor mode to highlight unmatched syntax tokens.
+When a parser executes, some elements in the buffer may not match any
+parser rules.  These text characters are considered unmatched syntax.
+Often time, the display of unmatched syntax can expose coding
+problems before the compiler is run.
+
 With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-@code{nil} if the
 minor mode is enabled.
-@end deffn
 
-@deffn Command global-semantic-show-unmatched-syntax-mode &optional arg
-Toggle global use of @dfn{semantic-show-unmatched-syntax-mode}.
-If @var{ARG} is positive, enable, if it is negative, disable.
-If @var{ARG} is @code{nil}, then toggle.
+@kbd{C-c , `}		@dfn{semantic-show-unmatched-syntax-next}
 @end deffn
 
 @deffn Option semantic-unmatched-syntax-face
@@ -637,14 +663,15 @@ Face used to show unmatched-syntax in.
 The face is used in  @dfn{semantic-show-unmatched-syntax-mode}.
 @end deffn
 
-@deffn Command global-semantic-auto-parse-mode &optional arg
-Toggle global use of @dfn{semantic-auto-parse-mode}.
-If @var{ARG} is positive, enable, if it is negative, disable.
-If @var{ARG} is @code{nil}, then toggle.
-@end deffn
+@subsection Auto Parse
 
 @deffn Command semantic-auto-parse-mode &optional arg
-Minor mode to auto parse buffer following changes.
+Minor mode to auto parse buffer following a change.
+When this mode is off, a buffer is only rescanned for tokens when
+some command requests the list of available tokens.  When auto-parse
+is enabled, Emacs periodically checks to see if the buffer is out of
+date, and reparses while the user is idle (not typing.)
+
 With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-@code{nil} if the
@@ -662,9 +689,9 @@ run as soon as Emacs is idle.
 @end deffn
 
 @deffn Option semantic-auto-parse-max-buffer-size
-Maximum size in bytes of buffers automatically re-parsed.
-If this value is less than or equal to @var{0} buffers are automatically
-re-parsed regardless of their size.
+Maximum size in bytes of buffers automatically reparsed.
+If this value is less than or equal to @var{0}, buffers are automatically
+reparsed regardless of their size.
 @end deffn
 
 @node semanticdb
