@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.31 2002/08/11 20:29:23 ponced Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.32 2002/09/07 02:15:00 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 ;;; Code:
 ;;
 
-(load "semantic-al" nil t)
+(eval-and-compile (load "semantic-al" nil t))
 
 ;;; Add parser directories
 ;;
@@ -63,19 +63,30 @@ other criteria.")
   (when (and (eq window-system 'x)
 	     (locate-library "imenu"))
     (add-hook 'semantic-init-hooks (lambda ()
-				     (imenu-add-to-menubar "TOKENS"))))
+				     (condition-case nil
+					 (imenu-add-to-menubar "TOKENS")
+				       (error nil)))))
 
   (when semantic-load-turn-everything-on
-    (global-semantic-show-dirty-mode 1)
     (global-semantic-highlight-edits-mode 1)
     )
 
   (global-senator-minor-mode 1)
   (global-semantic-show-unmatched-syntax-mode 1)
-  (global-semantic-auto-parse-mode 1)
-  (global-semanticdb-minor-mode 1)
   (global-semantic-summary-mode 1)
+  (global-semantic-auto-parse-mode 1)
+
   (global-semantic-show-parser-state-mode 1)
+
+  (global-semanticdb-minor-mode 1)
+
+  ;; This loads any created system databases which get linked into
+  ;; any searches performed.
+  (if (and (boundp 'semanticdb-default-system-save-directory)
+	   (stringp semanticdb-default-system-save-directory)
+	   (file-exists-p semanticdb-default-system-save-directory))
+      (semanticdb-load-system-caches))
+
  )
 
 (provide 'semantic-load)
