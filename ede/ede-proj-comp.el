@@ -1,10 +1,10 @@
 ;;; ede-proj-comp.el --- EDE Generic Project compiler/rule driver
 
-;;;  Copyright (C) 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1999, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-comp.el,v 1.5 2001/01/10 06:56:03 zappo Exp $
+;; RCS: $Id: ede-proj-comp.el,v 1.6 2001/05/19 22:59:10 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -233,15 +233,15 @@ This will prevent rules from creating duplicate variables or rules."
 ;;; Methods:
 (defmethod ede-proj-tweak-autoconf ((this ede-compilation-program))
   "Tweak the configure file (current buffer) to accomodate THIS."
-  (with-slots (autoconf) this
-    (while autoconf
-      (cond ((stringp (car autoconf))
-	     (autoconf-insert-new-macro (car autoconf)))
-	    ((consp (car autoconf))
-	     (autoconf-insert-new-macro (car (car autoconf))
-					(cdr (car autoconf))))
-	    (t (error "Autoconf directives must be a string, or cons cell")))
-      (setq autoconf (cdr autoconf)))))
+  (mapcar
+   (lambda (obj)
+     (cond ((stringp obj)
+	      (autoconf-insert-new-macro obj))
+	     ((consp obj)
+	      (autoconf-insert-new-macro (car obj) (cdr obj)))
+	     (t (error "Autoconf directives must be a string, or cons cell")))
+     ))
+  (oref this autoconf))
 
 (defmethod ede-proj-flush-autoconf ((this ede-compilation-program))
   "Flush the configure file (current buffer) to accomodate THIS."
@@ -251,14 +251,15 @@ This will prevent rules from creating duplicate variables or rules."
   "Insert variables needed by the compiler THIS."
   (if (slot-boundp this 'variables)
       (with-slots (variables) this
-	(while variables
-	  (insert (car (car variables)) "=")
-	  (let ((cd (cdr (car variables))))
+	(mapcar
+	 (lambda (var)
+	   (insert (car var) "=")
+	  (let ((cd (cdr var)))
 	    (if (listp cd)
 		(mapc (lambda (c) (insert " " c)) cd)
 	      (insert cd)))
-	  (insert "\n")
-	  (setq variables (cdr variables))))))
+	  (insert "\n"))
+	 variables))))
 
 (defmethod ede-compiler-intermediate-objects-p ((this ede-compiler))
   "Return non-nil if THIS has intermediate object files.
@@ -314,10 +315,10 @@ The object creating makefile rules must call this method for the
 compiler it decides to use after inserting in the rule."
   (when (slot-boundp this 'commands)
     (with-slots (commands) this
-      (while commands
-	(insert "\t" (car commands) "\n")
-	(setq commands (cdr commands)))
-      (insert "\n"))))
+      (mapcar
+       (lambda (obj) (insert "\t" obj "\n"))
+       commands))
+    (insert "\n")))
 
 ;;; Some details about our new macro
 ;;

@@ -1,10 +1,10 @@
 ;;; ede-proj.el --- EDE Generic Project file driver
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.35 2001/01/10 06:59:33 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.36 2001/05/19 22:59:34 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -532,7 +532,7 @@ Converts all symbols into the objects to be used."
 	((object-assoc "Makefile" 'makefile (oref this targets))
 	 "Makefile")
 	(t
-	 (with-slots (targets) this
+	 (let ((targets (oref this targets)))
 	   (while (and targets
 		       (not (obj-of-class-p
 			     (car targets)
@@ -540,7 +540,7 @@ Converts all symbols into the objects to be used."
 	     (setq targets (cdr targets)))
 	   (if targets (oref (car targets) makefile)
 	     "Makefile")))))
-  
+
 (defun ede-proj-regenerate ()
   "Regenerate Makefiles for and edeproject project."
   (interactive)
