@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.59 2002/08/04 02:07:12 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.60 2002/08/07 17:57:12 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -130,7 +130,7 @@ Return a bovination list to use."
       ;; Eval and compile can be wrapped around definitions, such as in
       ;; eieio.el, so splice it's parts back into the main list.
       (condition-case foo
-	  (semantic-bovinate-region (car sl) (cdr sl) nil 1)
+	  (semantic-parse-region (car sl) (cdr sl) nil 1)
 	(error (message "MUNGE: %S" foo)
 	       nil))
       )
