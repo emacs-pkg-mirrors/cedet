@@ -1,9 +1,9 @@
 ;;; speedbar - quick access to files and tags -*-byte-compile-warnings:nil;-*-
 ;;;
-;;; Copyright (C) 1996 Eric M. Ludlam
+;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.21 1997/01/25 15:12:38 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.22 1997/01/30 01:33:39 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -703,9 +703,13 @@ modeline.  This is only useful for non-XEmacs"
 (defun speedbar-item-byte-compile ()
   "Byte compile the item under the cursor or mouse if it is a lisp file."
   (interactive)
-  (let ((f (speedbar-line-file)))
+  (let ((f (speedbar-line-file))
+	(sf (selected-frame)))
     (if (and (file-exists-p f) (string-match "\\.el$" f))
-	(byte-compile-file f nil))
+	(progn
+	  (select-frame speedbar-attached-frame)
+	  (byte-compile-file f nil)
+	  (select-frame sf)))
     ))
 
 (defun speedbar-mouse-item-info (event)
@@ -1789,7 +1793,9 @@ multiple defaults and dynamically determine which colors to use."
 				     (x-get-resource ".background"
 						     "Background" 'string)
 				   (x-get-resource ".background"
-						   "Background"))))
+						   "Background"))
+				 ;; if no other options, default is white
+				 "white"))
 			(bgcr (if speedbar-xemacsp
 				  (color-instance-rgb-components
 				   (make-color-instance bgc))
