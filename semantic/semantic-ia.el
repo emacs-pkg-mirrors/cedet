@@ -1,10 +1,10 @@
 ;;; semantic-ia.el --- Interactive Analysis functions
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2000-2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.5 2004/01/13 03:43:14 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.6 2005/01/12 22:31:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -158,6 +158,35 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	   )
 	  (t (message str))
 	  )))
+
+;;;###autoload
+(defun semantic-ia-show-doc (point)
+  "Display the code-level documentation for the symbol at POINT."
+  (interactive "P")
+  (let* ((ctxt (semantic-analyze-current-context point))
+	 (pf (reverse (oref ctxt prefix))))
+    ;; If PF, the prefix is non-nil, then the last element is either
+    ;; a string (incomplete type), or a semantic TAG.  If it is a TAG
+    ;; then we should be able to find DOC for it.
+    (cond ((stringp (car pf))
+	   (message "Incomplete symbol name."))
+	  ((semantic-tag-p (car pf))
+	   (let ((doc (semantic-documentation-for-tag (car pf))))
+	     (with-output-to-temp-buffer "*TAG DOCUMENTATION*"
+	       (princ "Tag: ")
+	       (princ (semantic-format-tag-prototype (car pf)))
+	       (princ "\n")
+	       (princ "\n")
+	       (princ "Snarfed Documentation: ")
+	       (princ "\n")
+	       (princ "\n")
+	       (if doc
+		   (princ doc)
+		 (princ "  Documentation unavailable."))
+	       )))
+	  (t
+	   (message "Unknown tag.")))
+    ))
 
 (provide 'semantic-ia)
 
