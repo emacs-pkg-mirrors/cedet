@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "COGRE"
   :name "COGRE"
-  :version "0.2"
+  :version "0.3"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-makefile-info "info"
@@ -20,10 +20,11 @@
     :path ""
     :source '("picture-hack.el")
     )
-   (ede-proj-target-elisp "COGRE"
+   (ede-proj-target-elisp "(cogre.el cogre-uml.el uml-create.el)"
     :name "COGRE"
     :path ""
-    :source '("cogre.el" "cogre-uml.el" "uml-create.el")
+    :source '("cogre.el" "cogre-uml.el" "uml-create.el" "cogre-lay.el")
+    :versionsource '("cogre.el")
     )
    )
   :web-site-url "http://cedet.sourceforge.net/cogre.shtml"
