@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.85.2.2 2003/10/29 15:08:06 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.85.2.3 2003/11/01 19:40:50 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -128,8 +128,8 @@ navigation."
   :group 'senator
   :type '(repeat (symbol)))
 (make-variable-buffer-local 'senator-step-at-tag-classes)
-(make-obsolete-variable 'semantic-step-at-token-ids
-                        'semantic-step-at-tag-classes)
+(semantic-varalias-obsolete 'semantic-step-at-token-ids
+                            'semantic-step-at-tag-classes)
 
 ;;;###autoload
 (defcustom senator-step-at-start-end-tag-classes '(function)
@@ -145,8 +145,8 @@ a specific langage navigation."
                  (repeat :menu-tag "Symbols" (symbol))
                  (const  :tag "All" t)))
 (make-variable-buffer-local 'senator-step-at-start-end-tag-classes)
-(make-obsolete-variable 'senator-step-at-start-end-token-ids
-                        'senator-step-at-start-end-tag-classes)
+(semantic-varalias-obsolete 'senator-step-at-start-end-token-ids
+                            'senator-step-at-start-end-tag-classes)
 
 (defcustom senator-highlight-found t
   "*If non-nil highlight tags found.
@@ -2162,7 +2162,8 @@ If semantic tags are available, use them to navigate."
   "When advising `add-log-current-defun', tag classes used.
 Semantic tags that are of these classses will be used to find the name
 used by add log.")
-(make-obsolete-variable 'senator-add-log-tokens 'senator-add-log-tags)
+(semantic-varalias-obsolete 'senator-add-log-tokens
+                            'senator-add-log-tags)
 
 (defadvice add-log-current-defun (around senator activate)
   "Return name of function definition point is in, or nil."
