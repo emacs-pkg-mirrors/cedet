@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.7.2d
+;; Version: 0.7.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.132 1998/12/12 12:20:35 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.133 1998/12/19 13:25:30 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -363,26 +363,6 @@ between different directories."
   :group 'speedbar
   :type 'integer)
 
-;; These values by Hrvoje Niksic <hniksic@srce.hr>
-(defcustom speedbar-frame-plist
-  '(minibuffer nil width 20 border-width 0
-	       internal-border-width 0 unsplittable t
-	       default-toolbar-visible-p nil has-modeline-p nil
-	       menubar-visible-p nil)
-  ;; The following will let you change the cursors.
-  ;;'(text-pointer-glyph [cursor-font :data "top_left_arrow"]
-  ;;  nontext-pointer-glyph [cursor-font :data "top_left_arrow"]
-  ;;  selection-pointer-glyph [cursor-font :data "hand2"])))
-  "*Parameters to use when creating the speedbar frame in XEmacs.
-Parameters not listed here which will be added automatically are
-`height' which will be initialized to the height of the frame speedbar
-is attached to."
-  :group 'speedbar
-  :type '(repeat (group :inline t
-			(symbol :tag "Property")
-			(sexp :tag "Value"))))
-
-;; Emacs frame parameters
 (defcustom speedbar-frame-parameters '((minibuffer . nil)
 				       (width . 20)
 				       (border-width . 0)
@@ -393,7 +373,22 @@ Parameters not listed here which will be added automatically are
 `height' which will be initialized to the height of the frame speedbar
 is attached to."
   :group 'speedbar
-  :type '(repeat (sexp :tag "Parameter")))
+  :type '(repeat (sexp :tag "Parameter:")))
+
+;; These values by Hrvoje Niksic <hniksic@srce.hr>
+(defcustom speedbar-frame-plist
+  '(minibuffer nil width 20 border-width 0
+	       internal-border-width 0 unsplittable t
+	       default-toolbar-visible-p nil has-modeline-p nil
+	       menubar-visible-p nil)
+  "*Parameters to use when creating the speedbar frame in XEmacs.
+Parameters not listed here which will be added automatically are
+`height' which will be initialized to the height of the frame speedbar
+is attached to."
+  :group 'speedbar
+  :type '(repeat (group :inline t
+			(symbol :tag "Property")
+			(sexp :tag "Value"))))
 
 (defcustom speedbar-use-imenu-flag (stringp (locate-library "imenu"))
   "*Non-nil means use imenu for file parsing.  nil to use etags.
@@ -1014,17 +1009,24 @@ supported at a time.
 	  (raise-frame speedbar-frame)
 	(setq speedbar-frame
 	      (if speedbar-xemacsp
-		  (make-frame (nconc (list 'height
-					   (speedbar-needed-height))
-				     speedbar-frame-plist))
+		  ;; Only guess height if it is not specified.
+		  (if (member 'height speedbar-frame-plist)
+		      (make-frame speedbar-frame-plist)
+		    (make-frame (nconc (list 'height
+					     (speedbar-needed-height))
+				       speedbar-frame-plist)))
 		(let* ((mh (speedbar-frame-parameter nil 'menu-bar-lines))
 		       (cfx (speedbar-frame-parameter nil 'left))
 		       (cfy (speedbar-frame-parameter nil 'top))
 		       (cfw (frame-pixel-width))
 		       (params
-			(append
-			 speedbar-frame-parameters
-			 (list (cons 'height (+ mh (frame-height))))))
+			;; Only add a guessed height if one is not specified
+			;; in the input parameters.
+			(if (assoc 'height speedbar-frame-parameters)
+			    speedbar-frame-parameters
+			  (append
+			   speedbar-frame-parameters
+			   (list (cons 'height (+ mh (frame-height)))))))
 		       (frame
 			(if (or (< emacs-major-version 20)
 				(not (eq window-system 'x)))
@@ -1033,30 +1035,50 @@ supported at a time.
 				(x-sensitive-text-pointer-shape
 				 x-pointer-hand2))
 			    (make-frame params)))))
-		  ;; If cfx is a list, that means we grow from a specific edge
-		  ;; of the display.  Convert that to the distance from the
-		  ;; left side of the display.
-		  (if (consp cfx)
-		      (setq cfx 
-			    (if (eq (car cfx) '-)
-				;; A - means distance from the right edge
-				;; of the display, or DW - cfx - framewidth
-				(- (x-display-pixel-width) (car (cdr cfx))
-				   (frame-pixel-width))
-			      (car (cdr cfx)))))
-		  (if (and window-system (not (eq window-system 'pc)))
-		      (set-frame-position frame
-					  ;; Decide which side to put it
-					  ;; on.  200 is just a buffer
-					  ;; for the left edge of the
-					  ;; screen.  The extra 10 is just
-					  ;; dressings for window decorations.
-					  (if (< cfx 200)
-					      (+ cfx cfw 10)
-					    (- cfx (frame-pixel-width frame)
-					       10))
-					  cfy))
-		  frame)))
+		  ;; Position speedbar frame.
+		  (if (or (not window-system) (eq window-system 'pc)
+			  (assoc 'left speedbar-frame-parameters)
+			  (assoc 'top speedbar-frame-parameters))
+		      ;; Do no positioning if not on a windowing system,
+		      ;; or if left/top were specified in the parameters.
+		      frame
+		    (let ((cfx
+			   (if (not (consp cfx))
+			       cfx
+			     ;; If cfx is a list, that means we grow
+			     ;; from a specific edge of the display.
+			     ;; Convert that to the distance from the
+			     ;; left side of the display.
+			     (if (eq (car cfx) '-)
+				 ;; A - means distance from the right edge
+				 ;; of the display, or DW - cfx - framewidth
+				 (- (x-display-pixel-width) (car (cdr cfx))
+				    (frame-pixel-width))
+			       (car (cdr cfx))))))
+		      (modify-frame-parameters
+		       frame
+		       (list
+			(cons
+			 'left
+			 ;; Decide which side to put it
+			 ;; on.  200 is just a buffer
+			 ;; for the left edge of the
+			 ;; screen.  The extra 10 is just
+			 ;; dressings for window decorations.
+			 (let ((sfw (frame-pixel-width frame)))
+			   (let ((left-guess (- cfx 10 sfw))
+				 (right-guess (+ cfx cfw 5)))
+			     (let ((left-margin left-guess)
+				   (right-margin
+				    (- (x-display-pixel-width)
+				       right-guess 5 sfw)))
+			       (cond ((>= left-margin 0) left-guess)
+				     ((>= right-margin 0) right-guess)
+				     ;; otherwise choose side we overlap less
+				     ((> left-margin right-margin) 0)
+				     (t (- (x-display-pixel-width) sfw 5)))))))
+			(cons 'top cfy)))
+		      frame)))))
 	;; reset the selection variable
 	(setq speedbar-last-selected-file nil)
 	;; Put the buffer into the frame
