@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.15 2000/04/20 23:55:25 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.16 2000/04/23 15:14:56 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -46,7 +46,12 @@
     ;; When parsing at depth 0, we need to extract elements from semantic
     ;; lists at bovine-toplevel.  This symbol provides the needed redirection.
     (extract-toplevel
-     (function) (variable) (include) (code) (comment))
+     (function)
+     (variable)
+     (include)
+     (package)
+     (code)
+     (comment) )
     ;; A function is anything that starts with a (defun
     (function
      (open-paren symbol "defun\\|defmacro" symbol arg-list ; string
@@ -61,11 +66,20 @@
 			  (if (string= (nth 1 vals) "defconst") t nil)
 			  nil nil	;(nth 4 vals)
 			  start end))))
-    ;; In elisp, and include is just the require statement.
+    ;; In elisp, an include is just the require statement.
     (include
      (open-paren symbol "require" quote symbol
 		 ,(lambda (vals start end)
 		    (list (nth 3 vals) 'include nil start end))))
+    ;; in elisp, a package statement is the same as the provide token.
+    (package
+     (open-paren symbol "provide" quote symbol opt-filestring close-paren
+		 ,(lambda (vals start end)
+		    (list (nth 3 vals) 'package (nth 4 vals)
+			  nil start end))))
+    (opt-filestring
+     (string)
+     ( ,(lambda (vals start end) (list nil))))
     ;; Some random code stuck in there.
     (code
      (open-paren symbol
