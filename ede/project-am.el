@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.21 2000/05/03 22:52:32 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.22 2000/07/12 14:18:48 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -38,15 +38,17 @@
 
 ;;; History:
 ;; 
+
+(eval-and-compile
+  ;; Compatibility for makefile mode.
+  (condition-case nil
+      (require 'makefile "make-mode")
+    (error (require 'make-mode)))
+
+  (require 'eieio)
+  (require 'ede))
+
 (eval-when-compile (require 'ede-speedbar))
-
-;; Compatibility for makefile mode.
-(condition-case nil
-    (require 'makefile "make-mode")
-  (error (require 'make-mode)))
-(require 'eieio)
-(require 'ede)
-
 (eval-when-compile (require 'compile))
 
 ;; customization stuff

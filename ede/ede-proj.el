@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.24 2000/07/07 20:30:10 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.25 2000/07/12 14:17:04 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -30,6 +30,8 @@
 ;; methods.  Changes in the project structure will require Makefile
 ;; rebuild.  The targets provided in ede-proj can be augmented with
 ;; additional target types inherited directly from `ede-proj-target'.
+
+(eval-and-compile (require 'ede))
 
 ;;; Class Definitions:
 (defclass ede-proj-target (ede-target)
@@ -362,6 +364,7 @@ FILE must be massaged by `ede-convert-path'."
   ;; of thing, and rely only on that small section of code.
   (let ((pm (ede-proj-dist-makefile this)))
     (ede-proj-setup-buildenvironment this)
+    (if (string= pm "Makefile.am") (setq pm "Makefile"))
     (compile (concat "make -f " pm " dist"))))
 
 (defmethod project-compile-project ((proj ede-proj-project) &optional command)
@@ -370,6 +373,7 @@ Argument COMMAND is the command to use when compiling."
   (let ((pm (ede-proj-dist-makefile proj))
 	(default-directory (file-name-directory (oref proj file))))
     (ede-proj-setup-buildenvironment proj)
+    (if (string= pm "Makefile.am") (setq pm "Makefile"))
     (compile (concat "make -f " pm " all"))))
 
 ;;; Target type specific compilations/debug
@@ -432,8 +436,11 @@ Optional argument COMMAND is the s the alternate command to use."
   (interactive)
   (ede-proj-setup-buildenvironment (ede-current-project) t))
 
-(eval-when-compile (require 'ede-pmake)
-		   (require 'ede-pconf))
+(eval-when-compile 
+  ;; This prevents recursive loading
+  (provide 'ede-proj)
+  (require 'ede-pmake)
+  (require 'ede-pconf))
 
 (defmethod ede-proj-makefile-create-maybe ((this ede-proj-project) mfilename)
   "Create a Makefile for all Makefile targets in THIS if needed.
