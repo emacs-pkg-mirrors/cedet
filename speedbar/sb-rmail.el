@@ -1,11 +1,11 @@
 ;;; sb-rmail --- Speedbar support for rmail
 
-;; Copyright (C) 1997, 1998, 1999, 2001, 2002 Free Software Foundation
+;; Copyright (C) 1997, 1998, 1999, 2001, 2002, 2003 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-rmail.el,v 1.11 2002/03/16 20:08:42 zappo Exp $
+;; X-RCS: $Id: sb-rmail.el,v 1.12 2003/02/21 18:04:30 zappo Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -49,7 +49,7 @@
 
 ;;; Code:
 (defvar rmail-speedbar-match-folder-regexp "^[A-Z0-9]+\\(\\.[A-Z0-9]+\\)?$"
-  "*This regex us used to match folder names to be displayed in speedbar.
+  "*This regex is used to match folder names to be displayed in speedbar.
 Enabling this will permit speedbar to display your folders for easy
 browsing, and moving of messages.")
 
