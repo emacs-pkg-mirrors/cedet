@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 02 Aug 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar-macros.el,v 1.1 2003/08/11 06:35:41 ponced Exp $
+;; X-RCS: $Id: bovine-grammar-macros.el,v 1.2 2003/08/31 15:06:12 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -35,61 +35,68 @@
 
 ;;; Code:
 
-(defun bovine-grammar-EXPAND (&rest args)
+(defun bovine-grammar-EXPAND (bounds nonterm)
   "Expand call to EXPAND grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
+Return the form to parse from within a nonterminal between BOUNDS.
+NONTERM is the nonterminal symbol to start with."
   `(semantic-bovinate-from-nonterminal
-    (car ,(car args)) (cdr ,(car args)) ',(cadr args)))
+    (car ,bounds) (cdr ,bounds) ',nonterm))
 
-(defun bovine-grammar-EXPANDFULL (&rest args)
+(defun bovine-grammar-EXPANDFULL (bounds nonterm)
   "Expand call to EXPANDFULL grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
+Return the form to recursively parse the area between BOUNDS.
+NONTERM is the nonterminal symbol to start with."
   `(semantic-parse-region
-    (car ,(car args)) (cdr ,(car args)) ',(cadr args) 1))
+    (car ,bounds) (cdr ,bounds) ',nonterm 1))
 
-(defun bovine-grammar-TAG (&rest args)
+(defun bovine-grammar-TAG (name class &rest attributes)
   "Expand call to TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-tag ,@args))
+Return the form to create a generic semantic tag.
+See the function `semantic-tag' for the meaning of arguments NAME,
+CLASS and ATTRIBUTES."
+  `(semantic-tag ,name ,class ,@attributes))
 
-(defun bovine-grammar-VARIABLE-TAG (&rest args)
+(defun bovine-grammar-VARIABLE-TAG (name type default-value &rest attributes)
   "Expand call to VARIABLE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-tag-new-variable ,@args))
+Return the form to create a semantic tag of class variable.
+See the function `semantic-tag-new-variable' for the meaning of
+arguments NAME, TYPE, DEFAULT-VALUE and ATTRIBUTES."
+  `(semantic-tag-new-variable ,name ,type ,default-value ,@attributes))
 
-(defun bovine-grammar-FUNCTION-TAG (&rest args)
+(defun bovine-grammar-FUNCTION-TAG (name type arg-list &rest attributes)
   "Expand call to FUNCTION-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-tag-new-function ,@args))
+Return the form to create a semantic tag of class function.
+See the function `semantic-tag-new-function' for the meaning of
+arguments NAME, TYPE, ARG-LIST and ATTRIBUTES."
+  `(semantic-tag-new-function ,name ,type ,arg-list ,@attributes))
 
-(defun bovine-grammar-TYPE-TAG (&rest args)
+(defun bovine-grammar-TYPE-TAG (name type members parents &rest attributes)
   "Expand call to TYPE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-tag-new-type ,@args))
+Return the form to create a semantic tag of class type.
+See the function `semantic-tag-new-type' for the meaning of arguments
+NAME, TYPE, MEMBERS, PARENTS and ATTRIBUTES."
+  `(semantic-tag-new-type ,name ,type ,members ,parents ,@attributes))
 
-(defun bovine-grammar-INCLUDE-TAG (&rest args)
+(defun bovine-grammar-INCLUDE-TAG (name system-flag &rest attributes)
   "Expand call to INCLUDE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-tag-new-include ,@args))
+Return the form to create a semantic tag of class include.
+See the function `semantic-tag-new-include' for the meaning of
+arguments NAME, SYSTEM-FLAG and ATTRIBUTES."
+  `(semantic-tag-new-include ,name ,system-flag ,@attributes))
 
-(defun bovine-grammar-PACKAGE-TAG (&rest args)
+(defun bovine-grammar-PACKAGE-TAG (name detail &rest attributes)
   "Expand call to PACKAGE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-tag-new-package ,@args))
+Return the form to create a semantic tag of class package.
+See the function `semantic-tag-new-package' for the meaning of
+arguments NAME, DETAIL and ATTRIBUTES."
+  `(semantic-tag-new-package ,name ,detail ,@attributes))
 
-(defun bovine-grammar-CODE-TAG (&rest args)
+(defun bovine-grammar-CODE-TAG (name detail &rest attributes)
   "Expand call to CODE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-tag-new-code ,@args))
+Return the form to create a semantic tag of class code.
+See the function `semantic-tag-new-code' for the meaning of arguments
+NAME, DETAIL and ATTRIBUTES."
+  `(semantic-tag-new-code ,name ,detail ,@attributes))
 
 (defvar-mode-local bovine-grammar-mode semantic-grammar-macros
   '(
