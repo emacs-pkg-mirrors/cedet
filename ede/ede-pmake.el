@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.3 1999/03/10 19:22:49 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.4 1999/03/12 18:22:26 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -69,8 +69,13 @@ MFILENAME is the makefile to generate."
 	(while tmp
 	  (ede-proj-makefile-insert-variables (car tmp))
 	  (setq tmp (cdr tmp)))
+	;; Inference rules
+	(insert "\n")
+	(ede-proj-makefile-insert-inference-rules this)
+	(insert "\n")
+	;; The all target
 	(setq tmp mt)
-	(insert "\n\nall:")
+	(insert "all:")
 	(while tmp (insert " " (oref (car tmp) name))
 	       (setq tmp (cdr tmp)))
 	(insert "\n\n")
@@ -141,6 +146,12 @@ sources variable."
       (insert " \\\n   " (mapconcat (lambda (a) a) moresource " ") ""))
   (insert "\n"))
 
+(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-lisp))
+  "Insert variables needed by target THIS."
+  (call-next-method this)
+  (insert "EMACS=" (car command-line-args) "\n"))
+  
+
 (defmethod ede-proj-makefile-insert-variables
   ((this ede-proj-target-makefile-objectcode))
   "Insert variables needed by target THIS."
@@ -157,6 +168,10 @@ sources variable."
 
 ;;; RULES
 ;;
+(defmethod ede-proj-makefile-insert-inference-rules ((this ede-proj-project))
+  "Insert inference rules needed by THIS project."
+  nil)
+
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-project))
   "Insert rules needed by THIS target."
   (mapcar 'ede-proj-makefile-insert-rules (oref this inference-rules)))
@@ -195,6 +210,20 @@ sources variable."
 				 (oref this ldlibs) " "))
 	    "")
 	  "\n\n"))
+
+(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-lisp))
+  "Insert rules to build THIS set of Emacs Lisp files."
+  (call-next-method)
+  (insert (ede-name this) ":\n"
+	  "\t@echo \"(add-to-list 'load-path \\\"$(PWD)\\\")\" > "
+	  (ede-name this) "-comp\n")
+  (let ((lp (oref this load-path)))
+    (while lp
+      (insert "\t@echo \"(add-to-list 'load-path \\\"" (car lp) "\\\")\" >> "
+	      (ede-name this) "-comp\n")
+      (setq lp (cdr lp))))
+  (insert "\t$(EMACS) -batch -l " (ede-name this) "-comp -f batch-byte-compile"
+	  " $(" (ede-proj-makefile-sourcevar this) ")\n"))
 
 (provide 'ede-pmake)
 
