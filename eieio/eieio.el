@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.14 1996/11/09 23:23:49 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.15 1996/11/13 21:50:44 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -176,6 +176,8 @@
 ;;;        Removed all reference to classmethods as no one liked them,
 ;;;           and were wasing space in here.
 ;;;        Added `oset-default' to modify existing classes default values.
+;;;        Optimized several convenience functions as macros, and made some
+;;;           signals arise from more logical locations.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -225,6 +227,37 @@ check private parts. DO NOT SET THIS YOURSELF!")
 
 (eval-when-compile 
   (require 'eieio-comp)) ;make sure we can do this at compile-time.
+
+
+;;;
+;;; Important macros used in eieio.
+;;;
+(defmacro class-v (class) "Internal: Returns the class vector from the CLASS symbol"
+  ;; No check: If eieio gets this far, it's probably been checked already.
+  (list 'get class ''eieio-class-definition))
+
+(defmacro class-p (class) "Return t if CLASS is a valid class vector."
+  ;; this new method is faster since it doesn't waste time checking lots of
+  ;; things.
+  (list 'condition-case nil
+      (list 'eq (list 'aref (list 'class-v class) 0) ''defclass)
+    '(error nil)))
+
+(defmacro object-p (obj) "Return t if OBJ is an OBJECT vector."
+  (list 'condition-case nil
+      (list 'and (list 'eq (list 'aref obj 0) ''object)
+	    (list 'class-p (list 'aref obj 1)))
+      '(error nil)))
+
+(defmacro class-constructor (class) 
+  "Return the symbol representing the constructor of that class"
+  (list 'aref (list 'class-v class) 1))
+
+(defmacro generic-p (method)
+  "Return `t' if symbol METHOD is a generic function.  Only methods
+have the symbol `eieio-method-tree' as a property (which contains a
+list of all bindings to that method type.)"
+  (list 'and (list 'fboundp method) (list 'get method ''eieio-method-obarray)))
 
 
 ;;;
@@ -367,11 +400,7 @@ in that class definition.  See defclass for more information"
 	)
       (setq fields (cdr fields)))
 
-    ;; Store this forever.  Give it a variable type (The class
-    ;; definition symbol), A property (the vector),
-    ;; a function type (default creator type)
-    ;; and a doc-string
-    
+    ;; turn this into a useable self-pointing symbol
     (set cname cname)
 
     ;; Set up a specialized doc string
@@ -538,6 +567,8 @@ the body, such as:
 
 (defun oref-engine (obj field)
   "Return the value in OBJ at FIELD in the object vector."
+  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (aref obj 1) field)))
     (if (not c) (error "Named field %s does not occur in %s" 
 		       field (object-name obj)))
@@ -569,6 +600,8 @@ the body, such as:
   "Return the default value in OBJ at FIELD in the object vector.
 This value is found in the objects class structure and does not
 represent the actual stored value."
+  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (aref obj 1) field))
 	(nump (length (aref (class-v (aref obj 1)) class-public-a))))
     (if (not c) (error "Named field %s does not occur in %s" 
@@ -593,6 +626,8 @@ represent the actual stored value."
 
 (defun oset-engine (obj field value)
   "Set the value in OBJ at FIELD to be VALUE, and return VALUE."
+  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (aref obj 1) field)))
     (if (not c) (error "Named field %s does not occur in %s" 
 		       field (object-name obj)))
@@ -606,6 +641,8 @@ field name."
 (defun oset-default-engine (class field value)
   "Set the default value for CLASS at FIELD to be VALUE, and return
 VALUE.  This does not affect any existing objects of type CLASS"
+  (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
+  (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let* ((scoped-class class)
 	 (c (eieio-field-name-index class field))
 	 (nump (length (aref (class-v class) class-public-a))))
@@ -622,29 +659,16 @@ VALUE.  This does not affect any existing objects of type CLASS"
 ;;; Simple generators, and query functions.  None of these would do
 ;;; well embedded into an object.
 ;;;
-(defmacro class-v (class) "Internal: Returns the class vector from the CLASS symbol"
-  ;(if (not (symbolp class)) (signal 'wrong-type-argument (list 'symbolp class)))
-  (list 'get class ''eieio-class-definition))
-
-(defun class-p (class) "Return t if CLASS is a valid class vector."
-  (and (symbolp class) 
-       (let ((cv (get class 'eieio-class-definition)))
-	 (and (vectorp cv) (equal (aref cv 0) 'defclass)))))
-
-(defun object-p (obj) "Return t if OBJ is an OBJECT vector."
-  (and (vectorp obj) (equal (aref obj 0) 'object) (class-p (aref obj 1))))
-
+(defmacro object-class-fast (obj) "Return the class struct defining OBJ with no checks"
+  (list 'aref obj 1))
+  
 (defun class-name (class) "Return a lisp like symbol name for object OBJ"
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (format "#<class %s>" (symbol-name class)))
 
-(defun class-constructor (class) 
-  "Return the symbol representing the constructor of that class"
-  (aref (class-v class) 1))
-
 (defun object-name (obj) "Return a lisp like symbol string for object OBJ"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (format "#<%s %s>" (symbol-name (object-class obj)) (aref obj 2)))
+  (format "#<%s %s>" (symbol-name (object-class-fast obj)) (aref obj 2)))
 
 (defun object-name-string (obj) "Return a string which is OBJs name"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
@@ -652,37 +676,38 @@ VALUE.  This does not affect any existing objects of type CLASS"
 
 (defun object-class (obj) "Return the class struct defining OBJ"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (aref obj 1))
-  
+  (object-class-fast obj))
+
 (defun object-class-name (obj) "Return a lisp like symbol name for OBJ's class"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (class-name (aref obj 1)))
+  (class-name (object-class-fast obj)))
+
+(defmacro class-parent-fast (class) "Return parent class to CLASS with no checks."
+  (list 'aref (list 'class-v class) class-parent))
 
 (defun class-parent (class) "Return parent class to CLASS. (overload of variable)"
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
-  (aref (class-v class) class-parent))
+  (class-parent-fast class))
+
+(defmacro same-class-fast-p (obj class) "Return t if OBJ is of class-type CLASS with no error checking."
+  (list 'eq (list 'aref obj 1) class))
 
 (defun same-class-p (obj class) "Return t if OBJ is of class-type CLASS"
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (and (object-p obj) (equal (aref obj 1) class)))
+  (same-class-fast-p obj class))
 
 (defun obj-of-class-p (obj class) "Return t if OBJ inherits anything from CLASS"
-  (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  ;; class will be checked one layer down
   (child-of-class-p (aref obj 1) class))
 
-(defun child-of-class-p (child class) "Return t if CHILD inherits anything from CLASS"
+(defun child-of-class-p (child class) "If CHILD inherits anything from CLASS, return CLASS"
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (class-p child)) (signal 'wrong-type-argument (list 'class-p child)))
-  (or (equal child class) 
-      (and (aref (class-v child) 3) (child-of-class-p (aref (class-v child) 3) class))))
-
-(defun generic-p (method)
-  "Return `t' if symbol METHOD is a generic function.  Only methods
-have the symbol `eieio-method-tree' as a property (which contains a
-list of all bindings to that method type.)"
-  (and (fboundp method) (get method 'eieio-method-obarray)))
+  (while (and child (not (eq child class)))
+    (setq child (aref (class-v child) 3)))
+  child)
 
 
 ;;;
@@ -691,8 +716,7 @@ list of all bindings to that method type.)"
 
 (defun eieio-field-name-index (class field)
   "In OBJ find the index of the named FIELD."
-  (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
-  (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
+  ;; Removed checks to outside this call
   (let* ((fsym (intern-soft (symbol-name field) 
 			    (aref (class-v class)
 				  class-symbol-obarray)))
@@ -724,7 +748,7 @@ available methods which may be programmed in."
     (setq newargs args)
     ;; lookup the forms to use
     (if (object-p (car newargs))
-	(setq mclass (object-class (car newargs))))
+	(setq mclass (object-class-fast (car newargs))))
     ;; Now create a list in reverse order of all the calls we have
     ;; make in order to successfully do this right.  Rules:
     ;; 1) Only call generics if scoped-class is not defined
@@ -766,7 +790,7 @@ method belong to the parent class"
   (if (not scoped-class)
       (error "call-next-method not called within a class specific method"))
   (let ((newargs eieio-generic-call-arglst) (lambdas nil)
-	(mclass (class-parent scoped-class)))
+	(mclass (eieiomt-next scoped-class)))
     ;; lookup the form to use for the PRIMARY object for the next level
     (setq lambdas (eieio-generic-form eieio-generic-call-methodname
 				      method-primary mclass))
@@ -846,9 +870,9 @@ matching CLASS"
       (intern-soft (symbol-name class) (aref emto tag)))))
 
 (defun eieiomt-next (class)
-  "Return the next class, or `eieio-default-superclass' or nil,
-depending on the return value of `class-parent'"
-  (or (class-parent class)
+  "Return the next parent class for CLASS, or `eieio-default-superclass' or
+nil, depending on the return value of `class-parent'"
+  (or (class-parent-fast class)
       (if (eq class 'eieio-default-superclass)
 	  nil
 	'eieio-default-superclass)))
@@ -950,7 +974,7 @@ we can cheat if need be.. May remove that later..."
 name/value pairs.  Called from the constructor routine."
   (let ((scoped-class (aref obj 1)))
     (while fields
-      (let ((rn (eieio-initarg-to-attribute (object-class obj) (car fields))))
+      (let ((rn (eieio-initarg-to-attribute (object-class-fast obj) (car fields))))
 	(oset-engine obj rn (car (cdr fields))))
       (setq fields (cdr (cdr fields))))))
 
@@ -1135,10 +1159,10 @@ an object, then also display current values of that obect."
   (erase-buffer)
   (let* ((cv (cond ((stringp class) (class-v (read class)))
 		   ((symbolp class) (class-v class))
-		   ((object-p class) (class-v (object-class class)))
+		   ((object-p class) (class-v (object-class-fast class)))
 		   (t (error "Can't find class info from parameter"))))
 	 (this (if (object-p class) class this))
-	 (scoped-class (if (object-p class) (object-class class) scoped-class))
+	 (scoped-class (if (object-p class) (object-class-fast class) scoped-class))
 	 (priva (aref cv class-private-a))
 	 (publa (aref cv class-public-a))
 	 (privd (aref cv class-private-d))
@@ -1219,6 +1243,10 @@ an object, then also display current values of that obect."
 	    (def-edebug-spec oset (form quote form))
 	    (def-edebug-spec oset-default (form quote form))
 	    (def-edebug-spec class-v form)
+	    (def-edebug-spec class-p form)
+	    (def-edebug-spec object-p form)
+	    (def-edebug-spec class-constructor form)
+	    (def-edebug-spec generic-p form)
 	    )
 	  )
 
