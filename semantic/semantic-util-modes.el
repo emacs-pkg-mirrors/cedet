@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.25 2003/02/17 02:18:29 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.26 2003/02/25 16:27:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -566,9 +566,10 @@ Use the command `semantic-auto-parse-mode' to change this variable.")
   "Return non-nil if auto-parse is enabled for this buffer.
 See also the variable `semantic-auto-parse-max-buffer-size'."
   (if semantic-auto-parse-mode
-      (not semantic-debug-enabled)
-      (or (<= semantic-auto-parse-max-buffer-size 0)
-          (< (buffer-size) semantic-auto-parse-max-buffer-size))))
+      (and (not semantic-debug-enabled)
+	   (not semantic-lex-debug)
+	   (or (<= semantic-auto-parse-max-buffer-size 0)
+	       (< (buffer-size) semantic-auto-parse-max-buffer-size)))))
 
 (defun semantic-auto-parse-bovinate ()
   "Automatically reparse current buffer.
