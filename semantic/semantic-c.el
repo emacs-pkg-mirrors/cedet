@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.36 2001/09/12 04:43:36 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.37 2001/09/14 19:32:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -24,9 +24,6 @@
 
 ;;; Commentary:
 ;;
-;; Use the semantic bovinator in a couple languages as examples.
-;;
-;; <Add more here>
 
 ;;; History:
 ;; 
