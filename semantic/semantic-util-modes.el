@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.13 2001/11/30 03:05:46 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.14 2001/11/30 03:57:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -193,7 +193,7 @@ function used to toggle the mode."
 
 ;;;###autoload
 (defun global-semantic-show-dirty-mode (&optional arg)
-  "Toggle global use of `semantic-show-dirty-mode'.
+  "Toggle global use of option `semantic-show-dirty-mode'.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
@@ -246,7 +246,7 @@ Use the command `semantic-show-dirty-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-show-dirty-mode)
 
 (defun semantic-show-dirty-mode-setup ()
-  "Setup `semantic-show-dirty-mode'.
+  "Setup option `semantic-show-dirty-mode'.
 The minor mode can be turned on only if semantic feature is available
 and the current buffer was set up for parsing.  When minor mode is
 enabled parse the current buffer if needed.  Return non-nil if the
@@ -258,9 +258,9 @@ minor mode is enabled."
             (setq semantic-show-dirty-mode nil)
             (error "Buffer %s was not set up for parsing"
                    (buffer-name)))
-        (make-local-hook 'semantic-dirty-token-hooks)
-        (make-local-hook 'semantic-clean-token-hooks)
-        (make-local-hook 'after-save-hook)
+        (semantic-make-local-hook 'semantic-dirty-token-hooks)
+        (semantic-make-local-hook 'semantic-clean-token-hooks)
+        (semantic-make-local-hook 'after-save-hook)
         (add-hook 'semantic-dirty-token-hooks
                   'semantic-show-dirty-token-hook-fcn nil t)
         (add-hook 'semantic-clean-token-hooks
@@ -314,7 +314,7 @@ minor mode is enabled.
 
 ;;;###autoload
 (defun global-semantic-show-unmatched-syntax-mode (&optional arg)
-  "Toggle global use of `semantic-show-unmatched-syntax-mode'.
+  "Toggle global use of option `semantic-show-unmatched-syntax-mode'.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
@@ -442,10 +442,10 @@ minor mode is enabled."
             (error "Buffer %s was not set up for parsing"
                    (buffer-name)))
         ;; Add hooks
-        (make-local-hook 'semantic-unmatched-syntax-hook)
+        (semantic-make-local-hook 'semantic-unmatched-syntax-hook)
         (add-hook 'semantic-unmatched-syntax-hook
                   'semantic-show-unmatched-syntax nil t)
-	(make-local-hook 'semantic-pre-clean-token-hooks)
+	(semantic-make-local-hook 'semantic-pre-clean-token-hooks)
 	(add-hook 'semantic-pre-clean-token-hooks
 		  'semantic-clean-token-of-unmatched-syntax nil t)
         ;; Show unmatched syntax elements
@@ -508,6 +508,13 @@ minor mode is enabled.
   :group 'semantic
   :type 'boolean)
 
+(defcustom semantic-auto-parse-working-in-modeline-flag t
+  "*Non-nil means show working messages in the mode line.
+Typically, parsing will show messages in the minibuffer.
+This will move the parse message into the mode-line."
+  :group 'semantic
+  :type 'boolean)
+
 (defcustom semantic-auto-parse-idle-time 4
   "*Time in seconds of idle time before auto-reparse.
 This time should be short enough to ensure that auto-parse will be
@@ -537,7 +544,7 @@ reparsed regardless of their size."
 
 ;;;###autoload
 (defun global-semantic-auto-parse-mode (&optional arg)
-  "Toggle global use of `semantic-auto-parse-mode'.
+  "Toggle global use of option `semantic-auto-parse-mode'.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
@@ -565,12 +572,14 @@ See also the variable `semantic-auto-parse-max-buffer-size'."
 (defun semantic-auto-parse-bovinate ()
   "Automatically reparse current buffer.
 Called after `semantic-auto-parse-idle-time' seconds of Emacs idle
-time.  Does nothing if `semantic-auto-parse-mode' is not enabled or
+time.  Does nothing if option `semantic-auto-parse-mode' is not enabled or
 current buffer don't need re-parse or if its size don't match
 `semantic-auto-parse-max-buffer-size' threshold."
   (if (semantic-auto-parse-enabled-p)
       (let ((semantic-bovination-working-type nil)
 	    (inhibit-quit nil)
+	    (working-use-echo-area-p
+	     (not semantic-auto-parse-working-in-modeline-flag))
             (working-status-dynamic-type
              (if semantic-auto-parse-no-working-message
                  nil
@@ -586,7 +595,7 @@ current buffer don't need re-parse or if its size don't match
              #'semantic-auto-parse-bovinate))))
 
 (defun semantic-auto-parse-mode-setup ()
-  "Setup `semantic-auto-parse-mode'.
+  "Setup option `semantic-auto-parse-mode'.
 The minor mode can be turned on only if semantic feature is available
 and the current buffer was set up for parsing.  When minor mode is
 enabled parse the current buffer if needed.  Return non-nil if the
@@ -603,7 +612,7 @@ minor mode is enabled."
 
 ;;;###autoload
 (defun semantic-auto-parse-mode (&optional arg)
-  "Minor mode to auto parse buffer following changes.
+  "Minor mode to auto parse buffer following a change.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
@@ -638,7 +647,7 @@ minor mode is enabled."
 
 ;;;###autoload
 (defun global-semantic-summary-mode (&optional arg)
-  "Toggle global use of `semantic-summary-mode'.
+  "Toggle global use of option `semantic-summary-mode'.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
@@ -672,7 +681,7 @@ Use the command `semantic-summary-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-summary-mode)
 
 (defun semantic-summary-mode-setup ()
-  "Setup `semantic-summary-mode'.
+  "Setup option `semantic-summary-mode'.
 The minor mode can be turned on only if semantic feature is available
 and the current buffer was set up for parsing.  When minor mode is
 enabled parse the current buffer if needed.  Return non-nil if the
@@ -694,7 +703,7 @@ minor mode is enabled."
 ;;;###autoload
 (defun semantic-summary-mode (&optional arg)
   "Minor mode to show useful things about tokens in echo area.
-Enables/disables `eldoc-mode' which supplies the support functions for
+Enables/disables option `eldoc-mode' which supplies the support functions for
 this minor mode.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
