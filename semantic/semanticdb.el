@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.28 2001/06/03 14:26:19 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.29 2001/06/03 15:23:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -338,10 +338,11 @@ Sets up the semanticdb environment."
       (semantic-overlay-cache))
     ))
 
-(defun semanticdb-post-bovination ()
-  "Function run after a bovination."
+(defun semanticdb-post-bovination (new-table)
+  "Function run after a bovination.
+Argument NEW-TABLE is the new table of tokens."
   (if semanticdb-current-table
-      (oset semanticdb-current-table tokens semantic-toplevel-bovine-cache)))
+      (oset semanticdb-current-table tokens new-table)))
 
 (defun semanticdb-kill-hook ()
   "Function run when a buffer is killed.
