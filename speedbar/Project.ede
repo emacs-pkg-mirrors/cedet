@@ -8,7 +8,7 @@
    (ede-proj-target-elisp-autoloads "autoloads"
     :name "autoloads"
     :path ""
-    :autoload-file "speedbar-defs.el"
+    :autoload-file "speedbar-loaddefs.el"
     )
    (ede-proj-target-elisp "speedbar"
     :name "speedbar"
