@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.16 2003/03/11 12:54:38 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.17 2003/03/13 08:51:56 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1098,7 +1098,7 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
      (2 font-lock-keyword-face))
     ("^\\(\\(\\sw\\|\\s_\\)+\\)[ \n\r\t]*:"
      1 font-lock-function-name-face)
-    ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\|\\([A-Z]+-\\)?TAG\\)\\>"
+    ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\|\\([A-Z][A-Z-]*\\)?TAG\\)\\>"
      1 ,(if (boundp 'font-lock-builtin-face)
             'font-lock-builtin-face
           'font-lock-preprocessor-face))
