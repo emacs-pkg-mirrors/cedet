@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.wy,v 1.12 2004/01/16 08:57:53 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.wy,v 1.13 2004/01/18 15:45:43 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -49,7 +49,7 @@
 ;; -----------------------------
 ;; Block & Parenthesis terminals
 ;; -----------------------------
-%type  <block>       syntax "\\s(\\|\\s)" matchdatatype block
+%type  <block>       ;;syntax "\\s(\\|\\s)" matchdatatype block
 
 %token <block>       PAREN_BLOCK "(LPAREN RPAREN)"
 %token <block>       BRACE_BLOCK "(LBRACE RBRACE)"
@@ -65,7 +65,7 @@
 ;; ------------------
 ;; Operator terminals
 ;; ------------------
-%type  <punctuation> syntax "\\(\\s.\\|\\s$\\|\\s'\\)+" matchdatatype string
+%type  <punctuation> ;;syntax "\\(\\s.\\|\\s$\\|\\s'\\)+" matchdatatype string
 
 %token <punctuation> NOT         "!"
 %token <punctuation> NOTEQ       "!="
@@ -111,13 +111,13 @@
 ;; -----------------
 ;; Literal terminals
 ;; -----------------
-%type  <symbol>      syntax "\\(\\sw\\|\\s_\\)+"
+%type  <symbol>      ;;syntax "\\(\\sw\\|\\s_\\)+"
 %token <symbol>      IDENTIFIER
 
-%type  <string>      syntax "\\s\"" matchdatatype sexp
+%type  <string>      ;;syntax "\\s\"" matchdatatype sexp
 %token <string>      STRING_LITERAL
 
-%type  <number>      syntax semantic-lex-number-expression
+%type  <number>      ;;syntax semantic-lex-number-expression
 %token <number>      NUMBER_LITERAL
 
 ;; -----------------
@@ -125,7 +125,7 @@
 ;; -----------------
 
 ;; Generate a keyword analyzer
-%type  <keyword> syntax "\\(\\sw\\|\\s_\\)+" matchdatatype keyword
+%type  <keyword> ;;syntax "\\(\\sw\\|\\s_\\)+" matchdatatype keyword
 
 %keyword ABSTRACT     "abstract"
 %put     ABSTRACT summary
