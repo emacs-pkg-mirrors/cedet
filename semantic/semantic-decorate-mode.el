@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.4 2004/06/18 11:38:30 ponced Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.5 2004/06/19 14:56:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -161,9 +161,13 @@ Also make sure old decorations in the area are completely flushed."
       (semantic-decorate-clear-tag tag))
     ;; Add new decorations.
     (dolist (style semantic-decoration-styles)
-      (and (cdr style)
-           (funcall (semantic-decorate-style-predicate   (car style)) tag)
-           (funcall (semantic-decorate-style-highlighter (car style)) tag)))
+      (let ((pred (semantic-decorate-style-predicate   (car style)))
+	    (high (semantic-decorate-style-highlighter (car style))))
+	(and (cdr style)
+	     (fboundp pred)
+	     (funcall pred tag)
+	     (fboundp high)
+	     (funcall high tag))))
     ;; Recurse on the children of all tags
     (semantic-decorate-add-decorations
      (semantic-tag-components-with-overlays tag))))
@@ -172,12 +176,16 @@ Also make sure old decorations in the area are completely flushed."
 ;;
 ;; Generic mode for handling basic highlighting and decorations.
 ;;
-(defvar semantic-decoration-styles nil
+(defcustom semantic-decoration-styles nil
   "*List of active decoration styles.
 It is an alist of \(NAME . FLAG) elements, where NAME is a style name
 and FLAG is non-nil if the style is enabled.
 See also `define-semantic-decoration-style' which will automatically
-add items to this list.")
+add items to this list."
+  :group 'semantic
+  :type '(repeat (cons (string :tag "Decoration Name")
+		       (boolean :tag "Enabled")))
+  )
 
 ;;;###autoload
 (defun global-semantic-decoration-mode (&optional arg)
