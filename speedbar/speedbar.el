@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.205 2001/08/17 21:28:19 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.206 2001/10/18 18:43:01 zappo Exp $
 
 (defvar speedbar-version "0.14beta2"
   "The current version of speedbar.")
@@ -447,7 +447,7 @@ The car is for an up-to-date object.  The cdr is for an out of date object.
 The expression `speedbar-obj-alist' defines who gets tagged.")
 
 (defvar speedbar-obj-alist
-  '(("\\.\\([cpC]\\|cpp\\|cc\\)$" . ".o")
+  '(("\\.\\([cpC]\\|cpp\\|cc\\|cxx\\)$" . ".o")
     ("\\.el$" . ".elc")
     ("\\.java$" . ".class")
     ("\\.f\\(or\\|90\\|77\\)?$" . ".o")
@@ -1523,13 +1523,14 @@ variable `speedbar-obj-alist'."
     (speedbar-enable-update)))
 
 (defun speedbar-toggle-images ()
-  "Toggle automatic update for the speedbar frame."
+  "Toggle use of images in the speedbar frame.
+Images are not available in Emacs 20 or earlier."
   (interactive)
   (setq speedbar-use-images (not speedbar-use-images))
   (speedbar-refresh))
 
 (defun speedbar-toggle-sorting ()
-  "Toggle automatic update for the speedbar frame."
+  "Toggle tag sorting."
   (interactive)
   (setq speedbar-sort-tags (not speedbar-sort-tags)))
 
@@ -3342,7 +3343,7 @@ Returns the tag list, or t for an error."
 ;;
 (defvar speedbar-fetch-etags-parse-list
   '(;; Note that java has the same parse-group as c
-    ("\\.\\([cChH]\\|c\\+\\+\\|cpp\\|cc\\|hh\\|java\\)\\'" .
+    ("\\.\\([cChH]\\|c\\+\\+\\|cpp\\|cc\\|hh\\|java\\|cxx\\|hxx\\)\\'" .
      speedbar-parse-c-or-c++tag)
     ("^\\.emacs$\\|.\\(el\\|l\\|lsp\\)\\'" .
      "def[^i]+\\s-+\\(\\(\\w\\|[-_]\\)+\\)\\s-*\C-?")
