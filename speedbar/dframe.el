@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.8 2000/09/09 11:13:43 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.9 2000/09/22 02:27:03 zappo Exp $
 
 (defvar dframe-version "1.0beta"
   "The current version of the dedicated frame library.")
@@ -503,6 +503,12 @@ LOCATION can be one of 'random, 'left-right, or 'top-bottom."
        (list (cons 'left newleft)
 	     (cons 'top newtop))))))
 
+(defun dframe-reposition-frame-xemacs (new-frame parent-frame location)
+  "Move NEW-FRAME to be relative to PARENT-FRAME.
+LOCATION can be one of 'random, 'left-right, or 'top-bottom."
+  ;; Not yet implemented
+  )
+
 ;; XEmacs function only.
 (defun dframe-needed-height (&optional frame)
   "The needed height for the tool bar FRAME (in characters)."
@@ -762,7 +768,7 @@ Must be bound to event E."
   (if (functionp (default-value 'mouse-motion-handler))
       (funcall (default-value 'mouse-motion-handler) event))
   (if dframe-track-mouse-function
-      (funcall dframe-track-mouse-function)))
+      (funcall dframe-track-mouse-function event)))
 
 (defun dframe-help-echo (window &optional buffer position)
   "Display help based context.
