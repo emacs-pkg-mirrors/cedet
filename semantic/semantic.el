@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.131 2001/12/03 00:26:36 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.132 2001/12/04 01:26:13 zappo Exp $
 
 (defvar semantic-version "1.4beta13"
   "Current version of Semantic.")
@@ -724,7 +724,7 @@ that, otherwise, do a full reparse."
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
     (garbage-collect)
     (let* ((gc-cons-threshold 10000000)
-           (changes (semantic-remove-dirty-children)))
+	   (changes (semantic-remove-dirty-children)))
       ;; We have a cache, and some dirty tokens
       (let ((semantic-bovination-working-type 'dynamic))
         (working-status-forms (buffer-name) "done"
@@ -1595,6 +1595,12 @@ PROPERTY value."
 
 ;;; Lexical Analysis
 ;;
+(defvar semantic-flex-unterminated-syntax-throw-symbol nil
+  "Symbol specifying what the `throw' upon finding unterminated syntax.
+Lists, and strings, could be unterminated.  this provides something that
+can be `thrown' from the lexical analysis phase for tools that wish
+to take special care when problems arrize during a parse.")
+
 (defvar semantic-flex-extensions nil
   "Buffer local extensions to the lexical analyzer.
 This should contain an alist with a key of a regex and a data element of
@@ -1765,7 +1771,13 @@ LENGTH tokens."
 					     (forward-list 1)
 					   ;; This case makes flex robust
 					   ;; to broken lists.
-					   (error (goto-char end)))
+					   (error
+					    (if semantic-flex-unterminated-syntax-throw-symbol
+						;; If requested, throw an error
+						(throw semantic-flex-unterminated-syntax-throw-symbol
+						       'semantic-list)
+					      ;; gracefully recover
+					      (goto-char end))))
 					 (setq ep (point)))))
 				ts))))
 	      ;; Close parens
@@ -1785,7 +1797,12 @@ LENGTH tokens."
                                               ;; This case makes flex
                                               ;; robust to broken strings.
                                               (error
-                                               (goto-char end)))
+					       (if semantic-flex-unterminated-syntax-throw-symbol
+						   ;; If requested, throw an error
+						   (throw semantic-flex-unterminated-syntax-throw-symbol
+							  'string)
+						 ;; gracefully recover
+						 (goto-char end))))
 					    (setq ep (point)))))
 			      ts)))
 	      ((looking-at cs)
