@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.3 2003/02/13 03:03:16 zappo Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.4 2003/03/08 23:29:42 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -64,6 +64,22 @@ QUOTEMODE is the current mode of quotation."
   (bovine-grammar-expand-form
    (apply #'semantic-grammar-ASSOC parms) quotemode t))
 
+(defsubst bovine-grammar-expand-VARIABLE-TAG (parms quotemode)
+  "Expand built-in VARIABLE-TAG expression.
+PARMS is the parameter list.
+QUOTEMODE is the current mode of quotation."
+  (bovine-grammar-expand-form
+   `(semantic-token-new-variable ,@parms)
+   quotemode t))
+
+(defsubst bovine-grammar-expand-INCLUDE-TAG (parms quotemode)
+  "Expand built-in INCLUDE-TAG expression.
+PARMS is the parameter list.
+QUOTEMODE is the current mode of quotation."
+  (bovine-grammar-expand-form
+   `(semantic-token-new-include ,@parms)
+   quotemode t))
+
 (defun bovine-grammar-expand-form (form quotemode &optional inplace)
   "Expand FORM into a new one suitable to the bovine parser.
 FORM is a list in which we are substituting.
@@ -97,6 +113,12 @@ expanded from elsewhere."
     )
    ((eq (car form) 'ASSOC)
     (bovine-grammar-expand-ASSOC (cdr form) quotemode)
+    )
+   ((eq (car form) 'VARIABLE-TAG)
+    (bovine-grammar-expand-VARIABLE-TAG (cdr form) quotemode)
+    )
+   ((eq (car form) 'INCLUDE-TAG)
+    (bovine-grammar-expand-INCLUDE-TAG (cdr form) quotemode)
     )
    (t
     (if inplace (insert "\n("))
