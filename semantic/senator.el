@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.1
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.18 2001/02/01 02:25:58 zappo Exp $
+;; VC: $Id: senator.el,v 1.19 2001/02/01 19:38:53 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -96,6 +96,12 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.19  2001/02/01 19:38:53  zappo
+;; `senator-complete-symbol' now checks that it complete the same symbol
+;; to reuse `senator-last-completion-stat'.  This is needed when for
+;; example completing "set..." and then completing "get..." at the same
+;; point.
+;;
 ;; Revision 1.18  2001/02/01 02:25:58  zappo
 ;; Removed compatibility code.
 ;; Added isearch code, which was in `senator-isearch'.  Made that shorter.
@@ -644,7 +650,7 @@ local type's context (see function `senator-current-type-context')."
 
 (defvar senator-last-completion-stats nil
   "The last senator completion was here.
- Of the form (BUFFER STARTPOS INDEX COMPLIST...)")
+ Of the form (BUFFER STARTPOS INDEX REGEX COMPLIST...)")
 
 ;;;###autoload
 (defun senator-complete-symbol ()
@@ -654,16 +660,23 @@ local type's context (see function `senator-current-type-context')."
          regex complst newstr index)
     ;; Get old stats if apropriate.
     (if (and senator-last-completion-stats
+	     ;; Check if completing in the same buffer
              (eq (car senator-last-completion-stats) (current-buffer))
-             (= (nth 1 senator-last-completion-stats) symstart))
-
-        (setq complst (cdr (cdr (cdr senator-last-completion-stats))))
+	     ;; Check if completing from the same point
+             (= (nth 1 senator-last-completion-stats) symstart)
+	     ;; Check if completing the same symbol
+	     (save-excursion
+	       (goto-char symstart)
+	       (looking-at (nth 3 senator-last-completion-stats))))
+	     
+        (setq complst (nthcdr 4 senator-last-completion-stats))
 
       (setq regex (regexp-quote (buffer-substring symstart (point)))
             complst (senator-find-nonterminal-by-name-regexp regex)
             senator-last-completion-stats (append (list (current-buffer)
                                                         symstart
-                                                        0)
+                                                        0
+							regex)
                                                   complst)))
     ;; Do the completion if apropriate.
     (when complst
