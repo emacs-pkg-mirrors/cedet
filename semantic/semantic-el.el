@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.43 2001/04/21 14:43:14 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.44 2001/04/27 00:12:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,6 +55,17 @@
 	    arglist (cdr arglist)))
     (nreverse out)))
 
+(defun semantic-elisp-form-to-doc-string (form)
+  "After reading a form FORM, covert it to a doc string.
+For Emacs Lisp, sometimes that string is non-existant.
+Recently discovered, sometimes it is a form which is evaluated
+at compile time, permitting compound strings."
+  (cond ((stringp form) form)
+	((and (listp form) (eq (car form) 'concat)
+	      (stringp (nth 1 form)))
+	 (nth 1 form))
+	nil))
+
 (defun semantic-elisp-use-read (sl)
   "Use `read' on the semantic list SL.
 Return a bovination list to use."
@@ -76,7 +87,7 @@ Return a bovination list to use."
 	  (eq ts 'defcustom)
 	  (eq ts 'defface)
 	  (eq ts 'defimage))
-      (let ((doc (nth 3 rt)))
+      (let ((doc (semantic-elisp-form-to-doc-string (nth 3 rt))))
         ;; Variables and constants
         (list sn 'variable nil (nth 2 rt)
               (semantic-bovinate-make-assoc-list
