@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.47 2004/10/26 00:59:57 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.48 2005/01/28 10:14:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,7 +38,11 @@
 ;;
 (if (featurep 'xemacs)
     (progn
-      (defalias 'semantic-overlay-live-p          'extent-live-p)
+      (defalias 'semantic-overlay-live-p
+        (lambda (o)
+          (and (extent-live-p o)
+               (not (extent-detached-p o))
+               (bufferp (extent-buffer o)))))
       (defalias 'semantic-make-overlay            'make-extent)
       (defalias 'semantic-overlay-put             'set-extent-property)
       (defalias 'semantic-overlay-get             'extent-property)
