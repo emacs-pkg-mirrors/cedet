@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.9 1999/03/09 16:10:01 zappo Exp $
+;; RCS: $Id: ede.el,v 1.10 1999/03/10 19:23:23 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -207,10 +207,10 @@ Do not set this to non-nil globally.  It is used internally.")
 			   (list 'if (list 'obj-of-class-p
 					   obj 'ede-target)
 				 (list 'ede-load-project-file
-				       (list 'oref obj path))
+				       (list 'oref obj 'path))
 				 obj))
-		     '(dbka (get-file-buffer (oref pf file))))
-	      '(if (not dbka) (find-file (oref pf file))
+		     '(dbka (get-file-buffer (oref pf 'file))))
+	      '(if (not dbka) (find-file (oref pf 'file))
 		 (switch-to-buffer dbka))
 	      (cons 'progn forms)
 	      '(if (not dbka) (kill-buffer (current-buffer))))))
