@@ -4,10 +4,10 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.1 1996/03/28 03:51:01 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.2 1996/06/17 22:31:08 zappo Exp $
 ;;; Keywords: OO widget
-;;;      
-;;; This program is free software; you can redistribute it and/or modify
+;;;                                                        
+;;; This program is free software; you can redistribute it and/or modify     
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation; either version 2, or (at your option)
 ;;; any later version.
@@ -171,6 +171,11 @@ count when being picked."
 	(goto-xy (1- x) (+ y (oref this height)))
 	(insert-overwrite-face lr (oref this box-face)))))
 
+(defmethod move-cursor-to ((this widget-square))
+  "Move the cursor so that it sits at a useful location inside this widget"
+  (goto-xy (oref this rx)
+	   (+ (oref this ry) (if (> (oref this height) 1) 1 0))))
+
 (defmethod picked ((this widget-square) x y)
   "Return t if X,Y lies within a square defined by our attributes"
   (let ((mod 0))
@@ -212,7 +217,7 @@ count when being picked."
 (defmethod add-child ((this widget-group) child)
   "Add widget CHILD to our personal list of child widgets"
   ;; Add to our list
-  (oset this child-list (cons child (oref this child-list)))
+  (oset this child-list (append (oref this child-list) (list child)))
   ;; make sure we are marked as that widgets parent.  To do this, we
   ;; must cheat so that THIS is set to child, and then we may set that
   ;; widgets field, and the scoped class to allow us access to private
@@ -227,23 +232,51 @@ count when being picked."
 (defmethod input ((this widget-group) char-or-event)
   "Handles the input event char-or-event by passing it to it's
 children.  If it is passed to a child, return t, else return nil"
-  (cond ((and (numberp char-or-event) (= char-or-event ?\C-i))
-	 ;; In this case, move forward one widget
-	 )
-	((and (numberp char-or-event) (= char-or-event ?\M-i))
-	 ;; In this case, move backward one widget
-	 )
-	(t
-	 (let ((x (current-column))
-	       (y (count-lines (point-min) (point)))
-	       (lop (oref this child-list)))
-	   ;; find the child who has been clicked
-	   (while lop
-	     (if (not (picked (car lop) x y))
-		 nil
-	       (input (car lop) char-or-event)
-	       (setq lop nil))
-	     (setq lop (cdr lop)))))))
+  (let ((x (current-column))
+	(y (count-lines (point-min) (point)))
+	(lop (oref this child-list))
+	after
+	(found nil)
+	(op 'input-needed))
+    ;; find the child who has been clicked
+    (while (and lop (not found))
+      (if (not (picked (car lop) x y))
+	  nil
+	(setq found (car lop)))
+      (setq lop (cdr lop)))
+    (while (and (car lop) (not (oref (car lop) handle-io)))
+      (setq lop (cdr lop)))
+    (setq after (car lop))
+    (if (and (not after) (or (not found) (eq (oref this parent) t)))
+	(progn
+	  (setq lop (oref this child-list))
+	  (while (and (car lop) (not (oref (car lop) handle-io)))
+	    (setq lop (cdr lop)))
+	  (setq after (car lop))))
+    ;; do something with that widget
+    (cond ((and (numberp char-or-event) (= char-or-event ?\C-i))
+	   ;; In this case, move forward one widget
+	   (if (and found (obj-of-class-p found widget-group))
+	       (progn
+		 (setq op (input found char-or-event))
+		 (if (eq op nil)
+		     (if after
+			 (progn
+			   (move-cursor-to after)
+			   (setq op after)))))
+	     (if after
+		 (if (obj-of-class-p after widget-group)
+		     (setq op (input after char-or-event))
+		   (move-cursor-to after)
+		   (setq op after))
+	       (setq op nil)))
+	   )
+	  ((and (numberp char-or-event) (= char-or-event ?\M-i))
+	   ;; In this case, move backward one widget
+	   )
+	  (t
+	   (setq op (input found char-or-event))))
+    op))
 
 (defmethod draw ((this widget-group))
   "Draw the basic group widget.  Basically all our children, with
@@ -374,7 +407,7 @@ thier X,Y offset by our X,Y"
 	   )
 	  (t (error "Internal label error")))
     (goto-xy x y)
-    (insert-overwrite-face ds (oref this face)))
+    (insert-overwrite-face ds (oref this face) (oref this focus-face)))
   (call-next-method))
 
 (defmethod input ((this widget-label) coe)
@@ -403,14 +436,24 @@ thier X,Y offset by our X,Y"
   "What to do if clicked upon by the mouse"
   (if (and (listp coe) (eventp coe))
       (cond (;; Someone pressed us!
-	     (member 'down (event-modifiers coe))
-	     (show-arm this t)	;arm it
-	     (widget-lock-over this)	;visually display arming
-	     (let ((x (current-column))
-		   (y (count-lines (point-min) (point))))
-	       (if (picked this x y)
-		   (active-actions this 'click))
-	       (show-arm this nil)))
+	     (let ((omf (oref this focus-face)))
+	       (unwind-protect
+		   (progn
+		     (member 'down (event-modifiers coe))
+		     (oset this focus-face (oref this arm-face))
+		     (draw this) ; set that...
+		     (widget-lock-over this)	;visually display arming
+		     (let ((x (current-column))
+			   (y (count-lines (point-min) (point)))
+			   (ob (oref this boxed)))
+		       (unwind-protect
+			   (progn
+			     (oset this boxed nil)
+			     (if (picked this x y)
+				 (active-actions this 'click)))
+			 (oset this boxed ob))))
+		 (oset this focus-face omf)
+		 (draw this))))
 	    ;; ignore the other stuff
 	    (t (message "Ignore event %S" (event-modifiers coe))))
     (if (or (eq coe 'return)
@@ -425,12 +468,8 @@ thier X,Y offset by our X,Y"
 
 (defmethod motion-input ((this widget-button) coe)
   "What do do with motion events from widget-lock-over function"
-  (if (and (listp coe) (eventp coe))
-      (if (not (event-modifiers coe))
-	  (let ((x (car (posn-col-row (event-end coe))))
-		;; this _should_ handle scrolling in a window
-		(y (+ (cdr (posn-col-row (event-end coe))) 1)))
-	    (show-arm this (picked this x y))))))
+  ;; buttons don't do anything special
+)
 
 (defmethod active-actions ((this widget-button) reason)
   "Called when activated to handle any special cases for child widgets"
@@ -482,6 +521,11 @@ thier X,Y offset by our X,Y"
 			     (oref this ind-face)))
     ;; draw the rest
     (call-next-method)))
+
+(defmethod move-cursor-to ((this widget-toggle-button))
+  "Move the cursor so that it sits at a useful location inside this widget"
+  (goto-xy (+ (oref this rx) (length (aref (oref this showvec) 0)) 1)
+	   (+ (oref this ry) (if (> (oref this height) 1) 1 0))))
 
 (defmethod active-actions ((this widget-toggle-button) reason)
   "When the button part is activated, then we must toggle our state"
@@ -550,6 +594,11 @@ thier X,Y offset by our X,Y"
   (call-next-method)
   )
 
+(defmethod move-cursor-to ((this widget-text-field))
+  "Move the cursor so that it sits at a useful location inside this widget"
+  (goto-xy (oref this rx)
+	   (oref this ry)))
+
 (defmethod input ((this widget-text-field) coe)
   "Handle user input events in the text field"
   ;; first find out if we will be doing any edits at all
@@ -589,7 +638,7 @@ thier X,Y offset by our X,Y"
 	      (set-value mo mv this)
 	      (draw this))
 	    ;; place the cursor
-	    (message "disppos is %d rp is %d " (oref this disppos) rp)
+	    ;;(message "disppos is %d rp is %d " (oref this disppos) rp)
 	    (goto-xy (+ (oref this rx) (- rp (oref this disppos)))
 		     (oref this ry))
 	    (sit-for 1)
