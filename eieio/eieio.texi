@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.39 2001/02/17 15:10:59 zappo Exp $
+@c $Id: eieio.texi,v 1.40 2001/02/19 13:31:28 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -71,11 +71,7 @@ supported, and a few functions have been added in place of setf.
 A structured framework for the creation of basic classes with attributes
 and methods using singular inheritance similar to CLOS.
 @item
-Public and private classifications for slots (extensions to CLOS)
-@item
 Type checking, and slot unbinding.
-@item
-Customization support in a class (extension to CLOS)
 @item
 Method definitions similar to CLOS.
 @item
@@ -89,11 +85,15 @@ Byte compilation support of methods.
 @item
 Help system extentions for classes and methods.
 @item
-Speedbar classes so you can create easy displays of object hierarchies.
-@item
 Automatic texinfo documentation generator.
 @item
+Several base classes for interesting tasks.
+@item
 Simple test suite.
+@item
+Public and private classifications for slots (extensions to CLOS)
+@item
+Customization support in a class (extension to CLOS)
 @end enumerate
 
 @section Issues using EIEIO
@@ -141,7 +141,7 @@ objects in very little time. @ref{eieio-speedbar}
 @item
 More CLOS compatibility.
 @item
-Integrate in the desired built-in methods into the object browser.
+Integrate the desired built-in methods into the object browser.
 @item
 Create some objects over pre-existing emacs-lisp stuff for fun, like
 faces, processes, buffers, frames and windows as examples.
@@ -152,9 +152,10 @@ faces, processes, buffers, frames and windows as examples.
 @chapter CLOS compatibility
 
 As you read this, it is important to know that I have just recently
-learned some of the CLOS syntax, but have never used it myself.  I'm
-primarily and Emacs Lisp hacker who wrote EIEIO to help myself learn
-some of the mechanics of Object Oriented programming.
+learned some of the CLOS syntax, but have never used it myself outside
+of the EIEIO framework.  I'm primarily and Emacs Lisp hacker who wrote
+EIEIO to help myself learn some of the mechanics of Object Oriented
+programming.
 
 Currently, the following functions should behave almost as expected from
 CLOS.
@@ -261,12 +262,18 @@ A function like this:
 @example
 :initform +
 @end example
-is quoted in as a symbol.  On the other hand, if you need code to be
-executed at instantiation time as the initform, code like this:
-@example
-:initform (lambda () (+ 1 some-global-var))
-@end example
-will be identified as a function call, and be executed in place.
+is quoted in as a symbol.
+
+@c This feature was more annoying than useful.  Use the
+@c `initialize-instance' function to do this.
+@c
+@c On the other hand, if you need code to be
+@c executed at instantiation time as the initform, code like this:
+@c @example
+@c :initform (lambda () (+ 1 some-global-var))
+@c @end example
+@c will be identified as a function call, and be executed in place.
+
 @cindex lambda-default
 Lastly, using the function @code{lambda-default} instead of
 @code{lambda} will let you specify a lambda expression to use as the
@@ -1004,7 +1011,7 @@ considered the parent of the current instance.  Default is @code{nil}.
 
 @cindex clone
 To use this class, inherit from it with your own class.
-To make a new instance that inherits from and existing instance of you
+To make a new instance that inherits from and existing instance of your
 class, use the @code{clone} method with additional parameters
 to specify local values.
 
