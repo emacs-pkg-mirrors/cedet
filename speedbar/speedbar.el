@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.5.2
+;; Version: 0.5.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.60 1997/10/10 00:56:36 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.61 1997/11/03 22:28:39 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -259,6 +259,10 @@
 ;;         package to get nice faces for speedbar
 ;;       mouse1 Double-click is now the same as middle click.
 ;;       No mouse pointer shape stuff for XEmacs (is there any?)
+;; 0.5.3 Regressive support for non-custom enabled emacsen.
+;;       Fixed serious problem w/ 0.5.2 and ignored paths.
+;;       `condition-case' no longer used in timer fcn.
+;;       `speedbar-edit-line' is now smarter w/ special modes.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -288,7 +292,7 @@
 	   ;; or set them up ahead of time in your .emacs file.
 	   (make-face (, var))
 	   )))
-    (defmacro defcustom (var value doc &rest args) 
+    (defmacro defcustom (var value doc &rest args)
       (` (defvar (, var) (, value) (, doc))))))
 
 ;; customization stuff
@@ -506,7 +510,11 @@ large and take a long time to load in.  Use the function
 speedbar is loaded.  You may place anything you like in this list
 before speedbar has been loaded."
   :group 'speedbar
-  :type '(repeat (regexp :tag "Path Regexp")))
+  :type '(repeat (regexp :tag "Path Regexp"))
+  :set (lambda (sym val)
+	 (setq speedbar-ignored-path-expressions val
+	       speedbar-ignored-path-regexp
+	       (speedbar-extension-list-to-regex val))))
 
 (defvar speedbar-file-unshown-regexp
   (let ((nstr "") (noext completion-ignored-extensions))
@@ -601,6 +609,13 @@ PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
     (setq path-expression (cdr path-expression)))
   (setq speedbar-ignored-path-regexp (speedbar-extension-list-to-regex
 				      speedbar-ignored-path-expressions)))
+
+;; If we don't have custom, then we set it here by hand.
+(if (not (fboundp 'custom-declare-variable))
+    (setq speedbar-file-regexp (speedbar-extension-list-to-regex
+				speedbar-supported-extension-expressions)
+	  speedbar-ignored-path-regexp (speedbar-extension-list-to-regex
+					speedbar-ignored-path-expressions)))
 
 (defvar speedbar-update-flag (or (fboundp 'run-with-idle-timer)
 				 (fboundp 'start-itimer)
@@ -1750,49 +1765,52 @@ This should only be used by modes classified as special."
   (if (not (and (frame-live-p speedbar-frame)
 		(frame-live-p speedbar-attached-frame)))
       (speedbar-set-timer nil)
-    (condition-case nil
-	;; Save all the match data so that we don't mess up executing fns
-	(save-match-data
-	  (if (and (frame-visible-p speedbar-frame) speedbar-update-flag)
-	      (let ((af (selected-frame)))
-		(save-window-excursion
-		  (select-frame speedbar-attached-frame)
-		  ;; make sure we at least choose a window to
-		  ;; get a good directory from
-		  (if (string-match "\\*Minibuf-[0-9]+\\*" (buffer-name))
-		      (other-window 1))
-		  ;; Update for special mode all the time!
-		  (if (and speedbar-mode-specific-contents-flag
-			   speedbar-special-mode-expansion-list
-			   (local-variable-p
-			    'speedbar-special-mode-expansion-list))
-					;(eq (get major-mode 'mode-class 'special)))
-		      (speedbar-update-special-contents)
-		    ;; Update all the contents if directories change!
-		    (if (or (member (expand-file-name default-directory)
-				    speedbar-shown-directories)
-			    (string-match speedbar-ignored-path-regexp
-					  (expand-file-name default-directory))
-			    (member major-mode speedbar-ignored-modes)
-			    (eq af speedbar-frame)
-			    (not (buffer-file-name)))
-			nil
-		      (if (<= 1 speedbar-verbosity-level)
-			  (message "Updating speedbar to: %s..."
-				   default-directory))
-		      (speedbar-update-directory-contents)
-		      (if (<= 1 speedbar-verbosity-level)
-			  (message "Updating speedbar to: %s...done"
-				   default-directory))))
-		  (select-frame af))
-		;; Now run stealthy updates of time-consuming items
-		(speedbar-stealthy-updates))))
-      ;; errors that might occur
-      (error (message "Speedbar error!")))
-    ;; Reset the timer
-    (speedbar-set-timer speedbar-update-speed))
-  (run-hooks 'speedbar-timer-hook)
-  )
+    ;; Reset our timer
+    (speedbar-set-timer speedbar-update-speed)
+    ;; Save all the match data so that we don't mess up executing fns
+    (save-match-data
+      (if (and (frame-visible-p speedbar-frame) speedbar-update-flag)
+	  (let ((af (selected-frame)))
+	    (save-window-excursion
+	      (select-frame speedbar-attached-frame)
+	      ;; make sure we at least choose a window to
+	      ;; get a good directory from
+	      (if (string-match "\\*Minibuf-[0-9]+\\*" (buffer-name))
+		  (other-window 1))
+	      ;; Update for special mode all the time!
+	      (if (and speedbar-mode-specific-contents-flag
+		       speedbar-special-mode-expansion-list
+		       (local-variable-p
+			'speedbar-special-mode-expansion-list))
+		  ;;(eq (get major-mode 'mode-class 'special)))
+		  (progn
+		    (if (<= 2 speedbar-verbosity-level)
+			(message "Updating speedbar to special mode: %s..."
+				 major-mode))
+		    (speedbar-update-special-contents)
+		    (if (<= 2 speedbar-verbosity-level)
+			(message "Updating speedbar to special mode: %s...done"
+				 major-mode)))
+		;; Update all the contents if directories change!
+		(if (or (member (expand-file-name default-directory)
+				speedbar-shown-directories)
+			(string-match speedbar-ignored-path-regexp
+				      (expand-file-name default-directory))
+			(member major-mode speedbar-ignored-modes)
+			(eq af speedbar-frame)
+			(not (buffer-file-name)))
+		    nil
+		  (if (<= 1 speedbar-verbosity-level)
+		      (message "Updating speedbar to: %s..."
+			       default-directory))
+		  (speedbar-update-directory-contents)
+		  (if (<= 1 speedbar-verbosity-level)
+		      (message "Updating speedbar to: %s...done"
+			       default-directory))))
+	      (select-frame af))
+	    ;; Now run stealthy updates of time-consuming items
+	    (speedbar-stealthy-updates)))))
+  (run-hooks 'speedbar-timer-hook))
 
 
 ;;; Stealthy activities
@@ -2189,13 +2207,16 @@ directory with these items."
 (defun speedbar-edit-line ()
   "Edit whatever tag or file is on the current speedbar line."
   (interactive)
-  (save-excursion
-    (beginning-of-line)
-    ;; If this fails, then it is a non-standard click, and as such,
-    ;; perfectly allowed.
-    (re-search-forward "[]>}] [a-zA-Z0-9]"
-		       (save-excursion (end-of-line) (point)) t)
-    (speedbar-do-function-pointer)))
+  (or (save-excursion
+	(beginning-of-line)
+	;; If this fails, then it is a non-standard click, and as such,
+	;; perfectly allowed.
+	(if (re-search-forward "[]>}] [a-zA-Z0-9]"
+			       (save-excursion (end-of-line) (point))
+			       t)
+	    (speedbar-do-function-pointer)
+	  nil))
+      (speedbar-do-function-pointer)))
 
 (defun speedbar-expand-line ()
   "Expand the line under the cursor."
