@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.19 2003/08/26 20:10:49 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.20 2003/08/28 02:55:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -122,6 +122,19 @@ START and END define the location of data described by the tag."
   (append (semantic-tag name 'def)
           (list start end)))
 
+(defun semantic-texi-set-endpoint (metataglist pnt)
+  "Set the end point of the first section tag in METATAGLIST to PNT.
+METATAGLIST is a list of tags in the intermediate tag format used by the
+texinfo parser.  PNT is the new point to set."
+  (let ((metatag nil))
+    (while (and metataglist
+		(not (eq (semantic-tag-class (car metataglist)) 'section)))
+      (setq metataglist (cdr metataglist)))
+    (setq metatag (car metataglist))
+    (when metatag
+      (setcar (nthcdr (1- (length metatag)) metatag) pnt)
+      metatag)))
+
 (defun semantic-texi-recursive-combobulate-list (sectionlist level)
   "Rearrange SECTIONLIST to be a hierarchical tag list starting at LEVEL.
 Return the rearranged new list, with all remaining tags from
@@ -140,10 +153,14 @@ tag with greater section value than LEVEL is found."
 		     (levelmatch (assoc word texinfo-section-list))
 		     text begin tmp
 		     )
+		;; Set begin to the right location
+		(setq begin (point))
 		;; Get out of here if there if we made it that far.
 		(if (and levelmatch (<= (car (cdr levelmatch)) level))
-		    (throw 'level-jump t))
-		(setq begin (point))
+		    (progn
+		      (when newl
+			(semantic-texi-set-endpoint newl begin))
+		      (throw 'level-jump t)))
 		;; Recombobulate
 		(if levelmatch
 		    (progn
@@ -159,8 +176,13 @@ tag with greater section value than LEVEL is found."
 				 (cdr oldl) (car (cdr levelmatch))))
 		      ;; Build a tag
                       (setq tag (semantic-texi-new-section-tag
-                                 text (car tmp) begin (point))
-                            newl (cons tag newl))
+                                 text (car tmp) begin (point)))
+		      ;; Before appending the newtag, update the previous tag
+		      ;; if it is a section tag.
+		      (when newl
+			(semantic-texi-set-endpoint newl begin))
+		      ;; Append new tag to our master list.
+		      (setq newl (cons tag newl))
 		      ;; continue
 		      (setq oldl (cdr tmp))
 		      )
@@ -228,6 +250,7 @@ thingy from it using the `document' tool."
 	semantic-imenu-bucketize-file nil
 	semantic-imenu-bucketize-type-members nil
 	senator-step-at-start-end-tag-classes '(section)
+	semantic-stickyfunc-sticky-classes '(section)
 	)
   (semantic-install-function-overrides
    '((tag-components . semantic-texi-components)
@@ -313,7 +336,10 @@ If TAG is nil, determine a tag based on the current position."
 		 (semanticdb-brute-deep-find-tags-by-name name nil t))))
 	 (docstring nil)
 	 (docstringproto nil)
+	 (docstringvar nil)
 	 (doctag nil)
+	 (doctagproto nil)
+	 (doctagvar nil)
 	 )
     (save-excursion
       (while (and tags (not docstring))
@@ -322,17 +348,27 @@ If TAG is nil, determine a tag based on the current position."
 	  ;; solution someday.
 	  (set-buffer (semantic-tag-buffer sourcetag))
 	  (unless (eq major-mode 'texinfo-mode)
-	    (if (semantic-tag-get-attribute sourcetag 'prototype)
-		;; If we found a match with doc that is a prototype, then store
-		;; that, but don't exit till we find the real deal.
-		(setq docstringproto (semantic-documentation-for-tag sourcetag))
-	      (setq docstring (semantic-documentation-for-tag sourcetag)))
+	    (cond ((semantic-tag-get-attribute sourcetag 'prototype)
+		   ;; If we found a match with doc that is a prototype, then store
+		   ;; that, but don't exit till we find the real deal.
+		   (setq docstringproto (semantic-documentation-for-tag sourcetag)
+			 doctagproto sourcetag))
+		  ((eq (semantic-tag-class sourcetag) 'variable)
+		   (setq docstringvar (semantic-documentation-for-tag sourcetag)
+			 doctagvar sourcetag))
+		  (t
+		   (setq docstring (semantic-documentation-for-tag sourcetag))))
 	    (setq doctag (if docstring sourcetag nil)))
 	  (setq tags (cdr tags)))))
     ;; If we found a prototype of the function that has some doc, but not the
     ;; actual function, lets make due with that.
-    (if (and (not docstring) (stringp docstringproto))
-	(setq docstring docstringproto))
+    (if (not docstring)
+	(cond ((stringp docstringvar)
+	       (setq docstring docstringvar
+		     doctag doctagvar))
+	      ((stringp docstringproto)
+	       (setq docstring docstringproto
+		     docvar docvarproto))))
     ;; Test for doc string
     (unless docstring
       (error "Could not find documentation for %s" (semantic-tag-name tag)))
