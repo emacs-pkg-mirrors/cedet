@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.1 2002/06/19 04:45:42 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.2 2002/06/21 07:45:18 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -144,119 +144,119 @@
 ;; Keyword terminals
 ;; -----------------
 
-%token AND         "and"
+%token AND	     "and"
 %put AND summary
 " ... "
 
-%token ASSERT      "assert"
+%token ASSERT	     "assert"
 %put ASSERT summary
 " ... "
 
-%token BREAK       "break"
+%token BREAK	     "break"
 %put BREAK summary
 " ... "
 
-%token CLASS       "class"
+%token CLASS	     "class"
 %put CLASS summary
 " ... "
 
-%token CONTINUE       "continue"
+%token CONTINUE	     "continue"
 %put CONTINUE summary
 " ... "
 
-%token DEF        "def"
+%token DEF	     "def"
 %put DEF summary
 " ... "
 
-%token DEL        "del"
+%token DEL	     "del"
 %put DEL summary
 " ... "
 
-%token ELIF        "elif"
+%token ELIF	     "elif"
 %put ELIF summary
 " ... "
 
-%token ELSE        "else"
+%token ELSE	     "else"
 %put ELSE summary
 " ... "
 
-%token EXCEPT        "except"
+%token EXCEPT	     "except"
 %put EXCEPT summary
 " ... "
 
-%token EXEC        "exec"
+%token EXEC	     "exec"
 %put EXEC summary
 " ... "
 
-%token FINALLY        "finally"
+%token FINALLY	     "finally"
 %put FINALLY summary
 " ... "
 
-%token FOR        "for"
+%token FOR	     "for"
 %put FOR summary
 " ... "
 
-%token FROM        "from"
+%token FROM	     "from"
 %put FROM summary
 " ... "
 
-%token GLOBAL      "global"
+%token GLOBAL	     "global"
 %put GLOBAL summary
 " ... "
 
-%token IF      "if"
+%token IF	     "if"
 %put IF summary
 " ... "
 
-%token IMPORT      "import"
+%token IMPORT	     "import"
 %put IMPORT summary
 " ... "
 
-%token IN          "in"
+%token IN	     "in"
 %put IN summary
 " ... "
 
-%token IS          "is"
+%token IS	     "is"
 %put IS summary
 " ... "
 
-%token LAMBDA      "lambda"
+%token LAMBDA	     "lambda"
 %put LAMDA summary
 "..."
 
-%token NOT         "not"
+%token NOT	     "not"
 %put NOT summary
 "..."
 
-%token OR          "or"
+%token OR	     "or"
 %put OR summary
 "..."
 
-%token PASS       "pass"
+%token PASS	     "pass"
 %put PASS summary
 "..."
 
-%token PRINT       "print"
+%token PRINT	     "print"
 %put PRINT summary
 "..."
 
-%token RAISE       "raise"
+%token RAISE	     "raise"
 %put RAISE summary
 "..."
 
-%token RETURN       "return"
+%token RETURN	     "return"
 %put RETURN summary
 "..."
 
-%token TRY       "try"
+%token TRY	     "try"
 %put TRY summary
 "..."
 
-%token WHILE       "while"
+%token WHILE	     "while"
 %put WHILE summary
 "..."
 
-%token YIELD       "yield"
+%token YIELD	     "yield"
 %put YIELD summary
 "..."
 
