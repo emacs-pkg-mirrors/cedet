@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.154 2002/08/02 01:38:54 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.155 2002/08/04 01:55:45 zappo Exp $
 
 (defvar semantic-version "2.0alpha2"
   "Current version of Semantic.")
@@ -259,19 +259,9 @@ during a flush when the cache is given a new value of nil.")
   :group 'semantic
   :type 'boolean)
 
-(defvar semantic-bovinate-parser #'semantic-bovinate-nonterminal-default
-  "Function used to parse input stream.
-See the default parser `semantic-bovinate-nonterminal-default' for
-details.")
-(make-variable-buffer-local 'semantic-bovinate-parser)
-
 (defvar semantic-bovinate-parser-name "LL"
   "Optional name of the parser used to parse input stream.")
 (make-variable-buffer-local 'semantic-bovinate-parser-name)
-
-(defvar semantic-bovinate-incremental-parser #'semantic-edits-incremental-parser
-  "Parser used for partial reparses.")
-(make-variable-buffer-local 'semantic-bovinate-incremental-parser)
 
 ;;; Overlay.
 ;;
@@ -316,7 +306,11 @@ toplevel cache check should be made."
 (defun semantic-new-buffer-fcn ()
   "Setup Semantic in the current buffer.
 Runs `semantic-init-hook' if the major mode is setup to use Semantic."
+  ;; Make sure variables are set up for this mode.
+  (semantic-symbol-value-mode-assign)
+  ;; Do stuff if semantic is active in this buffer.b
   (when (semantic-active-p)
+    ;; Force this buffer to have its cache refreshed.
     (semantic-clear-toplevel-cache)
     ;; Here are some buffer local variables we can initialize ourselves
     ;; of a mode does not choose to do so.
@@ -467,6 +461,24 @@ stream is requested."
 		      semantic-toplevel-bovine-cache)
   )
 
+(defun semantic-set-toplevel-bovine-cache (tokenlist)
+  "Set the toplevel bovine cache to TOKENLIST."
+  (setq semantic-toplevel-bovine-cache tokenlist
+	semantic-toplevel-bovine-cache-check nil
+	semantic-toplevel-bovine-force-reparse nil
+        semantic-unmatched-syntax-cache-check nil
+        semantic-bovinate-nonterminal-check-obarray nil)
+  (semantic-make-local-hook 'after-change-functions)
+  (add-hook 'after-change-functions 'semantic-change-function nil t)
+  (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
+		      semantic-toplevel-bovine-cache)
+  ;; Refresh the display of unmatched syntax tokens if enabled
+  (run-hook-with-args 'semantic-unmatched-syntax-hook
+                      semantic-unmatched-syntax-cache)
+  ;; Old Semantic 1.3 hook API.  Maybe useful forever?
+  (run-hooks 'semantic-after-toplevel-bovinate-hook)
+  )
+
 (defvar semantic-bovination-working-type 'percent
   "*The type of working message to use when bovinating.
 'percent means we are doing a linear parse through the buffer.
@@ -479,6 +491,13 @@ string.  See also the function `working-status-forms'."
   (if semantic-bovinate-parser-name
       (format "%s/%s" semantic-bovinate-parser-name (or arg ""))
     (format "%s" (or arg ""))))
+
+
+;;; Application Parser Entry Point
+;;
+;; The best way to call the parser from programs is via
+;; `semantic-bovinate-toplevel'.  This, in turn, uses other internal
+;; API functions which plug-in parsers can take advantage of.
 
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional checkcache)
@@ -510,7 +529,7 @@ that, otherwise, do a full reparse."
     ;; Use the incremental parser to do a fast update.
     (garbage-collect)
     (let* ((gc-cons-threshold 10000000)
-           (changes (funcall semantic-bovinate-incremental-parser)))
+           (changes (semantic-bovinate-incremental-parser)))
       (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
           ;; If the partial reparse fails, jump to a full reparse.
           (semantic-bovinate-toplevel checkcache)
@@ -555,35 +574,45 @@ that, otherwise, do a full reparse."
     semantic-toplevel-bovine-cache
     )))
 
-(define-overload semantic-bovinate-region (start end &optional parse-symbol)
+
+;;; Parser API Plugin Functions
+;;
+;; Overload these functions to create new types of parsers.
+;;
+(define-overload semantic-bovinate-region
+  (start end &optional parse-symbol depth returnonerror)
   "Bovinate the area between START and END, and return any tokens found.
 If END needs to be extended due to a lexical token being too large,
 it will be silently ignored.
-Optional argument SYMBOL is the rule to start parsing at if it
-is known.  This can be used for anything a given parser wants to use.
+Optional argument PARSE-SYMBOL is the rule to start parsing at if it
+is known. 
+Argument DEPTH specifies the lexical depth to decend for parser that
+use lexical analysis as their first step.
+RETURNONERROR specifies that parsing should stop on the first unmatched
+syntax encountered.  When nil, parsing skips the syntax, adding it to
+the unmatched syntax cache.
 This function returns tokens wich have been cooked (repositioned properly)
 but which DO NOT HAVE OVERLAYS associated with them.")
 
-(defun semantic-set-toplevel-bovine-cache (tokenlist)
-  "Set the toplevel bovine cache to TOKENLIST."
-  (setq semantic-toplevel-bovine-cache tokenlist
-	semantic-toplevel-bovine-cache-check nil
-	semantic-toplevel-bovine-force-reparse nil
-        semantic-unmatched-syntax-cache-check nil
-        semantic-bovinate-nonterminal-check-obarray nil)
-  (semantic-make-local-hook 'after-change-functions)
-  (add-hook 'after-change-functions 'semantic-change-function nil t)
-  (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
-		      semantic-toplevel-bovine-cache)
-  ;; Refresh the display of unmatched syntax tokens if enabled
-  (run-hook-with-args 'semantic-unmatched-syntax-hook
-                      semantic-unmatched-syntax-cache)
-  ;; Old Semantic 1.3 hook API.  Maybe useful forever?
-  (run-hooks 'semantic-after-toplevel-bovinate-hook)
-  )
+(define-overload semantic-bovinate-nonterminal (stream nonterminal)
+  "Parse a single new nonterminal from STREAM.
+Start using the rule NONTERMINAL.
+For bovine and wisent based parsers, STRAM is from the output
+of `semantic-lex', and NONTERMINAL is a rule in the apropriate
+language specific rules file.
+The default parser table used for bovine or wisent based parsers
+is `semantic-toplevel-bovine-table'.
+The return argument is a list consisting of:
+  (STREAM NONTERMINALTOKENS)
+where STREAM is the unused elements from STREAM, and NONTERMINALTOKENS
+is the list of nonterminals found, usually only one token is returned
+with the exception of compound statements")
 
 
-;;; Force token lists in and out of overlay mode.
+;;; Tokens and Overlays
+;;
+;; Overlays are used so that we can quickly identify tokens from
+;; buffer positions and regions using built in Emacs commands.
 ;;
 (defun semantic-deoverlay-token (token)
   "Convert TOKEN from using an overlay to using an overlay proxy."
@@ -641,7 +670,11 @@ but which DO NOT HAVE OVERLAYS associated with them.")
 	   (semantic-clear-toplevel-cache)
 	   nil)))
 
-;;; Token parsing utilities
+;;; Token Cooking
+;;
+;; Raw tokens from a parser follow a different positional format than
+;; those used in the bovine cache.  Raw tokens need to be cooked into
+;; semantic cache friendly tokens for use by the masses.
 ;;
 (defsubst semantic-cooked-token-p (token)
   "Return non-nil if TOKEN is a cooked one.
@@ -693,22 +726,14 @@ a list of cooked tokens."
       result)))
 
 
-;;; Bovine table runtime functions
+;;; Iterative parser helper function
 ;;
-(defvar semantic-bovination-active-table nil
-  "Active table while parsing a buffer w/ the LL parser.")
-
-(defsubst semantic-bovinate-nonterminal (stream table &optional nonterminal)
-  "Bovinate STREAM based on the TABLE of nonterminal symbols.
-Optional argument NONTERMINAL is the nonterminal symbol to start with.
-This is the core routine for converting a stream into a table.
-Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
-elements of STREAM that have not been used.  SEMANTIC-STREAM is the
-list of semantic tokens found.
-This function returns tokens w/out overlays, only numeric markers."
-  (let ((semantic-bovination-active-table table))
-    (funcall semantic-bovinate-parser stream table nonterminal)))
-
+;; Iterative parsers are better than rule-based iterative functions
+;; in that they can handle obscure errors more cleanly.
+;;
+;; `semantic-bovinate-nonterminals' abstracts this action for other
+;; parser centric routines.
+;;
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
 					      depth returnonerror)
   "Bovinate the entire stream STREAM starting with NONTERM.
@@ -722,7 +747,7 @@ This function returns tokens with overlays."
         nontermsym token)
     (while stream
       (setq nontermsym (semantic-bovinate-nonterminal
-                        stream semantic-toplevel-bovine-table nonterm)
+                        stream nonterm)
             token (car (cdr nontermsym)))
       (if (not nontermsym)
           (error "Parse error @ %d" (car (cdr (car stream)))))
@@ -760,10 +785,12 @@ This function returns tokens with overlays."
 	    (working-dynamic-status))))
     result))
 
+
+;;; Parser action helper functions
+;;
 ;; These are functions that can be called from within a bovine table.
 ;; Most of these have code auto-generated from other construct in the
 ;; BNF.
-
 (defun semantic-bovinate-make-assoc-list (&rest args)
   "Create an association list with ARGS.
 Args are of the form (KEY1 VALUE1 ... KEYN VALUEN).
@@ -788,6 +815,27 @@ The return list is a lambda expression to be used in a bovine table."
   `(lambda (vals start end)
      (append ,@return-val (list start end))))
 
+
+;;; Backwards Compatible API functions
+;;
+;; Semantic 1.x functions used by some parsers.
+;;
+;; Please move away from these functions, and try using
+;; semantic 2.x interfaces instead.
+;;
+(defsubst semantic-bovinate-region-until-error
+  (start end nonterm &optional depth)
+  "NOTE: Use `semantic-bovinate-region' instead.
+
+Bovinate between START and END starting with NONTERM.
+Optional DEPTH specifies how many levels of parenthesis to enter.
+This command will parse until an error is encountered, and return
+the list of everything found until that moment.
+This is meant for finding variable definitions at the beginning of
+code blocks in methods.  If `bovine-inner-scope' can also support
+commands, use `semantic-bovinate-from-nonterminal-full'."
+  (semantic-bovinate-region start end nonterm depth t))
+
 (defsubst semantic-bovinate-from-nonterminal (start end nonterm
 						 &optional depth length)
   "Bovinate from within a nonterminal lambda from START to END.
@@ -799,7 +847,6 @@ a START and END part.
 Optional argument LENGTH specifies we are only interested in LENGTH tokens."
   (car-safe (cdr (semantic-bovinate-nonterminal
 		  (semantic-lex start end (or depth 1) length)
-		  semantic-bovination-active-table
 		  nonterm))))
 
 (defsubst semantic-bovinate-from-nonterminal-full (start end nonterm
@@ -812,34 +859,7 @@ If NONTERM is nil, use `bovine-block-toplevel'.
 Optional argument DEPTH is the depth of lists to dive into.
 When used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
-  (nreverse
-   (semantic-bovinate-nonterminals (semantic-lex start end (or depth 1))
-				   nonterm
-				   depth)))
-
-(defsubst semantic-bovinate-region-until-error (start end nonterm &optional depth)
-  "Bovinate between START and END starting with NONTERM.
-Optional DEPTH specifies how many levels of parenthesis to enter.
-This command will parse until an error is encountered, and return
-the list of everything found until that moment.
-This is meant for finding variable definitions at the beginning of
-code blocks in methods.  If `bovine-inner-scope' can also support
-commands, use `semantic-bovinate-from-nonterminal-full'."
-  (nreverse
-   (semantic-bovinate-nonterminals (semantic-lex start end depth)
-				   nonterm
-				   depth
-				   ;; This says stop on an error.
-				   t)))
-
-;;; Settings and autoloads
-;;
-(autoload 'semantic-create-imenu-index "semantic-imenu"
-  "Create an imenu index for any buffer which supports Semantic.")
-(autoload 'senator-minor-mode "senator"
-  "Minor mode for the SEmantic NAvigaTOR." t)
-(autoload 'global-semanticdb-minor-mode "semanticdb"
-  "Mode saving token lists between sessions." t)
+  (semantic-bovinate-region start end nonterm depth))
 
 (provide 'semantic)
 
