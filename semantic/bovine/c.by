@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.15 2003/06/05 13:10:39 ponced Exp $
+;; X-RCS: $Id: c.by,v 1.16 2003/08/01 17:38:16 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
 %languagemode  c-mode c++-mode
 %setupfunction semantic-default-c-setup
 
-%(setq semantic-tag-expand-function 'semantic-expand-c-nonterminal
+%(setq semantic-tag-expand-function 'semantic-expand-c-tag
        semantic-dependency-include-path semantic-default-c-path
        semantic-orphaned-member-metaparent-type "struct"
        semantic-symbol->name-assoc-list
@@ -956,9 +956,9 @@ arg-list
 
 knr-arguments
   : variablearg SEMICOLON knr-arguments
-    ( ,(cons (car (semantic-expand-c-nonterminal ,$1) ) ,$3) )
+    ( ,(cons (car (semantic-expand-c-tag ,$1) ) ,$3) )
   | variablearg SEMICOLON
-    ( (car (semantic-expand-c-nonterminal ,$1)) )
+    ( (car (semantic-expand-c-tag ,$1)) )
   ;
 
 arg-sub-list
