@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 23 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-flex.el,v 1.6 2002/07/15 10:30:08 ponced Exp $
+;; X-RCS: $Id: wisent-flex.el,v 1.7 2002/07/17 09:59:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,7 +38,7 @@
 (require 'semantic)
 
 (defvar wisent-flex-istream nil
-  "Input stream of `semantic-flex' syntactic tokens.")
+  "Input stream of `semantic-lex' syntactic tokens.")
 
 (defvar wisent-flex-tokens-obarray nil
   "Buffer local token obarray for `wisent-flex'.")
@@ -299,8 +299,28 @@ example on how to define the mapping of 'punctuation syntactic tokens.
                     (aref text 0)
                   stok)
                 (cons text (cdr flex)))))))
+
+;;; Semantic 2.x lexical analysis
+;;
 
-;; Lexer for use with Semantic 2.x lexical analysis
+;;; Some general purpose analyzers
+;;
+(define-lex-regex-analyzer wisent-flex-punctuation
+  "Detect and create punctuation tokens."
+  "\\(\\s.\\|\\s$\\|\\s'\\)+"
+  (let* ((punct (match-string 0))
+         (start (match-beginning 0))
+         (rules (cdr (wisent-flex-token-rules 'punctuation)))
+         entry)
+    ;; Starting with the longest punctuation string, search if it
+    ;; matches a punctuation of this language.
+    (while (and (> (length punct) 0)
+                (not (setq entry (rassoc punct rules))))
+      (setq punct (substring punct 0 -1)))
+    (semantic-lex-token (car entry) start (+ start (length punct)))))
+
+;;; Lexer
+;;
 (defun wisent-lex ()
   "Return the next available lexical token in Wisent's form.
 The variable `wisent-flex-istream' contains the list of lexical tokens
@@ -310,7 +330,7 @@ it to a form suitable for the Wisent's parser."
       (let ((tk (car wisent-flex-istream)))
         ;; Eat input stream
         (setq wisent-flex-istream (cdr wisent-flex-istream))
-        (cons (car tk) (cons (semantic-flex-text tk) (cdr tk))))
+        (cons (car tk) (cons (semantic-lex-token-text tk) (cdr tk))))
     (wisent-flex-eoi)))
 
 (provide 'wisent-flex)
