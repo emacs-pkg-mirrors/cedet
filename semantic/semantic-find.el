@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.3 2003/03/30 03:43:09 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.4 2003/04/01 03:47:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -689,10 +689,10 @@ details are available of findable."
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-function-first-match
 			 'semantic-brute-find-first-tag-by-function)
 
-(semantic-alias-obsolete 'semantic-find-token-by-position
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-position
 			 'semantic-brute-find-tag-by-position)
 
-(semantic-alias-obsolete 'semantic-find-innermost-token-by-position
+(semantic-alias-obsolete 'semantic-find-innermost-nonterminal-by-position
 			 'semantic-brute-find-innermost-tag-by-position)
 
 
