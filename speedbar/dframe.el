@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.20 2002/09/03 22:55:19 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.21 2002/11/28 13:11:03 zappo Exp $
 
 (defvar dframe-version "1.3"
   "The current version of the dedicated frame library.")
@@ -456,7 +456,7 @@ CREATE-HOOK are hooks to run after creating a frame."
 
 (defun dframe-reposition-frame (new-frame parent-frame location)
   "Move NEW-FRAME to be relative to PARENT-FRAME.
-LOCATION can be one of 'random, 'left-right, or 'top-bottom."
+LOCATION can be one of 'random, 'left, 'right, 'left-right, or 'top-bottom."
   (if dframe-xemacsp
       (dframe-reposition-frame-xemacs new-frame parent-frame location)
     (dframe-reposition-frame-emacs new-frame parent-frame location)))
@@ -501,7 +501,13 @@ a cons cell indicationg a position of the form (LEFT . TOP)."
 		      (- (x-display-pixel-height) (car (cdr pfy)) pfh)
 		    (car (cdr pfy))))
 	    )
-      (cond ((eq location 'left-right)
+      (cond ((eq location 'right)
+	     (setq newleft (+ pfx pfw 5)
+		   newtop pfy))
+	    ((eq location 'left)
+	     (setq newleft (+ pfx 10 nfw)
+		   newtop pfy))
+	    ((eq location 'left-right)
 	     (setq newleft
 		   ;; Decide which side to put it on.  200 is just a
 		   ;; buffer for the left edge of the screen.  The
@@ -821,6 +827,14 @@ Evaluates all cached timer functions in sequence."
 
 ;;; Menu hacking for mouse-3
 ;;
+(defconst dframe-pass-event-to-popup-mode-menu
+  (let (max-args)
+    (and (fboundp 'popup-mode-menu)
+         (fboundp 'function-max-args)
+         (setq max-args (function-max-args 'popup-mode-menu))
+         (not (zerop max-args))))
+  "The EVENT arg to 'popup-mode-menu' was introduced in XEmacs 21.4.0.")
+
 ;; In XEmacs, we make popup menus work on the item over mouse (as
 ;; opposed to where the point happens to be.)  We attain this by
 ;; temporarily moving the point to that place.
@@ -830,16 +844,18 @@ Evaluates all cached timer functions in sequence."
 Must be bound to EVENT."
   (interactive "e")
   (save-excursion
-    (goto-char (event-closest-point event))
-    (beginning-of-line)
-    (forward-char (min 5 (- (save-excursion (end-of-line) (point))
-			    (save-excursion (beginning-of-line) (point)))))
-    (popup-mode-menu)
+    (if dframe-pass-event-to-popup-mode-menu
+        (popup-mode-menu event)
+      (goto-char (event-closest-point event))
+      (beginning-of-line)
+      (forward-char (min 5 (- (save-excursion (end-of-line) (point))
+                              (save-excursion (beginning-of-line) (point)))))
+      (popup-mode-menu))
     ;; Wait for menu to bail out.  `popup-mode-menu' (and other popup
     ;; menu functions) return immediately.
     (let (new)
       (while (not (misc-user-event-p (setq new (next-event))))
-	(dispatch-event new))
+        (dispatch-event new))
       (dispatch-event new))))
 
 (defun dframe-emacs-popup-kludge (e)
