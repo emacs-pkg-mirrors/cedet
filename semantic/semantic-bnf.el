@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.23 2000/11/13 21:04:40 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.24 2000/12/16 02:48:20 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -98,6 +98,11 @@
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'token
 		     (nth 2 vals)  (nth 3 vals))))
+     (symbol "put" symbol symbol symbol
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'put
+		     (nth 2 vals)
+		     (nth 3 vals))))
      (symbol "outputfile" symbol punctuation "." symbol "\\bel\\b"
 	     ,(semantic-lambda
 	       (list (concat (nth 1 vals) ".el") 'outputfile)))
@@ -497,13 +502,26 @@ SOURCEFILE is the file name from whence tokstream came."
 	    (delete-region (point) (save-excursion (forward-sexp 1) (point))))
 	(delete-blank-lines)
 	(let ((key (semantic-find-nonterminal-by-token 'keyword tok))
+	      (put (semantic-find-nonterminal-by-token 'put tok))
 	      (start (point)))
 	  (if (not key)
 	      (insert "nil\n")
 	    (insert "(semantic-flex-make-keyword-table \n `(")
+	    ;; Get all the keys
 	    (while key
 	      (insert " (" (nth 3 (car key)) " . " (car (car key)) ")\n")
 	      (setq key (cdr key)))
+	    (insert ")\n  '(\n")
+	    ;; Now get all properties
+	    (while put
+	      (setq key (semantic-find-nonterminal-by-token 'keyword tok))
+	      (let ((a (assoc (nth 0 (car put)) key)))
+		(if (not a) (error "Token %s not found" (nth 0 (car put))))
+		(insert "  ("
+			(nth 3 a) " "
+			(nth 2 (car put)) " "
+			(nth 3 (car put)) ")\n"))
+	      (setq put (cdr put)))
 	    (insert "))\n"))
 	  (save-excursion
 	  (indent-region start (point) nil)))
