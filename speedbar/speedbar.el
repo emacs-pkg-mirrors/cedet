@@ -1,11 +1,11 @@
 ;;; speedbar --- quick access to files and tags in a frame
 
-;;; Copyright (C) 1996, 97, 98, 99 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 00 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.9.bovine1
+;; Version: 0.10
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.154 1999/11/29 21:04:06 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.155 2000/01/25 03:03:24 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -435,11 +435,23 @@ use etags instead.  Etags support is not as robust as imenu support."
   :group 'speedbar
   :type 'boolean)
 
-(defcustom speedbar-use-bovinator-flag (stringp (locate-library "semantic"))
-  "*Non-nil means use the semantic Bovinator for file parsing.  nil otherwise."
-  :tag "Use Semantic Bovinator for tags"
-  :group 'speedbar
-  :type 'boolean)
+(defvar speedbar-dynamic-tags-function-list
+  '((speedbar-fetch-dynamic-imenu . speedbar-insert-imenu-list)
+    (speedbar-fetch-dynamic-etags . speedbar-insert-etags-list))
+  "Set to a functions which will return and insert a list of tags.
+Each element is of the form ( FETCH .  INSERT ) where FETCH
+is a funciotn which takes one parameter (the file to tag) and return a
+list of tags of the form:
+  ( ( TAG . LOCATION ) ... )
+or 
+  ( (GROUPSTRING ( TAG . LOCATION) ...) ...)
+    
+ note to self: make sure the above is correct
+if it returns t, then an error occured, and the next fetch routine is
+tried.
+
+INSERT is a function which takes an INDENTation level, and a LIST of
+tags to insert.  It will then create the speedbar buttons.")
 
 (defcustom speedbar-track-mouse-flag t
   "*Non-nil means to display info about the line under the mouse."
@@ -2601,7 +2613,9 @@ the list."
 		      (save-excursion (set-buffer (get-file-buffer f))
 				      speedbar-tag-hierarchy-method)
 		    speedbar-tag-hierarchy-method))
-	 (lst (copy-tree lst)))
+	 (lst (if (fboundp 'copy-tree)
+		  (copy-tree lst)
+		lst)))
     (while methods
       (setq lst (funcall (car methods) lst)
 	    methods (cdr methods)))
@@ -2637,13 +2651,17 @@ name will have the function FIND-FUN and not token."
 	  (t (speedbar-message "Ooops!")))
     (setq lst (cdr lst))))
 
-(defun speedbar-insert-bovine-list (level lst)
-  "At LEVEL, insert the bovine parsed list LST.
-Use arcane knowledge about the semantic tokens in the tagged elements
-to create much wiser decisions about how to sort and group these items."
-  ;; The bovinator logic is *very* complex.  Do this elsewhere.
-  (require 'semantic-sb)
-  (semantic-sb-buttons level lst))
+(defun speedbar-insert-imenu-list (indent lst)
+  "At leve INDENT, insert the imenu generated LST."
+  (speedbar-insert-generic-list indent lst
+				'speedbar-tag-expand
+				'speedbar-tag-find))
+				
+(defun speedbar-insert-etags-list (indent lst)
+  "At leve INDENT, insert the etags generated LST."
+  (speedbar-insert-generic-list indent lst
+				'speedbar-tag-expand
+				'speedbar-tag-find))
 
 ;;; Timed functions
 ;;
@@ -3538,17 +3556,7 @@ indentation level."
 	 (let* ((fn (expand-file-name (concat (speedbar-line-path indent)
 					      token)))
 		(mode nil)
-		(lst (let ((tim t))
-		       (if speedbar-use-bovinator-flag
-			   (setq tim (speedbar-fetch-dynamic-bovine fn)
-				 mode 'bovine))
-		       (if (and (eq tim t) speedbar-use-imenu-flag)
-			  (setq tim (speedbar-fetch-dynamic-imenu fn)
-				mode 'imenu))
-		       (if (eq tim t)
-			   (setq tim (speedbar-fetch-dynamic-etags fn)
-				 mode 'etags))
-		       tim)))
+		(lst (speedbar-fetch-dynamic-tags fn)))
 	   ;; if no list, then remove expando button
 	   (if (not lst)
 	       (speedbar-change-expand-button-char ??)
@@ -3556,11 +3564,7 @@ indentation level."
 	     (speedbar-with-writable
 	       (save-excursion
 		 (end-of-line) (forward-char 1)
-		 (if (eq mode 'bovine)
-		     (speedbar-insert-bovine-list indent lst)
-		   (speedbar-insert-generic-list indent lst
-						 'speedbar-tag-expand
-						 'speedbar-tag-find)))))))
+		 (funcall (car lst) indent (cdr lst)))))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
@@ -3680,32 +3684,29 @@ interested in."
 	(goto-char cp)))))
 
 
-;;; Tag Management -- Semantic Bovinator
+;;; Tag Management -- List of expanders:
 ;;
-(if (not speedbar-use-bovinator-flag)
-
-    nil
-
-(eval-when-compile (if (locate-library "semantic") (require 'semantic)))
-
-(defun speedbar-fetch-dynamic-bovine (file)
-  "Load FILE into a buffer, and generate tags using the Semantic Bovinator.
-Returns the tag list, or t for an error."
-  ;; Load this AND compile it in
-  (require 'semantic)
+(defun speedbar-fetch-dynamic-tags (file)
+  "Return a list of tags generated dynamically from FILE.
+This uses the entries in `speedbar-dynamic-tags-function-list'
+to find the proper tags.  It is up to each of those individual
+functions to do caching and flushing if appropriate."
   (save-excursion
     (set-buffer (find-file-noselect file))
-    (if speedbar-power-click (setq semantic-toplevel-bovine-cache))
-    (if (not semantic-toplevel-bovine-table)
-	t
-      (condition-case nil
-	  (progn
-	    ;; TODO!
-	    ;; The bovinator is refuses to cache data.  It is up to speedbar
-	    ;; (who knows better) to do the caching for it.
-	    (semantic-bovinate-toplevel nil t))
-	(error t)))))
-)
+    ;; If there is a buffer-local value of
+    ;; speedbar-dynamic-tags-function-list, it will now be available.
+    (let ((dtf speedbar-dynamic-tags-function-list)
+	  (ret t))
+      (while (and (eq ret t) dtf)
+	(setq ret (funcall (car (car dtf)) file))
+	(if (eq ret t)
+	    (setq dtf (cdr dtf))))
+      (if (eq ret t)
+	  ;; No valid tag list, return nil
+	  nil
+	;; We have some tags.  Return the list with the insert fn
+	;; prepended
+	(cons (cdr (car dtf)) ret)))))
 
 ;;; Tag Management -- Imenu
 ;;
@@ -3720,16 +3721,14 @@ Returns the tag list, or t for an error."
 Returns the tag list, or t for an error."
   ;; Load this AND compile it in
   (require 'imenu)
-  (save-excursion
-    (set-buffer (find-file-noselect file))
-    (if speedbar-power-click (setq imenu--index-alist nil))
-    (condition-case nil
-	(let ((index-alist (imenu--make-index-alist t)))
-	  (if speedbar-sort-tags
-	      (sort (copy-alist index-alist)
-		    (lambda (a b) (string< (car a) (car b))))
-	    index-alist))
-      (error t))))
+  (if speedbar-power-click (setq imenu--index-alist nil))
+  (condition-case nil
+      (let ((index-alist (imenu--make-index-alist t)))
+	(if speedbar-sort-tags
+	    (sort (copy-alist index-alist)
+		  (lambda (a b) (string< (car a) (car b))))
+	  index-alist))
+    (error t)))
 )
 
 ;;; Tag Management -- etags  (old XEmacs compatibility part)
