@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.16 2003/04/04 13:19:18 ponced Exp $
+ * $Id: test.cpp,v 1.17 2003/06/05 13:11:35 ponced Exp $
  *
  */
 
@@ -246,7 +246,22 @@ Multiinherit::throwtest()
   return;
 }
 
+// Jens Rock <jens.rock@asamnet.de>: Nested classes or structs defined
+// outside of the containing class/struct.
+class container
+{
+ public:
+  struct contained;
+  container();
+  ~container();
+};
 
+struct container::contained
+{
+  public:
+  contained();
+  ~contained();
+};
 
 /*
  * Ok, how about some template stuff.
@@ -330,7 +345,9 @@ namespace
   unsigned test;
   unsigned long int **uli = 0;
   signed si = 0;
-  signed short ss = 0;  
+  signed short ss = 0;
+  short int i = 0;
+  long int li = 0;
   
   // expressions with namespace/class-qualifyiers
   ORB_var cGlobalOrb = ORB::_nil();
