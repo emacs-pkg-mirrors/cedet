@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.4 2001/05/07 19:02:27 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.5 2001/05/09 02:32:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,7 +33,7 @@
 
 ;;; Code
 (defclass cogre-package (cogre-node)
-  ((name :initform "Package")
+  ((name-default :initform "Package")
    (blank-lines-top :initform 0)
    (blank-lines-bottom :initform 0)
    (alignment :initform left)
@@ -56,7 +56,7 @@ The `subgraph' slot must be scanned for this information."
   )
 
 (defclass cogre-class (cogre-node)
-  ((name :initform "Class")
+  ((name-default :initform "Class")
    (blank-lines-top :initform 0)
    (blank-lines-bottom :initform 0)
    (alignment :initform left)
@@ -71,7 +71,7 @@ The `subgraph' slot must be scanned for this information."
 	       :documentation
 	       "A list of attributes belonging to this Class representation.
 Each attribute must in the form of a semantic token. ei.
- (\"name\" variable \"type\" ... )
+ (\"object-name\" variable \"type\" ... )
 See `semantic-toplevel-bovine-table' for details on possible token forms.")
    (methods :initarg :methods
 	       :initform nil
@@ -88,8 +88,8 @@ within them.  Classes can have attribute links, and class hierarchy links.")
   "When interactively creating a class node THIS, query for the class name.
 Optional argument FIELDS are not used."
   (call-next-method)
-  (if (string-match "^Class[0-9]*" (oref this name))
-      ;; In this case, we have a default class name, so try and query
+  (if (string-match "^Class[0-9]*" (oref this object-name))
+      ;; In this case, we have a default class object-name, so try and query
       ;; for the real class (from sources) which we want to use.
       (let* ((class (or (oref this class) (cogre-read-class-name)))
 	     (tok (if (semantic-token-p class)
@@ -106,7 +106,7 @@ Optional argument FIELDS are not used."
 		  attrib method)
 	      ;; Bin them up
 	      (while slots
-		(cond 
+		(cond
 		 ;; A plain string, a simple language, just do attributes.
 		 ((stringp (car slots))
 		  (setq attrib (cons (list (car slots) 'variable nil)
@@ -129,7 +129,7 @@ Optional argument FIELDS are not used."
 		    (setq sl (cdr sl))))
 		(setq extmeth (cdr extmeth)))
 	      ;; Put them into the class.
-	      (oset this name class)
+	      (oset this object-name class)
 	      (oset this class tok)
 	      (oset this attributes (nreverse attrib))
 	      (oset this methods (nreverse method))
