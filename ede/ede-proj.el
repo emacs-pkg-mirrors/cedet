@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.14 1999/04/21 22:21:58 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.15 1999/05/22 14:29:25 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -370,7 +370,8 @@ Argument TARGET is the project we are completing customization on."
 	 (type (completing-read "Type: " ede-proj-target-alist
 				nil t nil '(ede-proj-target-history . 1)))
 	 (ot nil)
-	 (src (if (y-or-n-p (format "Add %s to %s? " (buffer-name) name))
+	 (src (if (and (buffer-file-name)
+		       (y-or-n-p (format "Add %s to %s? " (buffer-name) name)))
 		  (buffer-file-name))))
     (setq ot (funcall (cdr (assoc type ede-proj-target-alist)) name :name name
 		      :path (ede-convert-path this default-directory)
