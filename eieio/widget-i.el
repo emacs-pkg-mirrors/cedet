@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.12 1996/11/01 05:31:28 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.13 1996/11/07 19:09:50 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -103,6 +103,25 @@ broken reason."
 
 
 ;;
+;; gadget-translator
+;;
+(defmethod verify ((this widget-gadget-translator) fix)
+  "Verifies that the fields `watch' and `change' are value."
+  (if (not (and (oref this watch) (oref this change)))
+      (error "%s must have watch and change set to valid data-objects"
+	     (object-name this)))
+  (add-reference (oref this watch) this)
+  (call-next-method))
+
+(defmethod update-symbol ((this widget-gadget-translator) sym)
+  "When `watch' is changed, we will update the data-object `change'
+using our translation functions"
+  (if (eq sym (oref this watch))
+      (funcall (oref this translate-function)
+	       (oref this watch) (oref this change))))
+
+
+;;
 ;; visual
 ;;
 (defmethod verify ((this widget-visual) fix)
@@ -123,16 +142,29 @@ in widget order."
   
   ;; We will find and install LO, even though it may not always be used
   ;; to speed up dynamically created widgets.
-  (let ((px (if prev (oref prev nx) 1))
-	(pw (if prev (oref prev width) 0))
-	(py (if prev (oref prev ny) 1))
-	(ph (if prev (oref prev height) 0))
-	(pb (if prev (oref prev boxed) nil))
-	(pbs (if prev (oref prev box-sides) [ nil nil nil nil ]))
-	(b  (oref this boxed))
+  (let ((b  (oref this boxed))
 	(bs (oref this box-sides))
 	(tx (or (oref this x) 1))
-	(ty (oref this y)))
+	(ty (oref this y))
+	px pw py ph pb pbs)
+
+    ;; This if statement is sorted by order of how likely they are
+    ;; to occur and for short-circuit safety.
+    (if (or (not ty) (eq ty t) (and (numberp ty) (> 0 ty))
+	    (eq tx t) (and (numberp tx) (> 0 tx)))
+	(if prev
+	    (setq px  (oref prev nx)
+		  pw  (oref prev width)
+		  py  (oref prev ny)
+		  ph  (oref prev height)
+		  pb  (oref prev boxed)
+		  pbs (oref prev box-sides))
+	  (setq px  1
+		pw  0
+		py  1
+		ph  0
+		pb  nil
+		pbs [ nil nil nil nil ])))
 
     (if (eq tx t)
 	(setq tx px)
@@ -285,16 +317,17 @@ based on the number of children we have."
       (verify-position (car l) prev)
       (if (obj-of-class-p (car l) widget-group)
 	  (verify-size (car l)))
-      (let ((tw (+ (oref (car l) nx) (oref (car l) width) 1))
-	    (th (+ (oref (car l) ny) (oref (car l) height) 
-		   ;; vertical space is valueable. Only give extra space
-		   ;; for boxed widgets.
-		   (if (and (oref (car l) boxed) (aref (oref (car l) box-sides) 3))
-		       1 0))))
-	(if (< maxw tw) (setq maxw tw))
-	(if (< maxh th) (setq maxh th)))
-      (setq prev (car l)
-	    l (cdr l)))
+      (if (obj-of-class-p (car l) widget-visual)
+	  (let ((tw (+ (oref (car l) nx) (oref (car l) width) 1))
+		(th (+ (oref (car l) ny) (oref (car l) height) 
+		       ;; vertical space is valueable. Only give extra space
+		       ;; for boxed widgets.
+		       (if (and (oref (car l) boxed) (aref (oref (car l) box-sides) 3))
+			   1 0))))
+	    (if (< maxw tw) (setq maxw tw))
+	    (if (< maxh th) (setq maxh th))
+	    (setq prev (car l))))
+      (setq l (cdr l)))
     (oset this width maxw)
     (oset this height maxh)))
 
@@ -492,6 +525,9 @@ is known."
 				    (t
 				     2))
 				:y (if (string-match "top" posstr)
+				       ;; we quote i the -1 so that
+				       ;; it is really placed as our y
+				       ;; and isn't translated to an offset
 				       '(- 1)
 				     (oref this height)))))
 		     (verify-position nlw nil)
@@ -532,11 +568,13 @@ is known."
   "Initilize the `widget-labeled-text' class with the pre-determined widgets
 in a standard format."
   (call-next-method)
-  (let ((lo (if (oref this label)
-		(transform-dataobject (oref this label) this 
-				      (concat (object-name this) "-label-data")
-				      fix)
-	      nil))	    
+  ;; Why labeled text with no label?  Create a label from our name if there
+  ;; isn't one.
+  (if (not (oref this label)) (oset this label (object-name-string this)))
+  ;; build the data objects for our labels.
+  (let ((lo (transform-dataobject (oref this label) this 
+				  (concat (object-name this) "-label-data")
+				  fix))
 	(uo (if (oref this unit)
 		(transform-dataobject (oref this unit) this 
 				      (concat (object-name this) "-unit-data")
@@ -577,7 +615,9 @@ in a standard format."
 				   (object-name this) fix)))
     (if lv
 	(oset this label-value lv)
-      (error "Label value for %s is not a data-object!" (object-name this))))
+      (error "Label value for %s is not a data-object!" (object-name this)))
+    ;; Add a reference to this data object
+    (add-reference lv this))
   ;; Convert our label string into substrings
   (label-break-into-substrings this)
   ;; If no width/height, try to set them
@@ -617,6 +657,16 @@ of substrings which was separated by carriage returns."
 	      txt nil)))
     (oset this label-list (reverse newlst))
     ))
+
+(defmethod update-symbol ((this widget-label) sym)
+  "If sym is our :label-value field, then update ourselves"
+  (message "updating label")
+  (save-excursion
+    (if (eq sym (oref this label-value))
+	(progn
+	  (label-break-into-substrings this)
+	  (draw this))
+      (call-next-method))))
 
 (defmethod draw ((this widget-label))
   "Refresh a label widget.  Calculate centering style, then display the
