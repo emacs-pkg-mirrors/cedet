@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.8
-;;; RCS: $Id: eieio.el,v 1.22 1996/12/20 04:11:00 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.23 1997/01/19 22:08:52 zappo Exp $
 ;;; Keywords: OO, lisp
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -1206,8 +1206,12 @@ remember  to prepend a space."
 	  )
 
 ;;;
-;;; Interfacing with imenu in emacs lisp mode
+;;; Interfacing with imenu in emacs lisp mode 
+;;;    (Only if the expression is defined)
 ;;;
+(if (eval-when-compile (boundp 'list-imenu-generic-expression))
+(progn
+
 (defun eieio-update-lisp-imenu-expression ()
   "Examines `lisp-imenu-generic-expression' and modifies it to include
 a scan for `defmethod'."
@@ -1224,6 +1228,7 @@ a scan for `defmethod'."
 
 (eieio-update-lisp-imenu-expression)
 
+))
 ;;;
 ;;; Autoloading some external symbols
 ;;;
