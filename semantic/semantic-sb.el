@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.39 2003/03/08 16:38:09 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.40 2003/04/01 04:40:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -71,18 +71,19 @@ This will replace the named bucket that would have usually occured here."
 ;;
 ;;  +>  -> click to see additional information
 
-(defun semantic-sb-one-button (token depth &optional prefix)
-  "Insert TOKEN as a speedbar button at DEPTH.
+(defun semantic-sb-one-button (tag depth &optional prefix)
+  "Insert TAG as a speedbar button at DEPTH.
 Optional PREFIX is used to specify special marker characters."
-  (let* ((type (semantic-token-token token))
-	 (edata (cond ((eq type 'type)
-		        (semantic-token-type-parts token))
-		      ((eq type 'variable)
-		       (semantic-token-variable-default token))
-		      ((eq type 'function)
-		       (semantic-token-function-args token))
+  (let* ((class (semantic-tag-class tag))
+	 (edata (cond ((eq class 'type)
+		        (semantic-tag-type-members tag))
+		      ((eq class 'variable)
+		       (semantic-tag-variable-default tag))
+		      ((eq class 'function)
+		       (semantic-tag-function-arguments tag))
 		      ))
-	 (abbrev (funcall semantic-sb-button-token->text-function token))
+	 (type (semantic-tag-type tag))
+	 (abbrev (funcall semantic-sb-button-token->text-function tag))
 	 (start (point))
 	 (end (progn
 		(insert (int-to-string depth) ":")
@@ -92,20 +93,24 @@ Optional PREFIX is used to specify special marker characters."
     ;; take care of edata = (nil) -- a yucky but hard to clean case
     (if (and edata (listp edata) (and (<= (length edata) 1) (not (car edata))))
 	(setq edata nil))
+    (if (and (not edata)
+	     (member class '(variable function))
+	     type)
+	(setq edata t))
     ;; types are a bit unique.  Variable types can have special meaning.
     (if edata
 	(speedbar-insert-button (if prefix (concat " +" prefix) " +>")
 				'speedbar-button-face
 				'speedbar-highlight-face
 				'semantic-sb-show-extra
-				token t)
+				tag t)
       (speedbar-insert-button (if prefix (concat "  " prefix) " =>")
 			      nil nil nil nil t))
     (speedbar-insert-button abbrev
 			    'speedbar-tag-face
 			    'speedbar-highlight-face
 			    'semantic-sb-token-jump
-			    token t)
+			    tag t)
     ;; This is very bizarre.  When this was just after the insertion
     ;; of the depth: text, the : would get erased, but only for the
     ;; auto-expanded short- buckets.  Move back for a later version
@@ -154,16 +159,16 @@ Optional MODIFIERS is additional text needed for variables."
 						 (or modifiers "")))
 	      (semantic-sb-one-button obj indent prefix)))))))
 
-(defun semantic-sb-insert-details (token indent)
-  "Insert details about TOKEN at level INDENT."
-  (let ((tt (semantic-token-token token))
-	(type (semantic-token-type token)))
+(defun semantic-sb-insert-details (tag indent)
+  "Insert details about TAG at level INDENT."
+  (let ((tt (semantic-tag-class tag))
+	(type (semantic-tag-type tag)))
     (cond ((eq tt 'type)
-	   (let ((parts (semantic-token-type-parts token))
+	   (let ((parts (semantic-tag-type-members tag))
 		 (newparts nil))
 	     ;; Lets expect PARTS to be a list of either strings,
 	     ;; or variable tokens.
-	     (when (semantic-token-p (car parts))
+	     (when (semantic-tag-p (car parts))
 	       ;; Bucketize into groups
 	       (setq newparts (semantic-bucketize parts))
 	       (when (> (length newparts) semantic-sb-autoexpand-length)
@@ -176,18 +181,19 @@ Optional MODIFIERS is additional text needed for variables."
 		 (setq parts (cdr parts))))))
 	  ((eq tt 'variable)
 	   (if type
-	       (let ((mods (semantic-token-variable-extra-spec token 'typemodifiers)))
-		 (semantic-sb-maybe-token-to-button type indent "@" mods)))
-	   ;; default value here
+	       (semantic-sb-maybe-token-to-button type indent "@"))
+	   (let ((default (semantic-tag-variable-default tag)))
+	     (if default
+		 (semantic-sb-maybe-token-to-button default indent "=")))
 	   )
 	  ((eq tt 'function)
 	   (if type
 	       (semantic-sb-speedbar-data-line
 		indent "@"
 		(if (stringp type) type
-		  (semantic-token-name type))))
+		  (semantic-tag-name type))))
 	   ;; Arguments to the function
-	   (let ((args (semantic-token-function-args token)))
+	   (let ((args (semantic-tag-function-arguments tag)))
 	     (if (and args (car args))
 		 (progn
 		   (semantic-sb-maybe-token-to-button (car args) indent "(")
@@ -219,7 +225,7 @@ Optional MODIFIERS is additional text needed for variables."
 	(let ((prop nil))
 	  (goto-char (match-beginning 1))
 	  (setq prop (get-text-property (point) 'speedbar-token))
-	  (if (semantic-token-with-position-p prop)
+	  (if (semantic-tag-with-position-p prop)
 	      prop
 	    (semantic-sb-detail-parent)))
       nil)))
