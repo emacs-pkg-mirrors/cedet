@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2003-08-09 10:29:17+0200
+;; Created: 2003-08-12 11:51:45+0200
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.2 2003/08/11 06:32:03 ponced Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.3 2003/08/15 13:03:31 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -52,6 +52,7 @@
      ("%scopestart" . SCOPESTART)
      ("%start" . START)
      ("%token" . TOKEN)
+     ("%use-macros" . USE-MACROS)
      ("%keywordtable" . KEYWORDTABLE)
      ("%outputfile" . OUTPUTFILE)
      ("%parsetable" . PARSETABLE)
@@ -96,7 +97,7 @@
     (eval-when-compile
       (require 'wisent-comp))
     (wisent-compile-grammar
-     '((LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN KEYWORDTABLE OUTPUTFILE PARSETABLE SETUPFUNCTION TOKENTABLE STRING SYMBOL PERCENT_PERCENT CHARACTER SEXP PREFIXED_LIST PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT)
+     '((LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN USE-MACROS KEYWORDTABLE OUTPUTFILE PARSETABLE SETUPFUNCTION TOKENTABLE STRING SYMBOL PERCENT_PERCENT CHARACTER SEXP PREFIXED_LIST PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT)
        nil
        (grammar
         ((prologue))
@@ -124,6 +125,7 @@
         ((scopestart_decl))
         ((start_decl))
         ((token_decl))
+        ((use_macros_decl))
         ((keywordtable_decl))
         ((outputfile_decl))
         ((parsetable_decl))
@@ -236,6 +238,13 @@
        (token_type
         ((LT SYMBOL GT)
          (progn $2)))
+       (use_macros_decl
+        ((USE-MACROS SYMBOL put_name_list)
+         (let*
+             ((names
+               (mapcar 'semantic-tag-name $3)))
+           `(wisent-raw-tag
+             (semantic-tag "macro" 'macro :type ',$2 :value ',names)))))
        (keywordtable_decl
         ((KEYWORDTABLE SYMBOL)
          (progn
