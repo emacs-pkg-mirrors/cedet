@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7e
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.90 1998/04/15 17:01:04 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.91 1998/04/16 16:29:56 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -359,9 +359,11 @@
 (require 'assoc)
 (require 'easymenu)
 
-(defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
-  "Non-nil if we are running in the XEmacs environment.")
-(defvar speedbar-xemacs20p (and speedbar-xemacsp (= emacs-major-version 20)))
+(eval-and-compile
+  (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
+    "Non-nil if we are running in the XEmacs environment.")
+  (defvar speedbar-xemacs20p (and speedbar-xemacsp 
+				  (= emacs-major-version 20))))
 
 ;; From custom web page for compatibility between versions of custom:
 (eval-and-compile
@@ -574,7 +576,7 @@ sub-lists."
 (defcustom speedbar-tag-regroup-maximum-length 10
   "*Maximum length of submenus that are regrouped.
 If the regrouping option is used, then if two or more short subgroups
-are next to eachother, then they are combined until this number of
+are next to each other, then they are combined until this number of
 items is reached."
   :group 'speedbar
   :type 'integer)
@@ -907,7 +909,7 @@ to toggle this value.")
   (define-key speedbar-key-map "R" 'speedbar-item-rename)
 
   ;; Short cuts I happen to find useful
-  (define-key speedbar-key-map "r" 
+  (define-key speedbar-key-map "r"
     (lambda () (interactive)
       (speedbar-change-initial-expansion-list
        speedbar-previously-used-expansion-list-name)))
