@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.40 2001/05/07 11:32:26 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.41 2001/08/13 13:28:20 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -461,7 +461,8 @@ Optional argument SCOPESTART is the token to start subscopes with."
 	    (set-buffer (find-file-noselect f))
 	    (goto-char (point-min))
 	    (if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
-					   (regexp-quote v)) nil t)
+					   (regexp-quote v) "\\b"
+                                           ) nil t)
 		(progn
 		  (goto-char (match-beginning 0))
 		  (point-marker)))))
@@ -483,7 +484,8 @@ parse table variable."
 	(set-buffer (find-file-noselect file))
 	(goto-char (point-min))
 	(if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
-				       (regexp-quote var)) nil t)
+				       (regexp-quote var) "\\b"
+                                       ) nil t)
 	    (progn
 	      (goto-char (match-beginning 0))
 	      (point-marker))
@@ -506,7 +508,8 @@ keyword table variable."
 	(set-buffer (find-file-noselect file))
 	(goto-char (point-min))
 	(if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
-				       (regexp-quote var)) nil t)
+				       (regexp-quote var) "\\b"
+                                       ) nil t)
 	    (progn
 	      (goto-char (match-beginning 0))
 	      (point-marker))
