@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.34 2003/04/01 13:07:02 ponced Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.35 2003/05/29 00:58:09 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ other criteria.")
 
   (global-semanticdb-minor-mode 1)
 
-  (when (boundp header-line-format)
+  (when (boundp 'header-line-format)
     (global-semantic-stickyfunc-mode 1))
 
   ;; This loads any created system databases which get linked into
