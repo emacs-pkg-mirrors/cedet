@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.2 2002/12/29 18:07:44 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.3 2003/01/24 18:15:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,13 +40,13 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2002-12-28 12:40+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-24 16:19+0100
   `(
     (bovine-toplevel ;;declaration
      (macro)
      (type)
-     (var-or-fun)
      (define)
+     (var-or-fun)
      (extern-c)
      (template)
      (using)
@@ -93,6 +93,32 @@
       )
      ) ;; end extern-c
 
+    (macro-expression-list
+     (expression
+      macro-expression-list
+      punctuation
+      "\\b[;]\\b"
+      ,(semantic-lambda
+        (list nil))
+      )
+     (expression
+      ,(semantic-lambda
+        (list nil))
+      )
+     ) ;; end macro-expression-list
+
+    (macro-def
+     (macro-expression-list
+      ,(semantic-lambda
+        (list nil))
+      )
+     (expression
+      ,(semantic-lambda
+        (list nil))
+      )
+     (EMPTY)
+     ) ;; end macro-def
+
     (macro
      (punctuation
       "\\b[#]\\b"
@@ -106,7 +132,7 @@
      (DEFINE
       symbol
       opt-define-arglist
-      opt-expression
+      macro-def
       ,(semantic-lambda
         (list
          (nth 1 vals) 'variable nil
@@ -148,11 +174,12 @@
        "\\b[#]\\b"
        DEFINE
        symbol
-       opt-expression
+       opt-define-arglist
+       macro-def
        ,(semantic-lambda
          (list
-          (nth 1 vals) 'variable nil
-          (nth 2 vals)
+          (nth 2 vals) 'variable nil
+          (nth 3 vals)
           (semantic-bovinate-make-assoc-list
            'const t) nil))
        )
@@ -231,15 +258,14 @@
       class-parents
       ,(semantic-lambda
         (cons
-         (car
-          (nth 3 vals))
-         (nth 5 vals)))
+         (nth 2 vals)
+         (nth 4 vals)))
       )
      (opt-class-protection
       opt-class-declmods
       namespace-symbol
       ,(semantic-lambda
-        (nth 3 vals))
+        (nth 2 vals))
       )
      ) ;; end class-parents
 
@@ -496,6 +522,14 @@
          (nth 0 vals)
          (nth 2 vals) nil nil nil))
       )
+     (NAMESPACE
+      namespaceparts
+      ,(semantic-lambda
+        (list
+         "unnamed" 'type
+         (nth 0 vals)
+         (nth 1 vals) nil nil nil))
+      )
      ) ;; end type
 
     (using
@@ -507,14 +541,13 @@
         (list nil))
       )
      (USING
-      symbol
-      punctuation
-      "\\b[:]\\b"
-      punctuation
-      "\\b[:]\\b"
+      NAMESPACE
       typeformbase
       punctuation
-      "\\b[;]\\b")
+      "\\b[;]\\b"
+      ,(semantic-lambda
+        (list nil))
+      )
      ) ;; end using
 
     (template
@@ -630,15 +663,34 @@
          (nth 1 vals) 'type
          "struct" nil nil))
       )
+     (TYPENAME
+      symbol
+      ,(semantic-lambda
+        (list
+         (nth 1 vals) 'type
+         "struct" nil nil))
+      )
+     (builtintype
+      symbol
+      ,(semantic-lambda
+        (nth 0 vals)
+        (list 'type nil nil nil))
+      )
      (builtintype
       ,(semantic-lambda
         (nth 0 vals)
         (list 'type nil nil nil))
       )
-     (symbol
+     (namespace-symbol
+      symbol
       ,(semantic-lambda
-        (list
-         (nth 0 vals) 'type nil nil nil))
+        (nth 0 vals)
+        (list 'type nil nil nil))
+      )
+     (namespace-symbol
+      ,(semantic-lambda
+        (nth 0 vals)
+        (list 'type nil nil nil))
       )
      ) ;; end template-type
 
@@ -712,11 +764,10 @@
      (STATIC)
      (CONST)
      (VOLATILE)
-     (SIGNED)
-     (UNSIGNED)
      (INLINE)
      (REGISTER)
      (FRIEND)
+     (TYPENAME)
      (METADECLMOD)
      (VIRTUAL)
      ) ;; end DECLMOD
@@ -799,14 +850,72 @@
       )
      ) ;; end typeformbase
 
-    (builtintype
+    (signedmod
+     (UNSIGNED)
+     (SIGNED)
+     ) ;; end signedmod
+
+    (builtintype-types
      (VOID)
      (CHAR)
      (SHORT)
      (INT)
-     (LONG)
+     (LONG
+      INT
+      ,(semantic-lambda
+        (list
+         (concat
+          (nth 0 vals)
+          " "
+          (nth 1 vals))))
+      )
      (FLOAT)
      (DOUBLE)
+     (LONG
+      DOUBLE
+      ,(semantic-lambda
+        (list
+         (concat
+          (nth 0 vals)
+          " "
+          (nth 1 vals))))
+      )
+     (LONG
+      LONG
+      ,(semantic-lambda
+        (list
+         (concat
+          (nth 0 vals)
+          " "
+          (nth 1 vals))))
+      )
+     (LONG)
+     ) ;; end builtintype-types
+
+    (builtintype
+     (signedmod
+      builtintype-types
+      ,(semantic-lambda
+        (list
+         (concat
+          (car
+           (nth 0 vals))
+          " "
+          (car
+           (nth 1 vals)))))
+      )
+     (builtintype-types
+      ,(semantic-lambda
+        (nth 0 vals))
+      )
+     (signedmod
+      ,(semantic-lambda
+        (list
+         (concat
+          (car
+           (nth 0 vals))
+          " int")))
+      )
      ) ;; end builtintype
 
     (codeblock-var-or-fun
@@ -901,12 +1010,12 @@
     (opt-initializers
      (punctuation
       "\\b[:]\\b"
-      symbol
+      namespace-symbol
       semantic-list
       opt-initializers)
      (punctuation
       "\\b[,]\\b"
-      symbol
+      namespace-symbol
       semantic-list
       opt-initializers)
      ( ;;EMPTY
@@ -1038,13 +1147,12 @@
     (varname
      (opt-stars
       opt-restrict
-      symbol
+      namespace-symbol
       opt-bits
       opt-array
       opt-assign
       ,(semantic-lambda
-        (list
-         (nth 2 vals))
+        (nth 2 vals)
         (nth 0 vals)
         (nth 3 vals)
         (nth 4 vals)
@@ -1131,8 +1239,23 @@
       )
      ) ;; end namespace-symbol
 
-    (opt-class
+    (namespace-opt-class
      (symbol
+      punctuation
+      "\\b[:]\\b"
+      punctuation
+      "\\b[:]\\b"
+      namespace-opt-class
+      ,(semantic-lambda
+        (list
+         (concat
+          (nth 0 vals)
+          "::"
+          (car
+           (nth 3 vals)))))
+      )
+     (symbol
+      opt-template-specifier
       punctuation
       "\\b[:]\\b"
       punctuation
@@ -1140,6 +1263,13 @@
       ,(semantic-lambda
         (list
          (nth 0 vals)))
+      )
+     ) ;; end namespace-opt-class
+
+    (opt-class
+     (namespace-opt-class
+      ,(semantic-lambda
+        (nth 0 vals))
       )
      ( ;;EMPTY
       ,(semantic-lambda
@@ -1297,6 +1427,18 @@
         (list
          "->"))
       )
+     (semantic-list
+      "()"
+      ,(semantic-lambda
+        (list
+         "()"))
+      )
+     (semantic-list
+      "\\[\\]"
+      ,(semantic-lambda
+        (list
+         "[]"))
+      )
      (punctuation
       "\\b[<]\\b")
      (punctuation
@@ -1350,14 +1492,6 @@
       )
      ) ;; end fun-or-proto-end
 
-    (opt-expression
-     (expression)
-     ( ;;EMPTY
-      ,(semantic-lambda
-        (list nil))
-      )
-     ) ;; end opt-expression
-
     (type-cast
      (semantic-list
       ,(lambda (vals start end)
@@ -1377,7 +1511,7 @@
      ) ;; end type-cast-list
 
     (function-call
-     (symbol
+     (namespace-symbol
       semantic-list)
      ) ;; end function-call
 
@@ -1394,7 +1528,7 @@
          (identity start)
          (identity end)))
       )
-     (symbol
+     (namespace-symbol
       ,(semantic-lambda
         (list
          (identity start)
@@ -1462,6 +1596,12 @@
     )
   )
 
+(define-lex-regex-analyzer semantic-lex-c-ignore-ending-backslash
+  "Skip backslash ending a line.
+Go to the next line."
+  "\\\\\\s-*\n"
+  (setq end-point (match-end 0)))
+
 (define-lex semantic-c-lexer
   "Lexical Analyzer for C code."
   semantic-lex-ignore-whitespace
@@ -1469,6 +1609,7 @@
   semantic-lex-c-if-0
   semantic-lex-c-if
   semantic-lex-c-include-system
+  semantic-lex-c-ignore-ending-backslash
   semantic-lex-number
   semantic-lex-symbol-or-keyword
   semantic-lex-charquote
@@ -1652,7 +1793,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   def)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2002-12-28 12:40+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-24 16:19+0100
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -1671,6 +1812,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("enum" . ENUM)
      ("typedef" . TYPEDEF)
      ("class" . CLASS)
+     ("typename" . TYPENAME)
      ("namespace" . NAMESPACE)
      ("using" . USING)
      ("template" . TEMPLATE)
@@ -1728,6 +1870,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("template" summary "template <class TYPE ...> TYPE_OR_FUNCTION")
      ("using" summary "using <namespace>;")
      ("namespace" summary "Namespace Declaration: namespace <name> { ... };")
+     ("typename" summary "typename is used to handle a qualified name as a typename;")
      ("class" summary "Class Declaration: class <name>[:parents] { ... };")
      ("typedef" summary "Arbitrary Type Declaration: typedef <typedeclaration> <name>;")
      ("enum" summary "Enumeration Type Declaration: enum [name] { ... };")
@@ -1904,7 +2047,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2002-12-28 12:40+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-24 16:19+0100
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
           semantic-toplevel-bovine-table-source "c.by"
