@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.23 2004/02/12 02:02:38 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.24 2004/03/05 03:20:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -273,7 +273,12 @@ are being copied and regrouped to test for if two tags represent the
 same thing, but may be constructed of different cons cells."
   (and (equal (semantic-tag-name tag1) (semantic-tag-name tag2))
        (semantic-tag-of-class-p tag1 (semantic-tag-class tag2))
-       (equal (semantic-tag-bounds tag1) (semantic-tag-bounds tag2))))
+       (or (and (not (semantic-tag-overlay tag1))
+		(not (semantic-tag-overlay tag2)))
+	   (and (semantic-tag-overlay tag1)
+		(semantic-tag-overlay tag2)
+		(equal (semantic-tag-bounds tag1)
+		       (semantic-tag-bounds tag2))))))
 
 (defun semantic-tag-of-type-p (tag type)
   "Compare TAG's type against TYPE.  Non nil if equivalent.
