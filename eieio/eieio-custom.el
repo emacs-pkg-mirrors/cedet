@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.11 2000/09/28 18:51:18 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.12 2000/10/03 03:56:10 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -46,12 +46,16 @@
   ((a-string :initarg :a-string
 	     :initform "The moose is loose"
 	     :custom string
+	     :label "Amorphous String"
+	     :group (default foo)
 	     :documentation "A string for testing custom.
 This is the next line of documentation.")
    (listostuff :initarg :listostuff
 	       :initform ("1" "2" "3")
 	       :type list
 	       :custom (repeat (string :tag "Stuff"))
+	       :label "List of Strings"
+	       :group foo
 	       :documentation "A list of stuff.")
    (uninitialized :initarg :uninitialized
 		  :type string
@@ -131,58 +135,70 @@ of these.")
 				  "Custom-new")))
   (let* ((chil nil)
 	 (obj (widget-get widget :value))
+	 (master-group (or (widget-get widget :eieio-group) 'default))
 	 (cv (class-v (object-class-fast obj)))
 	 (fields (aref cv class-public-a))
+	 (flabel (aref cv class-public-custom-label))
+	 (fgroup (aref cv class-public-custom-group))
 	 (fdoc (aref cv class-public-doc))
 	 (fcust (aref cv class-public-custom)))
-    ;; First line describes the object, but is not editable.
-    (setq chil (cons (widget-create-child-and-convert
-		      widget 'string :tag "Object "
-		      :sample-face 'bold
-		      (object-name-string obj))
-		     chil))
+    ;; First line describes the object, but may not editable.
+    (if (widget-get widget :eieio-show-name)
+	(setq chil (cons (widget-create-child-and-convert
+			  widget 'string :tag "Object "
+			  :sample-face 'bold
+			  (object-name-string obj))
+			 chil)))
+    ;; Display information about the group being shown
+    (if master-group
+	(widget-insert "Configuring Group " (symbol-name master-group) "\n\n"))
     ;; Loop over all the fields, creating child widgets.
     (while fields
       ;; Output this slot if it has a customize flag associated with it.
-      (if (car fcust)
-	  (when (slot-boundp obj (car fields))
-	    ;; In this case, this field has a custom type.  Create it's
-	    ;; children widgets.
-	    (setq chil (cons (widget-create-child-and-convert
-			      widget
-			      (eieio-filter-slot-type widget (car fcust))
-			      :tag
-			      (concat
-			       (make-string
+      (when (and (car fcust) (member master-group (car fgroup))
+		 (slot-boundp obj (car fields)))
+	;; In this case, this field has a custom type.  Create it's
+	;; children widgets.
+	(setq chil (cons (widget-create-child-and-convert
+			  widget
+			  (eieio-filter-slot-type widget (car fcust))
+			  :tag
+			  (concat
+			   (make-string
+			    (or (widget-get widget :indent) 0)
+			    ? )
+			   ;;"Slot "
+			   (if (car flabel)
+			       (car flabel)
+			     (let ((s (symbol-name
+				       (or
+					(class-slot-initarg
+					 (object-class-fast obj)
+					 (car fields))
+					(car fields)))))
+			       (capitalize
+				(if (string-match "^:" s)
+				    (substring s (match-end 0))
+				  s)))))
+			  :value (slot-value obj (car fields))
+			  :sample-face 'eieio-custom-slot-tag-face
+			  )
+			 chil))
+	(setq chil (cons (widget-create-child-and-convert
+			  widget 'documentation-string
+			  :format "%t   %v"
+			  :tag (make-string
 				(or (widget-get widget :indent) 0)
 				? )
-			       "Slot "
-			       (let ((s (symbol-name
-					 (or (class-slot-initarg
-					      (object-class-fast obj)
-					      (car fields))
-					     (car fields)))))
-				 (capitalize
-				  (if (string-match "^:" s)
-				      (substring s (match-end 0))
-				    s))))
-			      :value (slot-value obj (car fields))
-			      :sample-face 'eieio-custom-slot-tag-face
-			      )
-			     chil))
-	    (setq chil (cons (widget-create-child-and-convert
-			      widget 'documentation-string
-			      :format "%t   %v"
-			      :tag (make-string
-				    (or (widget-get widget :indent) 0)
-				    ? )
-			      :value (if (car fdoc) (car fdoc)
-				       "Slot not Documented."))
-			     chil))
-	    ))
+			  :value (if (car fdoc) (car fdoc)
+				   "Slot not Documented."))
+			 chil))
+	)
       (setq fields (cdr fields)
 	    fdoc (cdr fdoc)
-	    fcust (cdr fcust)))
+	    fcust (cdr fcust)
+	    flabel (cdr flabel)
+	    fgroup (cdr fgroup)))
     (widget-put widget :children (nreverse chil))
     ))
 
@@ -220,14 +236,18 @@ commands should also call this method when applying changes.
 Argument OBJ is the object that has been customized."
   nil)
 
-(defun customize-object (obj)
-  "Customize OBJ in a custom buffer."
-  (eieio-customize-object obj))
+(defun customize-object (obj &optional group)
+  "Customize OBJ in a custom buffer.
+Optional argument GROUP is the sub-group of slots to display."
+  (eieio-customize-object obj group))
 
-(defmethod eieio-customize-object ((obj eieio-default-superclass))
+(defmethod eieio-customize-object ((obj eieio-default-superclass)
+				   &optional group)
   "Customize OBJ in a specialized custom buffer.
 To override call the `eieio-custom-widget-insert' to just insert the
-object widget."
+object widget.
+Optional argument GROUP specifies a subgroup of slots to edit as a symbol.
+These groups are specified with the `:group' slot flag."
   ;; Insert check for multiple edits here.
   (let ((b (switch-to-buffer (get-buffer-create
 			      (concat "*CUSTOMIZE " (object-name obj) "*")))))
@@ -244,7 +264,7 @@ object widget."
     (widget-insert "Edit object " (object-name obj) "\n\n")
     ;; Create the widget editing the object.
     (make-local-variable 'eieio-wo)
-    (setq eieio-wo (eieio-custom-widget-insert obj))
+    (setq eieio-wo (eieio-custom-widget-insert obj :eieio-group group))
     ;;Now generate the apply buttons
     (widget-insert "\n")
     (eieio-custom-object-apply-reset obj)
@@ -281,7 +301,7 @@ Argument OBJ os the object being customized."
   "Insert the widget used for editing object OBJ in the current buffer.
 Arguments FLAGS are widget compatible flags.
 Must return the created widget."
-  (widget-create 'object-edit :value obj))
+  (apply 'widget-create 'object-edit :value obj flags))
 
 (define-widget 'object 'object-edit
   "Instance of a CLOS class."
@@ -299,6 +319,21 @@ Must return the created widget."
   "For WIDGET, convert VALUE to an abstract /safe/ representation."
   value)
 
+
+;;; Easymenu filter subsections
+;;
+;; These functions provide the ability to create dynamic menus to
+;; customize specific sections of an object.  The do not hook directly
+;; into a filter, but can be used to create easymenu vectors.
+(defmethod eieio-customize-object-group ((obj eieio-default-superclass))
+  "Create a list of vectors for customizing sections of OBJ."
+  (mapcar (lambda (group)
+	    (vector (concat "Group " (symbol-name group))
+		    (list 'customize-object obj (list 'quote group))
+		    t))
+	  (class-option (object-class-fast obj) :custom-groups)))
+
 (provide 'eieio-custom)
 
 ;;; eieio-custom.el ends here
+;; 
