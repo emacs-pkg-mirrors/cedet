@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.13 2003/03/31 10:07:24 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.14 2003/04/02 02:20:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -282,7 +282,7 @@ Note: TYPE not yet implemented."
       (unless stream
 	(with-current-buffer (find-file-noselect (car f))
 	  (setq stream (semantic-bovinate-toplevel t))))
-      (setq match (semantic-find-nonterminal-by-name name stream t nil))
+      (setq match (semantic-find-first-tag-by-name name stream t nil))
       (when match
 	(set-buffer (semantic-tag-buffer match))
 	(goto-char (semantic-tag-start match)))
@@ -298,7 +298,7 @@ If TAG is nil, determine a tag based on the current position."
   (semantic-bovinate-toplevel t)
   (unless tag
     (beginning-of-line)
-    (setq tag (semantic-current-nonterminal)))
+    (setq tag (semantic-current-tag)))
   (unless (semantic-tag-of-class-p tag 'def)
     (error "Only deffns (or defun or defvar) can be updated"))
   (let* ((name (semantic-tag-name tag))
@@ -336,7 +336,7 @@ The current buffer must include TAG."
     (error "Not a source file"))
   (semantic-bovinate-toplevel t)
   (unless tag
-    (setq tag (semantic-current-nonterminal)))
+    (setq tag (semantic-current-tag)))
   (unless (semantic-find-documentation tag)
     (error "Cannot find interesting documentation to use for %s"
 	   (semantic-tag-name tag)))
@@ -346,7 +346,7 @@ The current buffer must include TAG."
 	 (docbuff nil))
     (while (and texi (not doctag))
       (set-buffer (find-file-noselect (car texi)))
-      (setq doctag (semantic-find-nonterminal-by-name
+      (setq doctag (semantic-find-first-tag-by-name
 		    name (semantic-bovinate-toplevel t) t nil)
 	    docbuff (if doctag (current-buffer) nil))
       (setq texi (cdr texi)))
@@ -386,7 +386,7 @@ If TAG is nil, it is derived from the deffn under POINT."
   (semantic-bovinate-toplevel t)
   (unless tag
     (beginning-of-line)
-    (setq tag (semantic-current-nonterminal)))
+    (setq tag (semantic-current-tag)))
   (unless (semantic-tag-of-class-p tag 'def)
     (error "Only deffns (or defun or defvar) can be updated"))
   (let* ((name (semantic-tag-name tag))
