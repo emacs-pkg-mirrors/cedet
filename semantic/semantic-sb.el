@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.28 2001/08/08 00:56:08 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.29 2001/09/29 23:47:50 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -75,9 +75,6 @@ This will replace the named bucket that would have usually occured here."
   "Insert TOKEN as a speedbar button at DEPTH.
 Optional PREFIX is used to specify special marker characters."
   (let* ((type (semantic-token-token token))
-	 (ttype (if (member type '(function variable type))
-		    (semantic-token-type token)
-		  nil))
 	 (edata (cond ((eq type 'type)
 		        (semantic-token-type-parts token))
 		      ((eq type 'variable)
