@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.22 2000/06/20 02:20:17 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.23 2000/06/23 23:11:03 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -30,8 +30,6 @@
 ;; methods.  Changes in the project structure will require Makefile
 ;; rebuild.  The targets provided in ede-proj can be augmented with
 ;; additional target types inherited directly from `ede-proj-target'.
-
-(require 'ede)
 
 ;;; Class Definitions:
 (defclass ede-proj-target (ede-target)

@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede-dired.el,v 1.3 2000/06/20 02:16:56 zappo Exp $
+;; RCS: $Id: ede-dired.el,v 1.4 2000/06/23 23:11:40 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -30,7 +30,6 @@
 ;; their project file by adding files (or whatever) directly from a
 ;; dired buffer.
 
-(require 'ede)
 (require 'easymenu)
 (require 'dired)
 
