@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.33 2001/05/14 16:28:34 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.34 2001/09/12 04:47:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -324,7 +324,10 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
       (setq token (car tokens))
       (if (and (not notypecheck)
 	       (eq (semantic-token-token token)
-		   semantic-imenu-expandable-token))
+		   semantic-imenu-expandable-token)
+	       (semantic-token-with-position-p
+		(car (semantic-nonterminal-children token)))
+	       )
           ;; to keep an homogeneous menu organisation, type menu items
           ;; always have a sub-menu with at least the *typedef* item
           ;; (even if the token has no type parts)
