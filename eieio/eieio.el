@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.10
-;; RCS: $Id: eieio.el,v 1.33 1999/01/21 14:25:59 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.34 1999/01/28 16:01:17 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -291,7 +291,9 @@ yet supported.  Supported tags are:
   :accessor   - tag used to create a function to access this field
   :writer     - a function symbol which will `write' an object's slot
   :reader     - a function symbol which will `read' an object
-  :type       - the type of data allowed in this slot (eg. bufferp)
+  :type       - the type of data allowed in this slot (see `typep')
+  :documentation
+              - A string documenting use of this slot.
 
 The following are extensions on CLOS:
   :protection - non-nil means a private slot (accessible when THIS is set)
@@ -381,7 +383,7 @@ toplevel documentation for this class."
 	     (acces (car (cdr (member ':accessor field))))
 	     (init (car (cdr (member ':initform field))))
 	     (initarg (car (cdr (member ':initarg field))))
-	     (docstr (car (cdr (member ':docstring field))))
+	     (docstr (car (cdr (member ':documentation field))))
 	     (prot (car (cdr (member ':protection field))))
 	     (reader (car (cdr (member ':reader field))))
 	     (writer (car (cdr (member ':writer field))))
@@ -392,9 +394,7 @@ toplevel documentation for this class."
 
 	;; The default type specifier is supposed to be t, meaning anything.
 	(if (not type) (setq type t)
-	  (setq type (car (cdr type)))
-	  (if (not (functionp type))
-	      (error "Unlike CLOS, :type must be t, or be a function")))
+	  (setq type (car (cdr type))))
 
 	(let* ((-a (if (eq prot 'private) class-private-a class-public-a))
 	       (-d (if (eq prot 'private) class-private-d class-public-d))
@@ -730,10 +730,8 @@ Fills in OBJ's FIELD with it's default value."
 
 (defun eieio-perform-slot-validation (spec value)
   "Signal if SPEC does not match VALUE."
-  ;; This is SUPPOSED to follow CLOS or CL type specifiers, but for
-  ;; simplicity and speed, I'll just pretend it's a function.
-  (or (eq spec t)
-      (and (functionp spec) (funcall spec value))))
+  ;; typep is in cl-macs
+  (or (eq spec t) (typep value spec)))
 
 (defun eieio-validate-slot-value (class field-idx value)
   "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
@@ -894,7 +892,7 @@ Therefore `slot-boundp' is really a macro calling `slot-exists-p'"
   "Non-nil if OBJECT contains SLOT."
   (let ((cv (class-v (object-class object))))
     (or (memq slot (aref cv class-public-a))
-	(memq slot (aref cv class-private-a)))))	
+	(memq slot (aref cv class-private-a)))))
 
 ;;; Slightly more complex utility functions for objects
 ;;
@@ -1466,6 +1464,8 @@ this object."
 	 (eieio-list-prin1 thing))
 	((class-p thing)
 	 (princ (class-name thing)))
+	((symbolp thing)
+	 (princ (concat "'" (symbol-name thing))))
 	(t (prin1 thing))))
 
 (defun eieio-list-prin1 (list)
@@ -1559,7 +1559,8 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 (autoload 'describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
 (autoload 'eieiodoc-class "eieio-doc" "Create texinfo documentation about a class hierarchy." t)
 
-(autoload 'eieio-customize "eieio-custom" "Create a custom buffer editing OBJ.")
+(autoload 'eieio-customize-object "eieio-custom" "Create a custom buffer editing OBJ.")
+(autoload 'eieio-custom-widget-insert "eieio-custom" "Insert a widget for customizing.")
 
 (provide 'eieio)
 ;;; eieio ends here
