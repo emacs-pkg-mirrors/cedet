@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.9 2001/04/21 14:42:41 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.10 2001/08/12 23:20:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,6 +111,30 @@ Return non-nil if there is no upper context."
     (forward-sexp 1)
     (forward-char -1)
     nil))
+
+(defun semantic-narrow-to-context ()
+  "Narrow the buffer to the extent of the current context."
+  (let (b e)
+    (save-excursion
+      (if (semantic-beginning-of-context)
+	  nil
+	(setq b (point))))
+    (save-excursion
+      (if (semantic-end-of-context)
+	  nil
+	(setq e (point))))
+    (if (and b e) (narrow-to-region b e))))
+
+(defmacro semantic-with-buffer-narrowed-to-context (&rest body)
+  "Execute BODY with the buffer narrowed to the current context."
+  `(save-restriction
+     (semantic-narrow-to-context)
+     ,@body))
+(put 'semantic-with-buffer-narrowed-to-context 'lisp-indent-function 1)
+(add-hook 'edebug-setup-hook
+	  (lambda ()
+	    (def-edebug-spec semantic-with-buffer-narrowed-to-context
+	      (def-body))))
 
 (defun semantic-get-local-variables (&optional point)
   "Get the local variables based on POINT's context.
@@ -221,50 +245,74 @@ this information."
   "Move to the end of the current command.
 Be default, uses `semantic-command-separation-character'.
 Override with `end-of-command'."
-    (let ((s (semantic-fetch-overload 'end-of-command))
-	  (case-fold-search semantic-case-fold))
-      (if s (funcall s)
-	(semantic-end-of-command-default)
-	)))
+  (semantic-with-buffer-narrowed-to-context
+      (let ((s (semantic-fetch-overload 'end-of-command))
+	    (case-fold-search semantic-case-fold))
+	(if s (funcall s)
+	  (semantic-end-of-command-default)
+	  ))))
 
 (defun semantic-end-of-command-default ()
   "Move to the beginning of the current command.
 Depends on `semantic-command-separation-character' to find the
 beginning and end of a command."
-  (let ((nt (semantic-current-nonterminal)))
-    (if (re-search-forward (regexp-quote semantic-command-separation-character)
-			   (if nt (semantic-token-end nt))
-			   t)
-	(forward-char -1))))
+  (if (re-search-forward (regexp-quote semantic-command-separation-character)
+			 nil t)
+      (forward-char -1)
+    ;; If there wasn't a command after this, we are the last
+    ;; command, and we are incomplete.
+    (goto-char (point-max))))
 
 (defun semantic-beginning-of-command ()
   "Move to the beginning of the current command.
 Be default, users `semantic-command-separation-character'.
 Override with `beginning-of-command'."
-    (let ((s (semantic-fetch-overload 'beginning-of-command))
-	  (case-fold-search semantic-case-fold))
-      (if s (funcall s)
-	(semantic-beginning-of-command-default)
-	)))
+  (semantic-with-buffer-narrowed-to-context
+      (let ((s (semantic-fetch-overload 'beginning-of-command))
+	    (case-fold-search semantic-case-fold))
+	(if s (funcall s)
+	  (semantic-beginning-of-command-default)
+	  ))))
 
 (defun semantic-beginning-of-command-default ()
   "Move to the beginning of the current command.
 Depends on `semantic-command-separation-character' to find the
 beginning and end of a command."
-  (let ((nt (semantic-current-nonterminal)))
-    (if (or
-	 (and nt
-	      (re-search-backward (regexp-quote semantic-command-separation-character)
-				  (semantic-token-start nt)
-				  t))
-	 (re-search-backward (regexp-quote semantic-command-separation-character)
-			     nil
-			     t))
-	(progn
-	  ;; Here is a speedy way to skip over junk between the end of
-	  ;; the last command, and the beginning of the next.
-	  (forward-word 1)
-	  (forward-word -1)))))
+  (skip-chars-backward semantic-command-separation-character)
+  (if (re-search-backward (regexp-quote semantic-command-separation-character)
+			  nil t)
+      nil
+    ;; If there wasn't a command after this, we are the last
+    ;; command, and we are incomplete.
+    (goto-char (point-min)))
+  (skip-chars-forward " \t\n")
+  )
+
+
+(defsubst semantic-point-at-beginning-of-command ()
+  "Return the point at the beginning of the current command."
+  (save-excursion (semantic-beginning-of-command) (point)))
+
+(defsubst semantic-point-at-end-of-command ()
+  "Return the point at the beginning of the current command."
+  (save-excursion (semantic-end-of-command) (point)))
+
+(defsubst semantic-narrow-to-command ()
+  "Narrow the current buffer to the current command."
+  (narrow-to-region (semantic-point-at-beginning-of-command)
+		    (semantic-point-at-end-of-command)))
+
+(defmacro semantic-with-buffer-narrowed-to-command (&rest body)
+  "Execute BODY with the buffer narrowed to the current command."
+  `(save-restriction
+     (semantic-narrow-to-command)
+     ,@body))
+(put 'semantic-with-buffer-narrowed-to-command 'lisp-indent-function 1)
+(add-hook 'edebug-setup-hook
+	  (lambda ()
+	    (def-edebug-spec semantic-with-buffer-narrowed-to-command
+	      (def-body))))
+
 
 (defun semantic-ctxt-current-symbol (&optional point)
   "Return the current symbol the cursor is on at POINT in a list.
@@ -338,29 +386,22 @@ Override with `ctxt-current-assignment'."
   "Return the current assignment near the cursor at POINT.
 By default, assume that \"=\" indicates an assignment."
   (condition-case nil
-      (let* ((begin (save-excursion (semantic-beginning-of-command) (point)))
-	     (upc (save-excursion (semantic-up-context) (point)))
-	     (nearest (if (< begin upc) upc begin)))
-	(save-excursion
-	  ;; TODO: Skip a regexp backwards with whitespace from the
-	  ;; syntax table.
-	  (skip-chars-backward " \t\n")
-	  ;; Lets wander backwards till we find an assignment.
-	  (while (and (not (= (preceding-char) ?=))
-		      (> (point) nearest))
+      (semantic-with-buffer-narrowed-to-command
+	  (save-excursion
+	    (skip-chars-forward " \t=")
+	    (condition-case nil (forward-char 1) (error nil))
+	    (re-search-backward "[^=]=\\([^=]\\|$\\)")
+	    ;; We are at an equals sign.  Go backwards a sexp, and
+	    ;; we'll have the variable.  Otherwise we threw an error
 	    (forward-sexp -1)
-	    (skip-chars-backward " \t\n")
-	    )
-	  ;; We are at an equals sign.  Go backwards a sexp, and
-	  ;; we'll have the variable
-	  (forward-sexp -1)
-	  (semantic-ctxt-current-symbol)))
+	    (semantic-ctxt-current-symbol)))
     (error nil)))
 
 (defun semantic-ctxt-current-function (&optional point)
   "Return the current function the cursor is in at POINT.
 The function returned is the one accepting the arguments that
-the cursor is currently in.
+the cursor is currently in.  It will not return function symbol if the
+cursor is on the text representing that function.
 This can be overridden with `ctxt-current-function'."
     (if point (goto-char (point)))
     (let ((s (semantic-fetch-overload 'ctxt-current-function))
@@ -370,7 +411,7 @@ This can be overridden with `ctxt-current-function'."
 	)))
 
 (defun semantic-ctxt-current-function-default ()
-  "Return the current symbol the cursor is on at POINT in a list."
+  "Default function for `semantic-ctxt-current-function'."
   (save-excursion
     (semantic-up-context)
     (when (looking-at "(")
