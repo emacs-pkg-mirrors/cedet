@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.45 2001/10/05 19:37:03 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.46 2001/10/08 21:15:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,13 +85,13 @@
   ,(semantic-lambda
   (list ( concat (nth 0 vals) (nth 1 vals) ( car (nth 2 vals))))))
  ) ; end filename
- (classparts
+ (unionpartsparts
  ( semantic-list
   ,(semantic-lambda
  
  (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'classsubparts)
  ))
- ) ; end classparts
+ ) ; end unionpartsparts
  (classsubparts
  ( open-paren "{"
   ,(semantic-lambda
@@ -181,9 +181,11 @@
   (list nil)))
  ) ; end opt-name
  (typesimple
- ( struct-or-class opt-name opt-class-parents classparts
+ ( struct-or-class opt-name opt-class-parents semantic-list
   ,(semantic-lambda
-  (nth 1 vals) (list 'type) (nth 0 vals) (list (nth 3 vals)) (nth 2 vals) (list nil nil)))
+  (nth 1 vals) (list 'type) (nth 0 vals) (list ( let ( ( semantic-c-classname ( cons ( car (nth 1 vals)) ( car (nth 0 vals)))))
+ (semantic-bovinate-from-nonterminal-full (car (nth 3 vals)) (cdr (nth 3 vals)) 'classsubparts)
+ )) (nth 2 vals) (list nil nil)))
  ( UNION opt-name classparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
@@ -284,6 +286,9 @@
  ( declmods typeformbase metadeclmod opt-ref var-or-func-decl
   ,(semantic-lambda
   ( semantic-c-reconstitute-token (nth 4 vals) (nth 0 vals) (nth 1 vals))))
+ ( declmods var-or-func-decl
+  ,(semantic-lambda
+  ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
  ) ; end var-or-fun
  (var-or-func-decl
  ( opt-stars opt-class opt-destructor functionname opt-under-p arg-list opt-post-fcn-modifiers opt-throw opt-initializers fun-or-proto-end
@@ -503,7 +508,7 @@
  ( punctuation "[-+*/%^|&]" expression)
  ) ; end expression
  )
-  "C language specification.")
+       "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -567,6 +572,14 @@
 	    (t nil))
     nil))
 
+(defvar semantic-c-classname nil
+  "At parsetime, assign a class or struct name text here.
+It is picked up by `semantic-c-reconstitute-token' to determine
+if something is a constructor.  Value should be:
+  ( TYPENAME .  TYPEOFTYPE)
+where typename is the name of the type, and typeoftype is \"class\"
+or \"struct\".")
+
 (defun semantic-c-reconstitute-token (tokenpart declmods typedecl)
   "Reconstitute a token TOKENPART with DECLMODS and TYPEDECL.
 This is so we don't have to match the same starting text several times.
@@ -583,26 +596,49 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 	       nil)
 	 )
 	((eq (nth 1 tokenpart) 'function)
-	 (list (car tokenpart)
-	       'function
-	       (or typedecl "int")	;type
-	       (nth 4 tokenpart)	;arglist
-	       (semantic-bovinate-make-assoc-list
-		'const (if (member "const" declmods) t nil)
-		'typemodifiers (delete "const" declmods)
-		'parent (car (nth 2 tokenpart))
-		'destructor (car (nth 3 tokenpart) )
-		'pointer (nth 7 tokenpart)
-		;; Even though it is "throw" in C++, we use
-		;; `throws' as a common name for things that toss
-		;; exceptions about.
-		'throws (nth 5 tokenpart)
-		;; Reemtrant is a C++ thingy.  Add it here
-		'reentrant (if (member "reentrant" (nth 6 tokenpart)) t)
-		;; prototypes are functions w/ no body
-		'prototype (nth 8 tokenpart)
-		)
-	       nil)
+	 ;; We should look at part 4 (the arglist) here, and throw an
+	 ;; error of some sort if it contains parser errors so that we
+	 ;; don't parser function calls, but that is a little beyond what
+	 ;; is available for data here.
+	 (let ((constructor
+		(and (or (and semantic-c-classname
+			      (string= (car semantic-c-classname)
+				       (car tokenpart)))
+			 (and (stringp (car (nth 2 tokenpart)))
+			      (string= (car (nth 2 tokenpart)) (car tokenpart)))
+			 )
+		     (not (car (nth 3 tokenpart))))))
+	   (list (car tokenpart)
+		 'function
+		 (or typedecl		;type
+		     (cond ((car (nth 3 tokenpart) )
+			    "void")	; Destructors have no return?
+			   (constructor
+			    ;; Constructors return an object.			  ;; in our
+			    (list (or (car semantic-c-classname)
+				      (car (nth 2 tokenpart)))
+				  'type
+				  (or (cdr semantic-c-classname)
+				      "class")))
+			   (t "int")))
+		 (nth 4 tokenpart)	;arglist
+		 (semantic-bovinate-make-assoc-list
+		  'const (if (member "const" declmods) t nil)
+		  'typemodifiers (delete "const" declmods)
+		  'parent (car (nth 2 tokenpart))
+		  'destructor (if (car (nth 3 tokenpart) ) t)
+		  'constructor (if constructor t)
+		  'pointer (nth 7 tokenpart)
+		  ;; Even though it is "throw" in C++, we use
+		  ;; `throws' as a common name for things that toss
+		  ;; exceptions about.
+		  'throws (nth 5 tokenpart)
+		  ;; Reemtrant is a C++ thingy.  Add it here
+		  'reentrant (if (member "reentrant" (nth 6 tokenpart)) t)
+		  ;; prototypes are functions w/ no body
+		  'prototype (nth 8 tokenpart)
+		  )
+		 nil))
 	 )
 	))
 
@@ -709,15 +745,6 @@ machine."
   :group 'c
   :type '(repeat (string :tag "Path")))
 
-(defcustom semantic-default-c-built-in-types
-  '("void" "char" "int"  "float" "double"
-    ;; Some psuedo types.
-    "const" "volatile" "static" "unsigned" "signed"
-    )
-  "Default set of built in types for C."
-  :group 'c
-  :type '(repeat (string :tag "Type")))
-
 (defun semantic-c-nonterminal-protection (token &optional parent)
   "Return the protection of TOKEN in PARENT.
 Override function for `semantic-nonterminal-protection'."
@@ -759,7 +786,6 @@ Override function for `semantic-nonterminal-protection'."
 
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  (setq semantic-default-built-in-types semantic-default-c-built-in-types)
   (semantic-install-function-overrides
    '((nonterminal-protection . semantic-c-nonterminal-protection)
      ))
