@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.17 2000/08/20 22:08:56 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.18 2000/09/28 18:00:10 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -91,14 +91,14 @@
 (eieio-speedbar-create 'ede-speedbar-make-map
 		       'ede-speedbar-key-map
 		       'ede-speedbar-menu
-		       "EDE"
+		       "Project"
 		       'ede-speedbar-toplevel-buttons)
 
 (defun ede-speedbar ()
   "EDE development environment project browser for speedbar."
   (interactive)
   (speedbar-frame-mode 1)
-  (speedbar-change-initial-expansion-list "EDE")
+  (speedbar-change-initial-expansion-list "Project")
   (speedbar-get-focus)
   )
 
