@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.34 2003/08/28 02:53:48 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.35 2003/08/28 07:44:14 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1020,6 +1020,15 @@ Customize this string to match the space used by scrollbars and
 fringe so it does not appear that the code is moving left/right
 when it lands in the sticky line.")
 
+(defvar semantic-stickyfunc-old-hlf nil
+  "Value of the header line when entering sticky func mode.")
+(make-variable-buffer-local 'semantic-stickyfunc-old-hlf)
+
+(defconst semantic-stickyfunc-header-line-format
+  '(:eval (list semantic-stickyfunc-indent-string
+                (semantic-stickyfunc-fetch-stickyline)))
+  "The header line format used by sticky func mode.")
+
 (defun semantic-stickyfunc-mode-setup ()
   "Setup option `semantic-stickyfunc-mode'.
 For semantic enabled buffers, make the function declaration for the top most
@@ -1027,24 +1036,28 @@ function \"sticky\".  This is accomplished by putting the first line of
 text for that function in Emacs 21's header line."
   (if semantic-stickyfunc-mode
       (progn
-	(if (not (and (featurep 'semantic) (semantic-active-p)))
-	    (progn
-	      ;; Disable minor mode if semantic stuff not available
-	      (setq semantic-stickyfunc-mode nil)
-	      (error "Buffer %s was not set up for parsing"
-		     (buffer-name))))
-	(if (not (boundp 'default-header-line-format))
-	    (progn
-	      ;; Disable if there are no header lines to use.
-	      (setq semantic-stickyfunc-mode nil)
-	      (error "Sticky Function mode requires Emacs 21")))
+	(unless (and (featurep 'semantic) (semantic-active-p))
+	  ;; Disable minor mode if semantic stuff not available
+	  (setq semantic-stickyfunc-mode nil)
+	  (error "Buffer %s was not set up for parsing" (buffer-name)))
+	(unless (boundp 'default-header-line-format)
+	  ;; Disable if there are no header lines to use.
+	  (setq semantic-stickyfunc-mode nil)
+	  (error "Sticky Function mode requires Emacs 21"))
 	;; Enable the mode
-	(setq header-line-format
-	      (list semantic-stickyfunc-indent-string
-		    '(:eval (semantic-stickyfunc-fetch-stickyline))))
-        )
+	;; Save previous buffer local value of header line format.
+	(kill-local-variable 'semantic-stickyfunc-old-hlf)
+	(when (local-variable-p 'header-line-format)
+	  (setq semantic-stickyfunc-old-hlf header-line-format))
+	(setq header-line-format semantic-stickyfunc-header-line-format)
+	)
     ;; Disable sticky func mode
-    (setq header-line-format nil))
+    ;; Restore previous buffer local value of header line format if
+    ;; the current one is the sticky func one.
+    (when (eq header-line-format semantic-stickyfunc-header-line-format)
+      (kill-local-variable 'header-line-format)
+      (when (local-variable-p 'semantic-stickyfunc-old-hlf)
+	(setq header-line-format semantic-stickyfunc-old-hlf))))
   semantic-stickyfunc-mode)
 
 ;;;###autoload
