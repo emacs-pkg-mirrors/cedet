@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.35 2001/05/09 03:25:17 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.36 2001/05/25 01:12:10 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.36  2001/05/25 01:12:10  zappo
+# (expression): Added string.
+#
 # Revision 1.35  2001/05/09 03:25:17  zappo
 # Added inline method support.
 # Store protection elements
@@ -546,6 +549,8 @@ opt-expression : expression
 expression : symbol
 	     ( )
            | punctuation "[!*&~]" symbol
+	     ( )
+	   | string
 	     ( )
            | semantic-list
 	     ( )
