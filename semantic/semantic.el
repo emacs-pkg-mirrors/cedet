@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.12 1999/05/23 13:30:34 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.13 1999/05/27 01:43:33 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -299,15 +299,24 @@ It may seem odd to place NAME in slot 0, and the type-symbol in slot
 This makes it ideal for passing into generic sorters, string
 completion functions, and list searching functions.
 
+In the below entry formats, \"NAME\" is a string which is the name of
+the object in question.  It is possible for this to be nil in some
+situations, and code dealing with entries should try to be aware of
+these situations.
+
+\"TYPE\" is a string representing the type of some objects.  For a
+variable, this could very well be another top level token representing
+a type nonterminal.
+
 TOP-LEVEL ENTRIES:
 
- (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE \"DOCSTRING\" START END)
-   The definition of a variable, or constant.  CONST is a boolean
-   indicating that the variable is constant.  DEFAULT-VALUE can be
+ (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS \"DOCSTRING\"
+           START END)
+   The definition of a variable, or constant.  CONST is a boolean representing
+   if this variable is considered a constant.  DEFAULT-VALUE can be
    something apropriate such a a string, or list of parsed elements.
-   DOCSTRING is optional.
-   Some languages do not have the TYPE field available for arg lists.
-   In this case nil is appropriate.
+   MODIFIERS are details about a variable that are not covered in the TYPE
+   field.  DOCSTRING is optional.
 
  (\"NAME\" function \"TYPE\" ( ARG-LIST ) \"DOCSTRING\" START END)
    A function/procedure definition.  DOCSTRING is optional.
@@ -382,6 +391,10 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
   "Retrieve the parts of TOKEN."
   `(nth 3 ,token))
 
+(defmacro semantic-token-type-parent (token)
+  "Retrieve the parent of TOKEN."
+  `(nth 4 ,token))
+
 (defmacro semantic-token-function-args (token)
   "Retrieve the type of TOKEN."
   `(nth 3 ,token))
@@ -390,13 +403,24 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
   "Retrieve the type of TOKEN."
   `(nth 3 ,token))
 
+(defmacro semantic-token-variable-const (token)
+  "Retrieve the status of constantness from variable TOKEN."
+  `(nth 3 ,token))
+
 (defmacro semantic-token-variable-default (token)
   "Retrieve the default value of TOKEN."
   `(nth 4 ,token))
 
-(defmacro semantic-token-variable-const (token)
-  "Retrieve the status of constantness from variable TOKEN."
-  `(nth 3 ,token))
+(defmacro semantic-token-variable-modifiers (token)
+  "Retrieve extra modifiers for the variable TOKEN."
+  `(nth 5 ,token))
+
+
+(defun semantic-token-p (token)
+  "Return non-nil if TOKEN is most likely a semantic token."
+  (and (listp token)
+       (stringp (car token))
+       (symbolp (car (cdr token)))))
 
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional depth trashcomments)
@@ -447,6 +471,117 @@ stripped from the main list of synthesized tokens."
       (setq semantic-toplevel-bovine-cache (list (nreverse res) (point-max)))
       (car semantic-toplevel-bovine-cache)))))
 
+;;; Behavioral APIs
+;;
+;; Each major mode will want to support a specific set of behaviors.
+;; Usually generic behaviors that need just a little bit of local
+;; specifics.  This section permits the setting of override functions
+;; for tasks of that nature, and also provides reasonable defaults.
+
+(defvar semantic-override-table nil
+  "Buffer local semantic function overrides alist.
+These overrides provide a hook for a `major-mode' to override specific
+behaviors with respect to generated semantic toplevel nonterminals and
+things that these non-terminals are useful for.
+Each element must be of the form: (SYM . FUN)
+where SYM is the symbol to override, and FUN is the function to
+override it with.
+Available override symbols:
+
+  SYBMOL                 PARAMETERS              DESCRIPTION
+ `find-dependency'       (buffer token & parent)  find the dependency file
+ `find-nonterminal'      (buffer token & parent)  find token in buffer.
+ `summerize-nonterminal' (token & parent)         return summery string.
+ `prototype-nonterminal' (token)                  return a prototype string.
+
+Parameters mean:
+
+  &      - Following parameters are optional
+  buffer - The buffer in which a token was found.
+  token  - The nonterminal token we are doing stuff with
+  parent - If a TOKEN is stripped (of positional infomration) then
+           this will be the parent token which should have positional
+           information in it.")
+(make-variable-buffer-local 'semantic-override-table)
+
+(defun semantic-fetch-overload (sym)
+  "Find and return the overload function for SYM."
+  (let ((a (assoc sym semantic-override-table)))
+    (cdr a)))
+
+(defun semantic-find-nonterminal (buffer token &optional parent)
+  "Find the location from BUFFER belonging to TOKEN.
+TOKEN may be a stripped element, in which case PARENT specifies a
+parent token that has position information.
+Different behaviors are provided depending on the type of token.
+For example, dependencies (includes) will seek out the file that is
+depended on, and functions will move to the specified definition."
+  (if (or (not (bufferp buffer)) (not token))
+      (error "Semantic-find-nonterminal: specify BUFFER and TOKEN"))
+  
+  (if (if (eq (semantic-token-token token) 'include)
+	  (let ((s (semantic-fetch-overload 'find-dependency)))
+	    (if s
+		(progn (funcall s buffer token) t)
+	      t))
+	t)
+      (let ((s (semantic-fetch-overload 'find-nonterminal)))
+	(if s (funcall s buffer token)
+	  (let ((start (semantic-token-start token)))
+	    (if (numberp start)
+		;; If it's a number, go there
+		(goto-char start)
+	      ;; Otherwise, it's a trimmed vector, such as a parameter,
+	      ;; or a structure part.
+	      (if (not parent)
+		  nil
+		(goto-char (semantic-token-start parent))
+		;; Here we make an assumtion that the text returned by
+		;; the bovinator and concocted by us actually exists
+		;; in the buffer.
+		(re-search-forward (semantic-token-name token) nil t))))))))
+
+(defun semantic-summerize-nonterminal (token &optional parent)
+  "Summerize TOKEN in a reasonable way.
+Optional argument PARENT is the parent type if TOKEN is a detail."
+  (let ((s (semantic-fetch-overload 'prototype-nonterminal))
+	tt)
+    (if s
+	(funcall s token parent)
+      (setq tt (semantic-token-token token))
+      ;; FLESH THIS OUT MORE
+      (concat (capitalize (symbol-name tt)) ": "
+	      (let* ((type (semantic-token-type token))
+		     (tok (semantic-token-token token))
+		     (args (cond ((eq tok 'function)
+				  (semantic-token-function-args token))
+				 ((eq tok 'type)
+				  (semantic-token-type-parts token))
+				 (t nil)))
+		     (mods (if (eq tok 'variable)
+			       (semantic-token-variable-modifiers token))))
+		(if args
+		    (setq args
+			  (concat " " (if (eq tok 'type) "{" "(")
+				  (if (stringp (car args))
+				      (mapconcat (lambda (a) a) args " ")
+				    (mapconcat 'car args " "))
+				   (if (eq tok 'type) "}" ")"))))
+		(if (and type (listp type))
+		    (setq type (car type)))
+		(concat (if type (concat type " "))
+			(semantic-token-name token)
+			(or args "")
+			(or mods "")))))))
+
+(defun semantic-prototype-nonterminal (token)
+  "Return a prototype for TOKEN.
+This functin must be overloaded, though it need not be used."
+  (let ((s (semantic-fetch-overload 'summerize-nonterminal)))
+    (if s
+	(funcall s token prototype)
+      (error "No generic implementation for prototypeing nonterminals"))))
+
 ;;; Semantic Table debugging
 ;;
 (defvar semantic-bovinate-debug-table nil
@@ -460,7 +595,7 @@ stripped from the main list of synthesized tokens."
   (beginning-of-defun)
   (setq semantic-bovinate-debug-table (point-marker)))
 
-(defun semantic-bovinate-buffer-debug ()
+(defun semantic-bovinate-debug-buffer ()
   "Bovinate the current buffer in debug mode."
   (interactive)
   (if (not semantic-bovinate-debug-table)
@@ -521,6 +656,16 @@ COLLECTION is the list of things collected so far."
     (erase-buffer)
     (insert (pp-to-string out))))
 
+(defun bovinate-debug ()
+  "Bovinate the current buffer and run in debug mode."
+  (interactive)
+  (let ((semantic-edebug t)
+	(out (semantic-bovinate-debug-buffer)))
+    (pop-to-buffer "*BOVINATE*")
+    (require 'pp)
+    (erase-buffer)
+    (insert (pp-to-string out))))
+
 
 ;;; Semantic Bovination
 ;;
@@ -575,6 +720,8 @@ list of semantic tokens found."
       (while (and lte (not (listp (car lte))))
 	;; debugging!
 	(if (and lte semantic-edebug)
+	    ;; The below reference to nonterminal is a hack and the byte
+	    ;; compiler will complain about it.
 	    (let ((r (semantic-bovinate-show (car s) nonterminal
 					     (- db-mlen (length matchlist))
 					     (- db-tlen (length lte))
