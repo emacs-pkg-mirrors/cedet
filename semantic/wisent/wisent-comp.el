@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.13 2002/02/27 23:00:15 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.14 2002/02/28 21:23:30 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,7 +61,7 @@
   "Return the context name from NAME."
   `(if (and ,name (symbolp ,name))
        (intern (format "wisent-context-%s" ,name))
-     (error "Invalid context name %S" ,name)))
+     (error "invalid context name: %S" ,name)))
   
 (defmacro wisent-context-bindings (name)
   "Return the variables in context NAME."
@@ -242,7 +242,7 @@ Used when running without interactive terminal.")
                 (write-region (point-min) (point-max)
                               wisent-log-file t)))
         (error
-         (message "%s" (error-message-string err))))))
+         (message "*** %s" (error-message-string err))))))
 
 ;;;; -----------------------------------
 ;;;; Representation of the grammar rules
@@ -734,7 +734,7 @@ S must be a vector of integers."
   (when (> (+ nuseless-nonterminals nuseless-productions) 0)
     (wisent-total-useless)
     (or (wisent-BITISSET N (- start-symbol ntokens))
-        (error "Start symbol `%s' does not derive any sentence"
+        (error "start symbol `%s' does not derive any sentence"
                (wisent-tag start-symbol)))
     (wisent-reduce-grammar-tables)
     (if (> nuseless-nonterminals 0)
@@ -1821,7 +1821,7 @@ their rule numbers."
        (t
         (setq high (1- middle)))))
     (or result
-        (error "In wisent-map-goto"))
+        (error "internal error in `wisent-map-goto'"))
     ))
 
 (defun wisent-initialize-F ()
@@ -1891,7 +1891,7 @@ STATENO, RULENO, GOTONO are self-explanatory."
         (setq i (1+ i))))
     
     (or found
-        (error "In wisent-add-lookback-edge"))
+        (error "internal error in `wisent-add-lookback-edge'"))
     
     ;;                value  . next
     ;; lookback[i] = (gotono . lookback[i])
@@ -3084,9 +3084,9 @@ one.")
 Bypass checking if NOCHECK is non-nil."
   ;; Check
   (or nocheck (wisent-ISVALID-TOKEN symbol)
-      (error "Invalid terminal symbol `%s'" symbol))
+      (error "invalid terminal symbol: %S" symbol))
   (if (memq symbol token-list)
-      (message "Duplicate terminal `%s' ignored" symbol)
+      (message "*** duplicate terminal `%s' ignored" symbol)
     ;; Set up properties
     (wisent-set-prec        symbol nil)
     (wisent-set-assoc       symbol nil)
@@ -3101,9 +3101,9 @@ Bypass checking if NOCHECK is non-nil."
   ;; Check
   (unless nocheck
     (or (wisent-ISVALID-VAR symbol)
-        (error "Invalid nonterminal symbol `%s'" symbol))
+        (error "invalid nonterminal symbol: %S" symbol))
     (if (memq symbol var-list)
-        (error "Nonterminal already defined `%s'" symbol)))
+        (error "nonterminal `%s' already defined" symbol)))
   ;; Set up properties
   (wisent-set-item-number symbol nvars)
   ;; Add
@@ -3111,24 +3111,26 @@ Bypass checking if NOCHECK is non-nil."
         var-list (cons symbol var-list)))
 
 (defun wisent-parse-nonterminals (defs)
+  "Parse nonterminal definitions in DEFS.
+Fill in each element of the global arrays RPREC, RCODE, RUSEFUL with
+respectively rule precedence level, semantic action code and
+usefulness flag.  Return a list of rules of the form (LHS . RHS) where
+LHS and RHS are respectively the Left Hand Side and Right Hand Side of
+the rule."
   (setq rprec  nil
         rcode  nil
         nitems 0
         nrules 0)
-  (let (def nonterm rlist rule rules rhs rhss rest item items
-            rhl plevel semact ncode nprec new @n @count)
+  (let (def nonterm rlist rule rules rhs rest item items
+            rhl plevel semact @n @count)
     (setq @count 0)
     (while defs
       (setq def     (car defs)
             defs    (cdr defs)
             nonterm (car def)
-            rlist   (cdr def)
-            ncode   nil
-            nprec   nil
-            rhss    nil)
+            rlist   (cdr def))
       (or (consp rlist)
-          (error "At least one production needed for nonterminal `%s'"
-                 nonterm))
+          (error "invalid nonterminal definition syntax: %S" def))
       (while rlist
         (setq rule  (car rlist)
               rlist (cdr rlist)
@@ -3146,8 +3148,8 @@ Bypass checking if NOCHECK is non-nil."
           (if (listp item)
               ;; Mid-rule action
               (progn
-                (setq @n (intern (format "@%d" @count))
-                      @count (1+ @count))
+                (setq @count (1+ @count)
+                      @n (intern (format "@%d" @count)))
                 (wisent-push-var @n t)
                 ;; Push a new empty rule with the mid-rule action
                 (setq semact (cons item rhl)
@@ -3155,7 +3157,7 @@ Bypass checking if NOCHECK is non-nil."
                       rcode (cons semact rcode)
                       rprec (cons plevel rprec)
                       item   @n ;; Replace action by @N nonterminal
-                      rules  (cons (list item nil) rules)
+                      rules  (cons (list item) rules)
                       nitems (1+ nitems)
                       nrules (1+ nrules)))
             ;; Check terminal or nonterminal symbol
@@ -3163,8 +3165,8 @@ Bypass checking if NOCHECK is non-nil."
              ((or (memq item token-list) (memq item var-list)))
              ;; Create new literal character token
              ((char-valid-p item) (wisent-push-token item t))
-             ((error "Invalid terminal or nonterminal `%s'" item)))
-            )
+             ((error "symbol `%s' is used, but is not defined as a token and has no rules"
+                     item))))
           (setq rhl (1+ rhl)
                 rhs (cons item rhs)))
       
@@ -3176,30 +3178,23 @@ Bypass checking if NOCHECK is non-nil."
                                 (memq (aref item 0) token-list)
                                 (wisent-prec (aref item 0)))
                            (wisent-item-number (aref item 0))
-                         (error "Invalid rule precedence level %S" item)))
-              nprec (cons plevel nprec))
+                         (error "invalid rule precedence level syntax: %S" item)))
+              rprec (cons plevel rprec))
       
         ;; Check & collect semantic action body
         (setq semact (cons
                       (if rest
                           (if (cdr rest)
-                              (error "Invalid semantic action %S" rest)
+                              (error "invalid semantic action syntax: %S" rest)
                             (car rest))
                         ;; Give a default semantic action body: nil
                         ;; for an empty rule or $1, the value of the
                         ;; first symbol in the rule, otherwise.
                         (if (> rhl 0) '$1 '()))
                       rhl)
-              ncode (cons semact ncode))
-      
-        (setq rhss   (cons (nreverse rhs) rhss)
-              nrules (1+ nrules)))
-      
-      ;; To keep RULES, RCODE & RPREC lists synchronized take care to
-      ;; push rules actions/levels after any mid-rules ones!
-      (setq rcode (nconc ncode rcode)
-            rprec (nconc nprec rprec)
-            rules (cons (cons nonterm (nreverse rhss)) rules)))
+              rcode (cons semact rcode))
+        (setq rules  (cons (cons nonterm (nreverse rhs)) rules)
+              nrules (1+ nrules))))
     
     (setq ruseful (make-vector (1+ nrules) t)
           rprec   (vconcat (cons nil (nreverse rprec)))
@@ -3219,7 +3214,7 @@ ASSOC-TYPE is one of 'nonassoc, 'left or 'right, and ASSOC-TOKENS is a
 list of tokens which must have been declared in TOKENS."
   (working-dynamic-status "(parse input grammar)")
   (or (and (consp grammar) (> (length grammar) 2))
-      (error "Invalid grammar definition"))
+      (error "bad input grammar"))
   
   (let (i r nt pl rhs pre lst start-var assoc rules item
           token var def tokens vars defs ep-token ep-var ep-def)
@@ -3246,12 +3241,12 @@ list of tokens which must have been declared in TOKENS."
             lst    (cdr lst)
             pre    (1+ pre))
       (or (memq assoc '(left right nonassoc))
-          (error "Invalid associativity type `%s'" assoc))
+          (error "invalid associativity syntax: %S" assoc))
       (while tokens
         (setq token  (car tokens)
               tokens (cdr tokens))
         (if (memq token defs)
-            (message "Redefining precedence of %s" token))
+            (message "*** redefining precedence of `%s'" token))
         (or (memq token token-list)
             ;; Define token not previously declared.
             (wisent-push-token token))
@@ -3268,13 +3263,13 @@ list of tokens which must have been declared in TOKENS."
       (setq def (car lst)
             lst (cdr lst))
       (or (consp def)
-          (error "Nonterminal definition must be a non-empty list"))
+          (error "invalid nonterminal definition: %S" def))
       (if (memq (car def) token-list)
-          (error "Nonterminal `%s' already defined as token" (car def)))
+          (error "nonterminal `%s' already defined as token" (car def)))
       (wisent-push-var (car def))
       (setq defs (cons def defs)))
     (or defs
-        (error "Grammar must contain at least one nonterminal"))
+        (error "no input grammar"))
     (setq defs (nreverse defs))
     
     ;; Set up the start symbol.
@@ -3291,7 +3286,7 @@ list of tokens which must have been declared in TOKENS."
      ((or wisent-single-start-flag (null (cdr start-list)))
       (setq start-var  (car start-list))
       (or (assq start-var defs)
-          (error "Start symbol `%s' not found" start-var)))
+          (error "start symbol `%s' has no rule" start-var)))
  
      ;; 3. START-LIST contains more than one element.  All defines
      ;;    potential start symbols.  One of them (the first one by
@@ -3321,7 +3316,7 @@ list of tokens which must have been declared in TOKENS."
         (setq var (car lst)
               lst (cdr lst))
         (or (memq var var-list)
-            (error "Start symbol `%s' not found" var))
+            (error "start symbol `%s' has no rule" var))
         (unless (assq var start-table) ;; Ignore duplicates
           ;; For each nt start symbol
           (setq ep-var   (make-symbol (format "$%s"  var))
@@ -3361,40 +3356,37 @@ list of tokens which must have been declared in TOKENS."
     ;; Keep symbols in the TAGS vector so that TAGS[I] is the symbol
     ;; associated to item number I.
     (setq tags (vconcat token-list var-list))
-    ;; Set up RLHS RRHS & RITEM data structures
+    ;; Set up RLHS RRHS & RITEM data structures from list of rules
+    ;; (LHS . RHS) received from `wisent-parse-nonterminals'.
     (setq rlhs    (make-vector (1+ nrules) nil)
           rrhs    (make-vector (1+ nrules) nil)
           ritem   (make-vector (1+ nitems) nil)
           i 0
           r 1)
     (while rules
-      (setq nt (caar rules)
-            pl (cdar rules))
-      (while pl
-        (aset rlhs r (wisent-item-number nt))
-        (aset rrhs r i)
-        (setq rhs (car pl)
-              pre nil)
-        (while rhs
-          (setq item (wisent-item-number (car rhs)))
-          ;; Get default precedence level of rule, that is the
-          ;; precedence of the last terminal in it.
-          (if (wisent-ISTOKEN item)
-              (setq pre item))
+      (aset rlhs r (wisent-item-number (caar rules)))
+      (aset rrhs r i)
+      (setq rhs (cdar rules)
+            pre nil)
+      (while rhs
+        (setq item (wisent-item-number (car rhs)))
+        ;; Get default precedence level of rule, that is the
+        ;; precedence of the last terminal in it.
+        (if (wisent-ISTOKEN item)
+            (setq pre item))
           
-          (aset ritem i item)
-          (setq i (1+ i)
-                rhs (cdr rhs)))
-        ;; Setup the precedence level of the rule, that is the one
-        ;; specified by %prec or the default one.
-        (and (not (aref rprec r)) ;; Already set by %prec
-             pre
-             (wisent-prec (aref tags pre))
-             (aset rprec r pre))
-        (aset ritem i (- r))
+        (aset ritem i item)
         (setq i (1+ i)
-              r (1+ r)
-              pl (cdr pl)))
+              rhs (cdr rhs)))
+      ;; Setup the precedence level of the rule, that is the one
+      ;; specified by %prec or the default one.
+      (and (not (aref rprec r)) ;; Already set by %prec
+           pre
+           (wisent-prec (aref tags pre))
+           (aset rprec r pre))
+      (aset ritem i (- r))
+      (setq i (1+ i)
+            r (1+ r))
       (setq rules (cdr rules)))
     ))
 
