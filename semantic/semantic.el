@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.83 2001/02/20 20:31:11 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.84 2001/02/20 22:20:24 ponced Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -1376,9 +1376,10 @@ LENGTH tokens."
       (while (and (< (point) end) (or (not length) (<= (length ts) length)))
 	(cond (;; catch newlines when needed
 	       (and semantic-flex-enable-newlines
-		    (looking-at "\n"))
-	       (setq ts (cons (cons 'newline
-				    (cons (match-beginning 0) (match-end 0)))
+		    (looking-at "\\s-*\\(\n\\)"))
+	       (setq ep (match-end 1)
+		     ts (cons (cons 'newline
+				    (cons (match-beginning 1) ep))
 			      ts)))
 	      ;; special extentions, sometimes includes some whitespace.
 	      ((and semantic-flex-extensions
