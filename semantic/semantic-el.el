@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.18 2000/04/25 02:48:54 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.19 2000/04/25 14:47:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -161,27 +161,14 @@
     (structparts
      ( semantic-list
        ,(lambda (vals start end)
-	  
-	  (semantic-bovinate-from-nonterminal (car (nth 0 vals)) (cdr (nth 0 vals)) 'structsubparts)
-	  ))
+	  (append 
+	   (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'structsubparts)
+	   
+	   (list start end))))
      ) ; end structparts
     (structsubparts
-     ( open-paren "{" close-paren "}"
-		  ,(lambda (vals start end)
-		     (append  (list nil)
-			      (list start end))))
-     ( open-paren "{" structsubparts
-		  ,(lambda (vals start end)
-		     (append  (nth 1 vals)
-			      (list start end))))
-     ( variabledef punctuation ";" structsubparts
-		   ,(lambda (vals start end)
-		      (append  ( append ( semantic-expand-c-nonterminal (nth 0 vals)) (nth 2 vals))
-			       (list start end))))
-     ( variabledef punctuation ";" close-paren "}"
-		   ,(lambda (vals start end)
-		      (append  ( semantic-expand-c-nonterminal (nth 0 vals))
-			       (list start end))))
+     ( variable)
+     ( define)
      ) ; end structsubparts
     (enumparts
      ( semantic-list
