@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: widget-i.el,v 1.18 1996/12/19 21:18:25 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.19 1997/01/10 23:09:02 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -80,6 +80,13 @@ the name."
   (apply 'call-next-method this 
 	 (cons (format " value: %s" (render this)) strings)))
 
+(defmethod help-form ((this data-object))
+  "For a data-object THIS, return a form which represents help.  It is
+a list which is a form to be evaluated to display the help desired.
+If nil is returned, then this data object does not have any specific
+help to lend."
+  nil)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -112,6 +119,12 @@ broken reason."
 (defmethod input ((this widget-core) coe)
   "Default input method... do nothing"
   )
+
+(defmethod help-actions ((this widget-core) reason)
+  "Called when help is requested.  Core needs to help no-one however."
+  (if (oref this help-hook)
+      (funcall (oref this help-hook) this reason)
+    (message "No help availble there.")))
 
 
 ;;
@@ -620,9 +633,11 @@ in a standard format."
 				widget-label this
 				:face lf
 				:x 0 :y 0 :label-value lo))
+      
       (create-widget-parent (concat (object-name-string this) "-text-field")
 			    widget-text-field this
 			    :width (oref this text-length)
+			    :help-hook (oref this help-hook)
 			    :x (if lo -2 0) :y 0 :value (oref this value))
       (if uo
 	  (create-widget-parent (concat (object-name-string this) "-unit")
@@ -631,6 +646,7 @@ in a standard format."
       )
     ;; used to verify our state... we don't care really...
     ))
+
 
 ;;
 ;; widget-option-text
@@ -678,6 +694,7 @@ more sophisticated widget systems."
 			    :option-list (oref this option-list)
 			    :option-indicator nil
 			    :label-value "[V]"
+			    :help-hook (oref this help-hook)
 			    ;; This creates a menu title guessed at
 			    ;; based on the label used to prefix this
 			    ;; object
@@ -736,6 +753,7 @@ more sophisticated widget systems."
 			  :x 0 :y 0
 			  :width (oref this width)
 			  :height (oref this height)
+			  :help-hook (oref this help-hook)
 			  :boxed nil
 			  :value valdo
 			  :display-row stado
@@ -926,11 +944,10 @@ String to optimally fill that area."
       (funcall (oref this activate-hook) this reason)))
 
 (defmethod help-actions ((this widget-button) reason)
-  "Called when 3rd mouse button is clicked upon a button.  Will display
-help about this widget."
+  "Called when help is requested.  Will display help about this widget."
   (if (oref this help-hook)
       (funcall (oref this help-hook) this reason)
-    (message "Click with mouse-1 to active this button.")))
+    (message "Click with mouse-2 to active this button, or press SPC")))
 
 (defmethod draw ((this widget-button))
   "Draw the button widget to the display"
@@ -1031,14 +1048,11 @@ help about this widget."
 (defmethod input ((this widget-option-button) coe)
   "What to do if clicked upon by the mouse"
   (if (dialog-mouse-event-p coe)
-      (if (or (member 'down-mouse-3 coe)
-	      (member 'mouse-3 coe))
-	  (help-actions this 'click)
-	(let ((rv (dialog-list-2-menu coe (oref this title)
-				      (oref this option-list))))
-	  (if rv (set-value (oref this state) rv this))
-	  (reset-option-label this)
-	  (show-arm this nil)))
+      (let ((rv (dialog-list-2-menu coe (oref this title)
+				    (oref this option-list))))
+	(if rv (set-value (oref this state) rv this))
+	(reset-option-label this)
+	(show-arm this nil))
     (cond ((member coe '(return ?  ?\n ?\f))
 	   (show-arm this t)
 	   (let* ((nv (completing-read (concat "Select " (oref this title)
@@ -1084,12 +1098,14 @@ help about this widget."
 	   (+ (oref this ry) (if (> (oref this height) 1) 1 0))))
 
 (defmethod help-actions ((this widget-option-button) reason)
-  "Called when 3rd mouse button is clicked upon a button.  Will display
+  "Called when help is requested of this option button.  Will display
 help about this widget."
   (if (oref this help-hook)
       (funcall (oref this help-hook) this reason)
-    (message "Click with mouse-1 and choose menu item to select a new value")))
-
+    (if (help-form (oref this state))
+	(eval (help-form (oref this state)))
+      (message
+       "Click with mouse-2 and choose menu item to select a new value, or press SPC"))))
 
 
 ;;
@@ -1147,11 +1163,15 @@ help about this widget."
   (call-next-method))
 
 (defmethod help-actions ((this widget-toggle-button) reason)
-  "Called when 3rd mouse button is clicked upon a button.  Will display
+  "Called when help is requested of this toggle button.  Will display
 help about this widget."
   (if (oref this help-hook)
       (funcall (oref this help-hook) this reason)
-    (message "Click with mouse-1 to change the boolean value of this button.")))
+    (if (help-form (oref this state))
+	(eval (help-form (oref this state)))
+      (message
+       "Click with mouse-2 to toggle the boolean value, or press SPC"))))
+
 
 ;;
 ;; radio toggle button
@@ -1199,11 +1219,14 @@ thinks we should be."
   (radio-set-display this)))
 
 (defmethod help-actions ((this widget-radio-button) reason)
-  "Called when 3rd mouse button is clicked upon a button.  Will display
+  "Called when help is requested of this radio button.  Will display
 help about this widget."
   (if (oref this help-hook)
       (funcall (oref this help-hook) this reason)
-    (message "Click with mouse-1 to change the state of the radio box.")))
+    (if (help-form (oref (oref this parent) state))
+	(eval (help-form (oref (oref this parent) state)))
+      (message
+       "Click with mouse-2 to toggle set the state to this item, or press SPC"))))
 
 
 ;;
@@ -1383,8 +1406,14 @@ scale's major dimension."
     (widgetscale-refresh this)))
 
 (defmethod help-actions ((this widget-scale) reason)
-  "Called when the user may need help to use this device"
-  (message "Use F,N to increment, and B,P to decrement"))
+  "Called when help is requested of the scrollbar.  Will display help
+about this widget."
+  (if (oref this help-hook)
+      (funcall (oref this help-hook) this reason)
+    (if (help-form (oref this state))
+	(eval (help-form (oref this state)))
+      (message
+       (message "Use F or N to increment, and B or P to decrement")))))
 
 
 ;;
@@ -1579,6 +1608,16 @@ scale's major dimension."
 	  ;; place the cursor
 	  (goto-xy j2x j2y)
 	  ))))
+
+(defmethod help-actions ((this widget-text-field) reason)
+  "Called when help is requested of the text widget.  Will display help
+about this widget."
+  (if (oref this help-hook)
+      (funcall (oref this help-hook) this reason)
+    (if (help-form (oref this value))
+	(eval (help-form (oref this value)))
+      (message
+       (message "Type to enter text.  Use TAB or M-TAB to move to next widget.")))))
 
 ;;; end of lisp
 (provide 'widget-i)

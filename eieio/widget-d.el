@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: widget-d.el,v 1.11 1996/12/12 03:30:28 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.12 1997/01/10 23:08:55 zappo Exp $
 ;;; Keywords: OO widget
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -78,6 +78,14 @@ widgets will use data-object to store their data.")
 		    :initform nil
 		    :docstring "List of symbols this widget cares about."
 		    :protection private)
+   (help-hook :initarg :help-hook
+	      :initform nil
+	      :docstring "Function to call when help is requested
+about this button.  Default value is to display instructions about the
+operation of this widget in the minibuffer.  This takes two paramters which
+are the widget for which help was requested and the reason, which us
+either 'click for a mouse event, or the keypress initiating the call.")
+
    )
   "Class for core widget.  This is the widget all other widgets are 
 based from.")
@@ -341,12 +349,10 @@ carriage returns in them.")
 	       :protection private)
    (activate-hook :initarg :activate-hook
 		  :initform nil
-		  :docstring "Function to call when a user clicks this button")
-   (help-hook :initarg :help-hook
-	      :initform nil
-	      :docstring "Function to call when help is requested
-about this button.  Default value is to display instructions about the
-operation of this widget in the minibuffer.")
+		  :docstring "Function to call when a user clicks this button.
+It must take two paramters.  The object representing the object being
+clicked, and the reason it was clicked.  This usually has the value
+'click, or the keyboard event that caused a press.")
    (handle-io :initarg :handle-io
 	      :initform t)
    )
