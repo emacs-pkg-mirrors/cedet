@@ -1,9 +1,10 @@
 <title>Semantic</title>
-<!--#include file="rightcol.php"-->
+
 <table width=100% bgcolor=#000099>
 <tr><td><h2><font color=yellow>Semantic:</font></h2></td></tr>
 <tr><td><font color=yellow>"Infrastructure for parser based text analysis in Emacs."</font></td></tr>
 </table>
+<!--#include file="rightcol.php"-->
 
 <table align=right>
 <tr><td><img src=bovine.jpg></td></tr>
@@ -194,9 +195,11 @@ to ask question, or help develop semantic.
 <P>Semantic works with Emacs 20.x, 21, XEmacs 20.x, and 21.x.
 </p>
 
-<h2>Download the Semantic Bovinator</h2>
+<!--#include file="download.php"-->
 
-<P>The latest stable version of Semantic
+<h2>Download the Previous Stable Semantic Bovinator</h2>
+
+<P>The last stable version of Semantic
    <a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=154524">
    Semantic 1.4.4</a><br>
    This version depends on the recent speedbar release: version 0.14
@@ -232,7 +235,7 @@ Thanks to David Ponce for creating this fix.
 <a href="http://userfs.cec.wustl.edu/~jap1/ebuilds/semantic/">
 Jacob Perkin's ebuilds FTP area</a>.
 
-<h3>Older releases of Semantic</h3>
+<h3>Even Older releases of Semantic</h3>
 
 <p><a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
    semantic-1.3.3.tar.gz</a></p>
@@ -244,8 +247,6 @@ Jacob Perkin's ebuilds FTP area</a>.
 <P><a href="http://cedet.sourceforge.net/ftp/semantic-1.1.tar.gz">
    semantic-1.1.tar.gz</a>
 </p>
-
-
 
 <!--#include file="footer.fsf.shtml"-->
 

@@ -1,10 +1,10 @@
 <TITLE>COGRE Homepage</TITLE>
 
-<!--#include file="rightcol.php"-->
 <table width=100% bgcolor=#000099>
 <tr><td><h2><font color=yellow>COGRE:</font></h2></td></tr>
 <tr><td><font color=yellow>"Connected Graph Editor"</font></td></tr>
 </table>
+<!--#include file="rightcol.php"-->
 
 <p>COGRE is pronounced similarly to <em>cougar</em>.  It is a base
    library for editing and manipulating connected graphs.  Additional
@@ -72,10 +72,11 @@ An Auto Generated UML Diagram with source browser
    <a href=info/cogre.html>html documentation</a>
    created from the texinfo file.</p>
 
-<h2>Downloading COGRE</h2>
+<!--#include file="download.php"-->
 
-<P>Live on the Edge!
-   <a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
+<h2>Downloading Earlier versions of COGRE</h2>
+
+<P> <a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
     COGRE-0.2.tar.gz</A> has everything you need to get started...
     except documentation!<br>
     COGRE works best with Emacs 21 pre-release.  Some versions of

@@ -1,11 +1,11 @@
 <TITLE>Speedbar Homepage</TITLE>
 
-<!--#include file="rightcol.php"-->
 <table width=100% bgcolor=#000099>
 <tr><td><h2><font color=yellow>Speedbar:</font></h2></td></tr>
 <tr><td><font color=yellow>"Floating Everything Browser"</font></td></tr>
 </table>
 <img src=speedbar-3.jpg align=left>
+<!--#include file="rightcol.php"-->
 
 <P>Speedbar is an <B>Emacs Lisp</B> program which allows you to create a
 special skinny frame with a specialized directory listing in it.  This
@@ -117,10 +117,12 @@ Different Modes for Speedbar
 <p>If you know of others, let me know and I'll add a link.</p>
 
 <br clear=both>
-<h2>Downloading speedbar</h2>
+<!--#include file="download.php"-->
+
+<h2>Downloading Earlier versions of speedbar</h2>
 
 <P>
-Live on the Edge!  Try
+It was a beta that was stable for a long time.
 <a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
 speedbar 0.14beta4</a>
 </p>
@@ -138,16 +140,12 @@ around the problem quickly.
   <a href="http://sourceforge.net/projects/rte">Real Time Enterprises</a>
   RPM site at sourceforge.</p>
 
-<h3>Older releases of Speedbar</h3>
+<h3>Even Older releases of Speedbar</h3>
 
 <P><A HREF="ftp/speedbar-0.12.tar.gz">
 speedbar-0.12.tar.gz</A>.</P>
 
 <P><A HREF="ftp/speedbar-0.11.1.tar.gz">
-speedbar-0.11.1.tar.gz</A> fixes some Makefile bugs.</P>
-
-<P><A HREF="ftp/speedbar-0.10.tar.gz"> speedbar-0.10.tar.gz</A>
-(Now with documentation.)
-</P>
+speedbar-0.11.1.tar.gz</A></P>
 
 <!--#include file="footer.fsf.shtml"-->

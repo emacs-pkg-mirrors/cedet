@@ -1,12 +1,12 @@
 <TITLE>Collection of Emacs Development Environment Tools Homepage</TITLE>
 
-<?php
-  include ("rightcol.php")
-?>
 <table width=100% bgcolor=#000099>
 <tr><td><h2><font color=yellow>CEDET:</font></h2></td></tr>
 <tr><td><font color=yellow>"Collection of Emacs Development Environment Tools"</font></td></tr>
 </table>
+<?php
+  include ("rightcol.php")
+?>
 
 <P>Welcome to the CEDET homepage.  CEDET is a collection of tools
    written with the end goal of creating an advanced development
@@ -87,6 +87,10 @@
    graphs, such as UML class diagrams.</p>  It can display simple
    graphs, and UML class diagrams.  It can generate simple class diagrams
    from sources using Semantic.   
+
+<?php
+  include ("download.php")
+?>
 
 <h3>Tools hosted elsewhere:</h3>
 

@@ -1,12 +1,12 @@
 <TITLE>EDE Homepage</TITLE>
 
-<!--#include file="rightcol.php"-->
 <table width=100% bgcolor=#000099>
 <tr><td><h2><font color=yellow>EDE:</font></h2></td></tr>
 <tr><td><font color=yellow>"Emacs Development Environment"<br>
 <em>File organizer and Makefile constructor.</em>
 </font></td></tr>
 </table>
+<!--#include file="rightcol.php"-->
 
 <p>EDE is an <B>Emacs lisp</B> program which implements an environment
 similar to those found in IDEs (Integrated Development Environment).
@@ -43,45 +43,6 @@ generation is insufficient.</p>
    <a href=info/ede.html>html documentation</a>
    created from the texinfo file.</p>
 
-<h2>Dependencies</h2>
-
-<P>EDE 1.0 depends on these lisp packages:<br>
-
-<ul>
-<li><a href=eieio.shtml>EIEIO (0.16)</a>
-    a CLOS implementation for emacs.  EIEIO version 0.16 or later is
-    needed.
-<li><a href=speedbar.shtml>Speedbar (0.13 or better)</a>
-    a file/tag/project hierarchy browser.
-<li><a href=semantic.shtml>Semantic (1.4 or better)</a>
-    a parser generator.  This is not required, but instead
-    will use EDE features in 1.0.
-</ul>
-</p>
-
-<p>EDE 0.6 and earlier depends on the following additional lisp packages:<br>
-
-<ul>
-<li><a href=eieio.shtml>EIEIO (0.12)</a>,
-    a CLOS implementation for emacs.  EIEIO version 0.13 will not work
-    with EDE 0.6 or earlier.
-<li><a href=speedbar.shtml>Speedbar (0.8.1 or better)</a>,
-    a file/tag hierarchy browsser.
-</ul>
-
-<h2>Downloading EDE</h2>
-
-<P>
-Live on the Edge!  Try
-<a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
-EDE 1.0 beta 2</a>
-</p>
-
-
-You can download the last stable version of EDE:<p>
-
-<A HREF="ftp/EDE-0.6.tar.gz">EDE-0.6.tar.gz</A><p>
-
-<A HREF="ftp/EDE-0.5.tar.gz">EDE-0.5.tar.gz</A><p>
+<!--#include file="download.php"-->
 
 <!--#include file="footer.fsf.shtml"-->

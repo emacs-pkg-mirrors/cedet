@@ -1,12 +1,12 @@
 <TITLE>EIEIO Homepage</TITLE>
 
-<!--#include file="rightcol.php"-->
 <table width=100% bgcolor=#000099>
 <tr><td><h2><font color=yellow>EIEIO:</font></h2></td></tr>
 <tr><td><font color=yellow>"Enhanced Implementation of Emacs Interpreted Objects"<br>
 <em>A CLOS implementation for Emacs Lisp.</em>
 </font></td></tr>
 </table>
+<!--#include file="rightcol.php"-->
 
 <p>EIEIO is an <B>Emacs lisp</B> program which implements a controlled
 object-oriented programming methodology following the <B>CLOS</B>
@@ -27,7 +27,6 @@ you.  (Just make sure you use the documentation features of class
 slots while authoring your software.)
 </p>
 
-<br clear=both>
 <table align=right>
 <td>
 <a href=call-tree.jpg>
@@ -109,11 +108,12 @@ mailing list</a>
    It should also work (and is usually included with) XEmacs 20.x, and 21.x.
 </p>
 
-<h2>Downloading EIEIO</h2>
+<!--#include file="download.php"-->
+
+<h2>Downloading Earlier releases of EIEIO</h2>
 
 <P><a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
-    eieio-0.17.tar.gz</A> has some new base classes, and closer CLOS
-   compatibility.</p>
+    eieio-0.17.tar.gz</A>.
 
 <h3>RPMS</h3>
 
@@ -121,7 +121,7 @@ mailing list</a>
   <a href=http://sourceforge.net/projects/rte>Real Time Enterprises</a>
   RPM site at sourceforge.</p>
 
-<h3>Older EIEIO Releases</h3>
+<h3>Even Older EIEIO Releases</h3>
 
 <P><a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
     eieio-0.16.tar.gz</A> has a new set of base classes to build apps from.</p>
