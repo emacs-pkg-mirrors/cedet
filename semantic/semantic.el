@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.68 2000/12/08 21:26:09 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.69 2000/12/09 16:01:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -434,6 +434,11 @@ Runs `semantic-init-hook' if the major mode is setup to use semantic."
   (run-hooks 'semantic-after-toplevel-bovinate-hook))
 (add-hook 'change-major-mode-hook 'semantic-clear-toplevel-cache)
 
+(defvar semantic-bovination-working-type 'percent
+  "The type of working message to use when bovinating.
+'percent means we are doing a linear parse through the buffer.
+'dynamic means we are rebovinating specific tokens.")
+
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer.
@@ -450,25 +455,27 @@ there has been a size change."
 	(funcall semantic-toplevel-bovinate-override checkcache)
 	)
        ((and semantic-toplevel-bovine-cache
-	     (car semantic-toplevel-bovine-cache)
 	     semantic-dirty-tokens)
 	;; We have a cache, and some dirty tokens
-	(while semantic-dirty-tokens
-	  (semantic-rebovinate-token (car semantic-dirty-tokens))
-	  (setq semantic-dirty-tokens (cdr semantic-dirty-tokens)))
-	(car semantic-toplevel-bovine-cache)
+	(let ((semantic-bovination-working-type 'dynamic))
+	  (working-status-forms (buffer-name) "done"
+	      (while semantic-dirty-tokens
+		(semantic-rebovinate-token (car semantic-dirty-tokens))
+		(setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
+		(working-dynamic-status))
+	      (working-dynamic-status t)))
+	semantic-toplevel-bovine-cache
 	)
-       ((and semantic-toplevel-bovine-cache
-	     (car semantic-toplevel-bovine-cache))
+       (semantic-toplevel-bovine-cache
 	;; We have a cache with stuff in it, so return it
-	(car semantic-toplevel-bovine-cache)
+	semantic-toplevel-bovine-cache
 	)
        (t
 	;; Reparse the whole system
 	(let ((ss (semantic-flex (point-min) (point-max)))
 	      (res nil)
 	      (semantic-overlay-error-recovery-stack nil))
-	  ;; Init a dump
+ 	  ;; Init a dump
 	  (if semantic-dump-parse (semantic-dump-buffer-init))
 	  ;; Parse!
 	  (working-status-forms (buffer-name) "done"
@@ -476,9 +483,8 @@ there has been a size change."
 		  (semantic-bovinate-nonterminals
 		   ss 'bovine-toplevel semantic-flex-depth))
 	    (working-status t))
-	  (semantic-set-toplevel-bovine-cache
-	   (list (nreverse res) (point-max)))
-	  (car semantic-toplevel-bovine-cache))))
+	  (semantic-set-toplevel-bovine-cache (nreverse res))
+	  semantic-toplevel-bovine-cache)))
     ))
 
 (eval-when-compile (require 'semanticdb))
@@ -636,9 +642,11 @@ the current results on a parse error."
 	;; Designated to ignore.
 	(setq stream (car nontermsym)))
       (if stream
-	  (working-status (floor
-			   (* 100.0 (/ (float (car (cdr (car stream))))
-				       (float (point-max))))))))
+	  (if (eq semantic-bovination-working-type 'percent)
+	      (working-status (floor
+			       (* 100.0 (/ (float (car (cdr (car stream))))
+					   (float (point-max))))))
+	    (working-dynamic-status))))
     result))
 
 (defun semantic-rebovinate-token (token)
@@ -670,6 +678,9 @@ the current results on a parse error."
 	;; Splice into the main list.
 	(setcdr token (cdr new))
 	(setcar token (car new))
+	;; This important bit is because the CONS cell representing TOKEN
+	;; is what we need here, even though the whole thing is the same.
+	(semantic-overlay-put o 'semantic token)
 	;; Hooks
 	(run-hook-with-args 'semantic-clean-token-hooks token)
 	)
