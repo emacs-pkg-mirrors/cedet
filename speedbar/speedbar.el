@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.234 2003/10/02 01:45:41 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.235 2004/01/01 17:54:34 zappo Exp $
 
 (defvar speedbar-version "0.15beta1"
   "The current version of speedbar.")
@@ -60,7 +60,6 @@ this version is not backward compatible to 0.14 or earlier.")
 
 ;;; TODO:
 ;; - Timeout directories we haven't visited in a while.
-;; - [ and ] to expand all descendants.
 
 (require 'assoc)
 (require 'easymenu)
@@ -3183,7 +3182,9 @@ directory with these items."
 	(if (re-search-forward "[]>?}] [^ ]"
 			       (save-excursion (end-of-line) (point))
 			       t)
-	    (speedbar-do-function-pointer)
+	    (progn
+	      (forward-char -1)
+	      (speedbar-do-function-pointer))
 	  nil))
       (speedbar-do-function-pointer)))
 
