@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.19 2002/01/14 19:56:19 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.20 2002/01/16 07:02:32 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -639,7 +639,7 @@ The input grammar is in an internal format built by
   (let ((p gram)
         (item-no 0)
         (rule-no 1)
-        nt prods it-no2 rl-no2 rhs it-no3)
+        nt prods it-no2 rl-no2 rhs it-no3 rprec)
     (while p
       (setq nt     (caar p)
             prods  (cdar p)
@@ -648,20 +648,25 @@ The input grammar is in an internal format built by
       (while prods
         (aset wisent--rlhs rl-no2 nt)
         (aset wisent--rrhs rl-no2 it-no2)
-        (setq rhs (car prods) it-no3 it-no2)
+        (setq rhs    (car prods)
+              it-no3 it-no2
+              rprec  nil)
         (while rhs
 
-          ;; Setup default precedence level of rule.
-          (or (aref wisent--rprec rl-no2) ;; Already set by %prec
-              (< (car rhs) wisent--nvars) ;; non terminal
-              ;; A rule gets by default the precedence of the last
-              ;; terminal in it.
-              (let ((term (elt wisent--terms (- (car rhs) wisent--nvars))))
-                (aset wisent--rprec rl-no2 (get term 'wisent--prec))))
+          ;; Get default precedence level of rule, that is the
+          ;; precedence of the last terminal in it.
+          (or (< (car rhs) wisent--nvars) ;; non terminal
+              (setq rprec (get (elt wisent--terms
+                                    (- (car rhs) wisent--nvars))
+                               'wisent--prec)))
           
           (aset wisent--ritem it-no3 (car rhs))
           (setq rhs    (cdr rhs)
                 it-no3 (1+ it-no3)))
+        ;; Setup the precedence level of the rule, that is the one
+        ;; specified by %prec or the default one.
+        (or (aref wisent--rprec rl-no2) ;; Already set by %prec
+            (aset wisent--rprec rl-no2 rprec))
         (aset wisent--ritem it-no3 (- rl-no2))
         (setq prods  (cdr prods)
               it-no2 (1+ it-no3)
@@ -1434,31 +1439,32 @@ STATENO, RULENO and GOTONO are state, rule and goto numbers."
                   (setcdr y (max (cdr y) act)))
               ;; S/R conflict
               (setq ruleno (- (cdr y)))
-              (if (setq rprec (aref wisent--rprec ruleno))
-                  (progn
-                    (setq term (elt wisent--terms sym)
-                          sprec (get term 'wisent--prec))
+              (if (and (setq rprec (aref wisent--rprec ruleno))
+                       (setq term  (elt wisent--terms sym))
+                       (setq sprec (get term 'wisent--prec)))
+                  (cond
+                   ;; resolve as reduce
+                   ((< sprec rprec)
+                    (setq resol "reduce"))
+                   ;; resolve as shift
+                   ((> sprec rprec)
+                    (setcdr y act))
+                   ;; matching precedence levels.
+                   (t
+                    (setq sassoc (get term 'wisent--assoc))
                     (cond
-                     ;; resolve as reduce
-                     ((< sprec rprec)
-                      (setq resol "reduce"))
-                     ;; resolve as shift
-                     ((> sprec rprec)
+                     ;; For right association, keep only the shift.
+                     ((eq sassoc 'right)
                       (setcdr y act))
-                     ;;	matching precedence levels.
+                     ;; For left association, keep only the reduction.
+                     ((eq sassoc 'left)
+                      (setq resol "reduce"))
+                     ;; For nonassociation, keep neither.
                      (t
-                      (setq sassoc (get term 'wisent--assoc))
-                      (cond
-                       ;; For right association, keep only the shift.
-                       ((eq sassoc 'right)
-                        (setcdr y act))
-                       ;; For left association, keep only the reduction.
-                       ((eq sassoc 'left)
-                        (setq resol "reduce"))
-                       ;; For nonassociation, keep neither.
-                       (t
-                        (setcdr y 'error)
-                        (setq resol "an error")))))))
+                      (setcdr y 'error)
+                      (setq resol "an error")))))
+                ;; by default resolve as shift
+                (setcdr y act))
               (wisent-log-sr-conflict st sym act ruleno resol)))
       (aset wisent--action-table st (cons (cons sym act) x)))))
         
