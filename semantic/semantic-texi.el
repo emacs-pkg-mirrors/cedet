@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.1 2001/02/20 21:34:11 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.2 2001/02/21 20:51:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,8 +38,11 @@ centerchap\\|def\\(var\\|un\\|fn\\)x?\\)"
 
 (defvar semantic-texi-name-field-list
   '( ("defvar" . 1)
+     ("defvarx" . 1)
      ("defun" . 1)
+     ("defunx" . 1)
      ("deffn" . 2)
+     ("deffnx" . 2)
      )
   "List of definition commands, and the field position.
 The field position is the field number (based at 1) where the
@@ -54,7 +57,8 @@ Each token returned is of the form:
  (\"NAME\" section children DOC OVERLAY)
 or
  (\"NAME\" def DOC OVERLAY)"
-  (mapcar 'semantic-texi-raw-to-cooked-token  (semantic-texi-bovinate-headings))
+  ;;(semantic-texi-bovinate-headings)
+  (mapcar 'semantic-texi-raw-to-cooked-token (semantic-texi-bovinate-headings))
   )
 
 (defun semantic-texi-raw-to-cooked-token (token)
@@ -144,7 +148,7 @@ token with greater section value than LEVEL is found."
 	    (error "Problem finding section in semantic/texi parser"))
 	  ;; (setq oldl (cdr oldl))
 	  )))
-    (cons newl oldl)))
+    (cons (nreverse newl) oldl)))
 
 (defun semantic-texi-forward-deffn ()
   "Move forward over one deffn type definition.
@@ -160,26 +164,175 @@ The cursor should be on the @ sign."
       (nth 2 nonterm)
     nil))
 
+(defun semantic-texi-insert-foreign-token (token tokenfile)
+  "Insert TOKEN from a foreign buffer in TOKENFILE.
+Assume TOKENFILE is a source buffer, and create a documentation
+thingy from it using the `document' tool."
+  ;; This makes sure that TOKEN will be in an active buffer.
+  (let ((b (find-file-noselect tokenfile)))
+    ;; Now call the document insert thingy.
+    (require 'document)
+    (document-insert-texinfo token b)))
+
 (defun semantic-default-texi-setup ()
   "Set up a buffer for parsing of Texinfo files."
   ;; This will use our parser.
-  (setq semantic-toplevel-bovinate-override #'semantic-texi-bovinate-toplevel
+  (setq semantic-bovinate-toplevel-override #'semantic-texi-bovinate-toplevel
 	imenu-create-index-function 'semantic-create-imenu-index
 	semantic-command-separation-character "@"
+	semantic-type-relation-separator-character '(":")
 	semantic-symbol->name-assoc-list '((section . "Section")
 					   (def . "Definition")
 					   )
 	semantic-imenu-expandable-token 'section
 	semantic-imenu-bucketize-file nil
 	semantic-imenu-bucketize-type-parts nil
+	senator-step-at-start-end-token-ids '(section)
 	)
   (semantic-install-function-overrides
    '((nonterminal-children . semantic-texi-nonterminal-children)
+     (insert-foreign-token . semantic-texi-insert-foreign-token)
      )
    t)
   )
 
 (add-hook 'texinfo-mode-hook 'semantic-default-texi-setup)
+
+
+;;; Special features of Texinfo token streams
+;;
+;; This section provides specialized access into texinfo files.
+;; Because texinfo files often directly refer to functions and programs
+;; it is useful to access the texinfo file from the C code for document
+;; maintainance.
+(defun semantic-texi-associated-files (&optional buffer)
+  "Find texinfo files associated with BUFFER."
+  (save-excursion
+    (if buffer (set-buffer buffer))
+    (cond ((and (fboundp 'ede-documentation-files) ede-minor-mode (ede-current-project))
+	   ;; When EDE is active, ask it.
+	   (ede-documentation-files)
+	   )
+	  ((and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+	   ;; See what texinfo files we have loaded in the database
+	   (let ((tabs (oref semanticdb-current-database tables))
+		 (r nil))
+	     (while tabs
+	       (if (eq (oref (car tabs) major-mode) 'texinfo-mode)
+		   (setq r (cons (oref (car tabs) file) r)))
+	       (setq tabs (cdr tabs)))
+	     r))
+	  (t
+	   (directory-files default-directory nil "\\.texi$"))
+	  )))
+
+;; Turns out this might not be useful.
+;; Delete later if that is true.
+(defun semantic-texi-find-documentation (name &optional type)
+  "Find the function or variable NAME of TYPE in the texinfo source.
+NAME is a string representing some functional symbol.
+TYPE is a string, such as \"variable\" or \"Command\" used to find
+the correct definition in case NAME qualifies as several things.
+When this function exists, POINT is at the definition.
+If the doc was not found, an error is thrown.
+Note: TYPE not yet implemented."
+  (let ((f (semantic-texi-associated-files))
+	stream
+	match)
+    (while (and f (not match))
+      (when (not stream)
+	(save-excursion
+	  (set-buffer (find-file-noselect (car f)))
+	  (setq stream (semantic-bovinate-toplevel t))))
+      (setq match (semantic-find-nonterminal-by-name name stream t nil))
+      (when match
+	(set-buffer (semantic-token-buffer match))
+	(goto-char (semantic-token-start match)))
+      (setq f (cdr f)))))
+
+(defun semantic-texi-update-doc-from-texi (&optional token)
+  "Update the documentation in the texinfo deffn class token TOKEN.
+The current buffer must be a texinfo file containing TOKEN.
+If TOKEN is nil, determine a token based on the current position."
+  (interactive)
+  (if (not (or (featurep 'semanticdb) (semanticdb-minor-mode-p)))
+      (error "Texinfo updating only works when `semanticdb' is being used"))
+  (semantic-bovinate-toplevel t)
+  (when (not token)
+    (beginning-of-line)
+    (setq token (semantic-current-nonterminal)))
+  (if (not (eq (semantic-token-token token) 'def))
+      (error "Only deffns (or defun or defvar) can be updated"))
+  (let* ((name (semantic-token-name token))
+	 (toks (semanticdb-find-nonterminal-by-name name nil t nil t t))
+	 (docstring nil)
+	 (doctok nil))
+    (save-excursion
+      (while (and toks (not docstring))
+	(set-buffer (semantic-token-buffer (car toks)))
+	(when (not (eq major-mode 'texinfo-mode))
+	  (setq docstring (semantic-find-documentation (car toks))
+		doctok (if docstring (car toks) nil)))
+	(setq toks (cdr toks))))
+    (if (not docstring)
+	(error "Could not find documentation for %s" (semantic-token-name token)))
+    ;; If we have a string, do the replacement.
+    (delete-region (semantic-token-start token)
+		   (semantic-token-end token))
+    ;; Use useful functions from the document library.
+    (require 'document)
+    (document-insert-texinfo doctok (semantic-token-buffer doctok))
+    ))
+
+(defun semantic-texi-update-doc-from-source (&optional token)
+  "Update the documentation for the source TOKEN.
+The current buffer must be a non-texinfo source file containing TOKEN.
+If TOKEN is nil, determine the token based on the current position.
+The current buffer must include TOKEN."
+  (interactive)
+  (if (eq major-mode 'texinfo-mode)
+      (error "Not a source file"))
+  (semantic-bovinate-toplevel t)
+  (when (not token)
+    (setq token (semantic-current-nonterminal)))
+  (when (not (semantic-find-documentation token))
+    (error "Cannot find interesting documentation to use for %s"
+	   (semantic-token-name token)))
+  (let* ((name (semantic-token-name token))
+	 (texi (semantic-texi-associated-files))
+	 (doctok nil)
+	 (docbuff nil))
+    (while (and texi (not doctok))
+      (set-buffer (find-file-noselect (car texi)))
+      (setq doctok (semantic-find-nonterminal-by-name
+		    name (semantic-bovinate-toplevel t) t nil)
+	    docbuff (if doctok (current-buffer) nil))
+      (setq texi (cdr texi)))
+    (if (not doctok)
+	(error "Token %s is not yet documented.  Use the `document' command"))
+    ;; Ok, we should have everything we need.  Do the deed.
+    (if (get-buffer-window docbuff)
+	(set-buffer docbuff)
+      (switch-to-buffer docbuff))
+    (goto-char (semantic-token-start doctok))
+    (delete-region (semantic-token-start doctok)
+		   (semantic-token-end doctok))
+    ;; Use useful functions from the document library.
+    (require 'document)
+    (document-insert-texinfo token (semantic-token-buffer token))
+    ))
+
+(defun semantic-texi-update-doc (&optional token)
+  "Update the documentation for TOKEN.
+If the current buffer is a texinfo file, then find the source doc, and
+update it.  If the current buffer is a source file, then get the
+documentation for this item, find the existing doc in the associated
+manual, and update that."
+  (interactive)
+  (cond ((eq major-mode 'texinfo-mode)
+	 (semantic-texi-update-doc-from-texi token))
+	(t
+	 (semantic-texi-update-doc-from-source token))))
 
 (provide 'semantic-texi)
 
