@@ -1,11 +1,11 @@
 ;;; quickpeek.el --- display info about current cursor context
 
-;;; Copyright (C) 1999 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: tools
-;; X-RCS: $Id: quickpeek.el,v 1.1 1999/08/16 18:14:43 zappo Exp $
+;; X-RCS: $Id: quickpeek.el,v 1.2 2000/01/23 13:35:15 zappo Exp $
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -815,6 +815,8 @@ available under Emacs (thingatpt) or XEmacs (thing)."
   "Return a dotted pair (BUFFER . POS) where TAG can be found.
 Uses the tags table, but does not set the mark."
   (require 'etags)
+  (if (string= tag "")
+      (error "Empty reference tag in `quickpeek-find-tag-stealthy'!"))
   (if (not quickpeek-use-tags)
       nil
     ;; the following code has been mostly stolen from etags.el
@@ -824,6 +826,7 @@ Uses the tags table, but does not set the mark."
 			   tag-symbol-match-p
 			   tag-word-match-p
 			   tag-any-match-p))
+	    (inhibit-quit nil)
 	    (first t)
 	    order file tag-info goto-func
 	    buff line
