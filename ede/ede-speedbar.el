@@ -1,11 +1,10 @@
 ;;; ede-speedbar.el --- Speebar viewing of EDE projects
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.19 2000/10/14 02:58:12 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.20 2001/04/27 00:22:40 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -148,6 +147,20 @@ Argument DIR is the directory from which to derive the list of objects."
   "Compile/Build the project which owns this line."
   (interactive)
   (project-compile-project (ede-speedbar-get-top-project-for-line)))
+
+(defun ede-speedbar-compile-file-project ()
+  "Compile/Build the target which the current file belongs to."
+  (interactive)
+  (let* ((file (speedbar-line-file))
+	 (buf (find-file-noselect file))
+	 (bwin (get-buffer-window buff 0)))
+    (if bwin
+	(progn
+	  (select-window bwin)
+	  (raise-frame (window-frame bwin)))
+      (dframe-select-attached-frame speedbar-frame)
+      (set-buffer buff)
+      (ede-compile-target))))
 
 (defun ede-speedbar-make-distribution ()
   "Edit the project file based on this line."
@@ -308,6 +321,7 @@ INDENT is the current indentation level."
     ["Create EDE Target" ede-new-target (ede-current-project) ]
     ["Add to project" ede-speedbar-file-add-to-project (ede-current-project) ]
     ["Compile project" ede-speedbar-compile-project (ede-current-project) ]
+    ["Compile file target" ede-speedbar-compile-file-target (ede-current-project) ]
     ["Make distribution" ede-make-dist (ede-current-project) ]
     )
   "Set of menu items to splice into the speedbar menu.")
@@ -318,6 +332,7 @@ INDENT is the current indentation level."
     (define-key km "t" 'ede-new-target)
     (define-key km "s" 'ede-speedbar)
     (define-key km "C" 'ede-speedbar-compile-project)
+    (define-key km "c" 'ede-speedbar-compile-file-target)
     (define-key km "d" 'ede-make-dist)
     km)
   "Keymap spliced into the speedbar keymap.")
