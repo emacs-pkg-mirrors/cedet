@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "semantic"
   :name "semantic"
-  :version "1.4"
+  :version "1.4beta14"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-makefile-miscelaneous "example"
@@ -30,7 +30,7 @@
    (ede-proj-target-elisp "tools"
     :name "tools"
     :path ""
-    :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el")
+    :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el")
     :aux-packages '("eieio" "speedbar")
     )
    (ede-proj-target-elisp "senator"
