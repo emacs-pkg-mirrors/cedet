@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.6 1999/05/07 02:39:38 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.7 1999/05/14 21:32:38 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -419,25 +419,37 @@ COLLECTION is the list of things collected so far."
 	  (goto-char (car (cdr lse)))
 	  (setq ol1 (make-overlay (car (cdr lse)) (cdr (cdr lse))))
 	  (overlay-put ol1 'face 'highlight)
+	  (goto-char (car (cdr lse)))
+	  (sit-for 1)
 	  (other-window 1)
 	  (set-buffer (marker-buffer semantic-bovinate-debug-table))
 	  (goto-char semantic-bovinate-debug-table)
 	  (re-search-forward
-	   (concat "^\\s-*(\\(" (symbol-name nonterminal) "\\)[ \t\n]+(")
+	   (concat "^\\s-*\\((\\|'((\\)\\(" (symbol-name nonterminal)
+		   "\\)[ \t\n]+(")
 	   nil t)
-	  (setq ol2 (make-overlay (match-beginning 1) (match-end 1)))
+	  (setq ol2 (make-overlay (match-beginning 2) (match-end 2)))
 	  (overlay-put ol2 'face 'highlight)
 	  (forward-char -2)
 	  (forward-list matchlen)
 	  (skip-chars-forward " \t\n(")
 	  (forward-sexp tokenlen)
-	  (message "%s: %S" (car s) collection))
+	  (message "%s: %S" (car s) collection)
 	  (read-event)
 	  (other-window 1)
 	  )
       (delete-overlay ol1)
       (delete-overlay ol2)
       )))
+
+(defun bovinate ()
+  "Bovinate the current buffer.  Show output in a temp buffer."
+  (interactive)
+  (let ((out (semantic-bovinate-toplevel nil t)))
+    (pop-to-buffer "*BOVINATE*")
+    (require 'pp)
+    (erase-buffer)
+    (insert (pp-to-string out))))
 
 
 ;;; Semantic Bovination
@@ -497,10 +509,6 @@ list of semantic tokens found."
 				    (- db-mlen (length matchlist))
 				    (- db-tlen (length lte))
 				    cvl))
-	;; COMMENT STRIPPING
-	;; If I were to strip comments automatically, do it here.
-	;; I suspect that comments may be important to keep for some
-	;;   applications.
 	(if (semantic-bovinate-symbol-nonterminal-p (car lte) table)
 	    ;; We have a nonterminal symbol.  Recurse inline.
 	    (let ((nontermout (semantic-bovinate-nonterminal s table (car lte))))
@@ -516,6 +524,9 @@ list of semantic tokens found."
 		(setq lte nil cvl nil))) ;No match, exit
 	  (setq lse (car s)		;Get the local stream element
 		s (cdr s))		;update stream.
+	  ;; trash comments if it's turned on
+	  (while (eq (car (car s)) 'comment)
+	    (setq s (cdr s)))
 	  ;; Do the compare
 	  (if (eq (car lte) (car lse))	;syntactic match
 	      (progn
@@ -589,7 +600,9 @@ as (symbol start-expression .  end-expresssion)."
 	(pos (point))
 	(ep nil)
 	(curdepth 0)
-	(cs (concat "\\(\\s<\\|" comment-start-skip "\\)")))
+	(cs (if comment-start-skip
+		(concat "\\(\\s<\\|" comment-start-skip "\\)")
+	      (concat "\\(\\s<\\)"))))
     (goto-char start)
     (while (< (point) end)
       (cond (;; comment end is also EOL for some languages.
