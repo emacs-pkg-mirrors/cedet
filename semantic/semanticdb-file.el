@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.9 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.10 2003/11/20 14:55:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -131,7 +131,7 @@ If DIRECTORY doesn't exist, create a new one."
   "Load the database FILENAME."
   (condition-case foo
       (let* ((r (eieio-persistent-read filename))
-	     (c (oref r tables))
+	     (c (semanticdb-get-database-tables r))
 	     (tv (oref r semantic-tag-version))
 	     (fv (oref r semanticdb-version))
 	     )
@@ -142,7 +142,7 @@ If DIRECTORY doesn't exist, create a new one."
 	(if (not (inversion-test 'semanticdb-file fv))
 	    (when (inversion-test 'semantic-tag tv)
 	      ;; Incompatible version.  Flush tables.
-	      (oset r tables nil)
+	      (semanticdb-flush-database-tables r)
 	      ;; Reset the version to new version.
 	      (oset r semantic-tag-version semantic-tag-version)
 	      ;; Warn user
