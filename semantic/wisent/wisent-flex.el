@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 23 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-flex.el,v 1.1 2002/02/26 18:47:35 ponced Exp $
+;; X-RCS: $Id: wisent-flex.el,v 1.2 2002/02/27 23:01:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -72,17 +72,28 @@
     ;; Ensure that the default rule is the first one.
     (set stok (cons default (nreverse entries)))))
 
+(defsubst wisent-flex-put-default (name property value obarray)
+  "Set NAME's PROPERTY to VALUE.
+Define NAME in OBARRAY if it does not already exist."
+  (let ((symbol (intern-soft name obarray)))
+    (or symbol (set (setq symbol (intern name obarray)) nil))
+    (put symbol property value)))
+
 (defun wisent-flex-make-token-table (tokens &optional propertyalist)
   "Convert a list of TOKENS into an obarray and return it.
 If optional argument PROPERTYALIST is non nil, then interpret it, and
 apply those properties"
   ;; Create the symbol hash table
-  (let* ((obarray (make-vector 13 nil))
+  (let* ((obarray (make-vector 13 0))
          property)
     ;; fill it with stuff
     (while tokens
       (wisent-flex-add-token (car tokens) obarray)
       (setq tokens (cdr tokens)))
+    ;; Set up some useful default properties
+    (wisent-flex-put-default "punctuation" 'char-literal t obarray)
+    (wisent-flex-put-default "open-paren"  'char-literal t obarray)
+    (wisent-flex-put-default "close-paren" 'char-literal t obarray)
     ;; Apply all properties
     (while propertyalist
       (setq property      (car propertyalist)
@@ -170,13 +181,20 @@ example on how to define the mapping of 'punctuation syntactic tokens.
 
    The following properties are recognized:
 
-   string   - If non-nil MATCHERs are interpreted as strings instead
-              of regexps, and matching uses direct string comparison.
-              This could speed up things in certain cases.
+   'string
+     If non-nil MATCHERs are interpreted as strings instead of
+     regexps, and matching uses direct string comparison.  This could
+     speed up things in certain cases.
 
-   multiple - non-nil indicates to lookup at multiple successive
-              syntactic tokens and try to match the longest one.
+   'multiple
+     non-nil indicates to lookup at multiple successive syntactic
+     tokens and try to match the longest one.
 
+   'char-literal
+     non-nil indicates to return first character of token value as the
+     default lexical token category.  It is the default for
+     punctuation, open-paren and close-paren categories.  Use this
+     property when grammar contains references to character literals.
 
    The following example maps multiple punctuations to operators and
    use string comparison:
@@ -245,9 +263,13 @@ example on how to define the mapping of 'punctuation syntactic tokens.
         
       ;; Eat input stream
       (setq wisent-flex-istream (cdr is))
-        
+
       ;; Return value found or default one
-      (or wlex (cons stok (cons text (cdr flex)))))))
+      (or wlex
+          (cons (if (wisent-flex-token-get stok 'char-literal)
+                    (aref text 0)
+                  stok)
+                (cons text (cdr flex)))))))
 
 (provide 'wisent-flex)
 
