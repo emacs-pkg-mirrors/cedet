@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.10 2000/09/28 18:05:49 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.11 2000/09/29 03:08:57 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -95,10 +95,16 @@ when working in Automake mode."
 
 (defmethod ede-proj-makefile-target-name ((this ede-proj-target-makefile-info))
   "Return the name of the main target for THIS target."
-  (let ((n (ede-name this)))
-    (if (string-match "\\.info$" n)
-	n
-      (concat n ".info"))))
+  ;; The target should be the main-menu file name translated to .info.
+  (let ((mm (if (not (string= (oref this mainmenu) ""))
+		(oref this mainmenu)
+	      (car (oref this source)))))
+    (concat (file-name-sans-extension mm) ".info")))
+
+;  (let ((n (ede-name this)))
+;    (if (string-match "\\.info$" n)
+;	n
+;      (concat n ".info"))))
 
 (defmethod object-write ((this ede-proj-target-makefile-info))
   "Before commiting any change to THIS, make sure the mainmenu is first."
