@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.13 1996/11/07 19:09:50 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.14 1996/11/09 23:24:28 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -748,13 +748,7 @@ String to optimally fill that area."
 		    (progn
 		      (oset this boxed nil)
 		      (if (picked this x y)
-			  (cond
-			   ((member 'down-mouse-1 coe)
-			    (active-actions this 'click))
-			   ((member 'down-mouse-2 coe)
-			    (active-actions this 'click))
-			   ((member 'down-mouse-3 coe)
-			    (help-actions this 'click)))))
+			  (active-actions this 'click)))
 		  (oset this boxed ob)))
 	      (oset this focus-face omf)
 	      (if (equal (current-buffer) cb)
@@ -1109,7 +1103,7 @@ help about this widget."
     (goto-xy (1- (oref this rx)) (oref this ry))
     ;; check for characters off to the left
     (insert-overwrite-face (if (> (oref this disppos) 0) "<" " ")
-			   (oref this spface) this)
+			   (oref this spface) nil this)
     ;; check for newline inside string
     (if (string-match "\\(\n\\)" os)
 	(setq nflag t
@@ -1127,7 +1121,7 @@ help about this widget."
     ;; show more-characters this way strings
     (if nflag (insert-overwrite-face "v" (oref this spface))
       (if sflag (insert-overwrite-face ">" (oref this spface))
-	(insert-overwrite-face " " (oref this spface)))))
+	(insert-overwrite-face " " (oref this spface) nil this))))
   (call-next-method)
   )
 
