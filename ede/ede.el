@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.6 1999/02/26 02:47:30 zappo Exp $
+;; RCS: $Id: ede.el,v 1.7 1999/03/02 15:47:44 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -76,6 +76,22 @@
   :group 'tools
   :group 'convenience
   )
+
+(defcustom ede-auto-add-method 'ask
+  "Determins if a new source file shoud be automatically added to a target.
+Whenever a new file is encountered in a directory controlled by a
+project file, all targets are queried to see if it should be added.
+If the value is 'always, then the new file is added to the first
+target encountered.  If the value is 'multi-ask, then if more than one
+target wants the file, the user is asked.  If only one target wants
+the file, then then it is automatically added to that target.  If the
+value is 'ask, then the user is always asked, unless there is no
+target willing to take the file.  'never means never perform the check."
+  :group 'ede
+  :type '(choice (const always)
+		 (const multi-ask)
+		 (const ask)
+		 (const never)))
 
 (defcustom ede-debug-program-function 'gdb
   "*Default Emacs command used to debug a target."
@@ -279,7 +295,9 @@ mode.  nil means to toggle the mode."
   (if (and ede-minor-mode (not ede-constructing))
       (progn
 	(ede-load-project-file default-directory)
-	(setq ede-object (ede-buffer-object)))))
+	(setq ede-object (ede-buffer-object))
+	(if (and (not ede-object) (ede-current-project))
+	    (ede-auto-add-to-target)))))
   
 (defun global-ede-mode (arg)
   "Turn on variable `ede-minor-mode' mode when ARG is positive.
@@ -299,6 +317,38 @@ If ARG is negative, disable.  Toggle otherwise."
 	      (set-buffer (car b))
 	      (ede-minor-mode arg)))
 	(setq b (cdr b))))))
+
+(defun ede-auto-add-to-target ()
+  "Look for a target that wants to own the current file.
+Follow the preference set with `ede-auto-add-method' and get the list
+of objects with the `ede-want-file-p' method."
+  (if ede-object (error "Ede-object already defined for %s" (buffer-name)))
+  (if (eq ede-auto-add-method 'never)
+      nil
+    (let (wants desires)
+      ;; Find all the objects.
+      (setq wants (oref (ede-current-project) targets))
+      (while wants
+	(if (ede-want-file-p (car wants) (buffer-file-name))
+	    (setq desires (cons (car wants) desires)))
+	(setq wants (cdr wants)))
+      (if desires
+	  (cond ((or (eq ede-auto-add-method 'ask)
+		     (and (eq ede-auto-add-method 'multi-ask)
+			  (< 1 (length desires))))
+		 (let* ((al (cons '("None" . nil)
+				  (object-assoc-list 'name desires)))
+			(ans (completing-read "Add file to target: " al
+					      nil t)))
+		   (setq ans (assoc ans al))
+		   (if (cdr ans)
+		       (ede-add-file (cdr ans)))))
+		((or (eq ede-auto-add-method 'always)
+		     (and (eq ede-auto-add-method 'multi-ask)
+			  (= 1 (length desires))))
+		 (project-add-file (car desires) file))
+		(t nil))))))
+
 
 ;;; Interactive method invocations
 ;;
@@ -357,15 +407,21 @@ ARGS are additional arguments to pass to method sym."
 		(let ((ede-object (ede-current-project)))
 		  (ede-invoke-method 'project-interactive-select-target
 				     "Target: "))))
+  (if ede-object
+      ;; Make sure a file is in only one target.
+      ;; Is this a valid assumption?
+      (if (y-or-n-p (format "Remove from %s?" (ede-name ede-object)))
+	  (ede-remove-file 'force)
+	(error "Quit.")))
   (project-add-file target (buffer-file-name))
   (setq ede-object target))
 
-(defun ede-remove-file ()
+(defun ede-remove-file (&optional force)
   "Remove the current file from targets."
-  (interactive)
+  (interactive "P")
   (if (not ede-object)
       (error "Cannot invoke remove-file for %s" (buffer-name)))
-  (if (y-or-n-p (format "Remove from %s? " (ede-name ede-object)))
+  (if (or force (y-or-n-p (format "Remove from %s? " (ede-name ede-object))))
       (progn
 	(project-remove-file ede-object (ede-convert-path (ede-current-project)
 							  (buffer-file-name)))
@@ -431,7 +487,7 @@ ARGS are additional arguments to pass to method sym."
 (defmethod project-interactive-select-target ((this ede-project) prompt)
   "Interactivly query for a target that exists in project THIS.
 Argument PROMPT is the prompt to use when querying the user for a target."
-  (let ((ob (object-assoc-list name (oref this targets))))
+  (let ((ob (object-assoc-list 'name (oref this targets))))
     (cdr (assoc (completing-read prompt ob nil t) ob))))
 
 (defmethod project-add-file ((ot ede-target) file)
@@ -512,6 +568,11 @@ Default to making it project relative."
     (if (string-match (regexp-quote pp) fp)
 	(substring fp (match-end 0))
       (error "Cannot convert relativize path %s" fp))))
+
+(defmethod ede-want-file-p ((this ede-target) file)
+  "Return non-nil if THIS target wants FILE."
+  nil)
+
 
 ;;; EDE project-autoload methods
 ;;
