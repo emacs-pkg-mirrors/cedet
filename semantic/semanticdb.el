@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.29 2001/06/03 15:23:28 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.30 2001/07/20 13:11:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -492,6 +492,17 @@ it returns the results of function `semanticdb-current-database'."
 
 ;;; Search routines
 ;;
+(defun semanticdb-find-nonterminal-by-token
+  (token &optional databases search-parts search-includes diff-mode find-file-match)
+  "Find all occurances of nonterminals with token TOKEN in databases.
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH.
+Return a list ((DB-TABLE . TOKEN-LIST) ...)."
+  (semanticdb-find-nonterminal-by-function
+   (lambda (stream sp si)
+     (semantic-find-nonterminal-by-token token stream sp si))
+   databases search-parts search-includes diff-mode find-file-match))
+
 (defun semanticdb-find-nonterminal-by-name
   (name &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals with name NAME in databases.
