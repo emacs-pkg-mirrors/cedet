@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.24 2004/03/05 03:20:55 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.25 2004/03/10 19:29:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -77,7 +77,7 @@ In this case, we must flush the old tags and start over.")
 ;;
 ;;   - ATTRIBUTES is a public list of attributes that describes
 ;;     language data represented by the tag (for example, a variable
-;;     can have a `const' attribute, a function an `arguments'
+;;     can have a `:constant-flag' attribute, a function an `:arguments'
 ;;     attribute, etc.).
 ;;
 ;;   - PROPERTIES is a private list of properties used internally.
@@ -487,8 +487,8 @@ This function is for internal use only."
   (semantic-tag-get-attribute tag :type))
 
 (defsubst semantic-tag-modifiers (tag)
-  "Return the value of the 'modifiers attribute of TAG."
-  (semantic-tag-get-attribute tag 'typemodifiers))
+  "Return the value of the `:modifiers' attribute of TAG."
+  (semantic-tag-get-attribute tag :typemodifiers))
 
 (defun semantic-tag-docstring (tag &optional buffer)
   "Return the documentation of TAG.
@@ -529,20 +529,20 @@ That is the value of the `:arguments' attribute."
 
 (defsubst semantic-tag-function-throws (tag)
   "Return the exceptions the function that TAG describes can throw.
-That is the value of the `throws' attribute."
-  (semantic-tag-get-attribute tag 'throws))
+That is the value of the `:throws' attribute."
+  (semantic-tag-get-attribute tag :throws))
 
 (defsubst semantic-tag-function-parent (tag)
   "Return the parent of the function that TAG describes.
-That is the value of the `parent' attribute.
+That is the value of the `:parent' attribute.
 A function has a parent if it is a method of a class, and if the
 function does not appear in body of it's parent class."
-  (semantic-tag-get-attribute tag 'parent))
+  (semantic-tag-get-attribute tag :parent))
 
 (defsubst semantic-tag-function-destructor-p (tag)
   "Return non-nil if TAG describes a destructor function.
-That is the value of the `destructor' attribute."
-  (semantic-tag-get-attribute tag 'destructor))
+That is the value of the `:destructor-flag' attribute."
+  (semantic-tag-get-attribute tag :destructor-flag))
 
 ;;; Tags of class `variable'
 ;;
@@ -553,8 +553,8 @@ That is the value of the attribute `:default-value'."
 
 (defsubst semantic-tag-variable-constant-p (tag)
   "Return non-nil if the variable that TAG describes is a constant.
-That is the value of the attribute `const'."
-  (semantic-tag-get-attribute tag 'const))
+That is the value of the attribute `:constant-flag'."
+  (semantic-tag-get-attribute tag :constant-flag))
 
 ;;; Tags of class `include'
 ;;
