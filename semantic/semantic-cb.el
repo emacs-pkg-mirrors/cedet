@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.9 2003/04/09 01:06:40 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.10 2003/08/01 17:30:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -135,16 +135,9 @@ We need to go back later and fill them in from this list.")
 The object returned is of type `semantic-cb-project', which contains
 the slot `:types', a list of all top-level types.  Each element is a
 class of type `semantic-cb-token', or `semantic-cb-type'."
-  (let ((alldbtype (semanticdb-find-nonterminal-by-token
+  (let ((alldbtype (semanticdb-find-tags-by-class
 		    'type
-		    nil			;current project
-		    nil			;only top level types
-		    nil			;no include files outside this project
-		    nil			;same mode
-		    nil			;do not load unloaded files.
-		    t			;ignore sysmtem
-					; -- Remove when we have duplicate
-					;    filters working.
+		    ;; Need a way to strip away system queries.
 		    ))
 	;; Scope these variables during construction.
 	(semantic-cb-incomplete-types nil)
