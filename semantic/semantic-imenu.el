@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.12 2000/09/27 00:43:32 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.13 2000/09/27 01:49:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,12 +45,14 @@ Some useful functions are:
 `semantic-prototype-nonterminal'"
   :group 'imenu
   :type 'function)
+(make-variable-buffer-local 'semantic-imenu-summary-function)
 
 (defcustom semantic-imenu-bucketize-file t
   "*Non-nil if tokens in a file are to be grouped into buckets."
   :group 'imenu
   :group 'semantic
   :type 'bool)
+(make-variable-buffer-local 'semantic-imenu-bucketize-file)
 
 (defcustom semantic-imenu-buckets-to-submenu t
   "*Non-nil if buckets of tokens are to be turned into submenus.
@@ -58,6 +60,7 @@ This option is ignored if `semantic-imenu-bucketize-file' is nil."
   :group 'imenu
   :group 'semantic
   :type 'bool)
+(make-variable-buffer-local 'semantic-imenu-buckets-to-submenu)
 
 (defcustom semantic-imenu-bucketize-type-parts t
   "*Non-nil if elements of a type should be placed grouped into buckets.
@@ -66,12 +69,14 @@ Overriden to nil if `semantic-imenu-bucketize-file' is nil."
   :group 'imenu
   :group 'semantic
   :type 'bool)
+(make-variable-buffer-local 'semantic-imenu-bucketize-type-parts)
 
 (defcustom semantic-imenu-sort-bucket-function nil
   "*Function to use when sorting tags in the buckets of functions."
   :group 'imenu
   :group 'semantic
   :type 'function)
+(make-variable-buffer-local 'semantic-imenu-sort-bucket-function)
 
 ;;; Code:
 (defun semantic-imenu-goto-function (name position &optional rest)
