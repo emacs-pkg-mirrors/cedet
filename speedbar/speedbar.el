@@ -3,9 +3,9 @@
 ;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.4.6
+;; Version: 0.5
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.43 1997/04/26 01:59:10 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.44 1997/04/29 23:13:05 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@
 ;; files in the directory of the currently active buffer.  When
 ;; applicable, tags in the active file can be expanded.
 ;;
-;;   To add new files types into the speedbar, use the function
+;;   To add new supported files types into speedbar, use the function
 ;; `speedbar-add-supported-extension' If speedbar complains that the
 ;; file type is not supported, that means there is no built in
 ;; support from imenu, and the etags part wasn't set up correctly.  You
@@ -106,7 +106,7 @@
 ;; This file requires the library package assoc (association lists)
 
 ;;; Speedbar updates can be found at:
-;; ftp://ftp.ultranet.com/pub/zappo/speedbar*.el
+;; ftp://ftp.ultranet.com/pub/zappo/speedbar*.tar.gz
 ;;
 
 ;;; Change log:
@@ -223,6 +223,8 @@
 ;;       Window Title simplified.
 ;; 0.4.6 Fixed problems w/ dedicated minibuffer frame.
 ;;       Fixed errors reported by checkdoc.
+;; 0.5   Mode-specific contents added.  Controlled w/ the variable
+;;         `speedbar-mode-specific-contents-flag'
 
 ;;; TODO:
 ;; 1) More functions to create buttons and options
@@ -254,6 +256,27 @@ Stealthy functions which have a single operation should always return
 t.  Functions which take a long time should maintain a state (where
 they are in their speedbar related calculations) and permit
 interruption.  See `speedbar-check-vc' as a good example.")
+
+(defvar speedbar-mode-specific-contents-flag t
+  "*Non-nil means speedbar will show specail-mode contents.
+This permits some modes to create customized contents for the speedbar
+frame.")
+
+(defvar speedbar-special-mode-expansion-list nil
+  "Mode specific list of functions to call to fill in speedbar.
+Some modes, such as Info or RMAIL, do not relate quite as easilly into
+a simple list of files.  When this variable is non-nil and buffer-local,
+then these functions are used, creating specialized contents.  These
+functions are called each time the speedbar timer is called.  This
+allows a mode to update it's contents regularly.
+
+  Each function is called with the default and frame belonging to
+speedbar, and with one parameter; the buffer requesting
+the speedbar display.")
+
+(defvar speedbar-desired-buffer nil
+  "Non-nil when speedbar is showing buttons specific a special mode.
+In this case it is the originating buffer.")
 
 (defvar speedbar-show-unknown-files nil
   "*Non-nil shows files we can't expand with a ? in the expand button.
@@ -359,7 +382,8 @@ It is generated from the variable `completion-ignored-extensions'")
   (append '(".[CcHh]\\(++\\|pp\\|c\\|h\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".p")
 	  (if speedbar-use-imenu-package
-	      '(".java" ".f90" ".ada" ".pl" ".tcl" "Makefile\\(\\.in\\)?")))
+	      '(".java" ".f90" ".ada" ".pl" ".tcl" ".m" 
+		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
 will be stripped by a simplified optimizer when compiled into a
@@ -1119,6 +1143,53 @@ Turn read only back on when done."
 			 (toggle-read-only 1))))
 (put 'speedbar-with-writable 'lisp-indent-function 0)
 
+(defun speedbar-select-window (buffer)
+  "Select a window in which BUFFER is show.
+If it is not shown, force it to appear in the default window."
+  (let ((win (get-buffer-window buffer speedbar-attached-frame)))
+    (if win
+	(select-window win)
+      (show-buffer (selected-window) buffer))))
+
+(defmacro speedbar-with-attached-buffer (&rest forms)
+  "Execute FORMS in the attached frame's special buffer.
+Optionally select that frame if necessary."
+  ;; Reset the timer with a new timeout when cliking a file
+  ;; in case the user was navigating directories, we can cancel
+  ;; that other timer.
+  (list
+   'progn
+   '(speedbar-set-timer speedbar-update-speed)
+   (list
+    'let '((cf (selected-frame)))
+    '(select-frame speedbar-attached-frame)
+    '(speedbar-select-window speedbar-desired-buffer)
+    (cons 'progn forms)
+    '(select-frame cf)
+    '(speedbar-maybee-jump-to-attached-frame)
+    )))
+
+(defun speedbar-insert-button (text face mouse function
+				    &optional token prevline)
+  "Insert TEXT as the next logical speedbar button.
+FACE is the face to put on the button, MOUSE is the highlight face to use.
+When the user clicks on TEXT, FUNCTION is called with the TOKEN paramter.
+This function assumes that the current buffer is the speedbar buffer.
+If PREVLINE, then put this button on the previous line.
+
+This is a convenience function for special mode that create their own
+specialized speedbar displays."
+  (goto-char (point-max))
+  (if (/= (current-column) 0) (insert "\n"))
+  (if prevline (progn (delete-char -1) (insert " "))) ;back up if desired...
+  (let ((start (point)))
+    (insert text)
+    (speedbar-make-button start (point) face mouse function token))
+  (let ((start (point)))
+    (insert "\n")
+    (put-text-property start (point) 'face nil)
+    (put-text-property start (point) 'mouse-face nil)))
+
 (defun speedbar-make-button (start end face mouse function &optional token)
   "Create a button from START to END, with FACE as the display face.
 MOUSE is the mouse face.  When this button is clicked on FUNCTION
@@ -1373,8 +1444,20 @@ name will have the function FIND-FUN and not token."
 ;;; Timed functions
 ;;
 (defun speedbar-update-contents ()
-  "Update the contents of the speedbar buffer."
+  "Generically update the contents of the speedbar buffer."
   (interactive)
+  ;; Set the current special buffer
+  (setq speedbar-desired-buffer nil)
+  (if (and speedbar-mode-specific-contents-flag
+	   speedbar-special-mode-expansion-list
+	   (local-variable-p
+	    'speedbar-special-mode-expansion-list))
+	   ;(eq (get major-mode 'mode-class 'special)))
+      (speedbar-update-special-contents)
+    (speedbar-update-directory-contents)))
+
+(defun speedbar-update-directory-contents ()
+  "Update the contents of the speedbar buffer based on the current directory."
   (let ((cbd (expand-file-name default-directory))
 	(funclst speedbar-initial-expansion-list)
 	(cache speedbar-full-text-cache)
@@ -1420,6 +1503,32 @@ name will have the function FIND-FUN and not token."
 	    (setq funclst (cdr funclst)))))
       (goto-char (point-min)))))
 
+(defun speedbar-update-special-contents ()
+  "Used the mode-specific variable to fill in the speedbar buffer.
+This should only be used by modes classified as special."
+  (let ((funclst speedbar-special-mode-expansion-list)
+	(specialbuff (current-buffer)))
+    (save-excursion
+      (setq speedbar-desired-buffer specialbuff)
+      (set-buffer speedbar-buffer)
+      ;; If we are leaving a directory, cache it.
+      (if (not speedbar-shown-directories)
+	  ;; Do nothing
+	  nil
+	;; Clean up directory maintenance stuff
+	(speedbar-clear-current-file)
+	(setq speedbar-full-text-cache
+	      (cons speedbar-shown-directories (buffer-string))
+	      speedbar-shown-directories nil))
+      ;; Now fill in the buffer with our newly found specialized list.
+      (speedbar-with-writable
+	(while funclst
+	  ;; We do not erase the buffer because these functions may
+	  ;; decide NOT to update themselves.
+	  (funcall (car funclst) specialbuff)
+	  (setq funclst (cdr funclst))))
+      (goto-char (point-min)))))
+
 (defun speedbar-timer-fn ()
   "Run whenever emacs is idle to update the speedbar item."
   (if (not (and (frame-live-p speedbar-frame)
@@ -1445,10 +1554,18 @@ name will have the function FIND-FUN and not token."
 			  (eq af speedbar-frame)
 			  (not (buffer-file-name))
 			  )
-		      nil
+		      ;; Update for special mode all the time!
+		      (if (and speedbar-mode-specific-contents-flag
+			       speedbar-special-mode-expansion-list
+			       (local-variable-p
+				'speedbar-special-mode-expansion-list))
+			       ;(eq (get major-mode 'mode-class 'special)))
+			  (speedbar-update-special-contents)
+			;; do nothing
+			)
 		    (if (<= 1 speedbar-verbosity-level)
 			(message "Updating speedbar to: %s..." default-directory))
-		    (speedbar-update-contents)
+		    (speedbar-update-directory-contents)
 		    (if (<= 1 speedbar-verbosity-level)
 			(message "Updating speedbar to: %s...done" default-directory)))
 		  (select-frame af))
