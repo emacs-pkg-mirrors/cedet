@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.5 1999/05/23 13:29:15 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.6 1999/05/27 01:44:17 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -40,18 +40,20 @@
 ;;
 ;;  Here are some button groups:
 ;;
-;;  +> Function (+)
-;;    @ return_type
-;;    ( v arg1
-;;    | v arg2
-;;    ) v arg3
+;;  +> Function ()
+;;     @ return_type
+;;    +( arg1
+;;    +| arg2
+;;    +) arg3
 ;;
 ;;  +> Variable[1] =
 ;;    @ type
 ;;    = default value
 ;;
+;;  +> keywrd Type
+;;   +> type part
+;;
 ;;  +>  -> click to see additional information
-;;  (#) -> Number of arguments to a function
 
 (defun semantic-sb-one-button (token depth &optional prefix)
   "Insert TOKEN as a speedbar button at DEPTH.
@@ -77,7 +79,7 @@ Optional PREFIX is used to specify special marker characters."
 	(let ((name (semantic-token-name token)))
 	  (if (semantic-token-type token)
 	      (setq name (concat (semantic-token-type token) " " name)))
-	  (if edata
+	  (if (or edata (semantic-token-type-parent token))
 	      (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
 				      'speedbar-button-face
 				      'speedbar-highlight-face
@@ -132,12 +134,14 @@ Argument TEXT-DATA is the token data to pass to TEXT-FUN."
 			    text-fun text-data t)
     ))
 
-(defun semantic-sb-maybe-token-to-button (obj indent &optional prefix)
+(defun semantic-sb-maybe-token-to-button (obj indent &optional
+					      prefix modifiers)
   "Convert OBJ, which was returned from the bovinator, into a button.
 This OBJ might be a plain string (simple type or untyped variable)
 or a complete bovinator type.
 Argument INDENT is the indentation used when making the button.
-Optional PREFIX is the character to use when marking the line."
+Optional PREFIX is the character to use when marking the line.
+Optional MODIFIERS is additional text needed for variables."
   (let ((myprefix (or prefix ">")))
     (if (stringp obj)
 	(semantic-sb-speedbar-data-line indent myprefix obj)
@@ -145,7 +149,10 @@ Optional PREFIX is the character to use when marking the line."
 	  (progn
 	    (if (and (stringp (car obj))
 		     (= (length obj) 1))
-		(semantic-sb-speedbar-data-line indent myprefix (car obj))
+		(semantic-sb-speedbar-data-line indent myprefix
+						(concat
+						 (car obj)
+						 (or modifiers "")))
 	      (semantic-sb-one-button obj indent prefix)))))))
 
 (defun semantic-sb-insert-details (token indent)
@@ -153,14 +160,20 @@ Optional PREFIX is the character to use when marking the line."
   (let ((tt (semantic-token-token token))
 	(type (semantic-token-type token)))
     (cond ((eq tt 'type)
-	   (let ((parts (semantic-token-type-parts token)))
+	   (let ((parts (semantic-token-type-parts token))
+		 (parent (semantic-token-type-parent token)))
 	     ;; Lets expect PARTS to be a list of either strings,
 	     ;; or variable tokens.
 	     (while parts
 	       (semantic-sb-maybe-token-to-button (car parts) indent)
-	       (setq parts (cdr parts)))))
+	       (setq parts (cdr parts)))
+	     (if (and (not parts) parent)
+		 ;; This case is probably a typedef like item.
+		 (semantic-sb-maybe-token-to-button parent indent ">"))))
 	  ((eq tt 'variable)
-	   (if type (semantic-sb-maybe-token-to-button type indent "@"))
+	   (if type
+	       (let ((mods (semantic-token-variable-modifiers token)))
+		 (semantic-sb-maybe-token-to-button type indent "@" mods)))
 	   ;; default value here
 	   )
 	  ((eq tt 'function)
@@ -213,11 +226,12 @@ TEXT TOKEN and INDENT are the details."
   (cond ((string-match "+" text)	;we have to expand this file
 	 (speedbar-change-expand-button-char ?-)
 	 (speedbar-with-writable
-	   (end-of-line) (forward-char 1)
-	   (save-restriction
-	     (narrow-to-region (point) (point))
-	     ;; Add in stuff specific to this type of token.
-	     (semantic-sb-insert-details token (1+ indent)))))
+	   (save-excursion
+	     (end-of-line) (forward-char 1)
+	     (save-restriction
+	       (narrow-to-region (point) (point))
+	       ;; Add in stuff specific to this type of token.
+	       (semantic-sb-insert-details token (1+ indent))))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
@@ -235,18 +249,7 @@ TEXT TOKEN and INDENT are the details."
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
     (speedbar-set-timer speedbar-update-speed)
-    (let ((start (semantic-token-start token)))
-      (if (numberp start)
-	  ;; If it's a number, go there
-	  (goto-char start)
-	;; Otherwise, it's a trimmed vector, such as a parameter,
-	;; or a structure part.
-	(if (not parent)
-	    nil
-	  (goto-char (semantic-token-start parent))
-	  ;; Here we make an assumtion that the text returned by the bovinator
-	  ;; and concocted by us actually exists in the buffer.
-	  (re-search-forward text nil t))))
+    (semantic-find-nonterminal (current-buffer) token parent)
     (run-hooks 'speedbar-visiting-tag-hook)
     ;;(recenter)
     (speedbar-maybee-jump-to-attached-frame)
@@ -292,7 +295,7 @@ TEXT TOKEN and INDENT are the details."
   (save-restriction
     (narrow-to-region (point) (point))
     (let ((buckets (semantic-sb-buckets tokens))
-	  (names '(nil "Types" "Variables" "Functions"))
+	  (names '(nil "Types" "Variables" "Functions" "Dependencies"))
 	  tmp)
       (while buckets
 	(setq tmp (car buckets)
@@ -307,7 +310,7 @@ TEXT TOKEN and INDENT are the details."
 
 (defun semantic-sb-buckets (tokens)
   "Sort TOKENS into a group of buckets based on type, and toss the rest."
-  (let ((vars nil) (funs nil) (types nil) toktype)
+  (let ((vars nil) (funs nil) (types nil) (deps nil) toktype)
     (while tokens
       (setq toktype (semantic-token-token (car tokens)))
       (cond ((eq toktype  'variable)
@@ -316,9 +319,11 @@ TEXT TOKEN and INDENT are the details."
 	     (setq funs (cons (car tokens) funs)))
 	    ((eq toktype 'type)
 	     (setq types (cons (car tokens) types)))
+	    ((eq toktype 'include)
+	     (setq deps (cons (car tokens) deps)))
 	    (t nil))
       (setq tokens (cdr tokens)))
-    (list (nreverse types) (nreverse vars) (nreverse funs))))
+    (list types vars funs deps)))
 
 (provide 'semantic-sb)
 
