@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.53 2005/01/13 12:27:39 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.54 2005/03/01 03:07:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -307,6 +307,7 @@ TEXT TOKEN and INDENT are the details."
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
     (semantic-go-to-tag token parent)
+    (switch-to-buffer (current-buffer))
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
