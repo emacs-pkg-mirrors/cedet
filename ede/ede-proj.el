@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.1 1999/01/21 13:55:40 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.2 1999/01/21 14:12:09 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -70,11 +70,18 @@ file.")
   ()
   "This target generates an object code archive.")
 
+(defclass ede-proj-target-makefile-info (ede-proj-target-makefile)
+  ((mainmenu :initarg :mainmenu
+	     :initform nil
+	     :custom string
+	     :docstring "The main menu resides in this file."))
+  "Target for a single info file.")
+   
 (defclass ede-proj-target-lisp (ede-proj-target)
   ()
   "This target consists of a group of lisp files.
 A lisp target may be one general program with many separate lisp files in it.")
-   
+
 (defclass ede-proj-target-aux (ede-proj-target)
   ()
   "This target consists of aux files such as READMEs and COPYING.")
@@ -83,6 +90,7 @@ A lisp target may be one general program with many separate lisp files in it.")
   '(("program" . ede-proj-target-makefile-program)
     ("archive" . ede-proj-target-makefile-archive)
     ("emacs lisp" . ede-proj-target-lisp)
+    ("info" . ede-proj-target-makefile-info)
     ("auxiliary" . ede-proj-target-aux)
     )
   "Alist of names to class types for available project target classes.")
@@ -173,7 +181,7 @@ Used in the :writer slot of the eieio class."
 		  (list (buffer-file-name)) nil)))
     (setq ot (funcall (cdr (assoc type ede-proj-target-alist)) name :name name
 		      :path (ede-convert-path this default-directory)
-		      :source src))
+		      :source (file-name-nondirectory src)))
     ;; If we added it, set the local buffer's object.
     (if src (setq ede-obj ot))
     ;; Add it to the project object
@@ -333,6 +341,10 @@ MFILENAME is the makefile to generate."
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target))
   "Return the variable name for THIS's sources."
   (concat (oref this :name) "_SOURCE"))
+
+(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-info))
+  "Return the variable name for THIS's sources."
+  (concat (oref this :name) "_INFOS"))
 
 (defmethod ede-proj-makefile-insert-variables ((this ede-proj-target))
   "Insert variables needed by this target."
