@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.84 2001/10/31 18:28:14 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.85 2001/11/30 03:00:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -720,7 +720,6 @@ searched for matches."
 (defun semantic-bucketize (tokens &optional filter)
   "Sort TOKENS into a group of buckets based on token type.
 Unknown types are placed in a Misc bucket.
-The buckets will be organized into a form usable by `semantic-sb-buttons'.
 Optional argument FILTER is a filter function to be applied to each bucket.
 The filter function will take one argument, which is a list of tokens, and
 may re-organize the list with side-effects."
