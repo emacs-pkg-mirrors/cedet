@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.50 2001/08/22 01:47:38 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.51 2001/09/12 04:46:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -119,6 +119,12 @@ Return a bovination list to use."
      ((listp ts)
       ;; If the first elt is a list, then it is some arbitrary code.
       (list "anonymous" 'code))
+     ((eq ts 'eval-and-compile)
+      ;; Eval and compile can be wrapped around definitions, such as in
+      ;; eieio.el, so splice it's parts back into the main list.
+      (semantic-bovinate-from-nonterminal-full (car sl) (cdr sl)
+					       'bovine-toplevel 1)
+      )
      ((or (eq ts 'defvar)
 	  (eq ts 'defconst)
 	  (eq ts 'defcustom)
@@ -143,6 +149,16 @@ Return a bovination list to use."
 	    (semantic-bovinate-make-assoc-list
 	     'user-visible (equal (car-safe (nth 4 rt)) 'interactive)
 	     )
+	    (nth 3 rt))
+      )
+     ((eq ts 'autoload)
+      (list (format "%S" (car (cdr (car (cdr rt)))))
+	    'function
+	    nil nil
+	    (semantic-bovinate-make-assoc-list
+	     'use-visible (and (nth 4 rt)
+			       (not (eq (nth 4 rt) 'nil)))
+	     'prototype t)
 	    (nth 3 rt))
       )
      ((or (eq ts 'defmethod)
@@ -197,6 +213,16 @@ Return a bovination list to use."
       ;; Other stuff
       (list (symbol-name ts) 'code)
       ))))
+
+(defun semantic-expand-elisp-nonterminal (nonterm)
+  "Expand Emacs Lisp nonterminals.
+Finds compound nonterminals embedded in sub-lists.
+Argument NONTERM is the nonterminal to test for expansion."
+  (if (semantic-token-p (car nonterm))
+      ;; Nuke the overlay from the end.
+      ;; For some reason, it takes token in reverse order.
+      (cdr (cdr (nreverse nonterm)))
+    nil))
 
 (defun semantic-elisp-find-dependency (token)
   "Find the file BUFFER depends on described by TOKEN."
@@ -265,6 +291,7 @@ Override function for `semantic-nonterminal-protection'."
      )
    t)
   (setq semantic-toplevel-bovine-table semantic-toplevel-elisp-bovine-table
+	semantic-expand-nonterminal 'semantic-expand-elisp-nonterminal
 	semantic-symbol->name-assoc-list
 	'( (variable . "Variables")
 	   (type     . "Types")
