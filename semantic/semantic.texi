@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.49 2001/10/08 20:40:08 zappo Exp $
+@c $Id: semantic.texi,v 1.50 2001/10/24 02:08:02 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -174,7 +174,7 @@ rules are stored in the buffer local variable
 @code{semantic-toplevel-bovine-table}.
 
 While it is certainly possible to write this table yourself, it is most
-likely you will want to use the BNF converter (see @xref{BNF conversion}).
+likely you will want to use the BNF converter (see @xref{BNF conversion}.)
 This is an easier method for specifying your rules.  You will still need
 to specify a variable in your language for the table, however.  A good
 rule of thumb is to call it @code{language-toplevel-bovine-table} if it
@@ -204,7 +204,7 @@ include token precedence rules, and several other features needed to make
 real parser generators.
 
 It is important to have an Emacs Lisp file with a variable ready to take
-the output of your table (see @xref{Bovinating}).  Also, make sure that the
+the output of your table (see @xref{Bovinating}.)  Also, make sure that the
 file @file{semantic-bnf.el} is loaded.  Give your language file the
 extension @file{.bnf} and you are ready.
 
@@ -644,7 +644,7 @@ Punctuation characters, such as operators, period, and coma.
 @section Optional Lambda Expressions
 
 The OLE (Optional Lambda Expression) is converted into a bovine lambda
-(see @xref{Bovinating}). This lambda has special short-cuts to simplify
+(see @xref{Bovinating}.) This lambda has special short-cuts to simplify
 reading the emacs BNF definition.  An OLE like this:
 
 @example
@@ -1872,7 +1872,7 @@ which uses a similar form.
 * Blocks::
 * Local Variables::             Getting lists of local variables.
 * Derived Context::             What goes at a given location?
-* Suggestions::                 Get suggestions on one goes in a derived context.
+* Context Analysis::            Analisys information about the local context.
 @end menu
 
 @node Blocks, Local Variables, Current Context, Current Context
@@ -1931,7 +1931,7 @@ Local variables are returned in Semantic token format.
 Be default, this calculates the current bounds using context blocks
 navigation, then uses the parser with @code{bovine-inner-scope} to
 parse tokens at the beginning of the context.
-This can be overridden with @code{get-local-variables}.
+This can be overriden with @code{get-local-variables}.
 @end defun
 
 @defun semantic-get-local-arguments &optional point
@@ -1947,9 +1947,10 @@ Get all local variables for this context, and parent contexts.
 Local variables are returned in Semantic token format.
 Be default, this gets local variables, and local arguments.
 This can be overridden with @code{get-all-local-variables}.
+Optional argument @var{POINT} is the location to start getting the variables from.
 @end defun
 
-@node Derived Context, Suggestions, Local Variables, Current Context
+@node Derived Context, Context Analysis, Local Variables, Current Context
 @section Deriving the Current Context
 
 While a context has already been used to describe blocks of code,
@@ -1984,16 +1985,33 @@ Return the current symbol the cursor is on at @var{POINT}.
 Override with @code{ctxt-current-argument}.
 @end defun
 
-@node Suggestions,  , Derived Context, Current Context
-@section Getting Suggestions for the Current Context
+@node Context Analysis,  , Derived Context, Current Context
+@section Analisys of the current context
 
-The suggestion API uses all the context deriving functions to make
-intelligent guesses as to what belongs in a given location.  These
-functions can be used to create smart completion mechanisms, or
-displays.
+The context parsing API is used in a context analysis library.  This
+library provides high level routines for scanning through token
+databases to create lists of token associates.  At it's core is a set
+of EIEIO classes defining a context.  The context contains information
+about what was parsed at a given position, such as the strings there,
+and they type of assignment.  The analysis library then searches the
+databases to determine the types and names available.
 
-Unfortunately, they are not fully implemented in Semantic 1.4.
+Two high level functions which can be run interactively are:
 
+*NOTE TO SELF: Add more here*
+
+@deffn Command semantic-analyze-current-context position
+Analyze the current context at @var{POSITION}.
+If called interactively, display interesting information about @var{POSITION}
+in a separate buffer.
+Returns an object based on symbol @code{semantic-analyze-context}.
+@end deffn
+
+
+@deffn Command semantic-analyze-possible-completions point
+Return a list of semantic tokens which are possible completions.
+Analysis is done at @var{POINT}.
+@end deffn
 
 @node Tools, Index, Current Context, Top
 @comment  node-name,  next,  previous,  up
@@ -2330,7 +2348,7 @@ kill ring.
 @end deffn
 
 For programmers, to provide specialized pasting, created an override
-function for @code{insert-foreign-token} (see @xref{Settings}).
+function for @code{insert-foreign-token} (see @xref{Settings}.)
 
 @subsubsection Minor Mode
 
@@ -2461,14 +2479,32 @@ If @var{TOKEN} is @code{nil}, it is derived from the deffn under @var{POINT}.
 @comment  node-name,  next,  previous,  up
 @section Miscellaneous commands
 
-@deffn Command semantic-show-dirty-mode arg
-Toggle highlighting of dirty tokens.  When optional argument @var{arg}
-is negative, disable this mode.  A positive argument enables it.  If
-@var{arg} is nil, toggle.
+@deffn Command semantic-show-dirty-mode &optional arg
+Minor mode for highlighting dirty tokens.
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
 
-When active, tokens in the current buffer marked ``dirty'' are
-highlighted.  A token is considered dirty if the token was generated
-before the most recent change to that token's text.
+@deffn Command global-semantic-show-dirty-mode &optional arg
+Toggle global use of @code{semantic-show-dirty-mode}.
+If @var{ARG} is positive, enable, if it is negative, disable.
+If @var{ARG} is @code{nil}, then toggle.
+@end deffn
+
+@deffn Command semantic-show-unmatched-syntax-mode &optional arg
+Minor mode to highlight unmatched-syntax tokens.
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
+
+@deffn Command global-semantic-show-unmatched-syntax-mode &optional arg
+Toggle global use of @dfn{semantic-show-unmatched-syntax-mode}.
+If @var{ARG} is positive, enable, if it is negative, disable.
+If @var{ARG} is @code{nil}, then toggle.
 @end deffn
 
 
