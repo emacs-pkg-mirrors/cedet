@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.11 2002/02/20 17:49:05 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.12 2002/02/26 18:51:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -3044,18 +3044,17 @@ one.")
   "Push a new SYMBOL in the list of tokens.
 Bypass checking if NOCHECK is non-nil."
   ;; Check
-  (unless nocheck
-    (or (wisent-ISVALID symbol)
-        (error "Invalid terminal symbol %s" symbol))
-    (if (memq symbol token-list)
-        (error "Terminal already defined %s" symbol)))
-  ;; Set up properties
-  (wisent-set-prec        symbol nil)
-  (wisent-set-assoc       symbol nil)
-  (wisent-set-item-number symbol ntokens)
-  ;; Add
-  (setq ntokens (1+ ntokens)
-        token-list (cons symbol token-list)))
+  (or nocheck (wisent-ISVALID symbol)
+      (error "Invalid terminal symbol `%s'" symbol))
+  (if (memq symbol token-list)
+      (message "Duplicate terminal `%s' ignored" symbol)
+    ;; Set up properties
+    (wisent-set-prec        symbol nil)
+    (wisent-set-assoc       symbol nil)
+    (wisent-set-item-number symbol ntokens)
+    ;; Add
+    (setq ntokens (1+ ntokens)
+          token-list (cons symbol token-list))))
 
 (defun wisent-push-var (symbol &optional nocheck)
   "Push a new SYMBOL in the list of nonterminals.
@@ -3063,9 +3062,9 @@ Bypass checking if NOCHECK is non-nil."
   ;; Check
   (unless nocheck
     (or (wisent-ISVALID symbol)
-        (error "Invalid nonterminal symbol %s" symbol))
+        (error "Invalid nonterminal symbol `%s'" symbol))
     (if (memq symbol var-list)
-        (error "Nonterminal already defined %s" symbol)))
+        (error "Nonterminal already defined `%s'" symbol)))
   ;; Set up properties
   (wisent-set-item-number symbol nvars)
   ;; Add
