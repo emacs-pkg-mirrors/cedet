@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.38 2000/06/13 14:41:05 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.39 2000/06/16 20:12:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -606,6 +606,8 @@ COLLECTION is the list of things collected so far."
       (delete-overlay ol2))
     ret))
 
+(eval-when-compile (require 'pp))
+
 (defun bovinate (&optional clear)
   "Bovinate the current buffer.  Show output in a temp buffer.
 Optional argument CLEAR will clear the cache before bovinating."
@@ -872,10 +874,13 @@ a START and END part."
 	       nonterm)))
     (car (cdr ans))))
 
-(defun semantic-bovinate-from-nonterminal-full (start end nonterm &optional depth)
+(defun semantic-bovinate-from-nonterminal-full (start end nonterm
+						      &optional depth)
   "Bovinate from within a nonterminal lambda from START to END.
+Iterates until all the space between START and END is exhausted.
 Depends on the existing environment created by `semantic-bovinate-stream'.
 Argument NONTERM is the nonterminal symbol to start with.
+If NONTERM is nil, use `bovine-block-toplevel'.
 Optional argument DEPTH is the depth of lists to dive into.
 Whan used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
@@ -885,7 +890,24 @@ a START and END part."
 				   depth
 				   ;; Compiler will complain.
 				   trashcomments)))
-    
+
+(defun semantic-bovinate-block-until-header (start end nonterm &optional depth)
+  "Bovinate between START and END starting with NONTERM.
+If NONTERM is nil, start with `bovine-block-toplevel'.
+This command will parse until an error is encountered, and return
+the list of everything found until that moment.
+This is meant for finding variable definitions at the beginning of
+code blocks in methods.  If `bovine-block-toplevel' can also support
+commands, use `semantic-bovinate-from-nonterminal-full'."
+  (nreverse
+   (semantic-bovinate-nonterminals (semantic-flex start end (or depth 1))
+				   nonterm
+				   depth
+				   (or (symbol-value 'trashcomments)
+				       t)
+				   ;; This says stop on an error.
+				   t)))
+
 
 ;;; Semantic Flexing
 ;;
@@ -896,6 +918,28 @@ a START and END part."
 ;;  (SYMBOL START . END)
 ;; Where symbol is the type of thing it is.  START and END mark that
 ;; objects boundary.
+
+(eval-and-compile (if (not (fboundp 'with-syntax-table))
+
+;; Copied from Emacs 21 for compatibility with released Emacses.
+(defmacro with-syntax-table (table &rest body)
+  "Evaluate BODY with syntax table of current buffer set to a copy of TABLE.
+The syntax table of the current buffer is saved, BODY is evaluated, and the
+saved table is restored, even in case of an abnormal exit.
+Value is what BODY returns."
+  (let ((old-table (make-symbol "table"))
+	(old-buffer (make-symbol "buffer")))
+    `(let ((,old-table (syntax-table))
+	   (,old-buffer (current-buffer)))
+       (unwind-protect
+	   (progn
+	     (set-syntax-table (copy-syntax-table ,table))
+	     ,@body)
+	 (save-current-buffer
+	   (set-buffer ,old-buffer)
+	   (set-syntax-table ,old-table))))))
+
+))
 
 (defvar semantic-flex-extensions nil
   "Buffer local extensions to the the lexical analyzer.
