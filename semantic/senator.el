@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.69 2003/04/04 08:25:35 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.70 2003/04/07 08:27:39 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -276,7 +276,7 @@ included too."
       (and (not top-level)
            ;; Not include function arguments
            (not (semantic-tag-of-class-p tag 'function))
-           (setq components (semantic-tag-components-with-overlays tag))
+           (setq components (semantic-tag-components tag))
            (setq fs (append fs (senator-completion-flatten-stream
                                 components e)))))
     fs))
@@ -417,25 +417,22 @@ type context exists at point."
               (setq senator-completion-cache clst))
           clst))))
 
-;;; Senator stream searching functions:
-;;
-(defun senator-find-nonterminal-by-name (name)
-  "Find a tag with NAME.
-Uses `semanticdb' when available."
-  (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-      ;; semanticdb version returns a list of (DB-TABLE . TAG)
-      (semanticdb-find-nonterminal-by-name name nil t)
-    ;; for semantic version just return TAG
-    (semantic-brute-find-first-tag-by-name name (current-buffer) t)))
-
-(defun senator-find-nonterminal-by-name-regexp (regexp)
-  "Find all tags with a name matching REGEXP.
+(defun senator-find-tag-for-completion (prefix)
+  "Find all tags with a name starting with PREFIX.
 Uses `semanticdb' when available."
   (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
       ;; semanticdb version returns a list of (DB-TABLE . TAG-LIST)
-      (semanticdb-find-nonterminal-by-name-regexp regexp nil t)
-    ;; for semantic version just return TAG-LIST
-    (semantic-brute-find-tag-by-name-regexp regexp (current-buffer) t)))
+      (semanticdb-deep-find-tags-for-completion prefix)
+    ;; semantic version returns a TAG-LIST
+    (semantic-deep-find-tags-for-completion prefix (current-buffer))))
+
+;;; Senator stream searching functions: no more supported.
+;;
+(defun senator-find-nonterminal-by-name (&rest ignore)
+  (error "Use the semantic and semanticdb find API instead."))
+
+(defun senator-find-nonterminal-by-name-regexp (&rest ignore)
+  (error "Use the semantic and semanticdb find API instead."))
 
 ;;;;
 ;;;; Search functions
@@ -762,9 +759,7 @@ of completions once, doing nothing where there are no more matches."
             (setq complst (nthcdr 4 senator-last-completion-stats))
           
           (setq regex (regexp-quote (buffer-substring symstart (point)))
-                complst (let ((found
-                               (senator-find-nonterminal-by-name-regexp
-                                (concat "^" regex))))
+                complst (let ((found (senator-find-tag-for-completion regex)))
                           (if (and found (semantic-tag-p (car found)))
                               found
                             (apply #'append (mapcar #'cdr found))))
@@ -934,8 +929,8 @@ use `imenu--mouse-menu' to handle the popup menu."
         symbol regexp complst)
     (if symstart
         (setq symbol  (buffer-substring-no-properties symstart (point))
-              regexp  (concat "^" (regexp-quote symbol))
-              complst (senator-find-nonterminal-by-name-regexp regexp)))
+              regexp  (regexp-quote symbol)
+              complst (senator-find-tag-for-completion regexp)))
     (if (not complst)
         (error "No completions available"))
     ;; We have a completion list, build a menu
