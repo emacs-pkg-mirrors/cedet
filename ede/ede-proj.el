@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.31 2000/10/04 03:37:43 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.32 2000/10/05 20:37:20 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -140,6 +140,15 @@ It is safe to leave this blank.")
     ("miscelaneous" . ede-proj-target-makefile-miscelaneous)
     )
   "Alist of names to class types for available project target classes.")
+
+(defun ede-proj-register-target (name class)
+  "Register a new target class with NAME and class symbol CLASS.
+This enables the creation of your target type."
+  (let ((a (assoc name ede-proj-target-alist)))
+    (if a
+	(setcdr a class)
+      (setq ede-proj-target-alist
+	    (cons (cons name class) ede-proj-target-alist)))))
 
 (defclass ede-proj-project (ede-project)
   ((makefile-type :initarg :makefile-type
