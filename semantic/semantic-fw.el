@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.39 2004/04/29 10:13:36 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.40 2004/06/21 09:59:30 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -100,6 +100,11 @@
   (if (semantic-overlay-get overlay 'semantic)
       (semantic-overlay-delete overlay)))
 
+(defalias 'semantic-compile-warn
+  (if (fboundp 'byte-compile-warn)
+      'byte-compile-warn
+    'message))
+
 ;;; Positional Data Cache
 ;;
 (defvar semantic-cache-data-overlays nil
@@ -196,27 +201,31 @@ will throw a warning when it encounters this symbol."
   (defalias oldfnalias newfn)
   (make-obsolete oldfnalias newfn)
   (when (and (function-overload-p newfn)
-             (not (overload-obsoleted-by newfn)))
+             (not (overload-obsoleted-by newfn))
+             ;; Only throw this warning when byte compiling things.
+             (boundp 'byte-compile-current-file)
+             byte-compile-current-file)
     (make-obsolete-overload oldfnalias newfn)
-    (message "*** `%s' obsoletes overload `%s'" newfn
-             (semantic-overload-symbol-from-function oldfnalias))))
+    (semantic-compile-warn
+     "`%s' obsoletes overload `%s'" newfn
+     (semantic-overload-symbol-from-function oldfnalias))
+    ))
 
 (defun semantic-varalias-obsolete (oldvaralias newvar)
   "Make OLDVARALIAS an alias for variable NEWVAR.
 Mark OLDVARALIAS as obsolete, such that the byte compiler
 will throw a warning when it encounters this symbol."
+  (make-obsolete-variable oldvaralias newvar)
   (condition-case err
       (defvaralias oldvaralias newvar)
     (error
      ;; Only throw this warning when byte compiling things.
      (when (and (boundp 'byte-compile-current-file)
-		byte-compile-current-file)
-       (message "+++ %s\n\
-*** Compatibility with Semantic 2 might be broken:\n\
-    can't make obsolete variable `%s'\n\
-    alias of `%s'." (error-message-string err) oldvaralias newvar)
-       )))
-  (make-obsolete-variable oldvaralias newvar))
+                byte-compile-current-file)
+       (semantic-compile-warn
+        "variable `%s' obsoletes, but isn't alias of `%s'"
+        newvar oldvaralias)
+     ))))
 
 ;;; Semantic autoloads
 ;;
