@@ -38,7 +38,7 @@
 *** Correct parsing of string sequences like "string1" "string2" string3" which
     are concatenated by the cpp-precomiler to one string
 
-*** Added builtin-type wchar_t
+*** Parsing builtin-type wchar_t and also literals like L"str" and L'c'
 
 *** Some minor fixes
 
