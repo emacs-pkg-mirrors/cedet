@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.49 2001/07/20 12:56:43 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.50 2001/08/22 01:47:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,6 +54,43 @@
 	     out)
 	    arglist (cdr arglist)))
     (nreverse out)))
+
+(defun semantic-elisp-clos-slot-property-string (slot property)
+  "For SLOT, a string representing PROPERTY."
+  (let ((p (member property slot)))
+    (if (not p)
+	nil
+      (setq p (cdr p))
+      (cond
+       ((stringp (car p))
+	(car p))
+       ((or (symbolp (car p)) (listp (car p)))
+	(format "%S" (car p)))
+       (t nil)))))
+
+(defun semantic-elisp-clos-args-to-semantic (partlist)
+  "Convert a list of CLOS class slot PARTLIST to `variable' tokens."
+  (let ((vars nil))
+    (while partlist
+      (let ((part (car partlist)))
+	(setq vars
+	      (cons
+	       (list (symbol-name (car part))
+		     'variable
+		     (semantic-elisp-clos-slot-property-string
+		      part :type)
+		     (semantic-elisp-clos-slot-property-string
+		      part :initform)
+		     (semantic-bovinate-make-assoc-list
+		      'protection
+		      (semantic-elisp-clos-slot-property-string
+		       part :protection)
+		      )
+		     (semantic-elisp-clos-slot-property-string
+		      part :documentation))
+	       vars)))
+      (setq partlist (cdr partlist)))
+    (nreverse vars)))
 
 (defun semantic-elisp-form-to-doc-string (form)
   "After reading a form FORM, covert it to a doc string.
@@ -132,7 +169,8 @@ Return a bovination list to use."
      ((eq ts 'defclass)
       ;; classes
       (let ((docpart (nth 4 rt)))
-	(list sn 'type "class" (semantic-elisp-desymbolify (nth 3 rt))
+	(list sn 'type "class"
+	      (semantic-elisp-clos-args-to-semantic (nth 3 rt))
 	      (semantic-elisp-desymbolify (nth 2 rt))
 	      (semantic-bovinate-make-assoc-list
 	       'typemodifiers
@@ -202,16 +240,28 @@ Attempts a simple prototype for calling or using TOKEN."
 	(t
 	 (insert (semantic-token-name token)))))
 
+(defun semantic-elisp-nonterminal-protection (token &optional parent)
+  "Return the protection of TOKEN in PARENT.
+Override function for `semantic-nonterminal-protection'."
+  (let ((prot (semantic-token-extra-spec token 'protection)))
+    (cond
+     ((not prot) 'public)
+     ((string= prot ":public") 'public)
+     ((string= prot "public") 'public)
+     ((string= prot ":private") 'private)
+     ((string= prot "private") 'private)
+     ((string= prot ":protected") 'protected)
+     ((string= prot "protected") 'protected))))
+
 (defun semantic-default-elisp-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
   (semantic-install-function-overrides
    '((find-dependency . semantic-elisp-find-dependency)
      (prototype-nonterminal . semantic-elisp-prototype-nonterminal)
-     (uml-prototype-nonterminal . semantic-elisp-prototype-nonterminal)
      (concise-prototype-nonterminal . semantic-elisp-prototype-nonterminal)
-     (uml-concise-prototype-nonterminal . semantic-elisp-prototype-nonterminal)
      (find-documentation . semantic-elisp-find-documentation)
      (insert-foreign-token . semantic-elisp-insert-foreign-token)
+     (nonterminal-protection . semantic-elisp-nonterminal-protection)
      )
    t)
   (setq semantic-toplevel-bovine-table semantic-toplevel-elisp-bovine-table
