@@ -207,28 +207,32 @@ the buffer."
 
 ;;; Methods that make things go
 ;;
-(defmethod linemark-add-entry ((g linemark-group) &optional file line face)
+(defmethod linemark-add-entry ((g linemark-group) &rest args)
   "Add a `linemark-entry' to G.
-It will be at location FILE and LINE, and use optional FACE.
+It will be at location specified by :filename and :line, and :face
+which are property list entries in ARGS.
 Call the new entrie's activate method."
-  (if (not file) (setq file (buffer-file-name)))
-  (if (not file) (error "You can only add marks to files."))
-  (setq file (expand-file-name file))
-  (when (not line)
-    (setq line (count-lines (point-min) (point)))
-    (if (bolp) (setq line (1+ line))))
-  (let ((new-entry (linemark-new-entry g
-				       :filename file
-				       :line line)))
-    (oset new-entry parent g)
-    (oset new-entry face  (if face face (oref g face)))
-    (oset g marks (cons new-entry (oref g marks)))
-    (if (oref g active)
-	(linemark-display new-entry t))))
+  (let ((file (plist-get args :filename))
+	(line (plist-get args :line))
+	(face (plist-get args :face)))
+    (if (not file) (setq file (buffer-file-name)))
+    (if (not file) (error "You can only add marks to files."))
+    (setq file (expand-file-name file))
+    (when (not line)
+      (setq line (count-lines (point-min) (point)))
+      (if (bolp) (setq line (1+ line))))
+    (setq args (plist-put args :filename file))
+    (setq args (plist-put args :line line))
+    (let ((new-entry (apply 'linemark-new-entry g args)))
+      (oset new-entry parent g)
+      (oset new-entry face (oref g face))
+      (oset g marks (cons new-entry (oref g marks)))
+      (if (oref g active)
+	    (linemark-display new-entry t)))))
 
 (defmethod linemark-new-entry ((g linemark-group) &rest args)
   "Create a new entry for G using init ARGS."
-  (let ((f (plist-get args :file))
+  (let ((f (plist-get args :filename))
 	(l (plist-get args :line)))
     (apply 'linemark-entry (format "%s %d" f l)
 	   args)))
