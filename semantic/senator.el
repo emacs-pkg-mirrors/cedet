@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.37 2001/05/06 15:50:45 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.38 2001/05/15 14:02:23 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -297,53 +297,124 @@ included too."
             e      (cons token parents)
             fs     (cons e fs))
       (and (not top-level)
+           ;; Not include function arguments
+           (not (eq (semantic-token-token token) 'function))
            (setq children (semantic-nonterminal-children token t))
            (setq fs (append fs (senator-completion-flatten-stream
                                 children e)))))
     fs))
 
+(defun senator-completion-function-args (token)
+  "Return a string of argument names from function TOKEN."
+  (mapconcat #'(lambda (arg)
+                 (if (semantic-token-p arg)
+                     (semantic-token-name arg)
+                   (format "%s" arg)))
+             (semantic-token-function-args token)
+             semantic-function-argument-separation-character))
+
+(defun senator-completion-refine-name (elt)
+  "Refine the name part of ELT.
+ELT has the form (NAME . (TOKEN . PARENTS)).  The NAME refinement is
+done in the following incremental way:
+
+- - If TOKEN is a function one append the argument name list to NAME.
+
+- - If TOKEN is a type one append \"{}\" to NAME.
+
+- - If TOKEN is an include one append \"#\" to NAME.
+
+- - If TOKEN is a package one append \"=\" to NAME.
+
+- - If TOKEN has PARENTS append the next parent name to NAME,
+    separated by the first string found in
+    `semantic-type-relation-separator-character'.
+
+- - Otherwise NAME is set to \"token-name@token-start-position\"."
+  (let* ((sep     (car semantic-type-relation-separator-character))
+         (name    (car elt))
+         (token   (car (cdr elt)))
+         (parents (cdr (cdr elt)))
+         (oname   (semantic-token-name token))
+         (tokt    (semantic-token-token token)))
+    (cond
+     ((and (eq tokt 'function) (string-equal name oname))
+      (setq name (format "%s(%s)" name
+                         (senator-completion-function-args token))))
+     ((and (eq tokt 'type) (string-equal name oname))
+      (setq name (format "%s{}" name)))
+     ((and (eq tokt 'include) (string-equal name oname))
+      (setq name (format "%s#" name)))
+     ((and (eq tokt 'package) (string-equal name oname))
+      (setq name (format "%s=" name)))
+     (parents
+      (setq name (format "%s%s%s" name
+                         (if (eq (semantic-token-token (car parents))
+                                 'function)
+                             ")" sep)
+                         (semantic-token-name (car parents)))
+            parents (cdr parents)))
+     (t
+      (setq name (format "%s@%d" oname
+                         (semantic-token-start token)))))
+    (setcar elt name)
+    (setcdr elt (cons token parents))))
+
+(defun senator-completion-uniquify-names (completion-stream)
+  "Uniquify names in COMPLETION-STREAM.
+That is refine the name part of each COMPLETION-STREAM element until
+there is no duplicated names.  Each element of COMPLETION-STREAM has
+the form (NAME . (TOKEN . PARENTS)).  See also the function
+`senator-completion-refine-name'."
+  (let ((completion-stream (sort completion-stream
+                                 #'(lambda (e1 e2)
+                                     (string-lessp (car e1)
+                                                   (car e2)))))
+        (dupp t)
+        clst elt dup name)
+    (while dupp
+      (setq dupp nil
+            clst completion-stream)
+      (while clst
+        (setq elt  (car clst)
+              name (car elt)
+              clst (cdr clst)
+              dup  (and clst
+                        (string-equal name (car (car clst)))
+                        elt)
+              dupp (or dupp dup))
+        (while dup
+          (senator-completion-refine-name dup)
+          (setq elt (car clst)
+                dup (and elt (string-equal name (car elt)) elt))
+          (and dup (setq clst (cdr clst))))))
+    ;; Return a usable completion alist where each element has the
+    ;; form (NAME . TOKEN).
+    (setq clst completion-stream)
+    (while clst
+      (setq elt  (car clst)
+            clst (cdr clst))
+      (setcdr elt (car (cdr elt))))
+    completion-stream))
+
 (defun senator-completion-stream (stream &optional top-level)
   "Return a useful completion list from tokens in STREAM.
 That is an alist of all (COMPLETION-NAME . TOKEN) available.
-COMPLETION-NAME is the token name.  If it is duplicated, parent token
-names, separated by `semantic-type-relation-separator-character', are
-appended in reverse order to the token name.  This helps to
-distinguish between children tokens with the same name.  The value part
-of each association is the full token itself.  If TOP-LEVEL is non-nil
-the completion list will contain only tokens at top level.  Otherwise
-all sub tokens are included too."
-  (let ((fs (senator-completion-flatten-stream stream nil top-level))
-        token parents saw e clst)
+COMPLETION-NAME is an unique token name (see also the function
+`senator-completion-uniquify-names').  If TOP-LEVEL is non-nil the
+completion list will contain only tokens at top level.  Otherwise all
+sub tokens are included too."
+  (let* ((fs (senator-completion-flatten-stream stream nil top-level))
+         cs elt tok)
+    ;; Transform each FS element from (TOKEN . PARENTS)
+    ;; to (NAME . (TOKEN . PARENT)).
     (while fs
-      (setq token   (car (car fs))
-            parents (cdr (car fs))
-            name    (semantic-token-name token)
-            e       (assoc name saw)
-            fs      (cdr fs))
-      (if e
-          ;; This is a duplicated completion name.
-          (progn
-            ;; Append parent names to the token name.
-            (setq clst (cons (cons (senator-full-token-name token parents)
-                                   token)
-                             clst))
-            ;; Don't forget to append parent names to the completion
-            ;; name of the first token found with this name!
-            (when (cdr e)
-              (setq parents (cdr (cdr e))
-                    token   (cdr (car (cdr e))))
-              (setcar (car (cdr e))
-                      (senator-full-token-name token parents))
-              ;; Don't update again this completion name.
-              (setcdr e nil))
-            )
-        ;; This is a new completion name.
-        (setq e    (cons name token)
-              clst (cons e clst)
-              ;; Record the token name, completion element and parents
-              ;; in an alist.
-              saw  (cons (cons name (cons e parents)) saw))))
-    clst))
+      (setq elt (car fs)
+            tok (car elt)
+            fs  (cdr fs)
+            cs  (cons (cons (semantic-token-name tok) elt) cs)))
+    ;; Return a completion list with unique COMPLETION-NAMEs.
+    (senator-completion-uniquify-names cs)))
 
 (defun senator-current-type-context ()
   "Return tokens in the type context at point or nil if not found."
