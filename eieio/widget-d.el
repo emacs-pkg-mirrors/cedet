@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: widget-d.el,v 1.12 1997/01/10 23:08:55 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.13 1997/03/01 16:53:19 zappo Exp $
 ;;; Keywords: OO widget
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -132,7 +132,10 @@ or something like that.")
 	      :initform  nil
 	      :docstring "t if this widget accepts keyboard or mouse input.")
    (handle-motion :initform nil
-		  :docstring "t if this widget handles it's own motion events")
+		  :docstring "t if this widget handles it's own motion events,
+or 'traditional if it uses traditional motion events.  Traditional
+events are not passed to a widget unless the motion moves the cursor
+outside of the widget's boundary.")
    (rx :docstring "Real X position in buffer"
        :protection private)
    (ry :docstring "Real Y position in buffer"
@@ -527,7 +530,7 @@ where the thumbtack changes size based on RANGE.")
 (defclass widget-text-field (widget-square)
   ((handle-io :initarg :handle-io
 	      :initform t)
-   (handle-motion :initform t)
+   (handle-motion :initform 'traditional)
    (height :initform 1)
    (face :initarg :face
 	 :initform widget-text-face
