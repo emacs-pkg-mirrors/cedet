@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.8
-;;; RCS: $Id: eieio.el,v 1.20 1996/12/05 03:11:39 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.21 1996/12/12 03:29:23 zappo Exp $
 ;;; Keywords: OO, lisp
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -43,7 +43,7 @@
 ;;; Classes can inherit (singly) from other classes, and attributes
 ;;; can be multiply defined (but only one actual storage spot will be
 ;;; allocated) Attributes may be given initial values in the class
-;;; definition.  Class methods (methods definied _IN_ a class) can be
+;;; definition.  Class methods (methods defined _IN_ a class) can be
 ;;; defined for each sub-class, or only for a parent class.  A method
 ;;; can also be defined outside a class in CLOS style where the
 ;;; parameters determine which implementation to use.
@@ -128,16 +128,16 @@
 ;;;        Changed plist storage of method definitions first into a single
 ;;;           plist element, `eieio-method-tree', and
 ;;;           `eieio-method-obarrays' a vector of 6 elements.  This
-;;;           vector contains 6 typres of functions, specific :BEFORE,
+;;;           vector contains 6 types of functions, specific :BEFORE,
 ;;;           :PRIMARY and :AFTER elements, and then the :BEFORE,
 ;;;           :PRIMARY and :AFTER generic calls.  Lastly turned lists
 ;;;           of associations into OBARRAYs and symbols.
 ;;; 0.8    Added ability to byte compile methods.  This is implemented
-;;;           for both XEmacs and FSF.  This will only work with the
-;;;           modern byte-compiler for these systems.  Routines to do
-;;;           this are in eieio-comp.el.
+;;;           for both XEmacs and GNU emacs.  This will only work with
+;;;           the modern byte-compiler for these systems.  Routines to
+;;;           do this are in eieio-comp.el.
 ;;;        Removed all reference to classmethods as no one liked them,
-;;;           and were wasing space in here.
+;;;           and were wasting space in here.
 ;;;        Added `oset-default' to modify existing classes default values.
 ;;;        `oref-default' can now take a class or object to retrieve
 ;;;           the default value.
@@ -154,6 +154,9 @@
 ;;;           the functions in eieio-opt.  You can now specify
 ;;;           additional summary information for object names if
 ;;;           `object-print' is used instead of `object-name'.
+;;;        Better edebug integration with new spec's for all macros,
+;;;           plus new override `eieio-edebug-prin1-to-string' to
+;;;           print the summary with `class-name' and `object-print'.
 ;;;        Added default-object-cache to class definition.  This may
 ;;;           mess up object default functions.  At the moment
 ;;;           however, (copy-sequence VECTOR) is much faster than the
@@ -161,6 +164,8 @@
 ;;;        Fixed problems with `lambda-default' used to create functions
 ;;;           to be stored as default values, instead of evaluated at
 ;;;           creation time.
+;;;        New `eieio-doc' file will create texinfo documentation
+;;;           describing a class hierarchy
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -196,7 +201,7 @@ check private parts. DO NOT SET THIS YOURSELF!")
 (defconst class-methods 13 "Class methods index")
 (defconst class-default-object-cache 14 
   "Cache what a newly created object would look like.  This will speed
-up instatiation time as only a `copy-sequence' will be needed, instead
+up instantiation time as only a `copy-sequence' will be needed, instead
 of looping over all the values and setting them from the default.")
 (defconst class-num-fields 15 "Number of fields in the class definition object")
 
@@ -257,7 +262,7 @@ list of all bindings to that method type.)"
 ;;; Defining a new class
 ;;;
 (defmacro defclass (name superclass fields doc-string)
-  "Define NAME as a new class, defived from SUPERCLASS which is a list
+  "Define NAME as a new class, derived from SUPERCLASS which is a list
 of superclasses to inherit from, with FIELDS being the fields residing
 in that class definition.  NOTE: Currently only one field may exist in
 SUPERCLASS as multiple inheritance is not yet supported.  Supported
@@ -266,11 +271,10 @@ tags are:
   :initform   - initializing form
   :initarg    - tag used during initialization
   :accessor   - tag used to create a function to access this field
-  :protection - non-nil means a private slot (accessable when THIS is set)
-  :method     - non-nil means classify this as a classmethod, not a slot
+  :protection - non-nil means a private slot (accessible when THIS is set)
 
   You can have multiple tags per slot, though some specifiers can't be
-combinded (for instance :method and :initarg make no sense together)
+combined (for instance :method and :initarg make no sense together)
  "
   (list 'defclass-engine (list 'quote name) (list 'quote superclass)
 	(list 'quote fields) doc-string))
@@ -470,7 +474,7 @@ in that class definition.  See defclass for more information"
 ;;; CLOS style implementation of object creators.
 ;;;
 (defun make-instance (class &rest initargs)
-  "Make a new instance of CLASS with initilaization of some parts with
+  "Make a new instance of CLASS with initialization of some parts with
 INITARGS"
   (let ((cc (class-constructor class)))
     (apply cc class initargs)))
@@ -481,7 +485,7 @@ INITARGS"
 (defmacro defgeneric (method args &optional doc-string)
   "Creates a generic function, which is called whenever a more
 specific method is requested.  A generic function has no body, as
-it's purpose is to decide which method body is apropriate to use.  Use
+it's purpose is to decide which method body is appropriate to use.  Use
 `defmethod' to create methods, and it calls defgeneric for you.  With this
 implementation the arguments are currently ignored."
   (list 'defgeneric-engine
@@ -502,7 +506,7 @@ implementation the arguments are currently ignored."
     'method))
 
 (defmacro defmethod (method &rest args)
-  "Creates a new METHOD through `defgeneric' and adds the apropriate
+  "Creates a new METHOD through `defgeneric' and adds the appropriate
 qualifiers to the symbol METHOD.  ARGS lists any keys (such as :BEFORE
 or :AFTER, it's checked for the arglst, and docstring, and eventually
 the body, such as: 
@@ -515,7 +519,7 @@ the body, such as:
 	(list 'quote args)))
 
 (defun defmethod-engine (method args)
-  "Workpart of the defmethod macro"
+  "Work part of the defmethod macro"
   (let ((key nil) (body nil) (firstarg nil) (argfix nil) loopa)
     ;; find optional keys
     (setq key
@@ -903,7 +907,7 @@ nil, depending on the return value of `class-parent'"
 	'eieio-default-superclass)))
 
 (defun eieiomt-sym-optimize (s)
-  "This function is called by mapatoms, or by function calls when a
+  "This function is called by `mapatoms', or by function calls when a
 symbol has no value, and will find the next class which has a function
 body"
   ;; (message "Optimizing %S" s)
@@ -1034,9 +1038,7 @@ viewing by apropos, and describe-variables, and the like."
 	 (pdocs (aref cv class-private-doc))
 	 (pnames (aref cv class-private-a))
 	 (pdeflt (aref cv class-private-d))
-	 (meth nil)
-	 (mdoc nil)
-	 (index 0))
+	 )
     (while names
       (setq newdoc (concat newdoc "\n\nSlot: " (symbol-name (car names)) 
 			   "    default = " (format "%S" (car deflt))
@@ -1153,12 +1155,12 @@ of your class will not have their values dynamically set from FIELDS."
   )
 
 (defmethod object-print ((this eieio-default-superclass) &rest strings)
-  "Pretty priniter.  The default method for printing an object is to use
+  "Pretty printer.  The default method for printing an object is to use
 the `object-name' function.  At times it could be useful to put a summary of
 the object into the default #<notation> string.  Overload this function to
 allow summaries of your objects to be used by eieio browsing tools.  The
 optional parameter STRINGS is for additional summary parts to put into the
-name string.  When passint in extra strings from child classes, always
+name string.  When passing in extra strings from child classes, always
 remember  to prepend a space."
   (object-name this (apply 'concat strings)))
 
@@ -1166,6 +1168,11 @@ remember  to prepend a space."
 ;;;
 ;;; Interfacing with edebug
 ;;;
+(defun eieio-edebug-prin1-to-string (object &optional noescape)
+  (cond ((class-p object) (class-name object))
+	((object-p object) (object-print object))
+	(t (prin1-to-string object noescape))))
+
 (add-hook 'edebug-setup-hook
 	  (lambda () 
 	    (def-edebug-spec defmethod
@@ -1187,8 +1194,15 @@ remember  to prepend a space."
 	    (def-edebug-spec object-p form)
 	    (def-edebug-spec class-constructor form)
 	    (def-edebug-spec generic-p form)
+	    ;; I suspect this isn't the best way to do this, but when
+	    ;; cust-print was used on my system all my objects
+	    ;; appeared as "#1 =" which was not useful.  This allows
+	    ;; edebug to print my objects in the nice way they were
+	    ;; meant to with `object-print' and `class-name'
+	    (defalias 'edebug-prin1-to-string 'eieio-edebug-prin1-to-string)
 	    )
 	  )
+
 
 ;;;
 ;;; Autoloading some external symbols
@@ -1196,6 +1210,7 @@ remember  to prepend a space."
 (autoload 'eieio-browse "eieio-opt" "Create an object browser window" t)
 (autoload 'eieio-describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
 (autoload 'describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
+(autoload 'eieiodoc-class "eieio-doc" "Create texinfo documentation about a class hierarchy." t)
 
 ;;; end of lisp
 (provide 'eieio)
