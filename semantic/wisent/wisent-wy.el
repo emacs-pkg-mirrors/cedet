@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.8 2002/06/30 22:24:00 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.9 2002/07/01 11:36:51 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -55,7 +55,7 @@
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-30 23:20+0200
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-01 13:01+0200
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -195,7 +195,7 @@
         ((RBRACE)
          nil)
         ((any_symbol)
-         (list $1 'put-name nil nil)))
+         (wisent-token $1 'put-name nil nil)))
        (put_value_list
         ((BRACE_BLOCK)
          (semantic-bovinate-from-nonterminal-full
@@ -208,7 +208,7 @@
         ((RBRACE)
          nil)
         ((put_value)
-         (list "" 'put-value nil $1 nil)))
+         (wisent-token "" 'put-value nil $1 nil)))
        (put_value
         ((any_symbol any_value)
          (cons $1 $2)))
@@ -339,7 +339,7 @@
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-30 23:20+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-01 13:01+0200
    (semantic-flex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -360,7 +360,7 @@
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-30 23:20+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-01 13:01+0200
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -392,7 +392,7 @@
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-30 23:20+0200
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-01 13:01+0200
   (progn
     (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
           semantic-bovinate-parser-name "LALR"
