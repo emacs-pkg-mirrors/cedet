@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.6 2002/05/07 01:31:15 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.7 2002/08/09 23:18:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -563,6 +563,7 @@ Used as options when completing."
       ;; Be default, we don't know.
       nil)))
 
+;;;###autoload
 (defun semantic-analyze-possible-completions (context)
   "Return a list of semantic tokens which are possible completions.
 CONTEXT is either a position (such as point), or a precalculated
