@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.15 2003/09/08 08:04:42 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.16 2004/01/23 08:36:14 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -127,13 +127,6 @@ Return the expanded expression."
          (assocs       (wisent-grammar-assocs)))
     (cons terminals (cons assocs nonterminals))))
 
-(defun wisent-grammar-tokentable-builder ()
-  "Return the default value of the token table."
-  (let ((tokens (semantic-grammar-tokens)))
-    `(wisent-lex-make-token-table
-      ',tokens
-      ',(semantic-grammar-token-properties tokens))))
-
 (defun wisent-grammar-parsetable-builder ()
   "Return the value of the parser table."
   `(progn
@@ -166,8 +159,7 @@ Return the expanded expression."
 (define-derived-mode wisent-grammar-mode semantic-grammar-mode "WY"
   "Major mode for editing Wisent grammars."
   (semantic-install-function-overrides
-   '((grammar-tokentable-builder . wisent-grammar-tokentable-builder)
-     (grammar-parsetable-builder . wisent-grammar-parsetable-builder)
+   '((grammar-parsetable-builder . wisent-grammar-parsetable-builder)
      (grammar-setupcode-builder  . wisent-grammar-setupcode-builder)
      )))
 
