@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.2 2001/04/25 02:46:21 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.3 2001/05/02 03:33:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,6 @@
 (require 'semanticdb)
 
 ;;; Code
-
 (defclass cogre-package (cogre-node)
   ((name :initform "Package")
    (blank-lines-top :initform 0)
@@ -59,6 +58,11 @@ The `subgraph' slot must be scanned for this information."
   ((name :initform "Class")
    (blank-lines-top :initform 0)
    (blank-lines-bottom :initform 0)
+   (class :initarg :class
+	  :initform nil
+	  :type (or string list)
+	  :documentation
+	  "The semantic token representing the class this is drawing.")
    (attributes :initarg :attributes
 	       :initform nil
 	       :type list
@@ -85,10 +89,13 @@ Optional argument FIELDS are not used."
   (if (string-match "^Class[0-9]*" (oref this name))
       ;; In this case, we have a default class name, so try and query
       ;; for the real class (from sources) which we want to use.
-      (let* ((class (cogre-read-class-name))
-	     (tok (cdr (car (semanticdb-find-nonterminal-by-name
-			     class nil nil nil t))))
+      (let* ((class (or (oref this class) (cogre-read-class-name)))
+	     (tok (if (semantic-token-p class)
+		      class
+		    (cdr (car (semanticdb-find-nonterminal-by-name
+			       class nil nil nil t)))))
 	     )
+	(if (semantic-token-p class) (setq class (semantic-token-name class)))
 	(if (and tok (eq (semantic-token-token tok) 'type)
 		 (string= (semantic-token-type tok) "class"))
 	    (let ((slots (semantic-token-type-parts tok))
@@ -121,8 +128,9 @@ Optional argument FIELDS are not used."
 		(setq extmeth (cdr extmeth)))
 	      ;; Put them into the class.
 	      (oset this name class)
-	      (oset this attributes attrib)
-	      (oset this methods method)
+	      (oset this class tok)
+	      (oset this attributes (nreverse attrib))
+	      (oset this methods (nreverse method))
 	      ;; Tada!
 	      ))))
   this)
@@ -139,8 +147,8 @@ Argument CLASS is the class whose slots are referenced."
 (defclass cogre-inherit (cogre-link)
   ((end-glyph :initform [ (" ^ " "/_\\")
 			  ("_|_" "\\ /" " V ")
-			  ("<|")
-			  ("|>") ])
+			  (" /|" "< |" " \\|")
+			  ("|\\" "|/") ])
    (horizontal-preference-ratio :initform .1)
    )
   "This type of link indicates that the two nodes reference infer inheritance.
@@ -148,8 +156,8 @@ The `start' node is the child, and the `end' node is the parent.
 This is supposed to infer that START inherits from END.")
 
 (defclass cogre-aggrigate (cogre-link)
-  ((start-glyph :initform [ (" ^ " "< >" " V ")
-			    (" ^ " "< >" " V ")
+  ((start-glyph :initform [ ("/\\ " "\\/" )
+			    ("/\\ " "\\/" )
 			    ("<>") ("<>") ])
    (horizontal-preference-ratio :initform 1)
    )
@@ -190,6 +198,87 @@ This is supposed to infer that START contains END.")
     (completing-read prompt stream
 		     nil nil nil 'cogre-class-history
 		     class)
+    ))
+
+;;;###autoload
+(defun cogre-uml-quick-class (class)
+  "Create a new UML diagram based on CLASS showing only immediate lineage.
+The parent to CLASS, CLASS, and all of CLASSes children will be shown."
+  (interactive (list (cogre-read-class-name)))
+  (let* ((class-tok (cdr (car (semanticdb-find-nonterminal-by-name
+			       class nil nil nil t))))
+	 (class-node nil)
+	 (parent (semantic-token-type-parent class-tok))
+	 (parent-nodes nil)
+	 (children (semanticdb-find-nonterminal-by-function
+		    (lambda (stream sp si)
+		      (semantic-find-nonterminal-by-function
+		       (lambda (tok)
+			 (and (eq (semantic-token-token tok) 'type)
+			      (member class (semantic-token-type-parent tok))))
+		       stream sp si))
+		    nil nil nil t))
+	 (children-nodes nil)
+	 (ymax 0)
+	 (xmax 0)
+	 (x-accum 0)
+	 (y-accum 0))
+    ;; Create a new graph
+    (cogre class)
+    (goto-char (point-min))
+    ;; Create all the parent nodes in the graph, and align them.
+    (while parent
+      (setq parent-nodes
+	    (cons (make-instance 'cogre-class :position (vector x-accum y-accum)
+				 :class (car parent))
+		  parent-nodes))
+      (cogre-node-rebuild (car parent-nodes))
+      (setq x-accum (+ x-accum
+		       (length (car (oref (car parent-nodes) rectangle)))
+		       cogre-horizontal-margins))
+      (setq ymax (max ymax (length (oref (car parent-nodes) rectangle))))
+      (setq parent (cdr parent)))
+    (setq xmax (- x-accum cogre-horizontal-margins))
+    ;; Create this class
+    (setq x-accum 0)
+    (setq y-accum (+ y-accum ymax cogre-vertical-margins))
+    (setq class-node
+	  (make-instance 'cogre-class :position (vector x-accum y-accum)
+			 :class class-tok))
+    (cogre-node-rebuild class-node)
+    (setq ymax (length (oref class-node rectangle)))
+    ;; Creawte all the children nodes, and align them.
+    (setq x-accum 0)
+    (setq y-accum (+ y-accum ymax cogre-vertical-margins))
+    (while children
+      (let ((c (cdr (car children))))
+	(while c
+	  (setq children-nodes
+		(cons (make-instance 'cogre-class :position (vector x-accum y-accum)
+				     :class (car c))
+		      children-nodes))
+	  (cogre-node-rebuild (car children-nodes))
+	  (setq x-accum (+ x-accum
+			   (length (car (oref (car children-nodes) rectangle)))
+			   cogre-horizontal-margins))
+	  (setq c (cdr c))))
+      (setq children (cdr children)))
+    (setq xmax (max xmax (- x-accum cogre-horizontal-margins)))
+    ;; Move the parents or children to be centered.
+
+    ;; Move the chosen node to be centered
+
+    ;; Link everyone together
+    (let ((n parent-nodes))
+      (while n
+	(make-instance 'cogre-inherit :start class-node :end (car n))
+	(setq n (cdr n)))
+      (setq n children-nodes)
+      (while n
+	(make-instance 'cogre-inherit :start (car n) :end class-node)
+	(setq n (cdr n))))
+    ;; Refresh the graph
+    (cogre-refresh)
     ))
 
 ;;;###autoload
