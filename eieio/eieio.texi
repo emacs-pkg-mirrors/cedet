@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.26 1999/12/01 02:16:42 zappo Exp $
+@c $Id: eieio.texi,v 1.27 1999/12/01 02:30:00 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -41,7 +41,7 @@ wrong!
 * Writing Methods::       How to write a CLOS style method.
 * Writing Methods::       How to write an embedded class method.
 * Predicates::            Class-p, Object-p, etc-p.
-* Association Lists::     List of objects as assoc lists.
+* Association Lists::     List of objects as association lists.
 * Introspection::         Looking inside a class.
 * Signals::               When you make errors
 * Browsing::              Browsing your class lists.
@@ -103,7 +103,7 @@ Automatic texinfo documentation generator.
 @item Complete @code{defclass} tag support
 All CLOS tags are currently supported, but some are not currently
 implemented correctly.
-@item Mock object initializeres
+@item Mock object initializers
 Each class contains a mock object used for fast initialization of
 instantiated objects.  Using functions with side effects on object slot
 values can potentially cause modifications in the mock object.  EIEIO
@@ -116,17 +116,17 @@ This CLOS method tag is non-functional.
 
 @table @asis
 @item tree
-Draw a structured tree by building a series of embeded lists of
+Draw a structured tree by building a series of embedded lists of
 `tree-node' class objects.  Includes the functions `eieio-class-tree' to
 browse your current eieio inheritance structure
 @item call-tree
-Pass it an elisp function (not byte compiled) to generate a call tree
+Pass it an Emacs Lisp function (not byte compiled) to generate a call tree
 using the tree tool
 @item chart
 Uses eieio to manage charts/axis/sequences, and allows display of simple
 bar-charts.  Example programs are available displaying emacs memory
 usage and list occupation, in addition to file counts and size charts.
-Theres even a sample that will display a chart of who sends you the most
+There's even a sample that will display a chart of who sends you the most
 email!  See doc-string for `chart-bar-quickie' to make your own bar
 charts easily.
 @end table
@@ -157,7 +157,7 @@ CLOS.
 
 @table @code
 @item defclass
-All slot keywords are avaliable but not all work correctly.
+All slot keywords are available but not all work correctly.
 Slot keyword differences are:
 
 @table @asis
@@ -184,9 +184,9 @@ creator automatically generated when a new class is created.
 Creates the desired symbol, and accepts most of the expected arguments.
 @item defmethod
 Calls defgeneric, and accepts most of the expected arguments.  Only the
-first argument to the created method may be typecast, though any
-argument can be syntactically typecast.  (And promptly ignored)  To
-typecast against a class, the class must exist before defmethod is called.
+first argument to the created method may be type cast, though any
+argument can be syntactically type cast.  (And promptly ignored)  To
+type cast against a class, the class must exist before defmethod is called.
 @item call-next-method
 Inside a method, calls the next available method up the inheritance tree
 for the given object.  This is different than that found in CLOS because
@@ -234,7 +234,7 @@ The parent class for @code{class-name} is @var{superclass-list} which
 must be a list.  Each element of this list must be a class.  These
 classes form the parents of the class being created.  Every slot in
 parent is replicated in the new class.  If two parents share the same
-slotname, the parent which appears in the list first sets the attributes
+slot name, the parent which appears in the list first sets the attributes
 for that slot.  If a slot in the new class' slot list matches a parent,
 then the new specifications for the child class override that of the
 parent.
@@ -302,7 +302,7 @@ This is not a CLOS option.
 If this option is non-nil, and the @code{:initform} is @code{nil}, but
 the @code{:type} is specifies something such as @code{string} then allow
 this to pass.  The default is to have this option be off.  This is
-implemented as an alternitive to unbound slots.
+implemented as an alternative to unbound slots.
 @item :metaclass
 Unsupported CLOS option.  Enables the use of a different base class other
 than @code{standard-class}.
@@ -402,7 +402,7 @@ attempting to reference its value.
 This method is called when there is an attempt to call a method on
 @var{object} when there is no method to call.  The default method throws
 a @code{no-method-definition} signal.  The return value of this function
-becomes the return value of the non-existant method.
+becomes the return value of the non-existent method.
 @end defun
 
 @defun no-next-method object args
@@ -513,7 +513,7 @@ Classes}) to inform a special object of his own devising when they
 changed, this can be arranged by simply executing this bit of code:
 
 @example
-(oset-default data-object referece (list my-special-object))
+(oset-default data-object reference (list my-special-object))
 @end example
 
 @end defun
@@ -577,7 +577,7 @@ multiple implementations of a single method which interact interestingly
 with each other.
 
 Each method created verifies that there is a @dfn{generic method}
-available to attach to.  A generic method has no body, and is mearly a
+available to attach to.  A generic method has no body, and is merely a
 symbol upon which methods are attached.
 
 @defun defgeneric method arglist [doc-string]
@@ -607,7 +607,7 @@ before @var{:AFTER}, after @var{:BEFORE}, and is represented in CLOS as
 argument may be type-cast, and it may only be type-cast to an EIEIO
 object.  An arglist such as @code{(a b)} would classify the function as
 generic call, which has no object it can talk to (none is passed in) and
-mearly allows the creation of side-effects.  If the arglist appears as
+merely allows the creation of side-effects.  If the arglist appears as
 @code{((this data-object) b)} then the form is stored as belonging to
 the class @code{data-object}.  If two @code{defmethods} appear with
 arglists such as @code{(a b)} and @code{(c d)} then one of the
@@ -628,13 +628,13 @@ function documentation.
 
 @defun call-next-method &rest replacement-args
 
-While running insided a CLOS method, calling this function will call the
+While running inside a CLOS method, calling this function will call the
 method associated with the parent of the class of the currently running
 method with the same parameters.
 
 Optional arguments @var{replacement-args} can be used to replace the
 arguments the next method would be called with.  Useful if a child class
-wishes to add additional behaviours through the modification of the
+wishes to add additional behaviors through the modification of the
 parameters.  This is not a feature of CLOS.
 
 For example code @xref{Default Superclass}.
@@ -743,7 +743,7 @@ is performed.
 @end defun
 
 @defun class-parent class
-Depricated function which returns the first parent of @var{class}.
+Deprecated function which returns the first parent of @var{class}.
 @end defun
 
 @defun same-class-p obj class
@@ -899,7 +899,7 @@ class.  @xref{Class Values}.
 @chapter Class Values
 
 Details about any class or object can be retrieved using the function
-@code{eieio-describe-class} function.  Interactivly, type in the name of
+@code{eieio-describe-class} function.  Interactively, type in the name of
 a class.  In a program, pass it a string with the name of a class, a
 class symbol, or an object.  The resulting buffer will display all slot
 names.
@@ -913,7 +913,7 @@ displayed.
 
 In Emacs 20 a useful customization utility became available called
 `custom'.  EIEIO supports custom through two new widget types.  If a
-variable is declaired as type @code{'object}, then full editing of slots
+variable is declared as type @code{'object}, then full editing of slots
 via the widgets is made possible.  This should be used carefully,
 however, because objects modified are cloned, so if there are other
 references to these objects, they will no longer be linked together.
@@ -992,7 +992,7 @@ Only classes loaded into emacs' memory can be documented.
 @chapter Demo Programs
 
 There are many sample programs I have written for eieio which could
-become useful componants of other applications, or are good stand alone
+become useful components of other applications, or are good stand alone
 programs providing some useful functionality.  The file, and
 functionality of these appear below:
 
