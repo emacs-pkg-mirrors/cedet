@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.22 2003/03/14 08:19:28 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.23 2003/03/27 07:47:29 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -578,9 +578,9 @@ MSG is the message string to report."
 
 (defun wisent-java-get-local-variables ()
   "Get local values from a specific context.
-Uses the bovinator with the special top-symbol `field_declaration'
-to collect tokens, such as local variables or prototypes.
-This function is a Java specific `get-local-variables' override."
+Parse the current context for `field_declaration' nonterminals to
+collect tags, such as local variables or prototypes.
+This function override `get-local-variables'."
   (let ((vars nil)
         ;; We want nothing to do with funny syntaxing while doing this.
         (semantic-unmatched-syntax-hook nil))
@@ -657,48 +657,29 @@ Use the alternate LALR(1) parser."
  t ;; They can be changed in mode hook by more specific ones
  'java-mode)
 
-(defun wisent-java-expand-nonterminal (token)
-  "Expand TOKEN into a list of equivalent nonterminals, or nil.
-Handle multiple variable declarations in the same statement that is
-tokens of the form:
-
-\(NAME-LIST variable TYPE DEFAULT EXTRA-SPECS DOCSTRING PROPS OVERLAY)
-
-Where NAME-LIST is a list of elements of the form (NAME START . END).
-NAME is the variable name.  START and END are respectively the
-beginning and end of the region of declaration related to this
-variable NAME."
-  (if (eq (semantic-token-token token) 'variable)
-      (let ((nl (semantic-token-name token)))
-        (if (consp nl)
-            ;; There are multiple names in the same variable
-            ;; declaration.
-            (let* ((ty (semantic-token-type             token))
-                   (dv (semantic-token-variable-default token))
-                   (xs (semantic-token-extra-specs      token))
-                   (ds (semantic-token-docstring        token))
-                   (pr (semantic-token-properties       token))
-                   (ov (semantic-token-overlay          token))
-                   (ov-start  (aref ov 0))
-                   (ov-end    (aref ov 1))
-                   nelt start end vl)
-              ;; Merge in new 'variable tokens each name and other
-              ;; values from the initial token.
-              (while nl
-                (setq nelt  (car nl)
-                      nl    (cdr nl)
-                      start (if nl (cadr nelt) ov-start)
-                      end   (if vl (cddr nelt) ov-end)
-                      vl    (cons (list (car nelt)
-                                        'variable
-                                        ty ; type
-                                        dv ; default value
-                                        xs ; extra specs
-                                        ds ; docstring
-                                        pr ; properties
-                                        (vector start end))
-                                  vl)))
-              vl)))))
+(defun wisent-java-expand-nonterminal (tag)
+  "Expand TAG into a list of equivalent nonterminals, or nil.
+Expand multiple variable declarations in the same statement, that is
+tags of class `variable' whose name is equal to a list of elements of
+the form (NAME START . END).  NAME is a variable name.  START and END
+are the bounds in the declaration, related to this variable NAME."
+  (let (elts elt clone start end xpand)
+    (when (and (eq 'variable (semantic-tag-class tag))
+               (consp (setq elts (semantic-tag-name tag))))
+      ;; There are multiple names in the same variable declaration.
+      (while elts
+        ;; For each name element, clone the initial tag and give it
+        ;; the name of the element.
+        (setq elt   (car elts)
+              elts  (cdr elts)
+              clone (semantic-tag-clone tag (car elt))
+              start (if elts  (cadr elt) (semantic-tag-start tag))
+              end   (if xpand (cddr elt) (semantic-tag-end   tag))
+              xpand (cons clone xpand))
+        ;; Set the bounds of the cloned tag with those of the name
+        ;; element.
+        (semantic-tag-set-bounds clone start end))
+      xpand)))
 
 ;;;###autoload
 (add-hook 'java-mode-hook #'wisent-java-default-setup)

@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.36 2003/03/14 08:19:29 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.37 2003/03/27 07:47:29 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -859,64 +859,38 @@ Use the alternate LALR(1) parser."
  t ;; They can be changed in mode hook by more specific ones
  'java-mode)
 
-(defun wisent-java-expand-nonterminal (token)
-  "Expand TOKEN into a list of equivalent nonterminals, or nil.
-Expand special raw tokens 'goal into a list of nonterminals.  A 'goal
-raw token has the form:
-
-\(\"goal\" 'goal ((tree . NONTERMS)) DOCSTRING PROPS OVERLAY)
-
-where NONTERMS is a list of cooked nonterminal tokens in reverse
-order.  The DOCSTRING, PROPS and OVERLAY elements have no meaning.
-They are just here to obey the orthodox token style!
-
-Handle multiple variable declarations in the same statement that is
-tokens of the form:
-
-\(NAME-LIST variable TYPE DEFAULT EXTRA-SPECS DOCSTRING PROPS OVERLAY)
-
-Where NAME-LIST is a list of elements of the form (NAME START . END).
-NAME is the variable name.  START and END are respectively the
-beginning and end of the region of declaration related to this
-variable NAME."
-  (let ((cat (semantic-token-token token))
-        ty dv xs ds pr ov ov-start ov-end start end nl vl nelt)
+(defun wisent-java-expand-nonterminal (tag)
+  "Expand TAG into a list of equivalent nonterminals, or nil.
+Expand special tags of class 'goal into a list of nonterminals.  Each
+'goal tag has an attribute `tree' whose value is a list of cooked
+nonterminal tags in reverse order.
+Expand multiple variable declarations in the same statement, that is
+tags of class `variable' whose name is equal to a list of elements of
+the form (NAME START . END).  NAME is a variable name.  START and END
+are the bounds in the declaration, related to this variable NAME."
+  (let ((class (semantic-tag-class tag))
+        elts elt clone start end xpand)
     (cond
-     
-     ;; Expand a goal
-     ((eq cat 'goal)
-      (nreverse (semantic-token-extra-spec token 'tree)))
-     
+     ;; Expand a goal tag
+     ((eq class 'goal)
+      (nreverse (semantic-tag-get-attribute tag 'tree)))
      ;; Expand multiple names in the same variable declaration.
-     ((and (eq cat 'variable)
-           (consp (setq nl (semantic-token-name token))))
-      (setq ty (semantic-token-type             token)
-            dv (semantic-token-variable-default token)
-            xs (semantic-token-extra-specs      token)
-            ds (semantic-token-docstring        token)
-            pr (semantic-token-properties       token)
-            ov (semantic-token-overlay          token)
-            ov-start  (aref ov 0)
-            ov-end    (aref ov 1))
-      ;; Merge in new 'variable tokens each name and other
-      ;; values from the initial token.
-      (while nl
-        (setq nelt  (car nl)
-              nl    (cdr nl)
-              start (if nl (cadr nelt) ov-start)
-              end   (if vl (cddr nelt) ov-end)
-              vl    (cons (list (car nelt)
-                                'variable
-                                ty      ; type
-                                dv      ; default value
-                                xs      ; extra specs
-                                ds      ; docstring
-                                pr      ; properties
-                                (vector start end))
-                          vl)))
-      vl)
-     )))
-  
+     ((and (eq class 'variable)
+           (consp (setq elts (semantic-tag-name tag))))
+      (while elts
+        ;; For each name element, clone the initial tag and give it
+        ;; the name of the element.
+        (setq elt   (car elts)
+              elts  (cdr elts)
+              start (if elts  (cadr elt) (semantic-tag-start tag))
+              end   (if xpand (cddr elt) (semantic-tag-end   tag))
+              clone (semantic-tag-clone tag (car elt))
+              xpand (cons clone xpand))
+        ;; Set the bounds of the cloned tag with those of the name
+        ;; element.
+        (semantic-tag-set-bounds clone start end))
+      xpand))))
+
 ;;;;
 ;;;; Simple parser error reporting function
 ;;;;
@@ -937,9 +911,9 @@ MSG is the message string to report."
 
 (defun wisent-java-get-local-variables ()
   "Get local values from a specific context.
-Uses the bovinator with the special top-symbol `field_declaration'
-to collect tokens, such as local variables or prototypes.
-This function is a Java specific `get-local-variables' override."
+Parse the current context for `field_declarations_opt' nonterminals to
+collect tags, such as local variables or prototypes.
+This function override `get-local-variables'."
   (let ((vars nil)
         ;; We want nothing to do with funny syntaxing while doing this.
         (semantic-unmatched-syntax-hook nil))
