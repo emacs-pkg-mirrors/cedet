@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.52 2001/03/08 18:45:47 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.53 2001/03/10 02:25:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -252,8 +252,7 @@ Optional BUFFER argument specifies the buffer to use."
 (defun semantic-find-nonterminal-by-overlay-next (&optional start buffer)
   "Find the next nonterminal after START in BUFFER.
 If START is in an overlay, find the token which starts next,
-not the current token.
-UNTRUSTED"
+not the current token."
   (save-excursion
     (if buffer (set-buffer buffer))
     (if (not start) (setq start (point)))
@@ -277,8 +276,7 @@ UNTRUSTED"
 (defun semantic-find-nonterminal-by-overlay-prev (&optional start buffer)
   "Find the next nonterminal after START in BUFFER.
 If START is in an overlay, find the token which starts next,
-not the current token.
-UNTRUSTED"
+not the current token."
   (save-excursion
     (if buffer (set-buffer buffer))
     (if (not start) (setq start (point)))
@@ -304,7 +302,53 @@ UNTRUSTED"
 If there are more than one in the same location, return the
 smallest token."
   (car (nreverse (semantic-find-nonterminal-by-overlay))))
+
+;;; Nonterminal regions and splicing
+;;
+;; This functionality is needed to take some set of dirty code,
+;; and splice in new tokens after a partial reparse.
+;;
+;; Properties set on the tokens are:
+;;  dirty          - This token is dirty
+;;  dirty-after    - This token, and the white space after it is dirty
+;;  dirty-before   - This token, and the white space before it is dirty
+;;  dirty-children - This token has children that are dirty.
+;;
+;; EXPERIMENTAL
+(defsubst semantic-find-nearby-dirty-tokens (beg end)
+  "Make a special kind of token for dirty whitespace.
+Argument BEG and END is the region to find nearby tokens.
+EXPERIMENTAL"
+  (let ((prev (semantic-find-nonterminal-by-overlay-prev beg))
+	(next (semantic-find-nonterminal-by-overlay-next end)))
+    (if prev (semantic-token-put prev 'dirty-after t))
+    (if next (semantic-token-put next 'dirty-before t))
+    (list prev next)))
 
+(defun semantic-set-tokens-dirty-in-region (beg end)
+  "Mark the region between BEG and END as dirty.
+This is done by finding tokens overlapping the region, and marking
+them dirty.  Regions not covered by a token are then marked as
+dirty-after, meaning the space after that area is dirty.
+This function will be called in an after change hook, and must
+be very fast.
+EXPERIMENTAL"
+  (let ((tromp (semantic-find-nonterminal-by-overlay-in-region beg end))
+	(ttmp nil)
+	)
+    (if (not tromp)
+	;; No tokens hit, setup a dirty region on the screen.
+	(setq tromp (semantic-get-dirty-token beg end))
+      ;; First, mark all fully dirty tokens.
+      (setq ttmp tromp)
+      (while ttmp
+	(and (> beg (semantic-token-start (car tromp)))
+	     (< end (semantic-token-end (car tromp))))
+
+	)
+	)))
+
+
 ;;; Generalized nonterminal searching
 ;;
 ;; These functions will search through nonterminal lists explicity for
@@ -1077,9 +1121,23 @@ This default cococt a cheap concise prototype using C like syntax."
         (concat (semantic-token-name token)
                 "("
                 (if args
-                    (if (stringp (car args))
-                        (mapconcat (lambda (a) a) args ",")
-                      (mapconcat 'car args ","))
+                    (cond ((stringp (car args))
+			   (mapconcat 'identity args ","))
+			  ((semantic-token-p (car args))
+			   (mapconcat
+			    (lambda (a)
+			      (let ((ty (semantic-token-type a)))
+				(cond ((stringp ty)
+				       ty)
+				      ((semantic-token-p ty)
+				       (semantic-prototype-nonterminal ty))
+				      ((consp ty)
+				       (car ty))
+				      (t (error "Concice-prototype")))))
+			    args ", "))
+			  ((consp (car args))
+			   (mapconcat 'car args ","))
+			  (t (error "Concice-prototype")))
                   "")
                 ")")))
      ((eq tok 'variable)
@@ -1313,7 +1371,7 @@ instead of read-only."
 Optional argument CLEAR will clear the cache before bovinating."
   (interactive "P")
   (if clear (semantic-clear-toplevel-cache))
-  (let ((out (semantic-bovinate-toplevel)))
+  (let ((out (semantic-bovinate-toplevel t)))
     (pop-to-buffer "*BOVINATE*")
     (require 'pp)
     (erase-buffer)
