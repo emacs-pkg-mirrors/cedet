@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.36 2003/08/17 02:43:27 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.37 2003/09/04 18:49:23 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -237,6 +237,7 @@ Execute BODY in a location where a value can be placed."
 
 ;;; SOURCE VARIABLE NAME CONSTRUCTION
 ;;
+;;;###autoload
 (defun ede-pmake-varname (obj)
   "Convert OBJ into a variable name name, which converts .  to _."
   (let ((name (oref obj name)))
