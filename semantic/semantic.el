@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.172 2003/04/01 20:08:24 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.173 2003/09/02 14:50:25 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -74,53 +74,10 @@ introduced."
 ;;; Variables and Configuration
 ;;
 (defvar semantic-toplevel-bovine-table nil
-  "Variable that defines how to bovinate top level items in a buffer.
-Set this in your major mode to return function and variable semantic
-types.
-
-The format of a BOVINE-TABLE is:
-
- ( ( NONTERMINAL-SYMBOL1 MATCH-LIST1 )
-   ( NONTERMINAL-SYMBOL2 MATCH-LIST2 )
-   ...
-   ( NONTERMINAL-SYMBOLn MATCH-LISTn )
- 
-Where each NONTERMINAL-SYMBOL is an artificial symbol which can appear
-in any child state.  As a starting place, one of the NONTERMINAL-SYMBOLS
-must be `bovine-toplevel'.
-
-A MATCH-LIST is a list of possible matches of the form:
-
- ( STATE-LIST1
-   STATE-LIST2
-   ...
-   STATE-LISTN )
-
-where STATE-LIST is of the form:
-  ( TYPE1 [ \"VALUE1\" ] TYPE2 [ \"VALUE2\" ] ... LAMBDA )
-
-where TYPE is one of the returned types of the token stream.
-VALUE is a value, or range of values to match against.  For
-example, a SYMBOL might need to match \"foo\".  Some TYPES will not
-have matching criteria.
-
-LAMBDA is a lambda expression which is evaled with the text of the
-type when it is found.  It is passed the list of all buffer text
-elements found since the last lambda expression.  It should return a
-semantic element (see below.)
-
-You can easily avoid learning the format of this variable by
-writing a BNF file.  See notes in `semantic-bnf.el' or the
-\"BNF conversion\" section in the semantic texinfo manual.
-
-For consistency between languages, try to use common return values
-from your parser.  Please reference the \"Semantic Token Style Guide\"
-section in the semantic texinfo manual.")
+  "Variable that defines how to parse top level items in a buffer.
+This variable is for internal use only, and its content depends on the
+external parser used.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table)
-
-(defvar semantic-toplevel-bovine-table-source nil
-  "The .bnf source file the current table was created from.")
-(make-variable-buffer-local 'semantic-toplevel-bovine-table-source)
 
 (defvar semantic-symbol->name-assoc-list
   '((type     . "Types")
@@ -677,23 +634,11 @@ This function returns tokens without overlays."
 	    (working-dynamic-status))))
     result))
 
-;;; Parser action helper functions
+;;; Compatibility:
 ;;
-;; These are functions that can be called from within a bovine table.
-;; Most of these have code auto-generated from other construct in the
-;; BNF.
-(defmacro semantic-lambda (&rest return-val)
-  "Create a lambda expression to return a list including RETURN-VAL.
-The return list is a lambda expression to be used in a bovine table."
-  `(lambda (vals start end)
-     (append ,@return-val (list start end))))
-
-;;; Backwards Compatible API functions
-;;
-;; Semantic 1.x functions used by some parsers.
-;;
-;; Please move away from these functions, and try using
-;; semantic 2.x interfaces instead.
+;; Semantic 1.x parser action helper functions, used by some parsers.
+;; Please move away from these functions, and try using semantic 2.x
+;; interfaces instead.
 ;;
 (defsubst semantic-bovinate-region-until-error
   (start end nonterm &optional depth)
@@ -707,6 +652,8 @@ This is meant for finding variable definitions at the beginning of
 code blocks in methods.  If `bovine-inner-scope' can also support
 commands, use `semantic-bovinate-from-nonterminal-full'."
   (semantic-parse-region start end nonterm depth t))
+(make-obsolete 'semantic-bovinate-region-until-error
+               'semantic-parse-region)
 
 (defsubst semantic-bovinate-from-nonterminal (start end nonterm
 						 &optional depth length)
@@ -722,7 +669,9 @@ Optional argument LENGTH specifies we are only interested in LENGTH tokens."
 
 (defsubst semantic-bovinate-from-nonterminal-full (start end nonterm
 						      &optional depth)
-  "Bovinate from within a nonterminal lambda from START to END.
+  "NOTE: Use `semantic-parse-region' instead.
+
+Bovinate from within a nonterminal lambda from START to END.
 Iterates until all the space between START and END is exhausted.
 Argument NONTERM is the nonterminal symbol to start with.
 If NONTERM is nil, use `bovine-block-toplevel'.
@@ -730,6 +679,8 @@ Optional argument DEPTH is the depth of lists to dive into.
 When used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
   (semantic-parse-region start end nonterm (or depth 1)))
+(make-obsolete 'semantic-bovinate-from-nonterminal-full
+               'semantic-parse-region)
 
 (provide 'semantic)
 
