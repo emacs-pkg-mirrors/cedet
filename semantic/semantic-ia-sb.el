@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.4 2002/03/20 01:59:08 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.5 2002/03/20 02:02:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -138,14 +138,14 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
 
 (defmethod semantic-ia-sb-more-buttons ((context semantic-analyze-context))
   "Show a set of speedbar buttons specific to CONTEXT."
-  (let ((localvars (oref analysis localvariables)))
+  (let ((localvars (oref context localvariables)))
     (when localvars
       (speedbar-insert-separator "Local Variables")
       (semantic-ia-sb-string-list localvars
 				  'speedbar-tag-face
 				  ;; This is from semantic-sb
 				  'semantic-sb-token-jump)))
-  (let ((prefix (oref analysis prefix)))
+  (let ((prefix (oref context prefix)))
     (when prefix
       (speedbar-insert-separator "Prefix")
       (semantic-ia-sb-string-list prefix
