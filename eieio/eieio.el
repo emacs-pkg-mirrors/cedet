@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.108 2001/07/12 18:47:34 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.109 2001/07/13 18:03:51 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta2"
   "Current version of EIEIO.")
@@ -1711,8 +1711,19 @@ This is usually a symbol that starts with `:'."
 	  (list 'eieio-oset obj field store))
 	(defsetf eieio-oref (obj field) (store)
 	  (list 'eieio-oset obj field store))
-	(defsetf oref (obj field) (store)
-	  (list 'eieio-oset obj field store))))
+	;; The below setf method was written by
+	;; Arnd Kohrs <kohrs@acm.org>
+	(define-setf-method oref (obj field) 
+	  (let ((obj-temp (gensym)) 
+		(field-temp (gensym)) 
+		(store-temp (gensym))) 
+	    (list (list obj-temp field-temp) 
+		  (list obj `(quote ,field)) 
+		  (list store-temp) 
+		  (list 'set-slot-value obj-temp field-temp
+			store-temp)
+		  (list 'slot-value obj-temp field-temp))))
+	))
   )
 
 (add-hook 'eieio-hook 'eieio-cl-run-defsetf)
