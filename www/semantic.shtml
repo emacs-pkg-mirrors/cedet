@@ -197,10 +197,10 @@ to ask question, or help develop semantic.
 <h2>Download the Semantic Bovinator</h2>
 
 <P>The latest stable version of Semantic
-   <a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=138008">
-   Semantic 1.4.3</a><br>
+   <a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=154524">
+   Semantic 1.4.4</a><br>
    This version depends on the recent speedbar release: version 0.14
-   beta 3 and eieio version 0.17.
+   beta 4 and eieio version 0.17.
 </p>
 
 <h3>Bovinator Dependencies</h3>
