@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.5 2003/03/10 02:33:43 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.6 2003/04/06 00:47:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,10 +58,10 @@ stores caches in a coded file name in this directory."
 
 ;;;###autoload
 (defcustom semanticdb-persistent-path '(project)
-  "*List of valid paths that semanticdb will cache tokens to.
+  "*List of valid paths that semanticdb will cache tags to.
 When `global-semanticdb-minor-mode' is active, token lists will
 be saved to disk when Emacs exits.  Not all directories will have
-tokens that should be saved.
+tags that should be saved.
 The value should be a list of valid paths.  A path can be a string,
 indicating a directory in which to save a variable.  An element in the
 list can also be a symbol.  Valid symbols are `never', which will
@@ -87,7 +87,7 @@ the database recently written."
    (semantic-token-version :initarg :semantic-token-version
 			   :initform "1.4"
 			   :documentation
-			   "The version of the tokens saved.
+			   "The version of the tags saved.
 The default value is 1.4.  In semantic 1.4 there was no versioning, so
 when those files are loaded, this becomes the version number.
 To save the version number, we must hand-set this version string.")
@@ -340,8 +340,7 @@ point are such that match 0 is the function's argument.
 To replace only the first match (if any), make REGEXP match up to \\'
 and replace a sub-expression, e.g.
   (replace-regexp-in-string \"\\(foo\\).*\\'\" \"bar\" \" foo foo\" nil nil 1)
-    => \" bar foo\"
-"
+    => \" bar foo\""
 
   ;; To avoid excessive consing from multiple matches in long strings,
   ;; don't just call `replace-match' continually.  Walk down the
