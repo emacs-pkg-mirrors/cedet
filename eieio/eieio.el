@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.9
-;; RCS: $Id: eieio.el,v 1.29 1998/10/27 19:00:23 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.30 1998/12/16 16:36:11 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -865,8 +865,8 @@ The next logical method is the method belong to the parent class of
 the currently running method.  If REPLACEMENT-ARGS is non-nil, then
 use them instead of `eieio-generic-call-arglst'.  The generic arg list
 are the arguments passed in at the top level."
-  (if (not 1scoped-class)
-      (error "call-next-method not called within a class specific method"))
+  (if (not scoped-class)
+      (error "Call-next-method not called within a class specific method"))
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
 	(lambdas nil)
 	(mclass (eieiomt-next scoped-class)))
