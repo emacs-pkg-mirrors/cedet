@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: dlg-config.el,v 1.1 1996/08/11 01:17:15 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.2 1996/08/17 00:30:57 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -421,19 +421,23 @@ default to a list of simple faces."
 	       widget-text-button-face
 	       )))
 
-(defun show-an-edit (buffer)
-  "Attempt to put buffer in a minimal window somewhere on the display"
-  (if (not (one-window-p))
-      (display-buffer buffer t)
-    (display-buffer buffer t)
-    (enlarge-window (- (window-height) window-min-height))))
+(defun dlg-show-an-edit (buffer pnt)
+  "Attempt to put buffer in a minimal window somewhere on the display.
+Unfortunately, it currently assumes there is but one dialog window."
+  (switch-to-buffer-other-window buffer)
+  (let ((ob (current-buffer)))
+    (if (> (window-height) window-min-height)
+	(enlarge-window (- window-min-height (window-height))))
+    (set-buffer buffer)
+    (goto-char pnt)
+    (other-window 1)))
 
 (defmethod dlg-edit-config-file ((this data-object-symbol))
   "Reads the currently stored config-file, and starts saving
 the variables we are editing."
   (if (and dlg-auto-edit dlg-config-file (not (oref this protect)))
       (let ((ob (current-buffer))
-	    nb)
+	    nb pnt)
 	(setq nb (set-buffer (find-file-noselect dlg-config-file)))
 	(goto-char (point-min))
 	(if (or (re-search-forward (concat 
@@ -453,16 +457,19 @@ the variables we are editing."
 			  (symbol-name (oref this symbol))
 			  (oref this value))))
 	(beginning-of-line)
+	(setq pnt (point))
 	(set-buffer ob)
-	(show-an-edit nb))))
+	(dlg-show-an-edit nb pnt))))
 
 (defmethod dlg-edit-xdefaults ((this data-face-object) token val)
   "Open and edit the chosen Xdefaults file and store this face
 information there so that faces aren't automatically created at
 startup (thus creating a real slow load)"
   (if (and dlg-auto-edit dlg-xdefaults-file)
-      (save-excursion
+      (let ((ob (current-buffer))
+	    nb pnt)
 	(set-buffer (find-file-noselect dlg-xdefaults-file))
+	(setq nb (current-buffer))
 	(goto-char (point-min))
 	(if (re-search-forward (concat 
 				"emacs.*" 
@@ -476,7 +483,10 @@ startup (thus creating a real slow load)"
 	  (goto-char (point-max))
 	  (insert "\nemacs*" (symbol-name (oref this face))
 		  "." token ":\t" val))
-	(show-an-edit (current-buffer)))))
+	(beginning-of-line)
+	(setq pnt (point))
+	(set-buffer ob)
+	(dlg-show-an-edit nb pnt))))
 
 ;;; end of lisp
 (provide 'dlg-config)
