@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.27 2002/07/17 12:09:02 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.28 2002/07/30 19:57:06 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -978,15 +978,6 @@ removed from the result list."
 (defun semantic-default-java-setup ()
   "Set up a buffer for semantic parsing of the Java language."
 
-  ;; semantic overloaded functions
-  (semantic-install-function-overrides
-   '((prototype-nonterminal . semantic-java-prototype-nonterminal)
-     (find-documentation    . semantic-java-find-documentation)
-     (get-local-variables   . semantic-java-get-local-variables)
-     )
-   t ;; They can be changed in mode hook by more specific ones
-   )
-
   ;; Code generated from java.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-java-bovine-table
         semantic-toplevel-bovine-table-source "java.bnf")
@@ -1026,6 +1017,16 @@ removed from the result list."
   ;; End code generated from java.bnf
 
   (semantic-java-doc-setup)
+ )
+
+;; semantic overloaded functions
+(semantic-install-function-overrides
+ '((prototype-nonterminal . semantic-java-prototype-nonterminal)
+   (find-documentation    . semantic-java-find-documentation)
+   (get-local-variables   . semantic-java-get-local-variables)
+   )
+ t ;; They can be changed by more specific ones
+ 'java-mode
  )
 
 (add-hook 'java-mode-hook 'semantic-default-java-setup)
