@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.9 2004/01/13 03:42:28 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.10 2004/01/13 03:58:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -603,11 +603,31 @@ an indicator that there are more entries for longer lists."
 
 (defvar semantic-idle-completion-region-map
   (let ((k (make-sparse-keymap)))
-    (define-key k "\C-i" #'semantic-ia-complete-symbol)
+    (define-key k "\C-i" #'semantic-idle-completion-TAB)
     ;; NOTE TO SELF:
     ;; Add up/down arrows to select different elements from the list.
     k)
   "Keymap placed on the momentary idle completion overlay.")
+
+(defun semantic-idle-completion-TAB (point)
+  "Complete symbol at POINT with `semantic-ia-complete-symbol'.
+After that, immeidatly recall the idle fcn."
+  (interactive "d")
+  ;; Call our favorite completion engine.
+  (call-interactively 'semantic-ia-complete-symbol point)
+  ;; restart the idle fcn.
+  (semantic-idle-completion-list-default)
+  )
+
+(defun semantic-idle-complete-self-insert (n)
+  "`self-insert-command' that recalls the idle completion fcn.
+N is passed to `self-insert-command'."
+  (interactive "P")
+  ;; Call self insert command
+  (call-interactively 'self-insert-command n)
+  ;; restart the idle fcn
+  (semantic-idle-completion-list-default)
+  )
 
 (defun semantic-idle-create-overlay-with-completion-map (begin end prefix)
   "Create an overlay from BEGIN to END.
@@ -628,7 +648,12 @@ Highlight it, and make it aware of our keymap."
   ;; magical complete-symbol thingy.
   (let ((fcn (lookup-key semantic-idle-completion-region-map
 			 (this-command-keys) nil)))
-    (when fcn (setq this-command fcn)))
+    ;; Reset this-command IFF we found a command.
+    (if (commandp fcn) (setq this-command fcn)
+      ;; We didn't get that kind of command.  Try this:
+      (if (eq this-command 'self-insert-command)
+	  (setq this-command 'semantic-idle-complete-self-insert))
+      ))
   )
 
 (defun semantic-idle-momentary-overlay-with-completion-map (begin end prefix)
