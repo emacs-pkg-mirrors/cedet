@@ -1,10 +1,10 @@
 ;;; ede-speedbar.el --- Speebar viewing of EDE projects
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2003  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.23 2003/02/22 15:30:03 ponced Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.24 2003/09/04 19:33:23 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -33,9 +33,8 @@
 ;;                          when it is expanded.
 
 ;;; Code:
-(require 'ede)
-(require 'eieio-speedbar)
 (require 'speedbar)
+(require 'eieio-speedbar)
 
 ;;; Speedbar support mode
 ;;
@@ -93,6 +92,7 @@
 		       'ede-speedbar-menu
 		       "Project"
 		       'ede-speedbar-toplevel-buttons)
+
 
 (defun ede-speedbar ()
   "EDE development environment project browser for speedbar."
