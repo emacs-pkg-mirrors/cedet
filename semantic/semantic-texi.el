@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.17 2003/08/23 21:45:05 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.18 2003/08/25 17:14:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -304,20 +304,25 @@ If TAG is nil, determine a tag based on the current position."
   (unless (semantic-tag-of-class-p tag 'def)
     (error "Only deffns (or defun or defvar) can be updated"))
   (let* ((name (semantic-tag-name tag))
-	 (tags (mapcar
-                #'cdr
-                ;; `semanticdb-find-first-tag-by-name' returns a
-                ;; list ((DB-TABLE . TOKEN) ...)
-                (semanticdb-brute-deep-find-tags-by-name name nil t)))
+	 (tags (apply
+		#'append
+		(mapcar
+		 #'cdr
+		 ;; `semanticdb-find-first-tag-by-name' returns a
+		 ;; list ((DB-TABLE . TOKEN) ...)
+		 (semanticdb-brute-deep-find-tags-by-name name nil t))))
 	 (docstring nil)
 	 (doctag nil))
     (save-excursion
       (while (and tags (not docstring))
-	(set-buffer (semantic-tag-buffer (car tags)))
-	(unless (eq major-mode 'texinfo-mode)
-	  (setq docstring (semantic-find-documentation (car tags))
-		doctag (if docstring (car tags) nil)))
-	(setq tags (cdr tags))))
+	(let ((sourcetag (car tags)))
+	  ;; There could be more than one!  Come up with a better
+	  ;; solution someday.
+	  (set-buffer (semantic-tag-buffer sourcetag))
+	  (unless (eq major-mode 'texinfo-mode)
+	    (setq docstring (semantic-documentation-for-tag sourcetag)
+		  doctag (if docstring sourcetag nil)))
+	  (setq tags (cdr tags)))))
     (unless docstring
       (error "Could not find documentation for %s" (semantic-tag-name tag)))
     ;; If we have a string, do the replacement.
@@ -339,7 +344,7 @@ The current buffer must include TAG."
   (semantic-bovinate-toplevel t)
   (unless tag
     (setq tag (semantic-current-tag)))
-  (unless (semantic-find-documentation tag)
+  (unless (semantic-documentation-for-tag tag)
     (error "Cannot find interesting documentation to use for %s"
 	   (semantic-tag-name tag)))
   (let* ((name (semantic-tag-name tag))
