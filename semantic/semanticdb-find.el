@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.1 2003/04/04 02:47:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.2 2003/04/06 00:51:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -105,56 +105,8 @@
 
 ;;; Code:
 
-;;; API Functions
+;;; Path Translations
 ;;
-;; These routines are apropriate for applications to use.
-(defun semanticdb-find-tags-collector (function &optional path find-file-match)
-  "Search for all tags returned by FUNCTION over PATH.
-See `semanticdb-find-translate-path' for details on PATH.
-FIND-FILE-MATCH indicates that any time a match is found, the file
-associated with that tag should be loaded into a buffer."
-  (let ((tables (semanticdb-find-translate-path path))
-	(found nil))
-    (while tables
-      (let ((match (funcall function (car tables))))
-	(when match
-	  (when find-file-match
-	    (save-excursion (semanticdb-set-buffer (car tables))))
-	  (setq found (cons (cons (car tables) match) found))
-	  ))
-      (setq tables (cdr tables)))
-    found))
-
-(defun semanticdb-find-tags-by-name (name &optional path find-file-match)
-  "Search for all tags matching NAME on PATH.
-See `semanticdb-find-translate-path' for details on PATH.
-FIND-FILE-MATCH indicates that any time a match is found, the file
-associated with that tag should be loaded into a buffer."
-  (semanticdb-find-tags-collector
-   (lambda (table)
-     (semanticdb-find-tags-by-name-method table name))
-   path find-file-match))
-
-(defun semanticdb-find-tags-by-name-regexp (regexp &optional path find-file-match)
-  "Search for all tags matching REGEXP on PATH.
-See `semanticdb-find-translate-path' for details on PATH.
-FIND-FILE-MATCH indicates that any time a match is found, the file
-associated with that tag should be loaded into a buffer."
-  (semanticdb-find-tags-collector
-   (lambda (table)
-     (semanticdb-find-tags-by-name-regexp-method table regexp))
-   path find-file-match))
-
-(defun semanticdb-find-tags-for-completion (prefix &optional path find-file-match)
-  "Search for all tags matching PREFIX on PATH.
-See `semanticdb-find-translate-path' for details on PATH.
-FIND-FILE-MATCH indicates that any time a match is found, the file
-associated with that tag should be loaded into a buffer."
-  (semanticdb-find-tags-collector
-   (lambda (table)
-     (semanticdb-find-tags-for-completion-method table prefix))
-   path find-file-match))
-
 ;;; OVERLOAD Functions
 ;;
 ;; These routines needed to be overloaded by specific language modes.
@@ -194,7 +146,10 @@ Default action as described in `semanticdb-find-translate-path'."
       (let* ((nexttable (semanticdb-find-table-for-include (car includetags)))
 	     (moreincludes nil))
 	;; (message "Scanning %s" (semantic-tag-name (car includetags)))
-	(when (and nexttable (not (memq nexttable matchedtables)))
+	(when (and nexttable
+		   (not (memq nexttable matchedtables))
+		   (semanticdb-equivalent-mode nexttable (current-buffer))
+		   )
 	  (setq moreincludes (semantic-find-tags-included (semanticdb-get-tags nexttable)))
 	  ;; Add to list of tables
 	  (add-to-list 'matchedtables nexttable t)
@@ -253,6 +208,69 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 	(setq roots (cdr roots))))
     ans))
 
+;;; API Functions
+;;
+;; These routines are apropriate for applications to use.
+(defun semanticdb-find-tags-collector (function &optional path find-file-match)
+  "Search for all tags returned by FUNCTION over PATH.
+See `semanticdb-find-translate-path' for details on PATH.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (let ((tables (semanticdb-find-translate-path path))
+	(found nil))
+    (while tables
+      (let ((match (funcall function (car tables))))
+	(when match
+	  (when find-file-match
+	    (save-excursion (semanticdb-set-buffer (car tables))))
+	  (setq found (cons (cons (car tables) match) found))
+	  ))
+      (setq tables (cdr tables)))
+    found))
+
+(defun semanticdb-find-tags-by-name (name &optional path find-file-match)
+  "Search for all tags matching NAME on PATH.
+See `semanticdb-find-translate-path' for details on PATH.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-find-tags-by-name-method table name))
+   path find-file-match))
+
+(defun semanticdb-find-tags-by-name-regexp (regexp &optional path find-file-match)
+  "Search for all tags matching REGEXP on PATH.
+See `semanticdb-find-translate-path' for details on PATH.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-find-tags-by-name-regexp-method table regexp))
+   path find-file-match))
+
+(defun semanticdb-find-tags-for-completion (prefix &optional path find-file-match)
+  "Search for all tags matching PREFIX on PATH.
+See `semanticdb-find-translate-path' for details on PATH.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-find-tags-for-completion-method table prefix))
+   path find-file-match))
+
+;;; Specialty Search Routines
+;;
+(defun semanticdb-find-tags-external-children-of-type
+  (type &optional path find-file-match)
+  "Search for all tags defined outside of TYPE w/ TYPE as a parent.
+See `semanticdb-find-translate-path' for details on PATH.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-find-tags-external-children-of-type-method table type))
+   path find-file-match))
+
 ;;; METHODS
 ;;
 ;; Default methods for semanticdb database and table objects.
@@ -272,6 +290,13 @@ Returns a table of all matching tags."
   "In TABLE, find all occurances of tags matching PREFIX.
 Returns a table of all matching tags."
   (semantic-find-tags-for-completion prefix (semanticdb-get-tags table)))
+
+(defmethod semanticdb-find-tags-external-children-of-type-method
+   ((table semanticdb-table) parent)
+   "In TABLE, find all occurances of tags whose TYPE is PARENT.
+Returns a table of all matching tags."
+   (semantic-find-tags-external-children-of-type
+    parent (semanticdb-get-tags table)))
 
 (provide 'semanticdb-find)
 
