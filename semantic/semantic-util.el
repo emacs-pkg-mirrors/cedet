@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.34 2000/12/07 04:50:39 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.35 2000/12/08 03:37:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -932,6 +932,7 @@ instead of read-only."
 				   (aref (car c) 1)
 				   (current-buffer))))
     (setcar c o)
+    (semantic-overlay-put o 'semantic token)
     (if (eq (semantic-token-token token) 'type)
 	(semantic-overlay-list (semantic-token-type-parts token)))
     ))
@@ -980,6 +981,39 @@ Optional argument CLEAR will clear the cache before bovinating."
     (require 'pp)
     (erase-buffer)
     (insert (pp-to-string out))))
+
+(defun bovinate-nonterminal (&optional token)
+  "Bovinate the nonterminal TOKEN without reparsing the whole buffer.
+The newly created token is spliced into the cache and TOKEN is destroyed."
+  (interactive)
+  (if (not token) (setq token (semantic-current-nonterminal)))
+  (if token
+      (let* ((flexbits (semantic-flex (semantic-token-start token)
+				      (semantic-token-end token)))
+	     ;; For embeded tokens (type parts, for example) we need a
+	     ;; different symbol.  Come up with a plan to solve this.
+	     (nonterminal 'bovine-toplevel)
+	     (new (semantic-bovinate-nonterminal flexbits
+						 semantic-toplevel-bovine-table
+						 nonterminal)))
+	(if (not new)
+	    ;; Clever reparse failed, queuing full reparse.
+	    (setq semantic-toplevel-bovine-cache-check t)
+	  (setq new (car (cdr new)))
+	  (semantic-delete-overlay-maybe (semantic-token-overlay token))
+	  (setcdr token (cdr new))
+	  (setcar token (car new))
+	  (semantic-raw-to-cooked-token token))
+	)))
+
+(defun semantic-describe-token (&optional token)
+  "Describe TOKEN in the minibuffer.
+If TOKEN is nil, describe the token under the cursor."
+  (interactive)
+  (if (not token) (setq token (semantic-current-nonterminal)))
+  (if token
+      (message (semantic-summarize-nonterminal token)))
+  )
 
 ;;; Hacks
 ;;
