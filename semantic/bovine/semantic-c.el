@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.34 2004/07/23 18:37:33 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.35 2004/09/08 14:07:16 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -500,7 +500,8 @@ handled.  A class is abstract iff it's destructor is virtual."
 	       )
 	  )))
    ((eq (semantic-tag-class tag) 'function)
-    (semantic-tag-get-attribute tag :pure-virtual-flag))
+    (or (semantic-tag-get-attribute tag :pure-virtual-flag)
+        (member "virtual" (semantic-tag-modifiers tag))))
    (t (semantic-tag-abstract-p-default tag parent))))
 
 (define-mode-local-override semantic-analyze-dereference-metatype
