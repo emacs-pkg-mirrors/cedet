@@ -1,10 +1,10 @@
 ;;; ede-proj-elisp.el --- EDE Generic Project Emacs Lisp support
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.24 2003/12/22 16:01:36 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.25 2004/01/19 20:59:00 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -79,6 +79,22 @@ A lisp target may be one general program with many separate lisp files in it.")
 	 :name "xemacs"
 	 :variables '(("EMACS" . "xemacs")))
   "Compile Emacs Lisp programs with XEmacs.")
+
+;;; Claiming files
+(defmethod ede-buffer-mine ((this ede-proj-target-elisp) buffer)
+  "Return t if object THIS lays claim to the file in BUFFER.
+Lays claim to all .elc files that match .el files in this target."
+  (if (string-match "\\.elc$" (buffer-file-name buffer))
+      (let ((fname 
+	     (concat
+	      (file-name-sans-extension (buffer-file-name buffer))
+	      ".el")
+	     ))
+	;; Is this in our list.
+	(member fname (oref this auxsource))
+	)
+    (call-next-method) ; The usual thing.
+    ))
 
 ;;; Emacs Lisp Compiler
 ;;; Emacs Lisp Target
