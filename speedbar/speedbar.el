@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.165 2000/04/25 18:03:45 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.166 2000/05/13 15:20:46 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -202,6 +202,10 @@
 
 (require 'assoc)
 (require 'easymenu)
+
+(condition-case nil
+    (require 'image)
+  (error nil))
 
 (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
   "Non-nil if we are running in the XEmacs environment.")
@@ -926,10 +930,15 @@ This basically creates a sparse keymap, and makes it's parent be
   )
 
 (defvar speedbar-easymenu-definition-base
-  '("Speedbar"
+  `("Speedbar"
     ["Update" speedbar-refresh t]
     ["Auto Update" speedbar-toggle-updates
      :style toggle :selected speedbar-update-flag]
+    ,(if (and (or (fboundp 'defimage)
+		  (fboundp 'make-image-specifier))
+	      window-system)
+	 ["Use Images" speedbar-toggle-images
+	  :style toggle :selected speedbar-use-images])
     )
   "Base part of the speedbar menu.")
 
@@ -938,6 +947,9 @@ This basically creates a sparse keymap, and makes it's parent be
     ["Show All Files" speedbar-toggle-show-all-files
      :style toggle :selected speedbar-show-unknown-files]
     ["Expand File Tags" speedbar-expand-line
+     (save-excursion (beginning-of-line)
+		     (looking-at "[0-9]+: *.\\+. "))]
+    ["Flush Cache & Expand" speedbar-flush-expand-line
      (save-excursion (beginning-of-line)
 		     (looking-at "[0-9]+: *.\\+. "))]
     ["Contract File Tags" speedbar-contract-line
@@ -1960,6 +1972,12 @@ variable `speedbar-obj-alist'."
   (if speedbar-update-flag
       (speedbar-disable-update)
     (speedbar-enable-update)))
+
+(defun speedbar-toggle-images ()
+  "Toggle automatic update for the speedbar frame."
+  (interactive)
+  (setq speedbar-use-images (not speedbar-use-images))
+  (speedbar-refresh))
 
 (defun speedbar-toggle-sorting ()
   "Toggle automatic update for the speedbar frame."
@@ -3442,18 +3460,25 @@ directory with these items."
 	  nil))
       (speedbar-do-function-pointer)))
 
-(defun speedbar-expand-line ()
-  "Expand the line under the cursor."
-  (interactive)
+(defun speedbar-expand-line (arg)
+  "Expand the line under the cursor.
+With universal argument ARG, flush cached data."
+  (interactive "P")
   (beginning-of-line)
-  (condition-case nil
-      (progn
-	(re-search-forward ":\\s-*.\\+. "
-			   (save-excursion (end-of-line) (point)))
-	(forward-char -2)
-	(speedbar-do-function-pointer))
-    (error (speedbar-position-cursor-on-line))))
-
+  (let ((speedbar-power-click arg))
+    (condition-case nil
+	(progn
+	  (re-search-forward ":\\s-*.\\+. "
+			     (save-excursion (end-of-line) (point)))
+	  (forward-char -2)
+	  (speedbar-do-function-pointer))
+      (error (speedbar-position-cursor-on-line)))))
+  
+(defun speedbar-flush-expand-line ()
+  "Expand the line under the cursor and flush any cached information."
+  (interactive)
+  (speedbar-expand-line 1))
+  
 (defun speedbar-contract-line ()
   "Contract the line under the cursor."
   (interactive)
@@ -3735,7 +3760,7 @@ functions to do caching and flushing if appropriate."
       (while (and (eq ret t) dtf)
 	(setq ret
 	      (if (fboundp (car (car dtf)))
-		  (funcall (car (car dtf)) file)
+		  (funcall (car (car dtf)) (buffer-file-name))
 		t))
 	(if (eq ret t)
 	    (setq dtf (cdr dtf))))
@@ -3962,6 +3987,9 @@ regular expression EXPR"
 (defvar speedbar-buffer-easymenu-definition
   '(["Jump to buffer" speedbar-edit-line t]
     ["Expand File Tags" speedbar-expand-line
+     (save-excursion (beginning-of-line)
+		     (looking-at "[0-9]+: *.\\+. "))]
+    ["Flush Cache & Expand" speedbar-flush-expand-line
      (save-excursion (beginning-of-line)
 		     (looking-at "[0-9]+: *.\\+. "))]
     ["Contract File Tags" speedbar-contract-line
@@ -4198,6 +4226,8 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 ;;
 
 ;;; Some images if defimage is available:
+(eval-when-compile
+
 (if (fboundp 'defimage)
     (defalias 'defimage-speedbar 'defimage)
 
@@ -4210,6 +4240,7 @@ Argument IMAGESPEC is the list defining the image to create.
 Argument DOCSTRING is the documentation for VARIABLE."
   `(defvar ,variable nil ,docstring))
 
+;; ELSE
 (defun speedbar-find-image-on-load-path (image)
   "Find the image file IMAGE on the load path."
   (let ((l load-path)
@@ -4242,54 +4273,54 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
        (error nil))
      ,docstring))
 
-))
+)))
 
 (defimage-speedbar speedbar-directory-+
-  ((:type xpm :file "sb-dir+.xpm"))
+  ((:type xpm :file "sb-dir+.xpm" :ascent center))
   "Image used for closed directories with stuff in them.")
 
 (defimage-speedbar speedbar-directory--
-  ((:type xpm :file "sb-dir-.xpm"))
+  ((:type xpm :file "sb-dir-.xpm" :ascent center))
   "Image used for open directories with stuff in them.")
 
 (defimage-speedbar speedbar-file-+
-  ((:type xpm :file "sb-file+.xpm"))
+  ((:type xpm :file "sb-file+.xpm" :ascent center))
   "Image used for closed files with stuff in them.")
 
 (defimage-speedbar speedbar-file--
-  ((:type xpm :file "sb-file-.xpm"))
+  ((:type xpm :file "sb-file-.xpm" :ascent center))
   "Image used for open files with stuff in them.")
 
 (defimage-speedbar speedbar-file-
-  ((:type xpm :file "sb-file.xpm"))
+  ((:type xpm :file "sb-file.xpm" :ascent center))
   "Image used for files that can't be opened.")
 
 (defimage-speedbar speedbar-tag-
-  ((:type xpm :file "sb-tag.xpm"))
+  ((:type xpm :file "sb-tag.xpm" :ascent center))
   "Image used for tags.")
 
 (defimage-speedbar speedbar-tag-+
-  ((:type xpm :file "sb-tag+.xpm"))
+  ((:type xpm :file "sb-tag+.xpm" :ascent center))
   "Image used for closed tag groups.")
 
 (defimage-speedbar speedbar-tag--
-  ((:type xpm :file "sb-tag-.xpm"))
+  ((:type xpm :file "sb-tag-.xpm" :ascent center))
   "Image used for open tag groups.")
 
 (defimage-speedbar speedbar-tag-gt
-  ((:type xpm :file "sb-tag-gt.xpm"))
+  ((:type xpm :file "sb-tag-gt.xpm" :ascent center))
   "Image used for open tag groups.")
 
 (defimage-speedbar speedbar-tag-v
-  ((:type xpm :file "sb-tag-v.xpm"))
+  ((:type xpm :file "sb-tag-v.xpm" :ascent center))
   "Image used for open tag groups.")
 
 (defimage-speedbar speedbar-tag-type
-  ((:type xpm :file "sb-tag-type.xpm"))
+  ((:type xpm :file "sb-tag-type.xpm" :ascent center))
   "Image used for open tag groups.")
 
 (defimage-speedbar speedbar-mail
-  ((:type xpm :file "sb-mail.xpm"))
+  ((:type xpm :file "sb-mail.xpm" :ascent center))
   "Image used for open tag groups.")
 
 (defvar speedbar-expand-image-button-alist
@@ -4332,7 +4363,8 @@ If we have an image associated with it, use that image."
 	      (add-text-properties start (+ start (length bt))
 				   (list 'display (symbol-value (cdr a))
 					 'rear-nonsticky (list 'display))))
-	  (message "Bad text [%s]" (buffer-substring start (+ start length)))))))
+	  ;(message "Bad text [%s]" (buffer-substring start (+ start length)))
+	  ))))
 
 
 ;; some edebug hooks
