@@ -24,13 +24,13 @@ info_TEXINFOS=cogre.texi
 MAKEINFO=makeinfo
 misc_MISC=INSTALL ChangeLog
 hacks_LISP=picture-hack.el
-COGRE_LISP=cogre.el cogre-uml.el uml-create.el cogre-lay.el
+COGRE_LISP=cogre.el cogre-uml.el uml-create.el
 VERSION=0.4
 DISTDIR=$(top)COGRE-$(VERSION)
 
 
 
-all: wisent cogre-defs.el dot Mode cogre.info misc hacks COGRE
+all: wisent autoloads dot Mode cogre.info misc hacks COGRE
 
 .PHONY: wisent
 wisent: $(wisent_SEMANTIC_GRAMMAR)
@@ -42,14 +42,14 @@ wisent: $(wisent_SEMANTIC_GRAMMAR)
 	@echo "(require 'semantic-grammar)" >> grammar-make-script
 	${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $^
 
-.PHONY: cogre-defs.el
-cogre-defs.el: $(LOADDEFS)
+.PHONY: autoloads
+autoloads: $(LOADDEFS)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
 .PHONY: dot
 dot: $(dot_LISP)

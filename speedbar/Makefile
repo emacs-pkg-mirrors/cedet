@@ -25,16 +25,16 @@ DISTDIR=$(top)speedbar-$(VERSION)
 
 
 
-all: speedbar-defs.el speedbar speedbar.info
+all: autoloads speedbar speedbar.info
 
-.PHONY: speedbar-defs.el
-speedbar-defs.el: $(LOADDEFS)
+.PHONY: autoloads
+autoloads: $(LOADDEFS)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
 .PHONY: speedbar
 speedbar: $(speedbar_LISP)

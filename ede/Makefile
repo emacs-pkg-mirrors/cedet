@@ -26,16 +26,16 @@ DISTDIR=$(top)EDE-$(VERSION)
 
 
 
-all: ede-loaddefs.el ede aux-lisp ede.info
+all: autoloads ede aux-lisp ede.info
 
-.PHONY: ede-loaddefs.el
-ede-loaddefs.el: $(LOADDEFS)
+.PHONY: autoloads
+autoloads: $(LOADDEFS)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
 .PHONY: ede
 ede: $(ede_LISP)

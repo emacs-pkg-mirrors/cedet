@@ -31,16 +31,16 @@ DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: semantic-al.el wy scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
+all: autoloads wy scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
 
-.PHONY: semantic-al.el
-semantic-al.el: $(LOADDEFS)
+.PHONY: autoloads
+autoloads: $(LOADDEFS)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
 .PHONY: maintenance
 maintenance: $(maintenance_LISP)
