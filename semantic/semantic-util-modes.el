@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.51 2005/01/11 16:56:59 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.52 2005/02/13 21:55:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -757,8 +757,64 @@ Use the command `semantic-stickyfunc-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-stickyfunc-mode)
 
 (defcustom semantic-stickyfunc-indent-string
-  (if window-system
-      "    "
+  (if (and window-system (not (featurep 'xemacs)))
+      (concat
+       (condition-case nil
+	   ;; Test scroll bar location
+	   (let ((charwidth (frame-char-width))
+		 (scrollpos (frame-parameter (selected-frame)
+					     'vertical-scroll-bars))
+		 )
+	     (if (or (eq scrollpos 'left)
+		     ;; Now wait a minute.  If you turn scroll-bar-mode
+		     ;; on, then off, the new value is t, not left.
+		     ;; Will this mess up older emacs where the default
+		     ;; was on the right?  I don't think so since they don't
+		     ;; support a header line.
+		     (eq scrollpos t))
+		 (let ((w (when (boundp 'scroll-bar-width)
+			    (symbol-value 'scroll-bar-width))))
+		 
+		   (if (not w)
+		       (setq w (frame-parameter (selected-frame)
+						'scroll-bar-width)))
+
+		   ;; in 21.2, the frame parameter is sometimes empty
+		   ;; so we need to get the value here.
+		   (if (not w)
+		       (setq w (+ (get 'scroll-bar-width 'x-frame-parameter)
+				  ;; In 21.4, or perhaps 22.1 the x-frame
+				  ;; parameter is different from the frame
+				  ;; parameter by only 1 pixel.
+				  1)))
+
+		   (if (not w)
+		       "  "
+		     (setq w (+ 2 w))   ; Some sort of border around
+					; the scrollbar.
+		     (make-string (/ w charwidth) ? )))
+	       ""))
+	 (error ""))
+       (condition-case nil
+	   ;; Test fringe size.
+	   (let* ((f (window-fringes))
+		  (fw (car f))
+		  (numspace (/ fw charwidth))
+		  )
+	     (make-string numspace ? ))
+	 (error
+	  ;; Well, the fancy new Emacs functions failed.  Try older
+	  ;; tricks.
+	  (condition-case nil
+	      ;; I'm not so sure what's up with the 21.1-21.3 fringe.
+	      ;; It looks to be about 1 space wide.
+	      (if (get 'fringe 'face)
+		  " "
+		"")
+	    (error ""))))
+       )
+    ;; Not Emacs or a window system means no scrollbar or fringe,
+    ;; and perhaps not even a header line to worry about.
     "")
   "*String used to indent the stickyfunc header.
 Customize this string to match the space used by scrollbars and
@@ -884,6 +940,13 @@ If there is no function, disable the header line."
       (setq str (replace-match "%%" t t str 0)
 	    start (1+ (match-end 0)))
       )
+    ;; In 21.4 (or 22.1) the heder doesn't expand tabs.  Hmmmm.
+    ;; We should replace them here.
+    ;;
+    ;; This hack assumes that tabs are kept smartly at tab boundaries
+    ;; instead of in a tab boundary where it might only represent 4 spaces.
+    (while (string-match "\t" str start)
+      (setq str (replace-match "        " t t str 0)))
     str))
 
 (semantic-add-minor-mode 'semantic-stickyfunc-mode
