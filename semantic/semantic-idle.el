@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.19 2004/02/23 13:43:12 ponced Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.20 2004/02/26 15:33:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -115,6 +115,13 @@ If ARG is nil, then toggle."
   "Non-nil if idle-scheduler minor mode is enabled.
 Use the command `semantic-idle-scheduler-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-idle-scheduler-mode)
+
+(defcustom semantic-idle-scheduler-max-buffer-size 0
+  "*Maximum size in bytes of buffers where idle-scheduler is enabled.
+If this value is less than or equal to 0, idle-scheduler is enabled in
+all buffers regardless of their size."
+  :group 'semantic
+  :type 'number)
 
 (defsubst semantic-idle-scheduler-enabled-p ()
   "Return non-nil if idle-scheduler is enabled for this buffer.
@@ -282,13 +289,6 @@ This will move the parse message into the modeline."
   :group 'semantic
   :type 'boolean)
 
-(defcustom semantic-idle-scheduler-max-buffer-size 0
-  "*Maximum size in bytes of buffers automatically reparsed.
-If this value is less than or equal to 0, buffers are automatically
-reparsed regardless of their size."
-  :group 'semantic
-  :type 'number)
-
 (defvar semantic-before-idle-scheduler-reparse-hooks nil
   "Hooks run before option `semantic-idle-scheduler' begins parsing.
 If any hook throws an error, this variable is reset to nil.
@@ -373,7 +373,7 @@ This routines creates the following functions and variables:"
 	(func 	(intern (concat (symbol-name name) "-idle-function")))
 	)
 
-    `(progn
+    `(eval-and-compile
        (defun ,global (&optional arg)
 	 ,(concat "Toggle global use of option `" (symbol-name mode) "'.
 If ARG is positive, enable, if it is negative, disable.
