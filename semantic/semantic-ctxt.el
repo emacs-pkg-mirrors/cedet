@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.24 2003/03/20 14:24:19 ponced Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.25 2003/03/28 08:54:20 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; Semantic, as a tool, provides a nice list of searchable tokens.
+;; Semantic, as a tool, provides a nice list of searchable tags.
 ;; That information can provide some very accurate answers if the current
 ;; context of a position is known.
 ;;
@@ -55,11 +55,11 @@ Used for identifying arguments to functions.")
   "Move point up one context from POINT.
 Return non-nil if there are no more context levels.
 Overloaded functions using `up-context' take no parameters.
-BOUNDS-TYPE is a symbol representing a token type to restrict
+BOUNDS-TYPE is a symbol representing a tag class to restrict
 movement to.  If this is nil, 'function is used.
-This will find the smallest token of that type (function, variable,
+This will find the smallest tag of that class (function, variable,
 type, etc) and make sure non-nil is returned if you cannot
-go up past the bounds of that token."
+go up past the bounds of that tag."
   (if point (goto-char point))
   (let ((nar (semantic-current-nonterminal-of-type (or bounds-type 'function)))
 	(s (semantic-fetch-overload 'up-context)))
@@ -141,10 +141,10 @@ Return non-nil if there is no upper context."
 
 (defun semantic-get-local-variables (&optional point)
   "Get the local variables based on POINT's context.
-Local variables are returned in Semantic token format.
+Local variables are returned in Semantic tag format.
 Be default, this calculates the current bounds using context blocks
 navigation, then uses the parser with `bovine-inner-scope' to
-parse tokens at the beginning of the context.
+parse tags at the beginning of the context.
 This can be overriden with `get-local-variables'."
   ;; The working status is to let the parser work properly
   (working-status-forms
@@ -165,7 +165,7 @@ This can be overriden with `get-local-variables'."
 (defun semantic-get-local-variables-default (&optional point)
   "Get local values from a specific context.
 Uses the bovinator with the special top-symbol `bovine-inner-scope'
-to collect tokens, such as local variables or prototypes."
+to collect tags, such as local variables or prototypes."
   (let ((vars nil)
         ;; We want nothing to do with funny syntaxing while doing this.
         (semantic-unmatched-syntax-hook nil))
@@ -183,55 +183,43 @@ to collect tokens, such as local variables or prototypes."
 (defun semantic-get-local-arguments (&optional point)
   "Get arguments (variables) from the current context at POINT.
 Parameters are available if the point is in a function or method.
-This function returns a list of tokens.  If the local token returns
-just a list of strings, then this function will convert them to tokens.
-Part of this behavior can be overridden with `get-local-arguments'."
+Return a list of tags unlinked from the originating buffer.
+Arguments are obtained by overriding `get-local-arguments', or by the
+default function `semantic-get-local-arguments-default'.  This, must
+return a list of tags, or a list of strings that will be converted to
+tags."
   (if point (goto-char point))
-  (let* ((s (semantic-fetch-overload 'get-local-arguments))
-	 (case-fold-search semantic-case-fold)
-	 (params (if s (funcall s)
-		   (semantic-get-local-arguments-default)))
-	 (rparams nil)
-         tok)
-    ;; convert unsafe params to the right thing.
-    (while params
-      (setq tok     (car params)
-            params  (cdr params)
-            rparams (cons
-                     (cond
-                      ((semantic-token-p tok)
-                       (when (semantic-overlay-p
-                              (semantic-token-overlay tok))
-                         ;; Return a copy of token without overlay.
-                         ;; Don't use `semantic-deoverlay-token' here
-                         ;; because the original overlay must be kept!
-                         ;; TODO: cleanup that code to use the new tag API!
-                         (setq tok (copy-sequence tok))
-                         (setcar (semantic-token-overlay-cdr tok)
-                                 (vector (semantic-token-start tok)
-                                         (semantic-token-end tok))))
-                       tok)
-                      ((stringp (car params))
-                       (semantic-tag-new-variable
-                        (car params) nil nil)
-                       )
-                      (t
-                       (error "Unknown parameter element")))
-                     rparams)))
-    (nreverse rparams)))
+  (let* ((case-fold-search semantic-case-fold)
+	 (args (funcall (or (semantic-fetch-overload 'get-local-arguments)
+                            'semantic-get-local-arguments-default)))
+	 arg tags)
+    ;; Convert unsafe arguments to the right thing.
+    (while args
+      (setq arg  (car args)
+            args (cdr args)
+            tags (cons (cond ((semantic-tag-p arg)
+                              ;; Return a copy of tag without overlay.
+                              ;; The overlay is preserved.
+                              (semantic-tag-copy arg))
+                             ((stringp arg)
+                              (semantic-tag-new-variable arg nil nil))
+                             (t
+                              (error "Unknown parameter element")))
+                       tags)))
+    (nreverse tags)))
 (put 'semantic-get-local-arguments 'semantic-overload 'get-local-arguments)
 
 (defun semantic-get-local-arguments-default (&optional point)
   "Get arguments (variables) from the current context.
 Parameters are available if the point is in a function or method."
   (if point (goto-char point))
-  (let ((tok (semantic-current-nonterminal)))
-    (if (and tok (eq (semantic-token-token tok) 'function))
-	(semantic-token-function-args tok))))
+  (let ((tag (semantic-current-nonterminal)))
+    (if (and tag (semantic-tag-of-class-p tag 'function))
+	(semantic-tag-function-arguments tag))))
 
 (define-overload semantic-get-all-local-variables (&optional point)
   "Get all local variables for this context, and parent contexts.
-Local variables are returned in Semantic token format.
+Local variables are returned in Semantic tag format.
 Be default, this gets local variables, and local arguments.
 Optional argument POINT is the location to start getting the variables from.")
 
