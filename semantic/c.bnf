@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.58 2002/05/07 01:27:22 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.59 2002/06/13 15:05:21 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -91,6 +91,8 @@
 %put INLINE summary "Function Modifier: inline <return  type> <name>(...) {...};"
 %token VIRTUAL "virtual"
 %put VIRTUAL summary "Method Modifier: virtual <type> <name>(...) ..."
+%token MUTABLE "mutable"
+%put MUTABLE summary "Member Declaration Modifier: mutable <type> <name> ..."
 
 %token STRUCT "struct"
 %put STRUCT summary "Structure Type Declaration: struct [name] { ... };"
@@ -217,8 +219,8 @@ macro-or-include : DEFINE symbol opt-define-arglist opt-expression
 			(ASSOC const t)
 			nil
 			)
-		 | INCLUDE LESS filename GREATER
-		   ( ,$3 include t nil )
+		 | INCLUDE system-include
+		   ( (substring $2 1 (1- (length $2)))  include t nil )
 		 | INCLUDE string
 		   ( (read $2) include nil nil )
 		 ;
@@ -235,23 +237,6 @@ define : HASH DEFINE symbol opt-expression
 	      nil
 	      )
        ;
-
- # Some token symbols are also header files like FLOAT.  Add them here.
-filename-prefix : symbol
-		| FLOAT ( "float" )
-		;
-
-filename-extension : PERIOD symbol
-		     ( (concat $2 $3) )
-		   | EMPTY
-		     ( "" )
-		   ;
-
-filename : filename-prefix DIVIDE filename
-	   ( (concat (car $1) $2 (car $3)) )
-	 | filename-prefix filename-extension
-	   ( (concat (car $1) (car $2)) )	
-	 ;
 
 # In C++, structures can have the same things as classes.
 # So delete this somday in the figure.
@@ -339,6 +324,8 @@ namespacesubparts : open-paren "{"
 		    ( $1 protection )
 		  # In C++, this label in a classsubpart represents
 		  # PUBLIC or PRIVATE bits.  Ignore them for now.
+		  | template
+		  | using
 		  | EMPTY
 		  ;
 
@@ -403,8 +390,11 @@ type : typesimple SEMICOLON
        ( $2 type $1 $3 nil nil nil )
      ;
 
+# Using is vaguely like an include statement in the named portions
+# of the code.  We should probably specify a new token type for this.
 using : USING typeformbase SEMICOLON
 	( nil )
+      | USING symbol COLON COLONG typeformbase SEMICOLON;
       ;
 
 template : TEMPLATE template-specifier opt-friend template-definition
@@ -504,6 +494,7 @@ metadeclmod : METADECLMOD
 	    ;
 
 METADECLMOD : VIRTUAL
+	    | MUTABLE
 	    ;
 
 # C++: A type can be modified into a reference by "&"
@@ -570,7 +561,10 @@ var-or-func-decl : func-decl
 		   ( ,$1 )
 		 ;
 
-func-decl : opt-stars opt-class opt-destructor functionname opt-under-p arg-list 
+func-decl : opt-stars opt-class opt-destructor functionname
+	    opt-template-specifier
+	    opt-under-p 
+	    arg-list
 	    opt-post-fcn-modifiers
 	    opt-throw
 	    opt-initializers
@@ -579,7 +573,7 @@ func-decl : opt-stars opt-class opt-destructor functionname opt-under-p arg-list
 		  ;; Extra stuff goes in here.
 		  ;; Continue with the stuff we found in
 		  ;; this definition
-		  $2 $3 $6 $8 $7 ,$1 ,$10)
+		  $2 $3 $7 $9 $8 ,$1 ,$11)
 	  ;
 
 var-decl :  varnamelist  SEMICOLON
@@ -620,6 +614,8 @@ throw-exception-list : symbol COMA throw-exception-list
 		       ( $1 )
 		     | open-paren "(" throw-exception-list
 		       ( ,$2 )
+		     | close-paren ")"
+		       (  )
 		     ;
 
 opt-bits : COLON number
@@ -761,9 +757,14 @@ type-cast : semantic-list
 type-cast-list : open-paren typeformbase close-paren
 	       ;
 
+function-call: symbol semantic-list
+             ;
+
 # Use expression for parsing only.  Don't actually return anything
 # for now.  Hopefully we can fix this later.
 expression : number
+	     ( (identity start) (identity end) )
+	   | function-call
 	     ( (identity start) (identity end) )
 	   | symbol
 	     ( (identity start) (identity end) )
