@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.31 2004/03/05 03:12:05 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.32 2004/03/06 15:18:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -460,12 +460,13 @@ Assume a functional typed language.  Uses very simple rules."
     (if point (goto-char point))
 
     (let ((tag (semantic-current-tag)))
-      (cond ((semantic-tag-of-class-p tag 'function)
-	     '(function variable))
-	    ((or (semantic-tag-of-class-p tag 'type)
-		 (semantic-tag-of-class-p tag 'variable))
-	     '(type))
-	    (t nil)))))
+      (when tag
+	(cond ((semantic-tag-of-class-p tag 'function)
+	       '(function variable))
+	      ((or (semantic-tag-of-class-p tag 'type)
+		   (semantic-tag-of-class-p tag 'variable))
+	       '(type))
+	      (t nil))))))
 
 
 ;;; Scoped Types
