@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.46 2004/10/26 00:48:18 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.47 2004/10/26 00:59:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,6 +101,7 @@
 (if (not (fboundp 'subst-char-in-string))
     
     (defun semantic-subst-char-in-string (fromchar tochar string &optional inplace)
+      ;; From Emacs 21.3/lisp/subr.el
       "Replace FROMCHAR with TOCHAR in STRING each time it occurs.
 Unless optional argument INPLACE is non-nil, return a new string."
       (let ((i (length string))
@@ -125,20 +126,6 @@ Unless optional argument INPLACE is non-nil, return a new string."
     (if (fboundp 'byte-compile-warn)
 	'byte-compile-warn
       'message)))
-
-(unless (fboundp 'subst-char-in-string)
-  ;; From Emacs 21.3/lisp/subr.el
-  (defun subst-char-in-string (fromchar tochar string &optional inplace)
-    "Replace FROMCHAR with TOCHAR in STRING each time it occurs.
-Unless optional argument INPLACE is non-nil, return a new string."
-    (let ((i (length string))
-          (newstr (if inplace string (copy-sequence string))))
-      (while (> i 0)
-        (setq i (1- i))
-        (if (eq (aref newstr i) fromchar)
-            (aset newstr i tochar)))
-      newstr))
-  )
 
 ;;; Positional Data Cache
 ;;
