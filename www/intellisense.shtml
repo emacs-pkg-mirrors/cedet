@@ -37,8 +37,8 @@ q = foo.a
 a field or method of "foo", so first it looks up what "foo" is to
 determine the data type.  It also knows that the result is assigned
 into "q", so it also looks up q's datatype.  Lastly, it finds all
-fields/methods of the variable "foo" that start with q, and
-is/returns the datatype of a.
+fields/methods of the variable "foo" that start with a, and
+is/returns the datatype of q.
 
 <p>That is (presumably) the "intelli-" part.
 
