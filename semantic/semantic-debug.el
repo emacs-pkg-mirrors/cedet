@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.4 2003/02/14 19:02:19 ponced Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.5 2003/02/17 02:04:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -169,15 +169,11 @@ These buffers are brought into view when layout occurs.")
 TOKEN is a lexical token."
   (set-buffer (oref iface :source-buffer))
 
-  (let ((o (semantic-make-overlay (semantic-lex-token-start token)
-				  (semantic-lex-token-end token))))
-    (semantic-overlay-put o 'face 'highlight)
-    
-    (object-add-to-list iface 'overlays o)
+  (object-add-to-list iface 'overlays
+		      (semantic-lex-highlight-token token))
 
-    (semantic-debug-set-source-location iface (semantic-lex-token-start token))
-    
-    ))
+  (semantic-debug-set-source-location iface (semantic-lex-token-start token))
+  )
 
 (defmethod semantic-debug-highlight-rule ((iface semantic-debug-interface) nonterm &optional rule match)
   "For IFACE, highlight NONTERM in the parser buffer.
