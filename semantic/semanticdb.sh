@@ -1,11 +1,11 @@
 #!/bin/sh
 # semanticdb.sh --- Build a semantic cache for input arguments
 #
-# Copyright (C) 2002 Eric M. Ludlam
+# Copyright (C) 2002, 2004 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
 # Keywords: tags
-# X-RCS: $Id: semanticdb.sh,v 1.1 2002/08/11 01:48:05 zappo Exp $
+# X-RCS: $Id: semanticdb.sh,v 1.2 2004/08/03 01:35:59 zappo Exp $
 #
 # This file is not part of GNU Emacs.
 #
@@ -32,7 +32,15 @@
 #
 
 if [ -z "$SEMANTIC_PATH" ]; then
-    loadpath="~/lisp/semantic"
+    # Use reverse sort to sneakilly get the most recent version number.
+    shopt -s nullglob
+    # The extra * allow the shell to strip out junk
+    files=`ls -d ~/lisp/cedet/semantic*/ ~/lisp/cedet-*/semantic/ ~/cedet/semantic*/ ~/cedet-*/semantic/`
+    for i in $files; do
+        if [ -d $i ]; then
+          loadpath=$i
+        fi
+    done
 else
     loadpath="$SEMANTIC_PATH"
 fi
