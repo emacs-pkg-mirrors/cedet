@@ -4,9 +4,9 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.2 1996/06/17 22:32:28 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.3 1996/07/28 18:51:36 zappo Exp $
 ;;; Keywords: OO widget dialog
-;;;      
+;;;
 ;;; This program is free software; you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation; either version 2, or (at your option)
@@ -78,39 +78,135 @@ shell definition in a given buffer.")
 ;;;
 ;;; Dialog mode variables
 ;;;
+(defun dialog-superbind-alpha (keymap fn)
+  "In KEYMAP bind all occurances of alphanumeric keys to FN.  An alphanumeric
+key is any value between 0 and 128"
+  (let ((key "\00"))
+    (aset key 0 0)
+    (while (< (aref key 0) 128)
+      (define-key keymap key fn)
+      (aset key 0 (1+ (aref key 0))))))
+
 (defvar dialog-mode-map nil 
   "Keymap used in dialog mode.")
 
 (if dialog-mode-map () 
   ;; create and fill up the keymap with our event handler
   (setq dialog-mode-map (make-keymap))
-  ;(suppress-keymap dialog-mode-map)
-  (fillarray (nth 1 dialog-mode-map) 'dialog-handle-kbd)
+  (dialog-superbind-alpha dialog-mode-map 'dialog-handle-kbd)
   ;; some keys we don't want to override
   (define-key dialog-mode-map "\C-x" nil)
   (define-key dialog-mode-map "\e" nil)
   (define-key dialog-mode-map "\C-z" nil)
   (define-key dialog-mode-map "\C-h" nil)
+  (define-key dialog-mode-map "\C-l" nil)
   (define-key dialog-mode-map "\C-g" nil)
-  (define-key dialog-mode-map [tab] "\C-i")
-  (define-key dialog-mode-map [up] "\C-p")
-  (define-key dialog-mode-map [down] "\C-n")
-  (define-key dialog-mode-map [right] "\C-f")
-  (define-key dialog-mode-map [left] "\C-b")
-  (define-key dialog-mode-map [next] "\C-v")
-  (define-key dialog-mode-map [prev] "\e-v")
-  ;; Now some mouse events
-  (define-key dialog-mode-map [mouse-1] 'dialog-handle-mouse)
-  (define-key dialog-mode-map [mouse-2] 'dialog-handle-mouse)
-  (define-key dialog-mode-map [mouse-3] 'dialog-handle-mouse)
-  (define-key dialog-mode-map [down-mouse-1] 'dialog-handle-mouse)
-  (define-key dialog-mode-map [down-mouse-2] 'dialog-handle-mouse)
-  (define-key dialog-mode-map [down-mouse-3] 'dialog-handle-mouse)
-  (define-key dialog-mode-map [drag-mouse-1] 'dialog-handle-mouse)
-  (define-key dialog-mode-map [drag-mouse-2] 'dialog-handle-mouse)
-  (define-key dialog-mode-map [drag-mouse-3] 'dialog-handle-mouse)
-  )
+
+  ;; Differences between Xemacs and Emacs keyboard
+  (if (string-match "XEmacs" emacs-version)
+      (progn
+	;; some translations into text
+	(define-key dialog-mode-map 'tab "\C-i")
+	(define-key dialog-mode-map 'up "\C-p")
+	(define-key dialog-mode-map 'down "\C-n")
+	(define-key dialog-mode-map 'right "\C-f")
+	(define-key dialog-mode-map 'left "\C-b")
+	(define-key dialog-mode-map 'next "\C-v")
+	(define-key dialog-mode-map 'prev "\e-v")
+	;; Now some mouse events
+	(define-key dialog-mode-map 'button1 'dialog-handle-mouse)
+	(define-key dialog-mode-map 'button2 'dialog-handle-mouse)
+	(define-key dialog-mode-map 'button3 'dialog-handle-mouse)
+	;(define-key dialog-mode-map '(drag button1) 'dialog-handle-mouse)
+	;(define-key dialog-mode-map '(drag button2) 'dialog-handle-mouse)
+	;(define-key dialog-mode-map '(drag button3) 'dialog-handle-mouse)
+	)
+    ;; some translations into text
+    (define-key dialog-mode-map [tab] "\C-i")
+    (define-key dialog-mode-map [up] "\C-p")
+    (define-key dialog-mode-map [down] "\C-n")
+    (define-key dialog-mode-map [right] "\C-f")
+    (define-key dialog-mode-map [left] "\C-b")
+    (define-key dialog-mode-map [next] "\C-v")
+    (define-key dialog-mode-map [prev] "\e-v")
+    ;; Now some mouse events
+    (define-key dialog-mode-map [mouse-1] 'dialog-handle-mouse)
+    (define-key dialog-mode-map [mouse-2] 'dialog-handle-mouse)
+    (define-key dialog-mode-map [mouse-3] 'dialog-handle-mouse)
+    (define-key dialog-mode-map [down-mouse-1] 'dialog-handle-mouse)
+    (define-key dialog-mode-map [down-mouse-2] 'dialog-handle-mouse)
+    (define-key dialog-mode-map [down-mouse-3] 'dialog-handle-mouse)
+    (define-key dialog-mode-map [drag-mouse-1] 'dialog-handle-mouse)
+    (define-key dialog-mode-map [drag-mouse-2] 'dialog-handle-mouse)
+    (define-key dialog-mode-map [drag-mouse-3] 'dialog-handle-mouse)
+    ))
   
+(defun dialog-load-color (sym l-fg l-bg d-fg d-bg &optional bold italic underline)
+  "Create a color for SYM with a L-FG and L-BG color, or D-FG and
+D-BG. Optionally make BOLD, ITALIC, or UNDERLINED if applicable.  If
+the background attribute of the current frame is determined to be
+light (white, for example) then L-FG and L-BG is used.  If not, then
+D-FG and D-BG is used.  This will allocate the colors in the best
+possible mannor.  This will allow me to store multiple defaults and
+dynamically determine which colors to use."
+  (let* ((params (frame-parameters))
+	 (disp-res (if (fboundp 'x-get-resource)
+		        (x-get-resource ".displayType" "DisplayType") nil))
+	 (display-type
+	  (cond (disp-res (intern (downcase disp-res)))
+		((and (fboundp 'x-display-color-p) (x-display-color-p)) 'color)
+		(t 'mono)))
+	 (bg-res (if (fboundp 'x-get-resource)
+		     (x-get-resource ".backgroundMode" "BackgroundMode") nil))
+	 (bgmode
+	  (cond (bg-res (intern (downcase bg-resource)))
+		((and params 
+		      (fboundp 'x-color-values)
+		      (< (apply '+ (x-color-values
+				    (cdr (assq 'background-color params))))
+			 (/ (apply '+ (x-color-values "white")) 3)))
+		 'dark)
+		(t 'light)))		;our default
+	 (set-p (function (lambda (face-name resource)
+		 (x-get-resource (concat face-name ".attribute" resource)
+				 (concat "Face.Attribute" resource)))))
+	 (nbg (cond ((eq bgmode 'dark) d-bg) 
+		    (t l-bg)))
+	 (nfg (cond ((eq bgmode 'dark) d-fg)
+		    (t l-fg))))
+
+    (if (not (eq display-type 'color))
+	;; we need a face of some sort, so just make due with default
+	(progn
+	  (copy-face 'default sym)
+	  (if bold (make-face-bold sym))
+	  (if italic (make-face-italic sym))
+	  (set-face-underline-p sym underline)
+	  )
+      ;; make a colorized version of a face.  Be sure to check Xdefaults
+      ;; for possible overrides first!
+      (let ((newface (make-face sym)))
+	;; For each attribute, check if it might already be set by Xdefaults
+	(if (and nfg (not (funcall set-p (symbol-name sym) "Foreground")))
+	    (set-face-foreground sym nfg))
+	(if (and nbg (not (funcall set-p (symbol-name sym) "Background")))
+	    (set-face-background sym nbg))
+	
+	(if bold (make-face-bold sym))
+	(if italic (make-face-italic sym))
+	(set-face-underline-p sym underline)
+	))))
+
+(dialog-load-color 'widget-default-face nil nil nil nil)
+(dialog-load-color 'widget-box-face "gray30" nil "gray" nil)
+(dialog-load-color 'widget-frame-label-face "red3" nil "#FFFFAA" nil nil t nil)
+(dialog-load-color 'widget-focus-face "dark green" nil "light green" nil t)
+(dialog-load-color 'widget-arm-face nil "cyan" nil "cyan4")
+(dialog-load-color 'widget-indicator-face "blue4" nil "cyan" nil t)
+(dialog-load-color 'widget-text-face nil nil nil nil nil nil t)
+(dialog-load-color 'widget-text-focus-face nil nil nil nil nil t t)
+(dialog-load-color 'widget-text-button-face "white" "blue4" nil "blue3")
+
 (defun dialog-mode (&optional frameafy)
   "Define an existing buffer to be in DIALOG mode.  A dialog is a
 buffer which contains interactive text groupings in rectangular
@@ -147,6 +243,7 @@ widgets."
   "Create a dialog with name NAME of class CLASS.  PARENT will be the
 widget this new widget resides in, and RESOURCES is a list to be
 passed to the CLASS routine"
+  (message "Building Dialog... [%s]" name)
   (let* ((con (class-constructor class))
 	 (new (apply con name resources)))
     ;; add this child to the parent, which sets news parent field
@@ -166,7 +263,7 @@ an object name id DVAL when created, also, if THING-OR-OBJ is nil,
 and not some other value, then set it's value to DVAL instead.  If FIX
 is nil, then return nil instead."
   (if (or (not (object-p thing-or-obj))
-	  (not (same-class-p thing-or-obj data-object)))
+	  (not (child-of-class-p (object-class thing-or-obj) data-object)))
       (if fix
 	  (let ((newo (data-object dval))
 		(nl nil))
@@ -193,6 +290,43 @@ is nil, then return nil instead."
 	  (motion-input w event)))
       (if event (mouse-set-point event)))))
 
+;;
+;; Special menu function designed for lists of various things.
+;;
+(defun dialog-list-2-menu (event title list &optional max)
+  "Take a list and turn it into a pop-up menu.  It returns an index into
+said list.  The list may have anything in it, and they need not be of the
+same type."
+
+  (let ((menu))
+    (setq menu
+	  (cons ""			; single frame
+		(list
+		 (let ((tail list)
+		       (head nil)
+		       (i 1))
+		   (cons title
+			 (progn
+			   (while (and tail (or (not max) (<= i max)))
+			     (setq head (cons
+					 (cons
+					  (format "%s" 
+						  ; go to smallest element
+						  (let ((elt (car tail)))
+						    (while (listp elt)
+						      (setq elt (car elt)))
+						    elt))
+					  i)
+					 head))
+			     (setq i (1+ i))
+			     (setq tail (cdr tail)))
+			   (reverse head)))))))
+    (let ((n (x-popup-menu event menu)))
+      (if (integerp n)
+	  (1- n)			;the nth starts at 0, we must start
+					;at 1, or the first elt returns nil
+	nil))))
+
 (defun goto-xy (x y)
   "Move cursor to position X Y in buffer, and add spaces and CRs if
 needed."
@@ -201,7 +335,14 @@ needed."
     (if (and (= 0 num) (/= 0 (current-column))) (newline 1))
     (if (eobp) (newline num))
     ;; Now, a quicky column moveto/forceto method.
-    (or (= (move-to-column x) x) (indent-to x))))
+    (if (/= (move-to-column x) x)
+	(let ((pnt (point)) (end nil))
+	  (indent-to x)
+	  (setq end (point))
+	  (if (and (/= pnt end) (fboundp 'put-text-property))
+	      (progn
+		(put-text-property pnt end 'face nil)
+		(put-text-property pnt end 'mouse-face nil)))))))
   
 (defun insert-overwrite-face (string face &optional focus-face)
   "Insert STRING into buffer at point, and cover it with FACE"
@@ -276,6 +417,7 @@ the screen."
   "Creates a test dialog using as many widget features as currently works."
   (interactive)
   (switch-to-buffer (get-buffer-create "Dialog Test"))
+  (erase-buffer)
   (dialog-mode)
   (let ((mytog (data-object "MyTog" :value t)))
 
@@ -330,8 +472,30 @@ the screen."
 		     (list 'lambda '(obj reason) "Flip Tog"
 			   (list 'set-value mytog nil)))
       );; let
+
+    (let ((myframe (create-widget "Radio Frame" widget-radio-frame widget-toplevel-shell
+				  :x 5 :y -5
+				  :frame-label "Radio tests"
+				  :state 0)))
+      
+      (create-widget "radio 1" widget-radio-button myframe
+		     :x 2 :y 1 
+		     :state t
+		     :label-value "First option")
+      
+      (create-widget "radio 2" widget-radio-button myframe
+		     :x 2 :y -1
+		     :label-value "Second option")
+      
+      )
+
+    (create-widget "some-stuff" widget-option-button widget-toplevel-shell
+		   :x 10 :y -5
+		   :face 'italic
+		   :option-list '("Moose" "Dog" "Cat" "Mouse" "Monkey" "Penguin")
+		   )
     (create-widget "MyText" widget-text-field widget-toplevel-shell
-		   :x 5 :y 25 :width 20 :height 1
+		   :x 5 :y -5 :width 20 :height 1
 		   :value "My First String")
     )
   (dialog-refresh)
