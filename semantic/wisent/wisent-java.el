@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.12 2001/09/03 13:12:53 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.13 2001/09/11 14:59:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -93,572 +93,516 @@ variable NAME."
 ;; automatically generated from the BNF file.
 (defconst wisent-java-parser-tables
   (eval-when-compile
-    (wisent-compile-grammar
-      `(LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP NULL_LITERAL BOOLEAN_LITERAL STRING_LITERAL NUMBER_LITERAL IDENTIFIER ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED
-        (goal
-         (compilation_unit))
-        (literal
-         (NULL_LITERAL)
-         (BOOLEAN_LITERAL)
-         (STRING_LITERAL)
-         (NUMBER_LITERAL))
-        (type
-         (reference_type)
-         (primitive_type))
-        (primitive_type
-         (BOOLEAN)
-         (numeric_type))
-        (numeric_type
-         (floating_point_type)
-         (integral_type))
-        (integral_type
-         (CHAR)
-         (LONG)
-         (INT)
-         (SHORT)
-         (BYTE))
-        (floating_point_type
-         (DOUBLE)
-         (FLOAT))
-        (reference_type
-         (array_type)
-         (class_or_interface_type))
-        (class_or_interface_type
-         (name))
-        (class_type
-         (class_or_interface_type))
-        (interface_type
-         (class_or_interface_type))
-        (array_type
-         (name dims)
-         :
-         (concat $1 $2)
-         (primitive_type dims)
-         :
-         (concat $1 $2))
-        (name
-         (qualified_name)
-         (simple_name))
-        (simple_name
-         (IDENTIFIER))
-        (qualified_name
-         (name DOT IDENTIFIER)
-         :
-         (concat $1 "." $3))
-        (compilation_unit
-         (package_declaration_opt import_declarations_opt type_declarations_opt)
-         :
-         (nconc $1 $2 $3))
-        (package_declaration_opt nil
-                                 (package_declaration))
-        (import_declarations_opt nil
-                                 (import_declarations)
-                                 :
-                                 (apply 'nconc
-                                        (nreverse $1)))
-        (type_declarations_opt nil
-                               (type_declarations)
-                               :
-                               (apply 'nconc
-                                      (nreverse $1)))
-        (import_declarations
-         (import_declarations import_declaration)
-         :
-         (cons $2 $1)
-         (import_declaration)
-         :
-         (list $1))
-        (type_declarations
-         (type_declarations type_declaration)
-         :
-         (cons $2 $1)
-         (type_declaration)
-         :
-         (list $1))
-        (package_declaration
-         (PACKAGE name SEMICOLON)
-         :
-         (wisent-token $2 'package nil nil)
-         (error)
-         :
-         (wisent-skip-token))
-        (import_declaration
-         (IMPORT name SEMICOLON)
-         :
-         (wisent-token $2 'include nil nil)
-         (IMPORT name DOT MULT SEMICOLON)
-         :
-         (wisent-token
-          (concat $2 $3 $4)
-          'include nil nil)
-         (error)
-         :
-         (wisent-skip-token))
-        (type_declaration
-         (SEMICOLON)
-         : nil
-         (interface_declaration)
-         (class_declaration)
-         (error)
-         :
-         (wisent-skip-token))
-        (modifiers_opt nil
-                       (modifiers)
-                       :
-                       (nreverse $1))
-        (modifiers
-         (modifiers modifier)
-         :
-         (cons $2 $1)
-         (modifier)
-         :
-         (list $1))
-        (modifier
-         (STRICTFP)
-         (VOLATILE)
-         (TRANSIENT)
-         (SYNCHRONIZED)
-         (NATIVE)
-         (FINAL)
-         (ABSTRACT)
-         (STATIC)
-         (PRIVATE)
-         (PROTECTED)
-         (PUBLIC))
-        (class_declaration
-         (modifiers_opt CLASS IDENTIFIER superc_opt interfaces_opt class_body)
-         :
-         (wisent-token $3 'type $2 $6
-                       (if
-                           (or $4 $5)
-                           (cons $4 $5))
-                       (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                       nil))
-        (superc
-         (EXTENDS class_type)
-         :
-         (identity $2))
-        (superc_opt nil
-                    (superc))
-        (interfaces
-         (IMPLEMENTS interface_type_list)
-         :
-         (identity $2))
-        (interfaces_opt nil
-                        (interfaces)
-                        :
-                        (nreverse $1))
-        (interface_type_list
-         (interface_type_list COMMA interface_type)
-         :
-         (cons $3 $1)
-         (interface_type)
-         :
-         (list $1))
-        (class_body
-         (LBRACE class_body_declarations_opt RBRACE)
-         :
-         (identity $2))
-        (class_body_declarations_opt nil
-                                     (class_body_declarations)
-                                     :
-                                     (apply 'nconc
-                                            (nreverse $1)))
-        (class_body_declarations
-         (class_body_declarations class_body_declaration)
-         :
-         (cons $2 $1)
-         (class_body_declaration)
-         :
-         (list $1))
-        (class_body_declaration
-         (block)
-         : nil
-         (constructor_declaration)
-         (static_initializer)
-         : nil
-         (class_member_declaration)
-         (error)
-         :
-         (wisent-skip-token))
-        (class_member_declaration
-         (interface_declaration)
-         (class_declaration)
-         (method_declaration)
-         (field_declaration))
-        (field_declarations_opt nil
-                                (field_declarations)
-                                :
-                                (apply 'nconc
-                                       (nreverse $1)))
-        (field_declarations
-         (field_declarations field_declaration_maybe)
-         :
-         (cons $2 $1)
-         (field_declaration_maybe)
-         :
-         (list $1))
-        (field_declaration_maybe
-         (field_declaration)
-         (error)
-         :
-         (wisent-skip-token))
-        (field_declaration
-         (modifiers_opt type variable_declarators SEMICOLON)
-         :
-         (wisent-java-expand-nonterminal
-          (car
-           (wisent-token $3 'variable $2 nil
-                         (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                         nil))))
-        (variable_declarators
-         (variable_declarators COMMA variable_declarator)
-         :
-         (cons $3 $1)
-         (variable_declarator)
-         :
-         (list $1))
-        (variable_declarator
-         (variable_declarator_id EQ variable_initializer)
-         :
-         (cons $1 $region)
-         (variable_declarator_id)
-         :
-         (cons $1 $region))
-        (variable_declarator_id
-         (variable_declarator_id LBRACK RBRACK)
-         :
-         (concat $1 "[]")
-         (IDENTIFIER))
-        (variable_initializer
-         (array_initializer)
-         (expression))
-        (method_declaration
-         (modifiers_opt VOID method_declarator throwsc_opt method_body)
-         :
-         (wisent-token
-          (car $3)
-          'function $2
-          (cdr $3)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-          nil)
-         (modifiers_opt type method_declarator throwsc_opt method_body)
-         :
-         (wisent-token
-          (car $3)
-          'function $2
-          (cdr $3)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-          nil))
-        (method_declarator
-         (method_declarator LBRACK RBRACK)
-         :
-         (cons
-          (concat
-           (car $1)
-           "[]")
-          (cdr $1))
-         (IDENTIFIER LPAREN formal_parameter_list_opt RPAREN)
-         :
-         (cons $1 $3))
-        (formal_parameter_list_opt nil
-                                   (formal_parameter_list)
-                                   :
-                                   (apply 'nconc
-                                          (nreverse $1)))
-        (formal_parameter_list
-         (formal_parameter_list COMMA formal_parameter)
-         :
-         (cons $3 $1)
-         (formal_parameter)
-         :
-         (list $1))
-        (formal_parameter
-         (FINAL type variable_declarator_id)
-         :
+  (wisent-compile-grammar
+   '((LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP NULL_LITERAL BOOLEAN_LITERAL STRING_LITERAL NUMBER_LITERAL IDENTIFIER ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED)
+     nil
+     (goal
+      ((compilation_unit)))
+     (literal
+      ((NULL_LITERAL))
+      ((BOOLEAN_LITERAL))
+      ((STRING_LITERAL))
+      ((NUMBER_LITERAL)))
+     (type
+      ((reference_type))
+      ((primitive_type)))
+     (primitive_type
+      ((BOOLEAN))
+      ((numeric_type)))
+     (numeric_type
+      ((floating_point_type))
+      ((integral_type)))
+     (integral_type
+      ((CHAR))
+      ((LONG))
+      ((INT))
+      ((SHORT))
+      ((BYTE)))
+     (floating_point_type
+      ((DOUBLE))
+      ((FLOAT)))
+     (reference_type
+      ((array_type))
+      ((class_or_interface_type)))
+     (class_or_interface_type
+      ((name)))
+     (class_type
+      ((class_or_interface_type)))
+     (interface_type
+      ((class_or_interface_type)))
+     (array_type
+      ((name dims)
+       (concat $1 $2))
+      ((primitive_type dims)
+       (concat $1 $2)))
+     (name
+      ((qualified_name))
+      ((simple_name)))
+     (simple_name
+      ((IDENTIFIER)))
+     (qualified_name
+      ((name DOT IDENTIFIER)
+       (concat $1 "." $3)))
+     (compilation_unit
+      ((package_declaration_opt import_declarations_opt type_declarations_opt)
+       (nconc $1 $2 $3)))
+     (package_declaration_opt
+      (nil)
+      ((package_declaration)))
+     (import_declarations_opt
+      (nil)
+      ((import_declarations)
+       (apply 'nconc
+              (nreverse $1))))
+     (type_declarations_opt
+      (nil)
+      ((type_declarations)
+       (apply 'nconc
+              (nreverse $1))))
+     (import_declarations
+      ((import_declarations import_declaration)
+       (cons $2 $1))
+      ((import_declaration)
+       (list $1)))
+     (type_declarations
+      ((type_declarations type_declaration)
+       (cons $2 $1))
+      ((type_declaration)
+       (list $1)))
+     (package_declaration
+      ((PACKAGE name SEMICOLON)
+       (wisent-token $2 'package nil nil))
+      ((error)
+       (wisent-skip-token)))
+     (import_declaration
+      ((IMPORT name SEMICOLON)
+       (wisent-token $2 'include nil nil))
+      ((IMPORT name DOT MULT SEMICOLON)
+       (wisent-token
+        (concat $2 $3 $4)
+        'include nil nil))
+      ((error)
+       (wisent-skip-token)))
+     (type_declaration
+      ((SEMICOLON)
+       nil)
+      ((interface_declaration))
+      ((class_declaration))
+      ((error)
+       (wisent-skip-token)))
+     (modifiers_opt
+      (nil)
+      ((modifiers)
+       (nreverse $1)))
+     (modifiers
+      ((modifiers modifier)
+       (cons $2 $1))
+      ((modifier)
+       (list $1)))
+     (modifier
+      ((STRICTFP))
+      ((VOLATILE))
+      ((TRANSIENT))
+      ((SYNCHRONIZED))
+      ((NATIVE))
+      ((FINAL))
+      ((ABSTRACT))
+      ((STATIC))
+      ((PRIVATE))
+      ((PROTECTED))
+      ((PUBLIC)))
+     (class_declaration
+      ((modifiers_opt CLASS IDENTIFIER superc_opt interfaces_opt class_body)
+       (wisent-token $3 'type $2 $6
+                     (if
+                         (or $4 $5)
+                         (cons $4 $5))
+                     (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                     nil)))
+     (superc
+      ((EXTENDS class_type)
+       (identity $2)))
+     (superc_opt
+      (nil)
+      ((superc)))
+     (interfaces
+      ((IMPLEMENTS interface_type_list)
+       (identity $2)))
+     (interfaces_opt
+      (nil)
+      ((interfaces)
+       (nreverse $1)))
+     (interface_type_list
+      ((interface_type_list COMMA interface_type)
+       (cons $3 $1))
+      ((interface_type)
+       (list $1)))
+     (class_body
+      ((LBRACE class_body_declarations_opt RBRACE)
+       (identity $2)))
+     (class_body_declarations_opt
+      (nil)
+      ((class_body_declarations)
+       (apply 'nconc
+              (nreverse $1))))
+     (class_body_declarations
+      ((class_body_declarations class_body_declaration)
+       (cons $2 $1))
+      ((class_body_declaration)
+       (list $1)))
+     (class_body_declaration
+      ((block)
+       nil)
+      ((constructor_declaration))
+      ((static_initializer)
+       nil)
+      ((class_member_declaration))
+      ((error)
+       (wisent-skip-token)))
+     (class_member_declaration
+      ((interface_declaration))
+      ((class_declaration))
+      ((method_declaration))
+      ((field_declaration)))
+     (field_declarations_opt
+      (nil)
+      ((field_declarations)
+       (apply 'nconc
+              (nreverse $1))))
+     (field_declarations
+      ((field_declarations field_declaration_maybe)
+       (cons $2 $1))
+      ((field_declaration_maybe)
+       (list $1)))
+     (field_declaration_maybe
+      ((field_declaration))
+      ((error)
+       (wisent-skip-token)))
+     (field_declaration
+      ((modifiers_opt type variable_declarators SEMICOLON)
+       (wisent-java-expand-nonterminal
+        (car
          (wisent-token $3 'variable $2 nil
                        (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                       nil)
-         (type variable_declarator_id)
-         :
-         (wisent-token $2 'variable $1 nil nil nil))
-        (throwsc_opt nil
-                     (throwsc))
-        (throwsc
-         (THROWS class_type_list)
-         :
-         (nreverse $2))
-        (class_type_list
-         (class_type_list COMMA class_type)
-         :
-         (cons $3 $1)
-         (class_type)
-         :
-         (list $1))
-        (method_body
-         (SEMICOLON)
-         (block))
-        (static_initializer
-         (STATIC block))
-        (constructor_declaration
-         (modifiers_opt constructor_declarator throwsc_opt constructor_body)
-         :
-         (wisent-token
-          (car $2)
-          'function nil
-          (cdr $2)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $3)
-          nil))
-        (constructor_declarator
-         (simple_name LPAREN formal_parameter_list_opt RPAREN)
-         :
-         (cons $1 $3))
-        (constructor_body
-         (LBRACE RBRACE)
-         (LBRACE error)
-         :
-         (wisent-skip-block))
-        (explicit_constructor_invocation
-         (primary DOT SUPER LPAREN argument_list_opt RPAREN SEMICOLON)
-         (primary DOT THIS LPAREN argument_list_opt RPAREN SEMICOLON)
-         (SUPER LPAREN argument_list_opt RPAREN SEMICOLON)
-         (THIS LPAREN argument_list_opt RPAREN SEMICOLON))
-        (interface_declaration
-         (modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body)
-         :
-         (wisent-token $3 'type $2 $5
-                       (if $4
-                           (cons nil $4))
-                       (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                       nil))
-        (extends_interfaces_opt nil
-                                (extends_interfaces)
-                                :
-                                (nreverse $1))
-        (extends_interfaces
-         (extends_interfaces COMMA interface_type)
-         :
-         (cons $3 $1)
-         (EXTENDS interface_type)
-         :
-         (list $2))
-        (interface_body
-         (LBRACE interface_member_declarations_opt RBRACE)
-         :
-         (identity $2))
-        (interface_member_declarations_opt nil
-                                           (interface_member_declarations)
-                                           :
-                                           (apply 'nconc
-                                                  (nreverse $1)))
-        (interface_member_declarations
-         (interface_member_declarations interface_member_declaration)
-         :
-         (cons $2 $1)
-         (interface_member_declaration)
-         :
-         (list $1))
-        (interface_member_declaration
-         (interface_declaration)
-         (class_declaration)
-         (abstract_method_declaration)
-         (constant_declaration)
-         (error)
-         :
-         (wisent-skip-token))
-        (constant_declaration
-         (field_declaration))
-        (abstract_method_declaration
-         (modifiers_opt VOID method_declarator throwsc_opt SEMICOLON)
-         :
-         (wisent-token
-          (car $3)
-          'function $2
-          (cdr $3)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-          nil)
-         (modifiers_opt type method_declarator throwsc_opt SEMICOLON)
-         :
-         (wisent-token
-          (car $3)
-          'function $2
-          (cdr $3)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-          nil))
-        (array_initializer
-         (LBRACE RBRACE)
-         (LBRACE error)
-         :
-         (wisent-skip-block))
-        (variable_initializers
-         (variable_initializers COMMA variable_initializer)
-         (variable_initializer))
-        (block
-            (LBRACE RBRACE)
-          (LBRACE error)
-          :
-          (wisent-skip-block))
-        (primary
-         (array_creation_expression)
-         (primary_no_new_array))
-        (primary_no_new_array
-         (name DOT THIS)
-         (name DOT CLASS)
-         (array_type DOT CLASS)
-         (VOID DOT CLASS)
-         (primitive_type DOT CLASS)
-         (array_access)
-         (method_invocation)
-         (field_access)
-         (class_instance_creation_expression)
-         (LPAREN expression RPAREN)
-         (THIS)
-         (literal))
-        (class_instance_creation_expression
-         (primary DOT NEW IDENTIFIER LPAREN argument_list_opt RPAREN class_body)
-         (primary DOT NEW IDENTIFIER LPAREN argument_list_opt RPAREN)
-         (NEW class_type LPAREN argument_list_opt RPAREN class_body)
-         (NEW class_type LPAREN argument_list_opt RPAREN))
-        (argument_list_opt nil
-                           (argument_list))
-        (argument_list
-         (argument_list COMMA expression)
-         (expression))
-        (array_creation_expression
-         (NEW class_or_interface_type dim_exprs)
-         (NEW primitive_type dim_exprs))
-        (dim_exprs
-         (dim_exprs dim_expr)
-         (dim_expr))
-        (dim_expr
-         (LBRACK RBRACK)
-         (LBRACK error)
-         :
-         (wisent-skip-block))
-        (dims_opt nil :
-                  (identity "")
-                  (dims))
-        (dims
-         (dims LBRACK RBRACK)
-         :
-         (concat $1 $2 $3)
-         (LBRACK RBRACK)
-         :
-         (concat $1 $2))
-        (field_access
-         (name DOT SUPER DOT IDENTIFIER)
-         (SUPER DOT IDENTIFIER)
-         (primary DOT IDENTIFIER))
-        (method_invocation
-         (name DOT SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN)
-         (SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN)
-         (primary DOT IDENTIFIER LPAREN argument_list_opt RPAREN)
-         (name LPAREN argument_list_opt RPAREN))
-        (array_access
-         (primary_no_new_array LBRACK expression RBRACK)
-         (name LBRACK expression RBRACK))
-        (postfix_expression
-         (postdecrement_expression)
-         (postincrement_expression)
-         (name)
-         (primary))
-        (postincrement_expression
-         (postfix_expression PLUSPLUS))
-        (postdecrement_expression
-         (postfix_expression MINUSMINUS))
-        (unary_expression
-         (unary_expression_not_plus_minus)
-         (MINUS unary_expression)
-         (PLUS unary_expression)
-         (predecrement_expression)
-         (preincrement_expression))
-        (preincrement_expression
-         (PLUSPLUS unary_expression))
-        (predecrement_expression
-         (MINUSMINUS unary_expression))
-        (unary_expression_not_plus_minus
-         (cast_expression)
-         (NOT unary_expression)
-         (COMP unary_expression)
-         (postfix_expression))
-        (cast_expression
-         (LPAREN name dims RPAREN unary_expression_not_plus_minus)
-         (LPAREN expression RPAREN unary_expression_not_plus_minus)
-         (LPAREN primitive_type dims_opt RPAREN unary_expression))
-        (multiplicative_expression
-         (multiplicative_expression MOD unary_expression)
-         (multiplicative_expression DIV unary_expression)
-         (multiplicative_expression MULT unary_expression)
-         (unary_expression))
-        (additive_expression
-         (additive_expression MINUS multiplicative_expression)
-         (additive_expression PLUS multiplicative_expression)
-         (multiplicative_expression))
-        (shift_expression
-         (shift_expression URSHIFT additive_expression)
-         (shift_expression RSHIFT additive_expression)
-         (shift_expression LSHIFT additive_expression)
-         (additive_expression))
-        (relational_expression
-         (relational_expression INSTANCEOF reference_type)
-         (relational_expression GTEQ shift_expression)
-         (relational_expression LTEQ shift_expression)
-         (relational_expression GT shift_expression)
-         (relational_expression LT shift_expression)
-         (shift_expression))
-        (equality_expression
-         (equality_expression NOTEQ relational_expression)
-         (equality_expression EQEQ relational_expression)
-         (relational_expression))
-        (and_expression
-         (and_expression AND equality_expression)
-         (equality_expression))
-        (exclusive_or_expression
-         (exclusive_or_expression XOR and_expression)
-         (and_expression))
-        (inclusive_or_expression
-         (inclusive_or_expression OR exclusive_or_expression)
-         (exclusive_or_expression))
-        (conditional_and_expression
-         (conditional_and_expression ANDAND inclusive_or_expression)
-         (inclusive_or_expression))
-        (conditional_or_expression
-         (conditional_or_expression OROR conditional_and_expression)
-         (conditional_and_expression))
-        (conditional_expression
-         (conditional_or_expression QUESTION expression COLON conditional_expression)
-         (conditional_or_expression))
-        (assignment_expression
-         (assignment)
-         (conditional_expression))
-        (assignment
-         (left_hand_side assignment_operator assignment_expression))
-        (left_hand_side
-         (array_access)
-         (field_access)
-         (name))
-        (assignment_operator
-         (OREQ)
-         (XOREQ)
-         (ANDEQ)
-         (URSHIFTEQ)
-         (RSHIFTEQ)
-         (LSHIFTEQ)
-         (MINUSEQ)
-         (PLUSEQ)
-         (MODEQ)
-         (DIVEQ)
-         (MULTEQ)
-         (EQ))
-        (expression_opt nil
-                        (expression))
-        (expression
-         (assignment_expression))
-        (constant_expression
-         (expression)))
-      '(package_declaration import_declaration class_declaration field_declarations_opt field_declaration method_declaration formal_parameter constructor_declaration interface_declaration abstract_method_declaration)
-  ))
-  "Wisent LALR(1) grammar for Semantic.
+                       nil)))))
+     (variable_declarators
+      ((variable_declarators COMMA variable_declarator)
+       (cons $3 $1))
+      ((variable_declarator)
+       (list $1)))
+     (variable_declarator
+      ((variable_declarator_id EQ variable_initializer)
+       (cons $1 $region))
+      ((variable_declarator_id)
+       (cons $1 $region)))
+     (variable_declarator_id
+      ((variable_declarator_id LBRACK RBRACK)
+       (concat $1 "[]"))
+      ((IDENTIFIER)))
+     (variable_initializer
+      ((array_initializer))
+      ((expression)))
+     (method_declaration
+      ((modifiers_opt VOID method_declarator throwsc_opt method_body)
+       (wisent-token
+        (car $3)
+        'function $2
+        (cdr $3)
+        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
+        nil))
+      ((modifiers_opt type method_declarator throwsc_opt method_body)
+       (wisent-token
+        (car $3)
+        'function $2
+        (cdr $3)
+        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
+        nil)))
+     (method_declarator
+      ((method_declarator LBRACK RBRACK)
+       (cons
+        (concat
+         (car $1)
+         "[]")
+        (cdr $1)))
+      ((IDENTIFIER LPAREN formal_parameter_list_opt RPAREN)
+       (cons $1 $3)))
+     (formal_parameter_list_opt
+      (nil)
+      ((formal_parameter_list)
+       (apply 'nconc
+              (nreverse $1))))
+     (formal_parameter_list
+      ((formal_parameter_list COMMA formal_parameter)
+       (cons $3 $1))
+      ((formal_parameter)
+       (list $1)))
+     (formal_parameter
+      ((FINAL type variable_declarator_id)
+       (wisent-token $3 'variable $2 nil
+                     (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                     nil))
+      ((type variable_declarator_id)
+       (wisent-token $2 'variable $1 nil nil nil)))
+     (throwsc_opt
+      (nil)
+      ((throwsc)))
+     (throwsc
+      ((THROWS class_type_list)
+       (nreverse $2)))
+     (class_type_list
+      ((class_type_list COMMA class_type)
+       (cons $3 $1))
+      ((class_type)
+       (list $1)))
+     (method_body
+      ((SEMICOLON))
+      ((block)))
+     (static_initializer
+      ((STATIC block)))
+     (constructor_declaration
+      ((modifiers_opt constructor_declarator throwsc_opt constructor_body)
+       (wisent-token
+        (car $2)
+        'function nil
+        (cdr $2)
+        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $3)
+        nil)))
+     (constructor_declarator
+      ((simple_name LPAREN formal_parameter_list_opt RPAREN)
+       (cons $1 $3)))
+     (constructor_body
+      ((LBRACE RBRACE))
+      ((LBRACE error)
+       (wisent-skip-block)))
+     (explicit_constructor_invocation
+      ((primary DOT SUPER LPAREN argument_list_opt RPAREN SEMICOLON))
+      ((primary DOT THIS LPAREN argument_list_opt RPAREN SEMICOLON))
+      ((SUPER LPAREN argument_list_opt RPAREN SEMICOLON))
+      ((THIS LPAREN argument_list_opt RPAREN SEMICOLON)))
+     (interface_declaration
+      ((modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body)
+       (wisent-token $3 'type $2 $5
+                     (if $4
+                         (cons nil $4))
+                     (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                     nil)))
+     (extends_interfaces_opt
+      (nil)
+      ((extends_interfaces)
+       (nreverse $1)))
+     (extends_interfaces
+      ((extends_interfaces COMMA interface_type)
+       (cons $3 $1))
+      ((EXTENDS interface_type)
+       (list $2)))
+     (interface_body
+      ((LBRACE interface_member_declarations_opt RBRACE)
+       (identity $2)))
+     (interface_member_declarations_opt
+      (nil)
+      ((interface_member_declarations)
+       (apply 'nconc
+              (nreverse $1))))
+     (interface_member_declarations
+      ((interface_member_declarations interface_member_declaration)
+       (cons $2 $1))
+      ((interface_member_declaration)
+       (list $1)))
+     (interface_member_declaration
+      ((interface_declaration))
+      ((class_declaration))
+      ((abstract_method_declaration))
+      ((constant_declaration))
+      ((error)
+       (wisent-skip-token)))
+     (constant_declaration
+      ((field_declaration)))
+     (abstract_method_declaration
+      ((modifiers_opt VOID method_declarator throwsc_opt SEMICOLON)
+       (wisent-token
+        (car $3)
+        'function $2
+        (cdr $3)
+        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
+        nil))
+      ((modifiers_opt type method_declarator throwsc_opt SEMICOLON)
+       (wisent-token
+        (car $3)
+        'function $2
+        (cdr $3)
+        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
+        nil)))
+     (array_initializer
+      ((LBRACE RBRACE))
+      ((LBRACE error)
+       (wisent-skip-block)))
+     (variable_initializers
+      ((variable_initializers COMMA variable_initializer))
+      ((variable_initializer)))
+     (block
+         ((LBRACE RBRACE))
+       ((LBRACE error)
+        (wisent-skip-block)))
+     (primary
+      ((array_creation_expression))
+      ((primary_no_new_array)))
+     (primary_no_new_array
+      ((name DOT THIS))
+      ((name DOT CLASS))
+      ((array_type DOT CLASS))
+      ((VOID DOT CLASS))
+      ((primitive_type DOT CLASS))
+      ((array_access))
+      ((method_invocation))
+      ((field_access))
+      ((class_instance_creation_expression))
+      ((LPAREN expression RPAREN))
+      ((THIS))
+      ((literal)))
+     (class_instance_creation_expression
+      ((primary DOT NEW IDENTIFIER LPAREN argument_list_opt RPAREN class_body))
+      ((primary DOT NEW IDENTIFIER LPAREN argument_list_opt RPAREN))
+      ((NEW class_type LPAREN argument_list_opt RPAREN class_body))
+      ((NEW class_type LPAREN argument_list_opt RPAREN)))
+     (argument_list_opt
+      (nil)
+      ((argument_list)))
+     (argument_list
+      ((argument_list COMMA expression))
+      ((expression)))
+     (array_creation_expression
+      ((NEW class_or_interface_type dim_exprs))
+      ((NEW primitive_type dim_exprs)))
+     (dim_exprs
+      ((dim_exprs dim_expr))
+      ((dim_expr)))
+     (dim_expr
+      ((LBRACK RBRACK))
+      ((LBRACK error)
+       (wisent-skip-block)))
+     (dims_opt
+      (nil
+       (identity ""))
+      ((dims)))
+     (dims
+      ((dims LBRACK RBRACK)
+       (concat $1 $2 $3))
+      ((LBRACK RBRACK)
+       (concat $1 $2)))
+     (field_access
+      ((name DOT SUPER DOT IDENTIFIER))
+      ((SUPER DOT IDENTIFIER))
+      ((primary DOT IDENTIFIER)))
+     (method_invocation
+      ((name DOT SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN))
+      ((SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN))
+      ((primary DOT IDENTIFIER LPAREN argument_list_opt RPAREN))
+      ((name LPAREN argument_list_opt RPAREN)))
+     (array_access
+      ((primary_no_new_array LBRACK expression RBRACK))
+      ((name LBRACK expression RBRACK)))
+     (postfix_expression
+      ((postdecrement_expression))
+      ((postincrement_expression))
+      ((name))
+      ((primary)))
+     (postincrement_expression
+      ((postfix_expression PLUSPLUS)))
+     (postdecrement_expression
+      ((postfix_expression MINUSMINUS)))
+     (unary_expression
+      ((unary_expression_not_plus_minus))
+      ((MINUS unary_expression))
+      ((PLUS unary_expression))
+      ((predecrement_expression))
+      ((preincrement_expression)))
+     (preincrement_expression
+      ((PLUSPLUS unary_expression)))
+     (predecrement_expression
+      ((MINUSMINUS unary_expression)))
+     (unary_expression_not_plus_minus
+      ((cast_expression))
+      ((NOT unary_expression))
+      ((COMP unary_expression))
+      ((postfix_expression)))
+     (cast_expression
+      ((LPAREN name dims RPAREN unary_expression_not_plus_minus))
+      ((LPAREN expression RPAREN unary_expression_not_plus_minus))
+      ((LPAREN primitive_type dims_opt RPAREN unary_expression)))
+     (multiplicative_expression
+      ((multiplicative_expression MOD unary_expression))
+      ((multiplicative_expression DIV unary_expression))
+      ((multiplicative_expression MULT unary_expression))
+      ((unary_expression)))
+     (additive_expression
+      ((additive_expression MINUS multiplicative_expression))
+      ((additive_expression PLUS multiplicative_expression))
+      ((multiplicative_expression)))
+     (shift_expression
+      ((shift_expression URSHIFT additive_expression))
+      ((shift_expression RSHIFT additive_expression))
+      ((shift_expression LSHIFT additive_expression))
+      ((additive_expression)))
+     (relational_expression
+      ((relational_expression INSTANCEOF reference_type))
+      ((relational_expression GTEQ shift_expression))
+      ((relational_expression LTEQ shift_expression))
+      ((relational_expression GT shift_expression))
+      ((relational_expression LT shift_expression))
+      ((shift_expression)))
+     (equality_expression
+      ((equality_expression NOTEQ relational_expression))
+      ((equality_expression EQEQ relational_expression))
+      ((relational_expression)))
+     (and_expression
+      ((and_expression AND equality_expression))
+      ((equality_expression)))
+     (exclusive_or_expression
+      ((exclusive_or_expression XOR and_expression))
+      ((and_expression)))
+     (inclusive_or_expression
+      ((inclusive_or_expression OR exclusive_or_expression))
+      ((exclusive_or_expression)))
+     (conditional_and_expression
+      ((conditional_and_expression ANDAND inclusive_or_expression))
+      ((inclusive_or_expression)))
+     (conditional_or_expression
+      ((conditional_or_expression OROR conditional_and_expression))
+      ((conditional_and_expression)))
+     (conditional_expression
+      ((conditional_or_expression QUESTION expression COLON conditional_expression))
+      ((conditional_or_expression)))
+     (assignment_expression
+      ((assignment))
+      ((conditional_expression)))
+     (assignment
+      ((left_hand_side assignment_operator assignment_expression)))
+     (left_hand_side
+      ((array_access))
+      ((field_access))
+      ((name)))
+     (assignment_operator
+      ((OREQ))
+      ((XOREQ))
+      ((ANDEQ))
+      ((URSHIFTEQ))
+      ((RSHIFTEQ))
+      ((LSHIFTEQ))
+      ((MINUSEQ))
+      ((PLUSEQ))
+      ((MODEQ))
+      ((DIVEQ))
+      ((MULTEQ))
+      ((EQ)))
+     (expression_opt
+      (nil)
+      ((expression)))
+     (expression
+      ((assignment_expression)))
+     (constant_expression
+      ((expression))))
+   '(package_declaration import_declaration class_declaration field_declarations_opt field_declaration method_declaration formal_parameter constructor_declaration interface_declaration abstract_method_declaration)))
+"Wisent LALR(1) grammar for Semantic.
 Tweaked for Semantic needs.  That is to avoid full parsing of
 unnecessary stuff to improve performance.")
 
