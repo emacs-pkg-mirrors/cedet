@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.98 2004/06/10 21:31:15 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.99 2004/06/11 12:36:26 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1995,20 +1995,15 @@ minor mode is enabled."
         ;; XEmacs needs this
         (if (featurep 'xemacs)
             (easy-menu-add senator-minor-menu senator-mode-map))
-        ;; Parse the current buffer if needed
-        (condition-case nil
-            (progn
-              ;; Add completion hooks
-              (semantic-make-local-hook
-               'semantic-after-toplevel-cache-change-hook)
-              (add-hook 'semantic-after-toplevel-cache-change-hook
-                        'senator-completion-cache-flush-fcn nil t)
-              (semantic-make-local-hook
-               'semantic-after-partial-cache-change-hook)
-              (add-hook 'semantic-after-partial-cache-change-hook
-                        'senator-completion-cache-flush-fcn nil t))
-          (quit
-           (message "senator-minor-mode: parsing of buffer canceled."))))
+        ;; Add completion hooks
+        (semantic-make-local-hook
+         'semantic-after-toplevel-cache-change-hook)
+        (add-hook 'semantic-after-toplevel-cache-change-hook
+                  'senator-completion-cache-flush-fcn nil t)
+        (semantic-make-local-hook
+         'semantic-after-partial-cache-change-hook)
+        (add-hook 'semantic-after-partial-cache-change-hook
+                  'senator-completion-cache-flush-fcn nil t))
     ;; XEmacs needs this
     (if (featurep 'xemacs)
         (easy-menu-remove senator-minor-menu))
