@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2004-02-20 13:13:23+0100
+;; Created: 2004-03-20 12:34:58+0100
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.14 2004/03/19 23:55:33 zappo Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.15 2004/03/20 11:31:41 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -473,7 +473,7 @@
 
 (define-lex-string-type-analyzer semantic-grammar-wy--<punctuation>-string-analyzer
   "string analyzer for <punctuation> tokens."
-  "\\s.\\|\\s$\\|\\s'"
+  "\\(\\s.\\|\\s$\\|\\s'\\)+"
   '((GT . ">")
     (LT . "<")
     (OR . "|")
