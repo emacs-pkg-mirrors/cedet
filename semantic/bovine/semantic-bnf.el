@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.56 2002/08/11 16:26:19 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.1 2002/08/11 17:24:51 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
