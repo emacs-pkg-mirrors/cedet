@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.36 2004/03/06 20:13:44 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.37 2004/03/10 19:27:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -100,7 +100,7 @@ Almost all searches use the same arguments."
 
 (defun semantic-analyze-tag-prototype-p-default (tag)
   "Non-nil if TAG is a prototype."
-  (let ((p (semantic-tag-get-attribute tag :prototype)))
+  (let ((p (semantic-tag-get-attribute tag :prototype-flag)))
     (cond
      ;; Trust the parser author.
      (p p)
