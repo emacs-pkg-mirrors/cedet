@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.46 2001/09/12 13:29:18 zappo Exp $
+@c $Id: semantic.texi,v 1.47 2001/10/03 01:07:26 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -317,6 +317,15 @@ Default flexing depth.
 This specifies how many lists to create tokens in.
 @end defvar
 
+@defvar semantic-number-expression
+Regular expression for matching a number.
+If this value is @code{nil}, no number extraction is done during lex.
+Symbols which match this expression are returned as @code{number}
+tokens instead of @code{symbol} tokens.
+
+The default value for this variable should work in most languages.
+@end defvar
+
 @defvar semantic-flex-extensions
 Buffer local extensions to the lexical analyzer.
 This should contain an alist with a key of a regex and a data element of
@@ -603,6 +612,33 @@ filename : symbol PERIOD symbol
 @end example
 
 will explicitly match one period when used in the above rule.
+
+Default syntactic tokens (If the lexer is not extended) are:
+@table @code
+@item newline
+A newline if @var{semantic-flex-enable-newline} is non-nil.
+@item symbol
+A symbol for the language, usually comprising alpha numeric
+characters, and _.
+@item number
+A number for the language.  You can specify a number format with
+the variable @var{semantic-number-expression}.
+@item charquote
+A character quoting punctuation.  Like ? in Emacs Lisp.
+@item semantic-list
+A list, delimited on either end with some parenthetical form.
+@item open-paren
+An opening parenthesis.
+@item close-paren
+A closing parenthesis.
+@item string
+A string, including starting and ending delimiters.
+@item comment
+A comment.  This can be stripped from the stream if
+@var{semantic-ignore-comments} is non-nil.
+@var punctuation
+Punctuation characters, such as operators, period, and coma.
+@end table
 
 @node Optional Lambda Expression, Examples, Rules, BNF conversion
 @section Optional Lambda Expressions
