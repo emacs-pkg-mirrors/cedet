@@ -11,7 +11,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.4 2001/08/13 22:48:31 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.5 2001/08/14 14:06:46 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1933,23 +1933,27 @@ of the parser!"
       (aset rt i (byte-compile (aref rt i)))
       (setq i (1+ i)))))
 
+(defalias 'wisent-compiled-grammar-p 'vectorp)
+
 (defun wisent-compile-grammar (gram &optional starts stream)
   "Compile grammar GRAM and return the LALR(1) tables.
 Optional argument STARTS is a list of entry point nonterminals.
 Pretty print the result on STREAM if it is non-nil."
-  (wisent-working "Compiling grammar%s" "done"
-    (wisent-working-step " (initializing)")
-    (wisent-initialize-all)
-    (let ((tables (wisent-process-grammar gram starts stream)))
-      (if wisent-debug-flag
-          nil ;; disable compilation when debugging
-        ;; Compile the reduction table
-        (wisent-working-step " (byte-compiling reduction table)")
-        (wisent-byte-compile-reduction-table (aref tables 2)))
-      ;; Cleanup storage!
-      (wisent-free-all)
-      (wisent-working-done)
-      tables)))
+  (if (wisent-compiled-grammar-p gram)
+      gram ;; Grammar already compiled just return it
+    (wisent-working "Compiling grammar%s" "done"
+      (wisent-working-step " (initializing)")
+      (wisent-initialize-all)
+      (let ((tables (wisent-process-grammar gram starts stream)))
+        (if wisent-debug-flag
+            nil ;; disable compilation when debugging
+          ;; Compile the reduction table
+          (wisent-working-step " (byte-compiling reduction table)")
+          (wisent-byte-compile-reduction-table (aref tables 2)))
+        ;; Cleanup storage!
+        (wisent-free-all)
+        (wisent-working-done)
+        tables))))
 
 ;;;;
 ;;;; The LR parser driver
