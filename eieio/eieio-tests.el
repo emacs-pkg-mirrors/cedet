@@ -1,10 +1,10 @@
 ;;; eieio-tests.el -- eieio tests routines
 
 ;;;
-;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.20 2001/12/05 01:36:47 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.21 2002/02/21 21:23:33 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -56,10 +56,20 @@
    )
   "Class A")
 
-(defclass class-alloc-initarg ()
-  ((throwwarning :initarg :throwwarning
-		 :allocation :class))
-  "Throw a warning mixing allocation class and an initarg.")
+(condition-case msg
+
+    (progn
+      (defclass class-alloc-initarg ()
+	((throwwarning :initarg :throwwarning
+		       :allocation :class))
+	"Throw a warning mixing allocation class and an initarg.")
+
+      (if (not (string-match "Class allocated slots do not need :initarg"
+			     (current-message)))
+	  (error ":initarg and :allocation warning not thrown!"))
+      )
+  (error (error msg)))
+  
 
 (defclass class-b ()
   ((land :initform "Sc"
@@ -96,14 +106,33 @@
      (error "invalid-slot-type thrown when eieio-error-unsupported-class-tags is nil")
      )))
 
+;;; Abstract base classes
+;;
+(defclass abstract-class ()
+  ((some-slot :initarg :some-slot
+	      :initform nil
+	      :documentation "A slot."))
+  :documentation "An abstract claptionass."
+  :abstract t)
+
+(if (condition-case nil
+	(progn
+	  (abstract-class "Test")
+	  t)
+      (error nil))
+    (error "Instantiation of an abstract class allowed."))
+
 
 ;;; Perform method testing
 ;;
 
 ;; allocate an object to use
-(defvar ab (class-ab "abby"))
-(defvar a  (class-a "aye"))
-(defvar b (class-b "fooby"))
+(defvar ab nil)
+(setq ab (class-ab "abby"))
+(defvar a nil)
+(setq a (class-a "aye"))
+(defvar b nil)
+(setq b (class-b "fooby"))
 
 (condition-case nil
     (progn
@@ -369,11 +398,24 @@ METHOD is the method that was attempting to be called."
   (invalid-slot-type nil))
 
 ;; Test out class allocated slots
-(defvar aa (class-a "another"))
-(oset aa classslot 'moose)
-(if (eq (oref a classslot) (oref aa classslot))
-    nil
-  (error "Class slots are tracking between objects"))
+(defvar aa nil)
+(setq aa (class-a "another"))
+
+(let ((newval 'moose))
+  (oset aa classslot newval)
+  (if (and (eq (oref a classslot) newval)
+	   (eq (oref aa classslot) newval))
+      nil
+    (error "Class slots are tracking between objects")))
+
+(if (not (slot-boundp a 'classslot))
+    (error "Class allocatd slot thought unbound when it is bound."))
+
+(slot-makeunbound a 'classslot)
+
+(if (slot-boundp a 'classslot)
+    (error "Class allocatd slot thought bound when it is unbound."))
+
 
 ;;; Test function type in a class
 ;;
@@ -397,7 +439,8 @@ METHOD is the method that was attempting to be called."
 
 (setq class-typep-var 2)
 
-(defvar ct (class-typep "foo"))
+(defvar ct nil)
+(setq ct (class-typep "foo"))
 
 (if (/= (oref ct slot2) 2)
     (error "Default value for slot2 incorrect.")) 
@@ -453,7 +496,9 @@ METHOD is the method that was attempting to be called."
   "A class for testing slot arguments."
   )
 
-(defvar t1 (class-c "C1"))
+(defvar t1 nil)
+(setq t1 (class-c "C1"))
+
 (if (not (and (eq (oref t1 slot-1) 'moose)
 	      (eq (oref t1 :moose) 'moose)))
     (error "Initialization of slot failed."))
@@ -511,8 +556,10 @@ Do not override for `prot-2'."
   "Try to access slot-3 in S2."
   (oref s2 slot-3))
 
-(defvar p1 (prot-1 ""))
-(defvar p2 (prot-2 ""))
+(defvar p1 nil)
+(setq p1 (prot-1 ""))
+(defvar p2 nil)
+(setq p2 (prot-2 ""))
 
 (condition-case nil
     (oref p1 slot-1)
@@ -563,11 +610,14 @@ Do not override for `prot-2'."
    (slot3))
   "Instance Inheritor test class.")
 
-(defvar II1 (II "II Test."))
+(defvar II1 nil)
+(setq II1 (II "II Test."))
 (oset II1 slot2 'cat)
-(defvar II2 (clone II1 "II2 Test."))
+(defvar II2 nil)
+(setq II2 (clone II1 "II2 Test."))
 (oset II2 slot1 'moose)
-(defvar II3 (clone II2 "II3 Test."))
+(defvar II3 nil)
+(setq II3 (clone II2 "II3 Test."))
 (oset II3 slot3 'penguin)
 
 (cond ((not (eq (oref II3 slot1) 'moose))
@@ -588,8 +638,9 @@ Do not override for `prot-2'."
 	  :initform "foo"))
   "A Persistent object with two initializable slots.")
 
-(defvar PO1 (PO "persist" :slot1 4 :slot2 "testing"
-		:file (concat default-directory "test-p.el")))
+(defvar PO1 nil)
+(setq PO1 (PO "persist" :slot1 4 :slot2 "testing"
+	      :file (concat default-directory "test-p.el")))
 
 (eieio-persistent-save PO1)
 
@@ -604,7 +655,8 @@ Do not override for `prot-2'."
   "Instance Tracker test object.")
 
 (defvar IT-list nil)
-(defvar IT1 (IT "trackme"))
+(defvar IT1 nil)
+(setq IT1 (IT "trackme"))
 
 (if (not (eieio-instance-tracker-find 'die 'slot1 'IT-list))
     (error "Instance tracker lost an instance."))
@@ -622,7 +674,8 @@ Do not override for `prot-2'."
    )
   "A class inheriting from eieio-named.")
 
-(defvar N (NAMED "Foo"))
+(defvar N nil)
+(setq N (NAMED "Foo"))
 
 (if (not (string= "Foo" (oref N object-name)))
     (error "Named object `object-name' slot ref failed."))
