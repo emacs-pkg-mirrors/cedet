@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.12 2000/12/11 14:05:06 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.13 2000/12/12 09:21:43 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -92,6 +92,23 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.13  2000/12/12 09:21:43  david_ponce
+;; Fixed a "side effect" bug with latest `beginning-of-defun' and
+;; `end-of-defun' advices.  They caused font-lock, which uses
+;; beginning/end of defun to force a reparse.  Thanks to "Eric M. Ludlam"
+;; <zappo@ultranet.com> for pointing this.
+;;
+;; Improved consistency with standard behaviour of `beginning-of-defun'
+;; (go to the beginning of the line where the defun starts) and
+;; `end-of-defun' (go to the beginning of the line following the end of
+;; the defun).
+;;
+;; Added useful advices for `narrow-to-defun', `mark-defun' and
+;; `c-mark-function'.
+;;
+;; Advices are enabled when the functions are called interactively and
+;; `senator-minor-mode' is enabled.
+;;
 ;; Revision 1.12  2000/12/11 14:05:06  david_ponce
 ;; Code cleanup and optimization.
 ;; `senator-next-token' and `senator-previous-token' now correctly work
@@ -808,28 +825,90 @@ Return non-nil if the minor mode is enabled.
 ;;;; Useful advices
 ;;;;
 
+(defun senator-beginning-of-defun ()
+  "Move backward to the beginning of a defun.
+Use semantic tokens to navigate."
+  (let ((senator-highlight-found nil)
+        (senator-step-at-start-end-token-ids nil)
+        (senator-step-at-token-ids '(function)))
+    (if (senator-previous-token)
+        (beginning-of-line))
+    (senator-message nil)))
+
+(defun senator-end-of-defun ()
+  "Move forward to next end of defun.
+Use semantic tokens to navigate."
+  (let* ((senator-highlight-found nil)
+         (senator-step-at-start-end-token-ids '(function))
+         (senator-step-at-token-ids '(function))
+         (token (senator-next-token)))
+    (when token
+      (if (= (point) (semantic-token-start token))
+          (goto-char (semantic-token-end token)))
+      (skip-chars-forward " \t")
+      (if (looking-at "\\s<\\|\n")
+          (forward-line 1)))
+    (senator-message nil)))
+
+(defun senator-narrow-to-defun ()
+  "Make text outside current defun invisible.
+The defun visible is the one that contains point or follows point.
+Use semantic tokens to navigate."
+  (interactive)
+  (save-excursion
+    (widen)
+    (senator-end-of-defun)
+    (let ((end (point)))
+      (senator-beginning-of-defun)
+      (narrow-to-region (point) end))))
+
+(defun senator-mark-defun ()
+  "Put mark at end of this defun, point at beginning.
+The defun marked is the one that contains point or follows point.
+Use semantic tokens to navigate."
+  (interactive)
+  (push-mark (point))
+  (senator-end-of-defun)
+  (push-mark (point) nil t)
+  (senator-beginning-of-defun)
+  (re-search-backward "^\n" (- (point) 1) t))
+
 (defadvice beginning-of-defun (around senator activate)
-  "If semantic tokens are available, use them to navigate."
-  (if senator-minor-mode
-      (let ((senator-highlight-found nil)
-            (senator-step-at-start-end-token-ids nil)
-            (senator-step-at-token-ids '(function)))
-        (senator-previous-token))
+  "Move backward to the beginning of a defun.
+If semantic tokens are available, use them to navigate."
+  (if (and senator-minor-mode (interactive-p))
+      (senator-beginning-of-defun)
     ad-do-it))
 
 (defadvice end-of-defun (around senator activate)
-  "If semantic tokens are available, use them to navigate."
-  (if senator-minor-mode
-      (let* ((senator-highlight-found nil)
-             (senator-step-at-start-end-token-ids '(function))
-             (senator-step-at-token-ids '(function))
-             (token (senator-next-token)))
-        (when (and token
-                   (= (point) (semantic-token-start token)))
-          (goto-char (semantic-token-end token))
-          (senator-message "%S: %s (end)"
-                           (semantic-token-token token)
-                           (semantic-token-name  token))))
+  "Move forward to next end of defun.
+If semantic tokens are available, use them to navigate."
+  (if (and senator-minor-mode (interactive-p))
+      (senator-end-of-defun)
+    ad-do-it))
+
+(defadvice narrow-to-defun (around senator activate)
+  "Make text outside current defun invisible.
+The defun visible is the one that contains point or follows point.
+If semantic tokens are available, use them to navigate."
+  (if (and senator-minor-mode (interactive-p))
+      (senator-narrow-to-defun)
+    ad-do-it))
+
+(defadvice mark-defun (around senator activate)
+  "Put mark at end of this defun, point at beginning.
+The defun marked is the one that contains point or follows point.
+If semantic tokens are available, use them to navigate."
+  (if (and senator-minor-mode (interactive-p))
+      (senator-mark-defun)
+    ad-do-it))
+
+(defadvice c-mark-function (around senator activate)
+  "Put mark at end of this defun, point at beginning.
+The defun marked is the one that contains point or follows point.
+If semantic tokens are available, use them to navigate."
+  (if (and senator-minor-mode (interactive-p))
+      (senator-mark-defun)
     ad-do-it))
 
 ;;;;
