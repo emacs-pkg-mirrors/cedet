@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.168 2000/05/17 02:19:55 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.169 2000/06/03 14:14:36 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -550,7 +550,9 @@ hierarchy would be replaced with the new directory."
 
 (defcustom speedbar-use-images (and (or (fboundp 'defimage)
 					(fboundp 'make-image-specifier))
-				    window-system)
+				    (if (fboundp 'display-graphic-p)
+					(display-graphic-p)
+				      window-system))
   "*Non nil if speedbar should display icons."
   :group 'speedbar
   :type 'boolean)
@@ -794,7 +796,9 @@ PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
 			      (or (fboundp 'run-with-idle-timer)
 				  (fboundp 'start-itimer)
 				  (boundp 'post-command-idle-hook))
-			      window-system)
+			      (if (fboundp 'display-graphic-p)
+				  (display-graphic-p)
+				window-system))
   "*Non-nil means to automatically update the display.
 When this is nil then speedbar will not follow the attached frame's path.
 When speedbar is active, use:
@@ -937,7 +941,9 @@ This basically creates a sparse keymap, and makes it's parent be
       :style toggle :selected speedbar-update-flag])
    (if (and (or (fboundp 'defimage)
 		(fboundp 'make-image-specifier))
-	    window-system)
+	    (if (fboundp 'display-graphic-p)
+		(display-graphic-p)
+	      window-system))
        (list
 	["Use Images" speedbar-toggle-images
 	 :style toggle :selected speedbar-use-images]))
@@ -4277,36 +4283,36 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
 
 )))
 
-(defimage-speedbar speedbar-directory-+
-  ((:type xpm :file "sb-dir+.xpm" :ascent center))
+(defimage-speedbar speedbar-directory-plus
+  ((:type xpm :file "sb-dir-plus.xpm" :ascent center))
   "Image used for closed directories with stuff in them.")
 
-(defimage-speedbar speedbar-directory--
-  ((:type xpm :file "sb-dir-.xpm" :ascent center))
+(defimage-speedbar speedbar-directory-minus
+  ((:type xpm :file "sb-dir-minus.xpm" :ascent center))
   "Image used for open directories with stuff in them.")
 
-(defimage-speedbar speedbar-file-+
-  ((:type xpm :file "sb-file+.xpm" :ascent center))
+(defimage-speedbar speedbar-page-plus
+  ((:type xpm :file "sb-pg-plus.xpm" :ascent center))
   "Image used for closed files with stuff in them.")
 
-(defimage-speedbar speedbar-file--
-  ((:type xpm :file "sb-file-.xpm" :ascent center))
+(defimage-speedbar speedbar-page-minus
+  ((:type xpm :file "sb-pg-minus.xpm" :ascent center))
   "Image used for open files with stuff in them.")
 
-(defimage-speedbar speedbar-file-
-  ((:type xpm :file "sb-file.xpm" :ascent center))
+(defimage-speedbar speedbar-page
+  ((:type xpm :file "sb-pg.xpm" :ascent center))
   "Image used for files that can't be opened.")
 
-(defimage-speedbar speedbar-tag-
+(defimage-speedbar speedbar-tag
   ((:type xpm :file "sb-tag.xpm" :ascent center))
   "Image used for tags.")
 
-(defimage-speedbar speedbar-tag-+
-  ((:type xpm :file "sb-tag+.xpm" :ascent center))
+(defimage-speedbar speedbar-tag-plus
+  ((:type xpm :file "sb-tag-plus.xpm" :ascent center))
   "Image used for closed tag groups.")
 
-(defimage-speedbar speedbar-tag--
-  ((:type xpm :file "sb-tag-.xpm" :ascent center))
+(defimage-speedbar speedbar-tag-minus
+  ((:type xpm :file "sb-tag-minus.xpm" :ascent center))
   "Image used for open tag groups.")
 
 (defimage-speedbar speedbar-tag-gt
@@ -4326,18 +4332,18 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
   "Image used for open tag groups.")
 
 (defvar speedbar-expand-image-button-alist
-  '(("<+>" . speedbar-directory-+)
-    ("<->" . speedbar-directory--)
-    ("[+]" . speedbar-file-+)
-    ("[-]" . speedbar-file--)
-    ("[?]" . speedbar-file-)
-    ("{+}" . speedbar-tag-+)
-    ("{-}" . speedbar-tag--)
+  '(("<+>" . speedbar-directory-plus)
+    ("<->" . speedbar-directory-minus)
+    ("[+]" . speedbar-page-plus)
+    ("[-]" . speedbar-page-minus)
+    ("[?]" . speedbar-page)
+    ("{+}" . speedbar-tag-plus)
+    ("{-}" . speedbar-tag-minus)
     ("<M>" . speedbar-mail)
-    (" =>" . speedbar-tag-)
+    (" =>" . speedbar-tag)
     (" +>" . speedbar-tag-gt)
     (" ->" . speedbar-tag-v)
-    (">" . speedbar-tag-)
+    (">" . speedbar-tag)
     ("@" . speedbar-tag-type)
     ("  @" . speedbar-tag-type)
     )
