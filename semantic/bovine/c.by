@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.22 2005/04/01 12:19:30 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.23 2005/04/01 12:23:35 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1002,11 +1002,13 @@ fun-or-proto-end
     ( t )
   | semantic-list
     ( nil )
-  | TRY opt-initializers semantic-list CATCH semantic-list
-    (nil)
  ;; Here is an anoying feature of C++ pure virtual methods
   | EQUAL ZERO SEMICOLON
     ( :pure-virtual-flag )
+  | TRY opt-initializers semantic-list CATCH semantic-list semantic-list
+    (nil)
+  | TRY opt-initializers semantic-list CATCH semantic-list
+    (nil)
   ;
 
 type-cast
