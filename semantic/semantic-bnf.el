@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.16 2000/09/15 23:24:49 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.17 2000/09/19 04:22:16 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -106,6 +106,9 @@
      (symbol "parsetable" symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'parsetable)))
+     (symbol "keywordtable" symbol
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'keywordtable)))
      (symbol "languagemode" symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'languagemode)))
@@ -380,6 +383,29 @@ parse table variable."
 	  (error "You must add a declaration for %s in %s"
 		 var file))))))
 
+(defun semantic-bnf-find-keyword-destination (tokstream)
+  "Find the destination file for keywords in this BNF file.
+Argument TOKSTREAM is the list of tokens in which to find the file and
+keyword table variable."
+  (save-excursion
+    (let ((file (semantic-find-nonterminal-by-token 'outputfile tokstream))
+	  (var (semantic-find-nonterminal-by-token 'keywordtable tokstream)))
+      (if (or (not file) (not var))
+	  nil
+	;; Fix file/var to strings
+	(setq file (semantic-token-name (car file))
+	      var (semantic-token-name (car var)))
+	;; Look these items up.
+	(set-buffer (find-file-noselect file))
+	(goto-char (point-min))
+	(if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
+				       (regexp-quote var)) nil t)
+	    (progn
+	      (goto-char (match-beginning 0))
+	      (point-marker))
+	  (error "You must add a declaration for %s in %s"
+		 var file))))))
+
 (defun semantic-bnf-find-languagemode-old ()
   "Find the mode this BNF is used in."
   (error "Upgrade")
@@ -456,6 +482,7 @@ SOURCEFILE is the file name from whence tokstream came."
 	 (tok (semantic-bovinate-toplevel 0 t t))
 	 (bb (current-buffer))
 	 (dest (semantic-bnf-find-table-destination tok))
+	 (keydest (semantic-bnf-find-keyword-destination tok))
 	 (mode (semantic-bnf-find-languagemode tok))
 	 (start (semantic-find-nonterminal-by-token 'start tok))
 	 )
@@ -463,6 +490,49 @@ SOURCEFILE is the file name from whence tokstream came."
 	(error "You must specify a destination table in your BNF file"))
     (save-excursion
       (set-buffer (marker-buffer dest))
+      ;; Keyword table
+      (when keydest
+	(goto-char keydest)
+	(re-search-forward "def\\(var\\|const\\)\\s-+\\(\\w\\|\\s_\\)+\\s-*\n")
+	(if (looking-at "\\s-*\\(nil\\|(semantic-flex-make-keyword-table\\)")
+	    (delete-region (point) (save-excursion (forward-sexp 1) (point))))
+	(delete-blank-lines)
+	(let ((key (semantic-find-nonterminal-by-token 'keyword tok))
+	      (start (point)))
+	  (when key
+	    (insert "(semantic-flex-make-keyword-table \n `(")
+	    (while key
+	      (insert " (" (nth 3 (car key)) " . " (car (car key)) ")\n")
+	      (setq key (cdr key)))
+	    (insert "))\n"))
+	  (save-excursion
+	  (indent-region start (point) nil)))
+	(eval-defun nil))
+      ;; Insert setup code in the startup function or hook
+      (when (semantic-bnf-find-setup-code tok fname)
+	;; Point should now be in the region to add stuff
+	;; Add in the bovine table to be used
+	(indent-region
+	 (point)
+	 (let ((var (semantic-find-nonterminal-by-token 'parsetable tok))
+	       (key (semantic-find-nonterminal-by-token 'keywordtable tok)))
+	   (when var
+	     ;; The bovine table
+	     (insert "(setq semantic-toplevel-bovine-table "
+		     (semantic-token-name (car var)) ")\n"))
+	   ;; Keytable setup
+	   (when key
+	     (insert "(setq semantic-flex-keywords-obarray "
+		     (semantic-token-name (car key)) ")\n"))
+	   ;; Add in user specified settings
+	   (let ((settings (semantic-find-nonterminal-by-token 'setting tok)))
+	     (while settings
+	       (insert (nth 2 (car settings)))
+	       (insert "\n")
+	       (setq settings (cdr settings))))
+	   (point))
+	 nil)
+	(eval-defun nil))
       ;; The table
       (goto-char dest)
       (re-search-forward "def\\(var\\|const\\)\\s-+\\(\\w\\|\\s_\\)+\\s-*\n")
@@ -478,34 +548,7 @@ SOURCEFILE is the file name from whence tokstream came."
 			      (point))
 		       (progn (forward-sexp 1) (point))
 		       nil))
-      (eval-defun nil)
-      (when (semantic-bnf-find-setup-code tok fname)
-	;; Point should now be in the region to add stuff
-	;; Add in the bovine table to be used
-	(indent-region
-	 (point)
-	 (let ((var (semantic-find-nonterminal-by-token 'parsetable tok)))
-	   (when var
-	     ;; The bovine table
-	     (insert "(setq semantic-toplevel-bovine-table "
-		     (semantic-token-name (car var)) ")\n"))
-	   ;; Keyword hash table
-	   (let ((key (semantic-find-nonterminal-by-token 'keyword tok)))
-	     (when key
-	       (insert "(semantic-flex-make-keyword-table \n `(")
-	       (while key
-		 (insert " (" (nth 3 (car key)) " . " (car (car key)) ")\n")
-		 (setq key (cdr key)))
-	       (insert "))\n")))
-	   ;; Add in user specified settings
-	   (let ((settings (semantic-find-nonterminal-by-token 'setting tok)))
-	     (while settings
-	       (insert (nth 2 (car settings)))
-	       (insert "\n")
-	       (setq settings (cdr settings))))
-	   (point))
-	 nil)
-	(eval-defun nil)))
+      (eval-defun nil))
     (message "Done.")
     (if mode
 	(save-excursion
