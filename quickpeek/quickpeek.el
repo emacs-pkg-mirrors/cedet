@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: tools
-;; X-RCS: $Id: quickpeek.el,v 1.2 2000/01/23 13:35:15 zappo Exp $
+;; X-RCS: $Id: quickpeek.el,v 1.3 2000/01/23 14:37:19 zappo Exp $
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -204,7 +204,7 @@ to toggle this value.")
   (setq quickpeek-syntax-table (make-syntax-table))
   ;; turn off paren matching around here.
   (modify-syntax-entry ?\' " " quickpeek-syntax-table)
-  (modify-syntax-entry ?\" " " quickpeek-syntax-table)
+;  (modify-syntax-entry ?\" " " quickpeek-syntax-table)
   (modify-syntax-entry ?( "()" quickpeek-syntax-table)
   (modify-syntax-entry ?) ")( " quickpeek-syntax-table)
   (modify-syntax-entry ?{ ")}" quickpeek-syntax-table)
