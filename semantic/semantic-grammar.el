@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.55 2004/01/27 15:07:32 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.56 2004/02/26 08:33:25 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -918,6 +918,12 @@ Lisp code."
     ;; Return the name of the generated package file.
     output))
 
+(defun semantic-grammar-recreate-package ()
+  "Unconditionnaly create Lisp code from grammar in current buffer.
+Like \\[universal-argument] \\[semantic-grammar-create-package]."
+  (interactive)
+  (semantic-grammar-create-package t))
+
 (defun semantic-grammar-batch-build-one-package (file)
   "Build a Lisp package from the grammar in FILE.
 That is, generate Lisp code from FILE, and `byte-compile' it.
@@ -1143,6 +1149,62 @@ END is the limit of the search."
 
     km)
   "Keymap used in `semantic-grammar-mode'.")
+
+(defvar semantic-grammar-menu
+  '("Grammar"
+    ["Indent Line" semantic-grammar-indent]
+    ["Complete Symbol" semantic-grammar-complete]
+    ["Find Macro" semantic-grammar-find-macro-expander]
+    "--"
+    ["Update Lisp Package" semantic-grammar-create-package]
+    ["Recreate Lisp Package" semantic-grammar-recreate-package]
+    )
+  "Common semantic grammar menu.")
+
+(defun semantic-grammar-setup-menu-emacs (symbol mode-menu)
+  "Setup a GNU Emacs grammar menu in variable SYMBOL.
+MODE-MENU is an optional specific menu whose items are appended to the
+common grammar menu."
+  (let ((items (make-symbol "items")))
+    `(unless (boundp ',symbol)
+       (easy-menu-define ,symbol (current-local-map)
+         "Grammar Menu" semantic-grammar-menu)
+       (let ((,items (cdr ,mode-menu)))
+         (when ,items
+           (easy-menu-add-item ,symbol nil "--")
+           (while ,items
+             (easy-menu-add-item ,symbol nil (car ,items))
+             (setq ,items (cdr ,items))))))
+    ))
+
+(defun semantic-grammar-setup-menu-xemacs (symbol mode-menu)
+  "Setup an XEmacs grammar menu in variable SYMBOL.
+MODE-MENU is an optional specific menu whose items are appended to the
+common grammar menu."
+  (let ((items (make-symbol "items"))
+        (path (make-symbol "path")))
+    `(progn
+       (unless (boundp ',symbol)
+         (easy-menu-define ,symbol nil
+           "Grammar Menu" (copy-sequence semantic-grammar-menu)))
+       (easy-menu-add ,symbol)
+       (let ((,items (cdr ,mode-menu))
+             (,path (list (car ,symbol))))
+         (when ,items
+           (easy-menu-add-item nil ,path "--")
+           (while ,items
+             (easy-menu-add-item nil ,path (car ,items))
+             (setq ,items (cdr ,items))))))
+    ))
+
+(defmacro semantic-grammar-setup-menu (&optional mode-menu)
+  "Setup a mode local grammar menu.
+MODE-MENU is an optional specific menu whose items are appended to the
+common grammar menu."
+  (let ((menu (intern (format "%s-menu" major-mode))))
+    (if (featurep 'xemacs)
+        (semantic-grammar-setup-menu-xemacs menu mode-menu)
+      (semantic-grammar-setup-menu-emacs menu mode-menu))))
 
 (defsubst semantic-grammar-in-lisp-p ()
   "Return non-nil if point is in Lisp code."
