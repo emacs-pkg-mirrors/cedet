@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.21 2004/01/15 02:46:55 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.22 2004/01/29 18:33:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,10 +61,10 @@
 ;;
 ;; COLLECTORS:
 ;;
-;; A collector is an object which represents the means by which tokens
+;; A collector is an object which represents the means by which tags
 ;; to complete on are collected.  It's first job is to find all the
-;; tokens which are to be completed against.  It can also rename
-;; some tokens if needed so long as `semantic-tag-clone' is used.
+;; tags which are to be completed against.  It can also rename
+;; some tags if needed so long as `semantic-tag-clone' is used.
 ;;
 ;; Some collectors will gather all tags to complete against first
 ;; (for in buffer queries, or other small list situations).  It may
@@ -98,8 +98,16 @@
 ;;   ( DBTABLE2 TAG1 TAG2 ...)
 ;;   ... )
 ;;
-;; For buffer local searches, assume that DBTABLE can be nil, and buffer
-;; location information is in the TAGs overlay.
+;; INLINE vs MINIBUFFER
+;;
+;; Two major ways completion is used in Emacs is either through a
+;; minibuffer query, or via completion in a normal editing buffer,
+;; encompassing some small range of characters.
+;;
+;; Structure for both types of completion are provided here.
+;; `semantic-complete-read-tag-engine' will use the minibuffer.
+;; `semantic-complete-inline-tag-engine' will complete text in
+;; a buffer.
 
 (require 'eieio)
 (require 'semantic-tag)
@@ -130,7 +138,26 @@
   (defalias 'semantic-delete-minibuffer-contents 'erase-buffer))
 
 ;;; ------------------------------------------------------------
-;;; Option Selection harnesses
+;;; MINIBUFFER or INLINE utils
+;;
+(defun semantic-completion-text ()
+  "Return the text that is currently in the completion buffer.
+For a minibuffer prompt, this is the minibuffer text.
+For inline completion, this is the text wrapped in the inline completion
+overlay."
+  (if semantic-complete-inline-overlay
+      (semantic-complete-inline-text)
+    (semantic-minibuffer-contents)))
+
+(defun semantic-completion-delete-text ()
+  "Delete the text that is actively being completed.
+Presumably if you call this you will insert something new there."
+  (if semantic-complete-inline-overlay
+      (semantic-complete-inline-delete-text)
+    (semantic-delete-minibuffer-contents)))
+
+;;; ------------------------------------------------------------
+;;; MINIBUFFER: Option Selection harnesses
 ;;
 (defvar semantic-completion-collector-engine nil
   "The tag collector for the current completion operation.
@@ -165,10 +192,10 @@ Keeps STRINGS only in the history.")
 						    default-tag initial-input
 						    history)
   "Read a semantic tag, and return a tag for the selection.
-Argument COLLECTOR is a function which can be used to to return
+Argument COLLECTOR is an object which can be used to to calculate
 a list of possible hits.  See `semantic-completion-collector-engine'
 for details on COLLECTOR.
-Argumeng DISPLAYOR is a function used to display a list of possible
+Argumeng DISPLAYOR is an object used to display a list of possible
 completions for a given prefix.  See`semantic-completion-display-engine'
 for details on DISPLAYOR.
 PROMPT is a string to prompt with.
@@ -292,7 +319,7 @@ Return value can be:
   ;; Query the environment for an active completion.
   (let ((collector semantic-completion-collector-engine)
 	(displayor semantic-completion-display-engine)
-	(contents (semantic-minibuffer-contents))
+	(contents (semantic-completion-text))
 	match
 	matchlist
 	answer)
@@ -409,14 +436,14 @@ to the nearest word boundary, and return that."
 If PARTIAL, do partial completion stopping at spaces."
   (let ((comp (semantic-collector-try-completion
                semantic-completion-collector-engine
-	       (semantic-minibuffer-contents))))
+	       (semantic-completion-text))))
     (cond
      ((null comp)
       (semantic-completion-message " [No Match]")
       (ding)
       )
      ((stringp comp)
-      (if (string= (semantic-minibuffer-contents) comp)
+      (if (string= (semantic-completion-text) comp)
 	  (when partial
 	    ;; Minibuffer isn't changing AND the text is not unique.
 	    ;; Test for partial completion over a word separator character.
@@ -425,24 +452,24 @@ If PARTIAL, do partial completion stopping at spaces."
 	    (let ((newcomp (semantic-collector-current-whitespace-completion
 			    semantic-completion-collector-engine)))
 	      (when newcomp
-		(semantic-delete-minibuffer-contents)
+		(semantic-completion-delete-text)
 		(insert newcomp))
 	      ))
 	(when partial
-	  (let ((orig (semantic-minibuffer-contents)))
+	  (let ((orig (semantic-completion-text)))
 	    ;; For partial completion, we stop and step over
 	    ;; word boundaries.  Use this nifty function to do
 	    ;; that calculation for us.
 	    (setq comp
 		  (semantic-complete-hack-word-boundaries orig comp))))
 	;; Do the replacement.
-	(semantic-delete-minibuffer-contents)
+	(semantic-completion-delete-text)
         (insert comp))
       )
      ((and (listp comp) (semantic-tag-p (car comp)))
       (unless (string= (buffer-string) (semantic-tag-name (car comp)))
         ;; A fully unique completion was available.
-        (semantic-delete-minibuffer-contents)
+        (semantic-completion-delete-text)
         (insert (semantic-tag-name (car comp))))
       ;; The match is complete
       (if (= (length comp) 1)
@@ -451,12 +478,13 @@ If PARTIAL, do partial completion stopping at spaces."
       )
      (t nil))))
 
-(defun semantic-complete-do-completion (&optional partial)
+(defun semantic-complete-do-completion (&optional partial inline)
   "Do a completion for the current minibuffer.
-If PARTIAL, do partial completion stopping at spaces."
-  (let ((contents (semantic-minibuffer-contents))
-	(collector semantic-completion-collector-engine)
-	(displayor semantic-completion-display-engine))
+If PARTIAL, do partial completion stopping at spaces.
+if INLINE, then completion is happing inline in a buffer."
+  (let* ((collector semantic-completion-collector-engine)
+	 (displayor semantic-completion-display-engine)
+	 (contents (semantic-completion-text)))
 
     (semantic-collector-calculate-completions collector contents partial)
     (let* ((na (semantic-complete-next-action partial)))
@@ -489,6 +517,150 @@ If PARTIAL, do partial completion stopping at spaces."
        ((eq na 'empty)
 	(semantic-completion-message " [No Match]"))
        (t nil)))))
+
+
+;;; ------------------------------------------------------------
+;;; INLINE: tag completion harness
+;;
+;; Unlike the minibuffer, there is no mode nor other traditional
+;; means of reading user commands in completion mode.  Instead
+;; we use a pre-command-hook to inset in our commands, and to
+;; push ourselves out of this mode on alternate keypresses.
+(defvar semantic-complete-inline-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km "\C-i" 'semantic-complete-inline-TAB)
+    (define-key km [up] 'semantic-complete-inline-up)
+    (define-key km "\C-p" 'semantic-complete-inline-up)
+    (define-key km [down] 'semantic-complete-inline-down)
+    (define-key km "\C-n" 'semantic-complete-inline-down)
+    km)
+  "Keymap used while performing inline completion..")
+
+(defface semantic-complete-inline-face
+  '((((class color) (background dark))
+     (:underline "yellow"))
+    (((class color) (background light))
+     (:underline "brown")))
+  "*Face used to show the region being completed inline.
+The face is used in `semantic-complete-inline-tag-engine'."
+  :group 'semantic)
+
+(defvar semantic-complete-inline-overlay nil
+  "The overlay currently active while completing inline.")
+
+(defun semantic-complete-inline-text ()
+  "Return the text that is being completed inline.
+Similar to `minibuffer-contents' when completing in the minibuffer."
+  (buffer-substring-no-properties
+   (semantic-overlay-start semantic-complete-inline-overlay)
+   (semantic-overlay-end semantic-complete-inline-overlay)))
+
+(defun semantic-complete-inline-delete-text ()
+  "Delete the text currently being completed in the current buffer."
+  (delete-region
+   (semantic-overlay-start semantic-complete-inline-overlay)
+   (semantic-overlay-end semantic-complete-inline-overlay)))
+
+
+(defun semantic-complete-inline-exit ()
+  "Exit inline completion mode."
+  ;; Remove this hook FIRST!
+  (remove-hook 'pre-command-hook 'semantic-complete-pre-command-hook)
+
+  (condition-case nil
+      (progn
+	(when semantic-complete-inline-overlay
+	  (semantic-overlay-delete semantic-complete-inline-overlay)
+	  (setq semantic-complete-inline-overlay nil))
+	(setq semantic-completion-collector-engine nil
+	      semantic-completion-display-engine nil))
+    (error nil))
+    
+  ;; Remove this hook LAST!!!
+  ;; This will force us back through this function.
+  (remove-hook 'post-command-hook 'semantic-complete-post-command-hook)
+  )
+
+
+(defun semantic-complete-pre-command-hook ()
+  "Used to redefine what commands are being run while completing.
+When installed as a `pre-command-hook' the special keymap
+`semantic-complete-inline-map' is queried to replace commands normally run.
+Commands which edit what is in the region of interest operate normally.
+Commands which would take us out of the region of interest, or our
+quit hook, will exit this completion mode."
+  (let ((fcn (lookup-key semantic-complete-inline-map
+			 (this-command-keys) nil)))
+    (cond ((commandp fcn)
+	   (setq this-command fcn))
+	  (t nil)))
+  )
+
+(defun semantic-complete-post-command-hook ()
+  "Used to determine if we need to exit inline completion mode.
+If completion mode is active, check to see if we are within
+the bounds of `semantic-complete-inline-overlay', or within
+a reasonable distance."
+  (if (not semantic-complete-inline-overlay)
+      (semantic-complete-inline-exit))
+  (let ((s (semantic-overlay-start semantic-complete-inline-overlay))
+	(e (semantic-overlay-end semantic-complete-inline-overlay))
+	(b (semantic-overlay-buffer semantic-complete-inline-overlay))
+	)
+    (if (or (not (eq b (current-buffer)))
+	    (< (point) s)
+	    (> (point) e))
+	(semantic-complete-inline-exit))))
+
+(defun semantic-complete-inline-tag-engine
+  (collector displayor buffer start end)
+  "Perform completion based on semantic tags in a buffer.
+Argument COLLECTOR is an object which can be used to to calculate
+a list of possible hits.  See `semantic-completion-collector-engine'
+for details on COLLECTOR.
+Argumeng DISPLAYOR is an object used to display a list of possible
+completions for a given prefix.  See`semantic-completion-display-engine'
+for details on DISPLAYOR.
+BUFFER is the buffer in which completion will take place.
+START is a location for the start of the full symbol.
+If the symbol being completed is \"foo.ba\", then START
+is on the \"f\" character.
+END is at the end of the current symbol being completed."
+  ;; Set us up for doing completion
+  (setq semantic-completion-collector-engine collector
+	semantic-completion-display-engine displayor)
+  ;; Create an overlay
+  (setq semantic-complete-inline-overlay
+	(semantic-make-overlay start end buffer nil t))
+  (semantic-overlay-put semantic-complete-inline-overlay
+			'face
+			'semantic-complete-inline-face)
+  ;; Install our command hooks
+  (add-hook 'pre-command-hook 'semantic-complete-pre-command-hook)
+  (add-hook 'post-command-hook 'semantic-complete-post-command-hook)
+  ;; Go!
+  )
+
+;;; Inline Completion Keymap Functions
+;;
+(defun semantic-complete-inline-TAB ()
+  "Perform inline completion."
+  (interactive)
+  (semantic-complete-do-completion t t)
+  )
+
+(defun semantic-complete-inline-down(arg)
+  "Focus forwards through the displayor ARG amount."
+  (interactive "P")
+  
+  )
+
+(defun semantic-complete-inline-up (arg)
+  "Focus backwards through the displayor ARG amount."
+  (interactive "P")
+  (semantic-complete-inline-down (- arg))
+  )
+
 
 ;;; ------------------------------------------------------------
 ;;; Interactions between collection and displaying
@@ -586,17 +758,17 @@ When tokens are matched, they are added to this list.")
   "What should we do next?  OBJ can predict a next good action.
 PARTIAL indicates if we are doing a partial completion."
   (if (and (slot-boundp obj 'last-completion)
-	   (string= (semantic-minibuffer-contents) (oref obj last-completion)))
+	   (string= (semantic-completion-text) (oref obj last-completion)))
       (let* ((cem (semantic-collector-current-exact-match obj))
 	     (cemlen (semanticdb-find-result-length cem)))
 	(cond ((and cem (= cemlen 1))
 	       'done)
 	      ((and (not cem) 
 		    (not (semantic-collector-all-completions 
-			  obj (semantic-minibuffer-contents))))
+			  obj (semantic-completion-text))))
 	       'empty)
 	      ((and partial (semantic-collector-try-completion-whitespace 
-			     obj (semantic-minibuffer-contents)))
+			     obj (semantic-completion-text)))
 	       'complete-whitespace)))
     'complete))
 
@@ -929,7 +1101,7 @@ inserted into the current context.")
 (defmethod semantic-displayor-next-action ((obj semantic-displayor-abstract))
   "The next action to take on the minibuffer related to display."
   (if (and (slot-boundp obj 'last-prefix)
-	   (string= (oref obj last-prefix) (semantic-minibuffer-contents))
+	   (string= (oref obj last-prefix) (semantic-completion-text))
 	   (eq last-command this-command))
       'scroll
     'display))
@@ -998,7 +1170,7 @@ which have the same name."
 (defmethod semantic-displayor-next-action ((obj semantic-displayor-focus-abstract))
   "The next action to take on the minibuffer related to display."
   (if (and (slot-boundp obj 'last-prefix)
-	   (string= (oref obj last-prefix) (semantic-minibuffer-contents))
+	   (string= (oref obj last-prefix) (semantic-completion-text))
 	   (eq last-command this-command))
       'focus
     'display))
@@ -1028,7 +1200,7 @@ which have the same name."
 	   ;; Only return the current focus IFF the minibuffer reflects
 	   ;; the list this focus was derived from.
 	   (slot-boundp obj 'last-prefix)
-	   (string= (semantic-minibuffer-contents) (oref obj last-prefix))
+	   (string= (semantic-completion-text) (oref obj last-prefix))
 	   )
       ;; We need to focus
       (if (oref obj find-file-focus)
@@ -1088,7 +1260,7 @@ one in the source buffer."
 		))
 	(select-window (minibuffer-window)))
       ;; Calculate text difference between contents and the focus item.
-      (let* ((mbc (semantic-minibuffer-contents))
+      (let* ((mbc (semantic-completion-text))
 	     (ftn (semantic-tag-name tag))
 	     (diff (substring ftn (length mbc))))
 	(semantic-completion-message 
@@ -1263,6 +1435,26 @@ prompts.  these are calculated from the CONTEXT variable passed in."
      inp
      history)))
 
+(defun semantic-complete-inline-analyzer (context)
+  "Complete a symbol name by name based on the current context.
+CONTEXT is the semantic analyzer context to start with.
+See `semantic-complete-inline-tag-engine' for details on how
+completion works."
+  (if (not context) (setq context (semantic-analyze-current-context (point))))
+  (let* ((syms (semantic-ctxt-current-symbol (point)))
+	 (inp (car (reverse syms))))
+    (setq syms (nreverse (cdr (nreverse syms))))
+    (semantic-complete-inline-tag-engine
+     (semantic-collector-analyze-completions
+      "inline"
+      :buffer (oref context buffer)
+      :context context)
+     (semantic-displayor-traditional-with-focus-highlight "simple")
+     (oref context buffer)
+     (car (oref context bounds))
+     (cdr (oref context bounds))
+     )))
+
 
 ;;; ------------------------------------------------------------
 ;;; Testing
@@ -1303,10 +1495,12 @@ prompts.  these are calculated from the CONTEXT variable passed in."
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)))))
 
-(defun semantic-complete-analyze-inline ()
+(defun semantic-complete-analyze-and-replace ()
   "Perform prompt completion to do in buffer completion.
 `semantic-analyze-possible-completions' is used to determine the
-possible values."
+possible values.
+The minibuffer is used to perform the completion.
+The result is inserted as a replacement of the text that was there."
   (interactive)
   (let* ((c (semantic-analyze-current-context (point)))
 	 (tag (save-excursion (semantic-complete-read-tag-analyzer "" c))))
@@ -1315,6 +1509,16 @@ possible values."
     (delete-region (point) (cdr (oref c bounds)))
     (insert (semantic-tag-name tag))
     (message "%S" (semantic-format-tag-summarize tag))))
+
+(defun semantic-complete-analyze-inline ()
+  "Perform prompt completion to do in buffer completion.
+`semantic-analyze-possible-completions' is used to determine the
+possible values.
+The function returns immediately, leaving the buffer in a mode that
+will perform the completion."
+  (interactive)
+  (semantic-complete-inline-analyzer
+   (semantic-analyze-current-context (point))))
 
 ;; End
 (provide 'semantic-complete)
