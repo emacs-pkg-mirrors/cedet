@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.60 2000/10/30 01:52:00 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.61 2000/11/13 21:01:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -652,7 +652,8 @@ the current results on a parse error."
 	     (stream-overlays (car (cdr (cdr nontermsym))))
 	     (tmpet nil)
 	     (token (car (cdr nontermsym)))
-	     (startcdr (nthcdr (- (length token) 2) token)))
+	     (ncdr (- (length token) 2))
+	     (startcdr (if (natnump ncdr) (nthcdr ncdr token))))
 	(if (not nontermsym)
 	    (error "Parse error @ %d" (car (cdr (car stream)))))
 	(semantic-overlay-stack-add stream-overlays)
