@@ -6,7 +6,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.11 2001/05/23 13:39:52 ponced Exp $
+# $Id: java.bnf,v 1.12 2001/08/10 12:45:27 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -270,30 +270,30 @@
 # - `with-ref' (optional) if non-nil indicates that the tag is
 #   followed by a reference like in "@see <reference>".
 
-%token AUTHOR      "author"
-%put   AUTHOR      javadoc (seq 1 usage (type))
-%token VERSION     "version"
-%put   VERSION     javadoc (seq 2 usage (type)) 
-%token PARAM       "param"
-%put   PARAM       javadoc (seq 3 usage (function) with-name t) 
-#%token RETURN      "return"
-%put   RETURN      javadoc (seq 4 usage (function)) 
-%token EXCEPTION   "exception"
-%put   EXCEPTION   javadoc (seq 5 usage (function) with-name t) 
-#%token THROWS      "throws"
-%put   THROWS      javadoc (seq 6 usage (function) with-name t) 
-%token SEE         "see"
-%put   SEE         javadoc (seq 7 usage (type function variable) opt t with-ref t) 
-%token SINCE       "since"
-%put   SINCE       javadoc (seq 8 usage (type function variable) opt t) 
-%token SERIAL      "serial"
-%put   SERIAL      javadoc (seq 9 usage (variable) opt t) 
-%token SERIALDATA  "serialData"
-%put   SERIALDATA  javadoc (seq 10 usage (function) opt t) 
-%token SERIALFIELD "serialField"
-%put   SERIALFIELD javadoc (seq 11 usage (variable) opt t) 
-%token DEPRECATED  "deprecated"
-%put   DEPRECATED  javadoc (seq 12 usage (type function variable) opt t) 
+%token _AUTHOR      "@author"
+%put   _AUTHOR      javadoc (seq 1 usage (type))
+%token _VERSION     "@version"
+%put   _VERSION     javadoc (seq 2 usage (type)) 
+%token _PARAM       "@param"
+%put   _PARAM       javadoc (seq 3 usage (function) with-name t) 
+%token _RETURN      "@return"
+%put   _RETURN      javadoc (seq 4 usage (function)) 
+%token _EXCEPTION   "@exception"
+%put   _EXCEPTION   javadoc (seq 5 usage (function) with-name t) 
+%token _THROWS      "@throws"
+%put   _THROWS      javadoc (seq 6 usage (function) with-name t) 
+%token _SEE         "@see"
+%put   _SEE         javadoc (seq 7 usage (type function variable) opt t with-ref t) 
+%token _SINCE       "@since"
+%put   _SINCE       javadoc (seq 8 usage (type function variable) opt t) 
+%token _SERIAL      "@serial"
+%put   _SERIAL      javadoc (seq 9 usage (variable) opt t) 
+%token _SERIALDATA  "@serialData"
+%put   _SERIALDATA  javadoc (seq 10 usage (function) opt t) 
+%token _SERIALFIELD "@serialField"
+%put   _SERIALFIELD javadoc (seq 11 usage (variable) opt t) 
+%token _DEPRECATED  "@deprecated"
+%put   _DEPRECATED  javadoc (seq 12 usage (type function variable) opt t) 
 
 # --------
 # Grammar
