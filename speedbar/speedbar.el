@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.184 2000/09/09 11:12:57 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.185 2000/09/22 02:26:27 zappo Exp $
 
 (defvar speedbar-version "0.13beta3"
   "The current version of speedbar.")
@@ -1198,13 +1198,14 @@ and the existence of packages."
   (if (not speedbar-track-mouse-flag)
       nil
     (save-excursion
-      (let ((char (nth 1 (car (cdr event)))))
-	(if (not (numberp char))
-	    (speedbar-message nil)
-	  (goto-char char)
-	  ;; (speedbar-message "%S" event)
-	  (speedbar-item-info)
-	  )))))
+      (save-window-excursion
+	(condition-case nil
+	    (progn
+	      (mouse-set-point event)
+	      (if (eq major-mode 'speedbar-mode)
+		  ;; XEmacs may let us get in here in other mode buffers.
+		  (speedbar-item-info)))
+	  (t (speedbar-message nil)))))))
 
 (defun speedbar-show-info-under-mouse ()
   "Call the info function for the line under the mouse.
