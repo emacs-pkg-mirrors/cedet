@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.6 2003/03/21 09:25:58 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.7 2003/03/22 10:40:20 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -225,6 +225,14 @@ Return the value found, or nil if PROPERTY is not one of the
 properties of TAG.
 That function is for internal use only."
   (plist-get property (semantic-tag-properties tag)))
+
+(defun semantic-tag-file-name (tag)
+  "Return the filename TAG is originating.
+Return nil if that information can't be obtained."
+  (let ((buffer (semantic-tag-buffer tag)))
+    (if buffer
+        (buffer-file-name buffer)
+      (semantic--tag-get-property tag :filename))))
 
 ;;; Tag tests and comparisons.
 ;;
@@ -366,7 +374,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
                  :detail ,detail
                  ,@attributes))
 
-;;; Tag Cloning.
+;;; Copying and cloning tags.
 ;;
 (defsubst semantic-tag-clone (tag &optional name)
   "Clone TAG, creating a new TAG.
@@ -378,6 +386,22 @@ cloned tag."
         (copy-sequence (semantic-tag-attributes tag))
         (copy-sequence (semantic-tag-properties tag))
         (semantic-tag-overlay tag)))
+
+(defun semantic-tag-copy (tag &optional name keep-file)
+  "Return a copy of TAG unlinked from the originating buffer.
+If optional argument NAME is non-nil it specifies a new name for the
+copied tag.
+If optional argument KEEP-FILE is non-nil, and TAG was linked to a
+buffer, the originating buffer file name is kept in the `:filename'
+property of the copied tag."
+  ;; Right now, TAG is a list.
+  (let ((copy (semantic-tag-clone tag name)))
+    (when keep-file
+      (semantic--tag-put-property
+       copy :filename (semantic-tag-file-name copy)))
+    (semantic--tag-set-overlay
+     copy (vector (semantic-tag-start copy) (semantic-tag-end copy)))
+    copy))
 
 ;;; Standard Tag Access
 ;;
@@ -530,6 +554,145 @@ to any components beloning to an anonymous type."
     ;; Return
     all-children))
 
+;;; Tags and Overlays
+;;
+;; Overlays are used so that we can quickly identify tags from
+;; buffer positions and regions using built in Emacs commands.
+;;
+(defun semantic--tag-unlink-from-buffer (tag)
+  "Convert TAG from using an overlay to using an overlay proxy.
+This function is for internal use only."
+  (when (semantic-tag-p tag)
+    (let ((o (semantic-tag-overlay tag)))
+      (when (semantic-overlay-p o)
+        (semantic--tag-set-overlay
+         tag (vector (semantic-overlay-start o)
+                     (semantic-overlay-end o)))
+        (semantic-overlay-delete o)
+        ;; Fix the sub-tags which contain overlays.
+        (semantic--tag-unlink-list-from-buffer
+         (semantic-tag-components-with-overlays tag))))))
+
+(defun semantic--tag-link-to-buffer (tag)
+  "Convert TAG from using an overlay proxy to using an overlay.
+This function is for internal use only."
+  (when (semantic-tag-p tag)
+    (let ((o (semantic-tag-overlay tag)))
+      (when (and (vectorp o) (= (length o) 2))
+        (setq o (semantic-make-overlay (aref o 0) (aref o 1)
+                                       (current-buffer)))
+        (semantic--tag-set-overlay tag o)
+        (semantic-overlay-put o 'semantic tag)
+        ;; Clear the :filename property
+        (semantic--tag-put-property tag :filename nil))
+        ;; Fix the sub-tags which contain overlays.
+        (semantic--tag-link-list-to-buffer
+         (semantic-tag-components-with-overlays tag))))))
+
+(defsubst semantic--tag-unlink-list-from-buffer (tags)
+  "Convert TAGS from using an overlay to using an overlay proxy.
+This function is for internal use only."
+  (mapcar 'semantic--tag-unlink-from-buffer tags))
+
+(defsubst semantic--tag-link-list-to-buffer (tags)
+  "Convert TAGS from using an overlay proxy to using an overlay.
+This function is for internal use only."
+  (mapcar 'semantic--tag-link-to-buffer tags))
+
+(defun semantic--tag-unlink-cache-from-buffer ()
+  "Convert all tags in the current cache to use overlay proxys.
+This function is for internal use only."
+  (semantic--tag-unlink-list-from-buffer
+   (semantic-bovinate-toplevel)))
+
+(defun semantic--tag-link-cache-to-buffer ()
+  "Convert all tags in the current cache to use overlays.
+This function is for internal use only."
+  (condition-case nil
+      ;; In this unique case, we cannot call the usual toplevel fn.
+      ;; because we don't want a reparse, we want the old overlays.
+      (semantic--tag-link-list-to-buffer
+       semantic-toplevel-bovine-cache)
+    ;; Recover when there is an error restoring the cache.
+    (error (message "Error recovering tag list")
+           (semantic-clear-toplevel-cache)
+           nil)))
+
+;;; Tag Cooking
+;;
+;; Raw tags from a parser follow a different positional format than
+;; those used in the bovine cache.  Raw tags need to be cooked into
+;; semantic cache friendly tags for use by the masses.
+;;
+(defsubst semantic--tag-expanded-p (tag)
+  "Return non-nil if TAG is expanded.
+This function is for internal use only.
+See also the function `semantic--expand-tag'."
+  ;; In fact a cooked tag is actually a list of cooked tags
+  ;; because a raw tag can be expanded in several cooked ones!
+  (when (consp tag)
+    (while (and (semantic-tag-p (car tag))
+                (vectorp (semantic-tag-overlay (car tag))))
+      (setq tag (cdr tag)))
+    (null tag)))
+
+(defvar semantic-tag-expand-function nil
+  "Function used to expand a tag.
+It is passed each tag production, and must return a list of tags
+derived from it, or nil if it does not need to be expanded.
+
+Languages with compound definitions should use this function to expand
+from one compound symbol into several.  For example, in C or Java the
+following definition is easily parsed into one tag:
+
+  int a, b;
+
+This function should take this compound tag and turn it into two tags,
+one for A, and the other for B.")
+(make-variable-buffer-local 'semantic-tag-expand-function)
+
+(defun semantic--tag-expand (tag)
+  "Convert TAG from a raw state to a cooked state, and expand it.
+Returns a list of cooked tags.
+
+  The parser returns raw tags with positional data START END at the
+end of the tag data structure (a list for now).  We convert it from
+that to a cooked state that uses an overlay proxy, that is, a vector
+\[START END].
+
+  The raw tag is changed with side effects and maybe expanded in
+several derived tags when the variable `semantic-tag-expand-function'
+is set.
+
+This function is for internal use only."
+  ;; Because some parsers can return tags already expanded (wisent is
+  ;; an example), check if TAG was already expanded to just return it.
+  (if (semantic--tag-expanded-p tag)
+      tag
+    (condition-case nil
+        (let ((ocdr (semantic--tag-overlay-cdr tag)))
+          ;; OCDR contains the sub-list of TAG whose car is the
+          ;; OVERLAY part of TAG. That is, a list (OVERLAY START END).
+          ;; Convert it into an overlay proxy ([START END]).
+          (semantic--tag-set-overlay
+           tag (vector (nth 1 ocdr) (nth 2 ocdr)))
+          ;; Remove START END positions at end of tag.
+          (setcdr ocdr nil)
+          ;; At this point (length TAG) must be 5!
+          ;;(unless (= (length tag) 5)
+          ;;  (error "Tag expansion failed"))
+          )
+      (error
+       (debug tag)
+       nil))
+    ;; Compatibility code to be removed in future versions.
+    (unless semantic-tag-expand-function
+      (setq semantic-tag-expand-function semantic-expand-nonterminal)
+      )
+    
+    ;; Expand based on local configuration
+    (funcall (or semantic-tag-expand-function 'list) tag)))
+
 ;;; Compatibility
 ;;
 (defconst semantic-token-version
@@ -672,8 +835,34 @@ interfaces, or abstract classes which are parents of TAG."
 
 (semantic-alias-obsolete 'semantic-nonterminal-children
 			 'semantic-tag-components-with-overlays)
-			 
 
+(semantic-alias-obsolete 'semantic-deoverlay-token
+                         'semantic--tag-unlink-from-buffer)
+
+(semantic-alias-obsolete 'semantic-overlay-token
+                         'semantic--tag-link-to-buffer)
+
+(semantic-alias-obsolete 'semantic-deoverlay-list
+                         'semantic--tag-unlink-list-from-buffer)
+
+(semantic-alias-obsolete 'semantic-overlay-list
+                         'semantic--tag-link-list-to-buffer)
+
+(semantic-alias-obsolete 'semantic-deoverlay-cache
+                         'semantic--tag-unlink-cache-from-buffer)
+
+(semantic-alias-obsolete 'semantic-overlay-cache
+                         'semantic--tag-link-cache-to-buffer)
+
+(semantic-alias-obsolete 'semantic-cooked-token-p
+                         'semantic--tag-expanded-p)
+
+(make-obsolete-variable 'semantic-expand-nonterminal
+                        'semantic-tag-expand-function)
+
+(semantic-alias-obsolete 'semantic-raw-to-cooked-token
+                         'semantic--tag-expand)
+			 
 ;; Lets test this out during this short transition.
 (semantic-alias-obsolete 'semantic-clone-tag
                          'semantic-tag-clone)
