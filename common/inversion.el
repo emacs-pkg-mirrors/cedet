@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.17 2003/07/23 19:52:09 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.18 2003/09/06 19:41:09 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0"
@@ -305,6 +305,7 @@ Return nil if everything is ok.	 Return an error string otherwise."
      ;; Check failed
      (t "Inversion version check failed."))))
 
+;;;###autoload
 (defun inversion-require (package version &optional file directory
 				  &rest reserved)
   "Declare that you need PACKAGE with at least VERSION.
@@ -502,6 +503,7 @@ The package should have VERSION available for download."
 
 	  (copy-file (cdr (car files)) dest))))))
 
+;;;###autoload
 (defun inversion-upgrade-package (package &optional directory)
   "Try to upgrade PACKAGE in DIRECTORY is available."
   (interactive "sPackage to upgrade: ")
