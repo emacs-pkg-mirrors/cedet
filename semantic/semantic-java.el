@@ -1,9 +1,9 @@
 ;;; semantic-java.el --- Semantic details for Java
 
-;;; Copyright (C) 1999, 2000, 2001 David Ponce
+;;; Copyright (C) 1999, 2000, 2001, 2002 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.26 2002/06/29 18:07:14 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.27 2002/07/17 12:09:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +38,198 @@
   (require 'semantic-imenu)
   (require 'document)
   (require 'senator))
+
+;;; Lexical analysis
+;;
+
+;; Generated keyword table
+(defvar semantic-java-keyword-table
+  (semantic-flex-make-keyword-table 
+   `( ("abstract" . ABSTRACT)
+      ("boolean" . BOOLEAN)
+      ("break" . BREAK)
+      ("byte" . BYTE)
+      ("case" . CASE)
+      ("catch" . CATCH)
+      ("char" . CHAR)
+      ("class" . CLASS)
+      ("const" . CONST)
+      ("continue" . CONTINUE)
+      ("default" . DEFAULT)
+      ("do" . DO)
+      ("double" . DOUBLE)
+      ("else" . ELSE)
+      ("extends" . EXTENDS)
+      ("final" . FINAL)
+      ("finally" . FINALLY)
+      ("float" . FLOAT)
+      ("for" . FOR)
+      ("goto" . GOTO)
+      ("if" . IF)
+      ("implements" . IMPLEMENTS)
+      ("import" . IMPORT)
+      ("instanceof" . INSTANCEOF)
+      ("int" . INT)
+      ("interface" . INTERFACE)
+      ("long" . LONG)
+      ("native" . NATIVE)
+      ("new" . NEW)
+      ("package" . PACKAGE)
+      ("private" . PRIVATE)
+      ("protected" . PROTECTED)
+      ("public" . PUBLIC)
+      ("return" . RETURN)
+      ("short" . SHORT)
+      ("static" . STATIC)
+      ("strictfp" . STRICTFP)
+      ("super" . SUPER)
+      ("switch" . SWITCH)
+      ("synchronized" . SYNCHRONIZED)
+      ("this" . THIS)
+      ("throw" . THROW)
+      ("throws" . THROWS)
+      ("transient" . TRANSIENT)
+      ("try" . TRY)
+      ("void" . VOID)
+      ("volatile" . VOLATILE)
+      ("while" . WHILE)
+      ("@author" . _AUTHOR)
+      ("@version" . _VERSION)
+      ("@param" . _PARAM)
+      ("@return" . _RETURN)
+      ("@exception" . _EXCEPTION)
+      ("@throws" . _THROWS)
+      ("@see" . _SEE)
+      ("@since" . _SINCE)
+      ("@serial" . _SERIAL)
+      ("@serialData" . _SERIALDATA)
+      ("@serialField" . _SERIALFIELD)
+      ("@deprecated" . _DEPRECATED)
+      )
+   '(
+     ("abstract" summary "Class|Method declaration modifier: abstract {class|<type>} <name> ...")
+     ("boolean" summary "Primitive logical quantity type (true or false)")
+     ("break" summary "break [<label>] ;")
+     ("byte" summary "Integral primitive type (-128 to 127)")
+     ("case" summary "switch(<expr>) {case <const-expr>: <stmts> ... }")
+     ("catch" summary "try {<stmts>} catch(<parm>) {<stmts>} ... ")
+     ("char" summary "Integral primitive type ('\u0000' to '\uffff') (0 to 65535)")
+     ("class" summary "Class declaration: class <name>")
+     ("const" summary "Unused reserved word")
+     ("continue" summary "continue [<label>] ;")
+     ("default" summary "switch(<expr>) { ... default: <stmts>}")
+     ("do" summary "do <stmt> while (<expr>);")
+     ("double" summary "Primitive floating-point type (double-precision 64-bit IEEE 754)")
+     ("else" summary "if (<expr>) <stmt> else <stmt>")
+     ("extends" summary "SuperClass|SuperInterfaces declaration: extends <name> [, ...]")
+     ("final" summary "Class|Member declaration modifier: final {class|<type>} <name> ...")
+     ("finally" summary "try {<stmts>} ... finally {<stmts>}")
+     ("float" summary "Primitive floating-point type (single-precision 32-bit IEEE 754)")
+     ("for" summary "for ([<init-expr>]; [<expr>]; [<update-expr>]) <stmt>")
+     ("goto" summary "Unused reserved word")
+     ("if" summary "if (<expr>) <stmt> [else <stmt>]")
+     ("implements" summary "Class SuperInterfaces declaration: implements <name> [, ...]")
+     ("import" summary "Import package declarations: import <package>")
+     ("int" summary "Integral primitive type (-2147483648 to 2147483647)")
+     ("interface" summary "Interface declaration: interface <name>")
+     ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
+     ("native" summary "Method declaration modifier: native <type> <name> ...")
+     ("package" summary "Package declaration: package <name>")
+     ("private" summary "Access level modifier: private {class|interface|<type>} <name> ...")
+     ("protected" summary "Access level modifier: protected {class|interface|<type>} <name> ...")
+     ("public" summary "Access level modifier: public {class|interface|<type>} <name> ...")
+     ("return" summary "return [<expr>] ;")
+     ("short" summary "Integral primitive type (-32768 to 32767)")
+     ("static" summary "Declaration modifier: static {class|interface|<type>} <name> ...")
+     ("strictfp" summary "Declaration modifier: strictfp {class|interface|<type>} <name> ...")
+     ("switch" summary "switch(<expr>) {[case <const-expr>: <stmts> ...] [default: <stmts>]}")
+     ("synchronized" summary "synchronized (<expr>) ... | Method decl. modifier: synchronized <type> <name> ...")
+     ("throw" summary "throw <expr> ;")
+     ("throws" summary "Method|Constructor declaration: throws <classType>, ...")
+     ("transient" summary "Field declaration modifier: transient <type> <name> ...")
+     ("try" summary "try {<stmts>} [catch(<parm>) {<stmts>} ...] [finally {<stmts>}]")
+     ("void" summary "Method return type: void <name> ...")
+     ("volatile" summary "Field declaration modifier: volatile <type> <name> ...")
+     ("while" summary "while (<expr>) <stmt> | do <stmt> while (<expr>);")
+     ("@author" javadoc (seq 1 usage (type)))
+     ("@version" javadoc (seq 2 usage (type)))
+     ("@param" javadoc (seq 3 usage (function) with-name t))
+     ("@return" javadoc (seq 4 usage (function)))
+     ("@exception" javadoc (seq 5 usage (function) with-name t))
+     ("@throws" javadoc (seq 6 usage (function) with-name t))
+     ("@see" javadoc (seq 7 usage (type function variable) opt t with-ref t))
+     ("@since" javadoc (seq 8 usage (type function variable) opt t))
+     ("@serial" javadoc (seq 9 usage (variable) opt t))
+     ("@serialData" javadoc (seq 10 usage (function) opt t))
+     ("@serialField" javadoc (seq 11 usage (variable) opt t))
+     ("@deprecated" javadoc (seq 12 usage (type function variable) opt t))
+     ))
+  "Java keywords.")
+
+(defconst semantic-java-number-regexp
+  (eval-when-compile
+    (concat "\\("
+            "\\<[0-9]+[.][0-9]+\\([eE][-+]?[0-9]+\\)?[fFdD]?\\>"
+            "\\|"
+            "\\<[0-9]+[.][eE][-+]?[0-9]+[fFdD]?\\>"
+            "\\|"
+            "\\<[0-9]+[.][fFdD]\\>"
+            "\\|"
+            "\\<[0-9]+[.]"
+            "\\|"
+            "[.][0-9]+\\([eE][-+]?[0-9]+\\)?[fFdD]?\\>"
+            "\\|"
+            "\\<[0-9]+[eE][-+]?[0-9]+[fFdD]?\\>"
+            "\\|"
+            "\\<0[xX][0-9a-fA-F]+[lL]?\\>"
+            "\\|"
+            "\\<[0-9]+[lLfFdD]?\\>"
+            "\\)"
+            ))
+  "Lexer regexp to match Java number terminals.
+Following is the specification of Java number literals.
+
+DECIMAL_LITERAL:
+    [1-9][0-9]*
+  ;
+HEX_LITERAL:
+    0[xX][0-9a-fA-F]+
+  ;
+OCTAL_LITERAL:
+    0[0-7]*
+  ;
+INTEGER_LITERAL:
+    <DECIMAL_LITERAL>[lL]?
+  | <HEX_LITERAL>[lL]?
+  | <OCTAL_LITERAL>[lL]?
+  ;
+EXPONENT:
+    [eE][+-]?[09]+
+  ;
+FLOATING_POINT_LITERAL:
+    [0-9]+[.][0-9]*<EXPONENT>?[fFdD]?
+  | [.][0-9]+<EXPONENT>?[fFdD]?
+  | [0-9]+<EXPONENT>[fFdD]?
+  | [0-9]+<EXPONENT>?[fFdD]
+  ;")
+
+(define-lex semantic-java-lexer
+  "Lexical analyzer that handles Java buffers.
+It ignores whitespaces, newlines and comments, and will return syntax
+as specified by the syntax table."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  semantic-lex-number
+  semantic-lex-symbol-or-keyword
+  semantic-lex-paren-or-list
+  semantic-lex-close-paren
+  semantic-lex-string
+  semantic-lex-ignore-comments
+  semantic-lex-punctuation
+  semantic-lex-default-action)
+
+;;; Parsing
+;;
 
 ;; Generated parser table
 (defvar semantic-toplevel-java-bovine-table
@@ -426,181 +618,65 @@
  )
                    "Java language specification.")
 
-;; Generated keyword table
-(defvar semantic-java-keyword-table
-  (semantic-flex-make-keyword-table 
-   `( ("abstract" . ABSTRACT)
-      ("boolean" . BOOLEAN)
-      ("break" . BREAK)
-      ("byte" . BYTE)
-      ("case" . CASE)
-      ("catch" . CATCH)
-      ("char" . CHAR)
-      ("class" . CLASS)
-      ("const" . CONST)
-      ("continue" . CONTINUE)
-      ("default" . DEFAULT)
-      ("do" . DO)
-      ("double" . DOUBLE)
-      ("else" . ELSE)
-      ("extends" . EXTENDS)
-      ("final" . FINAL)
-      ("finally" . FINALLY)
-      ("float" . FLOAT)
-      ("for" . FOR)
-      ("goto" . GOTO)
-      ("if" . IF)
-      ("implements" . IMPLEMENTS)
-      ("import" . IMPORT)
-      ("instanceof" . INSTANCEOF)
-      ("int" . INT)
-      ("interface" . INTERFACE)
-      ("long" . LONG)
-      ("native" . NATIVE)
-      ("new" . NEW)
-      ("package" . PACKAGE)
-      ("private" . PRIVATE)
-      ("protected" . PROTECTED)
-      ("public" . PUBLIC)
-      ("return" . RETURN)
-      ("short" . SHORT)
-      ("static" . STATIC)
-      ("strictfp" . STRICTFP)
-      ("super" . SUPER)
-      ("switch" . SWITCH)
-      ("synchronized" . SYNCHRONIZED)
-      ("this" . THIS)
-      ("throw" . THROW)
-      ("throws" . THROWS)
-      ("transient" . TRANSIENT)
-      ("try" . TRY)
-      ("void" . VOID)
-      ("volatile" . VOLATILE)
-      ("while" . WHILE)
-      ("@author" . _AUTHOR)
-      ("@version" . _VERSION)
-      ("@param" . _PARAM)
-      ("@return" . _RETURN)
-      ("@exception" . _EXCEPTION)
-      ("@throws" . _THROWS)
-      ("@see" . _SEE)
-      ("@since" . _SINCE)
-      ("@serial" . _SERIAL)
-      ("@serialData" . _SERIALDATA)
-      ("@serialField" . _SERIALFIELD)
-      ("@deprecated" . _DEPRECATED)
-      )
-   '(
-     ("abstract" summary "Class|Method declaration modifier: abstract {class|<type>} <name> ...")
-     ("boolean" summary "Primitive logical quantity type (true or false)")
-     ("break" summary "break [<label>] ;")
-     ("byte" summary "Integral primitive type (-128 to 127)")
-     ("case" summary "switch(<expr>) {case <const-expr>: <stmts> ... }")
-     ("catch" summary "try {<stmts>} catch(<parm>) {<stmts>} ... ")
-     ("char" summary "Integral primitive type ('\u0000' to '\uffff') (0 to 65535)")
-     ("class" summary "Class declaration: class <name>")
-     ("const" summary "Unused reserved word")
-     ("continue" summary "continue [<label>] ;")
-     ("default" summary "switch(<expr>) { ... default: <stmts>}")
-     ("do" summary "do <stmt> while (<expr>);")
-     ("double" summary "Primitive floating-point type (double-precision 64-bit IEEE 754)")
-     ("else" summary "if (<expr>) <stmt> else <stmt>")
-     ("extends" summary "SuperClass|SuperInterfaces declaration: extends <name> [, ...]")
-     ("final" summary "Class|Member declaration modifier: final {class|<type>} <name> ...")
-     ("finally" summary "try {<stmts>} ... finally {<stmts>}")
-     ("float" summary "Primitive floating-point type (single-precision 32-bit IEEE 754)")
-     ("for" summary "for ([<init-expr>]; [<expr>]; [<update-expr>]) <stmt>")
-     ("goto" summary "Unused reserved word")
-     ("if" summary "if (<expr>) <stmt> [else <stmt>]")
-     ("implements" summary "Class SuperInterfaces declaration: implements <name> [, ...]")
-     ("import" summary "Import package declarations: import <package>")
-     ("int" summary "Integral primitive type (-2147483648 to 2147483647)")
-     ("interface" summary "Interface declaration: interface <name>")
-     ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
-     ("native" summary "Method declaration modifier: native <type> <name> ...")
-     ("package" summary "Package declaration: package <name>")
-     ("private" summary "Access level modifier: private {class|interface|<type>} <name> ...")
-     ("protected" summary "Access level modifier: protected {class|interface|<type>} <name> ...")
-     ("public" summary "Access level modifier: public {class|interface|<type>} <name> ...")
-     ("return" summary "return [<expr>] ;")
-     ("short" summary "Integral primitive type (-32768 to 32767)")
-     ("static" summary "Declaration modifier: static {class|interface|<type>} <name> ...")
-     ("strictfp" summary "Declaration modifier: strictfp {class|interface|<type>} <name> ...")
-     ("switch" summary "switch(<expr>) {[case <const-expr>: <stmts> ...] [default: <stmts>]}")
-     ("synchronized" summary "synchronized (<expr>) ... | Method decl. modifier: synchronized <type> <name> ...")
-     ("throw" summary "throw <expr> ;")
-     ("throws" summary "Method|Constructor declaration: throws <classType>, ...")
-     ("transient" summary "Field declaration modifier: transient <type> <name> ...")
-     ("try" summary "try {<stmts>} [catch(<parm>) {<stmts>} ...] [finally {<stmts>}]")
-     ("void" summary "Method return type: void <name> ...")
-     ("volatile" summary "Field declaration modifier: volatile <type> <name> ...")
-     ("while" summary "while (<expr>) <stmt> | do <stmt> while (<expr>);")
-     ("@author" javadoc (seq 1 usage (type)))
-     ("@version" javadoc (seq 2 usage (type)))
-     ("@param" javadoc (seq 3 usage (function) with-name t))
-     ("@return" javadoc (seq 4 usage (function)))
-     ("@exception" javadoc (seq 5 usage (function) with-name t))
-     ("@throws" javadoc (seq 6 usage (function) with-name t))
-     ("@see" javadoc (seq 7 usage (type function variable) opt t with-ref t))
-     ("@since" javadoc (seq 8 usage (type function variable) opt t))
-     ("@serial" javadoc (seq 9 usage (variable) opt t))
-     ("@serialData" javadoc (seq 10 usage (function) opt t))
-     ("@serialField" javadoc (seq 11 usage (variable) opt t))
-     ("@deprecated" javadoc (seq 12 usage (type function variable) opt t))
-     ))
-  "Java keywords.")
+;; Specific nonterminal handler
+;;
+(defun semantic-expand-java-nonterminal (token)
+  "Expand TOKEN into a list of equivalent nonterminals, or nil.
+Handle multiple variable declarations in the same statement."
+  (if (eq (semantic-token-token token) 'variable)
+      (let ((name (semantic-token-name token)))
+        (if (listp name)
+            (let ((multi (cdr name)))
+              
+              ;; Always replace the list of variable names by the first
+              ;; name to get a valid token!  There is nothing more to
+              ;; do if there is only one variable in the list.
+              (setcar token (car name))
+              
+              (if multi
+                  ;; There are multiple names in the same variable
+                  ;; declaration.
+                  (let ((ty (semantic-token-type                 token))
+                        (dv (semantic-token-variable-default     token))
+                        (xs (semantic-token-variable-extra-specs token))
+                        (ds (semantic-token-docstring            token))
+                        (pr (semantic-token-properties           token))
+                        ;; Reparse the declaration using the special
+                        ;; nonterminal 'field_declaration_multi to get
+                        ;; the START/END values of each variable.
+                        (nl (semantic-bovinate-from-nonterminal-full
+                             (semantic-token-start token)
+                             (semantic-token-end   token)
+                             'field_declaration_multi
+                             0))
+                        tok vl)
+                    ;; Merge in new 'variable tokens each reparsed
+                    ;; token name and overlay with other values from
+                    ;; the initial token.
+                    (while nl
+                      (setq tok (car nl)
+                            nl  (cdr nl)
+                            vl  (cons
+                                 (list
+                                  (semantic-token-name tok)
+                                  'variable
+                                  ty    ; type
+                                  dv    ; default value
+                                  xs    ; extra specs
+                                  ds    ; docstring
+                                  pr    ; properties
+                                  (semantic-token-overlay tok))
+                                 vl)))
+                    (if vl
+                        ;; Cleanup the no more needed initial token.
+                        (semantic-deoverlay-token token))
+                    vl)))))))
+
+;;; Environment
+;;
 
-(defconst semantic-java-number-regexp
-  (eval-when-compile
-    (concat "\\("
-            "\\<[0-9]+[.][0-9]+\\([eE][-+]?[0-9]+\\)?[fFdD]?\\>"
-            "\\|"
-            "\\<[0-9]+[.][eE][-+]?[0-9]+[fFdD]?\\>"
-            "\\|"
-            "\\<[0-9]+[.][fFdD]\\>"
-            "\\|"
-            "\\<[0-9]+[.]"
-            "\\|"
-            "[.][0-9]+\\([eE][-+]?[0-9]+\\)?[fFdD]?\\>"
-            "\\|"
-            "\\<[0-9]+[eE][-+]?[0-9]+[fFdD]?\\>"
-            "\\|"
-            "\\<0[xX][0-9a-fA-F]+[lL]?\\>"
-            "\\|"
-            "\\<[0-9]+[lLfFdD]?\\>"
-            "\\)"
-            ))
-  "Lexer regexp to match Java number terminals.
-Following is the specification of Java number literals.
-
-DECIMAL_LITERAL:
-    [1-9][0-9]*
-  ;
-HEX_LITERAL:
-    0[xX][0-9a-fA-F]+
-  ;
-OCTAL_LITERAL:
-    0[0-7]*
-  ;
-INTEGER_LITERAL:
-    <DECIMAL_LITERAL>[lL]?
-  | <HEX_LITERAL>[lL]?
-  | <OCTAL_LITERAL>[lL]?
-  ;
-EXPONENT:
-    [eE][+-]?[09]+
-  ;
-FLOATING_POINT_LITERAL:
-    [0-9]+[.][0-9]*<EXPONENT>?[fFdD]?
-  | [.][0-9]+<EXPONENT>?[fFdD]?
-  | [0-9]+<EXPONENT>[fFdD]?
-  | [0-9]+<EXPONENT>?[fFdD]
-  ;")
-
-;;;;
-;;;; Prototype handler
-;;;;
-
+;; Prototype handler
+;;
 (defun semantic-java-prototype-function (token &optional parent color)
   "Return a function (method) prototype for TOKEN.
 Optional argument PARENT is a parent (containing) item.
@@ -666,66 +742,8 @@ Optional argument COLOR indicates that color should be mixed in."
         (funcall fprot token parent color)
       (semantic-prototype-nonterminal-default token parent color))))
 
-;;;;
-;;;; Specific nonterminal handler
-;;;;
-
-(defun semantic-expand-java-nonterminal (token)
-  "Expand TOKEN into a list of equivalent nonterminals, or nil.
-Handle multiple variable declarations in the same statement."
-  (if (eq (semantic-token-token token) 'variable)
-      (let ((name (semantic-token-name token)))
-        (if (listp name)
-            (let ((multi (cdr name)))
-              
-              ;; Always replace the list of variable names by the first
-              ;; name to get a valid token!  There is nothing more to
-              ;; do if there is only one variable in the list.
-              (setcar token (car name))
-              
-              (if multi
-                  ;; There are multiple names in the same variable
-                  ;; declaration.
-                  (let ((ty (semantic-token-type                 token))
-                        (dv (semantic-token-variable-default     token))
-                        (xs (semantic-token-variable-extra-specs token))
-                        (ds (semantic-token-docstring            token))
-                        (pr (semantic-token-properties           token))
-                        ;; Reparse the declaration using the special
-                        ;; nonterminal 'field_declaration_multi to get
-                        ;; the START/END values of each variable.
-                        (nl (semantic-bovinate-from-nonterminal-full
-                             (semantic-token-start token)
-                             (semantic-token-end   token)
-                             'field_declaration_multi
-                             0))
-                        tok vl)
-                    ;; Merge in new 'variable tokens each reparsed
-                    ;; token name and overlay with other values from
-                    ;; the initial token.
-                    (while nl
-                      (setq tok (car nl)
-                            nl  (cdr nl)
-                            vl  (cons
-                                 (list
-                                  (semantic-token-name tok)
-                                  'variable
-                                  ty    ; type
-                                  dv    ; default value
-                                  xs    ; extra specs
-                                  ds    ; docstring
-                                  pr    ; properties
-                                  (semantic-token-overlay tok))
-                                 vl)))
-                    (if vl
-                        ;; Cleanup the no more needed initial token.
-                        (semantic-deoverlay-token token))
-                    vl)))))))
-
-;;;;
-;;;; Javadoc handler
-;;;;
-
+;; Documentation handler
+;;
 (defsubst semantic-java-skip-spaces-backward ()
   "Move point backward, skipping Java whitespaces."
   (skip-chars-backward " \n\r\t"))
@@ -773,10 +791,32 @@ Override `semantic-find-documentation'."
                   (goto-char p)
                   (semantic-find-doc-snarf-comment nosnarf))))))))
 
-;;;;
-;;;; Javadoc elements
-;;;;
+;; Local context handler
+;;
+(defun semantic-java-get-local-variables ()
+  "Get local values from a specific context.
+Uses the bovinator with the special top-symbol `field_declaration'
+to collect tokens, such as local variables or prototypes.
+This function is a Java specific `get-local-variables' override."
+  (let ((vars nil)
+        ;; We want nothing to do with funny syntaxing while doing this.
+        (semantic-unmatched-syntax-hook nil))
+    (while (not (semantic-up-context (point) 'function))
+      (save-excursion
+        (forward-char 1)
+        (setq vars
+              (append (semantic-bovinate-region-until-error
+                       (point)
+                       (save-excursion (semantic-end-of-context) (point))
+                       'field_declaration)
+                      vars))))
+    vars))
+
+;;; Javadoc facilities
+;;
 
+;; Javadoc elements
+;;
 (defvar semantic-java-doc-line-tags nil
   "Valid javadoc line tags.
 Ordered following Sun's Tag Convention at
@@ -816,6 +856,8 @@ Ordered following Sun's Tag Convention.")
   "Tags allowed in field documentation.
 Ordered following Sun's Tag Convention.")
 
+;; Access to Javadoc elements
+;;
 (defmacro semantic-java-doc-tag (name)
   "Return doc tag from NAME.
 That is @NAME."
@@ -858,6 +900,10 @@ removed from the result list."
                (if (or (not property) (plist-get plist property))
                    (funcall fun k plist))))
          semantic-java-doc-line-tags)))
+
+
+;;; Mode setup
+;;
 
 (defun semantic-java-doc-setup ()
   "Lazy initialization of javadoc elements."
@@ -928,33 +974,6 @@ removed from the result list."
   
   )
 
-;;;;
-;;;; Local context
-;;;;
-
-(defun semantic-java-get-local-variables ()
-  "Get local values from a specific context.
-Uses the bovinator with the special top-symbol `field_declaration'
-to collect tokens, such as local variables or prototypes.
-This function is a Java specific `get-local-variables' override."
-  (let ((vars nil)
-        ;; We want nothing to do with funny syntaxing while doing this.
-        (semantic-unmatched-syntax-hook nil))
-    (while (not (semantic-up-context (point) 'function))
-      (save-excursion
-        (forward-char 1)
-        (setq vars
-              (append (semantic-bovinate-region-until-error
-                       (point)
-                       (save-excursion (semantic-end-of-context) (point))
-                       'field_declaration)
-                      vars))))
-    vars))
-
-;;;;
-;;;; Mode Hook
-;;;;
-
 ;;;###autoload
 (defun semantic-default-java-setup ()
   "Set up a buffer for semantic parsing of the Java language."
@@ -974,17 +993,15 @@ This function is a Java specific `get-local-variables' override."
   (setq semantic-flex-keywords-obarray semantic-java-keyword-table)
   (progn
     (setq
-     ;; Java numbers
-     semantic-number-expression semantic-java-number-regexp
-     ;; Java is case sensitive
-     semantic-case-fold nil
-     ;; special handling of multiple variable declarations/statement
+     ;; Lexical analysis
+     semantic-lex-analyzer 'semantic-java-lexer
+     semantic-lex-number-expression semantic-java-number-regexp
+     ;; Parsing
      semantic-expand-nonterminal 'semantic-expand-java-nonterminal
-     ;; function to use when creating items in imenu
+     ;; Environment
+     semantic-case-fold nil
      semantic-imenu-summary-function 'semantic-prototype-nonterminal
-     ;; function to use for creating the imenu
      imenu-create-index-function 'semantic-create-imenu-index
-     ;; Character used to separation a parent/child relationship
      semantic-type-relation-separator-character '(".")
      semantic-command-separation-character ";"
      document-comment-start "/**"
@@ -992,16 +1009,16 @@ This function is a Java specific `get-local-variables' override."
      document-comment-end " */"
      ;; speedbar and imenu buckets name
      semantic-symbol->name-assoc-list-for-type-parts
-     ;; In type parts
+     ;; in type parts
      '((type     . "Classes")
        (variable . "Variables")
        (function . "Methods"))
      semantic-symbol->name-assoc-list
-     ;; Everywhere
+     ;; everywhere
      (append semantic-symbol->name-assoc-list-for-type-parts
              '((include  . "Imports")
                (package  . "Package")))
-     ;; Semantic navigation inside 'type children
+     ;; navigation inside 'type children
      senator-step-at-token-ids '(function variable)
      )
     )
