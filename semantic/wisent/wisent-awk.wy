@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-awk.wy,v 1.1 2002/02/28 21:16:51 ponced Exp $
+;; X-RCS: $Id: wisent-awk.wy,v 1.2 2003/08/02 08:17:09 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,11 +36,7 @@
 ;;; History:
 ;; 
 
-%outputfile    "wisent-awk.el"
-%parsetable    wisent-awk-automaton
-%keywordtable  wisent-awk-keywords
-%tokentable    wisent-awk-tokens
-%setupfunction wisent-awk-setup-parser
+;;%package wisent-awk-wy
 
 %token FUNC_CALL NAME REGEXP
 %token ERROR
