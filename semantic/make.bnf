@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: make.bnf,v 1.7 2001/04/13 02:01:59 zappo Exp $
+# X-RCS: $Id: make.bnf,v 1.8 2001/10/03 00:29:01 zappo Exp $
 #
 # make.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: make.bnf,v $
+# Revision 1.8  2001/10/03 00:29:01  zappo
+# Disable number matching.
+#
 # Revision 1.7  2001/04/13 02:01:59  zappo
 # Added a keyword table, and several new tokens and summaries.
 # Added support for the include macro.
@@ -56,6 +59,7 @@
        semantic-symbol->name-assoc-list '((variable . "Variables")
 					  (function . "Rules")
 					  (include . "Dependencies"))
+       semantic-number-expression nil
        semantic-case-fold t
        semantic-flex-syntax-modifications '((?. "_")
 					    (?= ".")
