@@ -5,10 +5,15 @@
   :version "1.0beta3"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-elisp-autoloads "autoloads"
+    :name "autoloads"
+    :path ""
+    :autoload-file "ede-loaddefs.el"
+    )
    (ede-proj-target-elisp "ede"
     :name "ede"
     :path ""
-    :source '("ede-speedbar.el" "project-am.el" "ede.el" "ede-pmake.el" "ede-pconf.el" "ede-proj.el" "ede-dired.el" "ede-proj-elisp.el" "ede-proj-misc.el" "ede-proj-obj.el" "ede-proj-prog.el" "ede-proj-archive.el" "ede-proj-shared.el" "ede-proj-info.el" "ede-proj-scheme.el" "ede-proj-aux.el" "ede-proj-comp.el" "ede-source.el" "ede-util.el" "ede-system.el")
+    :source '("project-am.el" "ede.el" "ede-pmake.el" "ede-pconf.el" "ede-proj.el" "ede-dired.el" "ede-proj-elisp.el" "ede-proj-misc.el" "ede-proj-obj.el" "ede-proj-prog.el" "ede-proj-archive.el" "ede-proj-shared.el" "ede-proj-info.el" "ede-proj-scheme.el" "ede-proj-aux.el" "ede-proj-comp.el" "ede-source.el" "ede-util.el" "ede-system.el" "ede-speedbar.el")
     :versionsource '("ede.el")
     :aux-packages '("eieio" "speedbar")
     )
