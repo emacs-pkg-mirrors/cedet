@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.25 2002/06/30 22:22:32 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.26 2002/07/26 12:59:35 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -150,22 +150,30 @@ unrecoverable error.")
 This function don't have arguments.  The actual value of this variable
 is local to the parser.")
 
+(defvar wisent-parse-error-function nil
+  "The user supplied error function.
+This function must accept one argument, a message string.  The actual
+value of this variable is local to the parser.")
+
 (defvar wisent-input nil
   "The last token read.
 The actual value of this variable is local to the parser.")
-
-(defmacro wisent-lexer ()
-  "Obtain the next terminal in input."
-  '(funcall wisent-parse-lexer-function))
 
 (defvar wisent-recovering nil
   "Non nil when the parser is recovering.
 The actual value of this variable is local to the parser.")
 
-(defvar wisent-parse-error-function nil
-  "The user supplied error function.
-This function must accept one argument, a message string.  The actual
-value of this variable is local to the parser.")
+(defvar $region nil
+  "Unused global definition to avoid compiler warnings.
+The actual value of this variable is local to each semantic action.")
+
+(defvar $nterm nil
+  "Unused global definition to avoid compiler warnings.
+The actual value of this variable is local to each semantic action.")
+
+(defmacro wisent-lexer ()
+  "Obtain the next terminal in input."
+  '(funcall wisent-parse-lexer-function))
 
 (defmacro wisent-error (msg)
   "Call the user supplied error reporting function with messsage MSG."
@@ -181,14 +189,6 @@ This is useful primarily in error rules."
 This will cause a new token to be read.  This is useful primarily in
 error rules."
   '(setq wisent-input nil))
-
-(defvar $region nil
-  "Unused global definition to avoid compiler warnings.
-The actual value of this variable is local to each semantic action.")
-
-(defvar $nterm nil
-  "Unused global definition to avoid compiler warnings.
-The actual value of this variable is local to each semantic action.")
 
 (defmacro wisent-set-region (start end)
   "Change the region of text matched by the current nonterminal.
@@ -262,17 +262,6 @@ POSITIONS are available."
     (if pl
         (cons (apply #'min (mapcar #'car pl))
               (apply #'max (mapcar #'cdr pl))))))
-
-(defsubst wisent-push (stack sp nt goto-table value)
-  "Push a nonterminal reduced value and next state on parser STACK.
-SP is the top of stack index.  NT is the reduced nonterminal ID.
-GOTO-TABLE is the parser goto table.  VALUE is the nonterminal reduced
-value.  Return the new top of stack index."
-  (let ((state (aref stack sp)))
-    (setq sp (+ sp 2))
-    (aset stack sp (cdr (assq nt (aref goto-table state))))
-    (aset stack (1- sp) value)
-    sp))
 
 (defmacro wisent-translate (token translate)
   "Return the item number of the terminal symbol TOKEN.
