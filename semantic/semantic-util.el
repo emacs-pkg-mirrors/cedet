@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.111 2003/04/01 04:16:45 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.112 2003/04/02 02:22:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -755,7 +755,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 		(semantic-tag-get-attribute token 'typemodifiers)))
 	 (array (if (eq tok 'variable)
 		    (let ((deref
-			   (semantic-tag-get-attribute 
+			   (semantic-tag-get-attribute
  			    token 'dereference))
  			  (r ""))
  		      (while (and deref (/= deref 0))
@@ -780,6 +780,8 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	      (setq type (car type)))
 	  (if color
 	      (setq type (semantic-colorize-text type 'type)))))
+    (when mods
+      (setq mods (concat (mapconcat 'identity mods " ") " ")))
     (concat (or mods "")
 	    (if type (concat type " "))
 	    point ref			;there should be only 1.
