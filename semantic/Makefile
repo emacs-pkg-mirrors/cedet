@@ -26,7 +26,7 @@ DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: scripts example init semantic Languages tools senator semantic.info Tests bovinator
+all: scripts example init semantic Languages tools senator semantic.info wisent Tests bovinator
 
 scripts: 
 	@
@@ -85,6 +85,10 @@ senator: $(senator_LISP)
 semantic.info: $(info_TEXINFOS)
 	$(MAKEINFO) -o $@ $<
 
+.PHONY:wisent
+wisent:
+	cd wisent; $(MAKE)
+
 .PHONY:Tests
 Tests:
 	cd tests; $(MAKE)
@@ -94,6 +98,7 @@ bovinator:
 	cd bovine; $(MAKE)
 
 tags: 
+	cd wisent/; make $@
 	cd tests/; make $@
 	cd bovine/; make $@
 
@@ -106,6 +111,7 @@ dist: semantic.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
 	cp $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(info_TEXINFOS) semantic.info* $(ede_FILES) $(DISTDIR)
+	cd wisent; $(MAKE) dist
 	cd tests; $(MAKE) dist
 	cd bovine; $(MAKE) dist
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
