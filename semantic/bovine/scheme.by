@@ -3,7 +3,7 @@
 ;; Copyright (C) 2001, 2003 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: scheme.by,v 1.1 2003/02/02 01:14:42 zappo Exp $
+;; X-RCS: $Id: scheme.by,v 1.2 2003/02/14 19:03:05 ponced Exp $
 ;;
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -47,8 +47,8 @@
 %token LOAD "load"
 %put LOAD summary "Function: (load \"filename\")"
 
-%token <punctuation> OPENPAREN "("
-%token <punctuation> CLOSEPAREN ")"
+%token <open-paren> OPENPAREN "("
+%token <close-paren> CLOSEPAREN ")"
 
 scheme : semantic-list
 	 (EXPAND $1 scheme-list 4)
@@ -60,7 +60,7 @@ scheme-list : OPENPAREN scheme-in-list CLOSEPAREN
 
 scheme-in-list: DEFINE symbol expression
 		( $2 variable nil $3 nil )
-	      | DEFINE name-args opt-doc
+	      | DEFINE name-args opt-doc sequence
 		( (car ,$2) function (cdr ,$2) nil ,$3 )
 	      | DEFINE-MODULE name-args
 		( (nth (length $2) $2 ) provide nil)
@@ -85,6 +85,10 @@ name-arg-expand : open-paren name-arg-expand
 opt-doc : string
 	| ;; EMPTY
 	;
+
+sequence : expression sequence
+         | expression
+         ;
 
 expression : symbol
 	   | semantic-list
