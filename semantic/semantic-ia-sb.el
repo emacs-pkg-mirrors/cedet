@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.11 2003/04/09 01:25:41 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.12 2003/04/09 01:39:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,14 +41,14 @@
 
   ;; Basic featuers.
   (define-key semantic-ia-sb-key-map "\C-m" 'speedbar-edit-line)
-  (define-key semantic-ia-sb-key-map "I" 'semantic-ia-sb-tag-info)
+  (define-key semantic-ia-sb-key-map "I" 'semantic-ia-show-sb-tag-info)
   )
 
 (defvar semantic-ia-sb-easymenu-definition
   '( "---"
 ;     [ "Expand" speedbar-expand-line nil ]
 ;     [ "Contract" speedbar-contract-line nil ]
-     [ "Tag Information" semantic-ia-sb-tag-info t ]
+     [ "Tag Information" semantic-ia-sb-show-tag-info t ]
      [ "Jump to Tag" speedbar-edit-line t ]
      [ "Complete" speedbar-edit-line t ]
      )
@@ -227,7 +227,7 @@ Each button will use FACE, and be activated with FUNCTION."
 				0))
       (setq list (cdr list)))))
 
-(defun semantic-ia-sb-tag-info ()
+(defun semantic-ia-sb-show-tag-info ()
   "Display information about the tag on the current line.
 Same as clicking on the <i> button.
 See `semantic-ia-sb-tag-info' for more."
