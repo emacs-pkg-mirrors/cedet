@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.4 2003/04/26 18:51:06 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.5 2003/05/02 03:04:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -186,19 +186,22 @@ HISTORY is a symbol representing a variable to story the history in."
 				(or history
 				    'semantic-completion-default-history)
 				default-tag))
-    ;; Convert the answer, a string, back into a tag using
-    ;; the collector
-    (if (slot-boundp collector 'match-list)
-	(setq tag (oref collector match-list))
-      ;; No match!
-      (if (and (string= ans "") default-tag)
-	  ;; Choose the default!
-	  (if (semantic-tag-p orig-default-tag)
-	      (setq tag orig-default-tag)
-	    (semantic-collector-calculate-completions collector
-						      default-tag)
-	    (setq tag (oref collector match-list))
-	    )))
+    ;; First, see if the displayor has a focus entry for us.
+    (setq tag (list (semantic-displayor-current-focus displayor)))
+    (unless tag
+      ;; Convert the answer, a string, back into a tag using
+      ;; the collector
+      (if (slot-boundp collector 'match-list)
+	  (setq tag (oref collector match-list))
+	;; No match!
+	(if (and (string= ans "") default-tag)
+	    ;; Choose the default!
+	    (if (semantic-tag-p orig-default-tag)
+		(setq tag orig-default-tag)
+	      (semantic-collector-calculate-completions collector
+							default-tag)
+	      (setq tag (oref collector match-list))
+	      ))))
     ;; If it isn't a tag, we didn't finish properly.
     ;; Throw an error
     (if (semantic-tag-with-position-p (car tag))
@@ -244,9 +247,14 @@ If PARTIAL, do partial completion stopping at spaces."
 	   (semantic-displayor-set-completions
 	    semantic-completion-display-engine
 	    (semantic-collector-all-completions
-	     semantic-completion-collector-engine))
+	     semantic-completion-collector-engine)
+	    (minibuffer-contents))
 	   ;; Ask the displayor to display them.
 	   (semantic-displayor-show-request
+	    semantic-completion-display-engine)
+	   )
+	  ((eq na 'focus)
+	   (semantic-displayor-focus-request
 	    semantic-completion-display-engine)
 	   )
 	  ((eq na 'complete)
@@ -264,6 +272,10 @@ If PARTIAL, do partial completion stopping at spaces."
 		   ((stringp comp)
 		    (beginning-of-line)
 		    (delete-region (point) (point-max))
+		    ;; We should pay attention to the parameter
+		    ;; PARTIAL here, and look at the text we are
+		    ;; putting in, stopping on whitespace and word separator
+		    ;; characters.
 		    (insert comp))
 		   ((and (listp comp)
 			 (semantic-tag-p (car comp)))
@@ -309,7 +321,7 @@ If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
 HISTORY is a symbol representing a variable to story the history in."
   (semantic-complete-read-tag-engine
    (semantic-collector-buffer-deep prompt :buffer (current-buffer))
-   (semantic-displayor-traditional "simple")
+   (semantic-displayor-traditional-with-focus-highlight "simple")
    prompt
    default-tag
    initial-input
@@ -374,7 +386,7 @@ When tokens are matched, they are added to this list.")
   "What should we do next?  OBJ can predict a next good action."
   (if (string= (minibuffer-contents)
 	       (oref obj last-completion))
-      'display
+      (semantic-displayor-next-action semantic-completion-display-engine)
     'complete))
 
 (defmethod semantic-collector-calculate-completions
@@ -508,20 +520,40 @@ Uses `semantic-flatten-tags-table'"
 ;;
 (defclass semantic-displayor-abstract ()
   ((table :type list
-	  :initarg nil
+	  :initform nil
 	  :documentation "List of tags this displayor is showing.")
+   (last-prefix :type string
+		:documentation "Prefix associated with slot `table'")
    )
   "Manages the display of some number of tags."
   :abstract t)
 
+(defmethod semantic-displayor-next-action ((obj semantic-displayor-abstract))
+  "The next action to take on the minibuffer related to display."
+  (if (and (slot-boundp obj 'last-prefix)
+	   (string= (oref obj last-prefix) (minibuffer-contents))
+	   (eq last-command this-command))
+      'focus
+    'display))
+
 (defmethod semantic-displayor-set-completions ((obj semantic-displayor-abstract)
-					       table)
+					       table prefix)
   "Set the list of tags to be completed over to TABLE."
-  (oset obj table table))
+  (oset obj table table)
+  (oset obj last-prefix prefix))
 
 (defmethod semantic-displayor-show-request ((obj semantic-displayor-abstract))
   "A request to show the current tags table."
   (ding))
+
+(defmethod semantic-displayor-focus-request ((obj semantic-displayor-abstract))
+  "A request to for the displayor to focus on some tag option."
+  (scroll-other-window))
+
+(defmethod semantic-displayor-current-focus ((obj semantic-displayor-abstract))
+  "Return the tag currently in focus."
+  (if (slot-boundp obj 'table)
+      (car (oref obj table))))
 
 ;; Traditional displayor
 (defcustom semantic-completion-displayor-format-tag-function
@@ -543,10 +575,74 @@ Uses `semantic-flatten-tags-table'"
     )
   )
 
+;;; Abstract baseclass for any displayor which supports focus
+(defclass semantic-displayor-focus-abstract (semantic-displayor-abstract)
+  ((focus :type number
+	  :documentation "A tag index from `table' which has focus.
+Multiple calls to the display function can choose to focus on a
+given tag, by highlighting its location.")  
+   )
+  "A displayor which has the ability to focus in on one tag.
+Focusing is a way of differentiationg between multiple tags
+which have the same name."
+  :abstract t)
+
+(defmethod semantic-displayor-set-completions ((obj semantic-displayor-focus-abstract)
+					       table prefix)
+  "Set the list of tags to be completed over to TABLE."
+  (call-next-method)
+  (slot-makeunbound obj 'focus))
+
+(defmethod semantic-displayor-focus-next-tag ((obj semantic-displayor-focus-abstract))
+  "Return the next tag OBJ should focus on."
+  (when (and (slot-boundp obj 'table) (oref obj table))
+    (with-slots (table) obj
+      (if (not (slot-boundp obj 'focus))
+	  (oset obj focus 0)
+	(oset obj focus (1+ (oref obj focus)))
+	)
+      (if (<= (length table) (oref obj focus))
+	  (oset obj focus 0))
+      (nth (oref obj focus) table))))
+
+(defmethod semantic-displayor-current-focus ((obj semantic-displayor-focus-abstract))
+  "Return the tag currently in focus."
+  (if (and (slot-boundp obj 'focus)
+	   (slot-boundp obj 'table))
+      (nth (oref obj focus) (oref obj table))
+    (call-next-method)))
+
+;;; Simple displayor which performs traditional display completion,
+;; and also focuses with highlighting.
+(defclass semantic-displayor-traditional-with-focus-highlight
+  (semantic-displayor-traditional semantic-displayor-focus-abstract)
+  ()
+  "A traditional displayor which can focus on a tag by showing it.")
+
+(defmethod semantic-displayor-focus-request
+  ((obj semantic-displayor-traditional-with-focus-highlight))
+  "Focus in on possible tag completions.
+Focus is performed by cycling through the tags and highlighting
+one in the source buffer."
+  (let ((tag (semantic-displayor-focus-next-tag obj))
+	)
+    (if (semantic-tag-with-position-p tag)
+	(when (semantic-tag-buffer tag)
+	  (if (get-buffer-window (semantic-tag-buffer tag))
+	      (unwind-protect
+		  (progn
+		    (select-window (get-buffer-window (semantic-tag-buffer tag)))
+		    (goto-char (semantic-tag-start tag))
+		    (semantic-momentary-highlight-token tag)
+		    )
+		(select-window (minibuffer-window))))))
+    ))
+
+
 
 ;;; Testing
 ;;
-(defun semantic-completion-test ()
+(defun semantic-complete-test ()
   "Test completion mechanisms."
   (interactive)
   (message "%S"
