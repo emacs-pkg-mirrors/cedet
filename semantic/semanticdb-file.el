@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.12 2004/01/27 14:40:46 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.13 2004/03/19 23:44:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -228,7 +228,7 @@ Argument OBJ is the object to write."
 			  (condition-case nil
 			      (semantic-clear-toplevel-cache)
 			    (error
-			     (semantic-set-toplevel-bovine-cache nil)))))
+			     (semantic--set-buffer-cache nil)))))
 		       (oset obj pointmax (point-max)))))
 	(call-next-method)
 	(save-excursion
