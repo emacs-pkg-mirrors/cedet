@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.1 2002/02/26 18:49:02 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.2 2002/05/15 19:22:33 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -53,11 +53,16 @@
    document-comment-line-prefix " *"
    document-comment-end " */"
    ;; speedbar and imenu buckets name
-   semantic-symbol->name-assoc-list '((type     . "Classes")
-                                      (variable . "Variables")
-                                      (function . "Methods")
-                                      (include  . "Imports")
-                                      (package  . "Package"))
+   semantic-symbol->name-assoc-list-for-type-parts
+   ;; In type parts
+   '((type     . "Classes")
+     (variable . "Variables")
+     (function . "Methods"))
+   semantic-symbol->name-assoc-list
+   ;; Everywhere
+   (append semantic-symbol->name-assoc-list-for-type-parts
+           '((include  . "Imports")
+             (package  . "Package")))
    ;; Semantic navigation inside 'type children
    senator-step-at-token-ids '(function variable)
    )

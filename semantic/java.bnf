@@ -6,7 +6,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.14 2001/10/03 17:56:03 ponced Exp $
+# $Id: java.bnf,v 1.15 2002/05/15 19:21:02 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,11 +51,16 @@
     document-comment-line-prefix " *"
     document-comment-end " */"
     ;; speedbar and imenu buckets name
-    semantic-symbol->name-assoc-list '((type     . "Classes")
-                                       (variable . "Variables")
-                                       (function . "Methods")
-                                       (include  . "Imports")
-                                       (package  . "Package"))
+    semantic-symbol->name-assoc-list-for-type-parts
+    ;; In type parts
+    '((type     . "Classes")
+      (variable . "Variables")
+      (function . "Methods"))
+    semantic-symbol->name-assoc-list
+    ;; Everywhere
+    (append semantic-symbol->name-assoc-list-for-type-parts
+            '((include  . "Imports")
+              (package  . "Package")))
     ;; Semantic navigation inside 'type children
     senator-step-at-token-ids '(function variable)
     )
