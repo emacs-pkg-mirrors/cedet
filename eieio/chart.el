@@ -3,8 +3,8 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; Version: 0.1
-;; RCS: $Id: chart.el,v 1.10 2001/02/17 14:59:21 zappo Exp $
+;; Version: 0.2
+;; RCS: $Id: chart.el,v 1.11 2001/02/19 17:42:20 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -156,7 +156,7 @@ Returns the newly created buffer"
   "Initialize the chart OBJ being created with FIELDS.
 Make sure the width/height is correct."
   (oset obj x-width (- (window-width) 10))
-  (oset obj y-width (- (window-height) 10)))
+  (oset obj y-width (- (window-height) 12)))
 
 (defclass chart-axis ()
   ((name :initarg :name
@@ -663,19 +663,23 @@ SORT-PRED if desired."
   "Chart the current storage requirements of Emacs."
   (interactive)
   (let* ((data (garbage-collect))
-	 (names '("conses" "free cons" "syms" "free syms"
-		  "markers" "free mark" "floats" "free flt"
-		  "strings/2" "vectors"))
-	 (nums (list (car (car data))
+	 (names '("strings/2" "vectors"
+		  "conses" "free cons"
+		  "syms" "free syms"
+		  "markers" "free mark"
+		  ;; "floats" "free flt"
+		  ))
+	 (nums (list (/ (nth 3 data) 2)
+		     (nth 4 data)
+		     (car (car data))	; conses
 		     (cdr (car data))
-		     (car (nth 1 data))
+		     (car (nth 1 data)) ; syms
 		     (cdr (nth 1 data))
-		     (car (nth 2 data))
+		     (car (nth 2 data))	; markers
 		     (cdr (nth 2 data))
-		     (car (nth 5 data))
-		     (cdr (nth 5 data))
-		     (/ (nth 3 data) 2)
-		     (nth 4 data))))
+		     ;(car (nth 5 data)) ; floats are Emacs only
+		     ;(cdr (nth 5 data))
+		     )))
     ;; Lets create the chart!
     (chart-bar-quickie 'vertical "Emacs Runtime Storage Usage"
 		       names "Storage Items"
@@ -684,15 +688,15 @@ SORT-PRED if desired."
 (defun chart-emacs-lists ()
   "Chart out the size of various important lists."
   (interactive)
-  (let* ((names '("buffers" "frames" "processes" "faces" "x-displays"
-		  ))
+  (let* ((names '("buffers" "frames" "processes" "faces"))
 	 (nums (list (length (buffer-list))
 		     (length (frame-list))
 		     (length (process-list))
 		     (length (face-list))
-		     (length (x-display-list))
-		     
-		)))
+		     )))
+    (if (fboundp 'x-display-list)
+	(setq names (append names '("x-displays"))
+	      nums (append nums (list (length (x-display-list))))))
     ;; Lets create the chart!
     (chart-bar-quickie 'vertical "Emacs List Size Chart"
 		       names "Various Lists"
