@@ -1,4 +1,4 @@
-# Copyright (C) 1995,1996, 1998 Eric M. Ludlam
+# Copyright (C) 1995,96,98,99 Eric M. Ludlam
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,13 +20,14 @@
 #
 # Please send bug reports, etc. to zappo@gnu.org
 #
-# $Id: Makefile.old,v 1.2 1998/10/27 19:21:53 zappo Exp $
+# $Id: Makefile.old,v 1.3 1999/02/18 18:13:02 zappo Exp $
 
 
-VERSION=0.9
+VERSION=$(shell grep "Version: " eieio.el | cut -d" " -f3)
 
-LISP=call-tree.el chart.el dbif-browse.el dbif-edit.el dbif.el \
-	eieio-comp.el eieio-doc.el eieio-opt.el eieio.el psql.el
+LISP=eieio-comp.el eieio-custom.el eieio-doc.el eieio-opt.el eieio.el
+
+LISPE=tree.el call-tree.el chart.el dbif-browse.el dbif-edit.el dbif.el psql.el
 
 TEXINFO=eieio.texi
 
