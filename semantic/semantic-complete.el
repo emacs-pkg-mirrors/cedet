@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.17 2003/12/04 23:02:35 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.18 2003/12/11 00:49:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -259,7 +259,7 @@ HISTORY is a symbol representing a variable to story the history in."
 	;; collector.  If we get a match, use it.
 	(semantic-collector-calculate-completions
 	 semantic-completion-collector-engine
-	 str)
+	 str nil)
 	;; Do we have the perfect match???
 	(let ((ml (semantic-collector-current-exact-match
 		   semantic-completion-collector-engine)))
@@ -300,7 +300,7 @@ Return value can be:
 	;; The user wants the defaults!
 	(setq answer semantic-complete-active-default)
       ;; This forces a full calculation of completion on CR.
-      (semantic-collector-calculate-completions collector contents)
+      (semantic-collector-calculate-completions collector contents nil)
       (semantic-complete-try-completion)
       (cond
        ;; Input match displayor focus entry
@@ -385,6 +385,25 @@ Return value can be:
 ;;
 ;; Thees routines are functional entry points to performing completion.
 ;;
+(defun semantic-complete-hack-word-boundaries (original new)
+  "Return a string to use for completion.
+ORIGINAL is the text in the minibuffer.
+NEW is the new text to insert into the minibuffer.
+Within the difference bounds of ORIGINAL and NEW, shorten NEW
+to the nearest word boundary, and return that."
+  (save-match-data
+    (let* ((diff (substring new (length original)))
+	   (end (string-match "\\>" diff))
+	   (start (string-match "\\<" diff)))
+      (cond
+       ((and start (> start 0))
+	;; If start is greater than 0, include only the new
+	;; white-space stuff
+	(concat original (substring diff 0 start)))
+       (end
+	(concat original (substring diff 0 end)))
+       (t new)))))
+
 (defun semantic-complete-try-completion (&optional partial)
   "Try a completion for the current minibuffer.
 If PARTIAL, do partial completion stopping at spaces."
@@ -398,14 +417,26 @@ If PARTIAL, do partial completion stopping at spaces."
       )
      ((stringp comp)
       (if (string= (semantic-minibuffer-contents) comp)
-          nil ;; Minibuffer isn't changing.  Display.
+	  (when partial
+	    ;; Minibuffer isn't changing AND the text is not unique.
+	    ;; Test for partial completion over a word separator character.
+	    ;; If there is one available, use that so that SPC can
+	    ;; act like a SPC insert key.
+	    (let ((newcomp (semantic-collector-current-whitespace-completion
+			    semantic-completion-collector-engine)))
+	      (when newcomp
+		(semantic-delete-minibuffer-contents)
+		(insert newcomp))
+	      ))
+	(when partial
+	  (let ((orig (semantic-minibuffer-contents)))
+	    ;; For partial completion, we stop and step over
+	    ;; word boundaries.  Use this nifty function to do
+	    ;; that calculation for us.
+	    (setq comp
+		  (semantic-complete-hack-word-boundaries orig comp))))
+	;; Do the replacement.
 	(semantic-delete-minibuffer-contents)
-        (beginning-of-line)
-        (delete-region (point) (point-max))
-        ;; We should pay attention to the parameter
-        ;; PARTIAL here, and look at the text we are
-        ;; putting in, stopping on whitespace and word separator
-        ;; characters.
         (insert comp))
       )
      ((and (listp comp) (semantic-tag-p (car comp)))
@@ -427,11 +458,16 @@ If PARTIAL, do partial completion stopping at spaces."
 	(collector semantic-completion-collector-engine)
 	(displayor semantic-completion-display-engine))
 
-    (semantic-collector-calculate-completions collector contents)
-    (let* ((na (semantic-complete-next-action)))
+    (semantic-collector-calculate-completions collector contents partial)
+    (let* ((na (semantic-complete-next-action partial)))
       (cond
+       ;; We're all done, but only from a very specific
+       ;; area of completion.
+       ((eq na 'done)
+	(semantic-completion-message " [Complete]"))
        ;; Perform completion
-       ((eq na 'complete)
+       ((or (eq na 'complete)
+	    (eq na 'complete-whitespace))
 	(semantic-complete-try-completion partial)
 	)
        ;; We need to display the completions.
@@ -458,13 +494,16 @@ If PARTIAL, do partial completion stopping at spaces."
 ;; Functional routines used to help collectors communicate with
 ;; the current displayor, or for the previous section.
 
-(defun semantic-complete-next-action ()
+(defun semantic-complete-next-action (partial)
   "Determine what the next completion action should be.
+PARTIAL is non-nil if we are doing partial completion.
 First, the collector can determine if we should perform a completion or not.
 If there is nothing to complete, then the displayor determines if we are
 to show a completion list, scroll, or perhaps do a focus (if it is capable.)
 Expected return values are:
+  done -> We have a singular match
   complete -> Perform a completion action
+  complete-whitespace -> Complete next whitespace type character.
   display -> Show the list of completions
   scroll -> The completions have been shown, and the user keeps hitting
             the complete button.  If possible, scroll the completions
@@ -472,7 +511,8 @@ Expected return values are:
            Let it do that."
   (let ((ans nil))
     (setq ans (semantic-collector-next-action
-	       semantic-completion-collector-engine))
+	       semantic-completion-collector-engine
+	       partial))
     (unless ans
       (setq ans (semantic-displayor-next-action
 		 semantic-completion-display-engine)))
@@ -526,6 +566,10 @@ making the action of homing in on a token faster.")
    (last-completion :type (or null string)
 		    :documentation "The last calculated completion.
 This completion is calculated and saved for future use.")
+   (last-whitespace-completion :type (or null string)
+			       :documentation "The last whitespace completion.
+For partial completion, SPC will disabiguate over whitespace type
+characters.  This is the last calculated version.")
    (current-exact-match :type list
 			:protection :protected
 			:documentation "The list of matched tags.
@@ -535,11 +579,17 @@ When tokens are matched, they are added to this list.")
   :abstract t)
 
 (defmethod semantic-collector-next-action
-  ((obj semantic-collector-abstract))
-  "What should we do next?  OBJ can predict a next good action."
+  ((obj semantic-collector-abstract) partial)
+  "What should we do next?  OBJ can predict a next good action.
+PARTIAL indicates if we are doing a partial completion."
   (if (and (slot-boundp obj 'last-completion)
 	   (string= (semantic-minibuffer-contents) (oref obj last-completion)))
-      nil
+      (let ((cem (semantic-collector-current-exact-match obj)))
+	(if (and cem (= (semanticdb-find-result-length cem) 1))
+	    'done
+	  (if (and partial (semantic-collector-try-completion-whitespace 
+			    obj (semantic-minibuffer-contents)))
+	      'complete-whitespace)))
     'complete))
 
 (defmethod semantic-collector-last-prefix= ((obj semantic-collector-abstract)
@@ -568,7 +618,7 @@ Output must be in semanticdb Find result format."
 	  (semanticdb-strip-find-results completionlist)))))
 
 (defmethod semantic-collector-calculate-completions
-  ((obj semantic-collector-abstract) prefix)
+  ((obj semantic-collector-abstract) prefix partial)
   "Calculate completions for prefix as setup for other queries."
   (let* ((case-fold-search semantic-case-fold)
 	 (same-prefix-p (semantic-collector-last-prefix= obj prefix))
@@ -598,6 +648,7 @@ Output must be in semanticdb Find result format."
     (setq completion (try-completion
 		      prefix
 		      (semanticdb-strip-find-results answer)))
+    (oset obj last-whitespace-completion nil)
     (oset obj current-exact-match nil)
     (oset obj last-completion
 	  (cond
@@ -622,6 +673,29 @@ Output must be in semanticdb Find result format."
 	   ))
     ))
 
+(defmethod semantic-collector-try-completion-whitespace
+  ((obj semantic-collector-abstract) prefix)
+  "For OBJ, do whatepsace completion based on PREFIX.
+This implies that if there are two completions, one matching
+the test \"preifx\\>\", and one not, the one matching the full
+word version of PREFIX will be chosen, and that text returned.
+This function requires that `semantic-collector-calculate-completions'
+has been run first."
+  (let* ((ac (semantic-collector-all-completions obj prefix))
+	 (matchme (concat "^" prefix "\\>"))
+	 (compare (semanticdb-find-tags-by-name-regexp matchme
+						       ac)))
+    (if compare
+	;; If COMPARE has succeeded, then we should take the very
+	;; first match, and extend prefix by one character.
+	(oset obj last-whitespace-completion
+	      (substring (semantic-tag-name
+			  (car
+			   (semanticdb-find-result-nth compare 0)))
+			 0 (1+ (length prefix))))
+      )))
+
+
 (defmethod semantic-collector-current-exact-match ((obj semantic-collector-abstract))
   "Return the active valid MATCH from the semantic collector.
 For now, just return the first element from our list of available
@@ -629,6 +703,11 @@ matches.  For semanticdb based results, make sure the file is loaded
 into a buffer."
   (when (slot-boundp obj 'current-exact-match)
     (oref obj current-exact-match)))
+
+(defmethod semantic-collector-current-whitespace-completion ((obj semantic-collector-abstract))
+  "Return the active whitespace completion value."
+  (when (slot-boundp obj 'last-whitespace-completion)
+    (oref obj last-whitespace-completion)))
 
 (defmethod semantic-collector-get-match ((obj semantic-collector-abstract))
   "Return the active valid MATCH from the semantic collector.
