@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.3 2002/03/16 15:29:09 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.4 2002/03/20 01:59:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,7 +85,8 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
 	(buffer nil)
 	(completions nil)
 	(fnargs nil)
-	(cf (selected-frame)))
+	(cf (selected-frame))
+	(cnt nil))
     ;; Try and get some sort of analysis
     (condition-case nil
 	(progn
@@ -96,6 +97,7 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
 		(setq analysis (cdr semantic-ia-sb-last-analysis))
 	      (setq analysis (semantic-analyze-current-context (point))))
 	    (setq semantic-ia-sb-last-analysis (cons (point-marker) analysis))
+	    (setq cnt (semantic-find-nonterminal-by-overlay))
 	    (when analysis
 	      (setq completions (semantic-analyze-possible-completions analysis))
 	      (setq fnargs (semantic-get-local-arguments (point)))
@@ -105,7 +107,7 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
     (set-buffer speedbar-buffer)
     ;; If we have something, do something spiff with it.
     (erase-buffer)
-    (speedbar-insert-separator "Buffer")
+    (speedbar-insert-separator "Buffer/Function")
     ;; Note to self: Turn this into an expandable file name.
     (speedbar-make-tag-line 'bracket ?  nil nil
 			    (buffer-name buffer)
@@ -116,32 +118,69 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
       ;;     (speedbar-insert-button (object-name-string analysis)
       ;; 			    'speedbar-tag-face
       ;; 			    nil nil nil nil)
+      (when cnt
+	(semantic-ia-sb-string-list cnt
+				    'speedbar-tag-face
+				    'semantic-sb-token-jump))
       (when fnargs
 	(speedbar-insert-separator "Arguments")
 	(semantic-ia-sb-string-list fnargs
 				    'speedbar-tag-face
 				    'semantic-sb-token-jump))
-      (let ((localvars (oref analysis localvariables)))
-	(when localvars
-	  (speedbar-insert-separator "Local Variables")
-	  (semantic-ia-sb-string-list localvars
-				      'speedbar-tag-face
-				      ;; This is from semantic-sb
-				      'semantic-sb-token-jump)))
-      (let ((prefix (oref analysis prefix)))
-	(when prefix
-	  (speedbar-insert-separator "Prefix")
-	  (semantic-ia-sb-string-list prefix
-				      'speedbar-tag-face
-				      'semantic-sb-token-jump))
-	)
+      ;; Let different classes draw more buttons.
+      (semantic-ia-sb-more-buttons analysis)
       (when completions
 	(speedbar-insert-separator "Completions")
 	(semantic-ia-sb-completion-list completions
 					'speedbar-tag-face
 					'semantic-ia-sb-complete))
       )))
-		 
+
+(defmethod semantic-ia-sb-more-buttons ((context semantic-analyze-context))
+  "Show a set of speedbar buttons specific to CONTEXT."
+  (let ((localvars (oref analysis localvariables)))
+    (when localvars
+      (speedbar-insert-separator "Local Variables")
+      (semantic-ia-sb-string-list localvars
+				  'speedbar-tag-face
+				  ;; This is from semantic-sb
+				  'semantic-sb-token-jump)))
+  (let ((prefix (oref analysis prefix)))
+    (when prefix
+      (speedbar-insert-separator "Prefix")
+      (semantic-ia-sb-string-list prefix
+				  'speedbar-tag-face
+				  'semantic-sb-token-jump))
+    ))
+
+(defmethod semantic-ia-sb-more-buttons ((context semantic-analyze-context-assignment))
+  "Show a set of speedbar buttons specific to CONTEXT."
+  (call-next-method)
+  (let ((assignee (oref context assignee)))
+    (when assignee
+      (speedbar-insert-separator "Assignee")
+      (semantic-ia-sb-string-list assignee
+				  'speedbar-tag-face
+				  'semantic-sb-token-jump))))
+
+(defmethod semantic-ia-sb-more-buttons ((context semantic-analyze-context-functionarg))
+  "Show a set of speedbar buttons specific to CONTEXT."
+  (call-next-method)
+  (let ((func (oref context function)))
+    (when func
+      (speedbar-insert-separator "Function")
+      (semantic-ia-sb-string-list func
+				  'speedbar-tag-face
+				  'semantic-sb-token-jump)
+      ;; An index for the argument the prefix is in:
+      (let ((arg (oref context argument)))
+	(when arg
+	  (speedbar-insert-separator
+	   (format "Argument # %d" (oref context index)))
+	  (semantic-ia-sb-string-list arg
+				      'speedbar-tag-face
+				      'semantic-sb-token-jump))))))
+
 (defun semantic-ia-sb-string-list (list face function)
   "Create some speedbar buttons from LIST.
 Each button will use FACE, and be activated with FUNCTION."
@@ -202,36 +241,25 @@ TEXT, TOKEN, and INDENT are speedbar function arguments."
 	    (insert
 	     (semantic-prototype-nonterminal token nil t)
 	     "\n")
-	    (let ((type (semantic-token-type token))
-		  (typetok nil))
-	      (if type
-		  (progn
-		    (cond ((semantic-token-p type)
-			   (setq type (semantic-token-name type)))
-			  ((listp type)
-			   (setq type (car type))))
-		    (save-excursion
-		      (set-buffer
-		       (marker-buffer
-			(car semantic-ia-sb-last-analysis)))
-		      (setq typetok (semanticdb-find-nonterminal-by-name
-				     type nil t nil nil t)))
-		    (if typetok
-			(insert
-			 (semantic-prototype-nonterminal
-			  (cdr (car typetok)) nil t))
-		      (save-excursion
-			(set-buffer
-			 (marker-buffer
-			  (car semantic-ia-sb-last-analysis)))
-			(semantic-flex-keyword-p type)
+	    (let ((typetok (semantic-analyze-token-type token)))
+	      (if typetok
+		  (insert (semantic-prototype-nonterminal
+			   (cdr (car typetok)) nil t))
+		;; No type found by the analyzer
+		(let ((type (semantic-token-type token)))
+		  (save-excursion
+		    (set-buffer
+		     (marker-buffer (car semantic-ia-sb-last-analysis)))
+ 		    (cond ((semantic-token-p type)
+ 			   (setq type (semantic-token-name type)))
+ 			  ((listp type)
+ 			   (setq type (car type))))
+		    (if (semantic-flex-keyword-p type)
 			(setq typetok
-			      (semantic-flex-keyword-get type 'summary)))
-		      (if typetok
-			  (insert typetok))
-		      
-		      )))
-	      )
+			      (semantic-flex-keyword-get type 'summary))))
+		  (if typetok
+		      (insert typetok)))
+		))
 	    ))
 	;; Make it small
 	(shrink-window-if-larger-than-buffer
