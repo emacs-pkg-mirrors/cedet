@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.31 2004/06/29 13:41:52 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.32 2004/07/15 19:25:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -334,7 +334,8 @@ machine."
   :group 'c
   :type '(repeat (string :tag "Path")))
 
-(defun semantic-c-format-tag-name (tag &optional parent color)
+(define-mode-local-override semantic-format-tag-name
+  c-mode (tag &optional parent color)
   "Convert TAG to a string that is the print name for TAG.
 Optional PARENT and COLOR are ignored."
   (let ((name (semantic-format-tag-name-default tag parent color))
@@ -345,7 +346,8 @@ Optional PARENT and COLOR are ignored."
       (concat "(*" name ")"))
     ))
 
-(defun semantic-c-tag-protection (token &optional parent)
+(define-mode-local-override semantic-tag-protection
+  c-mode (token &optional parent)
   "Return the protection of TOKEN in PARENT.
 Override function for `semantic-tag-protection'."
   (let ((mods (semantic-tag-modifiers token))
@@ -387,7 +389,7 @@ Override function for `semantic-tag-protection'."
 	    'public
 	  nil))))
 
-(defun semantic-c-tag-components (tag)
+(define-mode-local-override semantic-tag-components c-mode (tag)
   "Return components for TAG."
   (if (and (eq (semantic-tag-class tag) 'type)
 	   (string= (semantic-tag-type tag) "typedef"))
@@ -397,7 +399,7 @@ Override function for `semantic-tag-protection'."
       (semantic-tag-components (semantic-tag-type-superclasses tag))
     (semantic-tag-components-default tag)))
 
-(defun semantic-c-format-tag-type (tag color)
+(define-mode-local-override semantic-format-tag-type c-mode (tag color)
   "Convert the data type of TAG to a string usable in tag formatting.
 Adds pointer and reference symbols to the default.
 Argument COLOR adds color to the text."
@@ -449,7 +451,8 @@ Argument COLOR specifies that the string should be colorized."
 	  (t
 	   ""))))
 
-(defun semantic-c-format-tag-concise-prototype (token &optional parent color)
+(define-mode-local-override semantic-format-tag-concise-prototype
+  c-mode (token &optional parent color)
   "Return an abbreviated string describing TOKEN for C and C++.
 Optional PARENT and COLOR as specified with
 `semantic-format-tag-abbreviate-default'."
@@ -457,7 +460,8 @@ Optional PARENT and COLOR as specified with
   (concat  (semantic-format-tag-concise-prototype-default token parent color)
 	   (semantic-c-template-string token parent color)))
 
-(defun semantic-c-format-tag-uml-prototype (token &optional parent color)
+(define-mode-local-override semantic-format-tag-uml-prototype
+  c-mode (token &optional parent color)
   "Return an uml string describing TOKEN for C and C++.
 Optional PARENT and COLOR as specified with
 `semantic-abbreviate-tag-default'."
@@ -465,7 +469,8 @@ Optional PARENT and COLOR as specified with
   (concat  (semantic-format-tag-uml-prototype-default token parent color)
 	   (semantic-c-template-string token parent color)))
 
-(defun semantic-c-tag-abstract-p (tag &optional parent)
+(define-mode-local-override semantic-tag-abstract-p
+  c-mode (tag &optional parent)
   "Return non-nil if TAG is considered abstract.
 PARENT is tag's parent.
 In C, a method is abstract if it is `virtual', which is already
@@ -491,7 +496,8 @@ handled.  A class is abstract iff it's destructor is virtual."
     (semantic-tag-get-attribute tag :pure-virtual-flag))
    (t (semantic-tag-abstract-p-default tag parent))))
 
-(defun semantic-c-analyze-dereference-metatype (type)
+(define-mode-local-override semantic-analyze-dereference-metatype
+  c-mode (type)
   "Dereference TYPE as described in `semantic-analyze-dereference-metatype'.
 If TYPE is a typedef, get TYPE's type by name or tag, and return."
   (if (and (eq (semantic-tag-class type) 'type)
@@ -499,14 +505,14 @@ If TYPE is a typedef, get TYPE's type by name or tag, and return."
       (semantic-tag-get-attribute type :typedef)
     type))
 
-(defun semantic-c-analyze-type-constants (type)
+(define-mode-local-override semantic-analyze-type-constants c-mode (type)
   "When TYPE is a tag for an enum, return it's parts.
 These are constants which are of type TYPE."
   (if (and (eq (semantic-tag-class type) 'type)
 	   (string= (semantic-tag-type type) "enum"))
       (semantic-tag-type-members type)))
 
-(defun semantic-c-ctxt-scoped-types (&optional point)
+(define-mode-local-override semantic-ctxt-scoped-types c-mode (&optional point)
   "Return a list of tags of CLASS type based on POINT.
 DO NOT return the list of tags encompassing point."
   (when point (goto-char (point)))
@@ -555,26 +561,16 @@ DO NOT return the list of tags encompassing point."
         ;; Semantic navigation inside 'type children
         senator-step-at-tag-classes '(function variable)
         )
-  (semantic-install-function-overrides
-   '((tag-protection . semantic-c-tag-protection)
-     (tag-components . semantic-c-tag-components)
-     (format-tag-concise-prototype . semantic-c-format-tag-concise-prototype)
-     (format-tag-uml-prototype . semantic-c-format-tag-uml-prototype)
-     (format-tag-type . semantic-c-format-tag-type)
-     (tag-abstract-p . semantic-c-tag-abstract-p)
-     (analyze-dereference-metatype . semantic-c-analyze-dereference-metatype)
-     (analyze-type-constants . semantic-c-analyze-type-constants)
-     (format-tag-name . semantic-c-format-tag-name)
-     (ctxt-scoped-types . semantic-c-ctxt-scoped-types)
-     )
-   t ;; Set as t for now while developing.
-   )
+  
   (setq semantic-lex-analyzer #'semantic-c-lexer))
 
 ;;;###autoload
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
 ;;;###autoload
 (add-hook 'c++-mode-hook 'semantic-default-c-setup)
+
+(define-child-mode c++-mode c-mode
+  "`c++-mode' uses the same parser as `c-mode'.")
 
 (provide 'semantic-c)
 
