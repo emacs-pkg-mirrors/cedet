@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "semantic"
   :name "semantic"
-  :version "1.4"
+  :version "2.0beta3"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-makefile-miscelaneous "example"
@@ -13,8 +13,15 @@
    (ede-proj-target-elisp "nil"
     :name "init"
     :path ""
-    :source '("semantic-load.el")
-    :partofall 'nil
+    :source '("semantic-load.el" "semantic-autogen.el")
+    :auxsource '("semantic-al.el")
+    :rules (list 
+     (ede-makefile-rule "Custom-new"
+      :target "semantic-al.el"
+      :dependencies "semantic"
+      :rules '("$(EMACS) -batch -l semantic-autogen.el -f semantic-hack-autoloads")
+      )
+     )
     )
    (ede-proj-target-elisp "semantic"
     :name "semantic"
