@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.8 2002/08/04 02:01:58 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.9 2002/08/15 18:26:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -757,6 +757,30 @@ syntax as specified by the syntax table."
   semantic-lex-ignore-comments
   semantic-lex-punctuation
   semantic-lex-default-action)
+
+;;; Interfacing with edebug
+;;
+(add-hook
+ 'edebug-setup-hook
+ #'(lambda ()
+     
+     (def-edebug-spec define-lex
+       (&define name stringp (&rest symbolp))
+       )
+     (def-edebug-spec define-lex-analyzer
+       (&define name stringp form def-body)
+       )
+     (def-edebug-spec define-lex-regex-analyzer
+       (&define name stringp form def-body)
+       )
+     (def-edebug-spec define-lex-simple-regex-analyzer
+       (&define name stringp form symbolp [ &optional form ] def-body)
+       )
+     (def-edebug-spec define-lex-block-analyzer
+       (&define name stringp form (&rest form))
+       )
+     
+     ))
 
 ;;; Compatibility with Semantic 1.x lexical analysis
 ;;
