@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.87 2002/02/06 18:53:02 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.88 2002/05/07 01:26:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,6 +61,16 @@ the current major mode is the only one.")
 ;; These functions use the flex and bovination engines to perform some
 ;; simple tasks useful to other programs.  These are just the most
 ;; critical entries.
+(defun semantic-equivalent-tokens-p (token1 token2)
+  "Compare TOKEN1 and TOKEN2 and return non-nil if they are equivalent.
+Use `eq' to test of two tokens are the same.  Use this function if tokens
+are being copied and regrouped to test for if two tokens represent the same
+thing, but may be constructed of different cons cells."
+  (and (string= (semantic-token-name token1) (semantic-token-name token2))
+       (eq (semantic-token-token token1) (semantic-token-token token2))
+       (eq (semantic-token-start token1) (semantic-token-start token2))
+       (eq (semantic-token-end token1) (semantic-token-end token2))))
+
 (defun semantic-token-type (token)
   "Retrieve the type of TOKEN."
   (if (member (semantic-token-token token)
@@ -265,6 +275,27 @@ Optional argument CHECKCACHE is the same as that for
       (save-excursion
 	(set-buffer (find-file-noselect file))
 	(semantic-bovinate-toplevel checkcache)))))
+
+(defun semantic-something-to-stream (something)
+  "Convert SOMETHING into a semantic token stream.
+Something can be a token with a valid BUFFER property, a stream, a
+buffer, or a filename."
+  (cond ((bufferp something)
+	 (save-excursion
+	   (set-buffer something)
+	   (semantic-bovinate-toplevel nil)))
+	((semantic-token-with-position-p something)
+	 (save-excursion
+	   (when (semantic-token-buffer something)
+	     (set-buffer (semantic-token-buffer something))
+	     (semantic-bovinate-toplevel nil))))
+	((and (listp something)
+	      (semantic-token-p (car something)))
+	 something)
+	((and ((stringp stream-or-buffer)
+	       (file-exists-p stream-or-buffer)))
+	 (semantic-file-token-stream something nil))
+	(t nil)))
 
 ;;; Searching by Position APIs
 ;;
@@ -579,7 +610,7 @@ If SEARCH-INCLUDE is non-nil, search include files."
   (token streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals with a token TOKEN within STREAMORBUFFER.
 TOKEN is a symbol representing the type of the tokens to find.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDE are passed to
+Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 `semantic-find-nonterminal-by-function'."
   `(semantic-find-nonterminal-by-function
     (lambda (tok) (eq ,token (semantic-token-token tok)))
@@ -588,10 +619,11 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDE are passed to
 (defmacro semantic-find-nonterminal-standard
   (streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals in STREAMORBUFFER which define simple token types.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDE are passed to
+Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 `semantic-find-nonterminal-by-function'."
   `(semantic-find-nonterminal-by-function
-    (lambda (tok) (member tok '(function variable type)))
+    (lambda (tok) (member (semantic-token-token tok)
+			  '(function variable type)))
     ,streamorbuffer ,search-parts ,search-includes))
 
 (defun semantic-find-nonterminal-by-type
@@ -628,48 +660,48 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
        (and ts (string-match regexp ts))))
    streamorbuffer search-parts search-includes))
 
-(defmacro semantic-find-nonterminal-by-name-regexp
+(defun semantic-find-nonterminal-by-name-regexp
   (regex streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals whose name match REGEX in STREAMORBUFFER.
 Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 `semantic-find-nonterminal-by-function'."
-  `(semantic-find-nonterminal-by-function
-    (lambda (tok) (string-match ,regex (semantic-token-name tok)))
-    ,streamorbuffer ,search-parts ,search-includes)
+  (semantic-find-nonterminal-by-function
+   (lambda (tok) (string-match regex (semantic-token-name tok)))
+    streamorbuffer search-parts search-includes)
   )
 
-(defmacro semantic-find-nonterminal-by-property
+(defun semantic-find-nonterminal-by-property
   (property value streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals with PROPERTY equal to VALUE in STREAMORBUFFER.
 Properties can be added with `semantic-token-put'.
 Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 `semantic-find-nonterminal-by-function'."
-  `(semantic-find-nonterminal-by-function
-   (lambda (tok) (equal (semantic-token-get tok ,property) ,value))
-   ,streamorbuffer ,search-parts ,search-includes)
+  (semantic-find-nonterminal-by-function
+   (lambda (tok) (equal (semantic-token-get tok property) value))
+   streamorbuffer search-parts search-includes)
   )
 
-(defmacro semantic-find-nonterminal-by-extra-spec
+(defun semantic-find-nonterminal-by-extra-spec
   (spec streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals with a given SPEC in STREAMORBUFFER.
 SPEC is a symbol key into the modifiers association list.
 Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 `semantic-find-nonterminal-by-function'."
-  `(semantic-find-nonterminal-by-function
-    (lambda (tok) (semantic-token-extra-spec tok ,spec))
-    ,streamorbuffer ,search-parts ,search-includes)
+  (semantic-find-nonterminal-by-function
+   (lambda (tok) (semantic-token-extra-spec tok spec))
+   streamorbuffer search-parts search-includes)
   )
 
-(defmacro semantic-find-nonterminal-by-extra-spec-value
+(defun semantic-find-nonterminal-by-extra-spec-value
   (spec value streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals with a given SPEC equal to VALUE in STREAMORBUFFER.
 SPEC is a symbol key into the modifiers association list.
 VALUE is the value that SPEC should match.
 Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 `semantic-find-nonterminal-by-function'."
-  `(semantic-find-nonterminal-by-function
-    (lambda (tok) (equal (semantic-token-extra-spec tok ,spec) ,value))
-    ,streamorbuffer ,search-parts ,search-includes)
+  (semantic-find-nonterminal-by-function
+   (lambda (tok) (equal (semantic-token-extra-spec tok spec) value))
+   streamorbuffer search-parts search-includes)
   )
 
 (defun semantic-find-nonterminal-by-function
@@ -687,11 +719,7 @@ searched.
 If SEARCH-INCLUDES is non-nil, then all include files are also
 searched for matches."
   (let ((streamlist (list
-		     (if (bufferp streamorbuffer)
-			 (save-excursion
-			   (set-buffer streamorbuffer)
-			   (semantic-bovinate-toplevel))
-		       streamorbuffer)))
+		     (semantic-something-to-stream streamorbuffer)))
 	(includes nil)			;list of includes
 	(stream nil)			;current stream
         (token  nil)                    ;current token
@@ -738,11 +766,7 @@ The overloadable function `semantic-nonterminal-children' is used for
 searching.
 If SEARCH-INCLUDES is non-nil, then all include files are also
 searched for matches."
-  (let ((stream (if (bufferp streamorbuffer)
-		     (save-excursion
-		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel))
-		   streamorbuffer))
+  (let ((stream (semantic-something-to-stream stremorbuffer))
 	(found nil)
         (case-fold-search semantic-case-fold))
     (while (and (not found) stream)
@@ -753,18 +777,37 @@ searched for matches."
 
 ;;; Bucketizing: Take and convert the tokens based on type.
 ;;
-(defun semantic-bucketize (tokens &optional filter)
+(defvar semantic-bucketize-token-token
+  ;; Must use lambda because `semantic-token-token' is a macro.
+  (lambda (tok) (semantic-token-token tok))
+  "Function used to get a symbol describing the class of a token.
+This function must take one argument of a semantic token.
+It should return a symbol found in `semantic-symbol->name-assoc-list'
+which `semantic-bucketize' uses to bin up tokens.
+To create new bins for an application augment
+`semantic-symbol->name-assoc-list', and
+`semantic-symbol->name-assoc-list-for-type-parts' in addition
+to setting this variable (locally in your function).")
+
+(defun semantic-bucketize (tokens &optional parent filter)
   "Sort TOKENS into a group of buckets based on token type.
 Unknown types are placed in a Misc bucket.
+Type bucket names are defined by either `semantic-symbol->name-assoc-list'.
+If PARENT is specified, then TOKENS belong to this PARENT in some way.
+This will use `semantic-symbol->name-assoc-list-for-type-parts' to
+generate bucket names.
 Optional argument FILTER is a filter function to be applied to each bucket.
 The filter function will take one argument, which is a list of tokens, and
 may re-organize the list with side-effects."
-  (let ((bins (make-vector (1+ (length semantic-symbol->name-assoc-list)) nil))
-	ask toktype
-	(sn semantic-symbol->name-assoc-list)
-	(nsn nil)
-	(num 1)
-	(out nil))
+  (let* ((name-list (if parent
+			semantic-symbol->name-assoc-list-for-type-parts
+		      semantic-symbol->name-assoc-list))
+	 (sn name-list)
+	 (bins (make-vector (1+ (length sn)) nil))
+	 ask toktype
+	 (nsn nil)
+	 (num 1)
+	 (out nil))
     ;; Build up the bucket vector
     (while sn
       (setq nsn (cons (cons (car (car sn)) num) nsn)
@@ -772,7 +815,7 @@ may re-organize the list with side-effects."
 	    num (1+ num)))
     ;; Place into buckets
     (while tokens
-      (setq toktype (semantic-token-token (car tokens))
+      (setq toktype (funcall semantic-bucketize-token-token (car tokens))
 	    ask (assq toktype nsn)
 	    num (or (cdr ask) 0))
       (aset bins num (cons (car tokens) (aref bins num)))
@@ -783,7 +826,7 @@ may re-organize the list with side-effects."
       (when (aref bins num)
 	(setq out
 	      (cons (cons
-		     (cdr (nth (1- num) semantic-symbol->name-assoc-list))
+		     (cdr (nth (1- num) name-list))
 		     ;; Filtering, First hacked by David Ponce david@dponce.com
 		     (funcall (or filter 'nreverse) (aref bins num)))
 		    out)))
@@ -792,6 +835,134 @@ may re-organize the list with side-effects."
 	(setq out (cons (cons "Misc"
 			      (funcall (or filter 'nreverse) (aref bins 0)))
 			out)))
+    (nreverse out)))
+
+;;; Adopt external children by rebuilding the list
+;;
+(defvar semantic-orphaned-member-metaparent-type "class"
+  "In `semantic-adopt-external-members', the type of 'type for metaparents.
+A metaparent is a made-up type semantic token used to hold the child list
+of orphaned members of a named type.")
+(make-variable-buffer-local 'semantic-orphaned-member-metaparent-type)
+
+(defvar semantic-mark-external-member-function nil
+  "Function called when an externally defined orphan is found.
+Be default, the token is always marked with the `adopted' property.
+This function should be locally bound by a program that needs
+to add additional behaviors into the token list.
+This function is called with two arguments.  The first is TOKEN which is
+a shallow copy of the token to be modified.  The second is the PARENT
+which is adopting TOKEN.  This function should return TOKEN (or a copy of it)
+which is then integrated into the revised token list.")
+
+(defun semantic-adopt-external-members (tokens)
+  "Rebuild TOKENS so that externally defined members are regrouped.
+Some languages such as C++ and CLOS permit the declaration of member
+functions outside the definition of the class.  It is easier to study
+the structure of a program when such methods are grouped together
+more logically.
+
+This function uses `semantic-nonterminal-external-member-p' to
+determine when a potential child is an externally defined member.
+
+Note: Applications which use this function must account for token
+types which do not have a position, but have children which *do*
+have positions.
+
+Applications should use `semantic-mark-external-member-function'
+to modify all tokens which are found as externally defined to some
+type.  For example, changing the token type for generating extra
+buckets with the bucket function."
+  (let ((parent-buckets nil)
+	(decent-list nil)
+	(out nil)
+	(tmp nil)
+	)
+    ;; Rebuild the output list, stripping out all parented
+    ;; external entries
+    (while tokens
+      (cond
+       ((setq tmp (semantic-nonterminal-external-member-parent (car tokens)))
+	(let ((tokencopy (copy-sequence (car tokens)))
+	      (a (assoc tmp parent-buckets)))
+	  (semantic-token-put-no-side-effect tokencopy 'adopted t)
+	  (if a
+	      ;; If this parent is already in the list, append.
+	      (setcdr (nthcdr (1- (length a)) a) (list tokencopy))
+	    ;; If not, prepend this new parent bucket into our list
+	    (setq parent-buckets
+		  (cons (cons tmp (list tokencopy)) parent-buckets)))
+	  ))
+       ((eq (semantic-token-token (car tokens)) 'type)
+	;; Types need to be rebuilt from scratch so we can add in new
+	;; children to the child list.  Only the top-level cons
+	;; cells need to be duplicated so we can hack out the
+	;; child list later.
+	(setq out (cons (copy-sequence (car tokens)) out))
+	(setq decent-list (cons (car out) decent-list))
+	)
+       (t
+	;; Otherwise, append this token to our new output list.
+	(setq out (cons (car tokens) out)))
+       )
+      (setq tokens (cdr tokens)))
+    ;; Rescan out, by decending into all types and finding parents
+    ;; for all entries moved into the parent-buckets.
+    (while decent-list
+      (let* ((bucket (assoc (semantic-token-name (car decent-list))
+			    parent-buckets))
+	     (bucketkids (cdr bucket))
+	     (partcdr (nthcdr 3 (car decent-list))))
+	(when bucket
+	  ;; Run our secondary marking function on the children
+	  (if semantic-mark-external-member-function
+	      (setq bucketkids
+		    (mapcar (lambda (tok)
+			      (funcall semantic-mark-external-member-function
+				       tok (car decent-list)))
+			    bucketkids)))
+	  ;; We have some extra kids.  Merge.
+	  (setcar partcdr (append (car partcdr) bucketkids))
+	  ;; Nuke the bucket label so it is not found again.
+	  (setcar bucket nil))
+	(setq decent-list
+	      (append (cdr decent-list)
+		      ;; get embedded types to scan and make copies
+		      ;; of them.
+		      (mapcar
+		       (lambda (tok) (copy-sequence tok))
+		       (semantic-find-nonterminal-by-token 'type
+			(semantic-token-type-parts (car decent-list)))))
+	      )))
+    ;; Scan over all remaining lost external methods, and tack them
+    ;; onto the end.
+    (while parent-buckets
+      (if (car (car parent-buckets))
+	  (let* ((tmp (car parent-buckets))
+		 (fauxtok (list (car tmp) 'type
+				semantic-orphaned-member-metaparent-type
+				nil ;; Part list
+				nil ;; parents (unknow)
+				nil ;; extra spec
+				nil ;; doc
+				'((faux . t)) ;; proprties
+				nil ;; overlay
+				))
+		 (partcdr (nthcdr 3 fauxtok))
+		 (bucketkids (cdr tmp)))
+	    (if semantic-mark-external-member-function
+		(setq bucketkids
+		      (mapcar (lambda (tok)
+				(funcall semantic-mark-external-member-function
+					 tok fauxtok))
+			      bucketkids)))
+	    (setcar partcdr bucketkids)
+	    ;; We have a bunch of methods with no parent in this file.
+	    ;; Create a meta-type to hold it.
+	    (setq out (cons fauxtok out))
+	    ))
+      (setq parent-buckets (cdr parent-buckets)))
+    ;; Return the new list.
     (nreverse out)))
 
 ;; Some sorting functions
@@ -1114,9 +1285,13 @@ Output is generated from the function under `point'."
 	(princ "\n")
 	(princ (car fns))
 	(princ ":\n ")
-	(princ (funcall (car fns) tok par t))
-	(setq fns (cdr fns)))
-      )))
+	(let ((s (funcall (car fns) tok par t)))
+	  (save-excursion
+	    (set-buffer "*Token->text*")
+	    (goto-char (point-max))
+	    (insert s)))
+	(setq fns (cdr fns))))
+      ))
 
 (defvar semantic-face-alist
   `( (function . font-lock-function-name-face)
@@ -1133,6 +1308,8 @@ Output is generated from the function under `point'."
      (label . font-lock-string-face)
      (comment . font-lock-comment-face)
      (keyword . font-lock-keyword-face)
+     (abstract . italic)
+     (static . underline)
      )
   "Face used to colorize tokens of different types.
 Override the value locally if a language supports other token types.
@@ -1154,6 +1331,33 @@ for details on adding new types."
     (put-text-property 0 (length text) 'face face newtext)
     newtext)
   )
+
+(defun semantic-colorize-merge-text (precoloredtext face-class)
+  "Apply onto PRECOLOREDTEXT a color associated with FACE-CLASS.
+FACE-CLASS is a token type found in 'semantic-face-alist'.  See this
+variable for details on adding new types."
+  (let ((face (cdr-safe (assoc face-class semantic-face-alist)))
+	(newtext (concat precoloredtext))
+	)
+    (if (featurep 'xemacs)
+	(add-text-properties 0 (length newtext) (list 'face face) newtext)
+      (alter-text-property 0 (length newtext) 'face
+			   (lambda (current-face)
+			     (let ((cf
+				    (cond ((facep current-face)
+					   (list current-face))
+					  ((listp current-face)
+					   current-face)
+					  (t nil)))
+				   (nf
+				    (cond ((facep face)
+					   (list face))
+					  ((listp face)
+					   face)
+					  (t nil))))
+			       (append cf nf)))
+			   newtext))
+    newtext))
 
 ;;; The token->text functions
 (defun semantic-prin1-nonterminal (token &optional parent color)
@@ -1414,10 +1618,10 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
         (while (and deref (/= deref 0))
           (setq array (concat array "[]")
                 deref (1- deref)))
-        (concat (semantic-name-nonterminal token parent nil)
+        (concat (semantic-name-nonterminal token parent color)
                 array)))
      (t
-      (semantic-abbreviate-nonterminal token parent nil)))))
+      (semantic-abbreviate-nonterminal token parent color)))))
 
 (defcustom semantic-uml-colon-string " : "
   "*String used as a color separator between parts of a UML string.
@@ -1431,6 +1635,25 @@ Change this variable to change the output separator."
 Used by `semantic-uml-protection-to-string'."
   :group 'semantic
   :type 'string)
+
+(defun semantic-uml-post-colorize (text token parent)
+  "Add color to TEXT created from TOKEN and PARENT.
+Adds augmentation for `abstract' and `static' entries."
+  (if (semantic-nonterminal-abstract token parent)
+      (setq text (semantic-colorize-merge-text text 'abstract)))
+  (if (semantic-nonterminal-static token parent)
+      (setq text (semantic-colorize-merge-text text 'static)))
+  text
+  )
+
+(defun semantic-uml-attribute-string (token &optional parent)
+  "Return a string for TOKEN, a child of PARENT representing a UML attribute.
+UML attribute strings are things like {abstract} or {leaf}."
+  (cond ((semantic-nonterminal-abstract token parent)
+	 "{abstract}")
+	((semantic-nonterminal-leaf token parent)
+	 "{leaf}")
+	))
 
 (defun semantic-uml-protection-to-string (protection-symbol)
   "Convert PROTECTION-SYMBOL to a string for UML.
@@ -1502,10 +1725,11 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((text (semantic-uml-token-or-string-to-string
 		token parent nil color))
 	 (prot (semantic-nonterminal-protection token parent))
-	 )
-    (setq prot (semantic-uml-protection-to-string prot))
-    (concat prot text)
-    ))
+	 (protstr (semantic-uml-protection-to-string prot))
+	 (text (concat protstr text)))
+    (if color
+	(setq text (semantic-uml-post-colorize text token parent)))
+    text))
 
 (defun semantic-uml-arguments-to-string (arguments color)
   "Convert ARGUMENTS to a string.
@@ -1537,6 +1761,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((tok (semantic-token-token token))
 	 (argtext nil)
 	 (prot (semantic-nonterminal-protection token parent))
+	 (text nil)
 	 )
     (cond ((eq tok 'function)
 	   (setq argtext (semantic-uml-arguments-to-string
@@ -1545,10 +1770,12 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	  ((eq tok 'type)
 	   (setq argtext "{}")))
     (setq prot (semantic-uml-protection-to-string prot))
-    (concat prot
-	    (semantic-uml-token-or-string-to-string
-	     token parent argtext color)
-	    )
+    (setq text (concat prot
+		       (semantic-uml-token-or-string-to-string
+			token parent argtext color)))
+    (if color
+	(setq text (semantic-uml-post-colorize text token parent)))
+    text
     ))
 
 (defun semantic-uml-concise-prototype-nonterminal (token &optional parent color)
@@ -1567,6 +1794,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((cp (semantic-concise-prototype-nonterminal token parent color))
 	 (type (semantic-token-type token))
 	 (prot (semantic-nonterminal-protection token parent))
+	 (text nil)
 	 )
     (setq type
 	  (cond ((semantic-token-p type)
@@ -1577,11 +1805,16 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 		 type)
 		(t nil)))
     (setq prot (semantic-uml-protection-to-string prot))
-    (concat prot cp
-	    (if type (concat semantic-uml-colon-string type)))
+    (setq text
+	  (concat prot cp
+		  (if type
+		      (progn
+			(setq type (semantic-colorize-text type 'type))
+			(concat semantic-uml-colon-string type)))))
+    (if color
+	(setq text (semantic-uml-post-colorize text token parent)))
+    text
     ))
-
-
 
 ;;; Multi-file Token information
 ;;
@@ -1777,14 +2010,18 @@ to also include the default behavior, and merely extend your own.
 Note for language authors:
   If a mode defines a language that has tokens in it with overlays that
 should not be considered children, you should still return them with
-this function."
+this function, otherwise saving cannot work."
   (let* ((s (semantic-fetch-overload 'nonterminal-children))
 	 (chil (if s (funcall s token)
 		 (semantic-nonterminal-children-default token))))
-    (if (or (not positionalonly)
-	    (semantic-token-with-position-p (car chil)))
-	chil
-      nil)))
+    (if positionalonly
+      (let ((newchil nil))
+	(while chil
+	  (if (semantic-token-with-position-p (car chil))
+	      (setq newchil (cons (car chil) newchil)))
+	  (setq chil (cdr chil)))
+	(nreverse newchil))
+      chil)))
 
 (defun semantic-nonterminal-children-default (token)
   "Return the children of TOKEN.
@@ -1808,7 +2045,113 @@ For functions return the argument list."
     (if anon-type-children
 	(append explicit-children anon-type-children)
       explicit-children)))
-	 
+
+(defun semantic-nonterminal-external-member-parent (token)
+  "Return a parent for TOKEN when TOKEN is an external member.
+TOKEN is an external member if it is defined at a toplevel and
+has some sort of label defing a parent.  The parent return will
+be a string.
+
+The default behavior, if not overriden with
+`nonterminal-external-member-parent' is get the 'parent extra
+specifier of TOKEN.
+
+If this function is overriden, use
+`semantic-nonterminal-external-member-parent-default' to also
+include the default behavior, and merely extend your own."
+  (let* ((s (semantic-fetch-overload 'nonterminal-external-member-parent)))
+    (if s (funcall s token)
+      (semantic-nonterminal-external-member-parent-default token))
+    ))
+
+(defun semantic-nonterminal-external-member-parent-default (token)
+  "Return the name of TOKENs parent iff TOKEN is not defined in it's parent."
+  ;; Use only the extra spec because a type has a parent which
+  ;; means something completely different.
+  (let ((tp (semantic-token-extra-spec token 'parent)))
+    (when (stringp tp)
+      tp)
+    ))
+
+(defun semantic-nonterminal-external-member-p (parent token)
+  "Return non-nil if PARENT is the parent of TOKEN.
+TOKEN is an external member of PARENT when it is somehow tagged
+as having PARENT as it's parent.
+
+The default behavior, if not overriden with
+`nonterminal-external-member-p' is to match 'parent extra specifier in
+the name of TOKEN.
+
+If this function is overriden, use
+`semantic-nonterminal-external-member-children-p-default' to also
+include the default behavior, and merely extend your own."
+  (let* ((s (semantic-fetch-overload 'nonterminal-external-member-p)))
+    (if s (funcall s parent token)
+      (semantic-nonterminal-external-member-p-default parent token))
+    ))
+
+(defun semantic-nonterminal-external-member-p-default (parent token)
+  "Return non-nil if PARENT is the parent of TOKEN."
+  ;; Use only the extra spec because a type has a parent which
+  ;; means something completely different.
+  (let ((tp (semantic-nonterminal-external-member-parent token)))
+    (and (stringp tp)
+	 (string= (semantic-token-name parent) tp))
+    ))
+
+(defun semantic-nonterminal-external-member-children (token &optional usedb)
+  "Return the list of children which are not *in* TOKEN.
+If optional argument USEDB is non-nil, then also search files in
+the Semantic Database.  If USEDB is a list of databases, search those
+databases.
+
+Children in this case are functions or types which are members of
+TOKEN, such as the parts of a type, but which are not defined inside
+the class.  C++ and CLOS both permit methods of a class to be defined
+outside the bounds of the class' definition.
+
+The default behavior, if not overriden with
+`nonterminal-external-member-children' is to search using
+`semantic-nonterminal-external-member-p' in all top level definitions
+with a parent of TOKEN.
+
+If this function is overriden, use
+`semantic-nonterminal-external-member-children-default' to also
+include the default behavior, and merely extend your own."
+  (let* ((s (semantic-fetch-overload 'nonterminal-external-member-children)))
+    (if s (funcall s token usedb)
+      (semantic-nonterminal-external-member-children-default token usedb))
+    ))
+
+(defun semantic-nonterminal-external-member-children-db (token usedb)
+  "Return the list of external children for TOKEN found in semanticdb.
+USEDB is the list of databases to use, or t.
+The return value is in semanticdb output format."
+  (semanticdb-find-nonterminal-by-function
+   `(lambda (stream sp si)
+      (semantic-find-nonterminal-by-function
+       (lambda (tok)
+	 (semantic-nonterminal-external-member-p
+	  ',token tok))
+       stream sp si))
+   (if (listp usedb) usedb) nil nil t))
+
+(defun semantic-nonterminal-external-member-children-default (token &optional usedb)
+  "Return list of external children for TOKEN.
+Optional argument USEDB specifies if the semantic database is used.
+See `semantic-nonterminal-external-member-children' for details."
+  (if (and usedb
+	   (fboundp 'semanticdb-minor-mode-p)
+	   (semanticdb-minor-mode-p))
+      (let ((m (semantic-nonterminal-external-member-children-db token usedb)))
+	(if m (apply #'append (mapcar #'cdr m))))
+    (semantic-find-nonterminal-by-function
+     `(lambda (tok)
+	;; This bit of annoying backquote forces the contents of
+	;; token into the generated lambda.
+       (semantic-nonterminal-external-member-p ',token tok))
+     (current-buffer) nil nil)
+    ))
 
 (defun semantic-nonterminal-protection (token &optional parent)
   "Return protection information about TOKEN with optional PARENT.
@@ -1821,7 +2164,7 @@ This function returns on of the following symbols:
 Some languages may choose to provide additional return symbols specific
 to themselves.  Use of this function should allow for this.
 
-The default behavior (if not overriden with `nonterminal-children'
+The default behavior (if not overriden with `nonterminal-protection'
 is to return a symbol based on type modifiers."
   (let* ((s (semantic-fetch-overload 'nonterminal-protection)))
     (if s (funcall s token parent)
@@ -1847,6 +2190,100 @@ See `semantic-nonterminal-protection'."
 			 'protected)))))
       (setq mods (cdr mods)))
     prot))
+
+(defun semantic-nonterminal-abstract (token &optional parent)
+  "Return non nil if TOKEN is abstract.
+Optional PARENT is the parent token of TOKEN.
+In UML, abstract methods and classes have special meaning and behavior
+in how methods are overriden.  In UML, abstract methods are italicized.
+
+The default behavior (if not overriden with `nonterminal-abstract'
+is to return true if `abstract' is in the type modifiers."
+  (let* ((s (semantic-fetch-overload 'nonterminal-abstract)))
+    (if s (funcall s token parent)
+      (semantic-nonterminal-abstract-default token parent))))
+
+(defun semantic-nonterminal-abstract-default (token &optional parent)
+  "Return non-nil if TOKEN is abstract as a child of PARENT default action.
+See `semantic-nonterminal-abstract'."
+  (let ((mods (semantic-token-modifiers token))
+	(abs nil))
+    (while (and (not abs) mods)
+      (if (stringp (car mods))
+	  (setq abs (or (string= (car mods) "abstract")
+			(string= (car mods) "virtual"))))
+      (setq mods (cdr mods)))
+    abs))
+
+(defun semantic-nonterminal-leaf (token &optional parent)
+  "Return non nil if TOKEN is leaf.
+Optional PARENT is the parent token of TOKEN.
+In UML, leaf methods and classes have special meaning and behavior.
+
+The default behavior (if not overriden with `nonterminal-leaf'
+is to return true if `leaf' is in the type modifiers."
+  (let* ((s (semantic-fetch-overload 'nonterminal-leaf)))
+    (if s (funcall s token parent)
+      (semantic-nonterminal-leaf-default token parent))))
+
+(defun semantic-nonterminal-leaf-default (token &optional parent)
+  "Return non-nil if TOKEN is leaf as a child of PARENT default action.
+See `semantic-nonterminal-leaf'."
+  (let ((mods (semantic-token-modifiers token))
+	(leaf nil))
+    (while (and (not leaf) mods)
+      (if (stringp (car mods))
+	  ;; Use java FINAL as example default.  There is none
+	  ;; for C/C++
+	  (setq leaf (string= (car mods) "final")))
+      (setq mods (cdr mods)))
+    leaf))
+
+(defun semantic-nonterminal-static (token &optional parent)
+  "Return non nil if TOKEN is static.
+Optional PARENT is the parent token of TOKEN.
+In UML, static methods and attributes mean that they are allocated
+in the parent class, and are not instance specific.
+UML notation specifies that STATIC entries are underlined.
+
+The default behavior (if not overriden with `nonterminal-static'
+is to return true if `static' is in the type modifiers."
+  (let* ((s (semantic-fetch-overload 'nonterminal-static)))
+    (if s (funcall s token parent)
+      (semantic-nonterminal-static-default token parent))))
+
+(defun semantic-nonterminal-static-default (token &optional parent)
+  "Return non-nil if TOKEN is static as a child of PARENT default action.
+See `semantic-nonterminal-static'."
+  (let ((mods (semantic-token-modifiers token))
+	(static nil))
+    (while (and (not static) mods)
+      (if (stringp (car mods))
+	  (setq static (string= (car mods) "static")))
+      (setq mods (cdr mods)))
+    static))
+
+(defun semantic-nonterminal-full-package-name (token &optional stream-or-buffer)
+  "Return the fully qualified name of TOKEN in the package hierarchy.
+STREAM-OR-BUFFER can be anything convertable by `semantic-something-to-stream',
+but must be a toplevel semantic token stream that contains TOKEN.
+A Package Hierarchy is defined in UML by the way classes and methods
+are organized on disk.  Some language use this concept such that a
+class can be accessed via it's fully qualified name, (such as Java.)
+Other languages qualify names within a Namespace (such as C++) which
+result in a different package like structure.  Languages which do not
+override this function with `nonterminal-full-package-name' will use
+`semantic-token-name'.  Override functions only need to handle
+STREAM-OR-BUFFER with a token stream value, or nil."
+  (let* ((s (semantic-fetch-overload 'nonterminal-full-package-name))
+	 (stream (semantic-something-to-stream (or stream-or-buffer token))))
+    (if s (funcall s token stream)
+      (semantic-nonterminal-full-package-name-default token stream))))
+
+(defun semantic-nonterminal-full-package-name-default (token stream)
+  "Default method for `semantic-nonterminal-full-package-name'.
+Return the name of TOKEN found in the toplevel STREAM."
+  (semantic-token-name token))
 
 
 ;;; Do some fancy stuff with overlays
@@ -2044,7 +2481,35 @@ Argument P is the point to search from in the current buffer."
 	  (shrink-window-if-larger-than-buffer))
       (message "nil"))))
 
-(provide 'semantic-util)
+(defun semantic-sanity-check (&optional cache over notfirst)
+  "Perform a sanity check on the current buffer.
+The buffer's set of overlays, and those overlays found via the cache
+are verified against each other.
+CACHE, and OVER are the semantic cache, and the overlay list.
+NOTFIRST indicates that this was not the first call in the recursive use."
+  (interactive)
+  (if (and (not cache) (not over) (not notfirst))
+      (setq cache semantic-toplevel-bovine-cache
+	    over (semantic-overlays-in (point-min) (point-max))))
+  (while cache
+    (let ((chil (semantic-nonterminal-children (car cache) t)))
+      (if (not (memq (semantic-token-overlay (car cache)) over))
+	  (message "Token %s not in buffer overlay list."
+		   (semantic-concise-prototype-nonterminal (car cache))))
+      (setq over (delq (semantic-token-overlay (car cache)) over))
+      (setq over (semantic-sanity-check chil over t))
+      (setq cache (cdr cache))))
+  (if (not notfirst)
+      ;; Strip out all overlays which aren't semantic overlays
+      (let ((o nil))
+	(while over
+	  (when (and (semantic-overlay-get (car over) 'semantic)
+		     (not (eq (semantic-overlay-get (car over) 'semantic)
+			      'unmatched)))
+	    (setq o (cons (car over) o)))
+	  (setq over (cdr over)))
+	(message "Remaining overlays: %S" o)))
+  over)
 
 ;;; Minor modes
 ;;
