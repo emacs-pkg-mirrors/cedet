@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.15 1999/09/20 19:33:33 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.16 1999/09/22 14:08:22 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -241,6 +241,10 @@ MFILENAME is the makefile to generate."
 	 "lisp_LISP")
 	(t (concat (ede-pmake-varname this) "_LISP"))))
 
+(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-miscelaneous))
+  "Return the variable name for THIS's sources."
+  (concat (ede-pmake-varname this) "_MISC"))))
+
 ;;; DEPENDENCY FILE GENERATOR LISTS
 ;;
 (defmethod ede-proj-makefile-dependency-files ((this ede-proj-target))
@@ -253,6 +257,11 @@ Argument THIS is the target to get sources from."
   "Return a list of source files to convert to dependencies.
 Argument THIS is the target to get sources from."
   (append (oref this source) (oref this auxsource)))
+
+(defmethod ede-proj-makefile-dependency-files
+  ((this ede-proj-target-makefile-miscelaneous))
+  "Return a list of files which THIS target depends on."
+  (list (oref this submakefile)))
 
 ;;; GENERIC VARIABLES
 ;;
@@ -466,6 +475,12 @@ These are removed with make clean."
     (insert "\n" (ede-name this) ": $(" (ede-pmake-varname this) "_INFOS)\n"
 	    "\tmakeinfo " mm "\n")))
 
+(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile-miscelaneous))
+  "Create the make rule needed to create an archive for THIS."
+  (call-next-method)
+  (insert (ede-name this) ": " (oref this submakefile) "\n"
+	  "\t$(MAKE) -f " (oref this submakefile) "\n\n"))
+
 ;; Tags
 (defmethod ede-proj-makefile-tags ((this ede-proj-project) targets)
   "Insert into the current location rules to make recursive TAGS files.
@@ -485,8 +500,7 @@ Argument TARGETS are the targets we should depend on for TAGS."
       (insert "\tcd " (file-name-directory (oref (car tg) file)) "; make $@\n")
       (setq tg (cdr tg)))
     (insert "\n")))
-    
-    
+
 
 (provide 'ede-pmake)
 
