@@ -3,13 +3,13 @@
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.7 2002/09/05 02:33:34 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.8 2002/12/11 08:56:25 ponced Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta3"
   "Current version of InVersion.")
 (defvar inversion-incompatible-version "0.1alpha1"
-  "An earlier release which is incmpatible with this release.")
+  "An earlier release which is incompatible with this release.")
 
 ;; InVersion is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -186,7 +186,7 @@ PACKAGE is a symbol, similar to what is passed to `require'.
 RESERVED arguments are kept for a later user.
 MINIMUM is of similar format to return entries of
 `inversion-decode-version', or a classic version string.
-This dependson the symbol `PACKAGE-version' being defined
+This depends on the symbol `PACKAGE-version' being defined
 in PACKAGE.
 Return nil if everything is ok.  Return an error string otherwise."
   (let ((code (inversion-package-version package))
@@ -240,6 +240,37 @@ Optional argument RESERVED is saved for later use."
 	  (inversion-download-package-ask err package directory version)
 	(error err)))))
   
+(defconst inversion-find-data
+  '("(def\\(var\\|const\\)\\s-+%s-%s\\s-+\"\\([^\"]+\\)" 2)
+  "Regexp template and match data index of a version string.")
+
+(defun inversion-find-version (package)
+  "Search for the version and incompatible version of PACKAGE.
+Does not load PACKAGE nor requires that it has been previously loaded.
+Search in the directories in `load-path' for a PACKAGE.el library.
+Visit the file found and search for the declarations of variables or
+constants `PACKAGE-version' and `PACKAGE-incompatible-version'.  The
+value of these variables must be a version string.
+
+Return a pair (VERSION-STRING . INCOMPATIBLE-VERSION-STRING) where
+INCOMPATIBLE-VERSION-STRING can be nil.
+Return nil when VERSION-STRING was not found."
+  (let* ((file (locate-file (symbol-name package) load-path '(".el")))
+         (tag (car inversion-find-data))
+         (idx (nth 1 inversion-find-data))
+         version)
+    (when file
+      (with-temp-buffer
+        (insert-file-contents-literally file)
+        (goto-char (point-min))
+        (when (re-search-forward (format tag package 'version) nil t)
+          (setq version (list (match-string idx)))
+          (goto-char (point-min))
+          (when (re-search-forward
+                 (format tag package 'incompatible-version) nil t)
+            (setcdr version (match-string idx))))))
+    version))
+
 ;;; Inversion tests
 ;;
 (let ((c1 (inversion-package-version 'inversion))
@@ -381,9 +412,9 @@ The package should have VERSION available for download."
     newer
     ))
 
-(inversion-upgrade-package 
- 'semantic
- "/ftp@ftp1.sourceforge.net:/pub/sourceforge/cedet")
+;; (inversion-upgrade-package 
+;;  'semantic
+;;  "/ftp@ftp1.sourceforge.net:/pub/sourceforge/cedet")
 
 ;; "/ftp@ftp1.sourceforge.net:/pub/sourceforge/cedet"
 (provide 'inversion)
