@@ -1,10 +1,10 @@
 ;;; ede-pmake.el --- EDE Generic Project Makefile code generator.
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.19 1999/12/04 17:29:07 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.20 2000/06/20 02:18:14 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -27,6 +27,8 @@
 ;; 
 ;; Code generator for Makefiles.
 
+(require 'ede-proj-obj)
+
 (autoload 'ede-proj-configure-create "ede-pconf"
   "Create a configure script from an EDE-PROJ project."
   nil nil)
@@ -39,6 +41,15 @@ MFILENAME is the makefile to generate."
 	(isdist (string= mfilename (ede-proj-dist-makefile this)))
 	(depth 0)
 	(tmp this)
+	(have-cfiles
+	 (with-slots (targets) this
+	   (while (and targets
+		       (not
+			(obj-of-class-p
+			 (car targets)
+			 'ede-proj-target-makefile-objectcode)))
+	     (setq targets (cdr targets)))
+	   targets))
 	(have-libtool (object-assoc t 'libtool (oref this targets)))
 	)
     ;; Find out how deep this project is.
@@ -71,6 +82,7 @@ MFILENAME is the makefile to generate."
        "\n#\n"
        "# DO NOT MODIFY THIS FILE OR YOUR CHANGES MAY BE LOST.\n"
        "# EDE is the Emacs Development Environment.\n"
+       "# http://www.ultranet.com/~zappo/ede.shtml\n"
        "# \n")
       (ede-proj-makefile-insert-variables this)
       ;; Space
@@ -100,20 +112,21 @@ MFILENAME is the makefile to generate."
 		  (setq tc (1- tc))
 		  (insert "..")
 		  (if (/= tc 0) (insert "/")))
-		(insert
-		 "\n"
-		 ;;"LIBTOOL = $(SHELL) $(top_builddir)/libtool\n"
-		 "COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) "
-		 "$(CFLAGS)\n"
-		 "LINK = $(CC) $(CFLAGS) $(LDFLAGS) -o $@\n")
-		(if have-libtool
+		(insert "\n")
+		(if have-cfiles
 		    (insert
-		     "LIBTOOL = $(SHELL) libtool\n"
-		     "LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) "
-		     "$(INCLUDES) $(CPPFLAGS) $(CFLAGS)\n"
-		     "LTLINK = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) "
-		     "$(LDFLAGS) -o $@\n"))
-		))
+		     ;;"LIBTOOL = $(SHELL) $(top_builddir)/libtool\n"
+		     "COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) "
+		     "$(CFLAGS)\n"
+		     "LINK = $(CC) $(CFLAGS) $(LDFLAGS) -o $@\n")
+		  (if have-libtool
+		      (insert
+		       "LIBTOOL = $(SHELL) libtool\n"
+		       "LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) "
+		       "$(INCLUDES) $(CPPFLAGS) $(CFLAGS)\n"
+		       "LTLINK = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) "
+		       "$(LDFLAGS) -o $@\n"))
+		  )))
 	  (insert "\n")
 	  ;; Create a variable with all the dependency files to include
 	  ;; These methods borrowed from automake.
@@ -129,8 +142,11 @@ MFILENAME is the makefile to generate."
 	  ;; The all target
 	  (setq tmp mt)
 	  (insert "\n\nall:")
-	  (while tmp (insert " " (oref (car tmp) name))
-		 (setq tmp (cdr tmp)))
+	  (while tmp 
+	    (if (oref (car tmp) partofall)
+		;; Only insert this rule if it is a part of ALL.
+		(insert " " (oref (car tmp) name)))
+	    (setq tmp (cdr tmp)))
 	  (insert "\n\n")
 	  ;; Some C inference rules
 	  ;; Dependency rules borrowed from automake.
