@@ -1,10 +1,10 @@
 ;;; semanticdb-el.el --- Semantic database extensions for Emacs Lisp
 
-;;; Copyright (C) 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.18 2004/04/29 10:10:52 ponced Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.19 2005/01/12 22:39:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -100,14 +100,19 @@ local variable."
 ;;
 ;; Unlike other languages, Emacs Lisp always has the system database there
 ;; even when there isn't a usage for it.
-
 (define-mode-local-override semanticdb-find-translate-path emacs-lisp-mode
   (path brutish)
   "Return a list of semanticdb tables asociated with PATH.
 If brutish, do the default action.
 If not brutish, do the default action, and append the system
 database (if available.)"
-  (let ((default (semanticdb-find-translate-path-default path brutish)))
+  (let ((default
+	  ;; When we recurse, disable searching of system databases
+	  ;; so that our ELisp database only shows up once when
+	  ;; we append it in this iteration.
+	  (let ((semanticdb-search-system-databases nil)
+		)
+	    (semanticdb-find-translate-path-default path brutish))))
     ;; Don't add anything if BRUTISH is on (it will be added in that fcn)
     ;; or if we aren't supposed to search the system.
     (if (or brutish (not semanticdb-search-system-databases))
