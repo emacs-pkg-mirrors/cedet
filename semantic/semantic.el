@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.52 2000/09/28 03:18:05 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.53 2000/09/29 03:10:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -474,6 +474,10 @@ If not provided, then only the POSITION can be provided."
 (defmacro semantic-token-end (token)
   "Retrieve the end location of TOKEN."
   `(semantic-overlay-end (semantic-token-overlay ,token)))
+
+(defmacro semantic-token-buffer (token)
+  "Retrieve the buffer TOKEN resides in."
+  `(semantic-overlay-buffer (semantic-token-overlay ,token)))
 
 (defun semantic-token-p (token)
   "Return non-nil if TOKEN is most likely a semantic token."
