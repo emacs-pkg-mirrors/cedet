@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.94 2001/04/13 16:55:10 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.95 2001/04/21 15:02:31 zappo Exp $
 
-(defvar semantic-version "1.4beta1"
+(defvar semantic-version "1.4beta3"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -518,21 +518,47 @@ Runs `semantic-init-hook' if the major mode is setup to use semantic."
     (setq semantic-toplevel-bovine-force-reparse t)
     (run-hooks 'semantic-init-hooks)))
 (add-hook 'find-file-hooks 'semantic-find-file-hook)
-;; I think this should work, but it does funny stuff.
-;(add-hook 'change-major-mode-hook 'semantic-find-file-hook)
+
+(defvar semantic-changed-major-mode nil
+  "List of modes whose `major-mode' has changed recently.")
+
+(defun semantic-change-major-mode-hook-function ()
+  "Function called in `change-major-mode-hook'."
+  ;; After whatever was run to change the major mode is done,
+  ;; make sure semantic can reinitialize itself.
+  (if (not (semantic-active-p))
+      ;; Do nothing if semantic is not active in this buffer.
+      nil
+    (semantic-clear-toplevel-cache))
+  (add-hook 'post-command-hook 'semantic-post-change-major-mode-function)
+  (setq semantic-changed-major-mode (cons (current-buffer)
+					  semantic-changed-major-mode))
+  )
+
+(defun semantic-post-change-major-mode-function ()
+  "Called in a `post-command-hook' when there is a `major-mode' change.
+This makes sure semantic-init type stuff can occur."
+  (save-excursion
+    (remove-hook 'post-command-hook 'semantic-post-change-major-mode-function)
+    (while semantic-changed-major-mode
+      (set-buffer (car semantic-changed-major-mode))
+      (setq semantic-changed-major-mode (cdr semantic-changed-major-mode))
+      (semantic-find-file-hook))))
+
+(add-hook 'change-major-mode-hook 'semantic-change-major-mode-hook-function)
 
 ;; Test the above hook.
 ;;(add-hook 'semantic-init-hooks (lambda () (message "init for semantic")))
 
-(defun semantic-eval-defun-hook ()
-  "When `eval-defun-hook' is available, use that to partially reparse."
+(defun semantic-rebovinate-quickly-hook ()
+  "For use in a hook.  When only a partial reparse is needed, reparse."
   (condition-case nil
       (if (semantic-bovine-toplevel-partial-reparse-needed-p nil)
 	  (semantic-bovinate-toplevel))
     (error nil)))
 
 (if (boundp 'eval-defun-hooks)
-    (add-hook 'eval-defun-hooks 'semantic-eval-defun-hook))
+    (add-hook 'eval-defun-hooks 'semantic-rebovinate-quickly-hook))
 
 ;;; Parsing Commands
 ;;
@@ -582,7 +608,6 @@ stream is requested."
   ;; Remove this hook which tracks if a buffer is up to date or not.
   (remove-hook 'after-change-functions 'semantic-change-function t)
   (run-hooks 'semantic-after-toplevel-bovinate-hook))
-(add-hook 'change-major-mode-hook 'semantic-clear-toplevel-cache)
 
 (defvar semantic-bovination-working-type 'percent
   "*The type of working message to use when bovinating.
