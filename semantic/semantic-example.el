@@ -1,10 +1,10 @@
 ;;; semanto-example.el --- Examples using the semantic API
 
-;;; Copyright (C) 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-example.el,v 1.2 2003/04/09 01:14:00 zappo Exp $
+;; X-RCS: $Id: semantic-example.el,v 1.3 2004/03/11 02:32:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -86,7 +86,7 @@ Shows how to:
 (defun se-show (name)
   "Show important information about some token with NAME.
 Shows how to:
- * Create a variable with `semantic-token->text-functions'.
+ * Create a variable with `semantic-format-tag-functions'.
  * Create the colorized text."
   (interactive (list (semantic-read-symbol "Symbol: ")))
   (let ((tok (semantic-find-first-tag-by-name name (current-buffer) t))
