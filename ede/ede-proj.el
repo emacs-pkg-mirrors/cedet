@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.9 1999/03/17 12:35:09 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.10 1999/03/17 23:08:50 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -112,6 +112,14 @@ When compiling from within emacs, these are ignored.")
   "This target consists of a group of lisp files.
 A lisp target may be one general program with many separate lisp files in it.")
 
+(defclass ede-proj-target-scheme (ede-proj-target)
+  ((interpreter :initarg :interpreter
+		:initform "guile"
+		:custom string
+		:documentation "The preferred interpreter for this code.")
+   )
+  "This target consists of scheme files.")
+
 (defclass ede-proj-target-aux (ede-proj-target)
   ()
   "This target consists of aux files such as READMEs and COPYING.")
@@ -122,6 +130,7 @@ A lisp target may be one general program with many separate lisp files in it.")
     ("emacs lisp" . ede-proj-target-lisp)
     ("info" . ede-proj-target-makefile-info)
     ("auxiliary" . ede-proj-target-aux)
+    ("scheme" . ede-proj-target-scheme)
     )
   "Alist of names to class types for available project target classes.")
 
@@ -183,7 +192,8 @@ in targets.")
 (defun ede-proj-load (project)
   "Load a project file PROJECT."
   (save-excursion
-    (let ((ret nil))
+    (let ((ret nil)
+	  (subdirs (directory-files project nil "[^.].*" nil)))
       (set-buffer (get-buffer-create " *tmp proj read*"))
       (unwind-protect
 	  (progn
@@ -196,6 +206,13 @@ in targets.")
 	    (setq ret (eval ret))
 	    (oset ret file (concat project "Project.ede")))
 	(kill-buffer " *tmp proj read*"))
+      (while subdirs
+	(let ((sd (concat project (car subdirs))))
+	  (if (and (file-directory-p sd)
+		   (ede-directory-project-p (concat sd "/")))
+	      (oset ret subproj (cons (ede-proj-load (concat sd "/"))
+				      (oref ret subproj))))
+	  (setq subdirs (cdr subdirs))))
       ret)))
 
 (defun ede-proj-save (&optional project)
@@ -268,6 +285,10 @@ Argument TARGET is the project we are completing customization on."
 (defmethod ede-want-file-p ((obj ede-proj-target-aux) file)
   "Return t if OBJ wants to own FILE."
   (string-match "README\\|\\.txt$" file))
+
+(defmethod ede-want-file-p ((obj ede-proj-target-scheme) file)
+  "Return t if OBJ wants to own FILE."
+  (string-match "\\.scm$" file))
 
 (defmethod ede-want-file-p ((obj ede-proj-target-lisp) file)
   "Return t if OBJ wants to own FILE."
@@ -449,16 +470,18 @@ Optional argument COMMAND is the s the alternate command to use."
 	((eq (oref this makefile-type) 'Makefile.in)
 	 "Makefile.in")
 	((object-assoc "Makefile" 'makefile (oref this targets))
-	 (setq mfilename "Makefile"))
+	 "Makefile")
 	(t
 	 (with-slots (targets) this
 	   (while (and targets
-		       (not (obj-of-class-p (car targets)
-					    'ede-proj-target-makefile)))
+		       (not (obj-of-class-p 
+			     (car targets)
+			     'ede-proj-target-makefile)))
 	     (setq targets (cdr targets)))
-	   (setq mfilename
-		 (if targets (oref (car targets) makefile)
-		   "Makefile"))))))
+	   (if targets (oref (car targets) makefile)
+	     "Makefile")))))
+  
+(eval-when-compile (require 'ede-pmake))
 
 (defmethod ede-proj-makefile-create-maybe ((this ede-proj-project) mfilename)
   "Create a Makefile for all Makefile targets in THIS if needed.
