@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.10 2000/07/01 18:00:28 zappo Exp $
+@c $Id: semantic.texi,v 1.11 2000/07/01 18:00:55 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -176,7 +176,7 @@ simplified rules for concocting the parse tree.
 In bison, each time an element of a @var{MATCH} is found, it is
 "shifted" onto the parser stack.  (The stack of matched elements.)  When
 all of @var{MATCH1}'s elements have been matched, it is "reduced" to
-@var{RESULT}.  @xref{(bison)Algorithm}
+@var{RESULT}.  @xref{(bison)Algorithm}.
 
 The first @var{RESULT} written into your language specification should
 be @code{bovine-toplevel}.  When starting a parse for a file, this is
