@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.2 1999/11/10 14:18:30 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.3 1999/12/04 17:29:42 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -56,12 +56,15 @@ A lisp target may be one general program with many separate lisp files in it.")
 
 (defmethod project-compile-target ((obj ede-proj-target-elisp))
   "Compile all sources in a Lisp target OBJ."
-  (mapcar (lambda (src)
-	    (let ((elc (concat (file-name-sans-extension src) ".elc")))
-	      (if (or (not (file-exists-p elc))
-		      (file-newer-than-file-p src elc))
-		  (byte-compile-file src))))
-	  (oref obj source)))
+  (let ((cb (current-buffer)))
+    (mapcar (lambda (src)
+	      (let ((elc (concat (file-name-sans-extension src) ".elc")))
+		(set-buffer cb)
+		(if (or (not (file-exists-p elc))
+			(file-newer-than-file-p src elc))
+		    (byte-compile-file src))))
+	    (oref obj source)))
+  (message "All Emacs Lisp sources are up to date in %s" (object-name obj)))
 
 ;;; Makefile generation functions
 ;;
@@ -104,8 +107,14 @@ These are removed with make clean."
 ;      (setq lp (cdr lp))))
   (let ((ar (oref this requirements)))
     (while ar
-      (insert "\t@echo \"(require '" (car ar) ")\" >> " (ede-name this)
-	      "-compile-script\n")
+      (insert "\t@echo \"(require '")
+      (if (not (string-match "\\.el$" (car ar)))
+	  (insert (car ar))
+	;; This adds a string param indicating that we should load from
+	;; the .el file, not an existing .elc file.
+	(insert (substring (car ar) 0 (match-beginning 0))
+		" \\\"" (car ar) "\\\""))
+      (insert ")\" >> " (ede-name this) "-compile-script\n")
       (setq ar (cdr ar))))
   (insert "\t$(EMACS) -batch -l " (ede-name this) "-compile-script "
 	  "-f batch-byte-compile  $(" (ede-proj-makefile-sourcevar this)
