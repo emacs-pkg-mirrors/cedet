@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.7.2b
+;; Version: 0.7.2c
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.126 1998/08/31 02:01:26 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.127 1998/09/12 14:00:38 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -1014,16 +1014,18 @@ supported at a time.
 				(x-sensitive-text-pointer-shape
 				 x-pointer-hand2))
 			    (make-frame params)))))
-		  (set-frame-position frame
-				      ;; Decide which side to put it
-				      ;; on.  200 is just a buffer
-				      ;; for the left edge of the
-				      ;; screen.  The extra 10 is just
-				      ;; dressings for window decorations.
-				      (if (< cfx 200)
-					  (+ cfx cfw 10)
-					(- cfx (frame-pixel-width frame) 10))
-				      cfy)
+		  (if (and window-system (not (eq window-system 'pc)))
+		      (set-frame-position frame
+					  ;; Decide which side to put it
+					  ;; on.  200 is just a buffer
+					  ;; for the left edge of the
+					  ;; screen.  The extra 10 is just
+					  ;; dressings for window decorations.
+					  (if (< cfx 200)
+					      (+ cfx cfw 10)
+					    (- cfx (frame-pixel-width frame)
+					       10))
+					  cfy))
 		  frame)))
 	;; reset the selection variable
 	(setq speedbar-last-selected-file nil)
