@@ -5,9 +5,8 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
-;; Version: 2.1
-;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.24 2001/02/22 21:43:17 ponced Exp $
+;; Keywords: syntax
+;; X-RCS: $Id: senator.el,v 1.25 2001/02/23 16:06:56 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -101,6 +100,15 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.25  2001/02/23 16:06:56  ponced
+;; Copied over all the menu items that used to be in semanic-mode.
+;; Added the new token cut/paste items into a menu.
+;; Added menu items to configure semantic-imenu and enable semantic-db.
+;; Added Options sub menu to customize Semantic, Senator, Semantic Imenu
+;; and Semantic Database.
+;; Fixed some XEmacs compatibility issues.
+;; Improved robustness of some functions.
+;;
 ;; Revision 1.24  2001/02/22 21:43:17  ponced
 ;; Added token Copy, Cut & Paste and Register feature.
 ;;
@@ -292,6 +300,7 @@
 ;;; Code:
 (require 'semantic)
 
+;;; Customization
 (defgroup senator nil
   "SEmantic NAvigaTOR."
   :group 'semantic)
@@ -300,13 +309,6 @@
   "*Name displayed in the modeline when senator minor mode is on."
   :group 'senator
   :type 'string)
-
-(defface senator-momentary-highlight-face  '((((class color) (background dark))
-					      (:background "gray30"))
-					     (((class color) (background light))
-					      (:background "gray70")))
-  "Face used to momentarilly highlight tokens."
-  :group 'senator)
 
 (defcustom senator-step-at-token-ids nil
   "*List of token identifiers where to step.
@@ -340,6 +342,28 @@ langage behaviour."
   :group 'senator
   :type 'boolean)
 (make-variable-buffer-local 'senator-highlight-found)
+
+;;; Faces
+(defface senator-momentary-highlight-face '((((class color) (background dark))
+                                             (:background "gray30"))
+                                            (((class color) (background light))
+                                             (:background "gray70")))
+  "Face used to momentarilly highlight tokens."
+  :group 'semantic-faces)
+
+(defface senator-intangible-face '((((class color) (background light))
+                                    (:foreground "gray25"))
+                                   (((class color) (background dark))
+                                    (:foreground "gray75")))
+  "Face placed on intangible text."
+  :group 'semantic-faces)
+
+(defface senator-read-only-face '((((class color) (background dark))
+                                   (:background "#664444"))
+                                  (((class color) (background light))
+                                   (:background "#CCBBBB")))
+  "Face placed on read-only text."
+  :group 'semantic-faces)
 
 ;;; Compatibility
 (if (featurep 'xemacs)
@@ -375,19 +399,23 @@ REGEXP says which ring to use."
 ;;;; Common functions
 ;;;;
 
-(defun senator-parse ()
+(defsubst senator-parse ()
   "Parse the current buffer and return the tokens where to navigate."
   (semantic-bovinate-toplevel t))
 
+(defsubst senator-current-token ()
+  "Return the current token in the current buffer.
+Raise an error is there is no token here."
+  (or (semantic-current-nonterminal)
+      (error "No semantic tokens here")))
+
 (defun senator-momentary-highlight-token (token)
   "Momentary highlight TOKEN.
-Does nothing if `senator-highlight-found' is nil or semantic version
-is bellow 1.3."
+Does nothing if `senator-highlight-found' is nil."
   (and senator-highlight-found
-       (condition-case nil
- 	   (semantic-momentary-highlight-token
-	    token 'senator-momentary-highlight-face)
-	 (error (semantic-momentary-highlight-token token)))))
+       (semantic-momentary-highlight-token
+        token
+        'senator-momentary-highlight-face)))
 
 (defun senator-message (&rest args)
   "Call function `message' with ARGS without logging."
@@ -761,15 +789,15 @@ Of the form (BUFFER STARTPOS INDEX REGEX COMPLIST...)")
          regex complst newstr index)
     ;; Get old stats if apropriate.
     (if (and senator-last-completion-stats
-	     ;; Check if completing in the same buffer
+             ;; Check if completing in the same buffer
              (eq (car senator-last-completion-stats) (current-buffer))
-	     ;; Check if completing from the same point
+             ;; Check if completing from the same point
              (= (nth 1 senator-last-completion-stats) symstart)
-	     ;; Check if completing the same symbol
-	     (save-excursion
-	       (goto-char symstart)
-	       (looking-at (nth 3 senator-last-completion-stats))))
-	     
+             ;; Check if completing the same symbol
+             (save-excursion
+               (goto-char symstart)
+               (looking-at (nth 3 senator-last-completion-stats))))
+             
         (setq complst (nthcdr 4 senator-last-completion-stats))
 
       (setq regex (regexp-quote (buffer-substring symstart (point)))
@@ -777,7 +805,7 @@ Of the form (BUFFER STARTPOS INDEX REGEX COMPLIST...)")
             senator-last-completion-stats (append (list (current-buffer)
                                                         symstart
                                                         0
-							regex)
+                                                        regex)
                                                   complst)))
     ;; Do the completion if apropriate.
     (when complst
@@ -1026,6 +1054,66 @@ implementation."
   (senator-re-search-backward (car regexp-search-ring)))
 
 ;;;;
+;;;; Token Properties
+;;;;
+
+(defun senator-toggle-read-only (&optional token)
+  "Toggle the read-only status of the current TOKEN."
+  (interactive)
+  (let* ((tok  (or token (senator-current-token)))
+         (read (semantic-token-read-only-p tok)))
+    (semantic-set-token-read-only tok read)
+    (semantic-set-token-face
+     tok
+     (if read nil 'senator-read-only-face))))
+
+(defun senator-toggle-intangible (&optional token)
+  "Toggle the tangibility of the current TOKEN."
+  (interactive)
+  (let* ((tok (or token (senator-current-token)))
+         (tang (semantic-token-intangible-p tok)))
+    (semantic-set-token-intangible tok tang)
+    (semantic-set-token-face
+     tok
+     (if tang nil 'senator-intangible-face))))
+
+(defun senator-set-face (face &optional token)
+  "Set the foreground FACE of the current TOKEN."
+  (interactive (list (read-face-name
+                      (if (featurep 'xemacs)
+                          "Face: "
+                        ;; FSF Emacs already append ": "
+                        "Face"))))
+  (let ((tok (or token (senator-current-token))))
+    (semantic-set-token-face tok face)))
+
+(defun senator-set-foreground (color &optional token)
+  "Set the foreground COLOR of the current TOKEN."
+  ;; This was copied from facemenu
+  (interactive (list (facemenu-read-color "Foreground color: ")))
+  (let ((face (intern (concat "fg:" color))))
+    (or (facemenu-get-face face)
+        (error "Unknown color: %s" color))
+    (senator-set-face face)))
+
+(defun senator-set-background (color &optional token)
+  "Set the background COLOR of the current TOKEN."
+  ;; This was copied from facemenu
+  (interactive (list (facemenu-read-color "Background color: ")))
+  (let ((face (intern (concat "bg:" color))))
+    (or (facemenu-get-face face)
+        (error "Unknown color: %s" color))
+    (senator-set-face face)))
+
+(defun senator-clear-token (&optional token)
+  "Clear all properties from TOKEN."
+  (interactive)
+  (let ((tok (or token (senator-current-token))))
+    (semantic-set-token-read-only  tok t)
+    (semantic-set-token-intangible tok t)
+    (semantic-set-token-face       tok nil)))
+
+;;;;
 ;;;; Senator minor mode
 ;;;;
 
@@ -1155,13 +1243,228 @@ That is remove the unsupported :help stuff."
       :help "Toggle semantic search in isearch mode"
       ])
     )
+   (list
+    "Token Properties"
+;;;    (senator-menu-item
+;;;     [ "Hide Token"
+;;;       senator-make-invisible
+;;;       :active t
+;;;       :help "Make the current token invisible"
+;;;       ])
+;;;    (senator-menu-item
+;;;     [ "Show Token"
+;;;       senator-make-visible
+;;;       :active t
+;;;       :help "Make the current token invisible"
+;;;       ])
+    (senator-menu-item
+     [ "Read Only"
+       senator-toggle-read-only
+       :active (semantic-current-nonterminal)
+       :style toggle
+       :selected (let ((tok (semantic-current-nonterminal)))
+                   (and tok (semantic-token-read-only-p tok)))
+       :help "Make the current token read-only"
+       ])
+    (senator-menu-item
+     [ "Intangible"
+       senator-toggle-intangible
+       ;; XEmacs extent `intangible' property seems to not exists.
+       :active (and (not (featurep 'xemacs))
+                    (semantic-current-nonterminal))
+       :style toggle
+       :selected (and (not (featurep 'xemacs))
+                      (let ((tok (semantic-current-nonterminal)))
+                        (and tok (semantic-token-intangible-p tok))))
+       :help "Make the current token intangible"
+       ])
+    (senator-menu-item
+     [ "Set Token Face"
+       senator-set-face
+       :active (semantic-current-nonterminal)
+       :help "Set the face on the current token"
+       ])
+    (senator-menu-item
+     [ "Set Token Foreground"
+       senator-set-foreground
+       :active (semantic-current-nonterminal)
+       :help "Set the foreground color on the current token"
+       ])
+    (senator-menu-item
+     [ "Set Token Background"
+       senator-set-background
+       :active (semantic-current-nonterminal)
+       :help "Set the background color on the current token"
+       ])
+    (senator-menu-item
+     [ "Remove all properties"
+       senator-clear-token
+       :active (semantic-current-nonterminal)
+       :help "Remove all special face properties on the current token "
+       ] )
+    )
+   (list
+    "Token Copy/Paste"
+    (senator-menu-item
+     [ "Copy Token"
+       senator-copy-token
+       :active (semantic-current-nonterminal)
+       :help "Copy the current token to the token ring"
+       ])
+    (senator-menu-item
+     [ "Kill Token"
+       senator-kill-token
+       :active (semantic-current-nonterminal)
+       :help "Kill token text to the kill ring, and copy the token to the token ring"
+       ])
+    (senator-menu-item
+     [ "Yank Token"
+       senator-yank-token
+       :active (not (ring-empty-p senator-token-ring))
+       :help "Yank a token from the token ring, inserting a summary/prototype"
+       ])
+    (senator-menu-item
+     [ "Copy Token to Register"
+       senator-copy-token
+       :active (semantic-current-nonterminal)
+       :help "Copy the current token to a register"
+       ])
+    )
    "-"
+   (list
+    "Imenu Config"
+    (list
+     "Token Sorting Function"
+     (senator-menu-item
+      [ "Do not sort"
+        (setq semantic-imenu-sort-bucket-functin nil)
+        :active t
+        :style radio
+        :selected (eq semantic-imenu-sort-bucket-function nil)
+        :help "Do not sort imenu items"
+        ])
+     (senator-menu-item
+      [ "Increasing by name"
+        (setq semantic-imenu-sort-bucket-functin
+              'semantic-sort-tokens-by-name-increasing)
+        :active t
+        :style radio
+        :selected (eq semantic-imenu-sort-bucket-function
+                      'semantic-sort-tokens-by-name-increasing)
+        :help "Sort tokens by name increasing"
+        ])
+     (senator-menu-item
+      [ "Decreasing by name"
+        (setq semantic-imenu-sort-bucket-functin
+              'semantic-sort-tokens-by-name-decreasing)
+        :active t
+        :style radio
+        :selected (eq semantic-imenu-sort-bucket-function
+                      'semantic-sort-tokens-by-name-decreasing)
+        :help "Sort tokens by name decreasing"
+        ])
+     (senator-menu-item
+      [ "Increasing Case Insensitive by Name"
+        (setq semantic-imenu-sort-bucket-functin
+              'semantic-sort-tokens-by-name-increasing-ci)
+        :active t
+        :style radio
+        :selected (eq semantic-imenu-sort-bucket-function
+                      'semantic-sort-tokens-by-name-increasing-ci)
+        :help "Sort tokens by name increasing and case insensitive"
+        ])
+     (senator-menu-item
+      [ "Decreasing Case Insensitive by Name"
+        (setq semantic-imenu-sort-bucket-functin
+              'semantic-sort-tokens-by-name-decreasing-ci)
+        :active t
+        :style radio
+        :selected (eq semantic-imenu-sort-bucket-function
+                      'semantic-sort-tokens-by-name-decreasing-ci)
+        :help "Sort tokens by name decreasing and case insensitive"
+        ])
+     )
+    (senator-menu-item
+     [ "Bin tokens by type"
+       (setq semantic-imenu-bucketize-file
+             (not semantic-imenu-bucketize-file))
+       :active t
+       :style toggle
+       :selected semantic-imenu-bucketize-file
+       :help "Organize tokens in bins by type of token"
+       ])
+    (senator-menu-item
+     [ "Bins are submenus"
+       (setq semantic-imenu-buckets-to-submenu
+             (not semantic-imenu-buckets-to-submenu))
+       :active t
+       :style toggle
+       :selected semantic-imenu-buckets-to-submenu
+       :help "Organize tokens into submenus by type of token"
+       ])
+    (senator-menu-item
+     [ "Bin tokens in children"
+       (setq semantic-imenu-bucketize-type-parts
+             (not semantic-imenu-bucketize-type-parts))
+       :active t
+       :style toggle
+       :selected semantic-imenu-bucketize-type-parts
+       :help "When listing tokens inside another token; bin by token type"
+       ])
+    (senator-menu-item
+     [ "List other files"
+       (setq semantic-imenu-index-directory (not semantic-imenu-index-directory))
+       :active (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+       :style toggle
+       :selected semantic-imenu-index-directory
+       :help "List all files in the current database in the Imenu menu"
+       ])
+    (senator-menu-item
+     [ "Auto-rebuild other buffers"
+       (setq semantic-imenu-auto-rebuild-directory-indexes
+             (not semantic-imenu-auto-rebuild-directory-indexes))
+       :active (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+       :style toggle
+       :selected semantic-imenu-auto-rebuild-directory-indexes
+       :help "If listing other buffers, update all buffer menus after a parse"
+       ])
+    )
    (senator-menu-item
-    ["Options..."
-     (customize-group "senator")
-     :active t
-     :help "Customize SEmantic NAvigaTOR options"
-     ])
+    [ "Semantic Database"
+      (global-semanticdb-minor-mode)
+      :active t
+      :style toggle
+      :selected (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+      :help "Cache tokens for killed buffers and between sessions."
+      ])
+   "-"
+   (list
+    "Options"
+    (senator-menu-item
+     ["Semantic..."
+      (customize-group "semantic")
+      :active t
+      :help "Customize Semantic options"
+      ])
+    (senator-menu-item
+     ["Senator..."
+      (customize-group "senator")
+      :active t
+      :help "Customize SEmantic NAvigaTOR options"
+      ])
+    (senator-menu-item
+     ["Semantic Imenu..."
+      (customize-group "semantic-imenu")
+      :active t
+      :help "Customize Semantic Imenu options"
+      ])
+    (senator-menu-item
+     ["Semantic Database..."
+      (customize-group "semanticdb")
+      :active t
+      :help "Customize Semantic Database options"
+      ])
+    )
    )
   "Menu for senator minor mode.")
 
@@ -1198,7 +1501,7 @@ non-nil if the minor mode is enabled."
         (if (featurep 'xemacs)
             (easy-menu-add senator-minor-menu senator-mode-map))
         ;; Parse the current buffer if needed
-	(condition-case nil
+        (condition-case nil
             (progn
               (senator-parse)
               ;; Add completion hooks
@@ -1206,7 +1509,7 @@ non-nil if the minor mode is enabled."
                         'senator-completion-cache-flush-fcn nil t)
               (add-hook 'semantic-clean-token-hooks
                         'senator-completion-cache-flush-fcn nil t))
-	  (quit (message "senator-minor-mode: parsing of buffer canceled.")))
+          (quit (message "senator-minor-mode: parsing of buffer canceled.")))
         (senator-show-status)
         )
     ;; XEmacs needs this
@@ -1353,8 +1656,8 @@ The defun marked is the one that contains point or follows point.
 Use semantic tokens to navigate."
   (interactive)
   (let ((origin (point))
-	(end    (progn (senator-end-of-defun) (point)))
-	(start  (progn (senator-beginning-of-defun) (point))))
+        (end    (progn (senator-end-of-defun) (point)))
+        (start  (progn (senator-beginning-of-defun) (point))))
     (goto-char origin)
     (push-mark (point))
     (goto-char end) ;; end-of-defun
@@ -1418,19 +1721,17 @@ If semantic tokens are available, use them to navigate."
   "Take the current token, and place it in the token ring."
   (interactive)
   (senator-parse)
-  (let ((ct (semantic-current-nonterminal)))
-    (if (not ct)
-        (error "No semantic tokens here"))
+  (let ((ct (senator-current-token)))
     (ring-insert senator-token-ring (cons ct (buffer-file-name)))
-    (message (semantic-summarize-nonterminal ct))))
+    (message (semantic-summarize-nonterminal ct))
+    ct))
 
 (defun senator-kill-token ()
   "Take the current token, place it in the token ring, and kill it.
 Killing the token removes the text for that token, and places it into
 the kill ring.  Retrieve that text with \\[yank\\]."
   (interactive)
-  (senator-copy-token) ;; this handles the reparse for us.
-  (let ((ct (semantic-current-nonterminal)))
+  (let ((ct (senator-copy-token))) ;; this handles the reparse for us.
     (kill-region (semantic-token-start ct)
                  (semantic-token-end ct))))
 
@@ -1439,17 +1740,16 @@ the kill ring.  Retrieve that text with \\[yank\\]."
 The form the token takes is differnet depending on where it is being
 yanked to."
   (interactive)
-  (let ((tok (ring-ref senator-token-ring 0)))
-    (senator-insert-foreign-token (car tok) (cdr tok))))
+  (or (ring-empty-p senator-token-ring)
+      (let ((tok (ring-ref senator-token-ring 0)))
+        (senator-insert-foreign-token (car tok) (cdr tok)))))
 
 (defun senator-copy-token-to-register (register &optional kill-flag)
   "Copy the current token into REGISTER.
 Optional argument KILL-FLAG will delete the text of the token to the
 kill ring."
   (interactive "cToken to register: \nP")
-  (let ((ct (semantic-current-nonterminal)))
-    (if (not ct)
-        (error "No semantic tokens here"))
+  (let ((ct (senator-current-token)))
     (set-register register (cons ct (buffer-file-name)))
     (if kill-flag
         (kill-region (semantic-token-start ct)
