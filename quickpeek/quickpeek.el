@@ -3,40 +3,46 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.4
 ;; Keywords: tools
-;; X-RCS: $Id: quickpeek.el,v 1.4 2000/02/09 17:42:28 zappo Exp $
+;; X-RCS: $Id: quickpeek.el,v 1.5 2000/09/08 19:59:48 zappo Exp $
+
+(defvar quickpeek-version "0.5"
+  "The current version of quickpeek.")
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; along with this software; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
 ;;
-;; A discussion appeared in newsgroups recently discussing Emacs'
-;; ability to pop up information about the current context of the
-;; cursor in C++.  Needless to say, any such tool would also be useful
-;; for other languages, thus arose this tool, quickpeek.
+;; Quick peek is a tool designed to provide context information from a
+;; source code buffer.  It does this through a floating frame.  By
+;; default, it will show three lines of text, corresponding to any
+;; relevant prototype, documantation, and completions.
 ;;
-;; quickpeek can be independently configured on a per-language basis
+;; Quick peek can be independently configured on a per-language basis
 ;; to identify, and display useful information about the current
 ;; context.  When there is nothing useful to do, it does something
 ;; else.
 
-;;; How to support Lazy Look in a Major mode.
+;;; How to support quick peek in a Major mode.
 ;;
-;; Supporting Lazy Look in a major mode can be both easy, or complex
+;; NOTE NOTE NOTE:
+;;   This documents the current infrastruction.  A new infrastructure
+;;   based on the semantic bovinator will be coming along next.
+;;
+;; Supporting quick peek in a major mode can be both easy, or complex
 ;; depending on the number of features you want to provide your users.
 ;;
 ;; At the simplest level, you need to set the variable
@@ -89,6 +95,8 @@
 
 ;;; History:
 ;;
+;; 0.5   Convert to using the dframe library for frame management.
+;;
 ;; 0.4   Rename as quickpeek to avoid confusion with lazy-lock.
 ;;       Fixed CASE and constant colors.
 ;;
@@ -113,19 +121,12 @@
 ;;
 ;; 0.1   First Release as lazy-look
 
-(require 'frame)
+(require 'dframe)
 (require 'widget)
 ;; This is to make it easiser to set the colors to useful things.
 (require 'font-lock)
 
 ;;; Code:
-(defvar quickpeek-xemacsp (or (featurep 'xemacs)
-			      (string-match "XEmacs" emacs-version))
-  "Non-nil if we are running in the XEmacs environment.")
-
-(defvar quickpeek-xemacs20p (and quickpeek-xemacsp
-				 (= emacs-major-version 20)))
-
 (defvar quickpeek-info-function 'quickpeek-default-info-function
   "A symbol representing what function to call when collecting info.
 The info function takes no arguments, and starts in the current
@@ -164,25 +165,31 @@ is attached to."
   :type '(repeat (group :inline t
 			(symbol :tag "Property")
 			(sexp :tag "Value"))))
+;;; Hooks
+(defcustom quickpeek-before-delete-hook nil
+  "Hooks run before deleting the quickpeek frame."
+  :group 'quickpeek
+  :type 'hook)
+
+(defcustom quickpeek-before-popup-hook nil
+  "Hooks run before poping up the quickpeek frame."
+  :group 'quickpeek
+  :type 'hook)
+  
+(defcustom quickpeek-after-create-hook nil
+  "Hooks run after creating the quickpeek frame."
+  :group 'quickpeek
+  :type 'hook)
 
 ;; Make sure these are different from speedbar.
-(defcustom quickpeek-update-speed
-  (if quickpeek-xemacsp
-      (if quickpeek-xemacs20p
-	  4				; 1 is too obrusive in XEmacs
-	6)				; when no idleness, need long delay
-    1)
+(defcustom quickpeek-update-speed dframe-update-speed
   "*Idle time in seconds needed before `quickpeek' will update itself.
 Updates occur to allow `quickpeek' to display directory information
 relevant to the buffer you are currently editing."
   :group 'quickpeek
   :type 'integer)
 
-(defvar quickpeek-update-flag (and
-			      (or (fboundp 'run-with-idle-timer)
-				  (fboundp 'start-itimer)
-				  (boundp 'post-command-idle-hook))
-			      window-system)
+(defvar quickpeek-update-flag dframe-have-timer-flag
   "*Non-nil means to automatically update the display.
 When this is nil then `quickpeek' will not follow the attached frame's path.
 When `quickpeek' is active, use:
@@ -223,8 +230,9 @@ to toggle this value.")
   ;; control
   (define-key quickpeek-key-map "g" 'quickpeek-refresh)
   (define-key quickpeek-key-map "t" 'quickpeek-toggle-updates)
-  (define-key quickpeek-key-map "q" 'quickpeek-close-frame)
-  (define-key quickpeek-key-map "Q" 'delete-frame)
+
+  ;; dframe
+  (dframe-update-keymap quickpeek-key-map)  
   )
 
 (defvar quickpeek-frame nil
@@ -233,8 +241,6 @@ to toggle this value.")
   "The frame used for lazy look mode, then hidden.")
 (defvar quickpeek-buffer nil
   "The buffer used for lazy look mode.")
-(defvar quickpeek-timer nil
-  "The `quickpeek' timer used for updating the buffer.")
 (defvar quickpeek-marker (make-marker)
   "Remember where we last looked from.")
 
@@ -246,65 +252,31 @@ to toggle this value.")
 If optional ARG is less than 0, turn off this mode, positive turn on.
 If nil, then toggle."
   (interactive "P")
-  ;; toggle frame on and off.
-  (if (not arg) (if (and (frame-live-p quickpeek-frame)
-			 (frame-visible-p quickpeek-frame))
-		    (setq arg -1) (setq arg 1)))
-  ;; turn the frame off on neg number
-  (if (and (numberp arg) (< arg 0))
-      (progn
-	(run-hooks 'quickpeek-before-delete-hook)
-	(if (and quickpeek-frame (frame-live-p quickpeek-frame))
-	    (progn
-	      (setq quickpeek-cached-frame quickpeek-frame)
-	      (make-frame-invisible quickpeek-frame)))
-	(setq quickpeek-frame nil)
-	(quickpeek-set-timer nil)
-	;; Used to delete the buffer.  This has the annoying affect of
-	;; preventing whatever took its place from ever appearing
-	;; as the default after a C-x b was typed
-	;;(if (bufferp quickpeek-buffer)
-	;;    (kill-buffer quickpeek-buffer))
-	)
-    (run-hooks 'quickpeek-before-popup-hook)
-    ;; Get the frame to work in
-    (if (frame-live-p quickpeek-cached-frame)
-	(progn
-	  (setq quickpeek-frame quickpeek-cached-frame)
-	  (make-frame-visible quickpeek-frame)
-	  ;; Get the buffer to play with
-	  (quickpeek-mode)
-	  (select-frame quickpeek-frame)
-	  (if (not (eq (current-buffer) quickpeek-buffer))
-	      (switch-to-buffer quickpeek-buffer))
-	  (set-window-dedicated-p (selected-window) t)
-	  (raise-frame quickpeek-frame)
-	  (quickpeek-set-timer quickpeek-update-speed)
-	  )
-      (if (frame-live-p quickpeek-frame)
-	  (raise-frame quickpeek-frame)
-	(setq quickpeek-frame
-	      (if quickpeek-xemacsp
-		  ;; Only guess height if it is not specified.
-		  (if (member 'height quickpeek-frame-plist)
-		      (make-frame quickpeek-frame-plist)
-		    (make-frame (nconc (list 'height
-					     (quickpeek-needed-height))
-				       quickpeek-frame-plist)))
-		(make-frame quickpeek-frame-parameters)))
-	;; Put the buffer into the frame
-	(save-window-excursion
-	  ;; Get the buffer to play with
-	  (quickpeek-mode)
-	  (select-frame quickpeek-frame)
-	  (switch-to-buffer quickpeek-buffer)
-	  (set-window-dedicated-p (selected-window) t))
-	(if (and (or (null window-system) (eq window-system 'pc))
-		 (fboundp 'set-frame-name))
-	    (progn
-	      (select-frame quickpeek-frame)
-	      (set-frame-name "Quickpeek")))
-	(quickpeek-set-timer quickpeek-update-speed)))))
+  ;; Prepare our quickpeek buffer
+  (if (not (buffer-live-p quickpeek-buffer))
+      (save-excursion
+	(setq quickpeek-buffer (get-buffer-create " QUICKPEEK"))
+	(set-buffer quickpeek-buffer)
+	(quickpeek-mode)))
+  ;; Do the frame thing
+  (dframe-frame-mode arg
+		     'quickpeek-frame
+		     'quickpeek-cached-frame
+		     'quickpeek-buffer
+		     "Quick Peek"
+		     #'quickpeek-frame-mode
+		     (if dframe-xemacsp
+			 quickpeek-frame-plist
+		       quickpeek-frame-parameters)
+		     quickpeek-before-delete-hook
+		     quickpeek-before-popup-hook
+		     quickpeek-after-create-hook)
+  ;; Start up the timer
+  (if (not quickpeek-frame)
+      (dframe-set-timer nil 'quickpeek-timer-fn 'quickpeek-update-flag)
+    (quickpeek-update-contents)
+    (quickpeek-set-timer dframe-update-speed)
+    ))
 
 ;;;###autoload
 (defun quickpeek-get-focus ()
@@ -312,124 +284,54 @@ If nil, then toggle."
 If the selected frame is not `quickpeek', then `quickpeek' frame is
 selected.  If the `quickpeek' frame is active, then select the attached frame."
   (interactive)
-  (if (eq (selected-frame) quickpeek-frame)
-      (other-frame 1)
-    ;; If updates are off, then refresh the frame (they want it now...)
-    (if (not quickpeek-update-flag)
-	(let ((quickpeek-update-flag t))
-	  (quickpeek-timer-fn)))
-    ;; make sure we have a frame
-    (if (not (frame-live-p quickpeek-frame)) (quickpeek-frame-mode 1))
-    ;; go there
-    (select-frame quickpeek-frame)
-    )
-  (other-frame 0))
-
-(defun quickpeek-close-frame ()
-  "Turn off a currently active `quickpeek'."
-  (interactive)
-  (quickpeek-frame-mode -1)
-  (other-frame 1))
+  (dframe-get-focus 'quickpeek-frame 'quickpeek-frame-mode
+		    (lambda () (if (not quickpeek-update-flag)
+				   (let ((quickpeek-update-flag t))
+				     (quickpeek-timer-fn)))))
+  )
 
 (defun quickpeek-mode ()
   "Major mode for displaying lazy information in the `quickpeek' frame.
 This frame can be placed anywhere on your desktop, and will attempt to
 display information about the current selected buffer."
   ;; NOT interactive
-  (save-excursion
-    (setq quickpeek-buffer (set-buffer (get-buffer-create " QUICKPEEK")))
-    (kill-all-local-variables)
-    (setq major-mode 'quickpeek-mode)
-    (setq mode-name "Quickpeek")
-    (set-syntax-table quickpeek-syntax-table)
-    (use-local-map quickpeek-key-map)
-    (setq font-lock-keywords nil) ;; no font-locking please
-    (setq truncate-lines t)
-    (make-local-variable 'frame-title-format)
-    (setq frame-title-format "Quickpeek")
-    ;; Set this up special just for the quickpeek buffer
-    ;; Terminal minibuffer stuff does not require this.
-    (if (and window-system (not (eq window-system 'pc))
-	     (null default-minibuffer-frame))
-	(progn
-	  (make-local-variable 'default-minibuffer-frame)
-	  (setq default-minibuffer-frame (car (frame-list)))))
-    ;; Correct use of `temp-buffer-show-function': Bob Weiner
-    (if (and (boundp 'temp-buffer-show-hook)
-	     (boundp 'temp-buffer-show-function))
-	(progn (make-local-variable 'temp-buffer-show-hook)
-	       (setq temp-buffer-show-hook temp-buffer-show-function)))
-    (make-local-variable 'temp-buffer-show-function)
-    (setq temp-buffer-show-function 'quickpeek-temp-buffer-show-function)
-;     (if quickpeek-xemacsp
-; 	(progn
-; 	  ;; Argh!  mouse-track-click-hook doesn't understand the
-; 	  ;; make-local-hook conventions.
-; 	  (make-local-variable 'mouse-track-click-hook)
-; 	  (add-hook 'mouse-track-click-hook
-; 		    (lambda (event count)
-; 		      (if (/= (event-button event) 1)
-; 			  nil		; Do normal operations.
-; 			(cond ((eq count 1)
-; 			       (quickpeek-quick-mouse event))
-; 			      ((or (eq count 2)
-; 				   (eq count 3))
-; 			       (mouse-set-point event)
-; 			       (quickpeek-do-function-pointer)
-; 			       (quickpeek-quick-mouse event)))
-; 			;; Don't do normal operations.
-; 			t)))))
-    (make-local-hook 'kill-buffer-hook)
-    (add-hook 'kill-buffer-hook (lambda () (let ((skilling (boundp 'skilling)))
-					     (if skilling
-						 nil
-					       (if (eq (current-buffer)
-						       quickpeek-buffer)
-						   (quickpeek-frame-mode -1)))))
-	      t t)
-    (widget-minor-mode)
-    (toggle-read-only 1)
-    (quickpeek-set-mode-line-format)
-;     (if quickpeek-xemacsp
-; 	(progn
-; 	  (make-local-variable 'mouse-motion-handler)
-; 	  (setq mouse-motion-handler 'quickpeek-track-mouse-xemacs))
-;       (if quickpeek-track-mouse-flag
-; 	  (progn
-; 	    (make-local-variable 'track-mouse)
-; 	    (setq track-mouse t)))	;this could be messy.
-;       (setq auto-show-mode nil))	;no auto-show for Emacs
-    (run-hooks 'quickpeek-mode-hook))
+  (kill-all-local-variables)
+  (setq major-mode 'quickpeek-mode)
+  (setq mode-name "Quickpeek")
+  (set-syntax-table quickpeek-syntax-table)
+  (use-local-map quickpeek-key-map)
+  (setq font-lock-keywords nil);; no font-locking please
+  (setq truncate-lines t)
+  (make-local-variable 'frame-title-format)
+  (setq frame-title-format "Quickpeek")
+
+  (widget-minor-mode)
+  (toggle-read-only 1)
+  (quickpeek-set-mode-line-format)
+  ;; Add dframe support
+  (setq dframe-track-mouse-function nil ; #'quickpeek-track-mouse
+	dframe-help-echo-function nil	; #'quickpeek-item-info
+	dframe-mouse-click-function nil ; #'quickpeek-click
+	dframe-mouse-position-function nil ; #'quickpeek-position-cursor-on-line)    
+	)
   (quickpeek-update-contents)
   quickpeek-buffer)
 
-(defun quickpeek-temp-buffer-show-function (buffer)
-  "Placed in the variable `temp-buffer-show-function' in `quickpeek-mode'.
-If a user requests help using \\[help-command] <Key> the temp BUFFER will be
-redirected into a window on the attached frame."
-  (pop-to-buffer buffer nil)
-  (other-window -1)
-  ;; Fix for using this hook on some platforms: Bob Weiner
-  (cond ((not quickpeek-xemacsp)
-	 (run-hooks 'temp-buffer-show-hook))
-	((fboundp 'run-hook-with-args)
-	 (run-hook-with-args 'temp-buffer-show-hook buffer))
-	((and (boundp 'temp-buffer-show-hook)
-	      (listp temp-buffer-show-hook))
-	 (mapcar (function (lambda (hook) (funcall hook buffer)))
-		 temp-buffer-show-hook))))
+(defsubst quickpeek-current-frame ()
+  "Return the frame to use for quickpeek based on current context."
+  (dframe-current-frame 'quickpeek-frame 'quickpeek-mode))
 
 (defmacro quickpeek-frame-width ()
   "Return the width of the `quickpeek' frame in characters.
 nil if it doesn't exist."
-  '(frame-width quickpeek-frame))
+  '(frame-width (quickpeek-current-frame)))
 
 (defun quickpeek-set-mode-line-format ()
   "Set the format of the modeline based on the `quickpeek' environment.
 This gives visual indications of what is up.  It EXPECTS the `quickpeek'
 frame and window to be the currently active frame and window."
   (if (and (frame-live-p quickpeek-frame)
-	   (or (not quickpeek-xemacsp)
+	   (or (not dframe-xemacsp)
 	       (specifier-instance has-modeline-p)))
       (let ((buff (current-buffer))
 	    (nsupp (eq quickpeek-info-function
@@ -491,45 +393,8 @@ frame and window to be the currently active frame and window."
   "Apply a timer with TIMEOUT, or remove a timer if TIMOUT is nil.
 TIMEOUT is the number of seconds until the `quickpeek' timer is called
 again.  When TIMEOUT is nil, turn off all timeouts.
-This function will also enable or disable the `vc-checkin-hook' used
-to track file check ins, and will change the mode line to match
-`quickpeek-update-flag'."
-  (cond
-   ;; XEmacs
-   (quickpeek-xemacsp
-    (if quickpeek-timer
-	(progn (delete-itimer quickpeek-timer)
-	       (setq quickpeek-timer nil)))
-    (if timeout
-	(if (and quickpeek-xemacsp
-		 (or (>= emacs-major-version 20)
-		     (>= emacs-minor-version 15)))
-	    (setq quickpeek-timer (start-itimer "quickpeek"
-					       'quickpeek-timer-fn
-					       timeout
-					       timeout
-					       t))
-	  (setq quickpeek-timer (start-itimer "quickpeek"
-					     'quickpeek-timer-fn
-					     timeout
-					     nil)))))
-   ;; Post 19.31 Emacs
-   ((fboundp 'run-with-idle-timer)
-    (if quickpeek-timer
-	(progn (cancel-timer quickpeek-timer)
-	       (setq quickpeek-timer nil)))
-    (if timeout
-	(setq quickpeek-timer
-	      (run-with-idle-timer timeout t 'quickpeek-timer-fn))))
-   ;; Emacs 19.30 (Thanks twice: ptype@dra.hmg.gb)
-   ((fboundp 'post-command-idle-hook)
-    (if timeout
-	(add-hook 'post-command-idle-hook 'quickpeek-timer-fn)
-      (remove-hook 'post-command-idle-hook 'quickpeek-timer-fn)))
-   ;; Older or other Emacsen with no timers.  Set up so that its
-   ;; obvious this emacs can't handle the updates
-   (t
-    (setq quickpeek-update-flag nil)))
+This function will also change the mode line to match `quickpeek-update-flag'."
+  (dframe-set-timer timeout 'quickpeek-timer-fn 'quickpeek-update-flag)
   ;; change this if it changed for some reason
   (quickpeek-set-mode-line-format))
 
