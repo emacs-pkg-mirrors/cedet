@@ -1,12 +1,12 @@
 ;;; senator.el --- SEmantic NAvigaTOR
 
-;; Copyright (C) 2000, 2001, 2002, 2003 by David Ponce
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.91 2004/01/08 08:19:47 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.92 2004/01/09 21:04:30 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1580,8 +1580,14 @@ This is a buffer local variable.")
       :help "Go to the previous tag found"
       ])
     (senator-menu-item
-     ["Jump..."
-      senator-jump
+     ["Jump in this file..."
+      semantic-complete-jump-local
+      :active t
+      :help "Jump to a semantic symbol"
+      ])
+    (senator-menu-item
+     ["Jump to any tag..."
+      semantic-complete-jump-local
       :active t
       :help "Jump to a semantic symbol"
       ])
