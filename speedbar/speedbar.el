@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.33 1997/03/01 16:08:07 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.34 1997/03/03 02:46:17 zappo Exp $
 ;;; Version: 0.4.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -2041,7 +2041,7 @@ interested in."
 ;;;
 ;;; Tag Management -- Imenu
 ;;;
-(if (eval-when-compile (string-match "XEmacs" emacs-version))
+(if  (string-match "XEmacs" emacs-version)
 
     nil
 
@@ -2049,7 +2049,7 @@ interested in."
   "Use the imenu package to load in file, and extract all the items
 tags we wish to display in the speedbar package."
   ;; Load this AND compile it in
-  (eval-and-compile (require 'imenu))
+  (require 'imenu)
   (save-excursion
     (set-buffer (find-file-noselect file))
     (condition-case nil
