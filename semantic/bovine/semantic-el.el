@@ -1,9 +1,9 @@
 ;;; semantic-el.el --- Semantic details for Emacs Lisp
 
-;;; Copyright (C) 1999-2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.32 2005/01/12 23:02:35 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.33 2005/01/16 22:02:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
