@@ -25,7 +25,7 @@
 @copying
 This is the Semantic User's Manual
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -493,6 +493,11 @@ Completion options are calculated with @dfn{semantic-analyze-possible-completion
 @deffn Command semantic-ia-complete-symbol-menu point
 Complete the current symbol via a menu based at @var{POINT}.
 Completion options are calculated with @dfn{semantic-analyze-possible-completions}.
+@end deffn
+
+@deffn Command semantic-ia-show-doc point
+@anchor{semantic-ia-show-doc}
+Display the code-level documentation for the symbol at @var{point}.
 @end deffn
 
 @node Speedbar Analysis
