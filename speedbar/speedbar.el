@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7g
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.106 1998/05/16 12:57:49 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.107 1998/05/17 14:28:34 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -100,6 +100,11 @@
 ;; you go back to editing a file (unless you pull up a new file.)
 ;; The delay time before this happens is in
 ;; `speedbar-navigating-speed', and defaults to 10 seconds.
+;;
+;;    To enable mouse tracking with information in the minibuffer of
+;; the attached frame, use the variable `speedbar-track-mouse-flag'.
+;; In GNU emacs, this also sets `track-mouse' to t for all frames.
+;; If you have a fast machine, this shouldn't be a problem.
 ;;
 ;;    Tag layout can be modified through `speedbar-tag-hierarchy-method',
 ;; which controls how tags are layed out.  It is actually a list of
@@ -1030,7 +1035,8 @@ This basically creates a sparse keymap, and makes it's parent be
 	(if (featurep 'infodoc)
 	    nil
 	  (define-key speedbar-key-map 'button3 'speedbar-xemacs-popup-kludge))
-	(define-key speedbar-key-map '(meta button3) 'speedbar-mouse-item-info))
+	(define-key speedbar-key-map '(meta button3) 'speedbar-mouse-item-info)
+	)
 
     ;; mouse bindings so we can manipulate the items on each line
     (define-key speedbar-key-map [down-mouse-1] 'speedbar-double-click)
@@ -1046,7 +1052,8 @@ This basically creates a sparse keymap, and makes it's parent be
     ;; This lets the user scroll as if we had a scrollbar... well maybe not
     (define-key speedbar-key-map [mode-line mouse-2] 'speedbar-mouse-hscroll)
     ;; another handy place users might click to get our menu.
-    (define-key speedbar-key-map [mode-line down-mouse-1] 'speedbar-emacs-popup-kludge)
+    (define-key speedbar-key-map [mode-line down-mouse-1]
+      'speedbar-emacs-popup-kludge)
 
     ;; Lastly, we want to track the mouse.  Play here
     (define-key speedbar-key-map [mouse-movement] 'speedbar-track-mouse)
@@ -1380,7 +1387,9 @@ in the selected file.
 	      t t)
     (speedbar-set-mode-line-format)
     (if speedbar-xemacsp
-	nil
+	(progn
+	  (make-local-variable 'mouse-motion-handler)
+	  (setq mouse-motion-handler 'speedbar-track-mouse-xemacs))
       (if speedbar-track-mouse-flag
 	  (setq track-mouse t))		;this could be messy.
       (setq auto-show-mode nil))	;no auto-show for Emacs
@@ -1480,11 +1489,14 @@ and the existence of packages."
 	    ;; The trailer
 	    speedbar-easymenu-definition-trailer))
 	(localmap (save-excursion
-		    (select-frame speedbar-attached-frame)
-		    (if (local-variable-p
-			 'speedbar-special-mode-key-map
-			 (current-buffer))
-			speedbar-special-mode-key-map))))
+		    (let ((cf (selected-frame)))
+		      (prog2
+			  (select-frame speedbar-attached-frame)
+			  (if (local-variable-p
+			       'speedbar-special-mode-key-map
+			       (current-buffer))
+			      speedbar-special-mode-key-map)
+			(select-frame cf))))))
     (save-excursion
       (set-buffer speedbar-buffer)
       (use-local-map (or localmap
@@ -1492,16 +1504,12 @@ and the existence of packages."
 			 ;; This creates a small keymap we can glom the
 			 ;; menu adjustments into.
 			 (speedbar-make-specialized-keymap)))
-      (easy-menu-define speedbar-menu-map (current-local-map)
-			"Speedbar menu" md))
-    (if speedbar-xemacsp
-	(save-excursion
-	  (set-buffer speedbar-buffer)
-	  ;; For the benefit of button3
-	  (if (and (not (assoc "Speedbar" mode-popup-menu)))
-	      (easy-menu-add md))
-	  (set-buffer-menubar (list md)))
-      (easy-menu-add md))))
+      (if (not speedbar-xemacsp)
+	  (easy-menu-define speedbar-menu-map (current-local-map)
+			    "Speedbar menu" md)
+	(if (and (not (assoc "Speedbar" mode-popup-menu)))
+	    (easy-menu-add md (current-local-map)))
+	(set-buffer-menubar (list md))))))
 
 
 ;;; User Input stuff
@@ -1551,6 +1559,20 @@ mode-line.  This is only useful for non-XEmacs"
 	  (speedbar-item-info)
 	  )))))
 
+(defun speedbar-track-mouse-xemacs (event)
+  "For motion EVENT, display info about the current line."
+  (if (functionp (default-value 'mouse-motion-handler))
+      (funcall (default-value 'mouse-motion-handler) event))
+  (if speedbar-track-mouse-flag
+      (save-excursion
+	(save-window-excursion
+	  (condition-case ()
+	      (progn (mouse-set-point event)
+		     ;; Prevent focus-related bugs.
+		     (if (eq major-mode 'speedbar-mode)
+			 (speedbar-item-info)))
+	    (error nil))))))
+
 ;; In XEmacs, we make popup menus work on the item over mouse (as
 ;; opposed to where the point happens to be.)  We attain this by
 ;; temporarily moving the point to that place.
@@ -1559,6 +1581,7 @@ mode-line.  This is only useful for non-XEmacs"
   "Pop up a menu related to the clicked on item.
 Must be bound to EVENT."
   (interactive "e")
+  (select-frame speedbar-frame)
   (save-excursion
     (goto-char (event-closest-point event))
     (beginning-of-line)
@@ -2077,8 +2100,7 @@ of the special mode functions."
     (save-excursion
       (set-buffer buffer)
       (save-match-data
-	(let ((ms (symbol-name major-mode))
-	      v tmp)
+	(let ((ms (symbol-name major-mode)) v)
 	  (if (not (string-match "-mode$" ms))
 	      nil ;; do nothing to broken mode
 	    (setq ms (substring ms 0 (match-beginning 0)))
@@ -2595,7 +2617,8 @@ name will have the function FIND-FUN and not token."
 		 (save-match-data
 		   (setq cbd-parent cbd)
 		   (if (string-match "/$" cbd-parent)
-		       (setq cbd-parent (substring cbd-parent 0 (match-beginning 0))))
+		       (setq cbd-parent (substring cbd-parent 0
+						   (match-beginning 0))))
 		   (setq cbd-parent (file-name-directory cbd-parent)))
 		 (member cbd-parent speedbar-shown-directories))
 	    (setq expand-local t)
