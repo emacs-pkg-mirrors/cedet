@@ -14,7 +14,7 @@
    (ede-proj-target-makefile-miscelaneous "wy"
     :name "wy"
     :path ""
-    :source '("wisent-awk.wy" "wisent-calc.wy" "wisent-cim.wy" "wisent-java-tags.wy" "wisent-java.wy" "wisent-python.wy" "wisent-wy.wy")
+    :source '("wisent-awk.wy" "wisent-calc.wy" "wisent-cim.wy" "wisent-java-tags.wy" "wisent-java.wy" "wisent-python.wy")
     )
    (ede-proj-target-elisp "languages"
     :name "languages"
@@ -24,8 +24,8 @@
    (ede-proj-target-elisp "wisent"
     :name "wisent"
     :path ""
-    :source '("wisent.el" "wisent-wy.el" "wisent-bovine.el" "wisent-comp.el" "wisent-expr.el")
-    :aux-packages '("semantic")
+    :source '("wisent.el" "wisent-bovine.el" "wisent-comp.el" "wisent-expr.el" "wisent-grammar.el")
+    :aux-packages '("semantic" "semantic-java")
     )
    )
   )

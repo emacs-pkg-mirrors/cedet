@@ -5,6 +5,11 @@
   :version "2.0beta3"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-makefile-miscelaneous "wy"
+    :name "wy"
+    :path ""
+    :source '("semantic-grammar.wy")
+    )
    (ede-proj-target-makefile-miscelaneous "scripts"
     :name "scripts"
     :path ""
@@ -31,8 +36,9 @@
    (ede-proj-target-elisp "semantic"
     :name "semantic"
     :path ""
-    :source '("semantic.el" "semantic-util.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-edit.el" "semantic-fw.el")
+    :source '("semantic.el" "semantic-util.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-edit.el" "semantic-fw.el" "semantic-grammar.el")
     :versionsource '("semantic.el")
+    :aux-packages '("semantic-bovine" "wisent")
     )
    (ede-proj-target-elisp "Languages"
     :name "Languages"
@@ -42,7 +48,7 @@
    (ede-proj-target-elisp "tools"
     :name "tools"
     :path ""
-    :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el" "semanticdb-file.el" "semanticdb-search.el" "semanticdb-mk.el")
+    :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el" "semanticdb-file.el" "semanticdb-search.el" "semanticdb-mk.el" "semanticdb-el.el" "semanticdb-obj.el" "semanticdb-system.el")
     :aux-packages '("eieio" "speedbar")
     )
    (ede-proj-target-elisp "senator"

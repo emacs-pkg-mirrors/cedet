@@ -7,8 +7,8 @@
    (ede-proj-target-elisp "bovinator"
     :name "bovinator"
     :path ""
-    :source '("semantic-bnf.el" "semantic-bovine.el")
-    :aux-packages '("semantic" "speedbar")
+    :source '("semantic-bovine.el" "bovine-grammar.el" "semantic-bnf.el")
+    :aux-packages '("semantic" "speedbar" "wisent")
     )
    (ede-proj-target-makefile-miscelaneous "examples"
     :name "examples"
@@ -24,6 +24,11 @@
     :name "bnf"
     :path ""
     :source '("c.bnf" "java.bnf" "make.bnf" "scheme.bnf")
+    )
+   (ede-proj-target-makefile-miscelaneous "by"
+    :name "by"
+    :path ""
+    :source '("c.by")
     )
    )
   )
