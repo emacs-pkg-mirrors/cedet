@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.18 2003/03/16 09:27:19 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.19 2003/03/16 19:50:46 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1269,6 +1269,8 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
           ((?_ . "w") (?- . "w"))))
   ;; Set up Semantic environment
   (semantic-grammar-setup-semantic)
+  (make-local-variable 'semantic-stickyfunc-sticky-classes)
+  (setq semantic-stickyfunc-sticky-classes '(nonterminal))
   (semantic-make-local-hook 'semantic-edits-new-change-hooks)
   (add-hook 'semantic-edits-new-change-hooks
             'semantic-grammar-edits-new-change-hook-fcn
@@ -1490,12 +1492,12 @@ Use the Lisp or grammar indenter depending on point location."
     ("EXPAND" . "Lambda Key: (EXPAND <list id> <rule>)")
     ("EXPANDFULL" . "Lambda Key: (EXPANDFULL <list id> <rule>)")
     ;; Tag Generator Macros
-    ("TAG" . "Generic Tag Generation: (TAG <name> <type-token> [ key value ]*)")
-    ("VARIABLE-TAG" . "(VARIABLE-TAG <name> <lang-type> <default-value> [ key value ]*)")
-    ("FUNCTION-TAG" . "(FUNCTION-TAG <name> <lang-type> <arg-list> [ key value ]*)")
-    ("TYPE-TAG" . "(TYPE-TAG <name> <lang-type> <part-list> <parents> [ key value ]*)")
-    ("INCLUDE-TAG" . "(INCLUDE-TAG <name> <system-flag> [ key value ]*)")
-    ("PACKAGE-TAG" . "(PACKAGE-TAG <name> <detail> [ key value ]*)")
+    ("TAG" . "Generic Tag Generation: (TAG <name> <type-token> [ :key value ]*)")
+    ("VARIABLE-TAG" . "(VARIABLE-TAG <name> <lang-type> <default-value> [ :key value ]*)")
+    ("FUNCTION-TAG" . "(FUNCTION-TAG <name> <lang-type> <arg-list> [ :key value ]*)")
+    ("TYPE-TAG" . "(TYPE-TAG <name> <lang-type> <part-list> <parents> [ :key value ]*)")
+    ("INCLUDE-TAG" . "(INCLUDE-TAG <name> <system-flag> [ :key value ]*)")
+    ("PACKAGE-TAG" . "(PACKAGE-TAG <name> <detail> [ :key value ]*)")
     ;; Special value macros
     ("$1" . "Match Value: Value from match list in slot 1")
     ("$2" . "Match Value: Value from match list in slot 2")
