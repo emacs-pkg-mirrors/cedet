@@ -39,8 +39,24 @@ authors, without knowing anything about those tools.</p>
 	    inline documenation.
 </ol>
 
+<br clear=both>
+<table align=right>
+<td>
+<a href=semantic-chart.jpg>
+<center>
+<img src=semantic-chart.jpg alt=call-tree.jpg width=100 height=100>
+</a>
+<br>
+<font size=-2>
+Complexity of semantic.el
+</font>
+</center>
+</td>
+</table>
+
 <h3>Tools in 1.4 beta</h3>
 <ol>
+<li>charting: Draw a chart of some things semantic can quantify.
 <li>database: store parsed tokens on a file system.
       This will provide search and restore capabilities. 
 <li>local context: A mechanism for identifying the local context in a language.
@@ -123,8 +139,8 @@ You may need to add this to your .emacs file</p>
 
 <P>Live on the Edge!  Try
    <a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
-   Semantic 1.4 beta10</a><br>
-   Semantic 1.4 beta 10 will <b>NOT WORK</b> with JDE 2.2.6, nor 
+   Semantic 1.4 beta11</a><br>
+   Semantic 1.4 beta 11 will <b>NOT WORK</b> with JDE 2.2.6, nor 
    JDE beta 2.2.7 beta 10.  Please use JDE release 2.2.7 or later which
    explicitly depends on Semantic 1.4 beta 5 or later.
 </p>
