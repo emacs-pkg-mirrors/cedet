@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.78 2001/09/29 23:49:48 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.79 2001/10/02 18:51:21 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1915,118 +1915,6 @@ If TOKEN is not specified, use the token at point."
   (message "%s: %S" label (semantic-token-get token (intern label))))
 
 
-;;; Show dirty mode
-;;
-;;;###autoload
-(defcustom semantic-show-dirty-mode nil
-  "*If non-nil enable the use of `semantic-show-dirty-mode'."
-  :group 'semantic
-  :type 'boolean
-  :require 'semantic-util
-  :initialize 'custom-initialize-default
-  :set (lambda (sym val)
-         (semantic-show-dirty-mode (if val 1 -1))
-         (custom-set-default sym val)))
-
-(defface semantic-dirty-token-face  '((((class color) (background dark))
-				       (:background "gray10"))
-				      (((class color) (background light))
-				       (:background "gray90")))
-  "Face used to show dirty tokens in `semantic-show-dirty-token-mode'."
-  :group 'semantic)
-
-(defun semantic-show-dirty-token-hook-fcn (token start end)
-  "Function set into `semantic-dirty-token-hooks'.
-This will highlight TOKEN as dirty.
-START and END define the region changed, but are not used."
-  (semantic-highlight-token token 'semantic-dirty-token-face))
-
-(defun semantic-show-clean-token-hook-fcn (token)
-  "Function set into `semantic-clean-token-hooks'.
-This will unhighlight TOKEN from being dirty."
-  (semantic-unhighlight-token token))
-
-(defun semantic-show-dirty-mode (&optional arg)
-  "Enable the display of dirty tokens.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-    (interactive "P")
-  (if (not arg)
-      (if (member #'semantic-show-dirty-token-hook-fcn
-		  semantic-dirty-token-hooks)
-	  (setq arg -1)
-	(setq arg 1)))
-  (if (< arg 0)
-      (progn
-	;; Remove hooks
-	(remove-hook 'semantic-dirty-token-hooks 'semantic-show-dirty-token-hook-fcn)
-	(remove-hook 'semantic-clean-token-hooks 'semantic-show-clean-token-hook-fcn)
-	(remove-hook 'after-save-hook 'semantic-rebovinate-quickly-hook)
-	)
-    (add-hook 'semantic-dirty-token-hooks 'semantic-show-dirty-token-hook-fcn)
-    (add-hook 'semantic-clean-token-hooks 'semantic-show-clean-token-hook-fcn)
-    (add-hook 'after-save-hook 'semantic-rebovinate-quickly-hook)
-    ))
-
-
-;;; Show unmatched-syntax mode
-;;
-;;;###autoload
-(defcustom semantic-show-unmatched-syntax-mode nil
-  "*If non-nil enable the use of `semantic-show-unmatched-syntax-mode'."
-  :group 'semantic
-  :type 'boolean
-  :require 'semantic-util
-  :initialize 'custom-initialize-default
-  :set (lambda (sym val)
-         (semantic-show-unmatched-syntax-mode (if val 1 -1))
-         (custom-set-default sym val)))
-
-(defface semantic-unmatched-syntax-face
-  '((((class color) (background dark))
-     (:underline "red"))
-    (((class color) (background light))
-     (:underline "red")))
-  "Face used to show unmatched-syntax in.
-The face is used in  `semantic-show-unmatched-syntax-mode'."
-  :group 'semantic)
-
-(defun semantic-show-unmatched-syntax (syntax)
-  "Function set into `semantic-unmatched-syntax-hooks'.
-This will highlight elements in SYNTAX as unmatched-syntax."
-  ;; This is called during parsing.  Highlight the unmatched syntax,
-  ;; and then add a semantic property to that overlay so we can add
-  ;; it to the official list of semantic supported overlays.
-  ;; This gets it cleaned up for errors, buffer cleaning, and the like.
-  (while syntax
-    (let ((o (semantic-make-overlay (semantic-flex-start (car syntax))
-				    (semantic-flex-end (car syntax)))))
-      (semantic-overlay-put o 'semantic 'unmatched)
-      (semantic-overlay-put o 'face 'semantic-unmatched-syntax-face)
-      (semantic-overlay-stack-add o)
-      )
-    (setq syntax (cdr syntax))))
-
-(defun semantic-show-unmatched-syntax-mode (&optional arg)
-  "Enable the display of unmatched-syntax tokens.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-    (interactive "P")
-  (if (not arg)
-      (if (member #'semantic-show-unmatched-syntax
-		  semantic-unmatched-syntax-hook)
-	  (setq arg -1)
-	(setq arg 1)))
-  (if (< arg 0)
-      (progn
-	;; Remove hooks
-	(remove-hook 'semantic-unmatched-syntax-hook
-		     'semantic-show-unmatched-syntax)
-	)
-    (add-hook 'semantic-unmatched-syntax-hook
-	      'semantic-show-unmatched-syntax)
-    ))
-
 ;;; Hacks
 ;;
 ;; Some hacks to help me test these functions
@@ -2067,5 +1955,9 @@ Argument P is the point to search from in the current buffer."
       (message "nil"))))
 
 (provide 'semantic-util)
+
+;;; Minor modes
+;;
+(require 'semantic-util-modes)
 
 ;;; semantic-util.el ends here
