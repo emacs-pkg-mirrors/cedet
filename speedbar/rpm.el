@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
 ;; Keywords: speedbar, rpm
-;; X-RCS: $Id: rpm.el,v 1.9 2002/03/16 19:57:30 zappo Exp $
+;; X-RCS: $Id: rpm.el,v 1.10 2002/08/26 02:07:27 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -51,10 +51,10 @@
   (setq rpm-speedbar-key-map (speedbar-make-specialized-keymap))
 
   ;; General viewing pleasure...
-  (define-key speedbar-buffers-key-map "\C-m" 'speedbar-edit-line)
-  (define-key speedbar-buffers-key-map "+" 'speedbar-expand-line)
-  (define-key speedbar-buffers-key-map "-" 'speedbar-contract-line)
-  (define-key speedbar-buffers-key-map "=" 'speedbar-contract-line)
+  (define-key rpm-speedbar-key-map "\C-m" 'speedbar-edit-line)
+  (define-key rpm-speedbar-key-map "+" 'speedbar-expand-line)
+  (define-key rpm-speedbar-key-map "=" 'speedbar-expand-line)
+  (define-key rpm-speedbar-key-map "-" 'speedbar-contract-line)
 
   )
 
