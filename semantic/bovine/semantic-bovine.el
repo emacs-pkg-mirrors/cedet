@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.7 2003/03/17 01:22:14 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.8 2003/09/02 14:51:44 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,6 +35,15 @@
 (require 'semantic)
 
 
+;; These are functions that can be called from within a bovine table.
+;; Most of these have code auto-generated from other construct in the
+;; bovine input grammar.
+(defmacro semantic-lambda (&rest return-val)
+  "Create a lambda expression to return a list including RETURN-VAL.
+The return list is a lambda expression to be used in a bovine table."
+  `(lambda (vals start end)
+     (append ,@return-val (list start end))))
+
 ;;; Semantic Bovination
 ;;
 ;; Take a semantic token stream, and convert it using the bovinator.
@@ -48,8 +57,8 @@
 
 (defmacro semantic-bovinate-nonterminal-db-nt ()
   "Return the current nonterminal symbol.
-Part of the BNF source debugger.  Depends on the existing environment
-of `semantic-bovinate-stream'."
+Part of the grammar source debugger.  Depends on the existing
+environment of `semantic-bovinate-stream'."
   `(if nt-stack
        (car (aref (car nt-stack) 2))
      nonterminal))
@@ -131,7 +140,7 @@ list of semantic tokens found."
                             (not (byte-code-function-p (car lte)))
                             (not (listp (car lte))))
 
-                  ;; BNF SOURCE DEBUGGING!
+                  ;; GRAMMAR SOURCE DEBUGGING!
                   (if semantic-debug-enabled
                       (let* ((db-nt   (semantic-bovinate-nonterminal-db-nt))
                              (db-ml   (cdr (assq db-nt table)))
@@ -149,7 +158,7 @@ list of semantic tokens found."
 			      ;; support more commands here.
 
 			      )))
-                  ;; END BNF SOURCE DEBUGGING!
+                  ;; END GRAMMAR SOURCE DEBUGGING!
               
                   (cond
                    ;; We have a nonterminal symbol.  Recurse inline.
