@@ -207,7 +207,7 @@ Search forward and backward for a token matching the regular expression
 @end deffn
 
 @deffn Command word-search-forward word
-@deffnx word-search-backward word
+@deffnx Command word-search-backward word
 Search forward and backward for a token whose name matches @var{word}.
 @end deffn
 
@@ -789,7 +789,7 @@ information without loading the source file into memory.
 
 Lastly, the semanticdb interface allows programmers to create
 alternate back ends.  Such a back end could allow access to tag
-information in binary files, not normally accessable to @semantic.  A
+information in binary files, not normally accessable to @semantic{}.  A
 back end could also be written to store tag information in an
 alternate form of persistent storage.
 
@@ -820,9 +820,6 @@ tagging informatin, such as the symbols loaded in Emacs Lisp, or
 perhaps symbols in a Java @file{.class} file.
 @end table
 
-* Semanticdb Configuration::
-
-@node Semanticdb Configuration
 @subsection Semanticdb Configuration
 
 You can execute hooks when semanticdb is activated using its mode hook.
