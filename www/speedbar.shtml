@@ -84,7 +84,11 @@ Different Modes for Speedbar
 <li><a href="http://opensource.ee.ethz.ch/emacs/vhdl-mode.html">
     VHDL mode</a> has a very fancy class browser for VHDL files.
 <li><a href="http://xslt-process.sourceforge.net/index.php">
-     XSLT-process</a> for Emacs provides XSLT file browsing.
+    XSLT-process</a> for Emacs provides XSLT file browsing.
+<li><a href="http://www.obermuhlner.com/public/Projects/Palm/pilrc-mode">
+    Palm Resource source files mode.</a>
+<li><a href="http://www.obermuhlner.com/public/Projects/Palm/PDBC">
+    Palm DataBase source files mode.</a>
 <li><a href="http://www.emacswiki.org/cgi-bin/wiki.pl?EmacsIRCClient">
     EIRC</a> has a
     <a href="http://www.emacswiki.org/cgi-bin/wiki.pl?ErcSpeedbar">
