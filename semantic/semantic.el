@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.80 2001/02/01 02:09:29 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.81 2001/02/09 11:43:35 zappo Exp $
 
 (defvar semantic-version "1.4.alpha2"
   "Current version of Semantic.")
@@ -626,32 +626,35 @@ Argument START, END, and LENGTH specify the bounds of the change."
   (when (and (not semantic-toplevel-bovine-cache-check)
 	     (not semantic-edits-are-safe))
     (let ((tl (condition-case nil
-		  (semantic-find-nonterminal-by-overlay-in-region
-		   (1- start) (1+ end))
+		  (nreverse (semantic-find-nonterminal-by-overlay-in-region
+		   (1- start) (1+ end)))
 		(error nil))))
       (if tl
-	  ;; Loop over the token list
-	  (while tl
-	    (cond
-	     ;; If we are completely enclosed in this overlay.
-	     ((and (> start (semantic-token-start (car tl)))
-		   (< end (semantic-token-end (car tl))))
-	      (if (semantic-token-get (car tl) 'dirty)
-		  nil
-		(add-to-list 'semantic-dirty-tokens (car tl))
-		(semantic-token-put (car tl) 'dirty t)
-		(condition-case nil
-		    (run-hook-with-args 'semantic-dirty-token-hooks
-					(car tl) start end)
-		  (error (if debug-on-error) (debug))))
-	      )
-	     ;; If we cover the beginning or end of this item, we must
-	     ;; reparse this object.
-	     (t
-	      (setq semantic-toplevel-bovine-cache-check t)
-	      (run-hooks 'semantic-reparse-needed-change-hook)))
-	    ;; next
-	    (setq tl (cdr tl)))
+	  (catch 'alldone
+	    ;; Loop over the token list
+	    (while tl
+	      (cond
+	       ;; If we are completely enclosed in this overlay.
+	       ((and (> start (semantic-token-start (car tl)))
+		     (< end (semantic-token-end (car tl))))
+		(if (semantic-token-get (car tl) 'dirty)
+		    nil
+		  (add-to-list 'semantic-dirty-tokens (car tl))
+		  (semantic-token-put (car tl) 'dirty t)
+		  (condition-case nil
+		      (run-hook-with-args 'semantic-dirty-token-hooks
+					  (car tl) start end)
+		    (error (if debug-on-error (debug)))))
+		  (throw 'alldone t))
+	       ;; If we cover the beginning or end of this item, we must
+	       ;; reparse this object.  If there are more items coming, then postpone
+	       ;; this till later.
+	       ((not (cdr tl))
+		(setq semantic-toplevel-bovine-cache-check t)
+		(run-hooks 'semantic-reparse-needed-change-hook))
+	       (t nil))
+	      ;; next
+	      (setq tl (cdr tl))))
 	;; There was no hit, perhaps we need to reparse this intermediate area.
 	(setq semantic-toplevel-bovine-cache-check t)
 	)
