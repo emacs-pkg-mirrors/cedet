@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.71 2005/01/12 22:43:23 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.72 2005/01/20 13:27:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -395,6 +395,10 @@ Always append `semanticdb-project-system-databases' if
 			(expand-file-name dir))
 	  (setq root (car roots)))
       (setq roots (cdr roots)))
+
+    ;; If no roots are found, use this directory.
+    (unless root (setq root dir))
+
     ;; Find databases based on the root directory.
     (when root
       ;; The rootlist allows the root functions to possibly
