@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.1 2001/01/31 16:50:21 zappo Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.2 2001/02/01 02:12:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 ;;; Commentary:
 ;;
 ;; Setup the Semantic Bovinator for Java.  See also the grammar in
-;; java-1.2.bnf.
+;; java.bnf.
 
 ;;; History:
 ;; 
@@ -204,13 +204,29 @@
   ,(semantic-lambda
   (nth 2 vals) (list 'variable) (nth 1 vals) (list nil ( semantic-bovinate-make-assoc-list 'typemodifiers (nth 0 vals)) nil)))
  ) ; end field_declaration
+ (field_declaration_multi
+ ( modifiers_opt type variable_declarator punctuation ","
+  ,(semantic-lambda
+  (nth 2 vals)))
+ ( modifiers_opt type variable_declarator punctuation ";"
+  ,(semantic-lambda
+  (nth 2 vals)))
+ ( variable_declarator punctuation ","
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ( variable_declarator punctuation ";"
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ) ; end field_declaration_multi
  (variable_declarators
  ( variable_declarator variable_declarators_opt
   ,(semantic-lambda
-  (nth 0 vals)))
+  (list ( cons ( car (nth 0 vals)) ( car (nth 1 vals))))))
  ) ; end variable_declarators
  (variable_declarators_opt
- ( punctuation "," variable_declarators)
+ ( punctuation "," variable_declarators
+  ,(semantic-lambda
+  (nth 1 vals)))
  ()
  ) ; end variable_declarators_opt
  (variable_declarator
@@ -407,7 +423,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-    "Java language specification.")
+        "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -470,8 +486,9 @@
   "Return a prototype for TOKEN.
 See also `semantic-prototype-nonterminal'."
   (let* ((categ (semantic-token-token token))
-         (fprot (intern (format "semantic-java-prototype-%s"
-                                categ))))
+         (fprot (intern-soft
+                 (format "semantic-java-prototype-%s"
+                         categ))))
     (if (fboundp fprot)
         (funcall fprot token)
       (semantic-abbreviate-nonterminal token))))
@@ -517,9 +534,55 @@ See also `semantic-prototype-nonterminal'."
 See also `semantic-prototype-nonterminal'."
   (semantic-token-name token))
 
+(defun semantic-expand-java-nonterminal (token)
+  "Expand NONTERM into a list of equivalent nonterminals, or nil."
+  (let ((names (semantic-token-name token))
+        vl)
+    (if (and (eq (semantic-token-token token) 'variable)
+             (listp names))
+        (if (> (length names) 1)
+            
+            ;; There are multiple declarations in the same variable
+            ;; token, so reparse the declaration using
+            ;; `semantic-bovinate-from-nonterminal-full' to get
+            ;; correct START/END informations for each variable token
+            (let ((ty (semantic-token-type                 token))
+                  (dv (semantic-token-variable-default     token))
+                  (xs (semantic-token-variable-extra-specs token))
+                  (ds (semantic-token-docstring            token))
+                  (pr (semantic-token-properties           token))
+                  (nl (semantic-bovinate-from-nonterminal-full
+                       (semantic-token-start token)
+                       (semantic-token-end   token)
+                       'field_declaration_multi
+                       0))
+                  tok)
+              (while nl
+                (setq tok (car nl)
+                      nl  (cdr nl)
+                      vl  (cons
+                           (list
+                            (semantic-token-name tok)
+                            'variable
+                            ty          ; type
+                            dv          ; default value
+                            xs          ; extra specs
+                            ds          ; docstring
+                            pr          ; properties
+                            (semantic-token-overlay tok))
+                           vl))))
+            
+          ;; Only one variable declared.  Just replace the
+          ;; variable name list by the name itself!
+          (setcar token (car names))
+          (setq vl (list token))))
+    vl))
+
 ;; Mode Hook
 (defun semantic-default-java-setup ()
   "Set up a buffer for semantic parsing of the Java language."
+
+  (setq semantic-expand-nonterminal 'semantic-expand-java-nonterminal)
 
   ;; function to use when creating items in imenu.
   (setq semantic-imenu-summary-function
@@ -541,7 +604,7 @@ See also `semantic-prototype-nonterminal'."
   (setq semantic-override-table
         '((prototype-nonterminal . semantic-java-prototype-nonterminal)))
 
-  ;; Code generated from java-1.2.bnf
+ ;; Code generated from java.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-java-bovine-table)
   (setq semantic-flex-keywords-obarray semantic-java-keyword-table)
   (progn
@@ -553,7 +616,7 @@ See also `semantic-prototype-nonterminal'."
     (setq semantic-case-fold nil)
     )
  
- ;; End code generated from java-1.2.bnf
+ ;; End code generated from java.bnf
  )
 
 (add-hook 'java-mode-hook 'semantic-default-java-setup)
