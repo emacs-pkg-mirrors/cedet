@@ -336,7 +336,7 @@ the current buffer.  If it is a number or float, use it as the raw
 percentile.
 Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
-  (when working-status-percentage-type
+  (when (and working-message working-status-percentage-type)
     (let ((p (or percent
 		 (floor (* 100.0 (/ (float (point)) (point-max)))))))
       (if (or (eq p t)
@@ -352,7 +352,7 @@ If NUMBER is nil, then increment a local NUMBER from 0 with each call.
 If it is a number or float, use it as the raw percentile.
 Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
-  (when working-status-dynamic-type
+  (when (and working-message working-status-dynamic-type)
     (let* ((n (or number working-ref1))
 	   (m1 (apply 'format working-message args))
 	   (m2 (funcall working-status-dynamic-type (length m1) n)))
