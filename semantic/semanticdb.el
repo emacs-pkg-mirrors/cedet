@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.27 2001/05/09 18:37:56 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.28 2001/06/03 14:26:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -370,7 +370,7 @@ Save all the databases."
 ;;
 (defvar semanticdb-hooks
   '((semanticdb-semantic-init-hook-fcn semantic-init-hooks)
-    (semanticdb-post-bovination semantic-after-toplevel-bovinate-hook)
+    (semanticdb-post-bovination semantic-after-toplevel-cache-change-hook)
     (semanticdb-kill-hook kill-buffer-hook)
     (semanticdb-kill-emacs-hook kill-emacs-hook)
     )
