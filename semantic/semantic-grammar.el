@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.19 2003/03/16 19:50:46 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.20 2003/03/17 13:36:36 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -611,8 +611,8 @@ It ignores whitespaces, newlines and comments."
 (defun semantic-grammar-edits-new-change-hook-fcn (overlay)
   "Function set into `semantic-edits-new-change-hook'.
 Argument OVERLAY is the overlay created to mark the change.
-When OVERLAY marks a change in the scope of a nonterminal token extend
-the change bounds to encompass the whole nonterminal token."
+When OVERLAY marks a change in the scope of a nonterminal tag extend
+the change bounds to encompass the whole nonterminal tag."
   (let ((outer (car (semantic-find-nonterminal-by-overlay-in-region
                      (semantic-edits-os overlay)
                      (semantic-edits-oe overlay)))))
@@ -653,42 +653,43 @@ ARGS are ASSOC's key value list."
     (error nil)))
 
 ;;;;
-;;;; API to access grammar tokens
+;;;; API to access grammar tags
 ;;;;
 
 (defvar-mode-local semantic-grammar-mode
   senator-add-log-tokens '(nonterminal put token keyword)
-  "List of nonterminal tokens used with add-log.")
+  "List of nonterminal tags used with add-log.")
 
 (define-mode-overload-implementation semantic-nonterminal-children
-  semantic-grammar-mode (token)
-  "Return the children of TOKEN."
-  (semantic-token-extra-spec token :children))
+  semantic-grammar-mode (tag)
+  "Return the children of tag TAG."
+  (semantic-token-extra-spec tag :children))
 
-(defun semantic-grammar-token-name (type)
-  "Return the name of the first TYPE token found.
-Warn if other TYPE tokens exist."
-  (let* ((tokens (semantic-find-nonterminal-by-token
-                  type (current-buffer))))
-    (if tokens
+(defun semantic-grammar-first-tag-name (class)
+  "Return the name of the first tag of class CLASS found.
+Warn if other tags of class CLASS exist."
+  (let* ((tags (semantic-find-nonterminal-by-token
+                class (current-buffer))))
+    (if tags
         (prog1
-            (semantic-token-name (car tokens))
-          (if (cdr tokens)
+            (semantic-token-name (car tags))
+          (if (cdr tags)
               (message "*** Ignore all but first declared %s"
-                       type))))))
+                       class))))))
 
-(defun semantic-grammar-token-symbols (type)
-  "Return the list of symbols from names of TYPE tokens found."
-  (let* ((tokens (semantic-find-nonterminal-by-token
-                  type (current-buffer))))
+(defun semantic-grammar-tag-symbols (class)
+  "Return the list of symbols defined in tags of class CLASS.
+That is tag names plus names defined in tag attribute `:rest'."
+  (let* ((tags (semantic-find-nonterminal-by-token
+                class (current-buffer))))
     (apply #'append
            (mapcar
-            #'(lambda (token)
+            #'(lambda (tag)
                 (mapcar
                  #'intern
-                 (cons (semantic-token-name token)
-                       (semantic-token-extra-spec token :rest))))
-            tokens))))
+                 (cons (semantic-token-name tag)
+                       (semantic-token-extra-spec tag :rest))))
+            tags))))
 
 (defsubst semantic-grammar-item-text (item)
   "Return the readable string form of ITEM."
@@ -704,7 +705,7 @@ Warn if other TYPE tokens exist."
 
 (defsubst semantic-grammar-setupfunction ()
   "Return the %setupfunction value as a symbol or nil."
-  (intern (or (semantic-grammar-token-name 'setupfunction) "nil")))
+  (intern (or (semantic-grammar-first-tag-name 'setupfunction) "nil")))
 
 (defun semantic-grammar-setupcode-text ()
   "Return grammar setup code as a string value."
@@ -737,35 +738,35 @@ Warn if other TYPE tokens exist."
 
 (defsubst semantic-grammar-tokentable ()
   "Return the %tokentable value as a symbol or nil."
-  (intern (or (semantic-grammar-token-name 'tokentable) "nil")))
+  (intern (or (semantic-grammar-first-tag-name 'tokentable) "nil")))
 
 (defsubst semantic-grammar-parsetable ()
   "Return the %parsetable value as a symbol or nil."
-  (intern (or (semantic-grammar-token-name 'parsetable) "nil")))
+  (intern (or (semantic-grammar-first-tag-name 'parsetable) "nil")))
 
 (defsubst semantic-grammar-keywordtable ()
   "Return the %keywordtable value as a symbol or nil."
-  (intern (or (semantic-grammar-token-name 'keywordtable) "nil")))
+  (intern (or (semantic-grammar-first-tag-name 'keywordtable) "nil")))
 
 (defsubst semantic-grammar-languagemode ()
   "Return the %languagemode value as a list of symbols or nil."
-  (semantic-grammar-token-symbols 'languagemode))
+  (semantic-grammar-tag-symbols 'languagemode))
 
 (defsubst semantic-grammar-start ()
   "Return the %start value as a list of symbols or nil."
-  (semantic-grammar-token-symbols 'start))
+  (semantic-grammar-tag-symbols 'start))
 
 (defsubst semantic-grammar-scopestart ()
   "Return the %scopestart value as a symbol or nil."
-  (intern (or (semantic-grammar-token-name 'scopestart) "nil")))
+  (intern (or (semantic-grammar-first-tag-name 'scopestart) "nil")))
 
 (defsubst semantic-grammar-quotemode ()
   "Return the %quotemode value as a symbol or nil."
-  (intern (or (semantic-grammar-token-name 'quotemode) "nil")))
+  (intern (or (semantic-grammar-first-tag-name 'quotemode) "nil")))
 
 (defsubst semantic-grammar-outputfile ()
   "Return the %outputfile value as a string or nil."
-  (semantic-grammar-token-name 'outputfile))
+  (semantic-grammar-first-tag-name 'outputfile))
 
 (defsubst semantic-grammar-keywords ()
   "Return the language keywords.
@@ -805,21 +806,21 @@ the keyword and TOKEN is the terminal symbol identifying the keyword."
     props))
 
 (defun semantic-grammar-tokens ()
-  "Return defined tokens.
+  "Return defined lexical tokens.
 That is an alist (TYPE . DEFS) where type is a %token <type> symbol
 and DEFS is an alist of (TOKEN . VALUE).  TOKEN is the terminal symbol
 identifying the token and VALUE is the string value of the token or
 nil."
-  (let (tokens alist assoc token type term names value)
+  (let (tags alist assoc tag type term names value)
     
     ;; Check for <type> in %left, %right & %nonassoc declarations
-    (setq tokens (semantic-find-nonterminal-by-token
-                 'assoc (current-buffer)))
-    (while tokens
-      (setq token  (car tokens)
-            tokens (cdr tokens))
-      (when (setq type (semantic-token-extra-spec token :type))
-        (setq names (semantic-token-extra-spec token :value)
+    (setq tags (semantic-find-nonterminal-by-token
+                'assoc (current-buffer)))
+    (while tags
+      (setq tag  (car tags)
+            tags (cdr tags))
+      (when (setq type (semantic-token-extra-spec tag :type))
+        (setq names (semantic-token-extra-spec tag :value)
               assoc (assoc type alist))
         (or assoc (setq assoc (list type)
                         alist (cons assoc alist)))
@@ -832,16 +833,16 @@ nil."
     
     ;; Then process %token declarations so they can override any
     ;; previous specifications
-    (setq tokens (semantic-find-nonterminal-by-token
-                  'token (current-buffer)))
-    (while tokens
-      (setq token  (car tokens)
-            tokens (cdr tokens))
-      (setq names (cons (semantic-token-name token)
-                        (semantic-token-extra-spec token :rest))
-            type  (or (semantic-token-extra-spec token :type)
+    (setq tags (semantic-find-nonterminal-by-token
+                'token (current-buffer)))
+    (while tags
+      (setq tag  (car tags)
+            tags (cdr tags))
+      (setq names (cons (semantic-token-name tag)
+                        (semantic-token-extra-spec tag :rest))
+            type  (or (semantic-token-extra-spec tag :type)
                       "<no-type>")
-            value (semantic-token-extra-spec token :value)
+            value (semantic-token-extra-spec tag :value)
             assoc (assoc type alist))
       (or assoc (setq assoc (list type)
                       alist (cons assoc alist)))
@@ -852,7 +853,7 @@ nil."
     alist))
 
 (defun semantic-grammar-token-properties (tokens)
-  "Return the list of TOKENS properties."
+  "Return the list of properties of lexical tokens TOKENS."
   (let ((puts (semantic-find-nonterminal-by-token
                'put (current-buffer)))
         put keys key plist assoc pkey pval props)
@@ -1021,17 +1022,17 @@ of the first line of comment."
 ;;; Token table generation
 ;;
 (defun semantic-grammar-tokentable-builder-default ()
-  "Return the default value of the token table."
+  "Return the default value of the table of lexical tokens."
   (let ((tokens (semantic-grammar-tokens)))
     `(semantic-lex-make-type-table
       ',tokens
       ',(semantic-grammar-token-properties tokens))))
 
 (define-overload semantic-grammar-tokentable-builder ()
-  "Return the token table value.")
+  "Return the value of the table of lexical tokens.")
   
 (defsubst semantic-grammar-tokentable-value ()
-  "Return the string value of the table of tokens."
+  "Return the string value of the table of lexical tokens."
   (format "%s\n%s"
           (semantic-grammar-autogen-cookie)
           (semantic-grammar-as-string
@@ -1492,7 +1493,7 @@ Use the Lisp or grammar indenter depending on point location."
     ("EXPAND" . "Lambda Key: (EXPAND <list id> <rule>)")
     ("EXPANDFULL" . "Lambda Key: (EXPANDFULL <list id> <rule>)")
     ;; Tag Generator Macros
-    ("TAG" . "Generic Tag Generation: (TAG <name> <type-token> [ :key value ]*)")
+    ("TAG" . "Generic Tag Generation: (TAG <name> <tag-class> [ :key value ]*)")
     ("VARIABLE-TAG" . "(VARIABLE-TAG <name> <lang-type> <default-value> [ :key value ]*)")
     ("FUNCTION-TAG" . "(FUNCTION-TAG <name> <lang-type> <arg-list> [ :key value ]*)")
     ("TYPE-TAG" . "(TYPE-TAG <name> <lang-type> <part-list> <parents> [ :key value ]*)")
@@ -1539,52 +1540,82 @@ Use the Lisp or grammar indenter depending on point location."
 	   ))))
 
 (define-mode-overload-implementation semantic-abbreviate-nonterminal
-  semantic-grammar-mode (token &optional parent color)
-  "Return a string abbreviation of TOKEN.
+  semantic-grammar-mode (tag &optional parent color)
+  "Return a string abbreviation of TAG.
 Optional PARENT is not used.
 Optional COLOR is used to flag if color is added to the text."
-  (let ((tok (semantic-token-token token))
-	(name (semantic-name-nonterminal token parent color)))
+  (let ((class (semantic-token-token tag))
+	(name (semantic-name-nonterminal tag parent color)))
     (cond
-     ((eq tok 'nonterminal) (concat name ":"))
-     ((eq tok 'setting) "%settings%")
-     ((or (eq tok 'rule) (eq tok 'keyword)) name)
-     (t (concat "%" (symbol-name tok) " " name)))))
+     ((eq class 'nonterminal)
+      (concat name ":"))
+     ((eq class 'setting)
+      "%settings%")
+     ((memq class '(rule keyword))
+      name)
+     (t
+      (concat "%" (symbol-name class) " " name)))))
 
 (define-mode-overload-implementation semantic-summarize-nonterminal
-  semantic-grammar-mode (token &optional parent color)
-  "Return a string summarizing TOKEN.
+  semantic-grammar-mode (tag &optional parent color)
+  "Return a string summarizing TAG.
 Optional PARENT is not used.
 Optional argument COLOR determines if color is added to the text."
-  (let ((tok (semantic-token-token token))
-	(name (semantic-name-nonterminal token parent color))
+  (let ((class (semantic-token-token tag))
+	(name (semantic-name-nonterminal tag parent color))
 	(label nil)
 	(desc nil))
     (cond
-     ((eq tok 'nonterminal)
+     ((eq class 'nonterminal)
       (setq label "Nonterminal: "
-	    desc (concat " with "
-			 (int-to-string (length (nth 3 token)))
-			 " match lists.")))
-     ((eq tok 'keyword)
+	    desc (format
+                  " with %d match lists."
+                  (length (semantic-nonterminal-children tag)))))
+     ((eq class 'keyword)
       (setq label "Keyword: ")
-      (let* ((put (semantic-find-nonterminal-by-token 'put (current-buffer)))
-	     (name (semantic-find-nonterminal-by-name-regexp (semantic-token-name token) put))
-	     (sum (semantic-find-nonterminal-by-function
-		   (lambda (tok)
-		     (let ((vals (nth 4 tok)))
-		       (string= "summary" (car (car vals)))))
-		   name))
-	     (summary (cdr (car (nth 4 (car sum)))))
-	     )
-	(setq desc (concat " = " (nth 4 token) (if summary (concat " - " (read summary)) "")))
-	)
-      )
-     ((eq tok 'token)
-      (setq label "Token: "
-	    desc (concat " " (nth 2 token) " " (nth 3 token))))
-     (t (setq desc
-	      (semantic-abbreviate-nonterminal token parent color))))
+      (let (summary)
+        (semantic-find-nonterminal-by-function
+         #'(lambda (put)
+             (unless summary
+               (setq summary (cdr (assoc "summary"
+                                         (semantic-token-extra-spec
+                                          put :value))))))
+         ;; Get `put' tag with TAG name.
+         (semantic-find-nonterminal-by-name-regexp
+          (regexp-quote (semantic-token-name tag))
+          (semantic-find-nonterminal-by-token 'put (current-buffer))))
+	(setq desc (concat " = "
+                           (semantic-token-extra-spec tag :value)
+                           (if summary
+                               (concat " - " (read summary))
+                             "")))))
+     ((eq class 'token)
+      (setq label "Token: ")
+      (let ((val   (semantic-token-extra-spec tag :value))
+            (type  (semantic-token-extra-spec tag :type))
+            (names (semantic-token-extra-spec tag :rest)))
+        (if names
+            (setq name (mapconcat 'identity (cons name names) " ")))
+        (setq desc (concat
+                    (if type
+                        (format " <%s>" type)
+                      "")
+                    (if val
+                        (format "%s%S" val (if type " " ""))
+                      "")))))
+     ((eq class 'assoc)
+      (setq label "Assoc: ")
+      (let ((val   (semantic-token-extra-spec tag :value))
+            (type  (semantic-token-extra-spec tag :type)))
+        (setq desc (concat
+                    (if type
+                        (format " <%s>" type)
+                      "")
+                    (if val
+                        (concat " " (mapconcat 'identity val " "))
+                      "")))))
+     (t
+      (setq desc (semantic-abbreviate-nonterminal tag parent color))))
     (if (and color label)
 	(setq label (semantic-colorize-text label 'label)))
     (if (and color label desc)
@@ -1592,8 +1623,7 @@ Optional argument COLOR determines if color is added to the text."
     (if label
 	(concat label name desc)
       ;; Just a description is the abbreviated version
-      desc))
-  )
+      desc)))
 
 (provide 'semantic-grammar)
 
