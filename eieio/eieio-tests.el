@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.14 2001/06/03 14:38:47 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.15 2001/07/05 15:43:16 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -327,6 +327,13 @@ METHOD is the method that was attempting to be called."
 (if (eq (oref a water) (oref-default a water))
     nil
   (error "oset-default -> oref/oref-default comparison failed."))
+
+;; After setting 'water to 'moose, make sure a new object has
+;; the right stuff.
+(oset-default (object-class a) water 'penguin)
+(if (eq (oref (class-a "foo") water) 'penguin)
+    nil
+  (error "oset-default, new instance value failed."))
 
 (defmethod slot-unbound ((a class-a) &rest foo)
   "If a slot in A is unbound, ignore FOO."
