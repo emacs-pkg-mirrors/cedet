@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.164 2000/04/22 20:47:02 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.165 2000/04/25 18:03:45 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -544,8 +544,9 @@ hierarchy would be replaced with the new directory."
   :group 'speedbar
   :type 'boolean)
 
-(defcustom speedbar-use-images (or (fboundp 'defimage)
-				   (fboundp 'make-image-specifier))
+(defcustom speedbar-use-images (and (or (fboundp 'defimage)
+					(fboundp 'make-image-specifier))
+				    window-system)
   "*Non nil if speedbar should display icons."
   :group 'speedbar
   :type 'boolean)
