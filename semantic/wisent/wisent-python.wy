@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.23 2003/02/02 04:48:44 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.24 2003/02/08 05:33:55 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -352,7 +352,7 @@ expr_stmt
     (if (and $2 (stringp $1) (string-match "^\\(\\sw\\|\\s_\\)+$" $1))
 	;; If this is an assignment statement and left side is a symbol,
 	;; then generate a 'variable token, else return 'code token.
-	(wisent-token $1 'variable nil nil)
+	(wisent-token $1 'variable nil nil nil nil)
       (wisent-token $1 'code nil nil))
   ;
 
@@ -716,7 +716,8 @@ zero_one_or_two_test
 ;; funcdef: 'def' NAME parameters ':' suite
 funcdef
   : DEF NAME function_parameter_list COLON suite
-    (wisent-token $2 'function nil $3)
+    (wisent-token $2 'function nil
+		  $3 nil nil)
   ;
 
 function_parameter_list
@@ -751,7 +752,7 @@ function_parameter
 ;; classdef: 'class' NAME ['(' testlist ')'] ':' suite
 classdef
   : CLASS NAME paren_class_list_opt COLON suite
-    (wisent-token $2 'type $1 $5 $3)
+    (wisent-token $2 'type $1 $5 $3 nil)
   ;
 
 ;; ['(' testlist ')']
@@ -772,9 +773,9 @@ paren_classes
   | RPAREN
     ()
   | paren_class COMMA
-    (wisent-token $1 'variable nil nil)
+    (wisent-token $1 'variable nil nil nil nil)
   | paren_class RPAREN
-    (wisent-token $1 'variable nil nil)
+    (wisent-token $1 'variable nil nil nil nil)
   ;
 
 ;; In general, the base class can be specified by a general expression
