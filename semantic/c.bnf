@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.57.2.2 2002/02/20 20:28:06 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.57.2.3 2002/02/20 20:32:38 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -627,7 +627,7 @@ varname : opt-stars opt-restrict symbol opt-bits opt-array opt-assign
 	;
 
 # I should store more in this def, but leave it simple for now.
-variablearg : declmods typeformbase opt-ref varname opt-ref
+variablearg : declmods typeformbase opt-ref variablearg-opt-name
 	      ( (list $4) variable $2 nil
 		 (ASSOC const (if (member "const" $1) t nil)
 			typemodifiers (delete "const" $1)
@@ -636,6 +636,12 @@ variablearg : declmods typeformbase opt-ref varname opt-ref
 		 nil
 		 )
 	    ;
+
+variablearg-opt-name: varname
+		      ( ,$1)
+		    | EMPTY
+		      ( ""  0 nil nil nil )
+		    ;
 
 varnamelist : varname COMA varnamelist
 	      ( ,(cons $1 $3) )
