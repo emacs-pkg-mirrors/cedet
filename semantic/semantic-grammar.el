@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.54 2004/01/19 18:50:31 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.55 2004/01/27 15:07:32 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1375,7 +1375,10 @@ Use the Lisp or grammar indenter depending on point location."
     (semantic-grammar-indent)))
 
 (defun semantic-grammar-complete ()
-  "Attempt to complete the current symbol."
+  "Attempt to complete the symbol under point.
+Completion is position sensitive.  If the cursor is in a match section of
+a rule, then nonterminals symbols are scanned.  If the cursor is in a Lisp
+expression then Lisp symbols are completed."
   (interactive)
   (if (condition-case nil
           (progn (up-list -1) t)
