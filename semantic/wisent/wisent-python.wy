@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.15 2003/01/24 05:45:19 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.16 2003/01/24 06:01:03 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -49,7 +49,7 @@
 
   %}
 
-%outputfile    "python-05.el"
+%outputfile    "wisent-python.el"
 %parsetable    wisent-python-parser-tables
 %keywordtable  wisent-python-keywords
 %tokentable    wisent-python-tokens

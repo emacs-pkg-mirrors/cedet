@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.20 2003/01/24 05:45:19 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.21 2003/01/24 06:01:03 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -96,40 +96,6 @@
 ;; * Figure out what ENDMARKER token is for.
 
 (require 'wisent-bovine)
-
-(global-set-key [f11] 'test-python-parser)
-(global-set-key [f12] 'test-python-lexer)
-
-(defun test-python-parser ()
-  (interactive)
-  (let* ((basename "python-05")
-	 (wy-name (concat basename ".wy"))
-	 (el-name (concat basename ".el"))
-	 (py-name (concat basename ".py"))
-	 )
-    (find-file wy-name)
-    (semantic-grammar-update-outputfile)
-
-    (find-file el-name)
-    (save-buffer)
-    (eval-buffer)
-
-    (find-file py-name)
-    (revert-buffer t t)
-    (bovinate)
-    ))
-
-(defun test-python-lexer ()
-  (interactive)
-  (setq wisent-python-lexer-indent-stack '(0))
-  (let ((wisent-lex-istream (semantic-lex (point-min) (point-max) 1))
-	(n 0)
-	ostream)
-    (while wisent-lex-istream
-      (setq ostream (cons (wisent-lex) ostream))
-      (setq n (1+ n))
-      )
-    (pp-eval-expression '(nreverse ostream))))
 
 ;;;****************************************************************************
 ;;;@ Support Code
@@ -425,7 +391,7 @@ it to a form suitable for the Wisent's parser."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from python-05.wy - 2003-01-23 20:49-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-23 21:56-0800
   (eval-when-compile
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
@@ -873,7 +839,7 @@ it to a form suitable for the Wisent's parser."
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from python-05.wy - 2003-01-23 20:49-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-23 21:56-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -935,7 +901,7 @@ it to a form suitable for the Wisent's parser."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from python-05.wy - 2003-01-23 20:49-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-23 21:56-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -1012,7 +978,7 @@ it to a form suitable for the Wisent's parser."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from python-05.wy - 2003-01-23 20:49-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-23 21:56-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
