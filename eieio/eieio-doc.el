@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.14 2000/09/25 01:52:28 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.15 2000/09/28 19:44:06 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -32,6 +32,9 @@
 ;;; Commentary:
 ;;
 ;;  Outputs into the current buffer documentation in texinfo format
+
+(require 'eieio-opt)
+
 ;;  for a class, all it's children, and all it's slots.
 
 ;;; Code:
