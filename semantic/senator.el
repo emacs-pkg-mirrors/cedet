@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.78 2003/08/17 10:23:22 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.79 2003/08/26 20:11:22 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2259,7 +2259,7 @@ This function is overridable with the symbol `insert-foreign-tag'."
 (defun senator-kill-tag ()
   "Take the current tag, place it in the tag ring, and kill it.
 Killing the tag removes the text for that tag, and places it into
-the kill ring.  Retrieve that text with \\[yank\\]."
+the kill ring.  Retrieve that text with \\[yank]."
   (interactive)
   (let ((ct (senator-copy-tag))) ;; this handles the reparse for us.
     (kill-region (semantic-tag-start ct)
@@ -2538,7 +2538,7 @@ That is to call the Senator counterpart searcher when variables
 
 (defun senator-isearch-toggle-semantic-mode ()
   "Toggle semantic searching on or off in isearch mode.
-\\[senator-isearch-toggle-semantic-mode] toggle semantic searching."
+\\<senator-mode-map>\\[senator-isearch-toggle-semantic-mode] toggle semantic searching."
   (interactive)
   (when senator-minor-mode
     (setq senator-isearch-semantic-mode
