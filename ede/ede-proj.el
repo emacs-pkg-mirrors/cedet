@@ -1,10 +1,10 @@
 ;;; ede-proj.el --- EDE Generic Project file driver
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.21 2000/01/18 18:54:18 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.22 2000/06/20 02:20:17 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -54,6 +54,14 @@ distributed, and each should have a corresponding rule to build it.")
 	     :type string
 	     :custom string
 	     :documentation "File name of generated Makefile.")
+   (partofall :initarg :partofall
+	      :initform t
+	      :type boolean
+	      :custom boolean
+	      :documentation
+	      "Non nil means the rule created is part of the all target.
+Setting this to nil creates the rule to build this item, but does not
+include it in the ALL`all:' rule.")
    (configuration-variables
     :initarg :configuration-variables
     :initform nil
@@ -344,6 +352,10 @@ FILE must be massaged by `ede-convert-path'."
   ;; Speedy delete should be safe.
   (oset target source (delete (file-name-nondirectory file)
 			       (oref target source)))
+  (ede-proj-save))
+
+(defmethod project-update-version ((this ede-proj-project))
+  "The :version of project THIS has changed."
   (ede-proj-save))
 
 (defmethod project-make-dist ((this ede-proj-project))
