@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.17 2000/09/28 03:20:09 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.18 2000/10/12 22:14:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -84,8 +84,20 @@ Overriden to nil if `semantic-imenu-bucketize-file' is nil."
 Used to override function `imenu-default-goto-function' so that we can continue
 to use overlays to maintain the current position.
 Optional argument REST is some extra stuff."
-  (imenu-default-goto-function name (semantic-overlay-start position) rest))
+  (let ((os (semantic-overlay-start position)))
+    (if os
+	(imenu-default-goto-function name os rest)
+      ;; This should never happen, but check anyway.
+      (message "Imenu is out of date, try again. (internal bug)")
+      (setq imenu--index-alist nil))))
 
+(defun semantic-imenu-flush-fcn ()
+  "This function is called as a hook to clear the imenu cache.
+This is added to `semantic-before-toplevel-cache-flush-hook'."
+  (if (eq imenu-create-index-function 'semantic-create-imenu-index)
+      (setq imenu--index-alist nil))
+  (remove-hook 'semantic-before-toplevel-cache-flush-hook
+	       'semantic-imenu-flush-fcn))
 
 ;;;###autoload
 (defun semantic-create-imenu-index (&optional stream)
@@ -93,6 +105,14 @@ Optional argument REST is some extra stuff."
 Uses the output of the Semantic Bovinator to create the index.
 Optional argument STREAM STREAM is an optional stream of tokens used to create menus."
   (setq imenu-default-goto-function 'semantic-imenu-goto-function)
+  (add-hook 'semantic-before-toplevel-cache-flush-hook
+	    'semantic-imenu-flush-fcn nil t)
+  (semantic-create-imenu-index-1 stream))
+
+(defun semantic-create-imenu-index-1 (&optional stream)
+  "Create an imenu index for any buffer which supports Semantic.
+Uses the output of the Semantic Bovinator to create the index.
+Optional argument STREAM STREAM is an optional stream of tokens used to create menus."
   (let ((tokens (or stream (semantic-bovinate-toplevel t))))
     (if semantic-imenu-bucketize-file
 	(let ((buckets (semantic-bucketize
@@ -159,7 +179,7 @@ Optional argument NOTYPECHECK specifies not to make subgroups under types."
                                    (if parts
                                        (if (and semantic-imenu-bucketize-type-parts
                                                 semantic-imenu-bucketize-file)
-                                           (semantic-create-imenu-index parts)
+                                           (semantic-create-imenu-index-1 parts)
                                          (semantic-create-imenu-subindex
                                           (reverse parts))))))
                             index))
