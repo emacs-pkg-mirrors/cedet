@@ -479,8 +479,7 @@ Argument COMMAND is the command to use for compiling the target."
 (defun project-am-debug-target ()
   "Run the current project in the debugger."
   (interactive)
-  
-  )
+  (message "not implemented.") )
 
 (defun project-am-make-dist ()
   "Run the current project in the debugger."
@@ -718,11 +717,12 @@ nil means that this buffer belongs to no-one."
   (member (file-name-nondirectory (buffer-file-name buffer))
 	  (oref this :lisp)))
 
-(defun project-am-buffer-project (buffer)
-  "Return the project associated with BUFFER."
-  (project-am-load-project (save-excursion
-			     (set-buffer buffer)
-			     default-directory)))
+; Resurect this if it's needed.
+;(defun project-am-buffer-project (buffer)
+;  "Return the project associated with BUFFER."
+;  (project-am-load (save-excursion
+;		     (set-buffer buffer)
+;		     default-directory)))
 
 (defmethod project-am-set-buffer ((ampf project-am-makefile))
   "Set the current buffer to this project file."
@@ -1156,7 +1156,8 @@ STOP-BEFORE is a regular expression matching a file name."
 
 (add-hook 'edebug-setup-hook
 	  (lambda ()
-	    (def-edebug-spec project-am-with-projectfile form def-body)))
+	    (def-edebug-spec project-am-with-projectfile 
+	      (form def-body))))
 
 (provide 'project-am)
 
