@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.14 2001/11/30 03:57:12 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.15 2001/12/03 22:27:25 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -503,6 +503,9 @@ minor mode is enabled.
 
 (require 'timer)
 
+(defvar semantic-auto-parse-timer nil
+  "Timer used to schedule automatic reparse.")
+
 (defcustom semantic-auto-parse-no-working-message nil
   "*Non-nil disable display of working message during parse."
   :group 'semantic
@@ -520,7 +523,13 @@ This will move the parse message into the mode-line."
 This time should be short enough to ensure that auto-parse will be
 run as soon as Emacs is idle."
   :group 'semantic
-  :type 'number)
+  :type 'number
+  :set (lambda (sym val)
+         (set-default sym val)
+         (when (timerp semantic-auto-parse-timer)
+           (cancel-timer semantic-auto-parse-timer)
+           (setq semantic-auto-parse-timer nil)
+           (semantic-auto-parse-setup-timer))))
 
 (defcustom semantic-auto-parse-max-buffer-size 0
   "*Maximum size in bytes of buffers automatically reparsed.
@@ -528,9 +537,6 @@ If this value is less than or equal to 0 buffers are automatically
 reparsed regardless of their size."
   :group 'semantic
   :type 'number)
-
-(defvar semantic-auto-parse-timer nil
-  "Timer used to schedule automatic reparse.")
 
 ;;;###autoload
 (defcustom global-semantic-auto-parse-mode nil
