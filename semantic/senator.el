@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.58 2002/05/07 01:31:13 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.59 2002/06/18 21:32:36 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1742,7 +1742,7 @@ This is a buffer local variable.")
        :help "Show a dump of the semantic analyzer's guess at possible completions"
        ])
     )
-   (list 
+   (list
     "Chart"
     (senator-menu-item
      [ "Chart Tokens by Class"
@@ -2326,23 +2326,47 @@ You can override the info collecting part with `eldoc-current-symbol-info'."
 
 (eval-when-compile (require 'hippie-exp))
 
-(defadvice hippie-expand (before senator activate)
-  "Add senator completion to hippie expand try method.
-This setting is local to Semantic enabled buffers."
-  (or (not (semantic-active-p))
-      (memq #'senator-try-expand-semantic
-            hippie-expand-try-functions-list)
-      (set (make-local-variable 'hippie-expand-try-functions-list)
-           (cons #'senator-try-expand-semantic
-                 (default-value 'hippie-expand-try-functions-list)))))
+(defvar senator-try-function-already-enabled nil
+  "non-nil if `hippie-expand' semantic completion was already enabled.
+This flag remember `senator-hippie-expand-hook' to not remove
+`senator-try-expand-semantic' from `hippie-expand-try-functions-list'
+if it was previously put here by any sort of user's customization.")
 
+(defun senator-hippie-expand-hook ()
+  "Enable or disable use of semantic completion with `hippie-expand'.
+Depending on the value of the variable `senator-minor-mode'.  Run as
+`senator-minor-mode-hook'."
+  (make-local-variable 'hippie-expand-try-functions-list)
+  (make-local-variable 'senator-try-function-already-enabled)
+  (if senator-minor-mode
+      (progn
+        ;; Does nothing if semantic completion is already enabled (via
+        ;; customization for example).
+        (setq senator-try-function-already-enabled
+              (memq 'senator-try-expand-semantic
+                    hippie-expand-try-functions-list))
+        (or senator-try-function-already-enabled
+            (setq hippie-expand-try-functions-list
+                  (cons 'senator-try-expand-semantic
+                        hippie-expand-try-functions-list))))
+    ;; Does nothing if semantic completion wasn't enabled here.
+    (or senator-try-function-already-enabled
+        (setq hippie-expand-try-functions-list
+              (delq 'senator-try-expand-semantic
+                    hippie-expand-try-functions-list)))))
+
+;; Setup semantic completion after hippie-exp was [auto]loaded
+(eval-after-load 'hippie-exp
+  '(add-hook 'senator-minor-mode-hook 'senator-hippie-expand-hook)
+  )
+
+;;;###autoload
 (defun senator-try-expand-semantic (old)
   "Attempt inline completion at the cursor.
 Use Semantic, or the semantic database to look up possible
 completions.  The argument OLD has to be nil the first call of this
 function.  It returns t if a unique, possibly partial, completion is
 found, nil otherwise."
-  (require 'senator)
   (if (semantic-active-p)
       (let (symstart)
         ;; If the hippie says so, start over.
