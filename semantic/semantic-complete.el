@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.34 2004/07/16 01:59:11 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.35 2004/08/03 01:46:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1390,7 +1390,9 @@ if `force-show' is 0, this value is always ignored.")
 
 (defmethod initialize-instance :AFTER ((obj semantic-displayor-tooltip) &rest args)
   "Make sure we have tooltips required."
-  (require 'tooltip)
+  (condition-case nil
+      (require 'tooltip)
+    (error nil))
   )
 
 (defmethod semantic-displayor-show-request ((obj semantic-displayor-tooltip))
