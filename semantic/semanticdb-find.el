@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.20 2004/07/30 17:57:58 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.21 2004/12/15 03:16:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -173,7 +173,7 @@ Default action as described in `semanticdb-find-translate-path'."
       (lambda (db) (semanticdb-get-database-tables db))
       ;; FIXME:
       ;; This should scan the current project directory list for all
-      ;; semanticdb files, perhaps hadding proxies for them.
+      ;; semanticdb files, perhaps handling proxies for them.
       (semanticdb-current-database-list (oref basedb reference-directory)))))
   )
 
@@ -271,6 +271,22 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
      )
     ans))
 
+
+;;; Perform interactive tests on the path/search mechanisms.
+;;
+(defun semanticdb-find-test-translate-path (&optional arg)
+  "Call and output results of `semanticdb-find-translate-path'"
+  (interactive "P")
+  (let ((p (semanticdb-find-translate-path nil arg)))
+    ;; Output the result
+    (with-output-to-temp-buffer "*Translated Path*"
+      (while p
+	(princ (semanticdb-printable-name (car p)))
+	(princ "\n")
+	(setq p (cdr p)))
+      )
+    (message "%d paths found." (length p))
+    ))
 
 ;;; FIND results and edebug
 ;;
