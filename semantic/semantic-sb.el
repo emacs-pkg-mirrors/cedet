@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.47 2004/03/11 02:28:25 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.48 2004/03/20 00:09:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; Convert a bovinated token list into speedbar buttons.
+;; Convert a tag table into speedbar buttons.
 
 ;;; History:
 ;; 
@@ -160,9 +160,9 @@ Argument TEXT-DATA is the token data to pass to TEXT-FUN."
 
 (defun semantic-sb-maybe-token-to-button (obj indent &optional
 					      prefix modifiers)
-  "Convert OBJ, which was returned from the bovinator, into a button.
+  "Convert OBJ, which was returned from the semantic parser, into a button.
 This OBJ might be a plain string (simple type or untyped variable)
-or a complete bovinator type.
+or a complete tag.
 Argument INDENT is the indentation used when making the button.
 Optional PREFIX is the character to use when marking the line.
 Optional MODIFIERS is additional text needed for variables."
@@ -193,7 +193,7 @@ Optional MODIFIERS is additional text needed for variables."
 	       (setq newparts (semantic-bucketize parts))
 	       (when (> (length newparts) semantic-sb-autoexpand-length)
 		 ;; More than one bucket, insert inline
-		 (semantic-insert-bovine-list (1- indent) newparts)
+		 (semantic-sb-insert-tag-table (1- indent) newparts)
 		 (setq parts nil))
 	       ;; Dump the strings in.
 	       (while parts
@@ -339,11 +339,11 @@ TEXT TOKEN and INDENT are the details."
 	     (semantic-sb-one-button (car sordid) level)))
       (setq sordid (cdr sordid)))))
 
-(defun semantic-insert-bovine-list (level lst)
-  "At LEVEL, insert the bovine parsed list LST.
+(defun semantic-sb-insert-tag-table (level table)
+  "At LEVEL, insert the tag table TABLD.
 Use arcane knowledge about the semantic tokens in the tagged elements
 to create much wiser decisions about how to sort and group these items."
-  (semantic-sb-buttons level lst))
+  (semantic-sb-buttons level table))
 
 (defun semantic-sb-buttons (level lst)
   "Create buttons at LEVEL using LST sorting into type buckets."
@@ -362,7 +362,7 @@ to create much wiser decisions about how to sort and group these items."
 				      (1+ level))))
 	(setq lst (cdr lst))))))
 
-(defun semantic-fetch-dynamic-bovine (file)
+(defun semantic-sb-fetch-tag-table (file)
   "Load FILE into a buffer, and generate tags using the Semantic Bovinator.
 Returns the tag list, or t for an error."
   (let ((out nil))
@@ -377,10 +377,10 @@ Returns the tag list, or t for an error."
       (save-excursion
 	(set-buffer (find-file-noselect file))
 	(if (or (not (featurep 'semantic))
-		(not semantic-toplevel-bovine-table))
+		(not semantic--parse-table))
 	    (setq out t)
 	  (if speedbar-power-click (semantic-clear-toplevel-cache))
-	  (setq out (semantic-bovinate-toplevel)))))
+	  (setq out (semantic-fetch-tags)))))
     (if (listp out)
 	(condition-case nil
 	    (progn
@@ -395,7 +395,7 @@ Returns the tag list, or t for an error."
 
 ;; Link ourselves into the tagging process.
 (add-to-list 'speedbar-dynamic-tags-function-list
-	     '(semantic-fetch-dynamic-bovine  . semantic-insert-bovine-list))
+	     '(semantic-sb-fetch-tag-table  . semantic-sb-insert-tag-table))
 
 (provide 'semantic-sb)
 
