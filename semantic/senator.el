@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.84 2003/09/17 16:57:58 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.85 2003/10/15 15:21:02 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2342,6 +2342,13 @@ versions of Emacs."
   :group 'senator
   :type 'boolean)
 
+(defcustom senator-eldoc-summary-function 'semantic-format-tag-summarize
+  "*Function to use when displaying tag information with eldoc.
+Some useful functions are found in `semantic-format-tag-functions'."
+  :group 'semantic-senator
+  :type semantic-format-tag-custom-list)
+(make-variable-buffer-local 'senator-eldoc-summary-function)
+
 (defsubst senator-find-current-symbol-tag (sym)
   "Search for a semantic tag with name SYM.
 Return the tag found or nil if not found."
@@ -2371,18 +2378,26 @@ Return the tag found or nil if not found."
   "Print information using `eldoc-message' while in function `eldoc-mode'.
 You can override the info collecting part with `eldoc-current-symbol-info'."
   (let* ((s (semantic-fetch-overload 'eldoc-current-symbol-info))
-         found)
+         found
+	 str)
     
     (if s (setq found (funcall s))
       (setq found (senator-eldoc-print-current-symbol-info-default)))
-    
-    (eldoc-message
-     (cond ((stringp found)
-            found)
-           ((semantic-tag-p found)
-            (semantic-format-tag-summarize found nil senator-eldoc-use-color))
-           (t nil)
-           ))))
+
+    (setq str (cond ((stringp found)
+		     found)
+		    ((semantic-tag-p found)
+		     (funcall senator-eldoc-summary-function
+			      found nil senator-eldoc-use-color))
+		    (t nil)
+		    ))
+
+    (if (not eldoc-echo-area-use-multiline-p)
+	(let ((w (1- (window-width (minibuffer-window)))))
+	  (if (> (length str) w)
+	      (setq str (substring str 0 w)))))
+      
+    (eldoc-message str)))
 
 (defadvice eldoc-print-current-symbol-info (around senator activate)
   "Enable ELDOC in non Emacs Lisp, but semantic-enabled modes."
