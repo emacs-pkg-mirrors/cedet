@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.25 2004/03/10 19:29:58 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.26 2004/03/20 00:10:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -783,7 +783,7 @@ This function is for internal use only."
   "Convert all tags in the current cache to use overlay proxys.
 This function is for internal use only."
   (semantic--tag-unlink-list-from-buffer
-   (semantic-bovinate-toplevel)))
+   (semantic-fetch-tags)))
 
 (defun semantic--tag-link-cache-to-buffer ()
   "Convert all tags in the current cache to use overlays.
@@ -792,7 +792,7 @@ This function is for internal use only."
       ;; In this unique case, we cannot call the usual toplevel fn.
       ;; because we don't want a reparse, we want the old overlays.
       (semantic--tag-link-list-to-buffer
-       semantic-toplevel-bovine-cache)
+       semantic--buffer-cache)
     ;; Recover when there is an error restoring the cache.
     (error (message "Error recovering tag list")
            (semantic-clear-toplevel-cache)
@@ -801,7 +801,7 @@ This function is for internal use only."
 ;;; Tag Cooking
 ;;
 ;; Raw tags from a parser follow a different positional format than
-;; those used in the bovine cache.  Raw tags need to be cooked into
+;; those used in the buffer cache.  Raw tags need to be cooked into
 ;; semantic cache friendly tags for use by the masses.
 ;;
 (defsubst semantic--tag-expanded-p (tag)
