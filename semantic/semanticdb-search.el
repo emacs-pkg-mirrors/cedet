@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.9 2003/04/09 01:08:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.10 2003/07/25 17:35:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -63,7 +63,7 @@ Examples include search results from external sources such as from
 Emacs' own symbol table, or from external libraries.")
 
 (defmethod semanticdb-refresh-table ((obj semanticdb-search-results-table))
-  "If the token list associated with OBJ is loaded, refresh it.
+  "If the tag list associated with OBJ is loaded, refresh it.
 This will call `semantic-bovinate-toplevel' if that file is in memory."
   nil)
 
