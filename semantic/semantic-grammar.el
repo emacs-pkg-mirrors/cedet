@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.5 2002/10/02 15:03:51 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.6 2002/10/30 15:56:40 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1032,10 +1032,10 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
                         (beginning-of-line)
                         (skip-chars-forward "\n\r\t ")
                         (point)))
-                   (newline))
-               )
+                   (newline)))
              (insert
-              (format "%s\n%s" (semantic-grammar-autogen-cookie) code)))
+              (format "%s\n%s" (semantic-grammar-autogen-cookie) code))
+             (or (looking-at ")") (newline)))
          ;; Insert a new `defun' at the beginning of code
          (semantic-grammar-beginning-of-code)
          (insert
