@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.9 2003/02/17 01:50:04 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.10 2003/02/17 08:49:15 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -90,7 +90,7 @@
     'SEXP
     (match-beginning 0)
     (save-excursion
-      (semantic-lex-unterminated-syntax-protection 'STRING
+      (semantic-lex-unterminated-syntax-protection 'SEXP
 	(forward-sexp 1)
 	(point))
       ))))
