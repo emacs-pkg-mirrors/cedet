@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-d.el,v 1.7 1996/11/01 05:26:12 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.8 1996/11/07 19:10:26 zappo Exp $
 ;;; Keywords: OO widget
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -87,6 +87,23 @@ data")
    )
   "Class for core widget.  This is the widget all other widgets are 
 based from.")
+
+(defclass widget-gadget-translator (widget-core)
+  ((watch :initarg :watch
+	  :docstring "A data-object to watch.  When it changes, run the translator")
+   (change :initarg :change
+	   :docstring "A data-object to change whenever watch is modified.")
+   (translate-function :initarg :translate-function
+		       :initarg (lambda-default (watch change)
+				  nil)
+		       :docstring
+		       "Function to call when `watch' changes.  It should modify the data object
+`change' from it's value.  It takes two parameters WATCH and CHANGE.")
+   )
+  "Non-visible class for a gadget translator.  The translators job is
+to convert the data-object in `watch' to some new value, and store it
+in `change'.  This is useful for translating indices into descriptions
+or something like that.")
 
 (defclass widget-visual (widget-core)
   ((x :initarg :x
