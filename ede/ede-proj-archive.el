@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-archive.el,v 1.6 2000/09/24 15:32:22 zappo Exp $
+;; RCS: $Id: ede-proj-archive.el,v 1.7 2000/09/28 18:40:50 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 ;;
 ;; Handle object code archives in and EDE Project file.
 
+(require 'ede-pmake)
 (require 'ede-proj-obj)
 
 ;;; Code:
@@ -33,6 +34,15 @@
   ()
   "This target generates an object code archive.")
 
+(defvar ede-gcc-archive-compiler
+  (clone ede-gcc-compiler
+	 "ede-c-archive-compiler"
+	 :name "gcc"
+	 :likvariables '(("AR" . "NOT YET IMPLEMENTED"))
+	 :commands '("$(AR) $@ $^")
+	 :autoconf '(("AC_CHECK_PROGS" . "RANLIB, ranlib"))
+	 )
+  "Create an archive of C code.")
 
 (defmethod ede-proj-makefile-insert-source-variables :BEFORE
   ((this ede-proj-target-makefile-archive))
