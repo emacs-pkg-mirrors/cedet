@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.53 1999/09/16 18:30:40 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.54 1999/11/15 20:24:58 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -257,20 +257,24 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	(aset newc class-doc (or ds od)))))
 
     (if pname
-	(while pname
-	  (if (and (car pname) (symbolp (car pname)))
-	      (if (not (class-p (car pname)))
-		  ;; bad class
-		  (error "Given parent class %s is not a class" (car pname))
-		;; good parent class...
-		;; save new child in parent
-		(if (not (member cname (aref (class-v (car pname)) class-children)))
-		    (aset (class-v (car pname)) class-children
-			  (cons cname (aref (class-v (car pname)) class-children))))
-		;; save parent in child
-		(aset newc class-parent (cons (car pname) (aref newc class-parent))))
-	    (error "Invalid parent class %s" pname))
-	  (setq pname (cdr pname)))
+	(progn
+	  (while pname
+	    (if (and (car pname) (symbolp (car pname)))
+		(if (not (class-p (car pname)))
+		    ;; bad class
+		    (error "Given parent class %s is not a class" (car pname))
+		  ;; good parent class...
+		  ;; save new child in parent
+		  (if (not (member cname (aref (class-v (car pname)) class-children)))
+		      (aset (class-v (car pname)) class-children
+			    (cons cname (aref (class-v (car pname)) class-children))))
+		  ;; save parent in child
+		  (aset newc class-parent (cons (car pname) (aref newc class-parent))))
+	      (error "Invalid parent class %s" pname))
+	    (setq pname (cdr pname)))
+	  ;; Reverse the list of our parents so that they are prioritized in
+	  ;; the same order as specified in the code.
+	  (aset newc class-parent (nreverse (aref newc class-parent))) )
       ;; If there is nothing to loop over, then inherit from the
       ;; default superclass.
       (if (eq cname 'eieio-default-superclass)
@@ -1017,10 +1021,12 @@ If EXTRA, include that in the string returned to represent the symbol."
   "If CHILD class is a subclass of CLASS."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (class-p child)) (signal 'wrong-type-argument (list 'class-p child)))
-  (while (and child (not (eq child class)))
-    ;; The car below is because parents is a list.  Fix for multi-inherit
-    (setq child (car (aref (class-v child) class-parent))))
-  (if child t))
+  (let ((p nil))
+    (while (and child (not (eq child class)))
+      (setq p (append p (aref (class-v child) class-parent))
+	    child (car p)
+	    p (cdr p)))
+    (if child t)))
 
 (defun obj-fields (obj) "List of fields available in OBJ."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
