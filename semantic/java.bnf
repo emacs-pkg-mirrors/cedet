@@ -6,7 +6,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.13 2001/09/27 21:04:08 ponced Exp $
+# $Id: java.bnf,v 1.14 2001/10/03 17:56:03 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,6 +34,8 @@
 
 %(progn
    (setq
+    ;; Java numbers
+    semantic-number-expression semantic-java-number-regexp
     ;; Java is case sensitive
     semantic-case-fold nil
     ;; special handling of multiple variable declarations/statement
@@ -300,12 +302,6 @@ bovine-toplevel : package_declaration
                 | import_declaration
                 | type_declaration
                 ;
-  
-number : symbol "[0-9]" punctuation "\\." symbol "[0-9Ee]"
-         punctuation "[-+]" symbol "[0-9fFdD]"
-       | symbol "[0-9]" punctuation "\\." symbol "[0-9EefFdD]"
-       | symbol "[0-9fFdD]"
-       ;
   
 literal : number
         | qualified_name
