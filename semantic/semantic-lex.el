@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.13 2002/11/15 19:21:30 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.14 2003/01/09 07:08:50 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,7 +22,7 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-;; 
+;;
 ;; In semantic 1.x, the lexical analyzer was an all purpose routine.
 ;; To boost efficiency, the analyzer is now a series of routines that
 ;; are constructed at build time into a single routine.  This will
@@ -608,24 +608,32 @@ at the beginning of `token-stream'.   This can be done by using
 `semantic-lex-token'."
   `(eval-and-compile
      (defvar ,name nil ,doc)
+     (defun ,name nil)
      ;; Do this part separately so that re-evaluation rebuilds this code.
      (setq ,name '(,condition ,@forms))
+     ;; Build a single lexical analyzer function, so the doc for
+     ;; function help is automatically provided, and perhaps the
+     ;; function could be useful for testing and debugging one
+     ;; analyzer.
+     (fset ',name (lambda () ,doc (when ,condition ,@forms)))
      ))
 
 ;;;###autoload
 (defmacro define-lex-regex-analyzer (name doc regexp &rest forms)
-  "Create a lexical analyzer with NAME and DOC  that match REGEXP.
+  "Create a lexical analyzer with NAME and DOC that match REGEXP.
 FORMS are evaluated upon a successful match.
 See `define-lex-analyzer' for more about analyzers."
-  `(eval-and-compile
-     (defvar ,name nil ,doc)
-     (setq ,name  '((looking-at ,regexp) ,@forms))))
+  `(define-lex-analyzer ,name
+     ,doc
+     (looking-at ,regexp)
+     ,@forms
+     ))
 
 ;;;###autoload
 (defmacro define-lex-simple-regex-analyzer (name doc regexp toksym
 						 &optional index
 						 &rest forms)
-  "Create a lexical analyzer with NAME and DOC  that match REGEXP.
+  "Create a lexical analyzer with NAME and DOC that match REGEXP.
 TOKSYM is the symbol to use when creating a semantic lexical token.
 INDEX is the index into the match that defines the bounds of the token.
 Index should be a plain integer, and not specified in the macro as an
@@ -633,14 +641,13 @@ expression.
 FORMS are evaluated upon a successful match BEFORE the new token is
 created.  It is valid to ignore FORMS.
 See `define-lex-analyzer' for more about analyzers."
-  `(eval-and-compile
-     (defvar ,name nil ,doc)
-     (setq ,name
-	   '((looking-at ,regexp)
-	     ,@forms
-	     (semantic-lex-token ,toksym
-				 (match-beginning ,(or index 0))
-				 (match-end ,(or index 0)))))
+  `(define-lex-analyzer ,name
+     ,doc
+     (looking-at ,regexp)
+     ,@forms
+     (semantic-lex-token ,toksym
+                         (match-beginning ,(or index 0))
+                         (match-end ,(or index 0)))
      ))
 
 ;;;###autoload
@@ -653,7 +660,7 @@ analyzer.  SPEC1 and SPECS specify the token symbols and open, close
 delimiters used.  Each SPEC has the form:
 
 \(BLOCK-SYM (OPEN-DELIM OPEN-SYM) (CLOSE-DELIM CLOSE-SYM))
- 
+
 where BLOCK-SYM is the symbol returned in a block token.  OPEN-DELIM
 and CLOSE-DELIM are respectively the open and close delimiters
 identifying a block.  OPEN-SYM and CLOSE-SYM are respectively the
@@ -668,39 +675,38 @@ symbols returned in open and close tokens."
             olist (cons (list (car open) (cadr open) (car spec)) olist)
             ;; build alist ((CLOSE-DELIM CLOSE-SYM) ...)
             clist (cons (nth 2 spec) clist)))
-    `(eval-and-compile
-       (defvar ,name nil ,doc)
-       (setq ,name
-             '((and
-                (looking-at "\\(\\s(\\|\\s)\\)")
-                (let ((text (match-string 0)) match)
-                  (cond
-                   ((setq match (assoc text ',olist))
-                    (if (or (not depth) (< current-depth depth))
-                        (progn
-                          (setq current-depth (1+ current-depth))
-                          (semantic-lex-token
-                           (nth 1 match)
-                           (match-beginning 0) (match-end 0)))
-                      (semantic-lex-token
-                       (nth 2 match)
-                       (match-beginning 0)
-                       (save-excursion
-                         (condition-case nil
-                             (forward-list 1)
-                           ;; This case makes lex robust to broken lists.
-                           (error
-                            (goto-char
-                             (funcall
-                              semantic-lex-unterminated-syntax-end-function
-                              (nth 2 match) start end))))
-                         (setq end-point (point))))))
-                   ((setq match (assoc text ',clist))
-                    (setq current-depth (1- current-depth))
-                    (semantic-lex-token
-                     (nth 1 match)
-                     (match-beginning 0) (match-end 0)))))))
-             ))))
+    `(define-lex-analyzer ,name
+       ,doc
+       (and
+        (looking-at "\\(\\s(\\|\\s)\\)")
+        (let ((text (match-string 0)) match)
+          (cond
+           ((setq match (assoc text ',olist))
+            (if (or (not depth) (< current-depth depth))
+                (progn
+                  (setq current-depth (1+ current-depth))
+                  (semantic-lex-token
+                   (nth 1 match)
+                   (match-beginning 0) (match-end 0)))
+              (semantic-lex-token
+               (nth 2 match)
+               (match-beginning 0)
+               (save-excursion
+                 (condition-case nil
+                     (forward-list 1)
+                   ;; This case makes lex robust to broken lists.
+                   (error
+                    (goto-char
+                     (funcall
+                      semantic-lex-unterminated-syntax-end-function
+                      (nth 2 match) start end))))
+                 (setq end-point (point))))))
+           ((setq match (assoc text ',clist))
+            (setq current-depth (1- current-depth))
+            (semantic-lex-token
+             (nth 1 match)
+             (match-beginning 0) (match-end 0))))))
+       )))
 
 ;;; Analyzers
 ;;
@@ -731,7 +737,7 @@ This action will just throw an error."
   "Detect and create newline tokens.
 Use this ONLY if newlines are not whitespace characters (such as when
 they are comment end characters) AND when you want whitespace tokens."
-  "\\s-*\\(\n\\|\\s>\\)"  
+  "\\s-*\\(\n\\|\\s>\\)"
   ;; Language wants whitespaces, link them together.
   (if (eq (semantic-lex-token-class (car token-stream)) 'whitespace)
       (setcdr (semantic-lex-token-bounds (car token-stream))
@@ -743,7 +749,7 @@ they are comment end characters) AND when you want whitespace tokens."
   "Detect and create newline tokens.
 Use this ONLY if newlines are not whitespace characters (such as when
 they are comment end characters)."
-  "\\s-*\\(\n\\|\\s>\\)"  
+  "\\s-*\\(\n\\|\\s>\\)"
   (setq end-point (match-end 0)))
 
 (define-lex-regex-analyzer semantic-lex-whitespace
@@ -811,7 +817,7 @@ types, as the value of the `punctuation' token type."
              )))))
 
 (define-lex-regex-analyzer semantic-lex-paren-or-list
-  "Detect open parenthisis.  
+  "Detect open parenthesis.
 Return either a paren token or a semantic list token depending on
 `current-depth'."
   "\\s("
