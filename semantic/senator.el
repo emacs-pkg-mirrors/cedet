@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.64 2003/03/11 03:27:16 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.65 2003/03/28 08:55:42 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -28,29 +28,27 @@
 ;;; Commentary:
 ;;
 ;; This library defines commands and a minor mode to navigate between
-;; semantic language tokens in the current buffer.  It uses Eric Ludlam's
-;; Semantic Bovinator tool to parse the buffer and find the language
-;; tokens.
-
+;; semantic language tags in the current buffer.
+;;
 ;; The commands `senator-next-token' and `senator-previous-token'
-;; navigate respectively to the token after or before the point.  The
+;; navigate respectively to the tag after or before the point.  The
 ;; command `senator-jump' directly jumps to a particular semantic
 ;; symbol.
-
+;;
 ;; Also, for each built-in search command `search-forward',
 ;; `search-backward', `re-search-forward', `re-search-backward',
 ;; `word-search-forward' and `word-search-backward', there is an
 ;; equivalent `senator-<search-command>' defined which searches only
-;; in semantic token names.
-
+;; in semantic tag names.
+;;
 ;; The command `senator-isearch-toggle-semantic-mode' toggles semantic
 ;; search in isearch mode.  When semantic search is enabled, isearch
-;; is restricted to token names.
-
+;; is restricted to tag names.
+;;
 ;; Finally, the library provides a `senator-minor-mode' to easily
 ;; enable or disable the SEmantic NAvigaTOR stuff for the current
 ;; buffer.
-
+;;
 ;; The best way to use navigation commands is to bind them to keyboard
 ;; shortcuts.  Senator minor mode uses the common prefix key "C-c ,".
 ;; The following default key bindings are provided when semantic minor
@@ -69,19 +67,13 @@
 ;;    C-c , C-w       `senator-kill-token'
 ;;    C-c , M-w       `senator-copy-token'
 ;;
-;; To install, put this file on your Emacs-Lisp load path and add
-;;   (require 'senator)
-;; into your ~/.emacs startup file.  To enable senator stuff in the
-;; current buffer use
-;;   (senator-minor-mode 1).
-
 ;; You can customize the `senator-step-at-token-ids' to navigate (and
-;; search) only between tokens of a particular type.  (Such as
+;; search) only between tags of a particular class.  (Such as
 ;; functions and variables.)
-
+;;
 ;; Customize `senator-step-at-start-end-token-ids' to stop at the
-;; start and end of the specified token types.
-
+;; start and end of the specified tag classes.
+;;
 ;; To have a mode specific customization, do something like this in a
 ;; hook:
 ;;
@@ -94,9 +86,6 @@
 ;; The above example specifies to navigate (and search) only between
 ;; functions and variables, and to step at start and end of functions
 ;; only.
-;;
-;; Any comments, suggestions, bug reports or upgrade requests are
-;; welcome.  Please send them to David Ponce at <david@dponce.com>
 
 ;;; History:
 ;;
@@ -130,9 +119,9 @@
   :type 'hook)
 
 (defcustom senator-step-at-token-ids nil
-  "*List of token identifiers where to step.
-Token identifier is symbol 'variable, 'function, 'type, or other.  If
-nil navigation steps at any token found.  This is a buffer local
+  "*List of tag classes where to step.
+A tag class is a symbol like 'variable, 'function, 'type, or other.
+If nil navigation steps at any tag found.  This is a buffer local
 variable.  It can be set in a mode hook to get a specific langage
 navigation."
   :group 'senator
@@ -140,13 +129,13 @@ navigation."
 (make-variable-buffer-local 'senator-step-at-token-ids)
 
 (defcustom senator-step-at-start-end-token-ids '(function)
-  "*List of token identifiers where to step at start and end.
-Token identifier is symbol 'variable, 'function, 'type, or other.  If
-nil navigation only step at beginning of tokens.  If t step at start
-and end of any token where it is allowed to step.  Also, stepping at
-start and end of a token prevent stepping inside its children.  This
-is a buffer local variable.  It can be set in a mode hook to get a
-specific langage navigation."
+  "*List of tag classes where to step at start and end.
+A tag class is a symbol like 'variable, 'function, 'type, or other.
+If nil, navigation only step at beginning of tags.  If t, step at
+start and end of any tag where it is allowed to step.  Also, stepping
+at start and end of a tag prevent stepping inside its components.
+This is a buffer local variable.  It can be set in a mode hook to get
+a specific langage navigation."
   :group 'senator
   :type '(choice :tag "Identifiers"
                  (repeat :menu-tag "Symbols" (symbol))
@@ -154,7 +143,7 @@ specific langage navigation."
 (make-variable-buffer-local 'senator-step-at-start-end-token-ids)
 
 (defcustom senator-highlight-found t
-  "*If non-nil highlight tokens found.
+  "*If non-nil highlight tags found.
 This option requires semantic 1.3 and above.  This is a buffer
 local variable.  It can be set in a mode hook to get a specific
 langage behaviour."
@@ -163,24 +152,27 @@ langage behaviour."
 (make-variable-buffer-local 'senator-highlight-found)
 
 ;;; Faces
-(defface senator-momentary-highlight-face '((((class color) (background dark))
-                                             (:background "gray30"))
-                                            (((class color) (background light))
-                                             (:background "gray70")))
-  "Face used to momentarily highlight tokens."
+(defface senator-momentary-highlight-face
+  '((((class color) (background dark))
+     (:background "gray30"))
+    (((class color) (background light))
+     (:background "gray70")))
+  "Face used to momentarily highlight tags."
   :group 'semantic-faces)
 
-(defface senator-intangible-face '((((class color) (background light))
-                                    (:foreground "gray25"))
-                                   (((class color) (background dark))
-                                    (:foreground "gray75")))
+(defface senator-intangible-face
+  '((((class color) (background light))
+     (:foreground "gray25"))
+    (((class color) (background dark))
+     (:foreground "gray75")))
   "Face placed on intangible text."
   :group 'semantic-faces)
 
-(defface senator-read-only-face '((((class color) (background dark))
-                                   (:background "#664444"))
-                                  (((class color) (background light))
-                                   (:background "#CCBBBB")))
+(defface senator-read-only-face
+  '((((class color) (background dark))
+     (:background "#664444"))
+    (((class color) (background light))
+     (:background "#CCBBBB")))
   "Face placed on read-only text."
   :group 'semantic-faces)
 
@@ -189,75 +181,74 @@ langage behaviour."
 ;;;;
 
 (defsubst senator-parse ()
-  "Parse the current buffer and return the tokens where to navigate."
+  "Parse the current buffer and return the tags where to navigate."
   (semantic-bovinate-toplevel t))
 
 (defsubst senator-current-token ()
-  "Return the current token in the current buffer.
-Raise an error is there is no token here."
+  "Return the current tag in the current buffer.
+Raise an error is there is no tag here."
   (or (semantic-current-nonterminal)
-      (error "No semantic tokens here")))
+      (error "No semantic tag here")))
 
-(defun senator-momentary-highlight-token (token)
-  "Momentary highlight TOKEN.
+(defun senator-momentary-highlight-token (tag)
+  "Momentary highlight TAG.
 Does nothing if `senator-highlight-found' is nil."
   (and senator-highlight-found
        (semantic-momentary-highlight-token
-        token
-        'senator-momentary-highlight-face)))
+        tag 'senator-momentary-highlight-face)))
 
-(defun senator-step-at-start-end-p (token)
-  "Return non-nil if must step at start and end of TOKEN."
-  (and token
+(defun senator-step-at-start-end-p (tag)
+  "Return non-nil if must step at start and end of TAG."
+  (and tag
        (or (eq senator-step-at-start-end-token-ids t)
-           (memq (semantic-token-token token)
+           (memq (semantic-tag-class tag)
                  senator-step-at-start-end-token-ids))))
 
-(defun senator-skip-p (token)
-  "Return non-nil if must skip TOKEN."
-  (and token
+(defun senator-skip-p (tag)
+  "Return non-nil if must skip TAG."
+  (and tag
        senator-step-at-token-ids
-       (not (memq (semantic-token-token token)
+       (not (memq (semantic-tag-class tag)
                   senator-step-at-token-ids))))
 
-(defun senator-middle-of-token-p (pos token)
-  "Return non-nil if POS is between start and end of TOKEN."
-  (and (> pos (semantic-token-start token))
-       (< pos (semantic-token-end   token))))
+(defun senator-middle-of-token-p (pos tag)
+  "Return non-nil if POS is between start and end of TAG."
+  (and (> pos (semantic-tag-start tag))
+       (< pos (semantic-tag-end   tag))))
 
-(defun senator-step-at-parent (token)
-  "Return TOKEN's outermost parent if must step at start/end of it.
+(defun senator-step-at-parent (tag)
+  "Return TAG's outermost parent if must step at start/end of it.
 Return nil otherwise."
-  (if token
+  (if tag
       (let (parent parents)
         (setq parents (semantic-find-nonterminal-by-overlay
-                       (semantic-token-start token)))
+                       (semantic-tag-start tag)))
         (while (and parents (not parent))
           (setq parent  (car parents)
                 parents (cdr parents))
-          (if (or (eq token parent)
+          (if (or (eq tag parent)
                   (senator-skip-p parent)
                   (not (senator-step-at-start-end-p parent)))
               (setq parent nil)))
         parent)))
 
 (defun senator-previous-token-or-parent (pos)
-  "Return the token before POS or one of its parent where to step."
-  (let ((token (semantic-find-nonterminal-by-overlay-prev pos)))
-    (or (senator-step-at-parent token) token)))
+  "Return the tag before POS or one of its parent where to step."
+  (let ((tag (semantic-find-nonterminal-by-overlay-prev pos)))
+    (or (senator-step-at-parent tag) tag)))
 
-(defun senator-full-token-name (token parent)
-  "Compose a full name from TOKEN name and PARENT names.
-That is append to TOKEN name PARENT names each one separated by
+(defun senator-full-token-name (tag parent)
+  "Compose a full name from TAG name and PARENT names.
+That is append to TAG name PARENT names each one separated by
 `semantic-type-relation-separator-character'.  The PARENT list is in
 reverse order."
   (let ((sep  (car semantic-type-relation-separator-character))
         (name ""))
     (while parent
       (setq name (concat name sep
-                         (semantic-token-name (car parent)))
+                         (semantic-tag-name (car parent)))
             parent (cdr parent)))
-    (concat (semantic-token-name token) name)))
+    (concat (semantic-tag-name tag) name)))
 
 (defvar senator-completion-cache nil
   "The latest full completion list is cached here.")
@@ -265,92 +256,92 @@ reverse order."
 
 (defun senator-completion-cache-flush-fcn (&optional ignore)
   "Hook run to clear the completion list cache.
-It is called each time the token cache is changed.
+It is called each time the semantic cache is changed.
 IGNORE arguments."
   (setq senator-completion-cache nil))
 
 (defun senator-completion-flatten-stream (stream parents &optional top-level)
-  "Return a flat list of all tokens available in STREAM.
-PARENTS is the list of parent tokens.  Each element of the list is a
-pair (TOKEN . PARENTS) where PARENTS is the list of TOKEN parent
-tokens or nil.  If TOP-LEVEL is non-nil the completion list will
-contain only tokens at top level.  Otherwise all children tokens are
+  "Return a flat list of all tags available in STREAM.
+PARENTS is the list of parent tags.  Each element of the list is a
+pair (TAG . PARENTS) where PARENTS is the list of TAG parent
+tags or nil.  If TOP-LEVEL is non-nil the completion list will
+contain only tags at top level.  Otherwise all component tags are
 included too."
-  (let (fs e token children)
+  (let (fs e tag components)
     (while stream
-      (setq token  (car stream)
+      (setq tag  (car stream)
             stream (cdr stream)
-            e      (cons token parents)
+            e      (cons tag parents)
             fs     (cons e fs))
       (and (not top-level)
            ;; Not include function arguments
-           (not (eq (semantic-token-token token) 'function))
-           (setq children (semantic-nonterminal-children token t))
+           (not (semantic-tag-of-class-p tag 'function))
+           (setq components (semantic-tag-components-with-overlays tag))
            (setq fs (append fs (senator-completion-flatten-stream
-                                children e)))))
+                                components e)))))
     fs))
 
-(defun senator-completion-function-args (token)
-  "Return a string of argument names from function TOKEN."
+(defun senator-completion-function-args (tag)
+  "Return a string of argument names from function TAG."
   (mapconcat #'(lambda (arg)
-                 (if (semantic-token-p arg)
-                     (semantic-token-name arg)
+                 (if (semantic-tag-p arg)
+                     (semantic-tag-name arg)
                    (format "%s" arg)))
-             (semantic-token-function-args token)
+             (semantic-tag-function-arguments tag)
              semantic-function-argument-separation-character))
 
 (defun senator-completion-refine-name (elt)
   "Refine the name part of ELT.
-ELT has the form (NAME . (TOKEN . PARENTS)).  The NAME refinement is
+ELT has the form (NAME . (TAG . PARENTS)).  The NAME refinement is
 done in the following incremental way:
 
-- - If TOKEN is a function one append the argument name list to NAME.
+- If TAG is a function, append the list of argument names to NAME.
 
-- - If TOKEN is a type one append \"{}\" to NAME.
+- If TAG is a type, append \"{}\" to NAME.
 
-- - If TOKEN is an include one append \"#\" to NAME.
+- If TAG is an include, append \"#\" to NAME.
 
-- - If TOKEN is a package one append \"=\" to NAME.
+- If TAG is a package, append \"=\" to NAME.
 
-- - If TOKEN has PARENTS append the next parent name to NAME,
-    separated by the first string found in
-    `semantic-type-relation-separator-character'.
+- If TAG has PARENTS append to NAME, the first separator in
+  `semantic-type-relation-separator-character', followed by the next
+  parent name.
 
-- - Otherwise NAME is set to \"token-name@token-start-position\"."
+- Otherwise NAME is set to \"tag-name@tag-start-position\"."
   (let* ((sep     (car semantic-type-relation-separator-character))
          (name    (car elt))
-         (token   (car (cdr elt)))
+         (tag     (car (cdr elt)))
          (parents (cdr (cdr elt)))
-         (oname   (semantic-token-name token))
-         (tokt    (semantic-token-token token)))
+         (oname   (semantic-tag-name tag))
+         (class   (semantic-tag-class tag)))
     (cond
-     ((and (eq tokt 'function) (string-equal name oname))
+     ((and (eq class 'function) (string-equal name oname))
       (setq name (format "%s(%s)" name
-                         (senator-completion-function-args token))))
-     ((and (eq tokt 'type) (string-equal name oname))
+                         (senator-completion-function-args tag))))
+     ((and (eq class 'type) (string-equal name oname))
       (setq name (format "%s{}" name)))
-     ((and (eq tokt 'include) (string-equal name oname))
+     ((and (eq class 'include) (string-equal name oname))
       (setq name (format "%s#" name)))
-     ((and (eq tokt 'package) (string-equal name oname))
+     ((and (eq class 'package) (string-equal name oname))
       (setq name (format "%s=" name)))
      (parents
       (setq name (format "%s%s%s" name
-                         (if (eq (semantic-token-token (car parents))
-                                 'function)
+                         (if (semantic-tag-of-class-p
+                              (car parents) 'function)
                              ")" sep)
-                         (semantic-token-name (car parents)))
+                         (semantic-tag-name (car parents)))
             parents (cdr parents)))
      (t
       (setq name (format "%s@%d" oname
-                         (semantic-token-start token)))))
+                         (semantic-tag-start tag)))))
     (setcar elt name)
-    (setcdr elt (cons token parents))))
+    (setcdr elt (cons tag parents))))
 
 (defun senator-completion-uniquify-names (completion-stream)
   "Uniquify names in COMPLETION-STREAM.
 That is refine the name part of each COMPLETION-STREAM element until
 there is no duplicated names.  Each element of COMPLETION-STREAM has
-the form (NAME . (TOKEN . PARENTS)).  See also the function
+the form (NAME . (TAG . PARENTS)).  See also the function
 `senator-completion-refine-name'."
   (let ((completion-stream (sort completion-stream
                                  #'(lambda (e1 e2)
@@ -375,7 +366,7 @@ the form (NAME . (TOKEN . PARENTS)).  See also the function
                 dup (and elt (string-equal name (car elt)) elt))
           (and dup (setq clst (cdr clst))))))
     ;; Return a usable completion alist where each element has the
-    ;; form (NAME . TOKEN).
+    ;; form (NAME . TAG).
     (setq clst completion-stream)
     (while clst
       (setq elt  (car clst)
@@ -384,36 +375,36 @@ the form (NAME . (TOKEN . PARENTS)).  See also the function
     completion-stream))
 
 (defun senator-completion-stream (stream &optional top-level)
-  "Return a useful completion list from tokens in STREAM.
-That is an alist of all (COMPLETION-NAME . TOKEN) available.
-COMPLETION-NAME is an unique token name (see also the function
+  "Return a useful completion list from tags in STREAM.
+That is an alist of all (COMPLETION-NAME . TAG) available.
+COMPLETION-NAME is an unique tag name (see also the function
 `senator-completion-uniquify-names').  If TOP-LEVEL is non-nil the
-completion list will contain only tokens at top level.  Otherwise all
-sub tokens are included too."
+completion list will contain only tags at top level.  Otherwise all
+sub tags are included too."
   (let* ((fs (senator-completion-flatten-stream stream nil top-level))
-         cs elt tok)
-    ;; Transform each FS element from (TOKEN . PARENTS)
-    ;; to (NAME . (TOKEN . PARENT)).
+         cs elt tag)
+    ;; Transform each FS element from (TAG . PARENTS)
+    ;; to (NAME . (TAG . PARENT)).
     (while fs
       (setq elt (car fs)
-            tok (car elt)
+            tag (car elt)
             fs  (cdr fs)
-            cs  (cons (cons (semantic-token-name tok) elt) cs)))
+            cs  (cons (cons (semantic-tag-name tag) elt) cs)))
     ;; Return a completion list with unique COMPLETION-NAMEs.
     (senator-completion-uniquify-names cs)))
 
 (defun senator-current-type-context ()
-  "Return tokens in the type context at point or nil if not found."
+  "Return tags in the type context at point or nil if not found."
   (let ((context (semantic-find-nonterminal-by-token
                   'type (semantic-find-nonterminal-by-overlay))))
     (if context
-        (semantic-token-type-parts
+        (semantic-tag-type-members
          (nth (1- (length context)) context)))))
 
 (defun senator-completion-list (&optional in-context)
-  "Return a useful completion list from tokens in current buffer.
-If IN-CONTEXT is non-nil return only the top level tokens in the type
-context at point or the top level tokens in the current buffer if no
+  "Return a useful completion list from tags in current buffer.
+If IN-CONTEXT is non-nil return only the top level tags in the type
+context at point or the top level tags in the current buffer if no
 type context exists at point."
   (let (stream)
     (if in-context
@@ -429,47 +420,47 @@ type context exists at point."
 ;;; Senator stream searching functions:
 ;;
 (defun senator-find-nonterminal-by-name (name)
-  "Find a token with NAME.
+  "Find a tag with NAME.
 Uses `semanticdb' when available."
   (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-      ;; semanticdb version returns a list of (DB-TABLE . TOKEN)
+      ;; semanticdb version returns a list of (DB-TABLE . TAG)
       (semanticdb-find-nonterminal-by-name name nil t)
-    ;; for semantic version just return TOKEN
+    ;; for semantic version just return TAG
     (semantic-find-nonterminal-by-name name (current-buffer) t)))
 
 (defun senator-find-nonterminal-by-name-regexp (regexp)
-  "Find all tokens with a name matching REGEXP.
+  "Find all tags with a name matching REGEXP.
 Uses `semanticdb' when available."
   (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-      ;; semanticdb version returns a list of (DB-TABLE . TOKEN-LIST)
+      ;; semanticdb version returns a list of (DB-TABLE . TAG-LIST)
       (semanticdb-find-nonterminal-by-name-regexp regexp nil t)
-    ;; for semantic version just return TOKEN-LIST
+    ;; for semantic version just return TAG-LIST
     (semantic-find-nonterminal-by-name-regexp regexp (current-buffer) t)))
 
 ;;;;
 ;;;; Search functions
 ;;;;
 
-(defun senator-search-token-name (token)
-  "Search the TOKEN name in TOKEN bounds.
+(defun senator-search-token-name (tag)
+  "Search the TAG name in TAG bounds.
 Set point to the end of the name, and return point.  To get the
 beginning of the name use (match-beginning 0)."
-  (let ((name (semantic-token-name token)))
+  (let ((name (semantic-tag-name tag)))
     (setq name (if (string-match "\\`\\([^[]+\\)[[]" name)
                    (match-string 1 name)
                  name))
-    (goto-char (semantic-token-start token))
+    (goto-char (semantic-tag-start tag))
     (re-search-forward (concat
-                        ;; the token name is at the beginning of a
+                        ;; the tag name is at the beginning of a
                         ;; word or after a whitespace or a punctuation
                         "\\(\\<\\|\\s-+\\|\\s.\\)"
                         (regexp-quote name))
-                       (semantic-token-end token))
+                       (semantic-tag-end tag))
     (goto-char (match-beginning 0))
     (search-forward name)))
 
 (defun senator-search-forward-raw (searcher what &optional bound noerror count)
-  "Use SEARCHER to search WHAT in Semantic token names after point.
+  "Use SEARCHER to search WHAT in Semantic tag names after point.
 See `search-forward' for the meaning of BOUND NOERROR and COUNT."
   (let* ((origin (point))
          (count  (or count 1))
@@ -477,17 +468,17 @@ See `search-forward' for the meaning of BOUND NOERROR and COUNT."
                        ((> count 0) 1)
                        (t (setq count (- count))
                           -1)))
-         found next sstart send token tstart tend)
+         found next sstart send tag tstart tend)
     (or (= step 0)
         (while (and (not found)
                     (setq next (funcall searcher what bound t step)))
           (setq sstart (match-beginning 0)
                 send   (match-end 0)
-                token  (semantic-current-nonterminal))
+                tag  (semantic-current-nonterminal))
         (if (= sstart send)
             (setq found t)
-          (if token
-              (setq tend   (senator-search-token-name token)
+          (if tag
+              (setq tend   (senator-search-token-name tag)
                     tstart (match-beginning 0)
                     found  (and (>= sstart tstart)
                                 (<= send tend)
@@ -506,7 +497,7 @@ See `search-forward' for the meaning of BOUND NOERROR and COUNT."
     (funcall searcher what send noerror step)))
 
 (defun senator-search-backward-raw (searcher what &optional bound noerror count)
-  "Use SEARCHER to search WHAT in Semantic token names before point.
+  "Use SEARCHER to search WHAT in Semantic tag names before point.
 See `search-backward' for the meaning of BOUND NOERROR and COUNT."
   (let* ((origin (point))
          (count  (or count 1))
@@ -514,17 +505,17 @@ See `search-backward' for the meaning of BOUND NOERROR and COUNT."
                        ((> count 0) 1)
                        (t (setq count (- count))
                           -1)))
-         found next sstart send token tstart tend)
+         found next sstart send tag tstart tend)
     (or (= step 0)
         (while (and (not found)
                     (setq next (funcall searcher what bound t step)))
           (setq sstart (match-beginning 0)
                 send   (match-end 0)
-                token  (semantic-current-nonterminal))
+                tag  (semantic-current-nonterminal))
         (if (= sstart send)
             (setq found t)
-          (if token
-              (setq tend   (senator-search-token-name token)
+          (if tag
+              (setq tend   (senator-search-token-name tag)
                     tstart (match-beginning 0)
                     found  (and (>= sstart tstart)
                                 (<= send tend)
@@ -548,85 +539,85 @@ See `search-backward' for the meaning of BOUND NOERROR and COUNT."
 
 ;;;###autoload
 (defun senator-next-token ()
-  "Navigate to the next Semantic token.
-Return the token or nil if at end of buffer."
+  "Navigate to the next Semantic tag.
+Return the tag or nil if at end of buffer."
   (interactive)
-  (let ((pos   (point))
-        (token (semantic-current-nonterminal))
+  (let ((pos (point))
+        (tag (semantic-current-nonterminal))
         where)
-    (if (and token
-             (not (senator-skip-p token))
-             (senator-step-at-start-end-p token)
-             (or (= pos (semantic-token-start token))
-                 (senator-middle-of-token-p pos token)))
+    (if (and tag
+             (not (senator-skip-p tag))
+             (senator-step-at-start-end-p tag)
+             (or (= pos (semantic-tag-start tag))
+                 (senator-middle-of-token-p pos tag)))
         nil
-      (if (setq token (senator-step-at-parent token))
+      (if (setq tag (senator-step-at-parent tag))
           nil
-        (setq token (semantic-find-nonterminal-by-overlay-next pos))
-        (while (and token (senator-skip-p token))
-          (setq token (semantic-find-nonterminal-by-overlay-next
-                       (semantic-token-start token))))))
-    (if (not token)
+        (setq tag (semantic-find-nonterminal-by-overlay-next pos))
+        (while (and tag (senator-skip-p tag))
+          (setq tag (semantic-find-nonterminal-by-overlay-next
+                       (semantic-tag-start tag))))))
+    (if (not tag)
         (progn
           (goto-char (point-max))
           (working-message "End of buffer"))
-      (cond ((and (senator-step-at-start-end-p token)
-                  (or (= pos (semantic-token-start token))
-                      (senator-middle-of-token-p pos token)))
+      (cond ((and (senator-step-at-start-end-p tag)
+                  (or (= pos (semantic-tag-start tag))
+                      (senator-middle-of-token-p pos tag)))
              (setq where "end")
-             (goto-char (semantic-token-end token)))
+             (goto-char (semantic-tag-end tag)))
             (t
              (setq where "start")
-             (goto-char (semantic-token-start token))))
-      (senator-momentary-highlight-token token)
+             (goto-char (semantic-tag-start tag))))
+      (senator-momentary-highlight-token tag)
       (working-message "%S: %s (%s)"
-                       (semantic-token-token token)
-                       (semantic-token-name  token)
+                       (semantic-tag-class tag)
+                       (semantic-tag-name  tag)
                        where))
-    token))
+    tag))
 
 ;;;###autoload
 (defun senator-previous-token ()
-  "Navigate to the previous Semantic token.
-Return the token or nil if at beginning of buffer."
+  "Navigate to the previous Semantic tag.
+Return the tag or nil if at beginning of buffer."
   (interactive)
-  (let ((pos   (point))
-        (token (semantic-current-nonterminal))
+  (let ((pos (point))
+        (tag (semantic-current-nonterminal))
         where)
-    (if (and token
-             (not (senator-skip-p token))
-             (senator-step-at-start-end-p token)
-             (or (= pos (semantic-token-end token))
-                 (senator-middle-of-token-p pos token)))
+    (if (and tag
+             (not (senator-skip-p tag))
+             (senator-step-at-start-end-p tag)
+             (or (= pos (semantic-tag-end tag))
+                 (senator-middle-of-token-p pos tag)))
         nil
-      (if (setq token (senator-step-at-parent token))
+      (if (setq tag (senator-step-at-parent tag))
           nil
-        (setq token (senator-previous-token-or-parent pos))
-        (while (and token (senator-skip-p token))
-          (setq token (senator-previous-token-or-parent
-                       (semantic-token-start token))))))
-    (if (not token)
+        (setq tag (senator-previous-token-or-parent pos))
+        (while (and tag (senator-skip-p tag))
+          (setq tag (senator-previous-token-or-parent
+                       (semantic-tag-start tag))))))
+    (if (not tag)
         (progn
           (goto-char (point-min))
           (working-message "Beginning of buffer"))
-      (cond ((or (not (senator-step-at-start-end-p token))
-                 (= pos (semantic-token-end token))
-                 (senator-middle-of-token-p pos token))
+      (cond ((or (not (senator-step-at-start-end-p tag))
+                 (= pos (semantic-tag-end tag))
+                 (senator-middle-of-token-p pos tag))
              (setq where "start")
-             (goto-char (semantic-token-start token)))
+             (goto-char (semantic-tag-start tag)))
             (t
              (setq where "end")
-             (goto-char (semantic-token-end token))))
-      (senator-momentary-highlight-token token)
+             (goto-char (semantic-tag-end tag))))
+      (senator-momentary-highlight-token tag)
       (working-message "%S: %s (%s)"
-                       (semantic-token-token token)
-                       (semantic-token-name  token)
+                       (semantic-tag-class tag)
+                       (semantic-tag-name  tag)
                        where))
-    token))
+    tag))
 
 (defvar senator-jump-completion-list nil
   "`senator-jump' stores here its current completion list.
-Then use `assoc' to retrieve the token associated to a symbol.")
+Then use `assoc' to retrieve the tag associated to a symbol.")
 
 (defun senator-jump-interactive (prompt &optional in-context no-default require-match)
   "Called interactively to provide completion on some tag name.
@@ -639,9 +630,9 @@ optional REQUIRE-MATCH is non-nil an explicit match must be made.
 The IN-CONTEXT and NO-DEFAULT switches are combined using the
 following prefix arguments:
 
-- - \\[universal-argument]       IN-CONTEXT.
-- - \\[universal-argument] -     NO-DEFAULT.
-- - \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
+- \\[universal-argument]       IN-CONTEXT.
+- \\[universal-argument] -     NO-DEFAULT.
+- \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
   (let* ((arg (prefix-numeric-value current-prefix-arg))
          (no-default
           (or no-default
@@ -660,7 +651,7 @@ following prefix arguments:
                    (semantic-ctxt-current-function))))
          (completing-read-args
           (list (if (and context (car context))
-                    (concat prompt "(default: " (car context) ") ")
+                    (format "%s(default: %s) " prompt (car context))
                   prompt)
                 (setq senator-jump-completion-list
                       (senator-completion-list in-context))
@@ -680,14 +671,14 @@ following prefix arguments:
 If NEXT-P is non-nil, then move the the next tag in the search
 assuming there was already one jump for the given symbol.
 If REGEXP-P is non nil, then treat SYM as a regular expression.
-Return the token jumped to.
+Return the tag jumped to.
 Note: REGEXP-P doesn't work yet.  This needs to be added to get
 the etags override to be fully functional."
-  (let ((token (cdr (assoc sym senator-jump-completion-list))))
-    (when token
-      (set-buffer (semantic-token-buffer token))
-      (goto-char (semantic-token-start token))
-      token)))
+  (let ((tag (cdr (assoc sym senator-jump-completion-list))))
+    (when tag
+      (set-buffer (semantic-tag-buffer tag))
+      (goto-char (semantic-tag-start tag))
+      tag)))
 
 ;;;###autoload
 (defun senator-jump (sym &optional in-context no-default)
@@ -700,18 +691,18 @@ NO-DEFAULT is non-nil do not provide a default value.
 When called interactively you can combine the IN-CONTEXT and
 NO-DEFAULT switches like this:
 
-- - \\[universal-argument]       IN-CONTEXT.
-- - \\[universal-argument] -     NO-DEFAULT.
-- - \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
+- \\[universal-argument]       IN-CONTEXT.
+- \\[universal-argument] -     NO-DEFAULT.
+- \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
   (interactive (senator-jump-interactive "Jump to: " nil nil t))
   (push-mark)
-  (let ((tok (senator-jump-noselect sym no-default)))
-    (when tok
-      (switch-to-buffer (semantic-token-buffer tok))
-      (senator-momentary-highlight-token tok)
+  (let ((tag (senator-jump-noselect sym no-default)))
+    (when tag
+      (switch-to-buffer (semantic-tag-buffer tag))
+      (senator-momentary-highlight-token tag)
       (working-message "%S: %s "
-                       (semantic-token-token tok)
-                       (semantic-token-name  tok)))))
+                       (semantic-tag-class tag)
+                       (semantic-tag-name  tag)))))
 
 ;;;###autoload
 (defun senator-jump-regexp (symregex &optional in-context no-default)
@@ -726,17 +717,17 @@ next match of SYMREGEX.  NOTE: Doesn't actually work yet.
 When called interactively you can combine the IN-CONTEXT and
 NO-DEFAULT switches like this:
 
-- - \\[universal-argument]       IN-CONTEXT.
-- - \\[universal-argument] -     NO-DEFAULT.
-- - \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
+- \\[universal-argument]       IN-CONTEXT.
+- \\[universal-argument] -     NO-DEFAULT.
+- \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
   (interactive (senator-jump-interactive "Jump to: "))
-  (let ((tok (senator-jump-noselect symregex no-default)))
-    (when tok
-      (switch-to-buffer (semantic-token-buffer tok))
-      (senator-momentary-highlight-token tok)
+  (let ((tag (senator-jump-noselect symregex no-default)))
+    (when tag
+      (switch-to-buffer (semantic-tag-buffer tag))
+      (senator-momentary-highlight-token tag)
       (working-message "%S: %s "
-                       (semantic-token-token tok)
-                       (semantic-token-name  tok)))))
+                       (semantic-tag-class tag)
+                       (semantic-tag-name  tag)))))
 
 (defvar senator-last-completion-stats nil
   "The last senator completion was here.
@@ -767,14 +758,14 @@ of completions once, doing nothing where there are no more matches."
                  (save-excursion
                    (goto-char symstart)
                    (looking-at (nth 3 senator-last-completion-stats))))
-             
+            
             (setq complst (nthcdr 4 senator-last-completion-stats))
-
+          
           (setq regex (regexp-quote (buffer-substring symstart (point)))
                 complst (let ((found
                                (senator-find-nonterminal-by-name-regexp
                                 (concat "^" regex))))
-                          (if (and found (semantic-token-p (car found)))
+                          (if (and found (semantic-tag-p (car found)))
                               found
                             (apply #'append (mapcar #'cdr found))))
                 senator-last-completion-stats (append (list (current-buffer)
@@ -788,18 +779,18 @@ of completions once, doing nothing where there are no more matches."
               (index (nth 2 senator-last-completion-stats))
               newtok)
           (if (= index (length complst))
-              ;; Cycle to the first completion token.
+              ;; Cycle to the first completion tag.
               (setq index  0
                     ;; Stop completion if CYCLE-ONCE is non-nil.
                     ret (not cycle-once)))
-          ;; Get the new completion token.
+          ;; Get the new completion tag.
           (setq newtok (nth index complst))
           (when ret
-            ;; Move index to the next completion token.
+            ;; Move index to the next completion tag.
             (setq index (1+ index)
                   ;; Return the completion string (useful to hippie
                   ;; expand for example)
-                  ret   (semantic-token-name newtok))
+                  ret   (semantic-tag-name newtok))
             ;; Replace the string.
             (delete-region symstart (point))
             (insert ret))
@@ -822,21 +813,21 @@ Some useful functions are in `semantic-token->text-functions'."
 (defcustom senator-completion-menu-insert-function
   'senator-completion-menu-insert-default
   "*Function to use to insert an item from completion menu.
-It will receive a Semantic token as argument."
+It will receive a Semantic tag as argument."
   :group 'senator
   :type '(radio (const senator-completion-menu-insert-default)
                 (function)))
 (make-variable-buffer-local 'senator-completion-menu-insert-function)
 
-(defun senator-completion-menu-insert-default (token)
-  "Insert a text representation of TOKEN at point."
-  (insert (semantic-token-name token)))
+(defun senator-completion-menu-insert-default (tag)
+  "Insert a text representation of TAG at point."
+  (insert (semantic-tag-name tag)))
 
-(defun senator-completion-menu-do-complete (token-array)
+(defun senator-completion-menu-do-complete (tag-array)
   "Replace the current syntactic expression with a chosen completion.
-Argument TOKEN-ARRAY is an array of one element containting the token
+Argument TAG-ARRAY is an array of one element containting the tag
 choosen from the completion menu."
-  (let ((token (aref token-array 0))
+  (let ((tag (aref tag-array 0))
         (symstart (senator-current-symbol-start))
         (finsert (if (fboundp senator-completion-menu-insert-function)
                      senator-completion-menu-insert-function
@@ -844,23 +835,23 @@ choosen from the completion menu."
     (if symstart
         (progn
           (delete-region symstart (point))
-          (funcall finsert token)))))
+          (funcall finsert tag)))))
 
-(defun senator-completion-menu-item (token)
-  "Return a completion menu item from TOKEN.
-That is a pair (MENU-ITEM-TEXT . TOKEN-ARRAY).  TOKEN-ARRAY is an
-array of one element containting TOKEN.  Can return nil to discard a
+(defun senator-completion-menu-item (tag)
+  "Return a completion menu item from TAG.
+That is a pair (MENU-ITEM-TEXT . TAG-ARRAY).  TAG-ARRAY is an
+array of one element containting TAG.  Can return nil to discard a
 menu item."
-  (if (semantic-token-p token)
+  (if (semantic-tag-p tag)
       (cons (funcall (if (fboundp senator-completion-menu-summary-function)
                          senator-completion-menu-summary-function
-                       #'semantic-prototype-nonterminal) token)
-            (vector token))
-    (cons (file-name-sans-extension (oref (car token) file))
+                       #'semantic-prototype-nonterminal) tag)
+            (vector tag))
+    (cons (file-name-sans-extension (oref (car tag) file))
           (delq nil
                 (mapcar #'senator-completion-menu-item
-                        (cdr token))))))
-          
+                        (cdr tag))))))
+
 (defun senator-completion-menu-window-offsets (&optional window)
   "Return offsets of WINDOW relative to WINDOW's frame.
 Return a cons cell (XOFFSET . YOFFSET) so the position (X . Y) in
@@ -954,7 +945,7 @@ use `imenu--mouse-menu' to handle the popup menu."
           title item)
       (cond ;; Here index is a menu structure like:
        
-       ;; -1- (("menu-item1" . [token1]) ...)
+       ;; -1- (("menu-item1" . [tag1]) ...)
        ((vectorp (cdr (car index)))
         ;; There are more than one item, setup the popup title.
         (if (cdr index)
@@ -962,7 +953,7 @@ use `imenu--mouse-menu' to handle the popup menu."
           ;; Only one item , no need to popup the menu.
           (setq item (car index))))
        
-       ;; -2- (("menu-title1" ("menu-item1" . [token1]) ...) ...)
+       ;; -2- (("menu-title1" ("menu-item1" . [tag1]) ...) ...)
        (t
         ;; There are sub-menus.
         (if (cdr index)
@@ -1000,7 +991,7 @@ use `imenu--mouse-menu' to handle the popup menu."
 
 ;;;###autoload
 (defun senator-search-forward (what &optional bound noerror count)
-  "Search semantic tokens forward from point for string WHAT.
+  "Search semantic tags forward from point for string WHAT.
 Set point to the end of the occurrence found, and return point.  See
 `search-forward' for details and the meaning of BOUND NOERROR and
 COUNT.  COUNT is just ignored in the current implementation."
@@ -1009,7 +1000,7 @@ COUNT.  COUNT is just ignored in the current implementation."
 
 ;;;###autoload
 (defun senator-re-search-forward (what &optional bound noerror count)
-  "Search semantic tokens forward from point for regexp WHAT.
+  "Search semantic tags forward from point for regexp WHAT.
 Set point to the end of the occurrence found, and return point.  See
 `re-search-forward' for details and the meaning of BOUND NOERROR and
 COUNT.  COUNT is just ignored in the current implementation."
@@ -1018,7 +1009,7 @@ COUNT.  COUNT is just ignored in the current implementation."
 
 ;;;###autoload
 (defun senator-word-search-forward (what &optional bound noerror count)
-  "Search semantic tokens forward from point for word WHAT.
+  "Search semantic tags forward from point for word WHAT.
 Set point to the end of the occurrence found, and return point.  See
 `word-search-forward' for details and the meaning of BOUND NOERROR and
 COUNT.  COUNT is just ignored in the current implementation."
@@ -1027,7 +1018,7 @@ COUNT.  COUNT is just ignored in the current implementation."
 
 ;;;###autoload
 (defun senator-search-backward (what &optional bound noerror count)
-  "Search semantic tokens backward from point for string WHAT.
+  "Search semantic tags backward from point for string WHAT.
 Set point to the beginning of the occurrence found, and return point.
 See `search-backward' for details and the meaning of BOUND NOERROR and
 COUNT.  COUNT is just ignored in the current implementation."
@@ -1036,7 +1027,7 @@ COUNT.  COUNT is just ignored in the current implementation."
 
 ;;;###autoload
 (defun senator-re-search-backward (what &optional bound noerror count)
-  "Search semantic tokens backward from point for regexp WHAT.
+  "Search semantic tags backward from point for regexp WHAT.
 Set point to the beginning of the occurrence found, and return point.
 See `re-search-backward' for details and the meaning of BOUND NOERROR
 and COUNT.  COUNT is just ignored in the current implementation."
@@ -1045,7 +1036,7 @@ and COUNT.  COUNT is just ignored in the current implementation."
 
 ;;;###autoload
 (defun senator-word-search-backward (what &optional bound noerror count)
-  "Search semantic tokens backward from point for word WHAT.
+  "Search semantic tags backward from point for word WHAT.
 Set point to the beginning of the occurrence found, and return point.
 See `word-search-backward' for details and the meaning of BOUND
 NOERROR and COUNT.  COUNT is just ignored in the current
@@ -1150,41 +1141,41 @@ REGEXP says which ring to use."
   (senator-re-search-backward (car regexp-search-ring)))
 
 ;;;;
-;;;; Token Properties
+;;;; Tag Properties
 ;;;;
 
-(defun senator-toggle-read-only (&optional token)
-  "Toggle the read-only status of the current TOKEN."
+(defun senator-toggle-read-only (&optional tag)
+  "Toggle the read-only status of the current TAG."
   (interactive)
-  (let* ((tok  (or token (senator-current-token)))
-         (read (semantic-token-read-only-p tok)))
-    (semantic-set-token-read-only tok read)
+  (let* ((tag  (or tag (senator-current-token)))
+         (read (semantic-token-read-only-p tag)))
+    (semantic-set-token-read-only tag read)
     (semantic-set-token-face
-     tok
+     tag
      (if read nil 'senator-read-only-face))))
 
-(defun senator-toggle-intangible (&optional token)
-  "Toggle the tangibility of the current TOKEN."
+(defun senator-toggle-intangible (&optional tag)
+  "Toggle the tangibility of the current TAG."
   (interactive)
-  (let* ((tok (or token (senator-current-token)))
-         (tang (semantic-token-intangible-p tok)))
-    (semantic-set-token-intangible tok tang)
+  (let* ((tag (or tag (senator-current-token)))
+         (tang (semantic-token-intangible-p tag)))
+    (semantic-set-token-intangible tag tang)
     (semantic-set-token-face
-     tok
+     tag
      (if tang nil 'senator-intangible-face))))
 
-(defun senator-set-face (face &optional token)
-  "Set the foreground FACE of the current TOKEN."
+(defun senator-set-face (face &optional tag)
+  "Set the foreground FACE of the current TAG."
   (interactive (list (read-face-name
                       (if (featurep 'xemacs)
                           "Face: "
                         ;; GNU Emacs already append ": "
                         "Face"))))
-  (let ((tok (or token (senator-current-token))))
-    (semantic-set-token-face tok face)))
+  (let ((tag (or tag (senator-current-token))))
+    (semantic-set-token-face tag face)))
 
-(defun senator-set-foreground (color &optional token)
-  "Set the foreground COLOR of the current TOKEN."
+(defun senator-set-foreground (color &optional tag)
+  "Set the foreground COLOR of the current TAG."
   ;; This was copied from facemenu
   (interactive (list (facemenu-read-color "Foreground color: ")))
   (let ((face (intern (concat "fg:" color))))
@@ -1192,8 +1183,8 @@ REGEXP says which ring to use."
         (error "Unknown color: %s" color))
     (senator-set-face face)))
 
-(defun senator-set-background (color &optional token)
-  "Set the background COLOR of the current TOKEN."
+(defun senator-set-background (color &optional tag)
+  "Set the background COLOR of the current TAG."
   ;; This was copied from facemenu
   (interactive (list (facemenu-read-color "Background color: ")))
   (let ((face (intern (concat "bg:" color))))
@@ -1201,13 +1192,13 @@ REGEXP says which ring to use."
         (error "Unknown color: %s" color))
     (senator-set-face face)))
 
-(defun senator-clear-token (&optional token)
-  "Clear all properties from TOKEN."
+(defun senator-clear-token (&optional tag)
+  "Clear all properties from TAG."
   (interactive)
-  (let ((tok (or token (senator-current-token))))
-    (semantic-set-token-read-only  tok t)
-    (semantic-set-token-intangible tok t)
-    (semantic-set-token-face       tok nil)))
+  (let ((tag (or tag (senator-current-token))))
+    (semantic-set-token-read-only  tag t)
+    (semantic-set-token-intangible tag t)
+    (semantic-set-token-face       tag nil)))
 
 ;;;;
 ;;;; Misc. menu stuff.
@@ -1479,7 +1470,7 @@ minor mode entry."
 (senator-register-mode-menu-entry
  "Summaries"
  '(semantic-summary-mode
-   :help "Show useful things about the Semantic token near point."
+   :help "Show useful things about the Semantic tag near point."
    )
  '(global-semantic-summary-mode
    :help "Automatically enable summary mode in all Semantic buffers."
@@ -1489,7 +1480,7 @@ minor mode entry."
 
 
 ;;;;
-;;;; Global minor mode to show token names in the mode line
+;;;; Global minor mode to show tag names in the mode line
 ;;;;
 
 (condition-case nil
@@ -1527,7 +1518,7 @@ minor mode entry."
                    "[persist]"
                  "[session]")
              "")
-   :help "Cache tokens for killed buffers and between sessions."
+   :help "Cache tags for killed buffers and between sessions."
    :save semanticdb-global-mode
    )
  )
@@ -1571,11 +1562,11 @@ This is a buffer local variable.")
      ["Next"
       senator-next-token
       :active t
-      :help "Go to the next token found"
+      :help "Go to the next tag found"
       ])
     (senator-menu-item
      ["Previous"
-      senator-previous-token
+      senator-previous-tag
       :active t
       :help "Go to the previous token found"
       ])
@@ -1646,27 +1637,27 @@ This is a buffer local variable.")
       ])
     )
    (list
-    "Token Properties"
+    "Tag Properties"
 ;;;    (senator-menu-item
-;;;     [ "Hide Token"
+;;;     [ "Hide Tag"
 ;;;       senator-make-invisible
 ;;;       :active t
-;;;       :help "Make the current token invisible"
+;;;       :help "Make the current tag invisible"
 ;;;       ])
 ;;;    (senator-menu-item
-;;;     [ "Show Token"
+;;;     [ "Show Tag"
 ;;;       senator-make-visible
 ;;;       :active t
-;;;       :help "Make the current token invisible"
+;;;       :help "Make the current tag invisible"
 ;;;       ])
     (senator-menu-item
      [ "Read Only"
        senator-toggle-read-only
        :active (semantic-current-nonterminal)
        :style toggle
-       :selected (let ((tok (semantic-current-nonterminal)))
-                   (and tok (semantic-token-read-only-p tok)))
-       :help "Make the current token read-only"
+       :selected (let ((tag (semantic-current-nonterminal)))
+                   (and tag (semantic-token-read-only-p tag)))
+       :help "Make the current tag read-only"
        ])
     (senator-menu-item
      [ "Intangible"
@@ -1676,60 +1667,60 @@ This is a buffer local variable.")
                     (semantic-current-nonterminal))
        :style toggle
        :selected (and (not (featurep 'xemacs))
-                      (let ((tok (semantic-current-nonterminal)))
-                        (and tok (semantic-token-intangible-p tok))))
-       :help "Make the current token intangible"
+                      (let ((tag (semantic-current-nonterminal)))
+                        (and tag (semantic-token-intangible-p tag))))
+       :help "Make the current tag intangible"
        ])
     (senator-menu-item
-     [ "Set Token Face"
+     [ "Set Tag Face"
        senator-set-face
        :active (semantic-current-nonterminal)
-       :help "Set the face on the current token"
+       :help "Set the face on the current tag"
        ])
     (senator-menu-item
-     [ "Set Token Foreground"
+     [ "Set Tag Foreground"
        senator-set-foreground
        :active (semantic-current-nonterminal)
-       :help "Set the foreground color on the current token"
+       :help "Set the foreground color on the current tag"
        ])
     (senator-menu-item
-     [ "Set Token Background"
+     [ "Set Tag Background"
        senator-set-background
        :active (semantic-current-nonterminal)
-       :help "Set the background color on the current token"
+       :help "Set the background color on the current tag"
        ])
     (senator-menu-item
      [ "Remove all properties"
        senator-clear-token
        :active (semantic-current-nonterminal)
-       :help "Remove all special face properties on the current token "
+       :help "Remove all special face properties on the current tag "
        ] )
     )
    (list
-    "Token Copy/Paste"
+    "Tag Copy/Paste"
     (senator-menu-item
-     [ "Copy Token"
+     [ "Copy Tag"
        senator-copy-token
        :active (semantic-current-nonterminal)
-       :help "Copy the current token to the token ring"
+       :help "Copy the current tag to the tag ring"
        ])
     (senator-menu-item
-     [ "Kill Token"
+     [ "Kill Tag"
        senator-kill-token
        :active (semantic-current-nonterminal)
-       :help "Kill token text to the kill ring, and copy the token to the token ring"
+       :help "Kill tag text to the kill ring, and copy the tag to the tag ring"
        ])
     (senator-menu-item
-     [ "Yank Token"
+     [ "Yank Tag"
        senator-yank-token
        :active (not (ring-empty-p senator-token-ring))
-       :help "Yank a token from the token ring, inserting a summary/prototype"
+       :help "Yank a tag from the tag ring, inserting a summary/prototype"
        ])
     (senator-menu-item
-     [ "Copy Token to Register"
+     [ "Copy Tag to Register"
        senator-copy-token-to-register
        :active (semantic-current-nonterminal)
-       :help "Copy the current token to a register"
+       :help "Copy the current tag to a register"
        ])
     )
    "--"
@@ -1763,22 +1754,22 @@ This is a buffer local variable.")
    (list
     "Chart"
     (senator-menu-item
-     [ "Chart Tokens by Class"
+     [ "Chart Tags by Class"
        semantic-chart-nonterminals-by-token
        :active t
-       :help "Catagorize all tokens by type, and chart the volume for each type"
+       :help "Catagorize all tags by class, and chart the volume for each class"
        ])
     (senator-menu-item
-     [ "Chart Tokens by Complexity"
+     [ "Chart Tags by Complexity"
        semantic-chart-nonterminal-complexity-token
        :active t
-       :help "Choose the most complex tokens, and chart them by complexity"
+       :help "Choose the most complex tags, and chart them by complexity"
        ])
     (senator-menu-item
      [ "Chart File Complexity"
        semantic-chart-database-size
        :active (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-       :help "Choose the files with the most tokens, and chart them by volume"
+       :help "Choose the files with the most tags, and chart them by volume"
        ])
     )
    (if (or (featurep 'xemacs) (> emacs-major-version 20))
@@ -1792,7 +1783,7 @@ This is a buffer local variable.")
    (list
     "Imenu Config"
     (list
-     "Token Sorting Function"
+     "Tag Sorting Function"
      (senator-menu-item
       [ "Do not sort"
         (setq semantic-imenu-sort-bucket-function nil)
@@ -1809,7 +1800,7 @@ This is a buffer local variable.")
         :style radio
         :selected (eq semantic-imenu-sort-bucket-function
                       'semantic-sort-tokens-by-name-increasing)
-        :help "Sort tokens by name increasing"
+        :help "Sort tags by name increasing"
         ])
      (senator-menu-item
       [ "Decreasing by name"
@@ -1819,7 +1810,7 @@ This is a buffer local variable.")
         :style radio
         :selected (eq semantic-imenu-sort-bucket-function
                       'semantic-sort-tokens-by-name-decreasing)
-        :help "Sort tokens by name decreasing"
+        :help "Sort tags by name decreasing"
         ])
      (senator-menu-item
       [ "Increasing Case Insensitive by Name"
@@ -1829,7 +1820,7 @@ This is a buffer local variable.")
         :style radio
         :selected (eq semantic-imenu-sort-bucket-function
                       'semantic-sort-tokens-by-name-increasing-ci)
-        :help "Sort tokens by name increasing and case insensitive"
+        :help "Sort tags by name increasing and case insensitive"
         ])
      (senator-menu-item
       [ "Decreasing Case Insensitive by Name"
@@ -1839,17 +1830,17 @@ This is a buffer local variable.")
         :style radio
         :selected (eq semantic-imenu-sort-bucket-function
                       'semantic-sort-tokens-by-name-decreasing-ci)
-        :help "Sort tokens by name decreasing and case insensitive"
+        :help "Sort tags by name decreasing and case insensitive"
         ])
      )
     (senator-menu-item
-     [ "Bin tokens by type"
+     [ "Bin tags by class"
        (setq semantic-imenu-bucketize-file
              (not semantic-imenu-bucketize-file))
        :active t
        :style toggle
        :selected semantic-imenu-bucketize-file
-       :help "Organize tokens in bins by type of token"
+       :help "Organize tags in bins by class of tag"
        ])
     (senator-menu-item
      [ "Bins are submenus"
@@ -1858,16 +1849,16 @@ This is a buffer local variable.")
        :active t
        :style toggle
        :selected semantic-imenu-buckets-to-submenu
-       :help "Organize tokens into submenus by type of token"
+       :help "Organize tags into submenus by class of tag"
        ])
     (senator-menu-item
-     [ "Bin tokens in children"
+     [ "Bin tags in components"
        (setq semantic-imenu-bucketize-type-parts
              (not semantic-imenu-bucketize-type-parts))
        :active t
        :style toggle
        :selected semantic-imenu-bucketize-type-parts
-       :help "When listing tokens inside another token; bin by token type"
+       :help "When listing tags inside another tag; bin by tag class"
        ])
     (senator-menu-item
      [ "List other files"
@@ -1997,7 +1988,7 @@ minor mode is enabled."
     ;; Disable semantic isearch
     (setq senator-isearch-semantic-mode nil))
   senator-minor-mode)
-  
+
 ;;;###autoload
 (defun senator-minor-mode (&optional arg)
   "Toggle senator minor mode.
@@ -2043,7 +2034,7 @@ minor mode is enabled.
                      :button  (:toggle . senator-minor-mode)
                      :visible (and (featurep 'semantic)
                                    (semantic-active-p))))
-     
+       
        ))
 
 ;;;###autoload
@@ -2062,31 +2053,31 @@ If ARG is nil, then toggle."
 
 (defun senator-beginning-of-defun (&optional arg)
   "Move backward to the beginning of a defun.
-Use semantic tokens to navigate.
-ARG is the number of tokens to navigate (not yet implemented)."
+Use semantic tags to navigate.
+ARG is the number of tags to navigate (not yet implemented)."
   (let* ((senator-highlight-found nil)
-         ;; Step at beginning of next token with id specified in
+         ;; Step at beginning of next tag with class specified in
          ;; `senator-step-at-token-ids'.
          (senator-step-at-start-end-token-ids t)
-         (token (senator-previous-token)))
-    (when token
-      (if (= (point) (semantic-token-end token))
-          (goto-char (semantic-token-start token)))
+         (tag (senator-previous-token)))
+    (when tag
+      (if (= (point) (semantic-tag-end tag))
+          (goto-char (semantic-tag-start tag)))
       (beginning-of-line))
     (working-message nil)))
 
 (defun senator-end-of-defun (&optional arg)
   "Move forward to next end of defun.
-Use semantic tokens to navigate.
-ARG is the number of tokens to navigate (not yet implemented)."
+Use semantic tags to navigate.
+ARG is the number of tags to navigate (not yet implemented)."
   (let* ((senator-highlight-found nil)
-         ;; Step at end of next token with id specified in
+         ;; Step at end of next tag with class specified in
          ;; `senator-step-at-token-ids'.
          (senator-step-at-start-end-token-ids t)
-         (token (senator-next-token)))
-    (when token
-      (if (= (point) (semantic-token-start token))
-          (goto-char (semantic-token-end token)))
+         (tag (senator-next-token)))
+    (when tag
+      (if (= (point) (semantic-tag-start tag))
+          (goto-char (semantic-tag-end tag)))
       (skip-chars-forward " \t")
       (if (looking-at "\\s<\\|\n")
           (forward-line 1)))
@@ -2095,7 +2086,7 @@ ARG is the number of tokens to navigate (not yet implemented)."
 (defun senator-narrow-to-defun ()
   "Make text outside current defun invisible.
 The defun visible is the one that contains point or follows point.
-Use semantic tokens to navigate."
+Use semantic tags to navigate."
   (interactive)
   (save-excursion
     (widen)
@@ -2107,7 +2098,7 @@ Use semantic tokens to navigate."
 (defun senator-mark-defun ()
   "Put mark at end of this defun, point at beginning.
 The defun marked is the one that contains point or follows point.
-Use semantic tokens to navigate."
+Use semantic tags to navigate."
   (interactive)
   (let ((origin (point))
         (end    (progn (senator-end-of-defun) (point)))
@@ -2121,14 +2112,14 @@ Use semantic tokens to navigate."
 
 (defadvice beginning-of-defun (around senator activate)
   "Move backward to the beginning of a defun.
-If semantic tokens are available, use them to navigate."
+If semantic tags are available, use them to navigate."
   (if (and senator-minor-mode (interactive-p))
       (senator-beginning-of-defun (ad-get-arg 0))
     ad-do-it))
 
 (defadvice end-of-defun (around senator activate)
   "Move forward to next end of defun.
-If semantic tokens are available, use them to navigate."
+If semantic tags are available, use them to navigate."
   (if (and senator-minor-mode (interactive-p))
       (senator-end-of-defun (ad-get-arg 0))
     ad-do-it))
@@ -2136,7 +2127,7 @@ If semantic tokens are available, use them to navigate."
 (defadvice narrow-to-defun (around senator activate)
   "Make text outside current defun invisible.
 The defun visible is the one that contains point or follows point.
-If semantic tokens are available, use them to navigate."
+If semantic tags are available, use them to navigate."
   (if (and senator-minor-mode (interactive-p))
       (senator-narrow-to-defun)
     ad-do-it))
@@ -2144,7 +2135,7 @@ If semantic tokens are available, use them to navigate."
 (defadvice mark-defun (around senator activate)
   "Put mark at end of this defun, point at beginning.
 The defun marked is the one that contains point or follows point.
-If semantic tokens are available, use them to navigate."
+If semantic tags are available, use them to navigate."
   (if (and senator-minor-mode (interactive-p))
       (senator-mark-defun)
     ad-do-it))
@@ -2152,13 +2143,13 @@ If semantic tokens are available, use them to navigate."
 (defadvice c-mark-function (around senator activate)
   "Put mark at end of this defun, point at beginning.
 The defun marked is the one that contains point or follows point.
-If semantic tokens are available, use them to navigate."
+If semantic tags are available, use them to navigate."
   (if (and senator-minor-mode (interactive-p))
       (senator-mark-defun)
     ad-do-it))
 
 (defvar senator-add-log-tokens '(function variable type)
-  "When advising `add-log-current-defun', nonterminal tokens used.
+  "When advising `add-log-current-defun', nonterminal tags used.
 Semantic nonterminals that are of these toke types will be used
 to find the name used by add log.")
 
@@ -2166,54 +2157,54 @@ to find the name used by add log.")
   "Return name of function definition point is in, or nil."
   (if senator-minor-mode
       (let ((cd (semantic-find-nonterminal-by-overlay))
-	    (name nil))
-	(while (and cd (not name))
-	  (if (member (semantic-token-token (car cd)) senator-add-log-tokens)
-	      (setq name (semantic-token-name (car cd))))
-	  (setq cd (cdr cd)))
-	(if name
-	    (setq ad-return-value name)
-	  ad-do-it))
+            (name nil))
+        (while (and cd (not name))
+          (if (member (semantic-tag-class (car cd)) senator-add-log-tokens)
+              (setq name (semantic-tag-name (car cd))))
+          (setq cd (cdr cd)))
+        (if name
+            (setq ad-return-value name)
+          ad-do-it))
     ad-do-it))
 
 ;;;;
-;;;; Token Cut & Paste
+;;;; Tag Cut & Paste
 ;;;;
 
-;; To copy a token, means to put a token definition into the token
-;; ring.  To kill a token, put the token into the token ring AND put
-;; the body of the token into the kill-ring.
+;; To copy a tag, means to put a tag definition into the tag
+;; ring.  To kill a tag, put the tag into the tag ring AND put
+;; the body of the tag into the kill-ring.
 ;;
-;; To retrieve a killed token's text, use C-y (yank), but to retrieve
-;; the token as a reference of some sort, use senator-yank-token.
+;; To retrieve a killed tag's text, use C-y (yank), but to retrieve
+;; the tag as a reference of some sort, use senator-yank-token.
 
 (defvar senator-token-ring (make-ring 20)
-  "Ring of tokens for use with cut and paste.")
+  "Ring of tags for use with cut and paste.")
 
-(defun senator-insert-foreign-token-default (token tokenfile)
-  "Insert TOKEN from a foreign buffer into the current buffer.
+(defun senator-insert-foreign-token-default (tag tagfile)
+  "Insert TAG from a foreign buffer into the current buffer.
 This is the default behavior for `senator-insert-foreign-token'.
 Assumes the current buffer is a language file, and attempts to insert
 a prototype/function call.
-Argument TOKENFILE is the file from wence TOKEN came."
+Argument TAGFILE is the file from wence TAG came."
   ;; Long term goal:
   ;; Have a mechanism for a tempo-like template insert for the given
-  ;; token.
-  (insert (semantic-prototype-nonterminal token)))
+  ;; tag.
+  (insert (semantic-prototype-nonterminal tag)))
 
-(defun senator-insert-foreign-token (token tokenfile)
-  "Insert TOKEN from a foreign buffer into the current buffer.
-TOKEN will have originated from TOKENFILE.
+(defun senator-insert-foreign-token (tag tagfile)
+  "Insert TAG from a foreign buffer into the current buffer.
+TAG will have originated from TAGFILE.
 This function is overridable with the symbol `insert-foreign-token'."
-  (if (or (not token) (not (semantic-token-p token)))
-      (signal 'wrong-type-argument (list token 'semantic-token-p)))
+  (if (or (not tag) (not (semantic-tag-p tag)))
+      (signal 'wrong-type-argument (list tag 'semantic-tag-p)))
   (let ((s (semantic-fetch-overload 'insert-foreign-token)))
-    (if s (funcall s token tokenfile)
-      (senator-insert-foreign-token-default token tokenfile))
-    (message (semantic-summarize-nonterminal token))))
+    (if s (funcall s tag tagfile)
+      (senator-insert-foreign-token-default tag tagfile))
+    (message (semantic-summarize-nonterminal tag))))
 
 (defun senator-copy-token ()
-  "Take the current token, and place it in the token ring."
+  "Take the current tag, and place it in the tag ring."
   (interactive)
   (senator-parse)
   (let ((ct (senator-current-token)))
@@ -2222,52 +2213,52 @@ This function is overridable with the symbol `insert-foreign-token'."
     ct))
 
 (defun senator-kill-token ()
-  "Take the current token, place it in the token ring, and kill it.
-Killing the token removes the text for that token, and places it into
+  "Take the current tag, place it in the tag ring, and kill it.
+Killing the tag removes the text for that tag, and places it into
 the kill ring.  Retrieve that text with \\[yank\\]."
   (interactive)
   (let ((ct (senator-copy-token))) ;; this handles the reparse for us.
-    (kill-region (semantic-token-start ct)
-                 (semantic-token-end ct))))
+    (kill-region (semantic-tag-start ct)
+                 (semantic-tag-end ct))))
 
 (defun senator-yank-token ()
-  "Yank a token from the token ring.
-The form the token takes is differnet depending on where it is being
+  "Yank a tag from the tag ring.
+The form the tag takes is differnet depending on where it is being
 yanked to."
   (interactive)
   (or (ring-empty-p senator-token-ring)
-      (let ((tok (ring-ref senator-token-ring 0)))
-        (senator-insert-foreign-token (car tok) (cdr tok)))))
+      (let ((tag (ring-ref senator-token-ring 0)))
+        (senator-insert-foreign-token (car tag) (cdr tag)))))
 
 (defun senator-copy-token-to-register (register &optional kill-flag)
-  "Copy the current token into REGISTER.
-Optional argument KILL-FLAG will delete the text of the token to the
+  "Copy the current tag into REGISTER.
+Optional argument KILL-FLAG will delete the text of the tag to the
 kill ring."
-  (interactive "cToken to register: \nP")
+  (interactive "cTag to register: \nP")
   (let ((ct (senator-current-token)))
     (set-register register (cons ct (buffer-file-name)))
     (if kill-flag
-        (kill-region (semantic-token-start ct)
-                     (semantic-token-end ct)))))
+        (kill-region (semantic-tag-start ct)
+                     (semantic-tag-end ct)))))
 
 (defadvice insert-register (around senator activate)
-  "Insert contents of register REGISTER as a token.
+  "Insert contents of register REGISTER as a tag.
 If senator is not active, use the original mechanism."
   (let ((val (get-register (ad-get-arg 0))))
     (if (and senator-minor-mode (interactive-p)
-             (listp val) (semantic-token-p (car val)))
+             (listp val) (semantic-tag-p (car val)))
         (senator-insert-foreign-token (car val) (cdr val))
       ad-do-it)))
 
 (defadvice jump-to-register (around senator activate)
-  "Insert contents of register REGISTER as a token.
+  "Insert contents of register REGISTER as a tag.
 If senator is not active, use the original mechanism."
   (let ((val (get-register (ad-get-arg 0))))
     (if (and senator-minor-mode (interactive-p)
-             (listp val) (semantic-token-p (car val)))
+             (listp val) (semantic-tag-p (car val)))
         (progn
           (find-file (cdr val))
-          (goto-char (semantic-token-start (car val))))
+          (goto-char (semantic-tag-start (car val))))
       ad-do-it)))
 
 ;;;;
@@ -2328,14 +2319,14 @@ versions of Emacs."
 You can override the info collecting part with `eldoc-current-symbol-info'."
   (let* ((s (semantic-fetch-overload 'eldoc-current-symbol-info))
          found)
-
+    
     (if s (setq found (funcall s))
       (setq found (senator-eldoc-print-current-symbol-info-default)))
-
+    
     (eldoc-message
      (cond ((stringp found)
             found)
-           ((semantic-token-p found)
+           ((semantic-tag-p found)
             (semantic-summarize-nonterminal found nil senator-eldoc-use-color))
            (t nil)
            ))))
@@ -2428,9 +2419,9 @@ found, nil otherwise."
 
 ;;; Compatibility
 (cond
- (;; GNU Emacs 21.0 lazy highlighting
+ ( ;; GNU Emacs 21.0 lazy highlighting
   (fboundp 'isearch-lazy-highlight-cleanup)
-
+  
   ;; Provide this function used by senator
   (defun senator-lazy-highlight-update ()
     "Force lazy highlight update."
@@ -2438,12 +2429,12 @@ found, nil otherwise."
     (set 'isearch-lazy-highlight-last-string nil)
     (setq isearch-adjusted t)
     (isearch-update))
-
+  
   ) ;; End of GNU Emacs 21 lazy highlighting
-
- (;; XEmacs 21.4 lazy highlighting
+ 
+ ( ;; XEmacs 21.4 lazy highlighting
   (fboundp 'isearch-highlight-all-cleanup)
-       
+  
   ;; Provide this function used by senator
   (defun senator-lazy-highlight-update ()
     "Force lazy highlight update."
@@ -2451,12 +2442,12 @@ found, nil otherwise."
     (set 'isearch-highlight-last-string nil)
     (setq isearch-adjusted t)
     (isearch-update))
-
+  
   ) ;; End of XEmacs 21.4 lazy highlighting
-
- (;; GNU Emacs 20 lazy highlighting via ishl
+ 
+ ( ;; GNU Emacs 20 lazy highlighting via ishl
   (fboundp 'ishl-cleanup)
-       
+  
   ;; Provide this function used by senator
   (defun senator-lazy-highlight-update ()
     "Force lazy highlight update."
@@ -2464,16 +2455,16 @@ found, nil otherwise."
     (set 'ishl-last-string nil)
     (setq isearch-adjusted t)
     (isearch-update))
-
+  
   ) ;; End of GNU Emacs 20 lazy highlighting
-
+ 
  (t ;; No lazy highlighting
-
+  
   ;; Ignore this function used by senator
   (defalias 'senator-lazy-highlight-update 'ignore)
-
+  
   )
-      
+ 
  ) ;; End of compatibility stuff
 
 (defmacro senator-define-search-advice (searcher)
