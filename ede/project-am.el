@@ -33,7 +33,7 @@
 ;; project-am uses the structure defined in all good GNU projects with
 ;; the Automake file as it's base template, and then maintains that
 ;; information during edits, automatically updating the automake file
-;; where apropriate.
+;; where appropriate.
 
 ;;; Install
 ;;
@@ -293,7 +293,7 @@ If ARG is negative, disable.  Toggle otherwise."
   (if a
       (setcdr a project-am-minor-keymap)
     (add-to-list 'minor-mode-map-alist
-		 (cons 'project-am-minor-mode 
+		 (cons 'project-am-minor-mode
 		       project-am-minor-keymap))))
 
 (defun project-am-minor-mode (&optional arg)
@@ -385,7 +385,7 @@ If TARGET does not exists then create a new target."
 (defun project-am-new-target (name type)
   "Create a new target named NAME.
 Argument TYPE is the type of target to insert.  This is a string
-matching something in `project-am-type-alist' or tye class symbol."
+matching something in `project-am-type-alist' or type class symbol."
   (interactive (list
 		(read-string "Name: "
 			     (if project-am-object
@@ -608,7 +608,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 	(ntargets nil)
 	(tmp nil)
 	;; Here are target prefixes as strings
-	(tp '(("bin_PROGRAMS" . project-am-program) 
+	(tp '(("bin_PROGRAMS" . project-am-program)
 	      ("sbin_PROGRAMS" . project-am-program)
 	      ("noinst_LIBRARIES" . project-am-lib)
 	      ("info_TEXINFOS" . project-am-texinfo)
@@ -807,7 +807,7 @@ Do this by extracting the lowest directory name."
 
 (defvar project-am-speedbar-menu
   ()
-  "Menu part in easymenu format that is used in speedbar while in project-am mode.")
+  "Menu part in easymenu format that is used in speedbar while in `project-am' mode.")
 
 (defun project-speedbar ()
   "Red Hat Package Management in Emacs."
@@ -901,7 +901,7 @@ expansion depth."
 (defun project-am-object-expand (text token indent)
   "Expand an object.
 TEXT is the text clicked on.  TOKEN is the object we are expanding from.
-INDENT is the current indentatin level.
+INDENT is the current indentation level.
 This function will maintain the state of the +,- and call the objects'
 method for the actual text."
   (cond ((string-match "+" text)	;we have to expand this file
@@ -974,7 +974,7 @@ INDENT is the current indentatin level."
       (setq includes (cdr includes)))
     ;; Not only do we show the included files (for future expansion)
     ;; but we also want to display tags for this file too.
-    (project-am-create-tag-buttons (concat (oref this :path) 
+    (project-am-create-tag-buttons (concat (oref this :path)
 					   (oref this :name))
 				   depth)))
 
@@ -1187,7 +1187,7 @@ STOP-BEFORE is a regular expression matching a file name."
 
 (add-hook 'edebug-setup-hook
 	  (lambda ()
-	    (def-edebug-spec project-am-with-projectfile 
+	    (def-edebug-spec project-am-with-projectfile
 	      (form def-body))))
 
 (provide 'project-am)
