@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.25 1999/11/19 19:40:48 zappo Exp $
+@c $Id: eieio.texi,v 1.26 1999/12/01 02:16:42 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -149,7 +149,7 @@ faces, processes, buffers, frames and windows as examples.
 
 As you read this, it is important to know that I have just recently
 learned some of the CLOS syntax, but have never used it myself.  I'm
-primarilly and Emacs Lisp hacker who wrote EIEIO to help myself learn
+primarily and Emacs Lisp hacker who wrote EIEIO to help myself learn
 some of the mechanics of Object Oriented programming.
 
 Currently, the following functions should behave almost as expected from
@@ -157,13 +157,13 @@ CLOS.
 
 @table @code
 @item defclass
-All slot keywords are avaliable but not all work correctly.  Only single
-inheritance is currently supported.  Slot keyword differences are:
+All slot keywords are avaliable but not all work correctly.
+Slot keyword differences are:
 
 @table @asis
 @item :reader, and :writer tags
 Create methods that throw errors instead of creating an unqualified
-method.  You can still create new ones to do it's business.
+method.  You can still create new ones to do its business.
 @item :accessor
 This should create an unqualified method to access a slot, but
 instead pre-builds a method that gets the slot's value.
@@ -222,8 +222,7 @@ languages.  A new class is created with @code{defclass}
 
 @defun defclass class-name superclass-list slot-list options-and-doc
 
-The format for this defun is specified by CLOS, and EIEIO conforms in
-structure.
+This function is specified by CLOS, and EIEIO conforms in structure.
 
 Creates a new class called @code{class-name}. The created variable's
 documentation string is set to a modified version of the doc string
@@ -233,11 +232,14 @@ documentation as well.
 
 The parent class for @code{class-name} is @var{superclass-list} which
 must be a list.  Each element of this list must be a class.  These
-classes form the parents of the class being created.  If two parents
-share the same slot, the parent which appears in the list first sets the
-attributes for that slot.
+classes form the parents of the class being created.  Every slot in
+parent is replicated in the new class.  If two parents share the same
+slotname, the parent which appears in the list first sets the attributes
+for that slot.  If a slot in the new class' slot list matches a parent,
+then the new specifications for the child class override that of the
+parent.
 
-The slot list is a list of lists.  Each sublist defines an attribute.
+@var{slot-list} is a list of lists.  Each sublist defines an attribute.
 These lists are of the form @code{(name :tag1 value1 :tag2 value2 :tagn
 valuen)}.  Some valid CLOS tags are:
 
@@ -306,7 +308,8 @@ Unsupported CLOS option.  Enables the use of a different base class other
 than @code{standard-class}.
 @item :default-initargs
 Unsupported CLOS option.  Specifies a list of initargs to be used when
-creating new objects.  This duplicates the function of @code{:initform}
+creating new objects.  As far as I can tell, this duplicates the
+function of @code{:initform}.
 @end table
 
 @xref{CLOS compatibility}, for more details on CLOS tags versus EIEIO
@@ -729,14 +732,18 @@ type-checking is performed.
 Returns the symbol of @var{obj}'s class.
 @end defun
 
-@defun class-parent class
-Returns the direct parent class of @var{class}.  Returns @code{nil} if
+@defun class-parents class
+Returns the direct parents class of @var{class}.  Returns @code{nil} if
 it is a superclass.
 @end defun
 
-@defun class-parent-fast class
+@defun class-parents-fast class
 Just like @code{class-parent} except it is a macro and no type checking
 is performed.
+@end defun
+
+@defun class-parent class
+Depricated function which returns the first parent of @var{class}.
 @end defun
 
 @defun same-class-p obj class
@@ -762,10 +769,12 @@ Returns @code{t} if @code{method-symbol} is a generic function, as
 opposed to a regular emacs list function.
 @end defun
 
-It is also important to note, that for every created class, a predicate
-is created for it.  Thus in our example, the function
+It is also important to note, that for every created class, a two
+predicates are created for it.  Thus in our example, the function
 @code{data-object-p} is created, and return @code{t} if passed an object
-of the appropriate type.
+of the appropriate type.  Also, the function @code{data-object-child-p}
+is created which returns @code{t} if the object passed to it is of a
+type which inherits from @code{data-object}.
 
 @node Association Lists, Introspection, Predicates, Top
 @chapter Association Lists
