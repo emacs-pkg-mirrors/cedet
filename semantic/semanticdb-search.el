@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.1 2002/08/11 01:37:42 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.2 2002/08/11 01:45:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -315,27 +315,6 @@ Return a list of matches."
 	    (setq found nil)))
       (setq files (cdr files)))
     (nreverse ret)))
-
-;;;###autoload
-(defun semanticdb-file-stream (file)
-  "Return a list of tokens belonging to FILE.
-If file has database tokens available in the database, return them.
-If file does not have tokens available, then load the file, and create them."
-  (let* ((fo (semanticdb-get-database (concat (file-name-directory file)
-					      semanticdb-default-file-name)))
-	 (to nil))
-    (if fo (setq to (semanticdb-file-table fo file)))
-    (if to
-	(oref to tokens) ;; get them.
-      ;; We must load the file.
-      (save-excursion
-	(set-buffer (find-file-noselect file))
-	;; Find file should automatically do this for us.
-	(if semanticdb-current-table
-	    (oref semanticdb-current-table tokens)
-	  ;; if not, just do it.
-	  (semantic-bovinate-toplevel t))))
-    ))
 
 (provide 'semanticdb-search)
 
