@@ -5,8 +5,8 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.6
-;;; RCS: $Id: eieio.el,v 1.7 1996/07/28 18:30:49 zappo Exp $
+;;; Version: 0.7
+;;; RCS: $Id: eieio.el,v 1.8 1996/08/19 00:48:07 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -59,8 +59,9 @@
 ;;;
 ;;; Class definitions shall be a stored vector:
 ;;; [ 'defclass name-of-class doc-string parent children
-;;;   public-attributes public-defaults public-methods
-;;;   private-attributes private-defaults private-methods 
+;;;   public-attributes public-defaults public-documentation public-methods
+;;;   private-attributes private-defaults private-documentations
+;;;   private-methods 
 ;;;   initarg-tuples
 ;;;   method-implementations 
 ;;; ]
@@ -71,9 +72,11 @@
 ;;; children is a list of children classes inheriting from us
 ;;; public-attributes is a list of public attributes
 ;;; public-defaults is a list of public default values
+;;; public-documentation is a list of DOC strings for public variables
 ;;; public-methods is a list of public method names
 ;;; private-attributes is a list of private attributes
 ;;; private-defaults is a list of private default values
+;;; private-documentation is a list of DOC strings for private variables
 ;;; private-methods is private list of methods
 ;;; initarg-tuples is a list of dotted pairs of (tag: . attribname)
 ;;; method-implementations is a vector of public/private implementations
@@ -153,8 +156,19 @@
 ;;;           the lookup times.  Old list is still there because it is
 ;;;           needed for generating sub-classes, and for doing
 ;;;           browsing things.
-;;;        Changed Constructor and Destructor into methods, instead of
-;;;           classmethods
+;;; 0.7    Added :accessor as new tag creating a function which can
+;;;           access a given field.
+;;;        Added :docstring modifiers for generic function calls to 
+;;;           allow browsing of all specific style methods.
+;;;        Changed what was once plist associations into a single obarray
+;;;           in the hopes of allowing faster searches.
+;;;        Changed plist storage of method definitions first into a single
+;;;           plist element, `eieio-method-tree', and
+;;;           `eieio-method-obarrays' a vector of 6 elements.  This
+;;;           vector contains 6 typres of functions, specific :BEFORE,
+;;;           :PRIMARY and :AFTER elements, and then the :BEFORE,
+;;;           :PRIMARY and :AFTER generic calls.  Lastly turned lists
+;;;           of associations into OBARRAYs and symbols.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -169,29 +183,29 @@ SET THIS YOURSELF unless you are trying to simulate friendly fields.")
   "This is set when a method is defined so we know we are allowed to
 check private parts. DO NOT SET THIS YOURSELF!")
 
-(defvar eieio-generic-args nil
-  "When calling methods or generics, specifies the formal parameter
-list which has to be faked around the existing emacs interpreter")
-
 ;; This is a bootstrap for eieio-default-superclass so it has a value
 ;; while it is being built itself.
 (defvar eieio-default-superclass nil)
 
 (defconst class-parent 3 "Class parent field")
 (defconst class-children 4 "Class children class field")
-(defconst class-public-a 5 "Class public attribute index")
-(defconst class-public-d 6 "Class public attribute defaults index")
-(defconst class-public-m 7 "Class pubic method index")
-(defconst class-private-a 8 "Class private attribute index")
-(defconst class-private-d 9 "Class private attribute defaults index")
-(defconst class-private-m 10 "Class private method index")
-(defconst class-initarg-tuples 11 "Class initarg tuples list")
-(defconst class-methods 12 "Class methods index")
-(defconst class-num-fields 13 "Number of fields in the class definition object")
+(defconst class-symbol-obarray 5 "Obarray permitting fast access to variable position indexes")
+(defconst class-public-a 6 "Class public attribute index")
+(defconst class-public-d 7 "Class public attribute defaults index")
+(defconst class-public-doc 8 "Class public documentation strings for attributes")
+(defconst class-public-m 9 "Class pubic method index")
+(defconst class-private-a 10 "Class private attribute index")
+(defconst class-private-d 11 "Class private attribute defaults index")
+(defconst class-private-doc 12 "Class private documentation strings for attributes")
+(defconst class-private-m 13 "Class private method index")
+(defconst class-initarg-tuples 14 "Class initarg tuples list")
+(defconst class-methods 15 "Class methods index")
+(defconst class-num-fields 16 "Number of fields in the class definition object")
 
 (defconst method-before 0 "Index into :BEFORE tag on a method")
 (defconst method-primary 1 "Index into :PRIMARY tag on a method")
 (defconst method-after 2 "Index into :AFTER tag on a method")
+(defconst method-num-lists 3 "Number of indexes into methods vector in which groups of functions are kept")
 (defconst method-generic-before 3 "Index into generic :BEFORE tag on a method")
 (defconst method-generic-primary 4 "Index into generic :PRIMARY tag on a method")
 (defconst method-generic-after 5 "Index into generic :AFTER tag on a method")
@@ -266,9 +280,11 @@ in that class definition.  See defclass for more information"
 	  (aset newc class-private-m (copy-sequence (aref (class-v (aref newc class-parent)) class-private-m)))
 	  (aset newc class-private-a (copy-sequence (aref (class-v (aref newc class-parent)) class-private-a)))
 	  (aset newc class-private-d (copy-sequence (aref (class-v (aref newc class-parent)) class-private-d)))
+	  (aset newc class-private-doc (copy-sequence (aref (class-v (aref newc class-parent)) class-private-doc)))
 	  (aset newc class-public-m (copy-sequence (aref (class-v (aref newc class-parent)) class-public-m)))
 	  (aset newc class-public-a (copy-sequence (aref (class-v (aref newc class-parent)) class-public-a)))
 	  (aset newc class-public-d (copy-sequence (aref (class-v (aref newc class-parent)) class-public-d)))
+	  (aset newc class-public-doc (copy-sequence (aref (class-v (aref newc class-parent)) class-public-doc)))
 	  (aset newc class-initarg-tuples (copy-sequence (aref (class-v (aref newc class-parent)) class-initarg-tuples)))))
 
     ;; Query each field in the declaration list and mangle into the
@@ -280,6 +296,7 @@ in that class definition.  See defclass for more information"
 	     (acces (car (cdr (member ':accessor field))))
 	     (init (car (cdr (member ':initform field))))
 	     (initarg (car (cdr (member ':initarg field))))
+	     (docstr (car (cdr (member ':docstring field))))
 	     (prot (car (cdr (member ':protection field))))
 	     (meth (car (cdr (member ':method field))))
 	     )
@@ -300,8 +317,10 @@ in that class definition.  See defclass for more information"
 		))
 	  (let* ((-a (if (eq prot 'private) class-private-a class-public-a))
 		 (-d (if (eq prot 'private) class-private-d class-public-d))
+		 (-doc (if (eq prot 'private) class-private-doc class-public-doc))
 		 (-al (aref newc -a))
 		 (-dl (aref newc -d))
+		 (-docl (aref newc -doc))
 		 (np (member name -al))
 		 (dp (if np (nthcdr (- (length -al) (length np)) -dl) nil)))
 	    (if np
@@ -310,7 +329,8 @@ in that class definition.  See defclass for more information"
 		  (setcar dp init)
 		  )
 	      (aset newc -a (append -al (list name)))
-	      (aset newc -d (append -dl (list init))))
+	      (aset newc -d (append -dl (list init)))
+	      (aset newc -doc (append -docl (list docstr))))
 	    )
 	  ;; public and privates both can install new initargs
 	  (if initarg
@@ -359,25 +379,40 @@ in that class definition.  See defclass for more information"
     ;; and a doc-string
     
     (set cname cname)
-    (put cname 'variable-documentation doc-string)
     (put cname 'eieio-class-definition newc)
 
-    ;; Now attach all field symbols onto `cname' such that they are
-    ;; properties with the value being the index into the vector which
-    ;; contains the actual data belonging to that field
-    (let ((cnt 0)
-	  (pubsyms (aref newc class-public-a))
-	  (privsyms (aref newc class-private-a)))
+    ;; Set up a specialized doc string
+    (eieio-rebuild-doc-string cname)
+
+    ;; Attach field symbols into an obarray, and store the index of
+    ;; this field as the variable slot in this new symbol.  We need to
+    ;; know about primes, because obarrays are best set in vectors of
+    ;; prime number length, and we also need to make our vector small
+    ;; to save space, and also optimal for the number of items we have.
+    (let* ((cnt 0)
+	   (pubsyms (aref newc class-public-a))
+	   (privsyms (aref newc class-private-a))
+	   (l (+ (length pubsyms) (length privsyms)))
+	   (vl (let ((primes '( 3 5 7 11 13 17 19 23 29 31 37 41 43 47
+				  53 59 61 67 71 73 79 83 89 97 101 )))
+		 (while (and primes (< (car primes) l))
+		   (setq primes (cdr primes)))
+		 (car primes)))
+	   (oa (make-vector vl 0))
+	   (newsym))
       (while pubsyms
-	(put cname (intern (format "eieio-public-%s" (car pubsyms))) cnt)
+	(set (intern (symbol-name (car pubsyms)) oa) cnt)
 	(setq cnt (1+ cnt))
 	(setq pubsyms (cdr pubsyms)))
       (while privsyms
-	(put cname (intern (format "eieio-private-%s" (car privsyms))) cnt)
+	(setq newsym (intern (symbol-name (car privsyms)) oa))
+	(set newsym cnt)
+	(put newsym 'private t)
 	(setq cnt (1+ cnt))
 	(setq privsyms (cdr privsyms)))
+      (aset newc class-symbol-obarray oa)
       )
-	  
+
     ;; Create the constructor function
     (fset cname
 	  (list 'lambda (list 'newname '&rest 'fields)
@@ -455,24 +490,20 @@ returns a tuple `(class method)'"
   "Creates a generic function, which is called whenever a more
 specific method is requested.  A generic function has no body, as
 it's purpose is to decide which method body is apropriate to use.  Use
-`defmethod' to create methods, and it calls defgeneric for you."
+`defmethod' to create methods, and it calls defgeneric for you.  With this
+implementation the arguments are currently ignored."
   (list 'defgeneric-engine
 	(list 'quote method)
-	(list 'quote args)
 	doc-string))
 
-(defun defgeneric-engine (method args doc-string)
+(defun defgeneric-engine (method doc-string)
   "Engine part to defgeneric macro"
   (let ((lambda-form
 	 (list 'lambda '(&rest local-args)
 	       doc-string
-	       (list 'let (list (list 'eieio-generic-args 
-				      (list 'quote args)))
-		     ;; Call generic master with method as first
-		     ;; argument, and args as continuing arguments
-		     (list 'eieio-generic-call 
-			   (list 'quote method) 
-			   'local-args)))))
+	       (list 'eieio-generic-call 
+		     (list 'quote method) 
+		     'local-args))))
     (if (and (fboundp method) (not (generic-p method)))
 	(error "You cannot create a generic/method over an existing symbol"))
     (fset method lambda-form)
@@ -515,7 +546,7 @@ the body, such as:
       (setq loopa (cdr loopa)))
     ;; make sure there is a generic
     (if (not (fboundp method))
-	(defgeneric-engine method args 
+	(defgeneric-engine method 
 	  (if (stringp (car body)) 
 	      (car body) (format "Generically created method %s" method))))
     ;; create symbol for property to bind to.  If the first arg is of
@@ -531,7 +562,9 @@ the body, such as:
       (setq key (+ key method-num-fields)))
     ;; Put this lambda into the symbol so we can find it
     (eieiomt-add method (append (list 'lambda (reverse argfix)) body)
-		 key (nth 1 firstarg)))
+		 key (nth 1 firstarg))
+    (eieio-rebuild-generic-doc-string method)
+    )
   method)
 
 ;;;
@@ -711,7 +744,7 @@ with the list of arguments ARGS."
   "Return `t' if symbol METHOD is a generic function.  Only methods
 have the symbol `eieio-method-tree' as a property (which contains a
 list of all bindings to that method type.)"
-  (and (fboundp method) (get method 'eieio-method-tree)))
+  (and (fboundp method) (get method 'eieio-method-obarray)))
 
 
 ;;;
@@ -722,15 +755,15 @@ list of all bindings to that method type.)"
   "In OBJ find the index of the named FIELD."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let ((pubs (get class (intern (format "eieio-public-%s" field)))))
-    (if (integerp pubs)
-	(+ 3 pubs)
-      (if (child-of-class-p class scoped-class)
-	  (let ((pris (get class (intern (format "eieio-private-%s" field)))))
-	    (if (integerp pris)
-		(+ 3 pris)
-	      nil))
-	nil))))
+  (let* ((fsym (intern-soft (symbol-name field) 
+			    (aref (class-v class)
+				  class-symbol-obarray)))
+	 (fsi (if (symbolp fsym) (symbol-value fsym) nil)))
+    (if (integerp fsi)
+	(if (or (not (get fsym 'private)) 
+		(child-of-class-p class scoped-class))
+	    (+ 3 fsi)
+	  nil))))
 
 (defun eieio-method-name-index (class method)
   "Return the index for a CLASS where a METHOD resides"
@@ -754,6 +787,7 @@ list of all bindings to that method type.)"
 	  nil)
       c)))
 
+
 ;;;
 ;;; CLOS generics internal function handling
 ;;;
@@ -825,6 +859,7 @@ method belong to the parent class"
     (let ((scoped-class (cdr lambdas)))
       (apply (car lambdas) newargs))))
 
+
 ;;;
 ;;; eieio-method-tree : eieiomt-
 ;;;
@@ -832,6 +867,9 @@ method belong to the parent class"
 ;;;
 ;;; (eieio-method-tree . [BEFORE PRIMARY AFTER 
 ;;;                       genericBEFORE genericPRIMARY genericAFTER])
+;;; and
+;;; (eieio-method-obarray . [BEFORE PRIMARY AFTER
+;;;                          genericBEFORE genericPRIMARY genericAFTER])
 ;;;    where the association is a vector.
 ;;;    (aref 0  -- all methods classified as :BEFORE
 ;;;    (aref 1  -- all methods classified as :PRIMARY
@@ -846,20 +884,40 @@ method belong to the parent class"
 ;;;
 ;;; The elts 3-5 are mearly function bodies
 ;;;
+(defvar eieiomt-optimizing-obarray nil
+  "While mapping atoms, this contains the obarray being optimized")
 
 (defun eieiomt-add (method-name method tag class)
   "Add to METHOD-NAME the METHOD with associated TAG a function
 associated with CLASS"
   (if (or (>= tag method-num-fields) (< tag 0))
       (error "eieiomt-add: method tag error!"))
-  (let ((emtv (get method-name 'eieio-method-tree)))
-    (if (not emtv)
-	(setq emtv (put method-name 'eieio-method-tree 
-			(make-vector method-num-fields nil))))
-    ;; only cons new cells on if it doesn't already exist!
+  (let ((emtv (get method-name 'eieio-method-tree))
+	(emto (get method-name 'eieio-method-obarray)))
+    (if (or (not emtv) (not emto))
+	(progn
+	  (setq emtv (put method-name 'eieio-method-tree 
+			  (make-vector method-num-fields nil))
+		emto (put method-name 'eieio-method-obarray
+			  (make-vector method-num-fields nil)))
+	  (aset emto 0 (make-vector 11 0))
+	  (aset emto 1 (make-vector 41 0))
+	  (aset emto 2 (make-vector 11 0))
+	  ))
+    ;; only add new cells on if it doesn't already exist!
     (if (assq class (aref emtv tag))
 	(setcdr (assq class (aref emtv tag)) method)
       (aset emtv tag (cons (cons class method) (aref emtv tag))))
+    ;; Add function definition into newly created symbol, and store
+    ;; said symbol in the correct obarray, otherwise use the
+    ;; other array to keep this stuff
+    (if (< tag method-num-lists)
+	(let ((nsym (intern (symbol-name class) (aref emto tag))))
+	  (fset nsym method)))
+    ;; Now optimize the entire obarray
+    (if (< tag method-num-lists)
+	(let ((eieiomt-optimizing-obarray (aref emto tag)))
+	  (mapatoms 'eieiomt-sym-optimize eieiomt-optimizing-obarray)))
     ))
 
 (defun eieiomt-get (method-name tag class)
@@ -867,23 +925,92 @@ associated with CLASS"
 matching CLASS"
   (if (>= tag method-num-fields) (< tag 0)
     (error "eieiomt-add: method tag error!"))
-  (let ((emtv (get method-name 'eieio-method-tree)))
-    (if (not emtv) 
+  (let ((emto (get method-name 'eieio-method-obarray)))
+    (if (not emto) 
 	nil
-      (cdr (assq class (aref emtv tag))))))
+      (intern-soft (symbol-name class) (aref emto tag)))))
+
+(defun eieiomt-next (class)
+  "Return the next class, or `eieio-default-superclass' or nil,
+depending on the return value of `class-parent'"
+  (or (class-parent es)
+      (if (eq es 'eieio-default-superclass)
+	  nil
+	'eieio-default-superclass)))
+
+(defun eieiomt-sym-optimize (s)
+  "This function is called by mapatoms, or by function calls when a
+symbol has no value, and will find the next class which has a function
+body"
+  ;; (message "Optimizing %S" s)
+  (let ((es (intern-soft (symbol-name s))) ;external symbol of class
+	(ov nil)
+	(cont t))
+    (setq es (eieiomt-next es))
+    (while (and es cont)
+      (setq ov (intern-soft (symbol-name es) eieiomt-optimizing-obarray))
+      (if (fboundp ov)
+	  (progn
+	    (set s ov)			;store ov as our next symbol
+	    (setq cont nil))
+	(setq es (eieiomt-next es))))
+    ;; If there is no nearest call, then set our value to nil
+    (if (not es) (set s nil))
+    ))
 
 (defun eieio-generic-form (method tag class)
  "Return the lambda form belonging to METHOD using TAG based upon
 CLASS.  If CLASS is not a class then use `generic' instead.  If class
 has no form, but has a parent class, then trace to that parent class"
+ (let ((emto (aref (get method 'eieio-method-obarray) (if class tag (+ tag 3)))))
+   (if (class-p class)
+       ;; 1) find our symbol
+       (let ((cs (intern-soft (symbol-name class) emto)))
+	 (if (not cs)
+	     ;; 2) If there isn't one, then make on.
+	     ;;    This can be slow since it only occurs once/
+	     (progn
+	       (setq cs (intern (symbol-name class) emto))
+	       ;; 2.1) Cache it's nearest neighbor with a quick optimize
+	       ;;      which should only occur once for this call ever
+	       (let ((eieiomt-optimizing-obarray emto))
+		 (eieiomt-sym-optimize cs))))
+	 ;; 3) If it's bound return this one.
+	 (if (fboundp  cs)
+	     (cons cs (aref (class-v class) 1))
+	   ;; 4) If it's not bound then this variable knows something
+	   (if (symbol-value cs)
+	       (progn
+		 ;; 4.1) This symbol holds the next value in it's value
+		 (setq class (symbol-value cs)
+		       cs (intern-soft (symbol-name class) emto))
+		 ;; 4.2) The optimizer should always have chosen a 
+		 ;;      function-symbol
+		 ;;(if (fboundp cs)
+		 (cons cs (aref (class-v (intern (symbol-name class))) 1))
+		   ;;(error "EIEIO optimizer: erratic data loss!"))
+		 )
+	       ;; There never will be a funcall...
+	       nil)))
+     ;; for a generic call, what is a list, is the function body we want.
+     (let ((emtl (aref (get method 'eieio-method-tree) (if class tag (+ tag 3)))))
+       (if emtl
+	 (cons emtl nil)
+	 nil)))))
 
- (let ((emtl (aref (get method 'eieio-method-tree) (if class tag (+ tag 3)))))
+(defun eieio-generic-form-old (method tag class)
+ "Return the lambda form belonging to METHOD using TAG based upon
+CLASS.  If CLASS is not a class then use `generic' instead.  If class
+has no form, but has a parent class, then trace to that parent class"
+
+ (let ((emto (aref (get method 'eieio-method-obarray) (if class tag (+ tag 3)))))
    (if (class-p class)
      (let ((ov nil))
-       (while (and class (not ov) emtl)
-	 (setq ov (assq class emtl))
+       (while (and class (not ov))
+	 (setq ov (intern-soft (symbol-name class) emto))
 	 (if ov
-	     (setq ov (cons (cdr ov) (aref (class-v class) 1)))
+	     ;;(setq ov (cons (cdr ov) (aref (class-v class) 1)))
+	     (setq ov (cons ov (aref (class-v class) 1)))
 	   (if (class-parent class)
 	       (setq class (class-parent class))
 	     (if (eq class 'eieio-default-superclass)
@@ -892,9 +1019,10 @@ has no form, but has a parent class, then trace to that parent class"
        ;; return the created dotted pair
        ov)
      ;; for a generic call, what is a list, is the function body we want.
-     (if emtl
+     (let ((emtl (aref (get method 'eieio-method-tree) (if class tag (+ tag 3)))))
+       (if emtl
 	 (cons emtl nil)
-       nil))))
+	 nil)))))
 
 ;;;
 ;;; Way to assign fields based on a list.  Used for constructors, or
@@ -942,11 +1070,33 @@ name/value pairs.  Called from the constructor routine."
 it's methods.  Use this to set the variable 'CLASSes doc string for
 viewing by apropos, and describe-variables, and the like."
   (if (not (class-p class)) (signal 'wrong-type-argument '(class-p class)))  
-  (let ((newdoc (aref (class-v class) 2))
-	(methods (aref (class-v class) class-public-m))
-	(meth nil)
-	(mdoc nil)
-	(index 0))
+  (let* ((cv (class-v class))
+	 (newdoc (aref cv 2))
+	 (methods (aref cv class-public-m))
+	 (docs (aref cv class-public-doc))
+	 (names (aref cv class-public-a))
+	 (deflt (aref cv class-public-d))
+	 (pdocs (aref cv class-private-doc))
+	 (pnames (aref cv class-private-a))
+	 (pdeflt (aref cv class-private-d))
+	 (meth nil)
+	 (mdoc nil)
+	 (index 0))
+    (while names
+      (setq newdoc (concat newdoc "\n\nSlot: " (symbol-name (car names)) 
+			   "    default = " (format "%S" (car deflt))
+			   (if (car docs) (concat "\n" (car docs)) "")))
+      (setq names (cdr names)
+	    docs (cdr docs)
+	    deflt (cdr deflt)))
+    (if pnames (setq newdoc (concat newdoc "\n\nPrivate Fields:")))
+    (while pnames
+      (setq newdoc (concat newdoc "\n\nSlot: " (symbol-name (car pnames)) 
+			   "    default = " (format "%S" (car pdeflt))
+			   (if (car pdocs) (concat "\n" (car pdocs)) "")))
+      (setq pnames (cdr pnames)
+	    pdocs (cdr pdocs)
+	    pdeflt (cdr pdeflt)))
     (while methods
       (setq meth (aref (aref (class-v class) class-methods) index))
       (setq mdoc nil)
@@ -967,6 +1117,41 @@ viewing by apropos, and describe-variables, and the like."
     ;; is ONLY the top level doc for this class.  The value found via
     ;; emacs needs to be more descriptive.
     (put class 'variable-documentation newdoc)))
+
+(defun eieio-rebuild-generic-doc-string (sym)
+  "If SYM is a generic method, set it's documentation string to be
+a info about a generic, plus all the specific versions tacked onto the
+end with info about how each piece gets called."
+  (if (not (generic-p sym)) (signal 'wrong-type-argument '(generic-p sym)))
+  (let ((newdoc "Generic function.  This function accepts a generic number of arguments
+and then, based on the arguments calls some number of polymorphic methods
+associated with this symbol.  Current method specific code is:")
+	(i 3)
+	(prefix [ ":BEFORE" ":PRIMARY" ":AFTER" ] ))
+    (while (< i 6)
+      (let ((gm (aref (get sym 'eieio-method-tree) i)))
+	(if gm
+	    (setq newdoc (concat newdoc "\n\nGeneric " (aref prefix (- i 3)) "\n"
+				 (if (nth 2 gm) (nth 2 gm) "Undocumented")))))
+      (setq i (1+ i)))
+    (setq i 0)
+    (while (< i 3)
+      (let ((gm (aref (get sym 'eieio-method-tree) i)))
+	(while gm
+	  (setq newdoc (concat newdoc "\n\n" (symbol-name (car (car gm)))
+			       ;; prefix type
+			       " " (aref prefix i) " "
+			       ;; argument list
+			       (format "%S" (car (cdr (cdr (car gm))))) "\n"
+			       ;; 3 because of cdr
+			       (if (documentation (car (car gm)))
+				   (documentation (car (car gm)))
+				 "Undocumented")))
+	  (setq gm (cdr gm))))
+      (setq i (1+ i)))
+    ;; tuck this bit of information away.
+    (defgeneric-engine sym newdoc)
+    ))
 
 ;;;
 ;;; We want all object created by EIEIO to have some default set of
@@ -992,6 +1177,7 @@ the last parent is found, the search will recurse to this class.")
 (defmethod constructor ((this eieio-default-superclass) &optional fields)
     "Constructor for filling in attributes when constructing a new
 class."
+    ;(message "Constructing %s" (object-name this))
     ;; Load in the defaults
     (eieio-set-defaults this t)
     ;; Set fields for ourselves from the list of fields
@@ -1165,3 +1351,4 @@ an object, then also display current values of that obect."
 
 ;;; end of lisp
 (provide 'eieio)
+
