@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.4 1996/08/17 00:23:54 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.5 1996/09/21 15:52:04 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -90,18 +90,32 @@ key is any value between 0 and 128"
 (defvar dialog-mode-map nil 
   "Keymap used in dialog mode.")
 
+(defvar dialog-meta-map nil
+  "Keymap used to trap meta-keys")
+
 (if dialog-mode-map () 
   ;; create and fill up the keymap with our event handler
   (setq dialog-mode-map (make-keymap))
   (dialog-superbind-alpha dialog-mode-map 'dialog-handle-kbd)
+  (setq dialog-meta-map (make-keymap))
+  (dialog-superbind-alpha dialog-meta-map 'dialog-handle-meta-kbd)
   ;; some keys we don't want to override
+  (define-key dialog-mode-map "\e" dialog-meta-map)
   (define-key dialog-mode-map "\C-x" nil)
-  (define-key dialog-mode-map "\e" nil)
   (define-key dialog-mode-map "\C-z" nil)
   (define-key dialog-mode-map "\C-c" nil)
   (define-key dialog-mode-map "\C-h" nil)
   (define-key dialog-mode-map "\C-l" nil)
   (define-key dialog-mode-map "\C-g" nil)
+  (define-key dialog-mode-map "\C-u" nil)
+  ;; Some keys in meta mat should not be overridden
+  (define-key dialog-meta-map "x" nil)
+  ;; Some keys have special meaning that we can grab at this level
+  (define-key dialog-mode-map "\M-n" 'dialog-next-widget)
+  (define-key dialog-mode-map "\M-p" 'dialog-prev-widget)
+  (define-key dialog-mode-map "\C-i" 'dialog-next-widget)
+  (define-key dialog-mode-map "\M-\t" 'dialog-prev-widget)
+  (define-key dialog-mode-map "\C-r" 'dialog-refresh)
 
   ;; Differences between Xemacs and Emacs keyboard
   (if (string-match "XEmacs" emacs-version)
@@ -123,13 +137,13 @@ key is any value between 0 and 128"
 	;(define-key dialog-mode-map '(drag button3) 'dialog-handle-mouse)
 	)
     ;; some translations into text
-    (define-key dialog-mode-map [tab] "\C-i")
-    (define-key dialog-mode-map [up] "\C-p")
-    (define-key dialog-mode-map [down] "\C-n")
-    (define-key dialog-mode-map [right] "\C-f")
-    (define-key dialog-mode-map [left] "\C-b")
-    (define-key dialog-mode-map [next] "\C-v")
-    (define-key dialog-mode-map [prev] "\e-v")
+    (define-key dialog-mode-map [tab] 'dialog-next-widget)
+    (define-key dialog-mode-map [up] 'dialog-handle-kbd)
+    (define-key dialog-mode-map [down] 'dialog-handle-kbd)
+    (define-key dialog-mode-map [right] 'dialog-handle-kbd)
+    (define-key dialog-mode-map [left] 'dialog-handle-kbd)
+    (define-key dialog-mode-map [next] 'dialog-handle-kbd)
+    (define-key dialog-mode-map [prev] 'dialog-handle-kbd)
     ;; Now some mouse events
     (define-key dialog-mode-map [mouse-1] 'dialog-handle-mouse)
     (define-key dialog-mode-map [mouse-2] 'dialog-handle-mouse)
@@ -180,8 +194,14 @@ dynamically determine which colors to use."
 	;; we need a face of some sort, so just make due with default
 	(progn
 	  (copy-face 'default sym)
-	  (if bold (make-face-bold sym))
-	  (if italic (make-face-italic sym))
+	  (if bold (condition-case nil
+		       (make-face-bold sym)
+		     (error (message "Cannot make face %s bold!" 
+				     (symbol-name sym)))))
+	  (if italic (condition-case nil
+			 (make-face-italic sym)
+		       (error (message "Cannot make face %s italic!"
+				       (symbol-name sym)))))
 	  (set-face-underline-p sym underline)
 	  )
       ;; make a colorized version of a face.  Be sure to check Xdefaults
@@ -193,27 +213,41 @@ dynamically determine which colors to use."
 	(if (and nbg (not (funcall set-p (symbol-name sym) "Background")))
 	    (set-face-background sym nbg))
 	
-	(if bold (make-face-bold sym))
-	(if italic (make-face-italic sym))
+	(if bold (condition-case nil
+		     (make-face-bold sym)
+		   (error (message "Cannot make face %s bold!"
+				       (symbol-name sym)))))
+	(if italic (condition-case nil
+		       (make-face-italic sym)
+		     (error (message "Cannot make face %s italic!"
+				     (symbol-name sym)))))
 	(set-face-underline-p sym underline)
 	))))
 
 (dialog-load-color 'widget-default-face nil nil nil nil)
 (dialog-load-color 'widget-box-face "gray30" nil "gray" nil)
 (dialog-load-color 'widget-frame-label-face "red3" nil "#FFFFAA" nil nil t nil)
-(dialog-load-color 'widget-focus-face "dark green" nil "light green" nil t)
+(dialog-load-color 'widget-focus-face "green4" nil "light green" nil t)
 (dialog-load-color 'widget-arm-face nil "cyan" nil "cyan4")
 (dialog-load-color 'widget-indicator-face "blue4" nil "cyan" nil t)
 (dialog-load-color 'widget-text-face nil nil nil nil nil nil t)
-(dialog-load-color 'widget-text-focus-face nil nil nil nil nil t t)
-(dialog-load-color 'widget-text-button-face "white" "blue4" nil "blue3")
+(dialog-load-color 'widget-text-focus-face nil nil nil nil t nil t)
+(dialog-load-color 'widget-text-button-face "black" "cyan" nil "blue3")
 
-(defun dialog-mode (&optional frameafy)
-  "Define an existing buffer to be in DIALOG mode.  A dialog is a
-buffer which contains interactive text groupings in rectangular
-regions.  If optinal FRAMEAFY, then put this buffer into it's own
-frame.  A call to dialog-fix-frame will resize it to fit around the
-widgets."
+(defun dialog-mode ()
+  "Major mode for interaction with widgets.  A widget is any of a number of
+rectangular regions on the screen with certain visual effects, and user
+actions.
+
+All keystrokes are interpreted by the widget upon which the cursor
+resides.  Thus SPC on a button activates it, but in a text field, it
+will insert a space into the character string.
+
+\\<dialog-mode-map>
+Navigation commands:
+  \\[dialog-next-widget]   - Move to next interactive widget
+  \\[dialog-prev-widget] - Move to previous interactive widget
+"
   (kill-all-local-variables)
   (setq mode-name "Dialog")
   (setq major-mode 'dialog-mode)
@@ -224,6 +258,8 @@ widgets."
   (run-hooks 'dialog-mode-hooks))
 
 (defun dialog-refresh () "Refresh all visible widgets in this buffer"
+  (interactive)
+  (erase-buffer)
   (draw widget-toplevel-shell))
 
 (defun dialog-quit () "Quits a dialog."
@@ -232,6 +268,30 @@ widgets."
 (defun dialog-handle-kbd () "Read the last kbd event, and handle it."
   (interactive)
   (input widget-toplevel-shell last-input-char))
+
+(defun dialog-handle-meta-kbd () "Read the last kbd event, and handle it as a meta key"
+  (interactive)
+  (input widget-toplevel-shell 
+	 (if (numberp last-input-char)
+	     (concat "\e" (char-to-string last-input-char))
+	   last-input-char)))
+
+(defun dialog-next-widget (arg) "Move cursor to next logical widget"
+  (interactive "P")
+  (choose-next-widget widget-toplevel-shell 
+		      (cond ((null arg) 1)
+			    ((listp arg) (car arg))
+			    (t arg)))
+  )
+
+(defun dialog-prev-widget (arg) "Move cursor to next logical widget"
+  (interactive "P")
+  (choose-next-widget widget-toplevel-shell 
+		      (cond ((null arg) -1)
+			    ((listp arg) (- (car arg)))
+			    (t (- arg))))
+
+  )
 
 (defun dialog-handle-mouse (event) "Reads last mouse event, and handle it"
   (interactive "e")
@@ -424,34 +484,31 @@ the screen."
   (let ((mytog (data-object "MyTog" :value t)))
 
     (create-widget "Fred" widget-label widget-toplevel-shell
-		   :x 5 :y 5 :face 'modeline 
-		   :label-value "Die in a pit")
+		   :x 5 :y 1 :face 'modeline 
+		   :label-value "This is a label\non several lines separated by \\n\nto make distrinctions")
     (create-widget "Click" widget-button widget-toplevel-shell
-		   :x 5 :y 10 :label-value "Quit"
+		   :x 5 :y -3 :label-value "Quit"
 		   :box-face 'font-lock-comment-face
 		   :activate-hook (lambda (obj reason) "Activate Quit Button"
 				     (message "Quit!")
 				     (dialog-quit)))
     (create-widget "Clack" widget-button widget-toplevel-shell
-		   :x 25 :y 10 :label-value "Widget Tree"
+		   :x -10 :y t :label-value "Widget\nTree"
 		   :box-face 'font-lock-comment-face
 		   :activate-hook (lambda (obj reason) "Draw a widget tree"
-				     (dialog-widget-tree-primitive)
-				     (dialog-quit)))
+				     (dialog-widget-tree-primitive)))
     (create-widget "Cluck" widget-button widget-toplevel-shell
-		   :x 40 :y 10 :label-value "Class Tree"
+		   :x -5 :y t :label-value "Class\nTree"
 		   :box-face 'font-lock-comment-face
 		   :activate-hook (lambda (obj reason) "Draw a widget tree"
-				     (eieio-browse)
-				     (dialog-quit)))
+				     (eieio-browse)))
     (create-widget "Clunk" widget-button widget-toplevel-shell
-		   :x 60 :y 10 :label-value "About Dialog Mode"
+		   :x -5 :y t :label-value "About\nDialog Mode"
 		   :box-face 'font-lock-comment-face
 		   :activate-hook (lambda (obj reason) "Draw a widget tree"
-				     (describe-function 'dialog-mode)
-				     (dialog-quit)))
+				     (describe-function 'dialog-mode)))
     (let ((myframe (create-widget "Togg Frame" widget-frame widget-toplevel-shell
-				   :x 5 :y 15
+				   :x 5 :y -4
 				   :frame-label "Toggle Tests..."
 				   :box-face 'font-lock-reference-face)))
       (create-widget "Togg" widget-toggle-button myframe
@@ -461,13 +518,13 @@ the screen."
 		     :activate-hook (lambda (obj reason) "Switcharoo!"
 				       (message "Changed value")))
       (create-widget "Forceon" widget-button myframe
-		     :x 20 :y 1 :label-value "Turn On"
+		     :x -6 :y t :label-value "Turn On"
 		     :box-face font-lock-type-face
 		     :activate-hook 
 		     (list 'lambda '(obj reason) "Flip Tog"
 			   (list 'set-value mytog t)))
       (create-widget "Forceoff" widget-button myframe
-		     :x 50 :y 1 :label-value "Turn Off"
+		     :x -6 :y t :label-value "Turn Off"
 		     :face 'underline
 		     :box-face font-lock-type-face
 		     :activate-hook
