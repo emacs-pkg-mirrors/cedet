@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.119 2001/09/27 00:52:22 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.120 2001/09/29 23:58:46 ponced Exp $
 
 (defvar semantic-version "1.4beta11"
   "Current version of Semantic.")
@@ -237,7 +237,7 @@ This hook will only be called once when a token is first made dirty,
 subsequent edits will not cause this to run a second time unless that
 token is first cleaned.  Any token marked as dirty will
 also be called with `semantic-clean-token-hooks', unless a full
-reprase is done instead.")
+reparse is done instead.")
 
 (defvar semantic-clean-token-hooks nil
   "Hooks run after a token is marked as clean (reparsed after user edits.)
@@ -318,6 +318,22 @@ If the hook returns non-nil, then declare that a reparse is needed.
 For language specific hooks, make sure you define this as a local
 hook.
 Not used yet; part of the next generation reparse mechanism.")
+
+
+;;; Primitive lexeme access system:
+
+(defsubst semantic-flex-start (semobj)
+  "Fetch the start position of the semantic object SEMOBJ."
+  (nth 1 semobj))
+
+(defsubst semantic-flex-end (semobj)
+  "Fetch the end position of the semantic object SEMOBJ."
+  (cdr (cdr semobj)))
+
+(defsubst semantic-flex-text (semobj)
+  "Fetch the text associated with the semantic object SEMOBJ."
+  (buffer-substring-no-properties (semantic-flex-start semobj)
+                                  (semantic-flex-end   semobj)))
 
 
 ;;; Primitive Token access system:
@@ -432,9 +448,7 @@ The returned item may be an overlay or an unloaded buffer representation."
 
 (defun semantic-token-with-position-p (token)
   "Return non-nil if TOKEN is a semantic token with positional information."
-  (and (listp token)
-       (stringp (car token))
-       (symbolp (car (cdr token)))
+  (and (semantic-token-p token)
        (let ((o (semantic-token-overlay token)))
 	 (or (semantic-overlay-p o)
 	     (and (arrayp o)
@@ -474,6 +488,24 @@ The returned item may be an overlay or an unloaded buffer representation."
   "Return non-nil if the current buffer was set up for parsing."
   (or semantic-toplevel-bovine-table
       semantic-bovinate-toplevel-override))
+
+(defsubst semantic-bovine-toplevel-full-reparse-needed-p (&optional checkcache)
+  "Return non-nil if the current buffer needs a full reparse.
+Optional argument CHECKCACHE indicates if the cache check should be made."
+  (or semantic-toplevel-bovine-force-reparse
+      (and
+       checkcache
+       semantic-toplevel-bovine-cache-check)))
+
+(defsubst semantic-bovine-toplevel-partial-reparse-needed-p (&optional checkcache)
+  "Return non-nil if the current buffer needs a partial reparse.
+This only returns non-nil if `semantic-bovine-toplevel-full-reparse-needed-p'
+returns nil.
+Optional argument CHECKCACHE indicates if the cache check should be made
+when checking `semantic-bovine-toplevel-full-reparse-needed-p'."
+  (and semantic-toplevel-bovine-cache
+       semantic-dirty-tokens
+       (not (semantic-bovine-toplevel-full-reparse-needed-p checkcache))))
 
 (defun semantic-new-buffer-fcn ()
   "Setup Semantic in the current buffer.
@@ -581,24 +613,6 @@ stream is requested."
   "*The type of working message to use when bovinating.
 'percent means we are doing a linear parse through the buffer.
 'dynamic means we are rebovinating specific tokens.")
-
-(defsubst semantic-bovine-toplevel-full-reparse-needed-p (&optional checkcache)
-  "Return non-nil if the current buffer needs a full reparse.
-Optional argument CHECKCACHE indicates if the cache check should be made."
-  (or semantic-toplevel-bovine-force-reparse
-      (and
-       checkcache
-       semantic-toplevel-bovine-cache-check)))
-
-(defsubst semantic-bovine-toplevel-partial-reparse-needed-p (&optional checkcache)
-  "Return non-nil if the current buffer needs a partial reparse.
-This only returns non-nil if `semantic-bovine-toplevel-full-reparse-needed-p'
-returns nil.
-Optional argument CHECKCACHE indicates if the cache check should be made
-when checking `semantic-bovine-toplevel-full-reparse-needed-p'."
-  (and semantic-toplevel-bovine-cache
-       semantic-dirty-tokens
-       (not (semantic-bovine-toplevel-full-reparse-needed-p checkcache))))
 
 (defun semantic-remove-dirty-children-internal (token dirties)
   "Remove TOKEN children from DIRTIES.
@@ -1322,7 +1336,7 @@ Argument COMMENT is additional description."
   (setq semantic-bovinate-debug-table (point-marker)))
 
 ;; We will get warnings in here about semantic-bnf-* fns.
-;; We cannot require semantic-bnf due to compile eerrors.
+;; We cannot require semantic-bnf due to compile errors.
 (defun semantic-bovinate-debug-buffer ()
   "Bovinate the current buffer in debug mode."
   (interactive)
@@ -1610,7 +1624,6 @@ LENGTH tokens."
   (if (not semantic-flex-keywords-obarray)
       (setq semantic-flex-keywords-obarray [ nil ]))
   (let ((ts nil)
-	(sym nil)
 	(pos (point))
 	(ep nil)
 	(curdepth 0)
@@ -1742,19 +1755,6 @@ LENGTH tokens."
   "Sematically flex the current buffer.
 Optional argument DEPTH is the depth to scan into lists."
   (semantic-flex (point-min) (point-max) depth))
-
-(defsubst semantic-flex-start (semobj)
-  "Fetch the start position of the semantic object SEMOBJ."
-  (nth 1 semobj))
-
-(defsubst semantic-flex-end (semobj)
-  "Fetch the end position of the semantic object SEMOBJ."
-  (cdr (cdr semobj)))
-
-(defsubst semantic-flex-text (semobj)
-  "Fetch the text associated with the semantic object SEMOBJ."
-  (buffer-substring-no-properties (semantic-flex-start semobj)
-                                  (semantic-flex-end   semobj)))
 
 (defsubst semantic-flex-list (semlist depth)
   "Flex the body of SEMLIST to DEPTH."
