@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.15 2001/10/05 02:09:09 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.16 2001/10/05 19:30:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -51,15 +51,26 @@ Used for identifying arguments to functions.")
 
 ;;; Local variable parsing.
 ;;
-(defun semantic-up-context (&optional point)
+(defun semantic-up-context (&optional point bounds-type)
   "Move point up one context from POINT.
 Return non-nil if there are no more context levels.
-Overloaded functions using `up-context' take no parameters."
+Overloaded functions using `up-context' take no parameters.
+BOUNDS-TYPE is a symbol representing a token type to restrict
+movement to.  If this is nil, 'function is used.
+This will find the smallest token of that type (function, variable,
+type, etc) and make sure non-nil is returned if you cannot
+go up past the bounds of that token."
   (if point (goto-char point))
-  (let ((s (semantic-fetch-overload 'up-context)))
-    (if s (funcall s)
-      (semantic-up-context-default)
-      )))
+  (let ((nar (semantic-current-nonterminal-of-type (or bounds-type 'function)))
+	(s (semantic-fetch-overload 'up-context)))
+    (if nar
+	(semantic-with-buffer-narrowed-to-token
+	    nar
+	  (if s (funcall s)
+	    (semantic-up-context-default)))
+      (if bounds-type (error "No context of type %s to advance in" bounds-type))
+      (if s (funcall s)
+	(semantic-up-context-default)))))
 
 (defun semantic-up-context-default ()
   "Move the point up and out one context level.
@@ -67,8 +78,7 @@ Works with languages that use parenthetical grouping."
   ;; By default, assume that the language uses some form of parenthetical
   ;; do dads for their context.
   (condition-case nil
-      (semantic-with-buffer-narrowed-to-token
-	  (semantic-current-nonterminal-of-type 'function)
+      (progn
 	(up-list -1)
 	nil)
     (error t)))
@@ -159,19 +169,23 @@ This can be overriden with `get-local-variables'."
   "Get local values from a specific context.
 Uses the bovinator with the special top-symbol `bovine-inner-scope'
 to collect tokens, such as local variables or prototypes."
+  ;; The working status is to let the parser work properly
   (working-status-forms "Local" "done"
     (let ((semantic-bovination-working-type nil)
 	  ;; We want nothing to do with funny syntaxing while doing this.
 	  (semantic-unmatched-syntax-hook nil)
+	  ;; Disable parsing messages
+	  (working-status-dynamic-type nil)
 	  (vars nil))
-      (while (not (semantic-up-context))
+      (while (not (semantic-up-context (point) 'function))
 	(save-excursion
 	  (forward-char 1)
 	  (setq vars
 		(append (semantic-bovinate-region-until-error
 			 (point)
 			 (save-excursion (semantic-end-of-context) (point))
-			 'bovine-inner-scope)))))
+			 'bovine-inner-scope)
+			vars))))
       vars)))
 
 (defun semantic-get-local-arguments (&optional point)
@@ -221,20 +235,13 @@ Optional argument POINT is the location to start getting the variables from."
 
 (defun semantic-get-all-local-variables-default ()
   "Get all local variables for this context, and parent contexts.
-Local variables are returned in Semantic token format.
-Uses `semantic-beginning-of-context', `semantic-end-of-context',
-`semantic-up-context', and `semantic-get-local-variables' to collect
-this information."
+Local variables are returned in Semantic token format.  Uses
+`semantic-get-local-variables' and `semantic-get-local-arguments' to
+collect this information."
   (let ((varlist nil)
 	(sublist nil))
-    (save-excursion
-      (while (not (semantic-beginning-of-context))
-	;; Get the local variables
-	(setq sublist (semantic-get-local-variables))
-	(if sublist
-	    (setq varlist (cons sublist varlist)))
-	;; Move out of this context to the next.
-	(semantic-up-context)))
+    ;; get the variables
+    (setq varlist (semantic-get-local-variables))
     ;; arguments to some local function
     (setq sublist (semantic-get-local-arguments))
     (if sublist (setq varlist (cons sublist varlist)))
