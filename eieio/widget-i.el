@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: widget-i.el,v 1.19 1997/01/10 23:09:02 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.20 1997/03/01 16:38:10 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -1474,10 +1474,12 @@ about this widget."
     (goto-xy (1- (oref this rx)) (oref this ry))
     ;; check for characters off to the left
     (if (same-class-p this widget-text-field)
+	;; Do not put our object on these buttons since no imput is
+	;; aquired here.
 	(insert-overwrite-face (cond ((> dr 0) "^")
 				     ((> dc 0) "<")
 				     (t " "))
-			       (oref this spface) nil this))
+			       (oref this spface) nil))
     (setq textlist (nthcdr dr textlist))
     ;; for each line of height
     (while (< lc nline)
