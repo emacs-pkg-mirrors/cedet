@@ -1,10 +1,10 @@
 ;;; ede-proj-prog.el --- EDE Generic Project program support
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-prog.el,v 1.5 2000/09/28 18:41:11 zappo Exp $
+;; RCS: $Id: ede-proj-prog.el,v 1.6 2001/05/19 23:04:59 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ options to the linker.")
 	  (setq ede-proj-compiler-object-linkflags
 		(concat ede-proj-compiler-object-linkflags
 			" -l"
-			(mapconcat 'identity (oref this ldlibs) " -l")))))
+			(mapconcat 'identity ldlibs " -l")))))
     (call-next-method)))
 
 (defmethod project-debug-target ((obj ede-proj-target-makefile-program))
