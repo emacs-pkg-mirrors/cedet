@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.46 2001/11/17 15:45:42 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.47 2001/11/30 02:55:11 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1248,11 +1248,7 @@ Once found, put it in a buffer, and return it."
   (define-key semantic-bnf-map "\M-\t" 'semantic-bnf-complete)
   )
 
-(if (featurep 'speedbar)
-    (speedbar-add-supported-extension ".bnf")
-  (add-hook 'speedbar-load-hook
-	    (lambda ()
-	      (speedbar-add-supported-extension ".bnf"))))
+(eval-after-load "speedbar" '(speedbar-add-supported-extension ".bnf"))
 
 ;;;###autoload
 (defalias 'bnf-mode 'semantic-bnf-mode)
