@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.44 2001/02/01 02:20:49 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.45 2001/02/03 03:33:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,6 +30,14 @@
 ;;
 
 ;;; Code:
+
+(defvar semantic-type-relation-separator-character '(".")
+  "Character strings used to separation a parent/child relationship.
+This list of strings are used for displaying or finding separators
+in variable field dereferencing.  The first character will be used for
+display.  In C, a type field is separated like this: \"type.field\"
+thus, the character is a \".\".  In C, and additional value of \"->\"
+would be in the list, so that \"type->field\" could be found.")
 
 ;;; Simple APIs
 ;;
@@ -742,6 +750,17 @@ Available override symbols:
  `get-all-local-variables'(& point)          Get all local variables.
  `get-local-arguments'    (& point)          Get arguments to this function.
 
+ `end-of-command'                            Move to the end of the current
+                                             command
+ `beginning-of-command'                      Move to the beginning of the
+                                             current command
+ `ctxt-current-symbol'    (& point)          List of related symbols.
+ `ctxt-current-assignment'(& point)          Variable being assigned to.
+ `ctxt-current-function'  (& point)          Function being called at point.
+ `ctxt-current-argument'  (& point)          The index to the argument of
+                                             the current function the cursor
+                                             is in.
+
 Parameters mean:
 
   &      - Following parameters are optional
@@ -906,11 +925,6 @@ If NOSNARF is 'flex, then return the flex token."
 	;; Now return the text.
 	ct))))
 
-(defvar semantic-type-relation-separator-character "."
-  "Character used to separation a parent/child relationship.
-In C, a type field is separated like this: \"type.field\"
-thus, the character is a \".\"")
-
 (defun semantic-abbreviate-nonterminal (token &optional parent)
   "Return an abbreviated string describing TOKEN.
 The abbreviation is to be short, with possible symbols indicating
@@ -941,7 +955,7 @@ This is a simple C like default."
     (if parent
 	(setq str
 	      (concat (semantic-token-name parent)
-		      semantic-type-relation-separator-character
+		      (car semantic-type-relation-separator-character)
 		      str)))
     str))
 
