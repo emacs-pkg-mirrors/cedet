@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.7 2004/03/03 03:30:05 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.8 2004/04/28 15:40:03 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,7 +58,7 @@ search locally, then semanticdb for that tag (when enabled.)")
     ))
 
 ;;;###autoload
-(defun semantic-tag-protection (tag &optional parent)
+(define-overload semantic-tag-protection (tag &optional parent)
   "Return protection information about TAG with optional PARENT.
 This function returns on of the following symbols:
    nil        - No special protection.  Language dependent.
@@ -71,12 +71,13 @@ to themselves.  Use of this function should allow for this.
 
 The default behavior (if not overridden with `tag-protection'
 is to return a symbol based on type modifiers."
-  (let* ((s (or (semantic-fetch-overload 'tag-protection)
-		(semantic-fetch-overload 'nonterminal-protection))))
-    (if (and (not parent) (semantic-tag-buffer tag))
-	(setq parent (semantic-tag-calculate-parent tag)))
-    (if s (funcall s tag parent)
-      (semantic-tag-protection-default tag parent))))
+  (and (not parent)
+       (semantic-tag-buffer tag)
+       (setq parent (semantic-tag-calculate-parent tag)))
+  (:override))
+
+(make-obsolete-overload 'semantic-nonterminal-protection
+                        'semantic-tag-protection)
 
 (defun semantic-tag-protection-default (tag &optional parent)
   "Return the protection of TAG as a child of PARENT default action.
@@ -98,8 +99,6 @@ See `semantic-tag-protection'."
 			 'protected)))))
       (setq mods (cdr mods)))
     prot))
-
-(put 'semantic-tag-protection 'semantic-overload 'tag-protection)
 
 ;;;###autoload
 (defun semantic-tag-protected-p (tag protection &optional parent)
@@ -208,7 +207,7 @@ See `semantic-tag-static'."
 ;; will contain the info needed to determine the full name.
 
 ;;;###autoload
-(defun semantic-tag-full-name (tag &optional stream-or-buffer)
+(define-overload semantic-tag-full-name (tag &optional stream-or-buffer)
   "Return the fully qualified name of TAG in the package hierarchy.
 STREAM-OR-BUFFER can be anything convertable by `semantic-something-to-stream',
 but must be a toplevel semantic tag stream that contains TAG.
@@ -220,19 +219,17 @@ result in a different package like structure.  Languages which do not
 override this function with `tag-full-name' will use
 `semantic-tag-name'.  Override functions only need to handle
 STREAM-OR-BUFFER with a tag stream value, or nil."
-  (let* ((s (or (semantic-fetch-overload 'nonterminal-full-name)
-		(semantic-fetch-overload 'tag-full-name)))
-	 (stream (semantic-something-to-tag-table (or stream-or-buffer tag))))
-    (if s (funcall s tag stream)
-      (semantic-tag-full-name-default tag stream))))
+  (let ((stream (semantic-something-to-tag-table
+                 (or stream-or-buffer tag))))
+    (:override-with-args (tag stream))))
+
+(make-obsolete-overload 'semantic-nonterminal-full-name
+                        'semantic-tag-full-name)
 
 (defun semantic-tag-full-name-default (tag stream)
   "Default method for `semantic-tag-full-name'.
 Return the name of TAG found in the toplevel STREAM."
   (semantic-tag-name tag))
-
-(put 'semantic-tag-full-name 'semantic-overload
-     'tag-full-name)
 
 ;;; Compatibility aliases.
 ;;
