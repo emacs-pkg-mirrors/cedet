@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.59 2002/06/18 21:32:36 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.60 2002/07/29 17:25:46 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1425,14 +1425,36 @@ minor mode entry."
    )
  )
 
+;; (senator-register-mode-menu-entry
+;;  "Highlight Dirty Tokens"
+;;  '(semantic-show-dirty-mode
+;;    :help "Highlight tokens in the current buffer which need to be reparsed."
+;;    )
+;;  '(global-semantic-show-dirty-mode
+;;    :help "Automatically highlight dirty tokens in all Semantic buffers."
+;;    :save global-semantic-show-dirty-mode
+;;    )
+;;  )
+
 (senator-register-mode-menu-entry
- "Highlight Dirty Tokens"
- '(semantic-show-dirty-mode
-   :help "Highlight tokens in the current buffer which need to be reparsed."
+ "Highlight changes"
+ '(semantic-highlight-edits-mode
+   :help "Highlight changes tracked by Semantic."
    )
- '(global-semantic-show-dirty-mode
-   :help "Automatically highlight dirty tokens in all Semantic buffers."
-   :save global-semantic-show-dirty-mode
+ '(global-semantic-highlight-edits-mode
+   :help "Automatically highlight changes in all Semantic buffers."
+   :save global-semantic-highlight-edits-mode
+   )
+ )
+
+(senator-register-mode-menu-entry
+ "Show parser state"
+ '(semantic-show-parser-state-mode
+   :help "`-': OK, `!': will parse all, `~': will parse part, `@': running."
+   )
+ '(global-semantic-show-parser-state-mode
+   :help "Automatically show parser state in all Semantic buffers."
+   :save global-semantic-show-parser-state-mode
    )
  )
 
