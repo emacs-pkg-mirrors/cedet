@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.24 2004/03/05 03:11:32 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.25 2004/03/10 19:33:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -89,11 +89,11 @@
                (semantic-elisp-clos-slot-property-string part :type)
                (semantic-elisp-clos-slot-property-string part :initform)
                ;; Attributes
-               'protection (semantic-elisp-clos-slot-property-string
+               :protection (semantic-elisp-clos-slot-property-string
                             part :protection)
-               'static (equal (semantic-elisp-clos-slot-property-string
-                               part :allocation)
-                              ":class")
+               :static-flag (equal (semantic-elisp-clos-slot-property-string
+                                    part :allocation)
+                                   ":class")
                :documentation (semantic-elisp-clos-slot-property-string
                                part :documentation))
             vars (cons v vars)))
@@ -152,10 +152,10 @@ Return a bovination list to use."
 	;; Variables and constants
 	(semantic-tag-new-variable
 	 sn nil (nth 2 rt)
-	 'user-visible (and doc
+	 :user-visible-flag (and doc
 			    (> (length doc) 0)
 			    (= (aref doc 0) ?*))
-	 'const (if (eq ts 'defconst) t nil)
+	 :constant-flag (if (eq ts 'defconst) t nil)
 	 :documentation (semantic-elisp-do-doc doc)
 	 )
 	))
@@ -168,7 +168,7 @@ Return a bovination list to use."
       ;; functions and macros
       (semantic-tag-new-function
        sn nil (semantic-elisp-desymbolify (nth 2 rt))
-       'user-visible (equal (car-safe (nth 4 rt)) 'interactive)
+       :user-visible-flag (equal (car-safe (nth 4 rt)) 'interactive)
        :documentation (semantic-elisp-do-doc (nth 3 rt))
        :overloadable (eq ts 'define-overload)
        )
@@ -177,9 +177,9 @@ Return a bovination list to use."
       (semantic-tag-new-function
        (format "%S" (car (cdr (car (cdr rt)))))
        nil nil
-       'user-visible (and (nth 4 rt)
-			 (not (eq (nth 4 rt) 'nil)))
-       'prototype t
+       :user-visible-flag (and (nth 4 rt)
+			       (not (eq (nth 4 rt) 'nil)))
+       :prototype-flag t
        :documentation (semantic-elisp-do-doc (nth 3 rt)))
       )
      ((or (eq ts 'defmethod)
@@ -195,7 +195,7 @@ Return a bovination list to use."
 	     (cons (symbol-name (car (car args)))
 		   (semantic-elisp-desymbolify (cdr args)))
 	   (semantic-elisp-desymbolify (cdr args)))
-	 'parent (symbol-name
+	 :parent (symbol-name
 		  (if (listp (car args)) (car (cdr (car args)))))
 	 :documentation (semantic-elisp-do-doc doc)
 	 )))
@@ -213,7 +213,7 @@ Return a bovination list to use."
 	 sn "class"
 	 (semantic-elisp-clos-args-to-semantic (nth 3 rt))
 	 (semantic-elisp-desymbolify (nth 2 rt))
-	 'typemodifiers (semantic-elisp-desymbolify
+	 :typemodifiers (semantic-elisp-desymbolify
 			 (if (not (stringp docpart))
 			     docpart))
 	 :documentation
@@ -235,7 +235,7 @@ Return a bovination list to use."
      ((eq ts 'define-lex)
       (semantic-tag-new-function
        sn nil nil
-       'lexical-analyzer t
+       :lexical-analyzer-flag t
        :documentation (semantic-elisp-do-doc (nth 2 rt))
        )
       )
@@ -245,8 +245,8 @@ Return a bovination list to use."
 	(semantic-tag-new-function
 	 sn nil
 	 (when (listp args) (semantic-elisp-desymbolify args))
-	 'override-function t
-	 'parent (format "%S" (nth 2 rt))
+	 :override-function-flag t
+	 :parent (format "%S" (nth 2 rt))
 	 :documentation (semantic-elisp-do-doc (nth 4 rt))
 	 )
 	))
@@ -254,8 +254,8 @@ Return a bovination list to use."
       (semantic-tag-new-variable
        (format "%S" (nth 2 rt)) nil
        (nth 3 rt) ; default value
-       'override-variable t
-       'parent sn
+       :override-variable-flag t
+       :parent sn
        :documentation (semantic-elisp-do-doc (nth 4 rt))
        )
       )
@@ -363,8 +363,8 @@ Attempts a simple prototype for calling or using TAG."
 (define-mode-overload-implementation semantic-tag-protection
   emacs-lisp-mode (tag &optional parent)
   "Return the protection of TAG in PARENT.
-Override function for `semantic-nonterminal-protection'."
-  (let ((prot (semantic-tag-get-attribute tag 'protection)))
+Override function for `semantic-tag-protection'."
+  (let ((prot (semantic-tag-get-attribute tag :protection)))
     (cond
      ;; If a protection is not specified, AND there is a parent
      ;; data type, then it is public.
@@ -381,7 +381,7 @@ Override function for `semantic-nonterminal-protection'."
   "Return non-nil if TAG is static in PARENT class.
 Overrides `semantic-nonterminal-static'."
   ;; This can only be true (theoretically) in a class where it is assigned.
-  (semantic-tag-get-attribute tag 'static))
+  (semantic-tag-get-attribute tag :static-flag))
 
 ;;; Context parsing
 ;;
