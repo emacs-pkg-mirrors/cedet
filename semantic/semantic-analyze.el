@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.25 2004/02/05 14:48:15 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.26 2004/02/06 00:41:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,25 +66,37 @@ Almost all searches use the same arguments."
       ;; Search just this file because there is no DB available.
       (semantic-find-tags-by-name-regexp
        expr (current-buffer)))))
-  
-(defun semantic-analyze-find-tag (name &optional tagclass)
+ 
+(defun semantic-analyze-find-tag (name &optional tagclass scope)
   "Attempt to find a tag with NAME.
 Optional argument TAGCLASS specifies the class of tag to
 return, such as 'function or 'variable.
+Optional argument SCOPE specifies additional type tags which
+are in SCOPE and do not need prefixing to find.
 This is a wrapper on top of semanticdb, and semantic search functions.
 Almost all searches use the same arguments.
 
 NOTE: TAGCLASS isn't being used right now.  Fix?"
-  (if (and (fboundp 'semanticdb-minor-mode-p)
-	   (semanticdb-minor-mode-p))
-      ;; Search the database
-      (let ((dbans (semanticdb-find-tags-by-name
-		    name nil t)))
-	;; Lame, grabbing the first file match
-	(car (cdr (car dbans))))
-    ;; Search just this file
-    (semantic-find-first-tag-by-name
-     name (current-buffer))))
+  (let ((ret nil) (retlist nil))
+    (if scope
+	(setq retlist (semantic-find-tags-by-name name scope)))
+    (when (not retlist)
+      (setq retlist
+	    (if (and (fboundp 'semanticdb-minor-mode-p)
+		     (semanticdb-minor-mode-p))
+		;; Search the database
+		(semanticdb-strip-find-results
+		 (semanticdb-find-tags-by-name
+		  name nil t))
+	      ;; Search just this file
+	      (semantic-find-tags-by-name
+	       name (current-buffer)))))
+    ;; Scan only for tags of a given class.
+    (while (and retlist (not ret))
+      (when (semantic-tag-of-class-p (car retlist) tagclass)
+	(setq ret (car retlist)))
+      (setq retlist (cdr retlist)))
+    ret))
 
 (defun semantic-analyze-tag-type-to-name (tag)
   "Get the name of TAG's type.
@@ -258,8 +270,10 @@ will be stored.  If nil, that data is thrown away."
     ;; Return the mess
     (nreverse tag)))
 
-(defun semantic-analyze-inherited-tags (type)
+(defun semantic-analyze-inherited-tags (type scope)
   "Return all tags that TYPE inherits from.
+Argument SCOPE specify additional tags that are in scope
+whose tags can be searched when needed.
 For langauges with protection on specific methods or slots,
 it should strip out those not accessable by methods of TYPE."
   (let (;; PARENTS specifies only the superclasses and not
@@ -278,18 +292,20 @@ it should strip out those not accessable by methods of TYPE."
 		    ((semantic-tag-p p) (semantic-tag-name p))
 		    ((and (listp p) (stringp (car p)))
 		     (car p)))
-	      'type)))
-	;; Get tags from this parent.
-	(let* ((alltags (semantic-analyze-type-parts oneparent))
-	       (accessabletags (semantic-find-tags-by-scope-protection
-				'public oneparent alltags)))
-	  (setq ret (append ret accessabletags))))
+	      'type scope)))
+	(when oneparent
+	  ;; Get tags from this parent.
+	  (let* ((alltags (semantic-analyze-type-parts oneparent))
+		 (accessabletags (semantic-find-tags-by-scope-protection
+				  'public oneparent alltags)))
+	    (setq ret (append ret accessabletags)))))
 	;; Continue on
       (setq parents (cdr parents)))
     ret))
 
-(defun semantic-analyze-type-parts (type)
+(defun semantic-analyze-type-parts (type &optional scope)
   "Return all parts of TYPE, a tag representing a TYPE declaration.
+SCOPE include additional tags which are in scope.
 This includes both the TYPE parts, and all functions found in all
 databases which have this type as a property."
   (let (;; SLOTS are the slots directly a part of TYPE.
@@ -299,7 +315,7 @@ databases which have this type as a property."
 	(extmeth (semantic-tag-external-member-children type t))
 	;; INHERITED are tags found in classes that our TYPE tag
 	;; inherits from.
-	(inherited (semantic-analyze-inherited-tags type))
+	(inherited (semantic-analyze-inherited-tags type scope))
 	)
     ;; Flatten the database output.
     (append slots extmeth inherited)
@@ -316,10 +332,12 @@ implicit \"object\"."
   ;; protected methods of those!
   )
 
-(defun semantic-analyze-scope-nested-tags (&optional position)
+(defun semantic-analyze-scope-nested-tags (&optional position scopetypes)
   "Return a list of types in order of nesting for the context of POSITION.
 If POSITION is in a method with a named parent, find that parent, and
 identify it's scope via overlay instead.
+Optional SCOPETYPES are additional scoped entities in which our parent might
+be found.
 This only finds ONE immediate parent by name.  All other parents returned
 are from nesting data types."
   (save-excursion
@@ -338,12 +356,15 @@ are from nesting data types."
 	  (let ((p (semantic-tag-function-parent tag)))
 	    (when p
 	      ;; We have a parent, search for it.
-	      (let ((ptag (semantic-analyze-find-tag
-			   (cond ((stringp p) p)
-				 ((semantic-tag-p p)
-				  (semantic-tag-name p))
-				 ((and (listp p) (stringp (car p)))
-				  (car p))) 'type)))
+	      (let* ((searchname (cond ((stringp p) p)
+				      ((semantic-tag-p p)
+				       (semantic-tag-name p))
+				      ((and (listp p) (stringp (car p)))
+				       (car p))))
+		     (scope (apply 'append
+				   (mapcar 'semantic-tag-type-members scopetypes)))
+		     (ptag (semantic-analyze-find-tag searchname
+						      'type scope)))
 		(setq pparent ptag)))
 	    ))
 	;; If we have a pparent tag, lets go there
@@ -366,27 +387,33 @@ types available."
   (save-excursion
     (if position (goto-char position))
     (let ((tag (semantic-current-tag))
-	  (code-scoped-parents nil)
+	  (code-scoped-types nil)
 	  (parents nil))
-      ;; Get the PARENTS including nesting scope for this location.
-      (setq parents (semantic-analyze-scope-nested-tags))
       ;; Lets ask if any types are currently scoped.  Scoped
       ;; classes and types provide their public methods and types
       ;; in source code, but are unrelated hierarchically.
       (let ((sp (semantic-ctxt-scoped-types)))
 	(while sp
 	  ;; Get this thing as a tag
-	  (setq code-scoped-parents
-		(cons
-		 (semantic-analyze-find-tag (car sp))
-		 code-scoped-parents))
+	  (let ((tmp (cond ((stringp (car sp))
+			    (semantic-analyze-find-tag (car sp) 'type))
+			   ((semantic-tag-p (car sp))
+			    (car sp))
+			   (t nil))))
+	    (when tmp
+	      (setq code-scoped-types
+		    (cons tmp code-scoped-types))))
 	  (setq  sp (cdr sp))))
-      (setq code-scoped-parents (nreverse code-scoped-parents))
+      (setq code-scoped-types (nreverse code-scoped-types))
+      ;; Get the PARENTS including nesting scope for this location.
+      (setq parents (semantic-analyze-scope-nested-tags
+		     nil code-scoped-types))
       ;; We return a list in case a function can have multiple explicit
       ;; parents.
-      (if parents
-	  (append parents code-scoped-parents)
-	code-scoped-parents))))
+      (semantic-unique-tag-table
+       (if parents
+	   (append parents code-scoped-types)
+	 code-scoped-types)))))
 
 
 ;;; Top Level context analysis function
@@ -707,7 +734,8 @@ in a buffer."
 
 	  (setq c (semantic-find-tags-by-name-regexp
 		   (concat "^" completetext)
-		   (semantic-analyze-type-parts completetexttype)
+		   (semantic-analyze-type-parts completetexttype
+						(oref a scope))
 		   ))
 	      
 	(let ((expr (concat "^" completetext)))
