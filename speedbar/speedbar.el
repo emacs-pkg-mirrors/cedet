@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.240 2004/02/28 23:56:25 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.241 2004/03/13 16:54:18 zappo Exp $
 
 (defvar speedbar-version "0.15beta2"
   "The current version of speedbar.")
@@ -1439,13 +1439,14 @@ nil if not applicable."
 	(let ((tag (match-string 1))
 	      (attr (speedbar-line-token))
 	      (item nil))
-	  (if (and (featurep 'semantic) (semantic-token-p attr))
-	      (speedbar-message
-	       (condition-case nil
-		   (funcall semantic-sb-info-token->text-function attr)
-		 (error
-		   (funcall semantic-sb-info-format-tag-function attr)
-		   )))
+	  (if (and (featurep 'semantic) (semantic-tag-p attr))
+	      (save-excursion
+		(when (and (semantic-tag-overlay attr)
+			   (semantic-tag-buffer attr))
+		  (set-buffer (semantic-tag-buffer attr)))
+		(speedbar-message
+		 (funcall semantic-sb-info-format-tag-function attr)
+		 ))
 	    (looking-at "\\([0-9]+\\):")
 	    (setq item (file-name-nondirectory (speedbar-line-directory)))
 	    (speedbar-message "Tag: %s  in %s" tag item)))
@@ -1467,14 +1468,14 @@ nil if not applicable."
 			     (if (looking-at "[0-9]+: +[-+=>]> \\([^\n]+\\)$")
 				 (speedbar-line-token)
 			       nil))))
-	      (if (and (featurep 'semantic) (semantic-token-p detail))
+	      (if (and (featurep 'semantic) (semantic-tag-p detail))
 		  (speedbar-message
-		   (funcall semantic-sb-info-token->text-function detail parent))
+		   (funcall semantic-sb-info-format-tag-function detail parent))
 		(if parent
 		    (speedbar-message "Detail: %s of tag %s" detail
 				      (if (and (featurep 'semantic)
-					       (semantic-token-p parent))
-					  (semantic-token-name parent)
+					       (semantic-tag-p parent))
+					  (semantic-format-tag-name parent nil t)
 					parent))
 		  (speedbar-message "Detail: %s" detail))))
 	  nil)))))
@@ -3282,7 +3283,7 @@ Optional argument ARG indicates that any cache should be flushed."
 (defun speedbar-contract-line-descendants ()
   "Expand the line under the cursor and all descendants."
   (interactive)
-  (speedbar-contract-line arg)
+  (speedbar-contract-line)
   ;; Don't need to do anything else since all descendants are
   ;; hidden by default anyway.  Yay!  It's easy.
   )
@@ -3860,18 +3861,19 @@ If TEMP is non-nil, then clicking on a buffer restores the previous display."
 	  (speedbar-buffers-tail-notes (car bl))))
       (setq bl (cdr bl)))
     (setq bl (buffer-list))
-    (speedbar-insert-separator "Hidden Buffers:")
-    (while bl
-      (if (not (string-match "^ " (buffer-name (car bl))))
-	  nil
-	(if (eq (car bl) speedbar-buffer)
-	    nil
-	  (speedbar-make-tag-line 'bracket ?? nil nil
-				  (buffer-name (car bl))
-				  'speedbar-buffer-click temp
-				  'speedbar-file-face 0)
-	  (speedbar-buffers-tail-notes (car bl))))
-      (setq bl (cdr bl)))))
+    ;;(speedbar-insert-separator "Hidden Buffers:")
+    ;;(while bl
+    ;;  (if (not (string-match "^ " (buffer-name (car bl))))
+    ;;	  nil
+    ;;	(if (eq (car bl) speedbar-buffer)
+    ;;	    nil
+    ;;	  (speedbar-make-tag-line 'bracket ?? nil nil
+    ;;				  (buffer-name (car bl))
+    ;;				  'speedbar-buffer-click temp
+    ;;				  'speedbar-file-face 0)
+    ;;	  (speedbar-buffers-tail-notes (car bl))))
+    ;;  (setq bl (cdr bl)))
+    ))
 
 (defun speedbar-buffers-tail-notes (buffer)
   "Add a note to the end of the last tag line.
