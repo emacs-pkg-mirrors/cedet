@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.49 2002/08/07 21:08:10 zappo Exp $
+@c $Id: eieio.texi,v 1.50 2003/02/25 14:38:05 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{eieio}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1995,1996,1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
+Copyright @copyright{} 1995,1996,1998, 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 @end titlepage
 
 
@@ -122,6 +122,9 @@ highlighted in files not currently loaded in Emacs.  When they are
 read in, the lines are given the graphic properties.
 
 Includes an MS Visual Studio like bookmark facility.
+@item lmcompile
+Using linemark, highlight all lines where the latest compilation
+has valid hits.
 @item tree
 Draw a structured tree by building a series of embedded lists of
 `tree-node' class objects.  Includes the functions `eieio-class-tree' to
