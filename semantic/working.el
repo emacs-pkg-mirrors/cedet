@@ -227,6 +227,7 @@ See the function `message' for details on ARGS."
       (apply 'working-message-echo args)
     (setq working-mode-line-message (apply 'format args))
     (working-mode-line-update)
+    (sit-for 0)
     ))
 
 ;;; Compatibility
