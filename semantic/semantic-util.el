@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.11 2000/06/14 15:28:22 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.12 2000/06/14 15:33:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -552,7 +552,11 @@ Optional argument PARENT is the parent type if TOKEN is a detail."
     (if s
 	(funcall s token parent)
       ;; FLESH THIS OUT MORE
-      (concat (capitalize (symbol-name tt)) ": "
+      (concat (or (capitalize
+		   (cdr-safe (assoc (semantic-token-token token)
+				    semantic-symbol->name-assoc-list)))
+		  (capitalize (symbol-name (semantic-token-token token))))
+	      ": "
 	      (semantic-prototype-nonterminal token)))))
 
 (defun semantic-prototype-nonterminal (token)
