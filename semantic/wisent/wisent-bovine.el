@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.6 2001/09/21 14:31:11 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.7 2001/10/03 17:58:05 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -159,6 +159,9 @@ with the current results on a parse error."
 
 (defun wisent-rebovinate-token (token)
   "Use TOKEN for extents, and reparse it, splicing it back into the cache."
+  ;; Pre Hooks
+  (run-hook-with-args 'semantic-pre-clean-token-hooks token)
+
   (let* ((semantic-flex-depth wisent-flex-depth)
          (stream (semantic-flex (semantic-token-start token)
                                 (semantic-token-end token)))
