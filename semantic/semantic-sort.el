@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.16 2004/02/19 02:17:04 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.17 2004/03/10 19:29:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -456,7 +456,7 @@ include the default behavior, and merely extend your own."
   "Return the name of TAGs parent iff TAG is not defined in it's parent."
   ;; Use only the extra spec because a type has a parent which
   ;; means something completely different.
-  (let ((tp (semantic-tag-get-attribute tag 'parent)))
+  (let ((tp (semantic-tag-get-attribute tag :parent)))
     (when (stringp tp)
       tp)
     ))
@@ -472,7 +472,7 @@ as having PARENT as it's parent.
 PARENT and TAG must both be semantic tags.
 
 The default behavior, if not overridden with
-`tag-external-member-p' is to match 'parent extra specifier in
+`tag-external-member-p' is to match :parent attribute in
 the name of TAG.
 
 If this function is overridden, use
