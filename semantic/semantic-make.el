@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.10 2001/11/08 19:41:05 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.11 2001/11/17 15:42:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -142,6 +142,7 @@ These command lines continue to additional lines when the end with \\"
   (goto-char (match-end 0))
   nil)
 
+;;;###autoload
 (defun semantic-default-make-setup ()
   "Set up a Makefile buffer for parsing with semantic."
   (setq semantic-flex-extensions semantic-flex-make-extensions)
