@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.24 2001/01/06 05:22:48 zappo Exp $
+@c $Id: semantic.texi,v 1.25 2001/01/10 06:48:16 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -145,6 +145,20 @@ For the keyword found as @var{text} in a language buffer, set
 
 @defun semantic-flex-keyword-get text property
 For the keyword found as @var{text}, get the value of @var{property}.
+@end defun
+
+
+@defun semantic-flex-map-keywords fun &optional property
+Call function @var{FUN} on every semantic keyword.
+If optional @var{PROPERTY} is non-nil call @var{FUN} only on every
+keyword which have a @var{PROPERTY} value.
+@var{FUN} receives a semantic keyword as argument.
+@end defun
+
+@defun semantic-flex-keywords &optional property
+Return a list of semantic keywords.
+If optional @var{PROPERTY} is non-nil return only keyword which have a
+PROPERTY value.
 @end defun
 
 Keyword properties can be set up in a BNF file for ease of maintenance.
