@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.12 2002/06/26 17:01:49 ponced Exp $
+@c $Id: wisent.texi,v 1.13 2002/06/26 17:32:58 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle Wisent: the Bison-compatible Parser Generator for Emacs
@@ -50,8 +50,7 @@ License''.
 @insertcopying
 @end titlepage
 
-@node Top, Overview, (dir), (dir)
-@comment  node-name,  next,  previous,  up
+@node Top
 @top Wisent
 
 @insertcopying
@@ -114,8 +113,7 @@ Bison style
 @end detailmenu
 @end menu
 
-@node Overview, Grammar, Top, Top
-@comment  node-name,  next,  previous,  up
+@node Overview
 @chapter Overview
 
 @cindex Wisent overview
@@ -188,8 +186,7 @@ example, this is particularly useful to parse a region of an Emacs
 buffer.  Semantic heavily depends on the availability of this feature.
 @end itemize
 
-@node Grammar, Parsing, Overview, Top
-@comment  node-name,  next,  previous,  up
+@node Grammar
 @chapter Grammar
 
 @cindex Context-free grammar
@@ -237,8 +234,7 @@ between, can be combined into a larger grouping of type @code{exp}.
 * Example::                     
 @end menu
 
-@node Grammar format, Compiling a grammar, Grammar, Grammar
-@comment  node-name,  next,  previous,  up
+@node Grammar format
 @section Grammar format
 
 @cindex Grammar format
@@ -392,8 +388,7 @@ matching the empty string, for which the default action is to return
 @end table
 @end table
 
-@node Compiling a grammar, Conflicts, Grammar format, Grammar
-@comment  node-name,  next,  previous,  up
+@node Compiling a grammar
 @section Compiling a grammar
 
 @cindex LALR(1) grammar
@@ -456,8 +451,7 @@ lexical tokens that will be first shifted into the parser stack.
 * Grammar Debugging::           
 @end menu
 
-@node Grammar Debugging,  , Compiling a grammar, Compiling a grammar
-@comment  node-name,  next,  previous,  up
+@node Grammar Debugging
 @subsection Grammar Debugging
 
 To help writing a new grammar, it is possible to tell
@@ -485,8 +479,7 @@ Note that when non-@code{nil}, @code{wisent-debug-flag} also enables
 reporting of the content of some internal data structures.  This is
 mainly useful to debug the grammar compiler itself.
 
-@node Conflicts, Example, Compiling a grammar, Grammar
-@comment  node-name,  next,  previous,  up
+@node Conflicts
 @section Conflicts
 
 @cindex Grammar conflicts
@@ -528,8 +521,7 @@ reduce/reduce conflict must be studied and usually eliminated.@*
 @inforef{Reduce/Reduce , , bison.info}, for more information.
 @end table
 
-@node Example,  , Conflicts, Grammar
-@comment  node-name,  next,  previous,  up
+@node Example
 @section Example
 
 @cindex Grammar example
@@ -639,8 +631,7 @@ Here is the corresponding Lisp form accepted by
   )
 @end lisp
 
-@node Parsing, Wisent Bovine, Grammar, Top
-@comment  node-name,  next,  previous,  up
+@node Parsing
 @chapter Parsing
 
 @cindex Bottom-Up parser
@@ -710,8 +701,7 @@ It defaults to the start symbol defined in the grammar.@*
 * Error recovery::              
 @end menu
 
-@node Writing a lexer, Actions goodies, Parsing, Parsing
-@comment  node-name,  next,  previous,  up
+@node Writing a lexer
 @section What the parser must receive
 
 @cindex Lexical analysis
@@ -761,8 +751,7 @@ To call the lexer in a semantic action use the function
 @code{wisent-lexer}.@*
 @xref{Actions goodies}.
 
-@node Actions goodies, Report errors, Writing a lexer, Parsing
-@comment  node-name,  next,  previous,  up
+@node Actions goodies
 @section Variables and macros useful in grammar actions.
 
 @cindex Action goodies
@@ -786,8 +775,7 @@ Each element of @var{POSITIONS} is a pair (@var{START-POS} .
 @var{POSITIONS} are available.
 @end defun
 
-@node Report errors, Error recovery, Actions goodies, Parsing
-@comment  node-name,  next,  previous,  up
+@node Report errors
 @section The error reporting function
 
 @cindex Error reporting
@@ -806,8 +794,7 @@ using the special macro @code{wisent-error}.  When called from a
 semantic action entered by error recovery (@pxref{Error recovery}) the
 value of the variable @code{wisent-recovering} is non-nil.
 
-@node Error recovery,  , Report errors, Parsing
-@comment  node-name,  next,  previous,  up
+@node Error recovery
 @section Error recovery
 
 @cindex Error recovery
@@ -964,8 +951,7 @@ block delimited by @samp{LBRACE} (@code{@{}) and @samp{RBRACE}
 @end example
 @end defun
 
-@node Wisent Bovine, GNU Free Documentation License, Parsing, Top
-@comment  node-name,  next,  previous,  up
+@node Wisent Bovine
 @chapter How to use Wisent with Semantic
 
 @cindex How to use Wisent with Semantic
@@ -988,8 +974,7 @@ variables, data types, classes, includes, grammar rules, etc..
 * Wisent Flex::                 
 @end menu
 
-@node WY grammar format, WY Major Mode, Wisent Bovine, Wisent Bovine
-@comment  node-name,  next,  previous,  up
+@node WY grammar format
 @section WY grammar format
 
 @cindex WY grammar format
@@ -1256,8 +1241,7 @@ See also @ref{Example}.
 * Percent-keywords::            
 @end menu
 
-@node Percent-keywords,  , WY grammar format, WY grammar format
-@comment  node-name,  next,  previous,  up
+@node Percent-keywords
 @subsection Percent-keywords
 
 @cindex %keywordtable
@@ -1332,8 +1316,7 @@ exp:
 @end example
 @end table
 
-@node WY Major Mode, Grammar styles, WY grammar format, Wisent Bovine
-@comment  node-name,  next,  previous,  up
+@node WY Major Mode
 @section WY Major Mode
 
 @cindex WY Major Mode
@@ -1374,8 +1357,7 @@ Semantic for this particular programming language.
 
 @end deffn
 
-@node Grammar styles, Wisent Flex, WY Major Mode, Wisent Bovine
-@comment  node-name,  next,  previous,  up
+@node Grammar styles
 @section Grammar styles
 
 @cindex Grammar styles
@@ -1391,8 +1373,7 @@ it can be worth a mix of the two styles!
 * Mixed style::                 
 @end menu
 
-@node Bovine style, Bison style, Grammar styles, Grammar styles
-@comment  node-name,  next,  previous,  up
+@node Bovine style
 @subsection Bovine style
 
 @cindex Grammar bovine style
@@ -1425,15 +1406,13 @@ Should be used in Semantic actions to build the bovine cache.
 * Bovine style example::        
 @end menu
 
-@node Top level nonterminals, Bovine style example, Bovine style, Bovine style
-@comment  node-name,  next,  previous,  up
+@node Top level nonterminals
 @subsubsection Top level nonterminals
 
 @cindex Top level nonterminals
 To be done!
 
-@node Bovine style example,  , Top level nonterminals, Bovine style
-@comment  node-name,  next,  previous,  up
+@node Bovine style example
 @subsubsection Bovine style example
 
 @cindex Grammar bovine style example
@@ -1487,8 +1466,7 @@ At each iteration it will return a @samp{formal_parameter} raw token,
 or nil to skip unwanted (single @samp{LPAREN} or @samp{RPAREN} for
 example) or unexpected input data.
 
-@node Bison style, Mixed style, Bovine style, Grammar styles
-@comment  node-name,  next,  previous,  up
+@node Bison style
 @subsection Bison style
 
 @cindex Grammar Bison style
@@ -1522,8 +1500,7 @@ Should be used in Semantic actions to build the bovine cache.
 * Bison style example::         
 @end menu
 
-@node Bison style example,  , Bison style, Bison style
-@comment  node-name,  next,  previous,  up
+@node Bison style example
 @subsubsection Bison style example
 
 @cindex Grammar Bison style example
@@ -1547,8 +1524,7 @@ formal_parameter
   ;
 @end example
 
-@node Mixed style,  , Bison style, Grammar styles
-@comment  node-name,  next,  previous,  up
+@node Mixed style
 @subsection Mixed style
 
 @cindex Grammar mixed style
@@ -1636,8 +1612,7 @@ In such cases, when it is difficult for Emacs to obtain
 @code{semantic-list} syntactic tokens, the best solution is to use
 traditional Bison style with error recovery!
 
-@node Wisent Flex,  , Grammar styles, Wisent Bovine
-@comment  node-name,  next,  previous,  up
+@node Wisent Flex
 @section The Wisent Flex lexer
 
 @cindex Wisent Flex lexer
@@ -1771,14 +1746,9 @@ string comparison:
 @end example
 @end enumerate
 
-@node GNU Free Documentation License, Index, Wisent Bovine, Top
-@comment  node-name,  next,  previous,  up
-@appendix GNU Free Documentation License
-
 @include fdl.texi
 
-@node Index,  , GNU Free Documentation License, Top
-@comment  node-name,  next,  previous,  up
+@node Index
 @unnumbered Index
 
 @printindex fn
