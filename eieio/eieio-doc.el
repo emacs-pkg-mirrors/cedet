@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: eieio-doc.el,v 1.4 1997/01/07 23:08:08 zappo Exp $
+;;; RCS: $Id: eieio-doc.el,v 1.5 1997/01/24 00:27:33 zappo Exp $
 ;;; Keywords: OO, lisp, docs
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -36,10 +36,10 @@
 ;;;  for a class, all it's children, and all it's slots.
 
 (defvar eieiodoc-currently-in-node nil
-  "String representing the node we go BACK to")
+  "String representing the node we go BACK to.")
 
 (defvar eieiodoc-current-section-level nil
-  "String represending what type of section header to use")
+  "String represending what type of section header to use.")
 
 (defvar eieiodoc-prev-class nil
   "This has a value while eieiodoc-recurse is running, and can be
@@ -50,15 +50,15 @@ referenced from the recursed function.")
 referenced from the recursed function.")
 
 (defun eieiodoc-class (root-class indexstring &optional skiplist)
-  "Create documentation starting with ROOT-CLASS.  The first job is to
-create an indented menu of all the classes starting with `root-class'
-and including all it's children.  Once this is done, @nodes are
-created for all the subclasses.  Each node is then documented with a
-description of the class, a brief inheritance tree (with xrefs) and a
-list of all slots in a big table.  Where each slot is inherited from
-is also documented.  In addition, each class is documented in the
-index referenced by INDEXSTRING, a two letter code described in the
-texinfo manual.
+  "Create documentation starting with ROOT-CLASS.
+The first job is to create an indented menu of all the classes
+starting with `root-class' and including all it's children.  Once this
+is done, @nodes are created for all the subclasses.  Each node is then
+documented with a description of the class, a brief inheritance tree
+(with xrefs) and a list of all slots in a big table.  Where each slot
+is inherited from is also documented.  In addition, each class is
+documented in the index referenced by INDEXSTRING, a two letter code
+described in the texinfo manual.
 
 The optional third argument SKIPLIST is a list of object not to put
 into any menus, nodes or lists."
@@ -87,8 +87,8 @@ into any menus, nodes or lists."
     (eieiodoc-recurse root-class 'eieiodoc-one-node nil skiplist)))
   
 (defun eieiodoc-main-menu (class skiplist)
-  "Create a menu of all classes under CLASS indented the correct
-amount.  SKIPLIST is a list of objects to skip"
+  "Create a menu of all classes under CLASS indented the correct amount.
+SKIPLIST is a list of objects to skip"
   (end-of-line)
   (insert "\n@menu\n")
   (eieiodoc-recurse class (lambda (class level)
@@ -98,8 +98,8 @@ amount.  SKIPLIST is a list of objects to skip"
   (insert "@end menu\n"))
 
 (defun eieiodoc-one-node (class level)
-  "Create a node for CLASS, and for all subclasses of CLASS in order.  This
-function should only be called by `eieiodoc-class'"
+  "Create a node for CLASS, and for all subclasses of CLASS in order.
+This function should only be called by `eieiodoc-class'"
   (message "Building node for %s" class)
   (insert "\n@node " (symbol-name class) ", "
 	  (if eieiodoc-next-class (symbol-name eieiodoc-next-class) " ") ", "
@@ -188,10 +188,10 @@ function should only be called by `eieiodoc-class'"
     ))
 
 (defun eieiodoc-one-attribute (class attribute doc deflt)
-  "Create documentation for a single attribute.  Assume this attribute
-is inside a table, so it is initiated with the @item indicator.  If
-this attribute is not inserted (because it is contained in the parent)
-then return nil, else return t"
+  "Create documentation for a single attribute.
+Assume this attribute is inside a table, so it is initiated with the
+@item indicator.  If this attribute is not inserted (because it is
+contained in the parent) then return nil, else return t"
   (let ((pv (eieiodoc-parent-diff class attribute))
 	(ia (eieio-attribute-to-initarg class attribute))
 	(set-me nil))
@@ -242,8 +242,8 @@ recursing."
     eieiodoc-prev-class))
 
 (defun eieiodoc-parent-diff (class slot)
-  "Return nil if the parent of CLASS does not have slot SLOT.  Return
-t if it does, and return 'default if the default has changed."
+  "Return nil if the parent of CLASS does not have slot SLOT.
+Return t if it does, and return 'default if the default has changed."
   (let (df (err t) (scoped-class (class-parent class)))
     (condition-case nil
 	(setq df (oref-default-engine (class-parent class) slot)
@@ -257,9 +257,9 @@ t if it does, and return 'default if the default has changed."
 	'default))))
 
 (defun eieiodoc-texify-docstring (string class)
-  "Take STRING, which is formatted to a normal doc string, and convert
-it into a texinfo style string.  For instances where CLASS is the
-class being referenced, do not Xref that class.
+  "Take STRING, (a normal doc string), and convert it into a texinfo string.
+For instances where CLASS is the class being referenced, do not Xref
+that class.
 
  `function' => @dfn{function}
  `variable' => @code{variable}
