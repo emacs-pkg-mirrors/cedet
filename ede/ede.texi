@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.10 2001/04/27 00:23:10 zappo Exp $
+@c $Id: ede.texi,v 1.11 2005/01/12 21:35:35 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{ede}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1998, 1999, 2000, 2001 Eric M. Ludlam
+Copyright @copyright{} 1998, 1999, 2000, 2001, 2004 Eric M. Ludlam
 @end titlepage
 
 @node Top, , , (dir)Top
@@ -70,9 +70,8 @@ projects are loaded at that time.
 @chapter Creating a project
 
 EDE can support many different types of projects.  When creating a new
-project with the command `ede-new' (or "Create Project" in the
-menu) you must choose the type of project you would like to create.
-@xref{Project types}.
+project with the command `ede-new' you must choose the type of project
+you would like to create.  @xref{Project types}.
 
 Each type has it's own benefits or language specific enhancements.  You
 will be prompted for the type of project you would like to create.  The
