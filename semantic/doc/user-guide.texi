@@ -837,6 +837,8 @@ The cache is up to date.
 The cache requires a full update.
 @item ~
 The cache needs to be incrementally parsed.
+@item %
+The buffer is not lexically parseable.
 @item @@
 Auto-parse in progress (not set here.)
 @end table
