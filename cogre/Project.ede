@@ -2,9 +2,30 @@
 ;; EDE project file.
 (ede-proj-project "COGRE"
   :name "COGRE"
-  :version "0.3"
+  :version "0.4"
   :file "Project.ede"
   :targets (list 
+   (semantic-ede-proj-target-grammar "wisent"
+    :name "wisent"
+    :path ""
+    :source '("wisent-dot.wy")
+    )
+   (ede-proj-target-elisp-autoloads "autoloads"
+    :name "autoloads"
+    :path ""
+    :autoload-file "cogre-defs.el"
+    )
+   (ede-proj-target-elisp "dot"
+    :name "dot"
+    :path ""
+    :source '("wisent-dot.el")
+    :aux-packages '("wisent")
+    )
+   (ede-proj-target-elisp "Mode"
+    :name "Mode"
+    :path ""
+    :source '("cogre-mode.el")
+    )
    (ede-proj-target-makefile-info "info"
     :name "info"
     :path ""
@@ -25,6 +46,7 @@
     :path ""
     :source '("cogre.el" "cogre-uml.el" "uml-create.el" "cogre-lay.el")
     :versionsource '("cogre.el")
+    :aux-packages '("eieio" "semantic" "semantic-el")
     )
    )
   :web-site-url "http://cedet.sourceforge.net/cogre.shtml"
