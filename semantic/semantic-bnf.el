@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.13 2000/09/13 21:31:26 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.14 2000/09/13 21:45:23 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -144,26 +144,22 @@
   (let ((argv (1- (string-to-int (substring (symbol-name (car (cdr lst)))
 					    1)))))
     (insert "\n")
-    (indent-for-tab-command)
     (insert "(semantic-bovinate-from-nonterminal "
 	    "(car (nth " (int-to-string argv) " vals)) "
 	    "(cdr (nth " (int-to-string argv) " vals)) "
 	    "'" (symbol-name (car (cdr (cdr lst))))
-	    ")\n")
-    (indent-for-tab-command)))
+	    ")\n")))
 
 (defun semantic-bnf-EXPANDFULL (lst)
   "Insert a token full expand function based on LST."
   (let ((argv (1- (string-to-int (substring (symbol-name (car (cdr lst)))
 					    1)))))
     (insert "\n")
-    (indent-for-tab-command)
     (insert "(semantic-bovinate-from-nonterminal-full "
 	    "(car (nth " (int-to-string argv) " vals)) "
 	    "(cdr (nth " (int-to-string argv) " vals)) "
 	    "'" (symbol-name (car (cdr (cdr lst))))
-	    ")\n")
-    (indent-for-tab-command)))
+	    ")\n")))
 
 (defun semantic-bnf-lambda-substitute (lst quotemode &optional inplace)
   "Insert LST substituting based on rules for the BNF converter.
@@ -265,10 +261,8 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
       ;; out as the bovine lambda expression, and do macro-like
       ;; conversion upon it.
       (insert "\n")
-      (indent-for-tab-command)
       (cond ((eq (car slsr) 'EXPAND)
 	     (insert ",(lambda (vals start end)\n")
-	     (indent-for-tab-command)
 	     (semantic-bnf-EXPAND slsr)
 	     )
 	    ((and (listp (car slsr))
@@ -278,7 +272,6 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
 	     )
 	    (t
 	     (insert ",(semantic-lambda\n")
-	     (indent-for-tab-command)
 	     (semantic-bnf-lambda-substitute slsr quotemode)
 	     ))
       (insert ")"))))
@@ -291,7 +284,6 @@ Inserts the token stream TOKSTREAM, and uses START is the starting token."
 	(quotemode (if (semantic-find-nonterminal-by-token 'quotemode tokstream)
 		       t nil)))
     (insert "`(")
-    (indent-for-tab-command)
     (working-status-forms "Building bovine table" "done"
       (while tokstream
 	;; Each element is a top level match, of the form:
@@ -306,7 +298,6 @@ Inserts the token stream TOKSTREAM, and uses START is the starting token."
 		(insert "bovine-toplevel")
 	      (insert (car rule)))
 	    (insert "\n")
-	    (indent-for-tab-command)
 	    (while matches
 	      (let* ((mla (car matches))
 		     (lamb (car mla))
@@ -318,11 +309,9 @@ Inserts the token stream TOKSTREAM, and uses START is the starting token."
 		    (insert " " (car ml))
 		    (setq ml (cdr ml))))
 		(semantic-bnf-lambda-convert lamb (car (cdr mla)) quotemode)
-		(insert ")\n")
-		(indent-for-tab-command))
+		(insert ")\n"))
 	      (setq matches (cdr matches)))
-	    (insert ") ; end " (car rule) "\n")
-	    (indent-for-tab-command)))
+	    (insert ") ; end " (car rule) "\n")))
 	(setq tokstream (cdr tokstream))
 	(working-status (* 100.0 (- 1.0 (/ (float (length tokstream)) tl)))))
       (working-status t))
@@ -423,7 +412,6 @@ SOURCEFILE is the file name from whence tokstream came."
 			       (point))))
 		(delete-region (1+ mb) (1- me))
 		(goto-char (1+ mb))
-		(indent-for-tab-command)
 		t)
 	    ;; Add a new on in at the end
 	    (goto-char e)
@@ -432,13 +420,10 @@ SOURCEFILE is the file name from whence tokstream came."
 	    (let ((m (string-match ";"
 				   (car semantic-setup-code-delimiters))))
 	      (insert (substring (car semantic-setup-code-delimiters) m))
-	      (indent-for-tab-command)
 	      (insert " " sourcefile "\n")
-	      (indent-for-tab-command)
 	      (save-excursion;; save in the middle
 		(insert "\n" (substring (cdr semantic-setup-code-delimiters)
 					m))
-		(indent-for-tab-command)
 		(insert " " sourcefile "\n"))
 	      t)
 	    ))))))
@@ -468,27 +453,34 @@ SOURCEFILE is the file name from whence tokstream came."
       (delete-blank-lines)
       (semantic-bnf-to-bovine (buffer-file-name bb) tok
 			      (if start (semantic-token-name (car start))))
-      (indent-for-tab-command)
+      (message "Indenting table....")
+      (save-excursion
+	(indent-region (progn (re-search-backward "(defvar")
+			      (goto-char (match-beginning 0))
+			      (point))
+		       (progn (forward-sexp 1) (point))
+		       nil))
       (eval-defun nil)
       (when (semantic-bnf-find-setup-code tok fname)
 	;; Point should now be in the region to add stuff
 	;; Add in the bovine table to be used
-	(let ((var (semantic-find-nonterminal-by-token 'parsetable tok)))
-	  (when var
-	    (insert "(setq semantic-toplevel-bovine-table "
-		    (semantic-token-name (car var))
-		    ")\n")))
-	(indent-for-tab-command)
-	;; Add in user specified settings
-	(let ((settings (semantic-find-nonterminal-by-token 'setting tok)))
-	  (while settings
-	    (indent-region (point)
-			   (progn (insert (nth 2 (car settings)))
-				  (point))
-			   nil)
-	    (insert "\n")
-	    (setq settings (cdr settings))))
+	(indent-region
+	 (point)
+	 (let ((var (semantic-find-nonterminal-by-token 'parsetable tok)))
+	   (when var
+	     (insert "(setq semantic-toplevel-bovine-table "
+		     (semantic-token-name (car var))
+		     ")\n"))
+	   ;; Add in user specified settings
+	   (let ((settings (semantic-find-nonterminal-by-token 'setting tok)))
+	     (while settings
+	       (insert (nth 2 (car settings)))
+	       (insert "\n")
+	       (setq settings (cdr settings))))
+	   (point))
+	 nil)
 	(eval-defun nil)))
+    (message "Done.")
     (if mode
 	(save-excursion
 	  (let ((bufs (buffer-list)))
