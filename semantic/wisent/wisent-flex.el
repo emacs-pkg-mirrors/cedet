@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 23 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-flex.el,v 1.2 2002/02/27 23:01:22 ponced Exp $
+;; X-RCS: $Id: wisent-flex.el,v 1.3 2002/06/07 18:25:56 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -50,7 +50,7 @@
    (intern-soft (symbol-name token) wisent-flex-tokens-obarray)))
 
 (defsubst wisent-flex-token-get (token property)
-  "For token TOKEN-NAME, get the value of PROPERTY."
+  "For token TOKEN, get the value of PROPERTY."
   (get (intern-soft (symbol-name token) wisent-flex-tokens-obarray)
        property))
 
@@ -141,13 +141,14 @@ Also the mapping between syntactic tokens and lexical ones uses regexp
 match by default, but can use string comparison too.
 
 The rules specifying how to do the mapping are defined in two symbol
-tables: the keyword table available in variable
-`semantic-flex-keywords-obarray', and the token table available in
-variable `wisent-flex-tokens-obarray'.
+tables:
+
+  - The keyword table in variable `semantic-flex-keywords-obarray';
+
+  - The token table in variable `wisent-flex-tokens-obarray'.
 
 Keywords are directly mapped to equivalent Wisent's lexical tokens
-like this (SF- prefix means `semantic-flex', WF- prefix means
-`wisent-flex'):
+like this (SF- prefix means `semantic-flex', WF- `wisent-flex'):
 
   (SF-KEYWORD start . end)  ->  (WF-KEYWORD \"name\" start . end)
 
@@ -160,24 +161,28 @@ example on how to define the mapping of 'punctuation syntactic tokens.
    alist of (WF-TOKEN . MATCHER) elements.  WF-TOKEN is the category
    of the Wisent's lexical token (for example 'OPERATOR).  MATCHER is
    the regular expression used to filter input data (for example
-   \"[+-]\").
+   \"[+-]\").  The first element of the mapping rule alist defines a
+   default matching rule. It must be nil or have the form (WF-TOKEN).
+   When there is no mapping rule that matches the syntactic token
+   value, the default WF-TOKEN or nil is returned.
 
-   Thus, with the above settings, a syntactic token like
+   Thus, if the syntactic token symbol 'punctuation has the mapping
+   rules '(nil (OPERATOR . \"[+-]\")), the following token:
 
    (punctuation 1 . 2)
 
-   could be mapped to lexical tokens
+   will be mapped to the lexical token
 
-   (OPERATOR \"+\" 1 . 2) or (OPERATOR \"-\" 1 . 2)
+   (OPERATOR \"+\" 1 . 2)
 
-   depending on the buffer content between positions 1 and 2.
+   if the buffer contained \"+\" between positions 1 and 2.
 
    To define multiple matchers for the same WF-TOKEN just give
    several (WF-TOKEN . MATCHER) values.  MATCHERs will be tried in
    sequence until one matches.
 
-3. Optionally customize how `wisent-flex' will interpret above rules,
-   using symbol properties.
+3. Optionally customize how `wisent-flex' will interpret mapping
+   rules, using symbol properties.
 
    The following properties are recognized:
 
@@ -191,19 +196,27 @@ example on how to define the mapping of 'punctuation syntactic tokens.
      tokens and try to match the longest one.
 
    'char-literal
-     non-nil indicates to return first character of token value as the
-     default lexical token category.  It is the default for
-     punctuation, open-paren and close-paren categories.  Use this
-     property when grammar contains references to character literals.
+     non-nil indicates to return the first character of the syntactic
+     token value as the lexical token category.  It is the default for
+     punctuation, open-paren and close-paren syntactic tokens.  Use
+     this property when grammar contains references to character
+     literals.
+
+   'handler
+     If non-nil must specify a function with no argument that will be
+     called first to map the syntactic token.  It must return a
+     lexical token or nil, and update the input stream in variable
+     `wisent-flex-istream' accordingly.
 
    The following example maps multiple punctuations to operators and
    use string comparison:
 
    (let ((entry (intern 'punctuation token-table)))
-     (set entry '((LSHIFT . \"<<\") (RSHIFT . \">>\")
+     (set entry '(nil ;; No default mapping
+                  (LSHIFT . \"<<\") (RSHIFT . \">>\")
                   (LT     .  \"<\") (GT     .  \">\")))
      (put entry 'string   t)
-     (put entry 'multiple t))"  
+     (put entry 'multiple t))"
   (if (null wisent-flex-istream)
       
       ;; End of input
@@ -220,16 +233,24 @@ example on how to define the mapping of 'punctuation syntactic tokens.
        
           ;; Keyword
           ;; -------
-          (setq wlex (cons term (cons text (cdr flex))))
+          (setq wlex (cons term (cons text (cdr flex)))
+                ;; Eat input stream
+                wisent-flex-istream (cdr is))
                 
         
         ;; Token
         ;; -----
         (when (setq rules (wisent-flex-token-rules stok))
-          (setq usequal (wisent-flex-token-get stok 'string)
-                default (car rules)
+          (setq default (car rules)
                 rules   (cdr rules))
           (cond
+           
+           ;; If specified try a function first to map token.
+           ;; It must return a lexical token or nil and update the
+           ;; input stream (`wisent-flex-istream') accordingly.
+           ((and (setq n (wisent-flex-token-get stok 'handler))
+                 (setq wlex (funcall n))))
+           
            ;; Several/One mapping
            ((wisent-flex-token-get stok 'multiple)
             (setq beg  (semantic-flex-start flex)
@@ -247,23 +268,24 @@ example on how to define the mapping of 'punctuation syntactic tokens.
                     is2  (cdr is2)
                     flex (car is2)))
             ;; Search the longest match
+            (setq usequal (wisent-flex-token-get stok 'string))
             (while (and (not wlex) ends)
               (setq end  (car ends)
-                    n    (1- n)
                     text (buffer-substring-no-properties beg end)
                     term (wisent-flex-match text default rules usequal))
               (if term
                   (setq wlex (cons term (cons text (cons beg end)))
-                        is   (nthcdr n is))
+                        ;; Eat input stream
+                        wisent-flex-istream (nthcdr n is))
                 (setq ends (cdr ends)))))
            
            ;; One/one token mapping
-           ((setq term (wisent-flex-match text default rules usequal))
-            (setq wlex (cons term (cons text (cdr flex))))))))
-        
-      ;; Eat input stream
-      (setq wisent-flex-istream (cdr is))
-
+           ((setq usequal (wisent-flex-token-get stok 'string)
+                  term (wisent-flex-match text default rules usequal))
+            (setq wlex (cons term (cons text (cdr flex)))
+                  ;; Eat input stream
+                  wisent-flex-istream (cdr is))))))
+      
       ;; Return value found or default one
       (or wlex
           (cons (if (wisent-flex-token-get stok 'char-literal)
