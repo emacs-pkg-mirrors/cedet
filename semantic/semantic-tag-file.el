@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.6 2004/03/20 00:11:11 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.7 2004/04/28 15:39:36 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,47 +35,44 @@
 ;;; Location a TAG came from.
 ;;
 ;;;###autoload
-(defun semantic-go-to-tag (&optional tag parent)
+(define-overload semantic-go-to-tag (&optional tag parent)
   "Go to the location of TAG.
 TAG may be a stripped element, in which case PARENT specifies a
 parent tag that has position information.
 Different behaviors are provided depending on the type of tag.
 For example, dependencies (includes) will seek out the file that is
 depended on (see `semantic-dependency-tag-file'."
-  (if (not tag)
-      (setq tag (car (semantic-find-tag-by-overlay nil))))
-  (if (and (eq (semantic-tag-class tag) 'include)
-	   (let ((f (semantic-dependency-tag-file tag)))
-	     (if f (find-file f))))
-      nil
-    (let ((s (or (semantic-fetch-overload 'find-tag)
-		 (semantic-fetch-overload 'find-nonterminal))))
-      (if s (funcall s tag parent)
-	(if (semantic-tag-buffer tag)
-	    ;; If the tag has no buffer, it may be deoverlayed.
-	    ;; Assume the tool doing the finding knows that we came
-	    ;; in from a database, and use the current buffer.
-	    (set-buffer (semantic-tag-buffer tag)))
-	(if (semantic-tag-with-position-p tag)
-	    ;; If it's a number, go there
-	    (goto-char (semantic-tag-start tag))
-	  ;; Otherwise, it's a trimmed vector, such as a parameter,
-	  ;; or a structure part.
-	  (if (not parent)
-	      nil
-	    (if (semantic-tag-with-position-p parent)
-		(progn
-		  (if (semantic-tag-buffer parent)
-		      ;; If this parent tag has no buffer, then it
-		      ;; may be deoverlayed.
-		      (set-buffer (semantic-tag-buffer parent)))
-		  (goto-char (semantic-tag-start parent))
-		  ;; Here we make an assumption that the text returned by
-		  ;; the parser and concocted by us actually exists
-		  ;; in the buffer.
-		  (re-search-forward (semantic-tag-name tag) nil t)))))))))
-(put 'semantic-find-nonterminal 'semantic-overload 'find-nonterminal)
-(put 'semantic-go-to-tag 'semantic-overload 'go-to-tag)
+  (or tag (setq tag (car (semantic-find-tag-by-overlay nil))))
+  (unless (and (eq (semantic-tag-class tag) 'include)
+               (let ((f (semantic-dependency-tag-file tag)))
+                 (if f (find-file f))))
+    (:override
+     (if (semantic-tag-buffer tag)
+         ;; If the tag has no buffer, it may be deoverlayed.
+         ;; Assume the tool doing the finding knows that we came
+         ;; in from a database, and use the current buffer.
+         (set-buffer (semantic-tag-buffer tag)))
+     (if (semantic-tag-with-position-p tag)
+         ;; If it's a number, go there
+         (goto-char (semantic-tag-start tag))
+       ;; Otherwise, it's a trimmed vector, such as a parameter,
+       ;; or a structure part.
+       (if (not parent)
+           nil
+         (if (semantic-tag-with-position-p parent)
+             (progn
+               (if (semantic-tag-buffer parent)
+                   ;; If this parent tag has no buffer, then it
+                   ;; may be deoverlayed.
+                   (set-buffer (semantic-tag-buffer parent)))
+               (goto-char (semantic-tag-start parent))
+               ;; Here we make an assumption that the text returned by
+               ;; the parser and concocted by us actually exists
+               ;; in the buffer.
+               (re-search-forward (semantic-tag-name tag) nil t))))))))
+
+(make-obsolete-overload 'semantic-find-nonterminal
+                        'semantic-go-to-tag)
 
 ;;; Dependencies
 ;;
@@ -95,47 +92,41 @@ TODO: use ffap.el to locate such items.")
 (make-variable-buffer-local `semantic-dependency-include-path)
 
 ;;;###autoload
-(defun semantic-dependency-tag-file (&optional tag)
+(define-overload semantic-dependency-tag-file (&optional tag)
   "Find the filename represented from TAG.
 Depends on `semantic-dependency-include-path' for searching.  Always searches
 `.' first, then searches additional paths."
-  (if (not tag)
-      (setq tag (car (semantic-find-tag-by-overlay nil))))
-
-  (if (not (eq (semantic-tag-class tag) 'include))
-      (signal 'wrong-type-argument (list tag 'include)))
-
+  (or tag (setq tag (car (semantic-find-tag-by-overlay nil))))
+  (unless (semantic-tag-of-class-p tag 'include)
+    (signal 'wrong-type-argument (list tag 'include)))
   ;; First, see if this file exists in the current EDE project
   (if (and (fboundp 'ede-expand-filename) ede-minor-mode
 	   (ede-expand-filename (ede-toplevel)
 				(semantic-tag-name tag)))
       (ede-expand-filename (ede-toplevel)
 			   (semantic-tag-name tag))
-  
-    (let ((s (or (semantic-fetch-overload 'dependency-tag-file)
-		 (semantic-fetch-overload 'find-dependency))))
-      (if s (funcall s tag)
-	(save-excursion
-	  ;; TODO: Allow TAG to travel with originating file info.
-	  (when (semantic-tag-buffer tag)
-	    (set-buffer (semantic-tag-buffer tag)))
-	  (let ((name (semantic-tag-name tag)))
-	    (cond ((file-exists-p name)
-		   (expand-file-name name))
-		  ((and (symbolp semantic-dependency-include-path)
-			(fboundp semantic-dependency-include-path))
-		   (funcall semantic-dependency-include-path name))
-		  (t
-		   (let ((p semantic-dependency-include-path)
-			 (found nil))
-		     (while (and p (not found))
-		       (if (file-exists-p (concat (car p) "/" name))
-			   (setq found (concat (car p) "/" name)))
-		       (setq p (cdr p)))
-		     found)))))))))
-(put 'semantic-find-dependency 'semantic-overload 'find-dependency)
-(put 'semantic-dependency-tag-file 'semantic-overload 'dependency-tag-file)
+    (:override
+     (save-excursion
+       ;; TODO: Allow TAG to travel with originating file info.
+       (when (semantic-tag-buffer tag)
+         (set-buffer (semantic-tag-buffer tag)))
+       (let ((name (semantic-tag-name tag)))
+         (cond ((file-exists-p name)
+                (expand-file-name name))
+               ((and (symbolp semantic-dependency-include-path)
+                     (fboundp semantic-dependency-include-path))
+                (funcall semantic-dependency-include-path name))
+               (t
+                (let ((p semantic-dependency-include-path)
+                      (found nil))
+                  (while (and p (not found))
+                    (if (file-exists-p (concat (car p) "/" name))
+                        (setq found (concat (car p) "/" name)))
+                    (setq p (cdr p)))
+                  found))))))))
 
+(make-obsolete-overload 'semantic-find-dependency
+                        'semantic-dependency-tag-file)
 
 ;;; PROTOTYPE FILE
 ;;
