@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.20 2004/03/26 11:15:29 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.21 2004/06/15 18:20:39 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -965,7 +965,7 @@ formal_parameter
   | FINAL type variable_declarator_id
     (EXPANDTAG
      (VARIABLE-TAG $3 $2 nil
-                   :typemodifiers $1)
+                   :typemodifiers (list $1))
      )
  ;; Productions below allow varargs in non-final positions.
   | type ELLIPSIS IDENTIFIER
@@ -976,7 +976,7 @@ formal_parameter
   | FINAL type ELLIPSIS IDENTIFIER
     (EXPANDTAG
      (VARIABLE-TAG $4 $2 nil
-                   :typemodifiers $1
+                   :typemodifiers (list $1)
                    :vararg-flag t)
      )
   ;
@@ -1211,7 +1211,7 @@ local_variable_declaration
   | FINAL type variable_declarators
     (EXPANDTAG
      (VARIABLE-TAG $3 $2 nil
-                   :typemodifiers $1)
+                   :typemodifiers (list $1))
      )
   ;
 
