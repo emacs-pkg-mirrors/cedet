@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.15 2004/03/10 19:28:43 ponced Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.16 2004/03/11 02:33:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -89,7 +89,7 @@ Images can be used as icons instead of some types of text strings."
 (make-variable-buffer-local 'semantic-function-argument-separator)
 
 (defun semantic-test-all-format-tag-functions ()
-  "Test all outputs from `semantic-token->text-functions'.
+  "Test all outputs from `semantic-format-tag-functions'.
 Output is generated from the function under `point'."
   (interactive)
   (semantic-bovinate-toplevel t)
