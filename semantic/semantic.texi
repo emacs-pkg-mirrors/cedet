@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.9 2000/06/11 19:40:29 zappo Exp $
+@c $Id: semantic.texi,v 1.10 2000/07/01 18:00:28 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -134,7 +134,8 @@ Please see the documentation for the variable
 
 The BNF converter takes a file in "Bovine Normal Form" which is similar
 to "Backus-Naur Form".  If you have ever used yacc or bison, you will
-find it similar.
+find it similar.  The BNF form used by semantic, however, does not
+include token or precedence rules.
 
 It is important to have an Emacs Lisp file with a variable ready to take
 the output of your table @xref{Bovinating}.  Also, make sure that the
@@ -145,14 +146,18 @@ The comment character is @asis{#} and you will want to place a comment
 near the top of the file which looks like this:
 
 @example
-# TABLE: semantic-ex.el:semantic-toplevel-c-bovine-table
+# TABLE: semantic-lang.el:semantic-toplevel-lang-bovine-table
+# MODE: lang-mode
 @end example
+
+where @asis{lang} is the language you are intending to support.
 
 This lets you specify the file and variable where you want this
 language file to be parsed to.  When you want to test your file, use the
 keyboard shortcut @kbd{C-c C-c} to parse the file, generate the
-variable, and load the new definition in.  You will then have to re-run
-your major-mode in the desired buffer for it to take effect.
+variable, and load the new definition in.  It will then look for the
+@asis{MODE} indicator, and find all matching modes, and re-initialize
+them.
 
 Writing the rules should be very similar to bison for basic syntax.
 Each rule is of the form
@@ -168,8 +173,14 @@ RESULT : MATCH1 (optional-lambda-expression)
 is to be made.  The optional lambda expression is a list containing
 simplified rules for concocting the parse tree.
 
-The first @var{RESULT} should be @code{bovine-toplevel}.  When starting
-a parse for a file, this is the default token iterated over.
+In bison, each time an element of a @var{MATCH} is found, it is
+"shifted" onto the parser stack.  (The stack of matched elements.)  When
+all of @var{MATCH1}'s elements have been matched, it is "reduced" to
+@var{RESULT}.  @xref{(bison)Algorithm}
+
+The first @var{RESULT} written into your language specification should
+be @code{bovine-toplevel}.  When starting a parse for a file, this is
+the default token iterated over.
 
 @var{MATCH} is made up of symbols and strings.  A symbol such as
 @code{foo} means that a syntactic token of type @code{foo} must be
@@ -186,6 +197,11 @@ string is a regular expression.  The code:
   punctuation "."
 @end example
 will match any punctuation.
+
+For the above example in bison, a LEX rule would be used to create a new
+token @var{MOOSE}.  In this case, the @var{MOOSE} token would appear.
+For the bovinator, this task was mixed into the language definition to
+simplify implementation, though Bison's technique is more efficient.
 
 The OLE (Optional Lambda Expression) is converted into a bovine lambda
 @xref{Bovinating}. This lambda has special short-cuts to simplify
@@ -248,7 +264,7 @@ defaults to 0.  The lexer takes a DEPTH parameter which is used to
 determine if @code{open-paren} and @code{close-paren} tokens are
 returned, or if @code{semantic-list} tokens are returned.
 
-The second command TRASHCOMMENTS defaults to nil, and indicates if
+The second argument TRASHCOMMENTS defaults to nil, and indicates if
 comments should be automatically stripped when they are encountered.
 
 Another function you can use is @code{semantic-bovinate-nonterminal}.
@@ -257,9 +273,17 @@ This command takes a token stream returned by the function
 additional optional argument of NONTERMINAL which is the nonterminal in
 your table it is to start parsing with.
 
-As a user, you can run the command @code{bovinate} which runs the
+@deffn Command bovinate
+As a user, you can use @code{bovinate} which runs the
 previously mentioned command, and displays the returned tokens in a
 buffer.  This is a great tool for testing tables as you develop them.
+@end deffn
+
+@deffn Command semantic-clear-toplevel-cache
+When a buffer is parsed, the results are cached in a local variable in
+the parsed buffer.  This command will clear the cache so that the parser
+is called a second time.
+@end deffn
 
 @node Debugging, Non-Terminals, Compiling, Top
 @chapter Debugging a bovine table.
@@ -268,15 +292,30 @@ To debug a language is a two step process.  The first tells emacs where
 to find the source code to the bovine table.  The second is to run the
 debugger from a language file that uses the table.
 
-To set a table, put the cursor in the table, and run the command
-@code{semantic-bovinate-debug-set-table}.  Emacs records the location
-for debugging.  Next place the cursor in the language file you want to
-debug, and run the command @code{bovinate-debug}.  This command opens
-the table and language file, and highlights the apropriate pieces
-depending on what it is about to look at.  Details about the current
-state are shown in the minibuffer.
+@deffn Command semantic-bovinate-debug-set-table
+Finds a variable definition under point.  Sets this to be the table used
+when debugging a language definition.
+@end deffn
 
-Pressing any key advances.  @kbd{C-g} halts the debugger.
+@deffn Command bovinate-debug
+Start parsing the current buffer in debug mode.  Uses the definition set
+with @code{semantic-bovinate-debug-set-table}.  Use space to move to the
+next definition.  It will hightlight the current semantic token in the
+source buffer, and the current match symbol.
+
+@key{C-g} halts the debugger.
+@end deffn
+
+@deffn Command bovinate-create-reference
+Create a reference parse table.  A reference table can be used to
+identify differences between parsing runs.
+@end deffn
+
+@deffn Command bovinate-reference-compare
+Bovinates the current buffer with a reference list.
+Throws an error for the first difference, with details as to what was
+broken.
+@end deffn
 
 @node Non-Terminals, Utilities, Debugging, Top
 @chapter Using the Non-Termianal Stream
@@ -304,7 +343,7 @@ some documentation associated with this class, and @var{start} and
 Some predefined nonterminals that can be used are:
 
 @example
-(\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS \"DOCSTRING\" START END)
+("NAME" variable "TYPE" CONST DEFAULT-VALUE MODIFIERS "DOCSTRING" START END)
 @end example
 
 The definition of a variable, or constant.  @var{CONST} is a boolean
@@ -315,36 +354,40 @@ are not covered in the @var{TYPE} field.  @var{DOCSTRING} is optional.
 @refill
 
 @example
-(\"NAME\" function \"TYPE\" ( ARG-LIST ) \"DOCSTRING\" START END)
+("NAME" function "TYPE" ( ARG-LIST ) MODIFIERS [THROWS] 
+         "DOCSTRING" START END)
 @end example
 
-A function/procedure definition.  @var{DOCSTRING} is optional.  @var{ARG-LIST} is
-a list of variable definitions.
+A function/procedure definition.
+@var{ARG-LIST} is a list of variable definitions.
+@var{THROWS} is an optional argument for functions or methods in languages
+that support typed signal throwing.
+@var{DOCSTRING} is optional.
 
 @example
-(\"NAME\" type \"TYPE\" ( PART-LIST ) ( PARENTS ) \"DOCSTRING\" START END)
+("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) MODIFIERS "DOCSTRING" START END)
 @end example
 
-A type definition.  @var{TYPE} of a type could be anything, such as (in C)
-struct, union, typedef, or class.  The @var{PART-LIST} is only useful for
-structs that have multiple individual parts.  (It is recommended
-that these be variables, functions or types).  @var{PARENTS} is strictly for
-classes where there is inheritance.
-@refill
+A type definition.
+@var{TYPE} of a type could be anything, such as (in C) struct, union, typedef,
+or class.
+@var{PART-LIST} is only useful for structs that have multiple individual parts.
+         (It is recommended that these be variables, functions or types).
+@var{PARENTS} is strictly for classes where there is inheritance.
 
 @example
-(\"FILE\" include \"DOCSTRING\" START END)
+("FILE" include SYSTEM "DOCSTRING" START END)
 @end example
 
 In C, an #include statement.  In elisp, a require statement.
 Indicates additional locations of sources or definitions.
-@refill
+@var{SYSTEM} is true if this include is part of a set of system includes.
 
 @example
-(\"NAME\" package DETAIL \"DOCSTRING\" START END)
+("NAME" package DETAIL "DOCSTRING" START END)
 @end example
 
-In Emacs Lisp, a `provide' statement.  DETAIL might be an associated
+In Emacs Lisp, a `provide' statement.  @var{DETAIL} might be an associated
 file name.
 @refill
 
@@ -415,8 +458,21 @@ Retrieve the parts of the type @var{TOKEN}.
 Retrieve the parent of the type @var{TOKEN}.
 @end defun
 
+@defun semantic-token-type-modifiers token
+Retrieve the non-type modifiers of type @var{TOKEN}.
+@end defun
+
 @defun semantic-token-function-args token
 Retrieve the arguments of the function @var{TOKEN}.
+@end defun
+
+@defun semantic-token-function-modifiers token
+Retrieve the non-type modifiers of the function @var{TOKEN}.
+@end defun
+
+@defun semantic-token-function-throws token
+Retrieve the throws signale of the function @var{TOKEN}.
+This is an optional field, and returns @code{nil} if it doesn't exist.
 @end defun
 
 @defun semantic-token-variable-const token
