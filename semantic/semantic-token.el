@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-token.el,v 1.2 2003/02/28 14:22:35 zappo Exp $
+;; X-CVS: $Id: semantic-token.el,v 1.3 2003/03/02 14:22:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,6 +43,13 @@
 ;;
 ;; III. Token Comparison.  Allows explicit or comparitive tests to see
 ;;      if two tokens are the same.
+
+(defvar semantic-token-version semantic-version
+  "Version string of semantic tokens made with this code.")
+(defvar semantic-token-incompatible-version "1.0"
+  "Version string of semantic tokens which are not currently compatible.
+These old style tokens may be loaded from a file with semantic db.
+In this case, we must flush the old tokens and start over.")
 
 
 ;;; Primitive Token access system:
