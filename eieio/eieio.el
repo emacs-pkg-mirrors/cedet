@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.123 2002/09/04 01:57:00 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.124 2002/09/07 01:09:16 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17.1"
   "Current version of EIEIO.")
@@ -718,7 +718,8 @@ if default value is nil."
 		     (num (- (length ca) (length np)))
 		     (dp (if np (nthcdr num (aref newc class-public-d))
 			   nil))
-		     (tp (if np (nth num (aref newc class-public-type)))))
+		     (tp (if np (nth num (aref newc class-public-type))))
+		     )
 		(if (not np)
 		    (error "Eieio internal error overriding default value for %s"
 			   a)
@@ -731,6 +732,18 @@ if default value is nil."
 		  ;; If we have a repeat, only update the initarg...
 		  (eieio-perform-slot-validation-for-default a tp d skipnil)
 		  (setcar dp d)
+		  ;; If we have a new initarg, check for it.
+		  (when init
+		    (let* ((inits (aref newc class-initarg-tuples))
+			   (inita (rassq a inits)))
+		      ;; Replace the CAR of the associate INITA.
+		      ;;(message "Initarg: %S replace %s" inita init)
+		      (setcar inita init)
+		      ))
+		  ;; TODO:
+		  ;;  For other slots (protection, etc) we should get the
+		  ;;  original value, and make sure each is equal to the
+		  ;;  last value and throw an error, or accept it.
 		  )))))
     (let ((value (eieio-default-eval-maybe d)))
       (if (not (member a (aref newc class-class-allocation-a)))
@@ -771,7 +784,8 @@ if default value is nil."
 			   type tp a)))
 		  ;; If we have a repeat, only update the vlaue...
 		  (eieio-perform-slot-validation-for-default a tp value skipnil)
-		  (setcar dp value)))))))
+		  (setcar dp value))
+		)))))
     ))
 
 (defun eieio-copy-parents-into-subclass (newc parents)
