@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.13 2001/09/29 23:45:24 ponced Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.14 2001/10/04 14:59:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -67,7 +67,8 @@ Works with languages that use parenthetical grouping."
   ;; By default, assume that the language uses some form of parenthetical
   ;; do dads for their context.
   (condition-case nil
-      (progn
+      (semantic-with-buffer-narrowed-to-token
+	  (semantic-current-nonterminal-of-type 'function)
 	(up-list -1)
 	nil)
     (error t)))
@@ -159,11 +160,17 @@ This can be overriden with `get-local-variables'."
 Uses the bovinator with the special top-symbol `bovine-inner-scope'
 to collect tokens, such as local variables or prototypes."
   (working-status-forms "Local" "done"
-    (let ((semantic-bovination-working-type nil))
-      (semantic-beginning-of-context)
-      (semantic-bovinate-region-until-error
-       (point) (save-excursion (semantic-end-of-context) (point))
-       'bovine-inner-scope))))
+    (let ((semantic-bovination-working-type nil)
+	  (vars nil))
+      (while (not (semantic-up-context))
+	(save-excursion
+	  (forward-char 1)
+	  (setq vars
+		(append (semantic-bovinate-region-until-error
+			 (point)
+			 (save-excursion (semantic-end-of-context) (point))
+			 'bovine-inner-scope)))))
+      vars)))
 
 (defun semantic-get-local-arguments (&optional point)
   "Get arguments (variables) from the current context at POINT.
@@ -366,6 +373,9 @@ Depends on `semantic-type-relation-separator-character'."
 				symlist))
 	    ;; Skip the next syntactic expression backwards, then go forwards.
 	    (forward-sexp -1)
+	    ;; If we end up at the beginning of the buffer, we are narrowed
+	    ;; to a command, and need to stop.
+	    (if (bobp) (error nil))
 	    (forward-sexp 1)
 	    (if (looking-at fieldsep)
 		(setq end (point))
@@ -423,7 +433,7 @@ This can be overridden with `ctxt-current-function'."
   )
 
 (defun semantic-ctxt-current-argument (&optional point)
-  "Return the current symbol the cursor is on at POINT.
+  "Return the index of the argument position the cursor is on at POINT.
 Override with `ctxt-current-argument'."
     (if point (goto-char point))
     (let ((s (semantic-fetch-overload 'ctxt-current-argument))
@@ -433,7 +443,7 @@ Override with `ctxt-current-argument'."
 	)))
 
  (defun semantic-ctxt-current-argument-default ()
-  "Return the current symbol the cursor is on at POINT in a list.
+  "Return the index of the argument the cursor is on.
 Depends on `semantic-function-argument-separation-character'."
   (when (semantic-ctxt-current-function)
     (save-excursion
@@ -446,97 +456,6 @@ Depends on `semantic-function-argument-separation-character'."
 		p t)
 	  (setq idx (1+ idx)))
 	idx))))
-
-;;; Context analysis routines
-;;
-;; These routines use the override methods to provides high level
-;; predicates, and to come up with intelligent suggestions about
-;; the current context.
-(defun semantic-suggest-lookup-item (name  &optional tokentype returntype)
-  "Find a token definition matching NAME with TOKENTYPE.
-Optional RETURNTYPE is a return value to match against also."
-  (let* ((locals (semantic-get-all-local-variables))
-	 (case-fold-search semantic-case-fold)
-	 (option
-	  (or (let ((found nil))
-		(while (and locals (not found))
-		  (setq found (semantic-find-nonterminal-by-name
-			       name (car locals) t)
-			locals (cdr locals)))
-		found)
-	      (semantic-find-nonterminal-by-name
-	       name (current-buffer) t)
-	      (and (featurep 'semanticdb)
-		   (semanticdb-minor-mode-p)
-		   (semanticdb-find-nonterminal-by-name name nil t nil t)))))
-    ;; This part is lame right now.  It needs to eventually
-    ;; do the tokentype and returntype filters across all databases.
-    ;; Some of the above return one token, instead of a list.  Deal with
-    ;; that too.
-    (if (listp option)
-	(if (semantic-token-p option)
-	    option
-          ;; `semanticdb-find-nonterminal-by-name' returns a list
-          ;; ((DB-TABLE . TOKEN) ...)
-	  (setq option (cdr (car option))))
-      (if (stringp option)
-	  (list option 'variable)
-	))))
-
-(defun semantic-suggest-variable-token-hierarchy ()
-  "Analyze the current line, and return a series of tokens.
-The tokens represent a hierarchy of dereferences.  For example, a
-variable name will return a list with one token representing that
-variable's declaration.  If that variable is being dereferenced, then
-return a list starting with the variable declaration, followed by all
-fields being extracted.
-
-For example, in c, \"foo->bar\" would return a list (VARTOKEN FIELDTOKEN)
-where VARTOKEN is a semantic token of the variable foo's declaration.
-FIELDTOKEN is either a string, or a semantic token representing
-the field in foo's type."
-  (let ((v (semantic-ctxt-current-symbol))
-	(case-fold-search semantic-case-fold)
-	(tok nil)
-	(chil nil)
-	(toktype nil))
-    ;; First, take the first element of V, and find its type.
-    (setq tok (semantic-suggest-lookup-item (car v) 'variable))
-    ;; Now refer to it's type.
-    (setq toktype (semantic-token-type tok))
-    (if (and (semantic-token-p toktype)
-	     (not (semantic-token-type-parts toktype)))
-	(setq toktype (semantic-suggest-lookup-item
-		       (if (semantic-token-p toktype)
-			   (semantic-token-name toktype)
-			 (if (stringp toktype)
-			     toktype
-			   (error "Unknown token type")))
-		       'type)))
-    (if toktype
-	(cond ((and (semantic-token-p toktype)
-		    (setq chil (semantic-nonterminal-children toktype)))
-	       ;; We now have the type of the start variable.  Now we
-	       ;; have to match the list of additional fields with the
-	       ;; children of the type we found.
-	       (let ((chosenfields (cdr tok))
-		     (returnlist (list toktype)))
-		 (while chosenfields
-		   ;; Find this field in the current toktype
-		   
-		   (setq chosenfields (cdr chosenfields)))
-		 (nreverse returnlist))
-	       )
-	      ((semantic-token-p toktype)
-	       (list toktype))
-	      ((stringp toktype)
-	       (list (list toktype 'type)))
-	      (t nil)))))
-
-(defun semantic-suggest-current-type ()
-  "Return the recommended type at the current location."
-  (let ((recommendation (semantic-suggest-variable-token-hierarchy)))
-    (car (nreverse recommendation))))
 
 (provide 'semantic-ctxt)
 
