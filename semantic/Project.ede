@@ -36,7 +36,7 @@
    (ede-proj-target-elisp "semantic"
     :name "semantic"
     :path ""
-    :source '("semantic.el" "semantic-util.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-edit.el" "semantic-fw.el" "semantic-grammar.el" "semantic-tag.el" "semantic-find.el" "semantic-format.el")
+    :source '("semantic.el" "semantic-util.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-edit.el" "semantic-fw.el" "semantic-grammar.el" "semantic-tag.el" "semantic-find.el" "semantic-format.el" "semantic-complete.el" "semantic-sort.el")
     :versionsource '("semantic.el")
     :aux-packages '("semantic-bovine" "wisent")
     )
@@ -48,7 +48,7 @@
    (ede-proj-target-elisp "tools"
     :name "tools"
     :path ""
-    :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el" "semanticdb-file.el" "semanticdb-search.el" "semanticdb-mk.el" "semanticdb-el.el" "semanticdb-system.el" "semantic-debug.el" "semanticdb-find.el")
+    :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el" "semanticdb-file.el" "semanticdb-search.el" "semanticdb-mk.el" "semanticdb-el.el" "semanticdb-system.el" "semantic-debug.el" "semanticdb-find.el" "semantic-regtest.el")
     :aux-packages '("eieio" "speedbar" "inversion")
     )
    (ede-proj-target-elisp "senator"
