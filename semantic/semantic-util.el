@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.93.2.1 2002/11/18 10:39:07 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.93.2.2 2002/12/26 11:08:29 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,7 +41,7 @@
 ;;; Code:
 
 (defvar semantic-type-relation-separator-character '(".")
-  "Character strings used to separation a parent/child relationship.
+  "Character strings used to separate a parent/child relationship.
 This list of strings are used for displaying or finding separators
 in variable field dereferencing.  The first character will be used for
 display.  In C, a type field is separated like this: \"type.field\"
@@ -237,7 +237,7 @@ If TOKEN is of an unknown type, then nil is returned."
 ;;
 (defun semantic-map-buffers (fun)
   "Run function FUN for each Semantic enabled buffer found.
-FUN does not have arguments.  When FUN is entered `current-buffer' is
+FUN does not have arguments.  When FUN is entered, `current-buffer' is
 the current Semantic enabled buffer found."
   (let ((bl (buffer-list))
         b)
