@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.10 2000/06/13 14:40:33 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.11 2000/06/14 15:28:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -535,51 +535,58 @@ Optional argument PARENT is the parent type if TOKEN is a detail."
     (if s
 	(funcall s token parent)
       ;; Do lots of complex stuff here.
-      (semantic-token-name token))))
+      (let ((tok (semantic-token-token token))
+	    (name (semantic-token-name token)))
+	(concat name
+		(cond ((eq tok 'function) "()")
+		      ((eq tok 'include) "<>")
+		      ((and (eq tok 'variable)
+			    (semantic-token-variable-default token))
+		       "=")))
+	))))
 
 (defun semantic-summerize-nonterminal (token &optional parent)
   "Summerize TOKEN in a reasonable way.
 Optional argument PARENT is the parent type if TOKEN is a detail."
-  (let ((s (semantic-fetch-overload 'prototype-nonterminal))
-	tt)
+  (let ((s (semantic-fetch-overload 'prototype-nonterminal)))
     (if s
 	(funcall s token parent)
-      (setq tt (semantic-token-token token))
       ;; FLESH THIS OUT MORE
       (concat (capitalize (symbol-name tt)) ": "
-	      (let* ((tok (semantic-token-token token))
-		     (type (if (member tok '(function variable type))
-			       (semantic-token-type token) ""))
-		     (args (cond ((eq tok 'function)
-				  (semantic-token-function-args token))
-				 ((eq tok 'type)
-				  (semantic-token-type-parts token))
-				 (t nil)))
-		     (mods (if (eq tok 'variable)
-			       (semantic-token-variable-modifiers token))))
-		(if args
-		    (setq args
-			  (concat " " (if (eq tok 'type) "{" "(")
-				  (if (stringp (car args))
-				      (mapconcat (lambda (a) a) args " ")
-				    (mapconcat 'car args " "))
-				   (if (eq tok 'type) "}" ")"))))
-		(if (and type (listp type))
-		    (setq type (car type)))
-		(concat (if type (concat type " "))
-			(semantic-token-name token)
-			(or args "")
-			(or mods "")))))))
+	      (semantic-prototype-nonterminal token)))))
 
 (defun semantic-prototype-nonterminal (token)
   "Return a prototype for TOKEN.
 This functin must be overloaded, though it need not be used."
-  (let ((s (semantic-fetch-overload 'summerize-nonterminal)))
+  (let ((tt (semantic-token-token token))
+	(s (semantic-fetch-overload 'summerize-nonterminal)))
     (if s
 	;; Prototype is non-local
 	(funcall s token)
-      ;; Bad hack, but it should sorta work...
-      (semantic-summerize-nonterminal token) )))
+      ;; Cococt a cheap prototype
+      (let* ((tok (semantic-token-token token))
+	     (type (if (member tok '(function variable type))
+		       (semantic-token-type token) ""))
+	     (args (cond ((eq tok 'function)
+			  (semantic-token-function-args token))
+			 ((eq tok 'type)
+			  (semantic-token-type-parts token))
+			 (t nil)))
+	     (mods (if (eq tok 'variable)
+		       (semantic-token-variable-modifiers token))))
+	(if args
+	    (setq args
+		  (concat " " (if (eq tok 'type) "{" "(")
+			  (if (stringp (car args))
+			      (mapconcat (lambda (a) a) args ",")
+			    (mapconcat 'car args ","))
+			  (if (eq tok 'type) "}" ")"))))
+	(if (and type (listp type))
+	    (setq type (car type)))
+	(concat (if type (concat type " "))
+		(semantic-token-name token)
+		(or args "")
+		(or mods ""))))))
 
 (defun semantic-prototype-file (buffer)
   "Return a file in which prototypes belonging to BUFFER should be placed.
