@@ -15,6 +15,16 @@
 
 *** Provides smart completion information
 
+*** Speedbar mode for using analysis information.
+
+** Semantic Class Browser structure generator
+
+*** Generates objects representing a browsable class structure
+    which links parents and subclasses and externally defined
+    methods into an easilly navigated (programatically) structure.
+
+*** Speedbar interface to browser structure (simple)
+
 ** User Visible Features
 
 *** semantic-load.el simplifies installation.
@@ -43,7 +53,7 @@
 
 *** semantic-c updates
 
-**** Handles rudementary C++
+**** Handles most of C++, including templates
 
 **** Faster type parsing
 
@@ -75,6 +85,8 @@
 
 *** semantic-imenu can now tags for all files that had been loaded in
     emacs in a directory if semanticdb is active
+
+*** Imenu and speedbar group externally defined methods together.
 
 ** bnf-mode: Language Author Features
 
