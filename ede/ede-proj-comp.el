@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-comp.el,v 1.4 2000/10/14 02:55:42 zappo Exp $
+;; RCS: $Id: ede-proj-comp.el,v 1.5 2001/01/10 06:56:03 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@
 (require 'autoconf-edit)
 
 ;;; Types:
-(defclass ede-compilation-program ()
+(defclass ede-compilation-program (eieio-instance-inheritor)
   ((name :initarg :name
 	 :type string
 	 :custom string
