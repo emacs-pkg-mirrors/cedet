@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.187 2000/10/01 01:06:08 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.188 2000/10/05 14:56:00 zappo Exp $
 
 (defvar speedbar-version "0.13beta3"
   "The current version of speedbar.")
@@ -126,7 +126,7 @@
 ;; Some useful functions when writing expand functions, and click
 ;; functions are `speedbar-change-expand-button-char',
 ;; `speedbar-delete-subblock', and `speedbar-center-buffer-smartly'.
-;; The variable `dframe-power-click' is set to t in your functions
+;; The variable `speedbar-power-click' is set to t in your functions
 ;; when the user shift-clicks.  This indications anything from
 ;; refreshing cached data to making a buffer appear in a new frame.
 ;;
@@ -3055,7 +3055,8 @@ directory with these items."
 With universal argument ARG, flush cached data."
   (interactive "P")
   (beginning-of-line)
-  (let ((dframe-power-click arg))
+  (let* ((dframe-power-click arg)
+	 (speedbar-power-click arg))
     (condition-case nil
 	(progn
 	  (re-search-forward ":\\s-*.\\+. "
