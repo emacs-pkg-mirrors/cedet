@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.8 2001/04/13 02:02:21 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.9 2001/10/03 00:29:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -103,7 +103,7 @@
  ))
  ) ; end commands
  )
-        "Table for parsing Makefiles.")
+ "Table for parsing Makefiles.")
 
 (defvar semantic-make-keyword-table
   (semantic-flex-make-keyword-table 
@@ -150,6 +150,7 @@ These command lines continue to additional lines when the end with \\"
 	semantic-symbol->name-assoc-list '((variable . "Variables")
 					   (function . "Rules")
 					   (include . "Dependencies"))
+	semantic-number-expression nil
 	semantic-case-fold t
 	semantic-flex-syntax-modifications '((?. "_")
 					     (?= ".")
