@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.37 2000/09/24 15:59:21 zappo Exp $
+;; RCS: $Id: ede.el,v 1.38 2000/10/03 03:57:59 zappo Exp $
 (defconst ede-version "0.8"
   "Current version of the Emacs EDE.")
 
@@ -155,24 +155,30 @@ type is required and the load function used.")
    (name :initarg :name
 	 :type string
 	 :custom string
+	 :label "Name"
+	 :group (default name)
 	 :documentation "Name of this target.")
    (path :initarg :path
 	 :type string
 	 :custom string
+	 :label "Path to target"
+	 :group (default name)
 	 :documentation "The path to this target.")
-   (takes-compile-command
-    :allocation :class
-    :initarg :takes-compile-command
-    :type boolean
-    :initform nil
-    :documentation "Non-nil if this target requires a user approved command.")
    (source :initarg :source
 	   ;; I'd prefer a list of strings.
 	   :type list
 	   :custom (repeat (string :tag "File"))
+	   :label "Source Files"
+	   :group (default source)
 	   :documentation "Source files in this target.")
    ;; Class level slots
    ;;
+   (takes-compile-command :allocation :class
+			  :initarg :takes-compile-command
+			  :type boolean
+			  :initform nil
+			  :documentation
+     "Non-nil if this target requires a user approved command.")
    (sourcetype :allocation :class
 	       :type list ;; list of symbols
 	       :documentation
@@ -195,44 +201,61 @@ which files this object is interested in."
    )
   "A top level target to build.")
 
-(defclass ede-project (eieio-speedbar-directory-button)
+(defclass ede-project-placeholder (eieio-speedbar-directory-button)
   ((name :initarg :name
 	 :initform "Untitled"
 	 :type string
 	 :custom string
+	 :label "Name"
+	 :group (default name)
 	 :documentation "The name used when generating distribution files.")
    (version :initarg :version
 	    :initform "1.0"
 	    :type string
 	    :custom string
+	    :label "Version"
+	    :group (default name)
 	    :documentation "The version number used when distributing files.")
    (file :initarg :file
 	 :type string
-	 :documentation "File name where this project is stored.")
-   ;; No initarg.  We don't want this saved in a file.
-   (subproj :initform nil
+	 ;; No initarg.  We don't want this saved in a file.
+	 :documentation "File name where this project is stored."))
+  "Placeholder object for projects not loaded into memory.
+Projects placeholders will be stored in a user specific location
+and querying them will cause the actual project to get loaded.")
+
+(defclass ede-project (ede-project-placeholder)
+  ((subproj :initform nil
 	    :type list
 	    :documentation "Sub projects controlled by this project.
 For Automake based projects, each directory is treated as a project.")
    (targets :initarg :targets
 	    :type list
 	    :custom (repeat object)
+	    :label "Local Targets"
+	    :group (targets)
 	    :documentation "List of top level targets in this project.")
    (configurations :initarg :configurations
 		   :initform ("debug" "release")
 		   :type list
 		   :custom (repeat string)
+		   :label "Configuration Options"
+		   :group (settings)
 		   :documentation "List of available configuration types.
 Individual target/project types can form associations between a configuration,
 and target specific elements such as build variables.")
    (configuration-default :initarg :configuration-default
 			  :initform "debug"
 			  :custom string
+			  :label "Current Configuration"
+			  :group (settings)
 			  :documentation "The default configuration.")
    (local-variables :initarg :local-variables
 		    :initform nil
 		    :custom (repeat (cons (sexp :tag "Variable")
 					  (sexp :tag "Value")))
+		    :label "Project Local Variables"
+		    :group (settings)
 		    :documentation "Project local variables")
    (keybindings :allocation :class
 		:initform (("D" . ede-debug-target))
@@ -347,20 +370,21 @@ Argument LIST-O-O is the list of objects to choose from."
 	 [ "Select Active Target" 'undefined nil ]
 	 [ "Add Target" ede-new-target (ede-current-project) ]
 	 [ "Remove Target" ede-delete-target ede-object ]
-	 ( "Target Options" :filter ede-target-forms-menu )
+; Re-enable this when there are some options...
+;	 ( "Target Options" :filter ede-target-forms-menu )
 	 "---"
 	 [ "Select Active Project" 'undefined nil ]
 	 [ "Create Project" ede-new (not ede-object) ]
 	 [ "Remove Project" 'undefined nil ]
 	 [ "Load a project" ede t ]
 	 [ "Rescan Project Files" ede-rescan-toplevel t ]
-	 [ "Customize Project" ede-customize-project (ede-current-project) ]
 	 [ "Edit Projectfile" ede-edit-file-target
 	   (and ede-object
 		(not (obj-of-class-p ede-object ede-project))) ]
 	 [ "Update Version" ede-update-version ede-object ]
 	 [ "Make distribution" ede-make-dist t ]
 	 "---"
+	 ( "Customize" :filter ede-customize-forms-menu )
 	 [ "View Project Tree" ede-speedbar t ]
 	 ))
       ))
@@ -388,6 +412,24 @@ Argument LIST-O-O is the list of objects to choose from."
       (if (and obj (oref obj menu))
 	  (append defaultitems (oref obj menu))
 	defaultitems)))))
+
+(defun ede-customize-forms-menu (menu-def)
+  "Create a menu of the project, and targets that can be customized.
+Argument MENU-DEF is the definition of the current menu."
+  (easy-menu-filter-return
+   (easy-menu-create-menu
+    "Customize Project"
+    (let ((obj (ede-current-project))
+	  (targ nil))
+      (when obj
+	;; Make custom menus for everything here.
+	(append (list
+		 (cons (concat "Project " (ede-name obj))
+		       (eieio-customize-object-group obj)))
+		(mapcar (lambda (o)
+			  (cons (concat "Target " (ede-name o))
+				(eieio-customize-object-group o)))
+			(oref obj targets))))))))
 
 (defun ede-apply-object-keymap (&optional default)
   "Add target specific keybindings into the local map.
@@ -676,14 +718,16 @@ Argument NEWVERSION is the version number to use in the current project."
     (setq eieio-ede-old-variables ov)))
 
 (defalias 'customize-target 'ede-customize-target)
-(defun ede-customize-target ()
-  "Edit fields of the current target through EIEIO & Custom."
+(defun ede-customize-target (&optional obj)
+  "Edit fields of the current target through EIEIO & Custom.
+Optional argument OBJ is the target object to customize"
   (interactive)
+  (setq obj (or obj ede-object))
   (require 'eieio-custom)
-  (if (and ede-object
-	   (obj-of-class-p ede-object ede-project))
+  (if (and obj
+	   (obj-of-class-p obj ede-project))
       (error "No logical target to customize"))
-  (eieio-customize-object ede-object))
+  (eieio-customize-object obj))
 
 (defmethod eieio-done-customizing ((proj ede-project))
   "Call this when a user finishes customizing PROJ."
@@ -711,6 +755,15 @@ Argument NEWVERSION is the version number to use in the current project."
   )
 
 
+;;; EDE project placeholder methods
+;;
+(defmethod ede-project-force-load ((this ede-project-placeholder))
+  "Make sure the placeholder THIS is replaced with the real thing.
+Return the new object created in its place."
+  this
+  )
+
+
 ;;; EDE project target baseline methods.
 ;;
 ;;  If you are developing a new project type, you need to implement
@@ -721,11 +774,21 @@ Argument NEWVERSION is the version number to use in the current project."
 ;;  files should inherit from `ede-project'.  Create the appropriate
 ;;  methods based on those below.
 
+(defmethod project-interactive-select-target ((this ede-project-placeholder) prompt)
+  ; checkdoc-params: (prompt)
+  "Make sure placeholder THIS is replaced with the real thing, and pass through."
+  (project-interactive-select-target (ede-project-force-load this) prompt))
+
 (defmethod project-interactive-select-target ((this ede-project) prompt)
   "Interactivly query for a target that exists in project THIS.
 Argument PROMPT is the prompt to use when querying the user for a target."
   (let ((ob (object-assoc-list 'name (oref this targets))))
     (cdr (assoc (completing-read prompt ob nil t) ob))))
+
+(defmethod project-add-file ((this ede-project-placeholder) file)
+  ; checkdoc-params: (file)
+  "Make sure placeholder THIS is replaced with the real thing, and pass through."
+  (project-add-file (ede-project-force-load this) file))
 
 (defmethod project-add-file ((ot ede-target) file)
   "Add the current buffer into project project target OT.
