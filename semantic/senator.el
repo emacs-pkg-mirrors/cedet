@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.26 2001/03/05 08:02:27 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.27 2001/03/12 19:55:56 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -100,6 +100,21 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.27  2001/03/12 19:55:56  ponced
+;; New faster core search engine.
+;;
+;; Fixed `beginning-of-defun' and `end-of-defun' advices to accept
+;; optional argument ARG.  Usage of ARG is not yet implemented.
+;;
+;; Fixed `insert-register' and `jump-to-register' advices to use
+;; ad-get-arg.
+;;
+;; Added new hippie expand try function `senator-try-expand-semantic'
+;; to try Semantic inline completion.  This try function is
+;; automatically activated in Semantic enabled buffers.
+;;
+;; Many code cleanup and improvement.
+;;
 ;; Revision 1.26  2001/03/05 08:02:27  ponced
 ;; Added new Eldoc suggestion mode feature.
 ;;
@@ -369,36 +384,6 @@ langage behaviour."
   "Face placed on read-only text."
   :group 'semantic-faces)
 
-;;; Compatibility
-(if (featurep 'xemacs)
-    
-    ;; Provide `isearch-update-ring' function (from 21.1.9 isearch-mode.el)
-    (defun isearch-update-ring (string &optional regexp)
-      "Add STRING to the beginning of the search ring.
-REGEXP says which ring to use."
-      (if (> (length string) 0)
-          ;; Update the ring data.
-          (if regexp
-              (if (not (setq regexp-search-ring-yank-pointer
-                             (member string regexp-search-ring)))
-                  (progn
-                    (setq regexp-search-ring
-                          (cons string regexp-search-ring)
-                          regexp-search-ring-yank-pointer regexp-search-ring)
-                    (if (> (length regexp-search-ring) regexp-search-ring-max)
-                        (setcdr (nthcdr (1- regexp-search-ring-max) regexp-search-ring)
-                                nil))))
-            (if (not (setq search-ring-yank-pointer
-                           ;; really need equal test instead of eq.
-                           (member string search-ring)))
-                (progn
-                  (setq search-ring (cons string search-ring)
-                        search-ring-yank-pointer search-ring)
-                  (if (> (length search-ring) search-ring-max)
-                      (setcdr (nthcdr (1- search-ring-max) search-ring) nil)))))))
-
-  )
-
 ;;;;
 ;;;; Common functions
 ;;;;
@@ -622,78 +607,92 @@ Uses `semanticdb' when available."
 Set point to the end of the name, and return point.  To get the
 beginning of the name use (match-beginning 0)."
   (let ((name (semantic-token-name token)))
+    (setq name (if (string-match "\\`\\([^[]+\\)[[]" name)
+                   (match-string 1 name)
+                 name))
     (goto-char (semantic-token-start token))
     (re-search-forward (concat
                         ;; the token name is at the beginning of a
                         ;; word or after a whitespace or a punctuation
-                        "\\(\\<\\|\\s-\\|\\s.\\)"
-                        (regexp-quote
-                         (if (string-match "\\`\\([^[]+\\)[[]" name)
-                             (match-string 1 name)
-                           name)))
-                       (semantic-token-end token))))
+                        "\\(\\<\\|\\s-+\\|\\s.\\)"
+                        (regexp-quote name))
+                       (semantic-token-end token))
+    (goto-char (match-beginning 0))
+    (search-forward name)))
 
 (defun senator-search-forward-raw (searcher what &optional bound noerror count)
-  "Use SEARCHER to search WHAT in semantic tokens after point.
-See `search-forward' for the meaning of BOUND NOERROR and COUNT.
-COUNT is just ignored in the current implementation."
-  (let ((origin (point))
-        (tokens (senator-parse))
-        (senator-step-at-start-end-token-ids nil)
-        token pos start limit)
-    (save-excursion
-      (setq token (or (senator-find-last-token tokens origin)
-                      (senator-find-next-token tokens origin)))
-      (while (and token (not pos))
-        (setq limit (senator-search-token-name token))
-        (if bound
-            (setq limit (min bound limit)))
-        (setq start (match-beginning 0))
-        (if (and (> origin start) (< origin limit))
-            (setq start origin))
-        (if (and bound (> start limit))
-            (setq token nil)
-          (goto-char start)
-          (setq pos (funcall searcher what limit t))
-          (if (and pos (>= (match-beginning 0) origin))
-              nil
-            (setq pos nil)
-            (setq token (senator-find-next-token tokens (point)))))))
-    (if pos
-        (goto-char start)
-      (setq limit (point)))
-    (funcall searcher what limit noerror)))
+  "Use SEARCHER to search WHAT in Semantic token names after point.
+See `search-forward' for the meaning of BOUND NOERROR and COUNT."
+  (let* ((origin (point))
+         (count  (or count 1))
+         (step   (cond ((= count 0) 0)
+                       ((> count 0) 1)
+                       (t (setq count (- count))
+                          -1)))
+         found next sstart send token tstart tend)
+    (or (= step 0)
+        (while (and (not found)
+                    (setq next (funcall searcher what bound t step)))
+          (setq sstart (match-beginning 0)
+                send   (match-end 0)
+                token  (semantic-current-nonterminal))
+        (if (= sstart send)
+            (setq found t)
+          (if token
+              (setq tend   (senator-search-token-name token)
+                    tstart (match-beginning 0)
+                    found  (and (>= sstart tstart)
+                                (<= send tend)
+                                (= (setq count (1- count)) 0))))
+          (goto-char next))))
+    (cond ((null found)
+           (setq next origin
+                 send origin))
+          ((= step -1)
+           (setq next send
+                 send sstart))
+          (t
+           (setq next sstart)))
+    (goto-char next)
+    ;; Setup the returned value and the `match-data' or maybe fail!
+    (funcall searcher what send noerror step)))
 
 (defun senator-search-backward-raw (searcher what &optional bound noerror count)
-  "Use SEARCHER to search WHAT in semantic tokens before point.
-See `search-backward' for the meaning of BOUND NOERROR and COUNT.
-COUNT is just ignored in the current implementation."
-  (let ((origin (point))
-        (tokens (senator-parse))
-        (senator-step-at-start-end-token-ids nil)
-        token pos start limit)
-    (save-excursion
-      (setq token (senator-find-previous-token tokens origin))
-      (while (and token (not pos))
-        (setq start (senator-search-token-name token))
-        (setq limit (match-beginning 0))
-        (if bound
-            (setq limit (max bound limit)))
-        (if (and (< origin start) (> origin limit))
-            (setq start origin))
-        (if (and bound (< start limit))
-            (setq token nil)
-          (goto-char start)
-          (setq pos (funcall searcher what limit t))
-          (if (and pos (<= (match-end 0) origin))
-              nil
-            (setq pos nil)
-            (goto-char (semantic-token-start token))
-            (setq token (senator-find-previous-token tokens (point)))))))
-    (if pos
-        (goto-char start)
-      (setq limit (point)))
-    (funcall searcher what limit noerror)))
+  "Use SEARCHER to search WHAT in Semantic token names before point.
+See `search-backward' for the meaning of BOUND NOERROR and COUNT."
+  (let* ((origin (point))
+         (count  (or count 1))
+         (step   (cond ((= count 0) 0)
+                       ((> count 0) 1)
+                       (t (setq count (- count))
+                          -1)))
+         found next sstart send token tstart tend)
+    (or (= step 0)
+        (while (and (not found)
+                    (setq next (funcall searcher what bound t step)))
+          (setq sstart (match-beginning 0)
+                send   (match-end 0)
+                token  (semantic-current-nonterminal))
+        (if (= sstart send)
+            (setq found t)
+          (if token
+              (setq tend   (senator-search-token-name token)
+                    tstart (match-beginning 0)
+                    found  (and (>= sstart tstart)
+                                (<= send tend)
+                                (= (setq count (1- count)) 0))))
+          (goto-char next))))
+    (cond ((null found)
+           (setq next origin
+                 send origin))
+          ((= step 1)
+           (setq next send
+                 send sstart))
+          (t
+           (setq next sstart)))
+    (goto-char next)
+    ;; Setup the returned value and the `match-data' or maybe fail!
+    (funcall searcher what send noerror step)))
 
 ;;;;
 ;;;; Navigation commands
@@ -759,70 +758,178 @@ Return the semantic token or nil if at beginning of buffer."
   "`senator-jump' stores here its current completion list.
 Then use `assoc' to retrieve the token associated to a symbol.")
 
-;;;###autoload
-(defun senator-jump (sym)
+(defun senator-jump-interactive (prompt &optional in-context no-default require-match)
+  "Called interactively to provide completion on some tag name.
+
+Use PROMPT.  If optional IN-CONTEXT is non-nil jump in the local
+type's context \(see function `senator-current-type-context').  If
+optional NO-DEFAULT is non-nil do not provide a default value.  If
+optional REQUIRE-MATCH is non-nil an explicit match must be made.
+
+The IN-CONTEXT and NO-DEFAULT switches are combined using the
+following prefix arguments:
+
+- - \\[universal-argument]       IN-CONTEXT.
+- - \\[universal-argument] -     NO-DEFAULT.
+- - \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
+  (let* ((arg (prefix-numeric-value current-prefix-arg))
+         (no-default
+          (or no-default
+              ;; The `completing-read' function provided by XEmacs
+              ;; (21.1) don't allow a default value argument :-(
+              (featurep 'xemacs)
+              (= arg -1)                ; C-u -
+              (= arg 16)))              ; C-u C-u
+         (in-context
+          (or in-context
+              (= arg 4)                 ; C-u
+              (= arg 16)))              ; C-u C-u
+         (context
+          (and (not no-default)
+               (or (semantic-ctxt-current-symbol)
+                   (semantic-ctxt-current-function))))
+         (completing-read-args
+          (list (if (and context (car context))
+                    (concat prompt "(default: " (car context) ") ")
+                  prompt)
+                (setq senator-jump-completion-list
+                      (senator-completion-list in-context))
+                nil
+                require-match
+                ""
+                'semantic-read-symbol-history)))
+    (list
+     (apply #'completing-read
+            (if (and context (car context))
+                (append completing-read-args context)
+              completing-read-args))
+     in-context no-default)))
+
+(defun senator-jump-noselect (sym &optional next-p regexp-p)
   "Jump to the semantic symbol SYM.
-If called interactively and a prefix argument is supplied jump in the
-local type's context (see function `senator-current-type-context')."
-  (interactive
-   (list
-    (completing-read "Jump to: "
-                     (setq senator-jump-completion-list
-                           (senator-completion-list current-prefix-arg))
-                     nil
-                     t
-                     ""
-                     'semantic-read-symbol-history)))
+If NEXT-P is non-nil, then move the the next tag in the search
+assuming there was already one jump for the given symbol.
+If REGEXP-P is non nil, then treat SYM as a regular expression.
+Return the token jumped to.
+Note: REGEXP-P doesn't work yet.  This needs to be added to get
+the etags override to be fully functional."
   (let ((token (cdr (assoc sym senator-jump-completion-list))))
     (when token
+      (set-buffer (semantic-token-buffer token))
       (goto-char (semantic-token-start token))
-      (senator-momentary-highlight-token token)
+      token)))
+
+;;;###autoload
+(defun senator-jump (sym &optional in-context no-default)
+  "Jump to the semantic symbol SYM.
+
+If optional IN-CONTEXT is non-nil jump in the local type's context
+\(see function `senator-current-type-context').  If optional
+NO-DEFAULT is non-nil do not provide a default value.
+
+When called interactively you can combine the IN-CONTEXT and
+NO-DEFAULT switches like this:
+
+- - \\[universal-argument]       IN-CONTEXT.
+- - \\[universal-argument] -     NO-DEFAULT.
+- - \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
+  (interactive (senator-jump-interactive "Jump to: " nil nil t))
+  (let ((tok (senator-jump-noselect sym no-default)))
+    (when tok
+      (switch-to-buffer (semantic-token-buffer tok))
+      (senator-momentary-highlight-token tok)
       (senator-message "%S: %s "
-                       (semantic-token-token token)
-                       (semantic-token-name  token)))))
+                       (semantic-token-token tok)
+                       (semantic-token-name  tok)))))
+
+(defun senator-jump-regexp (symregex &optional in-context no-default)
+  "Jump to the semantic symbol SYMREGEX.
+SYMREGEX is treated as a regular expression.
+
+If optional IN-CONTEXT is non-nil jump in the local type's context
+\(see function `senator-current-type-context').  If optional
+NO-DEFAULT is non-nil do not provide a default value and move to the
+next match of SYMREGEX.  NOTE: Doesn't actually work yet.
+
+When called interactively you can combine the IN-CONTEXT and
+NO-DEFAULT switches like this:
+
+- - \\[universal-argument]       IN-CONTEXT.
+- - \\[universal-argument] -     NO-DEFAULT.
+- - \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
+  (interactive (senator-jump-interactive "Jump to: "))
+  (let ((tok (senator-jump-noselect symregex no-default)))
+    (when tok
+      (switch-to-buffer (semantic-token-buffer tok))
+      (senator-momentary-highlight-token tok)
+      (senator-message "%S: %s "
+                       (semantic-token-token tok)
+                       (semantic-token-name  tok)))))
 
 (defvar senator-last-completion-stats nil
   "The last senator completion was here.
 Of the form (BUFFER STARTPOS INDEX REGEX COMPLIST...)")
 
-;;;###autoload
-(defun senator-complete-symbol ()
-  "Complete the current symbol under point."
-  (interactive)
-  (let* ((symstart (save-excursion (forward-sexp -1) (point)))
-         regex complst newstr index)
-    ;; Get old stats if apropriate.
-    (if (and senator-last-completion-stats
-             ;; Check if completing in the same buffer
-             (eq (car senator-last-completion-stats) (current-buffer))
-             ;; Check if completing from the same point
-             (= (nth 1 senator-last-completion-stats) symstart)
-             ;; Check if completing the same symbol
-             (save-excursion
-               (goto-char symstart)
-               (looking-at (nth 3 senator-last-completion-stats))))
-             
-        (setq complst (nthcdr 4 senator-last-completion-stats))
+(defsubst senator-current-symbol-start ()
+  "Return position of start of the current symbol under point or nil."
+  (condition-case nil
+      (save-excursion (forward-sexp -1) (point))
+    (error nil)))
 
-      (setq regex (regexp-quote (buffer-substring symstart (point)))
-            complst (senator-find-nonterminal-by-name-regexp regex)
-            senator-last-completion-stats (append (list (current-buffer)
-                                                        symstart
-                                                        0
-                                                        regex)
-                                                  complst)))
+;;;###autoload
+(defun senator-complete-symbol (&optional cycle-once)
+  "Complete the current symbol under point.
+If optional argument CYCLE-ONCE is non-nil, only cycle through the list
+of completions once, doing nothing where there are no more matches."
+  (interactive)
+  (let ((symstart (senator-current-symbol-start))
+        regex complst)
+    (if symstart
+        ;; Get old stats if apropriate.
+        (if (and senator-last-completion-stats
+                 ;; Check if completing in the same buffer
+                 (eq (car senator-last-completion-stats) (current-buffer))
+                 ;; Check if completing from the same point
+                 (= (nth 1 senator-last-completion-stats) symstart)
+                 ;; Check if completing the same symbol
+                 (save-excursion
+                   (goto-char symstart)
+                   (looking-at (nth 3 senator-last-completion-stats))))
+             
+            (setq complst (nthcdr 4 senator-last-completion-stats))
+
+          (setq regex (regexp-quote (buffer-substring symstart (point)))
+                complst (senator-find-nonterminal-by-name-regexp
+                         (concat "^" regex))
+                senator-last-completion-stats (append (list (current-buffer)
+                                                            symstart
+                                                            0
+                                                            regex)
+                                                      complst))))
     ;; Do the completion if apropriate.
-    (when complst
-      ;; get the new string
-      (setq index (nth 2 senator-last-completion-stats)
-            newstr (nth index complst))
-      ;; Update the index
-      (if (< index (1- (length complst)))
-          (setcar (nthcdr 2 senator-last-completion-stats) (1+ index))
-        (setcar (nthcdr 2 senator-last-completion-stats) 0))
-      ;; Replace the string
-      (delete-region symstart (point))
-      (insert (semantic-token-name newstr)))))
+    (if complst
+        (let ((ret   t)
+              (index (nth 2 senator-last-completion-stats))
+              newtok)
+          (if (= index (length complst))
+              ;; Cycle to the first completion token.
+              (setq index  0
+                    ;; Stop completion if CYCLE-ONCE is non-nil.
+                    ret (not cycle-once)))
+          ;; Get the new completion token.
+          (setq newtok (nth index complst))
+          (when ret
+            ;; Move index to the next completion token.
+            (setq index (1+ index)
+                  ;; Return the completion string (useful to hippie
+                  ;; expand for example)
+                  ret   (semantic-token-name newtok))
+            ;; Replace the string.
+            (delete-region symstart (point))
+            (insert ret))
+          ;; Update the completion index.
+          (setcar (nthcdr 2 senator-last-completion-stats) index)
+          ret))))
 
 ;;;;
 ;;;; Completion menu
@@ -857,12 +964,14 @@ It will receive a Semantic token as argument."
 Argument TOKEN-OVERLAY is the overlay of the token chosen from the
 completion menu."
   (let ((token (semantic-overlay-get token-overlay 'semantic))
-        (symstart (save-excursion (forward-sexp -1) (point)))
+        (symstart (senator-current-symbol-start))
         (finsert (if (fboundp senator-completion-menu-insert-function)
                      senator-completion-menu-insert-function
                    #'senator-completion-menu-insert-default)))
-      (delete-region symstart (point))
-      (funcall finsert token)))
+    (if symstart
+        (progn
+          (delete-region symstart (point))
+          (funcall finsert token)))))
 
 (defun senator-completion-menu-item (token)
   "Return a completion menu item from TOKEN.
@@ -879,9 +988,7 @@ The popup menu displays all of the possible completions for the symbol
 it was invoked on.  To automatically split large menus this function
 use `imenu--mouse-menu' to handle the popup menu.  EVENT is the
 parametrized event that invoked this command."
-  (let ((symstart (condition-case nil
-                      (save-excursion (forward-sexp -1) (point))
-                    (error nil)))
+  (let ((symstart (senator-current-symbol-start))
         symbol regexp complst)
     (if symstart
         (setq symbol  (buffer-substring-no-properties symstart (point))
@@ -996,6 +1103,38 @@ implementation."
 ;;;;
 ;;;; Others useful search commands (minor mode menu)
 ;;;;
+
+;;; Compatibility
+(or (not (featurep 'xemacs))
+    (fboundp 'isearch-update-ring)
+
+    ;; Provide `isearch-update-ring' function.
+    ;; (from XEmacs 21.1.9 isearch-mode.el)
+    (defun isearch-update-ring (string &optional regexp)
+      "Add STRING to the beginning of the search ring.
+REGEXP says which ring to use."
+      (if (> (length string) 0)
+          ;; Update the ring data.
+          (if regexp
+              (if (not (setq regexp-search-ring-yank-pointer
+                             (member string regexp-search-ring)))
+                  (progn
+                    (setq regexp-search-ring
+                          (cons string regexp-search-ring)
+                          regexp-search-ring-yank-pointer regexp-search-ring)
+                    (if (> (length regexp-search-ring) regexp-search-ring-max)
+                        (setcdr (nthcdr (1- regexp-search-ring-max) regexp-search-ring)
+                                nil))))
+            (if (not (setq search-ring-yank-pointer
+                           ;; really need equal test instead of eq.
+                           (member string search-ring)))
+                (progn
+                  (setq search-ring (cons string search-ring)
+                        search-ring-yank-pointer search-ring)
+                  (if (> (length search-ring) search-ring-max)
+                      (setcdr (nthcdr (1- search-ring-max) search-ring) nil)))))))
+    
+    )
 
 (defun senator-nonincremental-search-forward (string)
   "Search for STRING  nonincrementally."
@@ -1615,9 +1754,10 @@ Return non-nil if the minor mode is enabled.
 ;;;; Useful advices
 ;;;;
 
-(defun senator-beginning-of-defun ()
+(defun senator-beginning-of-defun (&optional arg)
   "Move backward to the beginning of a defun.
-Use semantic tokens to navigate."
+Use semantic tokens to navigate.
+ARG is the number of tokens to navigate."
   (let ((senator-highlight-found nil)
         ;; Step at beginning of next token with id specified in
         ;; `senator-step-at-token-ids'.
@@ -1626,9 +1766,10 @@ Use semantic tokens to navigate."
         (beginning-of-line))
     (senator-message nil)))
 
-(defun senator-end-of-defun ()
+(defun senator-end-of-defun (&optional arg)
   "Move forward to next end of defun.
-Use semantic tokens to navigate."
+Use semantic tokens to navigate.
+ARG is the number of tokens to navigate."
   (let* ((senator-highlight-found nil)
          ;; Step at end of next token with id specified in
          ;; `senator-step-at-token-ids'.
@@ -1673,14 +1814,14 @@ Use semantic tokens to navigate."
   "Move backward to the beginning of a defun.
 If semantic tokens are available, use them to navigate."
   (if (and senator-minor-mode (interactive-p))
-      (senator-beginning-of-defun)
+      (senator-beginning-of-defun (ad-get-arg 0))
     ad-do-it))
 
 (defadvice end-of-defun (around senator activate)
   "Move forward to next end of defun.
 If semantic tokens are available, use them to navigate."
   (if (and senator-minor-mode (interactive-p))
-      (senator-end-of-defun)
+      (senator-end-of-defun (ad-get-arg 0))
     ad-do-it))
 
 (defadvice narrow-to-defun (around senator activate)
@@ -1762,7 +1903,7 @@ kill ring."
 (defadvice insert-register (around senator activate)
   "Insert contents of register REGISTER as a token.
 If senator is not active, use the original mechanism."
-  (let ((val (get-register register)))
+  (let ((val (get-register (ad-get-arg 0))))
     (if (and senator-minor-mode (interactive-p)
              (listp val) (semantic-token-p (car val)))
         (senator-insert-foreign-token (car val) (cdr val))
@@ -1771,7 +1912,7 @@ If senator is not active, use the original mechanism."
 (defadvice jump-to-register (around senator activate)
   "Insert contents of register REGISTER as a token.
 If senator is not active, use the original mechanism."
-  (let ((val (get-register register)))
+  (let ((val (get-register (ad-get-arg 0))))
     (if (and senator-minor-mode (interactive-p)
              (listp val) (semantic-token-p (car val)))
         (progn
@@ -1782,7 +1923,7 @@ If senator is not active, use the original mechanism."
 (defun senator-insert-foreign-token (token tokenfile)
   "Insert TOKEN from a foreign buffer into the current buffer.
 TOKEN will have originated from TOKENFILE.
-This function is overridable."
+This function is overridable with the symbol `insert-foreign-token'."
   (if (or (not token) (not (semantic-token-p token)))
       (signal 'wrong-type-argument (list token 'semantic-token-p)))
   (let ((s (semantic-fetch-overload 'insert-foreign-token)))
@@ -1810,16 +1951,14 @@ Argument TOKENFILE is the file from wence TOKEN came."
 (eval-when-compile (require 'eldoc)
                    (require 'semantic-ctxt))
 
-(eval-after-load "eldoc"
-
-  '(defadvice eldoc-print-current-symbol-info (around senator activate)
-     "Enable ELDOC in non Emacs Lisp, but semantic-enabled modes."
-     (if (eq major-mode 'emacs-lisp-mode)
-         ad-do-it
-       (when (eldoc-display-message-p)
-         (senator-eldoc-print-current-symbol-info))))
-  
-  )
+(defadvice eldoc-print-current-symbol-info (around senator activate)
+  "Enable ELDOC in non Emacs Lisp, but semantic-enabled modes."
+  (if (eq major-mode 'emacs-lisp-mode)
+      ad-do-it
+    (if (semantic-active-p)
+        (if (eldoc-display-message-p)
+            (senator-eldoc-print-current-symbol-info))
+      (eldoc-mode -1))))
 
 (defun senator-eldoc-print-current-symbol-info ()
   "Print information using `eldoc-message' while in function `eldoc-mode'.
@@ -1869,6 +2008,55 @@ You can override the info collecting part with `eldoc-current-symbol-info'."
                 ))
           ))
     found))
+
+;;; HIPPIE EXPAND
+;;
+;; Senator has a nice completion mechanism.  Use it to add a new
+;; hippie expand try method.
+
+(eval-when-compile (require 'hippie-exp))
+
+(defadvice hippie-expand (before senator activate)
+  "Add senator completion to hippie expand try method.
+This setting is local to Semantic enabled buffers."
+  (or (not (semantic-active-p))
+      (memq #'senator-try-expand-semantic
+            hippie-expand-try-functions-list)
+      (set (make-local-variable 'hippie-expand-try-functions-list)
+           (cons #'senator-try-expand-semantic
+                 (default-value 'hippie-expand-try-functions-list)))))
+
+(defun senator-try-expand-semantic (old)
+  "Attempt inline completion at the cursor.
+Use Semantic, or the semantic database to look up possible
+completions.  The argument OLD has to be nil the first call of this
+function.  It returns t if a unique, possibly partial, completion is
+found, nil otherwise."
+  (require 'senator)
+  (if (semantic-active-p)
+      (let (symstart)
+        ;; If the hippie says so, start over.
+        (if (not old)
+            (if (setq symstart (senator-current-symbol-start))
+                (progn
+                  (he-init-string symstart (point))
+                  (setq senator-last-completion-stats nil))))
+        ;; do completion with senator's mechanism.
+        (if (or old symstart)
+            (let ((ret (senator-complete-symbol t)))
+              (cond (ret
+                     ;; Found a new completion, update the end marker.
+                     (set-marker he-string-end (point))
+                     ;; Update the tried table so other hippie expand
+                     ;; try functions can see whether an expansion has
+                     ;; already been tried.
+                     (setq he-tried-table (cons ret he-tried-table)))
+                    ;; No more completion
+                    (old
+                     ;; Reset the initial completed string for other
+                     ;; hippie-expand try functions.
+                     (he-reset-string)))
+              ret)))))
 
 ;;;;
 ;;;; Using semantic search in isearch mode
