@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.12 2004/02/22 21:45:19 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.13 2004/03/01 01:14:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -450,9 +450,9 @@ Used by `semantic-format-tag-uml-protection-to-string'."
 (defun semantic--format-uml-post-colorize (text tag parent)
   "Add color to TEXT created from TAG and PARENT.
 Adds augmentation for `abstract' and `static' entries."
-  (if (semantic-tag-abstract tag parent)
+  (if (semantic-tag-abstract-p tag parent)
       (setq text (semantic--format-colorize-merge-text text 'abstract)))
-  (if (semantic-tag-static tag parent)
+  (if (semantic-tag-static-p tag parent)
       (setq text (semantic--format-colorize-merge-text text 'static)))
   text
   )
@@ -460,9 +460,9 @@ Adds augmentation for `abstract' and `static' entries."
 (defun semantic-uml-attribute-string (tag &optional parent)
   "Return a string for TAG, a child of PARENT representing a UML attribute.
 UML attribute strings are things like {abstract} or {leaf}."
-  (cond ((semantic-tag-abstract tag parent)
+  (cond ((semantic-tag-abstract-p tag parent)
 	 "{abstract}")
-	((semantic-tag-leaf tag parent)
+	((semantic-tag-leaf-p tag parent)
 	 "{leaf}")
 	))
 
