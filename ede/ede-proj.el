@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.2 1999/01/21 14:12:09 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.3 1999/01/21 21:30:00 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -36,10 +36,7 @@
 
 ;;; Class Definitions:
 (defclass ede-proj-target (ede-target)
-  ((source :initarg :source
-	   :custom (repeat object)
-	   :documentation "Source files in this target.")
-   (dirty :initform nil
+  ((dirty :initform nil
 	  :documentation "Non-nil when generated files needs updating.")
    )
   "Abstract class for ede-proj targets.")
