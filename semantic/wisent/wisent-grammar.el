@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.8 2003/03/18 05:44:49 emacsman Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.9 2003/03/24 01:08:35 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -47,7 +47,11 @@ Return nil if $N is not a valid placeholder symbol."
   "Return expansion of built-in EXPAND expression.
 $I is the placeholder value to expand.
 NONTERM is the nonterminal symbol to start with."
-  (let (($ri (wisent-grammar-region-placeholder $i)))
+  (let ((start (semantic-grammar-start))
+	($ri (wisent-grammar-region-placeholder $i)))
+    (if (not (member nonterm start))
+	(error "EXPANDFULL macro called with %s, but not used with %%start."
+	       nonterm))
     (if $ri
         `(semantic-bovinate-from-nonterminal
           (car ,$ri) (cdr ,$ri) ',nonterm)
@@ -57,7 +61,11 @@ NONTERM is the nonterminal symbol to start with."
   "Return expansion of built-in EXPANDFULL expression.
 $I is the placeholder value to expand.
 NONTERM is the nonterminal symbol to start with."
-  (let (($ri (wisent-grammar-region-placeholder $i)))
+  (let ((start (semantic-grammar-start))
+	($ri (wisent-grammar-region-placeholder $i)))
+    (if (not (member nonterm start))
+	(error "EXPANDFULL macro called with %s, but not used with %%start."
+	       nonterm))
     (if $ri
         `(semantic-parse-region
           (car ,$ri) (cdr ,$ri) ',nonterm 1)
