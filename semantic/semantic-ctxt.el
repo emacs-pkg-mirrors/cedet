@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.23 2002/12/31 17:11:48 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.24 2003/03/20 14:24:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -205,13 +205,16 @@ Part of this behavior can be overridden with `get-local-arguments'."
                          ;; Return a copy of token without overlay.
                          ;; Don't use `semantic-deoverlay-token' here
                          ;; because the original overlay must be kept!
+                         ;; TODO: cleanup that code to use the new tag API!
                          (setq tok (copy-sequence tok))
                          (setcar (semantic-token-overlay-cdr tok)
                                  (vector (semantic-token-start tok)
                                          (semantic-token-end tok))))
                        tok)
                       ((stringp (car params))
-                       (list (car params) 'variable))
+                       (semantic-tag-new-variable
+                        (car params) nil nil)
+                       )
                       (t
                        (error "Unknown parameter element")))
                      rparams)))
