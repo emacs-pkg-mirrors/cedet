@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-token.el,v 1.1 2003/02/27 02:52:53 zappo Exp $
+;; X-CVS: $Id: semantic-token.el,v 1.2 2003/02/28 14:22:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -82,6 +82,46 @@ If not provided, then only the POSITION can be provided."
 	  (semantic-flex-text (car (semantic-lex p (1+ p)))))
       p)))
 
+(defmacro semantic-token-overlay (token)
+  "Retrieve the OVERLAY part of TOKEN.
+The returned item may be an overlay or an unloaded buffer representation."
+  `(nth (- (length ,token) semantic-tfe-overlay) ,token))
+
+(defmacro semantic-token-overlay-cdr (token)
+  "Retrieve the cons cell containing the OVERLAY part of TOKEN."
+  `(nthcdr (- (length ,token) semantic-tfe-overlay) ,token))
+
+(defmacro semantic-token-extent (token)
+  "Retrieve the extent (START END) of TOKEN."
+  `(let ((o (semantic-token-overlay ,token)))
+     (if (semantic-overlay-p o)
+	 (list (semantic-overlay-start o) (semantic-overlay-end o))
+       (list (aref o 0) (aref o 1)))))
+
+(defsubst semantic-token-start (token)
+  "Retrieve the start location of TOKEN."
+  (let ((o (semantic-token-overlay token)))
+    (if (semantic-overlay-p o)
+        (semantic-overlay-start o)
+      (aref o 0))))
+
+(defsubst semantic-token-end (token)
+  "Retrieve the end location of TOKEN."
+  (let ((o (semantic-token-overlay token)))
+    (if (semantic-overlay-p o)
+        (semantic-overlay-end o)
+      (aref o 1))))
+
+(defsubst semantic-token-buffer (token)
+  "Retrieve the buffer TOKEN resides in."
+  (let ((o (semantic-token-overlay token)))
+    (if (semantic-overlay-p o)
+        (semantic-overlay-buffer o)
+      ;; We have no buffer for this token (It's not in Emacs right now.)
+      nil)))
+
+;;; Property Lists on tokens
+;;
 (defmacro semantic-token-properties (token)
   "Retrieve the PROPERTIES part of TOKEN.
 The returned item is an ALIST of (KEY . VALUE) pairs."
@@ -128,59 +168,6 @@ are no side effects if TOKEN is in shared lists."
 (defsubst semantic-token-get (token key)
   "For TOKEN, get the value for property KEY."
   (cdr (assoc key (semantic-token-properties token))))
-
-(defmacro semantic-token-overlay (token)
-  "Retrieve the OVERLAY part of TOKEN.
-The returned item may be an overlay or an unloaded buffer representation."
-  `(nth (- (length ,token) semantic-tfe-overlay) ,token))
-
-(defmacro semantic-token-overlay-cdr (token)
-  "Retrieve the cons cell containing the OVERLAY part of TOKEN."
-  `(nthcdr (- (length ,token) semantic-tfe-overlay) ,token))
-
-(defmacro semantic-token-extent (token)
-  "Retrieve the extent (START END) of TOKEN."
-  `(let ((o (semantic-token-overlay ,token)))
-     (if (semantic-overlay-p o)
-	 (list (semantic-overlay-start o) (semantic-overlay-end o))
-       (list (aref o 0) (aref o 1)))))
-
-(defsubst semantic-token-start (token)
-  "Retrieve the start location of TOKEN."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o)
-        (semantic-overlay-start o)
-      (aref o 0))))
-
-(defsubst semantic-token-end (token)
-  "Retrieve the end location of TOKEN."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o)
-        (semantic-overlay-end o)
-      (aref o 1))))
-
-(defsubst semantic-token-buffer (token)
-  "Retrieve the buffer TOKEN resides in."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o)
-        (semantic-overlay-buffer o)
-      ;; We have no buffer for this token (It's not in Emacs right now.)
-      nil)))
-
-(defsubst semantic-token-p (token)
-  "Return non-nil if TOKEN is most likely a semantic token."
-  (and (listp token)
-       (stringp (car token))
-       (car (cdr token))
-       (symbolp (car (cdr token)))))
-
-(defun semantic-token-with-position-p (token)
-  "Return non-nil if TOKEN is a semantic token with positional information."
-  (and (semantic-token-p token)
-       (let ((o (semantic-token-overlay token)))
-	 (or (semantic-overlay-p o)
-	     (and (arrayp o)
-		  (not (stringp o)))))))
 
 
 ;;; Standard Token Access
@@ -354,9 +341,26 @@ If TOKEN is of an unknown type, then nil is returned."
   `(semantic-token-extra-spec ,token 'typemodifiers))
 
 
-;;; Token Comparisons
+;;; Token Tests
 ;;
-;; For comparing if two tokens are equivalent.
+;; For tests and comparisons.
+;;; 
+
+(defsubst semantic-token-p (token)
+  "Return non-nil if TOKEN is most likely a semantic token."
+  (and (listp token)
+       (stringp (car token))
+       (car (cdr token))
+       (symbolp (car (cdr token)))))
+
+(defun semantic-token-with-position-p (token)
+  "Return non-nil if TOKEN is a semantic token with positional information."
+  (and (semantic-token-p token)
+       (let ((o (semantic-token-overlay token)))
+	 (or (semantic-overlay-p o)
+	     (and (arrayp o)
+		  (not (stringp o)))))))
+
 (defun semantic-equivalent-tokens-p (token1 token2)
   "Compare TOKEN1 and TOKEN2 and return non-nil if they are equivalent.
 Use `eq' to test of two tokens are the same.  Use this function if tokens
@@ -370,8 +374,106 @@ thing, but may be constructed of different cons cells."
 
 ;;; Token Creation
 ;;
+(defun semantic-token-make-assoc-list (args)
+  "Create an association list with ARGS.
+Args is a list of the form (KEY1 VALUE1 ... KEYN VALUEN).
+The return value will be of the form: ((KEY1 .  VALUE1) ... (KEYN . VALUEN))
+Where KEY is a symbol, and VALUE is the value for that symbol.
+If VALUE is nil, then KEY is excluded from the return association list."
+  (let ((ret nil))
+    (while args
+      (let ((value (car-safe (cdr args))))
+	(if (and value
+		 (or (not (stringp value))
+		     (not (string= value "")))
+		 (or (not (numberp value))
+		     (not (= value 0))))
+	    (setq ret (cons (cons (car args) (car (cdr args))) ret)))
+	(setq args (cdr (cdr args)))))
+    (nreverse ret)))
 
+(defun semantic-token (name type-symbol &rest plist)
+  "Create generic semantic token.
+NAME is a string representing the name of this token.
+TYPE-SYMBOL is the symbol that represents the type of token this is,
+such as 'variable, or 'function.
+PLIST is a property list of additional values belonging to this token."
+  (list name type-symbol
+	(semantic-token-make-assoc-list plist)
+	nil)
+  )
 
+(defun semantic-token-new-variable (name type default-value &rest extra-specifiers)
+  "Create semantic token of type variable.
+NAME is a string representing the name of this token.
+TYPE is a string or semantic token representing the type of this token.
+DEFAULT-VALUE is a string representing the default value of this variable.
+EXTRA-SPECIFIERS is a property list of additional features of this token.
+Any property with a value of nil is not stored in the list."
+  (list name 'variable type default-value
+	(semantic-token-make-assoc-list extra-specifiers)
+	nil)
+  )
+
+(defun semantic-token-new-function (name type arg-list &rest extra-specifiers)
+  "Create semantic token of type function.
+NAME is a string representing the name of this token.
+TYPE is a string or semantic token representing the type of this token.
+ARG-LIST is a list of strings or a list of semantic tokens representing the
+argument list of this function.
+EXTRA-SPECIFIERS is a property list of additional features of this token.
+Any property with a value of nil is not stored in the list."
+  (list name 'function type arg-list
+	(semantic-token-make-assoc-list extra-specifiers)
+	nil)
+  )
+
+(defun semantic-token-new-type (name type part-list parents &rest extra-specifiers)
+  "Create semantic token of type function.
+NAME is a string representing the name of this token.
+TYPE is a string or semantic token representing the type of this token.
+PART-LIST is a list of strings, or a list of semantic tokens representing the
+elements that make up this type if it is a composite type.
+
+PARENTS is a cons cell.  (EXPLICIT-PARENTS . INTERFACE-PARENTS)
+EXPLICIT-PARENTS can be a single string (Just one parent) or a
+list of parents (in a multiple inheritance situation.  It can also
+be nil.
+INTERFACE-PARENTS is a list of strings representing the names of
+all INTERFACES, or abstract classes inherited from.  It can also be
+nil.
+This slot can be interesting because the form:
+     ( nil \"string\")
+is a valid parent where there is no explicit parent, and only an
+interface.
+
+EXTRA-SPECIFIERS is a property list of additional features of this token.
+Any property with a value of nil is not stored in the list."
+  (list name 'type type part-list parents
+	(semantic-token-make-assoc-list extra-specifiers)
+	nil)
+  )
+
+(defun semantic-token-new-include (name system-flag &rest extra-specifiers)
+  "Create semantic token of type function.
+NAME is a string representing the name of this token.
+SYSTEM-FLAG represents that we were able to identify this include as belonging
+to the system, as opposed to belonging to the local project.
+EXTRA-SPECIFIERS is a property list of additional features of this token.
+Any property with a value of nil is not stored in the list."
+  ;; Ignore extra specifiers for now.
+  (list name 'include system-flag nil)
+  )
+
+(defun semantic-token-new-package (name detail &rest extra-specifiers)
+  "Create semantic token of type function.
+NAME is a string representing the name of this token.
+DETAIL is extra information about this package, such as a location where
+it can be found.
+EXTRA-SPECIFIERS is a property list of additional features of this token.
+Any property with a value of nil is not stored in the list."
+  (list name 'package detail nil)
+  )
 
 
 (provide 'semantic-token)
