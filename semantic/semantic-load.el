@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.39 2004/01/08 21:47:03 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.40 2004/01/09 14:42:00 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,9 +32,9 @@
 ;;; Add parser and doc directories
 ;;
 (let ((dir (file-name-directory (locate-library "semantic"))))
-  (add-to-list 'load-path (concat dir "bovine"))
-  (add-to-list 'load-path (concat dir "wisent"))
-  (add-to-list 'Info-directory-list (concat dir "doc"))
+  (add-to-list 'load-path (expand-file-name "bovine" dir))
+  (add-to-list 'load-path (expand-file-name "wisent" dir))
+  (add-to-list 'Info-default-directory-list (expand-file-name "doc" dir))
   )
 
 ;;; Some speedbar major modes
