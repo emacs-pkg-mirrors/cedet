@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.6 1996/09/24 00:45:34 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.7 1996/09/27 00:04:58 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -962,7 +962,7 @@ help about this widget."
 		  os
 		  (widget-bunch-o-chars (- tlen (length os)) ? ))))
     ;; insert the string
-    (insert-overwrite-face os (oref this face) (oref this focus-face))
+    (insert-overwrite-face os (oref this face) (oref this focus-face) this)
     ;; show more-characters this way strings
     (if nflag (insert-overwrite-face "v" (oref this spface))
       (if sflag (insert-overwrite-face ">" (oref this spface))
