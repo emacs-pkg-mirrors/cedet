@@ -3,8 +3,8 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Keywords: syntax
-;; X-RCS: $Id: cogre.el,v 1.3 2001/04/23 18:18:42 zappo Exp $
+;; Keywords: graph, oop, extensions, outlines
+;; X-RCS: $Id: cogre.el,v 1.4 2001/04/25 02:44:45 zappo Exp $
 
 (defvar cogre-version "0.0"
   "Current version of Cogre.")
@@ -197,6 +197,12 @@ preference."  )
    (stop-position :initform nil
 		  :documentation
 		  "After drawing this link, store a place for a tab stop.")
+   (layout-direction 
+    :initform 'any
+    :documentation
+    "When using the layout engine, the preferred direction this link points.
+This can have a value of 'up, 'down, 'left, 'right, 'horizontal,
+'vertical, or 'any.")
    )
   "Connected Graph link.
 Links are lines drawn between two nodes, or possibly loose in space
@@ -215,12 +221,12 @@ arrows or circles.")
   "The current connected graph.")
 (make-variable-buffer-local 'cogre-graph)
 
+(defvar cogre-mode-map nil
+  "Keymap used for COGRE mode.")
+
 (defun cogre-substitute (oldfun newfun)
   "Substitue a key binding in ghe `cogre-mode-map'."
   (substitute-key-definition oldfun newfun cogre-mode-map global-map))
-
-(defvar cogre-mode-map nil
-  "Keymap used for COGRE mode.")
 
 (if cogre-mode-map
     nil
@@ -274,6 +280,7 @@ The new graph will be given NAME.  See `cogre-mode' for details."
   (setq major-mode 'cogre-mode
 	mode-name "Cogre")
   (use-local-map cogre-mode-map)
+  (setq truncate-lines t)
   (run-hooks 'cogre-mode-hook)
   (cogre-render-buffer cogre-graph t)
   )
@@ -671,7 +678,7 @@ Always make the width 2 greater than the widest string."
 			      (if (and (= bottom-lines 0)
 				       (= (length slots) 1)
 				       (= (length sl) 1))
-				  'cogre-box-first-face
+				  'cogre-box-last-face
 				'cogre-box-face))
 			    node width)
 			   rect)
@@ -701,7 +708,19 @@ Each list will be prefixed with a line before it."
 
 (defmethod cogre-node-widest-string ((node cogre-node))
   "Return the widest string in NODE."
-  (length (oref node name)))
+  (let ((namel (length (oref node name)))
+	(slots (cogre-node-slots node))
+	(names nil)
+	(ws 0))
+    (while slots
+      (setq names (car slots))
+      (while names
+	(if (> (length (car names)) ws)
+	    (setq ws (length (car names))))
+	(setq names (cdr names)))
+      (setq slots (cdr slots)))
+    (if (> ws namel) ws namel)))
+    
 
 (defun cogre-node-horizontal-distance (node1 node2)
   "Calculate the horizontal distance between NODE1 and NODE2.
@@ -851,7 +870,7 @@ The data returned is (X1 Y1 X2 Y2)."
 		      y2 (- y2 -1 (length endrect)))
 	      (setq startrect (aref start-glyph 1)
 		    endrect (aref end-glyph 0)
-		    y1 (- y1 -1 (length endrect))))
+		    y1 (- y1 -1 (length startrect))))
 	    (setq x1 (- x1 (/ (length (car startrect)) 2))
 		  x2 (- x2 (/ (length (car endrect)) 2))))
 	  ;; Ok, splat the glyph
@@ -862,14 +881,25 @@ The data returned is (X1 Y1 X2 Y2)."
 				       (length startrect))
 		(cogre-erase-rectangle x2 y2
 				       (length (car endrect))
-				       (length endrect)))
+				       (length endrect))
+		)
 	    (picture-goto-coordinate x1 y1)
 	    (picture-insert-rectangle startrect nil)
 	    (picture-goto-coordinate x2 y2)
-	    (picture-insert-rectangle endrect nil))
-
+	    (picture-insert-rectangle endrect nil)
+	    )
 	  ))))
   (call-next-method))
+
+;;; Layout Engine
+;;
+(defmethod cogre-layout ((node cogre-node))
+  "Layout NODE in the graph."
+  )
+
+(defmethod cogre-layout ((link cogre-link))
+  "Layout LINK in the graph."
+  )
 
 ;;; Low Level Rendering and status
 ;;
