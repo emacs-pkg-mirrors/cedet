@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.221 2002/08/17 14:07:36 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.222 2002/10/26 13:45:46 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -613,7 +613,7 @@ file completion."
 (defvar speedbar-file-regexp
   (speedbar-extension-list-to-regex speedbar-supported-extension-expressions)
   "Regular expression matching files we know how to expand.
-Created from `speedbar-supported-extension-expression' with the
+Created from `speedbar-supported-extension-expressions' with the
 function `speedbar-extension-list-to-regex'")
 
 (defun speedbar-add-supported-extension (extension)
