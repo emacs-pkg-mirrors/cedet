@@ -175,7 +175,7 @@ percentage display.  A number such as `2' means `2%'."
       (if (null global-mode-string)
 	  (setq global-mode-string (list "")))
       (setq global-mode-string
-	    (append global-mode-string (list working-mode-line-message))))
+	    (append global-mode-string '(working-mode-line-message))))
   ;; Else, use minor mode trickery to get a reliable way of doing the
   ;; same thing across many versions of Emacs.
   (setq minor-mode-alist (cons
