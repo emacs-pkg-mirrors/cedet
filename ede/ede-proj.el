@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.28 2000/09/28 02:03:31 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.29 2000/09/28 18:39:19 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -242,7 +242,10 @@ Argument TARGET is the project we are completing customization on."
   "Return t if object THIS lays claim to the file in BUFFER."
   (let ((f (ede-convert-path this (buffer-file-name buffer))))
     (or (string= (oref this file) f)
-	(string= (ede-proj-dist-makefile this) f))))
+	(string= (ede-proj-dist-makefile this) f)
+	(string-match "Makefile\\(\\.\\(in\\|am\\)\\)?" f)
+	(string-match "config\\(ure\\.in\\|\\.stutus\\)?" f)
+	)))
 
 (defmethod ede-buffer-mine ((this ede-proj-target) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
@@ -356,6 +359,10 @@ Optional argument COMMAND is the s the alternate command to use."
 (defmethod project-debug-target ((obj ede-proj-target))
   "Run the current project target OBJ in a debugger."
   (error "Debug-target not supported by %s" (object-name obj)))
+
+(defmethod ede-proj-makefile-target-name ((this ede-proj-target))
+  "Return the name of the main target for THIS target."
+  (ede-name this))
 
 ;;; Compiler and source code generators
 ;;
