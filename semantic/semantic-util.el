@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.35 2000/12/08 03:37:58 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.36 2000/12/08 21:15:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -951,9 +951,14 @@ instead of read-only."
 
 (defun semantic-overlay-cache ()
   "Convert all tokens in the current cache to use overlays."
-  ;; In this unique case, we cannot call the usual toplevel fn.
-  ;; because we don't want a reparse, we want the old overlays.
-  (semantic-overlay-list (car semantic-toplevel-bovine-cache)))
+  (condition-case nil
+      ;; In this unique case, we cannot call the usual toplevel fn.
+      ;; because we don't want a reparse, we want the old overlays.
+      (semantic-overlay-list (car semantic-toplevel-bovine-cache))
+    ;; Recover when there is an error restoring the cache.
+    (error (message "Error recovering token list.")
+	   (semantic-clear-toplevel-cache)
+	   nil)))
 
 ;;; Interactive Functions for bovination
 ;;
@@ -987,33 +992,57 @@ Optional argument CLEAR will clear the cache before bovinating."
 The newly created token is spliced into the cache and TOKEN is destroyed."
   (interactive)
   (if (not token) (setq token (semantic-current-nonterminal)))
-  (if token
-      (let* ((flexbits (semantic-flex (semantic-token-start token)
-				      (semantic-token-end token)))
-	     ;; For embeded tokens (type parts, for example) we need a
-	     ;; different symbol.  Come up with a plan to solve this.
-	     (nonterminal 'bovine-toplevel)
-	     (new (semantic-bovinate-nonterminal flexbits
-						 semantic-toplevel-bovine-table
-						 nonterminal)))
-	(if (not new)
-	    ;; Clever reparse failed, queuing full reparse.
-	    (setq semantic-toplevel-bovine-cache-check t)
-	  (setq new (car (cdr new)))
-	  (semantic-delete-overlay-maybe (semantic-token-overlay token))
-	  (setcdr token (cdr new))
-	  (setcar token (car new))
-	  (semantic-raw-to-cooked-token token))
-	)))
+  (semantic-bovinate-toplevel t)
+  (if token (semantic-rebovinate-token token)))
 
 (defun semantic-describe-token (&optional token)
   "Describe TOKEN in the minibuffer.
 If TOKEN is nil, describe the token under the cursor."
   (interactive)
   (if (not token) (setq token (semantic-current-nonterminal)))
-  (if token
-      (message (semantic-summarize-nonterminal token)))
-  )
+  (semantic-bovinate-toplevel t)
+  (if token (message (semantic-summarize-nonterminal token))))
+
+
+;;; Show dirty mode
+;;
+(defface semantic-dirty-token-face  '((((class color) (background light))
+				       (:background "gray15"))
+				      (((class color) (background light))
+				       (:background "gray95")))
+  "Face used to show dirty tokens in `semantic-show-dirty-token-mode'."
+  :group 'semantic)
+
+(defun semantic-show-dirty-token-hook-fcn (token start end)
+  "Function set into `semantic-dirty-token-hooks'.
+This will highlight TOKEN as dirty.
+START and END define the region changed, but are not used."
+  (semantic-highlight-token token 'semantic-dirty-token-face))
+
+(defun semantic-show-clean-token-hook-fcn (token)
+  "Function set into `semantic-clean-token-hooks'.
+This will unhighlight TOKEN from being dirty."
+  (semantic-unhighlight-token token))
+
+(defun semantic-show-dirty-mode (&optional arg)
+  "Enable the display of dirty tokens.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+    (interactive "P")
+  (if (not arg)
+      (if (member #'semantic-dirty-token-hook-fcn
+		  semantic-dirty-token-hooks)
+	  (setq arg -1)
+	(setq arg 1)))
+  (if (< arg 0)
+      (progn
+	;; Remove hooks
+	(remove-hook 'semantic-dirty-token-hooks 'semantic-show-dirty-token-hook-fcn)
+	(remove-hook 'semantic-clean-token-hooks 'semantic-show-clean-token-hook-fcn)
+	)
+    (add-hook 'semantic-dirty-token-hooks 'semantic-show-dirty-token-hook-fcn)
+    (add-hook 'semantic-clean-token-hooks 'semantic-show-clean-token-hook-fcn)
+    ))
 
 ;;; Hacks
 ;;
