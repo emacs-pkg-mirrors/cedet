@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
 ;; Keywords: speedbar, rpm
-;; X-RCS: $Id: rpm.el,v 1.2 1998/05/05 01:59:14 zappo Exp $
+;; X-RCS: $Id: rpm.el,v 1.3 1998/06/13 13:40:20 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -42,6 +42,20 @@
 
 (defvar rpm-system nil
   "This represents the current system.")
+
+(defvar rpm-speedbar-key-map nil
+  "Keymap used when working with RPMs in speedbar.")
+
+(if rpm-speedbar-key-map
+    nil
+  (setq rpm-speedbar-key-map (speedbar-make-specialized-keymap))
+
+  ;; General viewing pleasure...
+  (define-key speedbar-buffers-key-map "\C-m" 'speedbar-edit-line)
+  (define-key speedbar-buffers-key-map "+" 'speedbar-expand-line)
+  (define-key speedbar-buffers-key-map "-" 'speedbar-contract-line)
+
+  )
 
 (defvar rpm-speedbar-menu
   ()
@@ -90,7 +104,8 @@ Source RPM\\|URL\\) *:" 0 font-lock-variable-name-face)
   ;; Make sure that speedbar is active
   (speedbar-frame-mode 1)
   ;; Make sure our special speedbar major mode is loaded
-  (speedbar-add-expansion-list '("rpm" rpm-speedbar-menu nil rpm-speedbar))
+  (speedbar-add-expansion-list '("rpm" rpm-speedbar-menu rpm-speedbar-key-map
+				 rpm-speedbar))
   ;; Now, throw us into RPM mode on speedbar.
   (speedbar-change-initial-expansion-list "rpm")
   )
