@@ -1,10 +1,10 @@
 ;;; speedbar --- quick access to files and tags in a frame
 
-;;; Copyright (C) 1996, 97, 98, 99, 00 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 00, 01 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.195 2000/12/13 01:41:53 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.196 2001/01/08 13:54:05 zappo Exp $
 
 (defvar speedbar-version "0.14"
   "The current version of speedbar.")
@@ -32,134 +32,27 @@
 ;; files are displayed.  These items can be clicked on with mouse-2
 ;; in order to make the last active frame display that file location.
 ;;
-;; Customizing Speedbar:
+;;; Customizing and Developing for speedbar
 ;;
-;;   Once a speedbar frame is active, it takes advantage of idle time
-;; to keep its contents updated.  The contents is usually a list of
-;; files in the directory of the currently active buffer.  When
-;; applicable, tags in the active file can be expanded.
+;; Please see the speedbar manual for informaion.
 ;;
-;;   To add new supported files types into speedbar, use the function
-;; `speedbar-add-supported-extension' If speedbar complains that the
-;; file type is not supported, that means there is no built in
-;; support from imenu, and the etags part wasn't set up correctly.  You
-;; may add elements to `speedbar-supported-extension-expressions' as long
-;; as it is done before speedbar is loaded.
+;;; Notes:
 ;;
-;;   To prevent speedbar from following you into certain directories
-;; use the function `speedbar-add-ignored-path-regexp' too add a new
-;; regular expression matching a type of path.  You may add list
-;; elements to `speedbar-ignored-path-expressions' as long as it is
-;; done before speedbar is loaded.
-;;
-;;   To add new file types to imenu, see the documentation in the
-;; file imenu.el that comes with Emacs.  To add new file types which
-;; etags supports, you need to modify the variable
-;; `speedbar-fetch-etags-parse-list'.
-;;
-;;    If the updates are going too slow for you, modify the variable
-;; `dframe-update-speed' to a longer idle time before updates.
-;;
-;;    If you navigate directories, you will probably notice that you
-;; will navigate to a directory which is eventually replaced after
-;; you go back to editing a file (unless you pull up a new file.)
-;; The delay time before this happens is in
-;; `speedbar-navigating-speed', and defaults to 10 seconds.
-;;
-;;    To enable mouse tracking with information in the minibuffer of
-;; the attached frame, use the variable `speedbar-track-mouse-flag'.
-;;
-;;    Tag layout can be modified through `speedbar-tag-hierarchy-method',
-;; which controls how tags are layed out.  It is actually a list of
-;; functions that filter the data.  The default groups large tag lists
-;; into sub-lists.  A long flat list can be used instead if needed.
-;; Other filters could be easily added.
-;;
-;;    Users of XEmacs previous to 20 may want to change the default
-;; timeouts for `dframe-update-speed' to something longer as XEmacs
-;; doesn't have idle timers, the speedbar timer keeps going off
-;; arbitrarily while you're typing.  It's quite pesky.
-;;
-;;    Users of really old emacsen without the needed timers will not
-;; have speedbar updating automatically.  Use "r" to refresh the
-;; display after changing directories.  Remember, do not interrupt the
-;; stealthy updates or your display may not be completely refreshed.
+;;    Users of really old emacsen without the need timer functions
+;; will not have speedbar updating automatically.  Use "g" to refresh
+;; the display after changing directories.  Remember, do not interrupt
+;; the stealthy updates or your display may not be completely
+;; refreshed.
 ;;
 ;;    AUC-TEX users: The imenu tags for AUC-TEX mode don't work very
 ;; well.  Use the imenu keywords from tex-mode.el for better results.
 ;;
 ;; This file requires the library package assoc (association lists)
-;; and the package custom (for easy configuration of speedbar)
+;;     assoc should be available in all modern versions of Emacs.
+;; The custom package is optional (for easy configuration of speedbar)
 ;;     http://www.dina.kvl.dk/~abraham/custom/
+;;     custom is available in all versions of Emacs version 20 or better.
 ;;
-;;; Developing for speedbar
-;;
-;; Adding a speedbar specialized display mode:
-;;
-;; Speedbar can be configured to create a special display for certain
-;; modes that do not display tradition file/tag data.  Rmail, Info,
-;; and the debugger are examples.  These modes can, however, benefit
-;; from a speedbar style display in their own way.
-;;
-;; If your `major-mode' is `foo-mode', the only requirement is to
-;; create a function called `foo-speedbar-buttons' which takes one
-;; argument, BUFFER.  BUFFER will be the buffer speedbar wants filled.
-;; In `foo-speedbar-buttons' there are several functions that make
-;; building a speedbar display easy.  See the documentation for
-;; `speedbar-with-writable' (needed because the buffer is usually
-;; read-only) `speedbar-make-tag-line', `speedbar-insert-button', and
-;; `speedbar-insert-generic-list'.  If you use
-;; `speedbar-insert-generic-list', also read the doc for
-;; `speedbar-tag-hierarchy-method' in case you wish to override it.
-;; The function `dframe-with-attached-buffer' brings you back to the
-;; buffer speedbar is displaying for.
-;;
-;; For those functions that make buttons, the "function" should be a
-;; symbol that is the function to call when clicked on.  The "token"
-;; is extra data you can pass along.  The "function" must take three
-;; parameters.  They are (TEXT TOKEN INDENT).  TEXT is the text of the
-;; button clicked on.  TOKEN is the data passed in when you create the
-;; button.  INDENT is an indentation level, or 0.  You can store
-;; indentation levels with `speedbar-make-tag-line' which creates a
-;; line with an expander (eg.  [+]) and a text button.
-;;
-;; Some useful functions when writing expand functions, and click
-;; functions are `speedbar-change-expand-button-char',
-;; `speedbar-delete-subblock', and `speedbar-center-buffer-smartly'.
-;; The variable `speedbar-power-click' is set to t in your functions
-;; when the user shift-clicks.  This indications anything from
-;; refreshing cached data to making a buffer appear in a new frame.
-;;
-;; If you wish to add to the default speedbar menu for the case of
-;; `foo-mode', create a variable `foo-speedbar-menu-items'.  This
-;; should be a list compatible with the `easymenu' package.  It will
-;; be spliced into the main menu.  (Available with click-mouse-3).  If
-;; you wish to have extra key bindings in your special mode, create a
-;; variable `foo-speedbar-key-map'.  Instead of using `make-keymap',
-;; or `make-sparse-keymap', use the function
-;; `speedbar-make-specialized-keymap'.  This lets you inherit all of
-;; speedbar's default bindings with low overhead.
-;;
-;; Adding a speedbar top-level display mode:
-;;
-;;  Unlike the specialized modes, there are no name requirements,
-;; however the methods for writing a button display, menu, and keymap
-;; are the same.  Once you create these items, you can call the
-;; function `speedbar-add-expansion-list'.  It takes one parameter
-;; which is a list element of the form (NAME MENU KEYMAP &rest
-;; BUTTON-FUNCTIONS).  NAME is a string that will show up in the
-;; Displays menu item.  MENU is a symbol containing the menu items to
-;; splice in.  KEYMAP is a symbol holding the keymap to use, and
-;; BUTTON-FUNCTIONS are the function names to call, in order, to create
-;; the display.
-;;  Another tweekable variable is `speedbar-stealthy-function-list'
-;; which is of the form (NAME &rest FUNCTION ...).  NAME is the string
-;; name matching `speedbar-add-expansion-list'.  (It does not need to
-;; exist.). This provides additional display info which might be
-;; time-consuming to calculate.
-;;  Lastly, `speedbar-mode-functions-list' allows you to set special
-;; function overrides.  At the moment very few functions are
-;; over ridable, but more will be added as the need is discovered.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -2070,131 +1963,134 @@ Groups may optionally contain a position."
 	(num-shorts-grouped 0)
 	(bins (make-vector 256 nil))
 	(diff-idx 0))
-    ;; Break out sub-lists
-    (while lst
-      (if (speedbar-generic-list-group-p (car-safe lst))
-	  (setq newlst (cons (car lst) newlst))
-	(setq sublst (cons (car lst) sublst)))
-      (setq lst (cdr lst)))
-    ;; Reverse newlst because it was made backwards.
-    ;; Sublist doesn't need reversing because the act
-    ;; of binning things will reverse it for us.
-    (setq newlst (nreverse newlst))
-    ;; Now, first find out how long our list is.  Never let a
-    ;; list get-shorter than our minimum.
-    (if (<= (length sublst) speedbar-tag-split-minimum-length)
-	(setq work-list (nreverse sublst))
-      (setq diff-idx (length (try-completion "" sublst)))
-      ;; Sort the whole list into bins.
-      (while sublst
-	(let ((e (car sublst))
-	      (s (car (car sublst))))
-	  (cond ((<= (length s) diff-idx)
-		 ;; 0 storage bin for shorty.
-		 (aset bins 0 (cons e (aref bins 0))))
-		(t
-		 ;; stuff into a bin based on ascii value at diff
-		 (aset bins (aref s diff-idx)
-		       (cons e (aref bins (aref s diff-idx)))))))
-	(setq sublst (cdr sublst)))
-      ;; Go through all our bins  Stick singles into our
-      ;; junk-list, everything else as sublsts in work-list.
-      ;; If two neighboring lists are both small, make a grouped
-      ;; group combinding those two sub-lists.
-      (setq diff-idx 0)
-      (while (> 256 diff-idx)
-	(let ((l (nreverse;; Reverse the list since they are stuck in
-		  ;; backwards.
-		  (aref bins diff-idx))))
-	  (if l
-	      (let ((tmp (cons (try-completion "" l) l)))
-		(if (or (> (length l) speedbar-tag-regroup-maximum-length)
-			(> (+ (length l) (length short-group-list))
-			   speedbar-tag-split-minimum-length))
-		    (progn
-		      ;; We have reached a longer list, so we
-		      ;; must finish off a grouped group.
-		      (cond
-		       ((and short-group-list
-			     (= (length short-group-list)
-				num-shorts-grouped))
-			;; All singles?  Junk list
-			(setq junk-list (append short-group-list
-						junk-list)))
-		       ((= num-shorts-grouped 1)
-			;; Only one short group?  Just stick it in
-			;; there by itself.  Make a group, and find
-			;; a subexpression
-			(let ((subexpression (try-completion
-					      "" short-group-list)))
-			  (if (< (length subexpression)
-				 speedbar-tag-group-name-minimum-length)
-			      (setq subexpression
-				    (concat short-start-name
-					    " ("
-					    (substring
-					     (car (car short-group-list))
-					     (length short-start-name))
-					    ")")))
+    (if (<= (length lst) speedbar-tag-regroup-maximum-length)
+	;; Do nothing.  Too short to bother with.
+	lst
+      ;; Break out sub-lists
+      (while lst
+	(if (speedbar-generic-list-group-p (car-safe lst))
+	    (setq newlst (cons (car lst) newlst))
+	  (setq sublst (cons (car lst) sublst)))
+	(setq lst (cdr lst)))
+      ;; Reverse newlst because it was made backwards.
+      ;; Sublist doesn't need reversing because the act
+      ;; of binning things will reverse it for us.
+      (setq newlst (nreverse newlst)
+	    sublst sublst)
+      ;; Now, first find out how long our list is.  Never let a
+      ;; list get-shorter than our minimum.
+      (if (<= (length sublst) speedbar-tag-split-minimum-length)
+	  (setq work-list sublst)
+	(setq diff-idx (length (try-completion "" sublst)))
+	;; Sort the whole list into bins.
+	(while sublst
+	  (let ((e (car sublst))
+		(s (car (car sublst))))
+	    (cond ((<= (length s) diff-idx)
+		   ;; 0 storage bin for shorty.
+		   (aset bins 0 (cons e (aref bins 0))))
+		  (t
+		   ;; stuff into a bin based on ascii value at diff
+		   (aset bins (aref s diff-idx)
+			 (cons e (aref bins (aref s diff-idx)))))))
+	  (setq sublst (cdr sublst)))
+	;; Go through all our bins  Stick singles into our
+	;; junk-list, everything else as sublsts in work-list.
+	;; If two neighboring lists are both small, make a grouped
+	;; group combinding those two sub-lists.
+	(setq diff-idx 0)
+	(while (> 256 diff-idx)
+	  ;; The bins contents are currently in forward order.
+	  (let ((l (aref bins diff-idx)))
+	    (if l
+		(let ((tmp (cons (try-completion "" l) l)))
+		  (if (or (> (length l) speedbar-tag-regroup-maximum-length)
+			  (> (+ (length l) (length short-group-list))
+			     speedbar-tag-split-minimum-length))
+		      (progn
+			;; We have reached a longer list, so we
+			;; must finish off a grouped group.
+			(cond
+			 ((and short-group-list
+			       (= (length short-group-list)
+				  num-shorts-grouped))
+			  ;; All singles?  Junk list
+			  (setq junk-list (append (nreverse short-group-list)
+						  junk-list)))
+			 ((= num-shorts-grouped 1)
+			  ;; Only one short group?  Just stick it in
+			  ;; there by itself.  Make a group, and find
+			  ;; a subexpression
+			  (let ((subexpression (try-completion
+						"" short-group-list)))
+			    (if (< (length subexpression)
+				   speedbar-tag-group-name-minimum-length)
+				(setq subexpression
+				      (concat short-start-name
+					      " ("
+					      (substring
+					       (car (car short-group-list))
+					       (length short-start-name))
+					      ")")))
+			    (setq work-list
+				  (cons (cons subexpression
+					      short-group-list)
+					work-list ))))
+			 (short-group-list
+			  ;; Multiple groups to be named in a special
+			  ;; way by displaying the range over which we
+			  ;; have grouped them.
 			  (setq work-list
-				(cons (cons subexpression
+				(cons (cons (concat short-start-name
+						    " to "
+						    short-end-name)
 					    short-group-list)
 				      work-list))))
-		       (short-group-list
-			;; Multiple groups to be named in a special
-			;; way by displaying the range over which we
-			;; have grouped them.
-			(setq work-list
-			      (cons (cons (concat short-start-name
-						  " to "
-						  short-end-name)
-					  (nreverse short-group-list))
-				    work-list))))
-		      ;; Reset short group list information every time.
-		      (setq short-group-list nil
-			    short-start-name nil
-			    short-end-name nil
-			    num-shorts-grouped 0)))
-		;; Ok, now that we cleaned up the short-group-list,
-		;; we can deal with this new list, to decide if it
-		;; should go on one of these sub-lists or not.
-		(if (< (length l) speedbar-tag-regroup-maximum-length)
-		    (setq short-group-list (append short-group-list l)
-			  num-shorts-grouped (1+ num-shorts-grouped)
-			  short-end-name (car tmp)
-			  short-start-name (if short-start-name
-					       short-start-name
-					     (car tmp)))
-		  (setq work-list (cons tmp work-list))))))
-	(setq diff-idx (1+ diff-idx))))
-    ;; Did we run out of things?  Drop our new list onto the end.
-    (cond
-     ((and short-group-list (= (length short-group-list) num-shorts-grouped))
-      ;; All singles?  Junk list
-      (setq junk-list (append short-group-list junk-list)))
-     ((= num-shorts-grouped 1)
-      ;; Only one short group?  Just stick it in
-      ;; there by itself.
-      (setq work-list
-	    (cons (cons (try-completion "" short-group-list)
-			short-group-list)
-		  work-list)))
-     (short-group-list
-      ;; Multiple groups to be named in a special
-      ;; way by displaying the range over which we
-      ;; have grouped them.
-      (setq work-list
-	    (cons (cons (concat short-start-name " to " short-end-name)
-			short-group-list)
-		  work-list))))
-    ;; Reverse the work list nreversed when consing.
-    (setq work-list (nreverse work-list))
-    ;; Now, stick our new list onto the end of
-    (if work-list
-	(if junk-list
-	    (append newlst work-list junk-list)
-	  (append newlst work-list))
-      (append  newlst junk-list))))
+		     ;; Reset short group list information every time.
+			(setq short-group-list nil
+			      short-start-name nil
+			      short-end-name nil
+			      num-shorts-grouped 0)))
+		  ;; Ok, now that we cleaned up the short-group-list,
+		  ;; we can deal with this new list, to decide if it
+		  ;; should go on one of these sub-lists or not.
+		  (if (< (length l) speedbar-tag-regroup-maximum-length)
+		      (setq short-group-list (append l short-group-list)
+			    num-shorts-grouped (1+ num-shorts-grouped)
+			    short-end-name (car tmp)
+			    short-start-name (if short-start-name
+						 short-start-name
+					       (car tmp)))
+		    (setq work-list (cons tmp work-list))))))
+	  (setq diff-idx (1+ diff-idx))))
+      ;; Did we run out of things?  Drop our new list onto the end.
+      (cond
+       ((and short-group-list (= (length short-group-list) num-shorts-grouped))
+	;; All singles?  Junk list
+	(setq junk-list (append short-group-list junk-list)))
+       ((= num-shorts-grouped 1)
+	;; Only one short group?  Just stick it in
+	;; there by itself.
+	(setq work-list
+	      (cons (cons (try-completion "" short-group-list)
+			  short-group-list)
+		    work-list)))
+       (short-group-list
+	;; Multiple groups to be named in a special
+	;; way by displaying the range over which we
+	;; have grouped them.
+	(setq work-list
+	      (cons (cons (concat short-start-name " to " short-end-name)
+			  short-group-list)
+		    work-list))))
+      ;; Reverse the work list nreversed when consing.
+      (setq work-list (nreverse work-list))
+      ;; Now, stick our new list onto the end of
+      (if work-list
+	  (if junk-list
+	      (append newlst work-list junk-list)
+	    (append newlst work-list))
+	(append  newlst junk-list)))))
 
 (defun speedbar-trim-words-tag-hierarchy (lst)
   "Trim all words in a tag hierarchy.
@@ -2212,11 +2108,12 @@ Argument LST is the list of tags to trim."
       (setq lst (cdr lst)))
     ;; Get the prefix to trim by.  Make sure that we don't trim
     ;; off silly pieces, only complete understandable words.
-    (setq trim-prefix (try-completion "" sublst))
+    (setq trim-prefix (try-completion "" sublst)
+	  newlst (nreverse newlst))
     (if (or (= (length sublst) 1)
 	    (not trim-prefix)
 	    (not (string-match "\\(\\w+\\W+\\)+" trim-prefix)))
-	(append (nreverse newlst) (nreverse sublst))
+	(append newlst (nreverse sublst))
       (setq trim-prefix (substring trim-prefix (match-beginning 0)
 				   (match-end 0)))
       (setq trim-chars (length trim-prefix))
@@ -2227,7 +2124,7 @@ Argument LST is the list of tags to trim."
 		       trimlst)
 	      sublst (cdr sublst)))
       ;; Put the lists together
-      (append (nreverse newlst) trimlst))))
+      (append newlst trimlst))))
 
 (defun speedbar-simple-group-tag-hierarchy (lst)
   "Create a simple 'Tags' group with orphaned tags.
