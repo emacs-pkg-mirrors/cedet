@@ -1,6 +1,6 @@
 # Erlang BNF language specification
 #
-# Copyright (C) 2002 Vladimir G. Sekissov
+# Copyright (C) 2002, 2003 Vladimir G. Sekissov
 #
 # Author: Vladimir G. Sekissov <svg@surnet.ru>
 #
@@ -19,7 +19,7 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 #
-# $Id: erlang.bnf,v 1.1 2003/01/30 11:58:42 zappo Exp $
+# $Id: erlang.bnf,v 1.2 2003/06/03 22:39:25 zappo Exp $
 #
 %start         module-decl
 %outputfile    semantic-erlang.el
@@ -61,6 +61,7 @@
 %token RECEIVE               "receive" 
 %token AFTER                 "after"
 %token OR                    "or"
+%token OR                    "orelse"
 %token XOR                   "xor"
 %token BOR                   "bor"
 %token BXOR                  "bxor"
@@ -70,6 +71,7 @@
 %token REM                   "rem"
 %token BAND                  "band"
 %token AND                   "and"
+%token AND                   "andalso"
 %token BNOT                  "bnot"
 %token NOT                   "not"
 %token CATCH                 "catch"
@@ -109,6 +111,21 @@
 %token VDEL      punctuation "|"
 #%token DOLLAR    charquote   "$"
 
+## binary tokens
+#%token INTEGER  "integer"
+#%token FLOAT    "float"
+#%token BINARY   "binary"
+
+%token SIGNED   "signed"
+%token UNSIGNED "unsigned"
+
+#%token BIG      "big"
+#%token LITTLE   "little"
+#%token NATIVE   "native"
+
+#%token UNIT     "unit"
+
+
 add-op : PLUS
        | MINUS
        | BOR
@@ -136,7 +153,10 @@ comp-op : EQUAL EQUAL
         | LESS
         | GREATER
 	| OR
+	| ORELSE
+	| XOR
 	| AND
+	| ANDALSO
         ;
 
 multi-op : STAR
@@ -149,6 +169,7 @@ multi-op : STAR
 prefix-op : PLUS
           | MINUS 
           | BNOT
+	  | NOT
          ;
 
 basic-type : float-literal
@@ -205,14 +226,51 @@ binary-segments-rest : COMA binary-segments
                      ;
 
 binary-segment : basic-type binary-segment-rest
-               | expr binary-segment-rest
+               | clause-pattern binary-segment-rest
                ;
 
-binary-segment-rest : COLON integer-literal DIVIDE basic-type
-                    | COLON basic-type
-                    | DIVIDE basic-type
+#binary-segment-rest : COLON integer-literal DIVIDE basic-type
+#                    | COLON basic-type
+#                    | DIVIDE basic-type
+#                    | EMPTY
+#                    ;
+
+binary-segment-rest : COLON integer-literal DIVIDE binary-type-spec-list
+                    | COLON integer-literal
+                    | DIVIDE binary-type-spec-list
                     | EMPTY
                     ;
+
+## addition by david wallin [david.wallin@ul.ie]
+
+binary-type : symbol "integer"
+	    | symbol "float"
+	    | symbol "binary"
+	    ;
+
+binary-signed : SIGNED
+	      | UNSIGNED
+	      ;
+
+binary-endian : symbol "big"
+	      | symbol "little"
+	      | symbol "native"
+	      ;
+
+binary-unit : symbol "unit" COLON integer-literal
+	    ;
+
+binary-type-spec : binary-type 
+		 | binary-signed 
+		 | binary-endian 
+		 | binary-unit
+		 ;
+
+binary-type-spec-list : binary-type-spec MINUS binary-type-spec-list
+		      | binary-type-spec
+		      ;
+
+## end addition
 
 module-decl : module-attr
             | function-decl
@@ -687,7 +745,7 @@ guard-record-test : RECORD semantic-list "^("
                   #  ( ,(EXPAND $2 guard-record-test 1) )
                   | open-paren guard-expr COMA symbol close-paren
                   ;
- 
+
 guard-recognizer : symbol semantic-list "^("
                  #  ( ,(cons $1 ,(EXPAND $2 guard-expr 1) ) )
                  ;
