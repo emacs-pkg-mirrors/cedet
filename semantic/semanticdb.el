@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.9 2001/01/10 07:20:08 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.10 2001/01/25 03:27:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,8 +30,6 @@
 ;;
 ;; By default, assume one database per directory.
 ;;
-;; Eventually, use EDE to create databases on a per target basis, and
-;; then use target dependencies to have them reference each other.
 
 (require 'eieio-base)
 
@@ -40,6 +38,20 @@
   "*File name of the semantic token cache."
   :group 'semantic
   :type 'string)
+
+(defcustom semanticdb-persistent-path '(project)
+  "*List of valid paths that semanticdb will cache tokens to.
+When `global-semanticdb-minor-mode' is active, token lists will
+be saved to disk when Emacs exists.  Not all directories will have
+tokens that should be saved.
+The value should be a list of valid paths.  A path can be a string,
+indicating a directory in which to save a variable.  An element in the
+list can also be a symbol.  Valid symbols are `never', which will
+disable any saving anywhere, `always', which enables saving
+everywhere, or `project', which enables saving in any directory that
+passes `semanticdb-directory-project-p'."
+  :group 'semantic
+  :type nil)
 
 (defcustom semanticdb-save-database-hooks nil
   "*Hooks run after a database is saved.
@@ -170,6 +182,12 @@ Argument OBJ is the object to write."
     (save-excursion
       (if b (progn (set-buffer b) (semantic-overlay-cache))))
     ))
+
+(defmethod semanticdb-write-directory-p ((obj semanticdb-table))
+  "Return non-nil if OBJ should be written to disk.
+Uses `semanticdb-persistent-path' to determine the return value."
+  t
+  )
 
 ;;; hooks and Hats:
 (defun semanticdb-semantic-init-hook-fcn ()
