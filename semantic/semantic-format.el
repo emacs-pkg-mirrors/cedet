@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.7 2003/07/18 05:19:19 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.8 2003/08/20 06:48:09 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -161,6 +161,9 @@ for details on adding new types."
       (put-text-property 0 (length text) 'face face newtext)
       newtext)
     ))
+
+(make-obsolete 'semantic-colorize-text
+               'semantic--format-colorize-text)
 
 (defun semantic--format-colorize-merge-text (precoloredtext face-class)
   "Apply onto PRECOLOREDTEXT a color associated with FACE-CLASS.
