@@ -161,7 +161,7 @@ You may need to add this to your .emacs file</p>
    <a href="speedbar.shtml">Speedbar</a>.
 
 <P>If semantic kills font-lock, you need to get and use
-<a href=ftp://cedet.sourceforge.net/pub/cedet/overlay-fix.el>
+<a href=http://cedet.sourceforge.net/ftp/overlay-fix.el>
 overlay-fix.el</a>
 Thanks to David Ponce for creating this fix.
 </p>
@@ -174,10 +174,10 @@ Thanks to David Ponce for creating this fix.
 
 <h3>Older releases of Semantic</h3>
 
-<P><a href="ftp://cedet.sourceforge.net/pub/cedet/semantic-1.2.1.tar.gz"> semantic-1.2.1.tar.gz</a>
+<P><a href="http://cedet.sourceforge.net/ftp/semantic-1.2.1.tar.gz"> semantic-1.2.1.tar.gz</a>
 </p>
 
-<P><a href="ftp://cedet.sourceforge.net/pub/cedet/semantic-1.1.tar.gz"> semantic-1.1.tar.gz</a>
+<P><a href="http://cedet.sourceforge.net/ftp/semantic-1.1.tar.gz"> semantic-1.1.tar.gz</a>
 </p>
 
 
