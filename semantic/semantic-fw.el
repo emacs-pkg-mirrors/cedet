@@ -1,8 +1,8 @@
 ;;; semantic-fw.el --- Framework for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.12 2002/09/24 22:10:41 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.13 2003/02/27 02:55:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -100,144 +100,6 @@
   "Delete OVERLAY if it is a semantic token overlay."
   (if (semantic-overlay-get overlay 'semantic)
       (semantic-overlay-delete overlay)))
-
-
-;;; Primitive Token access system:
-;;
-;; Raw tokens in semantic are lists.  Each token/list has a basic structure
-;; for all tokens.  This includes the first two elements, and the last 3.
-;; See `semantic-tfe-*' for details.
-;;
-;; TFE = Token From End
-
-(defconst semantic-tfe-overlay 1
-  "Amount to subtract from the length of the token to get the overlay.")
-(defconst semantic-tfe-properties 2
-  "Amount to subtract from the length of the token to get the property list.")
-(defconst semantic-tfe-docstring 3
-  "Amount to subtract from the length of the token to get the doc string.")
-(defconst semantic-tfe-number 2
-  "The number of required end elements.")
-
-(defmacro semantic-token-token (token)
-  "Retrieve from TOKEN the token identifier.
-ie, the symbol 'variable, 'function, 'type, or other."
-  `(nth 1 ,token))
-
-(defsubst semantic-token-name (token)
-  "Retrieve the name of TOKEN."
-  (car token))
-
-(defun semantic-token-docstring (token &optional buffer)
-  "Retrieve the documentation of TOKEN.
-Optional argument BUFFER indicates where to get the text from.
-If not provided, then only the POSITION can be provided."
-  (let ((p (nth (- (length token) semantic-tfe-docstring) token)))
-    (if (and p buffer)
-	(save-excursion
-	  (set-buffer buffer)
-	  (semantic-flex-text (car (semantic-lex p (1+ p)))))
-      p)))
-
-(defmacro semantic-token-properties (token)
-  "Retrieve the PROPERTIES part of TOKEN.
-The returned item is an ALIST of (KEY . VALUE) pairs."
-  `(nth (- (length ,token) semantic-tfe-properties) ,token))
-
-(defmacro semantic-token-properties-cdr (token)
-  "Retrieve the cons cell for the PROPERTIES part of TOKEN."
-  `(nthcdr (- (length ,token) semantic-tfe-properties) ,token))
-
-(defun semantic-token-put (token key value)
-  "For TOKEN, put the property KEY on it with VALUE.
-If VALUE is nil, then remove the property from TOKEN."
-  (let* ((c (semantic-token-properties-cdr token))
-	 (al (car c))
-	 (a (assoc key (car c))))
-    (if a
-	(if value
-	    (setcdr a value)
-	  (adelete 'al key)
-	  (setcar c al))
-      (if value
-	  (setcar c (cons (cons key value) (car c)))))
-    ))
-
-(defun semantic-token-put-no-side-effect (token key value)
-  "For TOKEN, put the property KEY on it with VALUE without side effects.
-If VALUE is nil, then remove the property from TOKEN.
-All cons cells in the property list are replicated so that there
-are no side effects if TOKEN is in shared lists."
-  (let* ((c (semantic-token-properties-cdr token))
-	 (al (copy-sequence (car c)))
-	 (a (assoc key (car c))))
-    ;; This removes side effects
-    (setcar c a)
-    (if a
-	(if value
-	    (setcdr a value)
-	  (adelete 'al key)
-	  (setcar c al))
-      (if value
-	  (setcar c (cons (cons key value) (car c)))))
-    ))
-
-(defsubst semantic-token-get (token key)
-  "For TOKEN, get the value for property KEY."
-  (cdr (assoc key (semantic-token-properties token))))
-
-(defmacro semantic-token-overlay (token)
-  "Retrieve the OVERLAY part of TOKEN.
-The returned item may be an overlay or an unloaded buffer representation."
-  `(nth (- (length ,token) semantic-tfe-overlay) ,token))
-
-(defmacro semantic-token-overlay-cdr (token)
-  "Retrieve the cons cell containing the OVERLAY part of TOKEN."
-  `(nthcdr (- (length ,token) semantic-tfe-overlay) ,token))
-
-(defmacro semantic-token-extent (token)
-  "Retrieve the extent (START END) of TOKEN."
-  `(let ((o (semantic-token-overlay ,token)))
-     (if (semantic-overlay-p o)
-	 (list (semantic-overlay-start o) (semantic-overlay-end o))
-       (list (aref o 0) (aref o 1)))))
-
-(defsubst semantic-token-start (token)
-  "Retrieve the start location of TOKEN."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o)
-        (semantic-overlay-start o)
-      (aref o 0))))
-
-(defsubst semantic-token-end (token)
-  "Retrieve the end location of TOKEN."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o)
-        (semantic-overlay-end o)
-      (aref o 1))))
-
-(defsubst semantic-token-buffer (token)
-  "Retrieve the buffer TOKEN resides in."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o)
-        (semantic-overlay-buffer o)
-      ;; We have no buffer for this token (It's not in Emacs right now.)
-      nil)))
-
-(defsubst semantic-token-p (token)
-  "Return non-nil if TOKEN is most likely a semantic token."
-  (and (listp token)
-       (stringp (car token))
-       (car (cdr token))
-       (symbolp (car (cdr token)))))
-
-(defun semantic-token-with-position-p (token)
-  "Return non-nil if TOKEN is a semantic token with positional information."
-  (and (semantic-token-p token)
-       (let ((o (semantic-token-overlay token)))
-	 (or (semantic-overlay-p o)
-	     (and (arrayp o)
-		  (not (stringp o)))))))
 
 ;;; Misc utilities
 ;;
