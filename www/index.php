@@ -50,11 +50,6 @@
    identify the current editing context, and can provide useful
    information.  This could be as simple as a list of completions, or
    as complex as recommendations on arguments to pass to a function.
-   My solution to this is a tool called QuickPeek.  Quickpeek is not
-   currently listed on this page.<br>
-   <b>Note:</b>I am probably going to abandon QuickPeek in favor of
-   emerging tools in Semantic's Senator tool, maintained by David
-   Ponce.
 </p>
 
 <P>Context recommendations are not possible without first having

@@ -121,6 +121,10 @@ Complexity of semantic.el
    <a href="info/semantic.html">html documentation</a>
    created from the texinfo file.</p>
 
+<P>Here is a page describing how to get
+ <a href="intellisense.shtml"> intellisense</a> like behavior
+  out of your Semantic install
+
 <h2>Contribute to Semantic</h2>
 
 <P>Semantic's potential scope is quite large.  If you would like to help

@@ -52,7 +52,8 @@ Different Modes for Speedbar
 
 <h2>About the picture</h2>
 
-<P>Starting with Speedbar 0.11, images are now supported to represent files and tags.  This screen shot was taken using Emacs 21 pre-release, using
+<P>Starting with Speedbar 0.11, images are now supported to represent
+  files and tags.  This screen shot was taken using Emacs 21, using
  <a href=semantic.shtml>Semantic</a> for tag generation.  Any version
  of XEmacs should generate a similar picture.
 </p>
