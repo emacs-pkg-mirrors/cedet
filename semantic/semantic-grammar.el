@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.21 2003/03/21 03:20:43 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.22 2003/03/27 07:42:41 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -660,10 +660,10 @@ ARGS are ASSOC's key value list."
   senator-add-log-tokens '(nonterminal put token keyword)
   "List of nonterminal tags used with add-log.")
 
-(define-mode-overload-implementation semantic-nonterminal-children
+(define-mode-overload-implementation semantic-tag-components
   semantic-grammar-mode (tag)
   "Return the children of tag TAG."
-  (semantic-token-extra-spec tag :children))
+  (semantic-tag-get-attribute tag :children))
 
 (defun semantic-grammar-first-tag-name (class)
   "Return the name of the first tag of class CLASS found.
@@ -1571,7 +1571,7 @@ Optional argument COLOR determines if color is added to the text."
       (setq label "Nonterminal: "
 	    desc (format
                   " with %d match lists."
-                  (length (semantic-nonterminal-children tag)))))
+                  (length (semantic-tag-components tag)))))
      ((eq class 'keyword)
       (setq label "Keyword: ")
       (let (summary)
