@@ -1,13 +1,13 @@
 ;;; c.by -- LL grammar for C/C++ language specification
 ;;
-;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 ;; Copyright (C) 2002, 2003 David Ponce
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.17 2003/08/02 08:13:14 ponced Exp $
+;; X-RCS: $Id: c.by,v 1.18 2004/01/27 14:31:57 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@
 
 %token INCLUDE "include"
 %token DEFINE  "define"
+%token UNDEFINE  "undef"
 
 %token <punctuation>   HASH       "\\b[#]\\b"
 %token <punctuation>   PERIOD     "\\b[.]\\b"
@@ -259,6 +260,8 @@ opt-define-arglist
 define
   : HASH DEFINE symbol opt-define-arglist macro-def
     (VARIABLE-TAG $3 nil $4 'const t)
+  | HASH UNDEFINE symbol
+    ( nil )
   ;
 
 ;; In C++, structures can have the same things as classes.
