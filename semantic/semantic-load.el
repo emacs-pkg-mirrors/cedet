@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.4 2001/04/13 16:59:48 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.5 2001/05/05 15:00:08 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -68,7 +68,8 @@
       (add-hook 'semantic-init-hooks (lambda ()
 				       (which-func-mode 1))))
 
-  (when (eq window-system 'x)
+  (when (and (eq window-system 'x)
+	     (locate-library "imenu"))
     (add-hook 'semantic-init-hooks (lambda ()
 				     (imenu-add-to-menubar "TOKENS"))))
 
