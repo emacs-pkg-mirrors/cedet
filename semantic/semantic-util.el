@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.15 2000/07/01 18:57:50 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.16 2000/07/01 19:18:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -216,7 +216,7 @@ TYPE is a string."
 		       (semantic-bovinate-toplevel nil t))
 		   streamorbuffer))
 	(nl nil) (ts nil))
-    (if (member type semantic-default-c-built-in-types)
+    (if (member type semantic-default-built-in-types)
 	(setq nl (list (list type 'type "built in")))
       (while stream
 	(setq ts (semantic-token-type (car stream)))
