@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: 22 Aug 2003
 ;; Keywords: maint
-;; X-CVS: $Id: cedet-autogen.el,v 1.3.2.1 2003/11/14 06:56:05 ponced Exp $
+;; X-CVS: $Id: cedet-autogen.el,v 1.3.2.2 2003/11/17 08:56:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -170,7 +170,7 @@ Return a list of directory names, relative to ROOT-DIR."
               " --- automatically extracted autoloads\n"
               ";;\n"
               ";;; Code:\n\n"
-              "\n;; Local Variables:\n"
+              "\n;; Local" " Variables:\n"
               ";; version-control: never\n"
               ";; no-byte-compile: t\n"
               ";; no-update-autoloads: t\n"
