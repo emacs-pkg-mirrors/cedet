@@ -49,7 +49,7 @@
     :name "tools"
     :path ""
     :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el" "semanticdb-file.el" "semanticdb-search.el" "semanticdb-mk.el" "semanticdb-el.el" "semanticdb-system.el" "semantic-debug.el")
-    :aux-packages '("eieio" "speedbar")
+    :aux-packages '("eieio" "speedbar" "inversion")
     )
    (ede-proj-target-elisp "senator"
     :name "senator"
