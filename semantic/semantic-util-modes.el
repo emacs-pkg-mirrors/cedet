@@ -1,12 +1,12 @@
 ;;; semantic-util-modes.el --- Semantic minor modes
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 ;;; Copyright (C) 2001 David Ponce
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.50 2004/06/28 13:33:46 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.51 2005/01/11 16:56:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -691,7 +691,7 @@ in many situations."
 	(cond ((semantic-parse-tree-needs-rebuild-p)
 	       "!")
 	      ((semantic-parse-tree-needs-update-p)
-	       "~")
+	       "^")
 	      ((semantic-parse-tree-unparseable-p)
 	       "%")
 	      (t
