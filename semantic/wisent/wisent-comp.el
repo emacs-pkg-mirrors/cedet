@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.8 2002/02/13 10:19:15 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.9 2002/02/14 09:49:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2110,19 +2110,19 @@ tables so that there is no longer a conflict."
 (defun wisent-set-conflicts (state)
   "Find and attempt to resolve conflicts in specified STATE."
   (let (i j k v c shiftp symbol)
-    (if (aref consistent state)
-        nil
+    (unless (aref consistent state)
       (fillarray lookaheadset 0)
+      
       (when (setq shiftp (aref shift-table state))
         (setq k (shifts-nshifts shiftp)
               v (shifts-shifts shiftp)
               i 0)
-        (while (< i k)
-          (setq symbol (aref accessing-symbol (aref v i)))
-          (if (wisent-ISVAR symbol)
-              (setq i k) ;; break
-            (wisent-SETBIT lookaheadset symbol)
-            (setq i (1+ i)))))
+        (while (and (< i k)
+                    (wisent-ISTOKEN
+                     (setq symbol (aref accessing-symbol (aref v i)))))
+          (or (zerop (aref v i))
+              (wisent-SETBIT lookaheadset symbol))
+          (setq i (1+ i))))
       
       ;; Loop over all rules which require lookahead in this state
       ;; first check for shift-reduce conflict, and try to resolve
@@ -2145,19 +2145,19 @@ tables so that there is no longer a conflict."
       ;; Check for conflicts not resolved above.
       (setq i (aref lookaheads state))
       (while (< i k)
-          (setq v (aref LA i)
-                j 0)
-          (while (< j tokensetsize)
-            ;; if (LA (i)[j] & lookaheadset[j])
-            (if (not (zerop (logand (aref v j) (aref lookaheadset j))))
+        (setq v (aref LA i)
+              j 0)
+        (while (< j tokensetsize)
+          ;; if (LA (i)[j] & lookaheadset[j])
+          (if (not (zerop (logand (aref v j) (aref lookaheadset j))))
               (aset conflicts state t))
-            (setq j (1+ j)))
-          (setq j 0)
-          (while (< j tokensetsize)
-            ;; lookaheadset[j] |= LA (i)[j];
-            (aset lookaheadset j (logior (aref lookaheadset j)
-                                         (aref v j)))
-            (setq j (1+ j)))
+          (setq j (1+ j)))
+        (setq j 0)
+        (while (< j tokensetsize)
+          ;; lookaheadset[j] |= LA (i)[j];
+          (aset lookaheadset j (logior (aref lookaheadset j)
+                                       (aref v j)))
+          (setq j (1+ j)))
         (setq i (1+ i)))
       )))
 
