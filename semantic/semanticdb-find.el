@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.7 2003/08/14 19:05:48 ponced Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.8 2003/08/25 17:12:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,7 +116,7 @@
 ;; These routines needed to be overloaded by specific language modes.
 ;; They are needed for translating an INCLUDE tag into a semanticdb
 ;; TABLE object.
-(define-overload semanticdb-find-translate-path (path)
+(define-overload semanticdb-find-translate-path (path brutish)
   "Translate PATH into a list of semantic tables.
 Path translation involves identifying the PATH input argument
 in one of the following ways:
@@ -130,11 +130,40 @@ in one of the following ways:
 In addition, once the base path is found, there is the possibility of
 each added table adding yet more tables to the path, so this routine
 can return a lengthy list.
+If argument BRUTISH is non-nil, then instead of using the include
+list, use all tables found in the parent project of the table
+identified by translating PATH.  Such searches use brute force to
+scan every available table.
 This routine uses `semanticdb-find-table-for-include' to translate
 specific include tags into a semanticdb table."
   )
 
-(defun semanticdb-find-translate-path-default (path)
+(defun semanticdb-find-translate-path-default (path brutish)
+  "Translate PATH into a list of semantic tables.
+If BRUTISH is non nil, return all tables associated with PATH.
+Default action as described in `semanticdb-find-translate-path'."
+  (if brutish
+      (semanticdb-find-translate-path-brutish-default path)
+    (semanticdb-find-translate-path-includes-default path)))
+
+(defun semanticdb-find-translate-path-brutish-default (path)
+  "Translate PATH into a list of semantic tables.
+Default action as described in `semanticdb-find-translate-path'."
+  (let ((basedb
+	 (cond ((null path) semanticdb-current-database)
+	       ((semanticdb-table-p path) (oref path parent-db))
+	       (t (let ((tt (semantic-something-to-tag-table path)))
+		    (save-excursion
+		      (set-buffer (semantic-tag-buffer (car tt)))
+		      semanticdb-current-database))))))
+    (apply
+     #'append
+     (mapcar
+      (lambda (db) (oref db tables))
+      (semanticdb-current-database-list (oref basedb reference-directory)))))
+  )
+
+(defun semanticdb-find-translate-path-includes-default (path)
   "Translate PATH into a list of semantic tables.
 Default action as described in `semanticdb-find-translate-path'."
   (let ((includetags
@@ -217,15 +246,19 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 
 ;;; Top level Searches
 ;;
-(defun semanticdb-find-tags-collector (function &optional path find-file-match)
+(defun semanticdb-find-tags-collector (function &optional path find-file-match
+						brutish)
   "Search for all tags returned by FUNCTION over PATH.
 See `semanticdb-find-translate-path' for details on PATH.
 FIND-FILE-MATCH indicates that any time a match is found, the file
-associated with that tag should be loaded into a buffer."
+associated with that tag should be loaded into a buffer.
+If optional argument BRUTISH is non-nil, then ignore include statements,
+and search all tables in this project tree."
   (let (found match)
-    (dolist (table (semanticdb-find-translate-path path))
+    (dolist (table (semanticdb-find-translate-path path brutish))
       ;; If FIND-FILE-MATCH is non-nil, skip tables of class
-      ;; `semanticdb-search-results-table', not associated to a file.
+      ;; `semanticdb-search-results-table', since those are system
+      ;; databases and not associated with a file.
       (unless (and find-file-match
 		   (obj-of-class-p table semanticdb-search-results-table))
 	(when (setq match (funcall function table))
@@ -316,6 +349,21 @@ associated with that tag should be loaded into a buffer."
    (lambda (table)
      (semanticdb-deep-find-tags-for-completion-method table prefix))
    path find-file-match))
+
+;;; Brutish Search Routines
+;;
+;;;###autoload
+(defun semanticdb-brute-deep-find-tags-by-name (name &optional path find-file-match)
+  "Search for all tags matching NAME on PATH.
+See `semanticdb-find-translate-path' for details on PATH.
+The argument BRUTISH will be set so that searching includes all tables
+in the current project.
+FIND-FILE-MATCH indicates that any time a matchi is found, the file
+associated wit that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-deep-find-tags-by-name-method table name))
+   path find-file-match t))
 
 ;;; Specialty Search Routines
 ;;
