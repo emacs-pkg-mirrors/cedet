@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.44 2000/09/13 21:30:08 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.45 2000/09/15 23:27:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -948,11 +948,16 @@ Value is what BODY returns."
 ))
 
 (defvar semantic-flex-extensions nil
-  "Buffer local extensions to the the lexical analyzer.
+  "Buffer local extensions to the lexical analyzer.
 This should contain an alist with a key of a regex and a data element of
 a function.  The function should both move point, and return a lexical
 token of the form ( TYPE START .  END).  nil is also a valid return.")
 (make-variable-buffer-local 'semantic-flex-extensions)
+
+(defvar semantic-flex-keywords-obarray nil
+  "Buffer local keyword obarray for the lexical analyzer.
+These keywords are matched explicitly, and converted into special symbols.")
+(make-variable-buffer-local 'semantic-flex-keywords-obarray)
 
 (defvar semantic-flex-syntax-modifications nil
   "Updates to the syntax table for this buffer.
@@ -970,6 +975,22 @@ Useful for languages where the newline is a special case terminator.
 Only set this on a per mode basis, not globally.")
 (make-variable-buffer-local 'semantic-flex-enable-newlines)
 
+(defun semantic-flex-make-keyword-table (keywords)
+  "Convert a list of keywords into an obarray.
+Save the obarry into `semantic-flex-keywords-obarray'."
+  ;; Create the symbol hash table
+  (setq semantic-flex-keywords-obarray (make-vector 13 nil))
+  ;; fill it with stuff
+  (while keywords
+    (set (intern (car (car keywords)) semantic-flex-keywords-obarray)
+	 (cdr (car keywords)))
+    (setq keywords (cdr keywords))))
+
+(defun semantic-flex-is-keyword (text)
+  "Return a symbol if TEXT is a keyword."
+  (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
+    (if sym (symbol-value sym))))
+
 (defun semantic-flex-buffer (&optional depth)
   "Sematically flex the current buffer.
 Optional argument DEPTH is the depth to scan into lists."
@@ -986,6 +1007,8 @@ of text scanned.  Thus, if a string extended past END, the end of the
 return token will be larger than END.  To truly restrict scanning, using
 `narrow-to-region'."
   ;(message "Flexing muscles...")
+  (if (not semantic-flex-keywords-obarray)
+      (setq semantic-flex-keywords-obarray [ nil ]))
   (let ((ts nil)
 	(sym nil)
 	(pos (point))
@@ -1026,8 +1049,11 @@ return token will be larger than END.  To truly restrict scanning, using
 	      ((looking-at "\\(\\s-\\|\\s>\\)+"))
 	      ;; symbols
 	      ((looking-at "\\(\\sw\\|\\s_\\)+")
-	       (setq ts (cons (cons 'symbol
-				    (cons (match-beginning 0) (match-end 0)))
+	       (setq ts (cons (cons
+			       ;; Get info on if this is a keyword or not
+			       (or (semantic-flex-is-keyword (match-string 0))
+				   'symbol)
+			       (cons (match-beginning 0) (match-end 0)))
 			      ts)))
 	      ;; Character quoting characters (ie, \n as newline)
 	      ((looking-at "\\s\\+")
@@ -1106,6 +1132,11 @@ return token will be larger than END.  To truly restrict scanning, using
 (defun semantic-flex-end (semobj)
   "Fetch the end position of the semantic object SEMOBJ."
   (cdr (cdr semobj)))
+
+;;; Settings and autoloads
+;;
+(autoload 'semantic-create-imenu-index "semantic-imenu"
+  "Create an imenu index for any buffer which supports Semantic.")
 
 (provide 'semantic)
 
