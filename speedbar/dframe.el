@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.24 2004/02/28 23:57:50 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.25 2004/03/06 19:29:52 zappo Exp $
 
 (defvar dframe-version "1.3"
   "The current version of the dedicated frame library.")
@@ -942,7 +942,7 @@ up into a different window.
 This should be bound to mouse event E."
   (interactive "e")
   (let ((dframe-power-click t))
-    (select-frame (last-event-frame))
+    (select-frame last-event-frame)
     (dframe-click e)))
 
 (defun dframe-click (e)
