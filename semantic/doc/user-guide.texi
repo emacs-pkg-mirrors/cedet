@@ -97,6 +97,7 @@ from semantic.
 * Class Browser::               Class hierarchy browser
 * Document::                    Document generation functions
 * Charts::                      Charting code statistics
+* Idle Scheduler::              The idle Scheduler and related modes
 * Minor Modes::                 Useful minor modes
 * semanticdb::                  Cache your parsed buffers between sessions.
 * Customizing::                 
@@ -671,6 +672,119 @@ Only the most complex items are charted.
 @var{TAGTABLE} is passedto @dfn{semantic-something-to-tag-table}.
 @end deffn
 
+@node Idle Scheduler
+@chapter Idle Scheduler
+@cindex Idle Scheduler
+
+The Idle Scheduler in Semantic 2.0 replaces what was once Auto-Parse
+mode.  The Idle Scheduler now performs multiple duties.
+
+The primary job is to schedule buffer parsing in idle time.  The
+first buffer whose cache is checked is the current buffer.  After
+this, all other buffers are checked.
+
+Once that has been accomplished, sheduled idle processes that use the
+semantic tag tables are run.
+
+@deffn Command global-semantic-idle-scheduler-mode &optional arg
+@anchor{global-semantic-idle-scheduler-mode}
+Toggle global use of option @dfn{semantic-idle-scheduler-mode}.
+The idle scheduler with automatically reparse buffers in idle time,
+and then schedule other jobs setup with @dfn{semantic-idle-scheduler-add}.
+If @var{ARG} is positive, enable, if it is negative, disable.
+If @var{ARG} is @code{nil}, then toggle.
+@obsolete{global-semantic-auto-parse-mode,global-semantic-idle-scheduler-mode}
+@end deffn
+
+@obsolete{semantic-auto-parse-mode, semantic-idle-scheduler-mode}
+
+@deffn Option semantic-idle-scheduler-idle-time
+@anchor{semantic-idle-scheduler-idle-time}
+Time in seconds of idle before scheduling events.
+This time should be short enough to ensure that idle-scheduler will be
+run as soon as Emacs is idle.
+@end deffn
+
+@deffn Option semantic-idle-scheduler-mode-hook
+@anchor{semantic-idle-scheduler-mode-hook}
+Hook run at the end of function @dfn{semantic-idle-scheduler-mode}.
+@end deffn
+
+You can add new functionality to the idle scheduler by reading the
+Application Developers Guide
+@inforef{Idle Scheduling, , semantic-appdev.info}.
+
+@menu
+* Reparsing Options::
+* Idle Summary Mode:::
+@end menu
+
+@node Reparsing Options
+@section Reparsing Options
+
+The Idle Scheduler will automatically reparse all buffers that need
+it.  User input at any time will cancel the operations and return to
+normal editing.
+
+@subsection Reparse Configuration
+
+@deffn Option semantic-idle-scheduler-max-buffer-size
+@anchor{semantic-idle-scheduler-max-buffer-size}
+Maximum size in bytes of buffers automatically reparsed.
+If this value is less than or equal to @var{0}, buffers are automatically
+reparsed regardless of their size.
+@end deffn
+
+@subsection Reparse Messages
+
+@deffn Option semantic-idle-scheduler-no-working-message
+@anchor{semantic-idle-scheduler-no-working-message}
+If non-@code{nil}, disable display of working messages during parse.
+@end deffn
+
+@deffn Option semantic-idle-scheduler-working-in-modeline-flag
+@anchor{semantic-idle-scheduler-working-in-modeline-flag}
+Non-@code{nil} means show working messages in the mode line.
+Typically, parsing will show messages in the minibuffer.
+This will move the parse message into the modeline.
+@end deffn
+
+@subsection Reprasing Hooks
+
+@defvar semantic-before-idle-scheduler-reparse-hooks
+@anchor{semantic-before-idle-scheduler-reparse-hooks}
+Hooks run before option @code{semantic-idle-scheduler} begins parsing.
+If any hook throws an error, this variable is reset to nil.
+This hook is not protected from lexical errors.
+@end defvar
+
+@defvar semantic-after-idle-scheduler-reparse-hooks
+@anchor{semantic-after-idle-scheduler-reparse-hooks}
+Hooks run after option @code{semantic-idle-scheduler} has parsed.
+If any hook throws an error, this variable is reset to nil.
+This hook is not protected from lexical errors.
+@end defvar
+
+@node Idle Summary Mode
+@section Idle Summary Mode
+
+A summary describes a tag in a useful way.  These can be displayed
+for the lexical token under the cursor in idle time using this mode.
+
+@deffn semantic-idle-summary-mode &optional arg
+@anchor{semantic-idle-summary-mode}
+Display a tag summary of the lexical token under the cursor.
+This means for getting the current tag to display information can
+be overriden with @code{idle-summary-current-symbol-info}.
+This is a minor mode which performs actions during idle time.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled
+@end deffn
+
+@obsolete{semantic-summary-mode, semantic-idle-summary-mode}
+
 @node Minor Modes
 @chapter Minor Modes
 @cindex Minor Modes
@@ -739,59 +853,6 @@ minor mode is enabled.
 @deffn Option semantic-unmatched-syntax-face
 Face used to show unmatched-syntax in.
 The face is used in  @dfn{semantic-show-unmatched-syntax-mode}.
-@end deffn
-
-@section Auto Parse
-
-@deffn Command semantic-auto-parse-mode &optional arg
-Minor mode to auto parse buffer following a change.
-When this mode is off, a buffer is only rescanned for tokens when
-some command requests the list of available tokens.  When auto-parse
-is enabled, Emacs periodically checks to see if the buffer is out of
-date, and reparses while the user is idle (not typing.)
-
-With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-@code{nil} if the
-minor mode is enabled.
-@end deffn
-
-@deffn Option semantic-auto-parse-no-working-message
-Non-@code{nil} disable display of working message during parse.
-@end deffn
-
-@deffn Option semantic-auto-parse-idle-time
-Time in seconds of idle time before auto-reparse.
-This time should be short enough to ensure that auto-parse will be
-run as soon as Emacs is idle.
-@end deffn
-
-@deffn Option semantic-auto-parse-max-buffer-size
-Maximum size in bytes of buffers automatically reparsed.
-If this value is less than or equal to @var{0}, buffers are automatically
-reparsed regardless of their size.
-@end deffn
-
-@section Summary Mode
-
-Summary mode is an enhancement of the @dfn{eldoc} package.
-
-@deffn Command semantic-summary-mode &optional arg
-Minor mode to show useful things about tags in echo area.
-Enables/disables option @dfn{eldoc-mode} which supplies the support functions for
-this minor mode.
-With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-@code{nil} if the
-minor mode is enabled.
-@end deffn
-
-NOTE: This option should change to not be in senator.
-
-@deffn Option senator-eldoc-summary-function
-@anchor{senator-eldoc-summary-function}
-Function to use when displaying tag information with eldoc.
-Some useful functions are found in @code{semantic-format-tag-functions}.
 @end deffn
 
 @section Sticky Function Headers
