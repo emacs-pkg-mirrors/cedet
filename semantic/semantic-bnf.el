@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.43 2001/10/04 15:05:08 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.44 2001/10/05 21:32:27 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -141,6 +141,9 @@
      (KEYWORDTABLE symbol
 		   ,(semantic-lambda
 		     (list (nth 1 vals) 'keywordtable)))
+     (TOKENTABLE symbol
+		   ,(semantic-lambda
+		     (list (nth 1 vals) 'tokentable)))
      (LANGUAGEMODE symbol
 		   ,(semantic-lambda
 		     (list (nth 1 vals) 'languagemode)))
@@ -156,6 +159,26 @@
      (QUOTEMODE symbol
 		,(semantic-lambda
 		  (list (nth 1 vals) 'quotemode)))
+     (PARSERMODE symbol
+		,(semantic-lambda
+		  (list (nth 1 vals) 'parsermode)))
+     (NONASSOC terms punctuation ";"
+               ,(semantic-lambda
+                 (list (nth 0 vals) 'assoc nil (nth 1 vals))))
+     (LEFT terms punctuation ";"
+           ,(semantic-lambda
+             (list (nth 0 vals) 'assoc nil (nth 1 vals))))
+     (RIGHT terms punctuation ";"
+            ,(semantic-lambda
+              (list (nth 0 vals) 'assoc nil (nth 1 vals))))
+     )
+    (terms
+     (symbol terms
+             ,(semantic-lambda
+               (cons (nth 0 vals) (nth 1 vals))))
+     (symbol
+      ,(semantic-lambda
+        (list (nth 0 vals))))
      )
     (put-name-list
      (open-paren ,(semantic-lambda (list nil)))
@@ -185,14 +208,25 @@
 			  (nth 3 vals))))
      (,(semantic-lambda nil)))
     (match-list
-     (symbol match-list
+     (match-list-1 prec
+                   ,(semantic-lambda
+                     (append (nth 0 vals) (nth 1 vals))))
+     (match-list-1)
+     )
+    (match-list-1
+     (symbol match-list-1
 	     ,(semantic-lambda
 	       (cons (nth 0 vals) (nth 1 vals))))
-     (string match-list
+     (string match-list-1
 	     ,(semantic-lambda
 	       (cons (nth 0 vals) (nth 1 vals))))
      (string)
      (symbol)
+     )
+    (prec
+     (punctuation "%" PREC symbol
+                  ,(semantic-lambda
+                    (list '%prec (nth 2 vals))))
      )
     (lambda-fn
      (semantic-list
@@ -211,17 +245,53 @@
       ("outputfile" . OUTPUTFILE)
       ("parsetable" . PARSETABLE)
       ("keywordtable" . KEYWORDTABLE)
+      ("tokentable" . TOKENTABLE)
       ("languagemode" . LANGUAGEMODE)
       ("setupfunction" . SETUPFUNCTION)
       ("quotemode" . QUOTEMODE)
+      ("parsermode" . PARSERMODE)
+      ("nonassoc" . NONASSOC)
+      ("left" . LEFT)
+      ("right" . RIGHT)
+      ("prec" . PREC)
       )
    `(("put" summary "%put <keyword> <lisp expression>")
      ("token" summary "%token <keyword> [syntax] \"matchtext\"")
      ("start" summary "%start <starting rule name>")
      ("scopestart" summary "%scopestart <starting scope (code) rule name>")
      ("languagemode" summary "%languagemode [ lispsymbol | ( lispsym lispsym ...) ]")
+     ("parsermode" summary "%parsermode <mode>")
+     ("prec" summary "rule precedence")
      ))
   "Keyword table used for Semantic BNF files.")
+
+
+;;; Basic API
+;;
+(defsubst semantic-bnf-token-name-symbol (token)
+  "Return TOKEN name as an interned symbol."
+  (intern (semantic-token-name token)))
+
+(defmacro semantic-bnf-token-token-type (token)
+  "Return type of a 'token TOKEN."
+  `(nth 2 ,token))
+
+(defmacro semantic-bnf-token-token-value (token)
+  "Return the lisp value of a 'token TOKEN."
+  `(condition-case nil
+       (car (read-from-string (nth 3 ,token)))
+     (error
+      ;;(message "read error on %S" (nth 3 ,token))
+      nil)))
+
+(defmacro semantic-bnf-token-rule-matchlist (token)
+  "Return the matching list of a 'rule TOKEN."
+  `(nth 3 ,token))
+
+(defmacro semantic-bnf-token-assoc-terms (token)
+  "Return the list of terminals from associativity TOKEN.
+Token must be of category 'assoc."
+  `(nth 3 ,token))
 
 
 ;;; Conversion routines
@@ -445,9 +515,271 @@ Optional argument SCOPESTART is the token to start subscopes with."
       (working-status t))
     (insert ")\n ")
     ))
+
+
+;;; LALR conversion routines
+;;
+(defun semantic-bnf-to-lalr-ASSOC (&rest args)
+  "Return expansion of built-in ASSOC expression.
+ARGS are ASSOC's key value list."
+  (let ((key t))
+    `(semantic-bovinate-make-assoc-list
+      ,@(mapcar #'(lambda (i)
+                    (prog1
+                        (if key
+                            (list 'quote i)
+                          i)
+                      (setq key (not key))))
+                args))))
+
+(defun semantic-bnf-to-lalr-EXPANDTHING ($i nonterm expander)
+  "Return expansion of built-in EXPAND/EXPANDFULL expression.
+$I is the placeholder value to expand.
+NONTERM is the nonterminal symbol to start with.
+EXPANDER is the Semantic function called to expand NONTERM"
+  (let ((i (and (symbolp $i)
+                (string-match "^[$]\\([1-9][0-9]*\\)$"
+                              (symbol-name $i))
+                (string-to-int
+                 (match-string 1 (symbol-name $i)))))
+        v)
+    (if (not i)
+        nil
+      (setq v (intern (format "$region%d" i))
+            i (1+ (* 2 (1- i))))
+      `(let ((,v (cdr (aref stack (- sp ,i)))))
+         (if ,v
+             (,expander (car ,v) (cdr ,v) ,nonterm))))))
+
+(defun semantic-bnf-to-lalr-EXPAND ($i nonterm)
+  "Return expansion of built-in EXPAND expression.
+$I is the placeholder value to expand.
+NONTERM is the nonterminal symbol to start with."
+  (or (semantic-bnf-to-lalr-EXPANDTHING
+       $i nonterm 'wisent-bovinate-from-nonterminal)
+      (error "Invalid form (EXPAND %s %s)" $i nonterm)))
+
+(defun semantic-bnf-to-lalr-EXPANDFULL ($i nonterm)
+  "Return expansion of built-in EXPANDFULL expression.
+$I is the placeholder value to expand.
+NONTERM is the nonterminal symbol to start with."
+  (or (semantic-bnf-to-lalr-EXPANDTHING
+       $i nonterm 'wisent-bovinate-from-nonterminal-full)
+      (error "Invalid form (EXPANDFULL %s %s)" $i nonterm)))
+
+(defconst semantic-bnf-to-lalr-builtins
+  '(
+    ;; Builtin name . Expander
+    ;; ------------ . ---------------------------------
+    (  ASSOC        . semantic-bnf-to-lalr-ASSOC)
+    (  EXPAND       . semantic-bnf-to-lalr-EXPAND)
+    (  EXPANDFULL   . semantic-bnf-to-lalr-EXPANDFULL)
+    ;; ------------ . ---------------------------------
+    )
+  "Expanders of Semantic built-in functions in LALR grammar.")
+
+(defsubst semantic-bnf-quote-p (sym)
+  "Return non-nil if SYM is bound to the `quote' function."
+  (condition-case nil
+      (eq (indirect-function sym)
+          (indirect-function 'quote))
+    (error nil)))
+
+(defsubst semantic-bnf-backquote-p (sym)
+  "Return non-nil if SYM is bound to the `backquote' function."
+  (condition-case nil
+      (eq (indirect-function sym)
+          (indirect-function 'backquote))
+    (error nil)))
+
+(defun semantic-bnf-to-lalr-action (expr)
+  "Return expanded form of the semantic action expression EXPR.
+`backquote' expressions and Semantic built-in function calls are
+expanded.  The variable `semantic-bnf-to-lalr-builtins' defines
+built-in functions and corresponding expanders."
+  (if (not (listp expr))
+      ;; EXPR is an atom, no expansion needed
+      expr
+    ;; EXPR is a list, expand inside it
+    (let (eexpr sexpr bltn)
+      ;; If backquote expand it first
+      (if (semantic-bnf-backquote-p (car expr))
+          (setq expr (macroexpand expr)))
+      ;; Expand builtins
+      (if (setq bltn (assq (car expr) semantic-bnf-to-lalr-builtins))
+          (setq expr (apply (cdr bltn) (cdr expr))))
+      (while expr
+        (setq sexpr (car expr)
+              expr  (cdr expr))
+        ;; Recursively expand function call but quote expression
+        (and (consp sexpr)
+             (not (semantic-bnf-quote-p (car sexpr)))
+             (setq sexpr (semantic-bnf-to-lalr-action sexpr)))
+        ;; Accumulate expanded forms
+        (setq eexpr (nconc eexpr (list sexpr))))
+      eexpr)))
+
+(defun semantic-bnf-matching-to-lalr (matching)
+  "Convert the rule MATCHING from BNF to LALR internal lisp form."
+  (let* ((act (condition-case nil
+                  (read-from-string (car matching))
+                (error
+                 ;;(message "read error on %S" (car matching))
+                 nil)))
+         (l   (cdr matching))
+         ml prec)
+    (if (string-equal (car l) "EMPTY")
+        nil
+      (while (and l (not (eq (car l) '%prec)))
+        (setq ml (cons (intern (car l)) ml)
+              l  (cdr l)))
+      (setq ml (nreverse ml)))
+    (if (eq (car l) '%prec)
+        (setq prec (vector (intern (cadr l)))))
+    ;; Here `act' is nil if previous `read-from-string' failed of a
+    ;; cons (OBJECT-READ . FINAL-STRING-INDEX) otherwise.  This permit
+    ;; to distinguish if the semantic action is missing or is actually
+    ;; nil!
+    (if act
+        (progn
+          (setq act (semantic-bnf-to-lalr-action (car act)))
+          (if prec
+              (list ml prec act)
+            (list ml act)))
+      (if prec
+          (list ml prec)
+        (list ml)))))
+
+(defsubst semantic-bnf-terminal-token-p (token)
+  "Return non-nil if BNF TOKEN is a terminal one.
+That is a token of 'keyword or 'token category."
+  (memq (semantic-token-token token) '(token keyword)))
+
+(defsubst semantic-bnf-find-terminals (tokstream)
+  "Return the list of terminal tokens from TOKSTREAM."
+  (semantic-find-nonterminal-by-function
+   #'semantic-bnf-terminal-token-p tokstream))
+
+(defsubst semantic-bnf-find-terminal-symbols (tokstream)
+  "Return the list of terminal symbols from TOKSTREAM."
+  (mapcar #'semantic-bnf-token-name-symbol
+          (semantic-bnf-find-terminals tokstream)))
+
+(defun semantic-bnf-token-table (tokstream)
+  "Return the table of 'token tokens from TOKSTREAM.
+The table is an alist of (TOK-CAT . TOK-DEFS) where TOK-CAT is a token
+category symbol.  TOK-DEFS is an alist of (TOK-KEY . TOK-VALUE) where
+TOK-KEY is a token symbol and TOK-VALUE its value as a string.
+
+For example the following BNF entries:
+
+  %token EQ     operator \":=\"
+  %token LT     operator \"<\"
+  %token LPAREN paren    \"(\"
+  %token RPAREN paren    \")\"
+
+produce the following table of tokens:
+
+  '((operator (EQ . \":=\")
+              (LT . \"<\"))
+    (paren (LPAREN . \"(\")
+           (RPAREN . \")\")))"
+  (let ((tokens (semantic-find-nonterminal-by-token 'token tokstream))
+        token tsymb ttype tvalue bin bins)
+    (while tokens
+      (setq token  (car tokens)
+            tokens (cdr tokens)
+            tsymb  (semantic-bnf-token-name-symbol token)
+            ttype  (intern (semantic-bnf-token-token-type token))
+            tvalue (semantic-bnf-token-token-value token)
+            bin    (assq ttype bins))
+      (if bin
+          (setcdr bin (cons (cons tsymb tvalue) (cdr bin)))
+        (setq bins (cons (list ttype (cons tsymb tvalue)) bins))))
+    bins))
+
+(defun semantic-bnf-find-terminal-assocs (tokstream)
+  "Return terminals associativity from TOKSTREAM.
+This is a list of elements of the form: (ASSOC-TYPE . TERMS) where
+ASSOC-TYPE is one of 'nonassoc, 'left or 'right.  And TERMS is a list
+of terminal symbols.  Elements are in the same order as the
+corresponding %nonassoc, %left and %right statements in the BNF file."
+  (let ((tokens (semantic-find-nonterminal-by-token
+                 'assoc tokstream))
+        assocs terms type)
+    (while tokens
+      (setq type (intern (semantic-token-name (car tokens)))
+            terms (mapcar #'intern (semantic-bnf-token-assoc-terms
+                                    (car tokens)))
+            assocs (cons (cons type terms) assocs)
+            tokens (cdr tokens)))
+    (nreverse assocs)))
+
+(defun semantic-bnf-to-lalr (&optional tokstream start)
+  "Convert the BNF rules in TOKSTREAM to LALR internal lisp form.
+START is a list of 'start tokens defining alternate entry point in the
+grammar.  The result is inserted at point in the current buffer."
+  (setq tokstream (or tokstream (semantic-bovinate-toplevel t)))
+  (let ((terms  (semantic-bnf-find-terminal-symbols tokstream))
+        (starts (mapcar #'semantic-bnf-token-name-symbol start))
+        (assocs (semantic-bnf-find-terminal-assocs tokstream))
+        vars tok lhs rhs gram)
+    (while tokstream
+      (setq tok       (car tokstream)
+            tokstream (cdr tokstream))
+      (if (not (eq (semantic-token-token tok) 'rule))
+          nil
+        (setq lhs  (semantic-bnf-token-name-symbol tok)
+              rhs  (mapcar #'semantic-bnf-matching-to-lalr
+                           (semantic-bnf-token-rule-matchlist tok))
+              vars (cons (cons lhs rhs) vars))))
+    (setq gram (cons terms (cons assocs (nreverse vars))))
+    (require 'wisent) ;; `wisent-compile-grammar' must be defined!
+    ;; Insert the grammar
+    (indent-according-to-mode)
+    (pp (list 'eval-when-compile
+              (list 'wisent-compile-grammar
+                    (list 'quote gram)
+                    (list 'quote starts)))
+        (current-buffer))
+    ))
+
 
 ;;; Output File hacks
 ;;
+(defun semantic-beginning-of-body ()
+  "Move point to the beginning of the body of the function at point.
+ Skip docstring and `interactive' form if present.  If there are
+ comment lines before the first statement move point to the beginning
+ of the first line of comment."
+  (interactive)
+  (beginning-of-defun)
+  ;; Skip `defun' and function name
+  (re-search-forward "(defun\\s-*\\(\\sw\\|\\s_\\)+\\s-*")
+  ;; Skip arglist
+  (forward-sexp)
+  ;; Skip spaces and comments
+  (forward-comment (point-max))
+  ;; Maybe skip docstring
+  (if (looking-at "\\s\"")
+      (progn
+        (forward-sexp)
+        ;; Skip spaces and comments
+        (forward-comment (point-max))))
+  ;; Maybe skip `interactive' form
+  (if (looking-at "\\s([ \r\n\t]*\\binteractive\\b")
+      (progn
+        (forward-list)
+        ;; Skip spaces and comments
+        (forward-comment (point-max))))
+  ;; Now move back to the first line of comments before this statement
+  (forward-comment (- (point-max)))
+  ;; Maybe skip line comment
+  (if (looking-at "\\s-*\\(\\s<\\)")
+      (forward-comment 1))
+  ;; Move point to the beginning of comment or statement
+  (skip-chars-forward "[ \n\r\t]"))
+
 (defun semantic-bnf-find-table-destination-old ()
   "Find the destination file for this BNF file via comments."
   (save-excursion
@@ -555,8 +887,7 @@ SOURCEFILE is the file name from whence tokstream came."
 	  (error "Setup function %s not found in %s"
 		 (semantic-token-name (car setfn)) (buffer-file-name))
 	;; Scan for setup text, and remove old stuff, insert new.
-	(let ((b (match-beginning 0))
-	      (e (save-excursion (end-of-defun) (point))))
+	(let ((e (save-excursion (end-of-defun) (point))))
 	  (if (re-search-forward (car semantic-setup-code-delimiters)
 				 nil t)
 	      ;; Search and destroy
@@ -570,9 +901,9 @@ SOURCEFILE is the file name from whence tokstream came."
 		(delete-region (1+ mb) (1- me))
 		(goto-char (1+ mb))
 		t)
-	    ;; Add a new on in at the end
+	    ;; Add a new on in at the beginning
 	    (goto-char e)
-	    (down-list -1)		; hop into the end
+	    (semantic-beginning-of-body)
 	    ;; Insert delimiters, move cursor
 	    (let ((m (string-match ";"
 				   (car semantic-setup-code-delimiters))))
@@ -584,6 +915,37 @@ SOURCEFILE is the file name from whence tokstream came."
 		(insert " " sourcefile "\n "))
 	      t)
 	    ))))))
+
+(defsubst semantic-bnf-find-parser-mode (tok)
+  "Find the parser mode symbol in this BNF file.
+If not found return nil."
+  (let ((gm (semantic-find-nonterminal-by-token 'parsermode tok)))
+    (if gm
+        (semantic-bnf-token-name-symbol (car gm)))))
+
+(defun semantic-bnf-find-token-destination (tokstream)
+  "Find the destination for tokens in this BNF file.
+Argument TOKSTREAM is the list of tokens in which to find the file and
+token table variable."
+  (save-excursion
+    (let ((file (semantic-find-nonterminal-by-token 'outputfile tokstream))
+	  (var (semantic-find-nonterminal-by-token 'tokentable tokstream)))
+      (if (or (not file) (not var))
+	  nil
+	;; Fix file/var to strings
+	(setq file (semantic-token-name (car file))
+	      var (semantic-token-name (car var)))
+	;; Look these items up.
+	(set-buffer (find-file-noselect file))
+	(goto-char (point-min))
+	(if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
+				       (regexp-quote var) "\\b"
+                                       ) nil t)
+	    (progn
+	      (goto-char (match-beginning 0))
+	      (point-marker))
+	  (error "You must add a declaration for %s in %s"
+		 var file))))))
 
 (defvar semantic-bnf-indent-table t
   "Non nil means to indent the large table during creation.")
@@ -603,13 +965,14 @@ SOURCEFILE is the file name from whence tokstream came."
   (semantic-clear-toplevel-cache)
   (let* ((fname (file-name-nondirectory (buffer-file-name)))
 	 (tok (semantic-bovinate-toplevel t))
-	 (bb (current-buffer))
 	 (dest (semantic-bnf-find-table-destination tok))
 	 (keydest (semantic-bnf-find-keyword-destination tok))
+	 (tokdest (semantic-bnf-find-token-destination tok))
 	 (mode (semantic-bnf-find-languagemode tok))
 	 (start (semantic-find-nonterminal-by-token 'start tok))
 	 (scopestart (semantic-find-nonterminal-by-token 'scopestart tok))
 	 (setup-fn (semantic-find-nonterminal-by-token 'setupfunction tok))
+         (pmode (semantic-bnf-find-parser-mode tok))
 	 )
     (if (not dest)
 	(error "You must specify a destination table in your BNF file"))
@@ -655,7 +1018,23 @@ SOURCEFILE is the file name from whence tokstream came."
 	      (setq put (cdr put)))
 	    (insert "))\n "))
 	  (save-excursion
-	  (indent-region start (point) nil)))
+            (indent-region start (point) nil)))
+	(eval-defun nil))
+      ;; Token table
+      (when tokdest
+	(goto-char tokdest)
+	(re-search-forward "def\\(var\\|const\\)\\s-+\\(\\w\\|\\s_\\)+\\s-*\n")
+        (if (looking-at "\\s-*\\('?(\\|nil\\)")
+            (delete-region (point) (save-excursion (forward-sexp 1) (point))))
+        (delete-blank-lines)
+	(let ((tokens (semantic-bnf-token-table tok))
+	      (start (point)))
+	  (if (not tokens)
+	      (insert "nil\n ")
+            (insert "'")
+            (pp tokens (current-buffer)))
+	  (save-excursion
+            (indent-region start (point) nil)))
 	(eval-defun nil))
       ;; Insert setup code in the startup function or hook
       (when (semantic-bnf-find-setup-code tok fname)
@@ -695,32 +1074,37 @@ SOURCEFILE is the file name from whence tokstream came."
       (if (looking-at "\\s-*\\(`?(\\|nil\\)")
 	  (delete-region (point) (save-excursion (forward-sexp 1) (point))))
       (delete-blank-lines)
-      (semantic-bnf-to-bovine
-       tok (if start (semantic-token-name (car start)))
-       (if scopestart (semantic-token-name (car scopestart))))
+      (cond
+       ((eq pmode 'lalr)
+        ;; generate table for the LALR parser
+        (semantic-bnf-to-lalr tok start))
+       (t
+        ;; generate table for the default parser
+        (semantic-bnf-to-bovine
+         tok (if start (semantic-token-name (car start)))
+         (if scopestart (semantic-token-name (car scopestart))))))
       (if semantic-bnf-indent-table
-	  (save-excursion
-	    (message "Indenting table....")
-	    (indent-region (progn (re-search-backward "(defvar")
-				  (goto-char (match-beginning 0))
-				  (point))
-			   (progn (forward-sexp 1) (point))
-			   nil)))
+          (save-excursion
+            (message "Indenting table....")
+            (indent-region (progn (re-search-backward "(def\\(var\\|const\\)\\s-+")
+                                  (goto-char (match-beginning 0))
+                                  (point))
+                           (progn (forward-sexp 1) (point))
+                           nil)))
       (eval-defun nil))
     (message "Done.")
     (when mode
       (save-excursion
-	(let ((bufs (buffer-list)))
-	  (while bufs
-	    (set-buffer (car bufs))
-	    (if (member major-mode mode)
-		(progn
-		  (if setup-fn
-		      (funcall (intern (semantic-token-name (car setup-fn))))
-		    (funcall mode)))
-	      )
-	    (setq bufs (cdr bufs)))))
-      )))
+  	(let ((bufs (buffer-list)))
+  	  (while bufs
+  	    (set-buffer (car bufs))
+  	    (if (member major-mode mode)
+  		(progn
+  		  (if setup-fn
+  		      (funcall (intern (semantic-token-name (car setup-fn))))
+  		    (funcall mode)))
+  	      )
+  	    (setq bufs (cdr bufs))))))))
 
 (defun semantic-bnf-generate-one-rule ()
   "Generate code for one rule in a temporary buffer."
@@ -760,7 +1144,6 @@ RULE is a symbol representing the rule name we are currently in.
 MATCHLISTINDEX is the index to the current match list being tested.
 MATCHINDEX is the index into the matchlist being tested."
   (let* ((start (car (semantic-find-nonterminal-by-token 'start (current-buffer))))
-	 (sn (symbol-name rule))
 	 (findme (if (and start (eq rule 'bovine-toplevel))
 		     (semantic-token-name start)
 		   (symbol-name rule)))
@@ -832,7 +1215,7 @@ Once found, put it in a buffer, and return it."
 
 (defvar semantic-bnf-mode-keywords
   `((";\\s-*[^#\n ].*$" 0 font-lock-comment-face)
-    ("^\\(\\w+\\)\\s-*:" 1 font-lock-function-name-face)
+    ("^\\(\\w+\\)[ \n\r\t]*:" 1 font-lock-function-name-face)
     ("\\<\\(EMPTY\\|symbol\\|number\\|punctuation\\|string\\|semantic-list\
 \\|\\(open\\|close\\)-paren\\|comment\\)\\>"
      1 font-lock-keyword-face)
@@ -888,6 +1271,8 @@ Once found, put it in a buffer, and return it."
   (setq semantic-flex-keywords-obarray semantic-bnf-keyword-table)
   (make-local-variable 'indent-line-function)
   (setq indent-line-function 'semantic-bnf-indent)
+  (make-local-variable 'fill-paragraph-function)
+  (setq fill-paragraph-function 'semantic-bnf-fill-paragraph)
   (make-local-variable 'font-lock-defaults)
   (setq font-lock-defaults '((semantic-bnf-mode-keywords)
 			     nil ; do not do string/comment highlighting
@@ -1009,7 +1394,7 @@ Optional argument COLOR determines if color is added to the text."
 (defun semantic-bnf-ecsi ()
   "Return an info string about the current context."
   (let* ((sym (semantic-ctxt-current-symbol))
-	 (summ (assoc (car sym) semantic-bnf-syntax-help))n
+	 (summ (assoc (car sym) semantic-bnf-syntax-help))
 	 (found (cdr summ)))
     (if found
 	found
@@ -1049,23 +1434,36 @@ Optional argument COLOR determines if color is added to the text."
     (error nil)))
 
 (defun semantic-bnf-previous-colon-indentation ()
-  "Calculation the indentation of the last colon oporator.
+  "Calculation the indentation of the last colon operator.
 Returns the previous colon's column."
   (save-excursion
     (let ((p (point))
 	  (ci (progn
-		(if (re-search-backward "^\\s-*\\(\\w\\|\\s_\\)+\\s-*:" nil t)
-		    (progn
-		      (beginning-of-line)
-		      (- (match-end 0) 1 (point)))
+                (end-of-line)
+		(if (re-search-backward "^\\s-*\\(\\w\\|\\s_\\)+[ \n\r\t]*:" nil t)
+                    (let ((here (match-end 0)))
+                      (if (save-excursion
+                            (goto-char here)
+                            (looking-at "\\s-*$"))
+                          ;; line ends with the colon
+                          2
+                        (if (save-excursion
+                              (goto-char here)
+                              (beginning-of-line)
+                              (looking-at "\\s-*:"))
+                            ;; line begin with the colon
+                            2
+                          (beginning-of-line)
+                          (- here 1 (point)))))
 		  0)))
 	  (cp (point))
 	  (sc nil))
       (goto-char p)
       (while (and (re-search-backward "^\\s-*;\\s-*$" nil t)
 		  (semantic-bnf-in-lambda-continuation-p)))
-      (if (looking-at "\\s-*;")
-	  (setq sc t))
+      (and (/= (point) p)
+           (looking-at "\\s-*;")
+           (setq sc t))
       (if sc
 	  (if (< (point) cp)
 	      ci
@@ -1107,7 +1505,7 @@ Optional argument POINT is the position on the line to indent."
 	    (delete-horizontal-space))
 	   (t
 	    (save-excursion
-	      (if (and (not (looking-at "\\s-*[|;#]"))
+	      (if (and (not (looking-at "\\s-*[:|;#]"))
 		       (/= indent 0))
 		  (setq indent (+ 2 indent))))
 	    (if (= (current-indentation) indent)
@@ -1116,6 +1514,102 @@ Optional argument POINT is the position on the line to indent."
 	      (indent-to indent))))))))
   (if (bolp) (if (looking-at "\\s-+") (end-of-line))))
 
+(defun semantic-bnf-fill-paragraph (&optional justify)
+  "Like \\[fill-paragraph], but handle BNF comments.
+If any of the current line is a comment, fill the comment or the
+paragraph of it that point is in, preserving the comment's indentation
+and initial #."
+  (interactive "P")
+  (let (
+	;; Non-nil if the current line contains a comment.
+	has-comment
+        
+	;; Non-nil if the current line contains code and a comment.
+	has-code-and-comment
+        
+        ;; If has-comment, the appropriate fill-prefix for the comment.
+	comment-fill-prefix
+	)
+
+    ;; Figure out what kind of comment we are looking at.
+    (save-excursion
+      (beginning-of-line)
+      (cond
+       
+       ;; A line with nothing but a comment on it?
+       ((looking-at "[ \t]*#[# \t]*")
+	(setq has-comment t
+	      comment-fill-prefix (buffer-substring (match-beginning 0)
+						    (match-end 0))))
+       
+       ;; A line with some code, followed by a comment?  Remember that the
+       ;; semi which starts the comment shouldn't be part of a string or
+       ;; character.
+       ((condition-case nil
+	    (save-restriction
+	      (narrow-to-region (point-min)
+				(save-excursion (end-of-line) (point)))
+	      (while (not (looking-at "#\\|$"))
+		(skip-chars-forward "^#\n\"\\\\?")
+		(cond
+		 ((eq (char-after (point)) ?\\) (forward-char 2))
+		 ((memq (char-after (point)) '(?\" ??)) (forward-sexp 1))))
+	      (looking-at "#+[\t ]*"))
+	  (error nil))
+	(setq has-comment t has-code-and-comment t)
+	(setq comment-fill-prefix
+	      (concat (make-string (/ (current-column) 8) ?\t)
+		      (make-string (% (current-column) 8) ?\ )
+		      (buffer-substring (match-beginning 0) (match-end 0)))))))
+    
+    (if (not has-comment)
+        nil
+      ;; Narrow to include only the comment, and then fill the region.
+      (save-excursion
+	(save-restriction
+	  (beginning-of-line)
+	  (narrow-to-region
+           ;; Find the first line we should include in the region to fill.
+	   (save-excursion
+	     (while (and (zerop (forward-line -1))
+			 (looking-at "^[ \t]*#")))
+	     ;; We may have gone too far.  Go forward again.
+	     (or (looking-at ".*#")
+		 (forward-line 1))
+	     (point))
+           ;; Find the beginning of the first line past the region to fill.
+	   (save-excursion
+	     (while (progn (forward-line 1)
+			   (looking-at "^[ \t]*#")))
+	     (point)))
+          
+          ;; Lines with only semicolons on them can be paragraph boundaries.
+	  (let* ((paragraph-start (concat paragraph-start "\\|[ \t#]*$"))
+		 (paragraph-separate (concat paragraph-start "\\|[ \t#]*$"))
+		 (paragraph-ignore-fill-prefix nil)
+		 (fill-prefix comment-fill-prefix)
+		 (after-line (if has-code-and-comment
+				 (save-excursion
+				   (forward-line 1) (point))))
+		 (end (progn
+			(forward-paragraph)
+			(or (bolp) (newline 1))
+			(point)))
+		 ;; If this comment starts on a line with code,
+		 ;; include that like in the filling.
+		 (beg (progn (backward-paragraph)
+			     (if (eq (point) after-line)
+				 (forward-line -1))
+			     (point))))
+	    (fill-region-as-paragraph beg end
+				      justify nil
+				      (save-excursion
+					(goto-char beg)
+					(if (looking-at fill-prefix)
+					    nil
+					  (re-search-forward comment-start-skip)
+					  (point))))))))
+    t))
 
 (defun semantic-bnf-complete ()
   "Complete the symbol under point from various sources."
