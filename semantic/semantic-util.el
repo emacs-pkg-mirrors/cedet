@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.25 2000/09/27 00:58:35 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.26 2000/09/27 01:35:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -898,6 +898,32 @@ instead of read-only."
     (semantic-overlay-put o 'modification-hooks hook)
     (semantic-overlay-put o 'insert-in-front-hooks hook)
     (semantic-overlay-put o 'insert-behind-hooks hook)))
+
+;;; Interactive Functions for bovination
+;;
+(eval-when-compile (require 'pp))
+
+(defun bovinate (&optional clear)
+  "Bovinate the current buffer.  Show output in a temp buffer.
+Optional argument CLEAR will clear the cache before bovinating."
+  (interactive "P")
+  (if clear (semantic-clear-toplevel-cache))
+  (let ((out (semantic-bovinate-toplevel nil t)))
+    (pop-to-buffer "*BOVINATE*")
+    (require 'pp)
+    (erase-buffer)
+    (insert (pp-to-string out))
+    (goto-char (point-min))))
+
+(defun bovinate-debug ()
+  "Bovinate the current buffer and run in debug mode."
+  (interactive)
+  (let ((semantic-edebug t)
+	(out (semantic-bovinate-debug-buffer)))
+    (pop-to-buffer "*BOVINATE*")
+    (require 'pp)
+    (erase-buffer)
+    (insert (pp-to-string out))))
 
 ;;; Hacks
 ;;
