@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.4 2000/09/04 00:11:14 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.5 2000/09/05 01:02:47 zappo Exp $
 
 (defvar dframe-version "1.0beta"
   "The current version of the dedicated frame library.")
@@ -100,11 +100,15 @@
 ;;    These variables need to be set to functions that display info
 ;;    based on the mouse's position.
 ;;   Text propert 'help-echo, set to `dframe-help-echo', which will
-;;    call `dframe-hel-echo-function'.
+;;    call `dframe-help-echo-function'.
 ;;   Have a `-click' function, it can call `dframe-quick-mouse' for
 ;;    positioning.  If the variable `dframe-power-click' is non-nil,
 ;;    then `shift' was held down during the click.
 
+;;; Bugs
+;;
+;;  * The timer managers doesn't handle multiple different timeouts.
+;;  * You can't specify continuous timouts (as opposed to just lidle timers.)
 
 ;;; Code:
 (defvar dframe-xemacsp (string-match "XEmacs" emacs-version)
@@ -182,7 +186,7 @@ relevant to the buffer you are currently editing."
   :group 'dframe
   :type 'integer)
 
-(defcustom dframe-activity-change-focus-flag nil
+(defcustom frame-activity-change-focus-flag nil
   "*Non-nil means the selected frame will change based on activity.
 Thus, if a file is selected for edit, the buffer will appear in the
 selected frame and the focus will change to that frame."
@@ -192,17 +196,21 @@ selected frame and the focus will change to that frame."
 (defvar dframe-track-mouse-function nil
   "*A function to call when the mouse is moved in the given frame.
 Typically used to display info about the line under the mouse.")
+(make-variable-buffer-local 'dframe-track-mouse-function)
 
 (defvar dframe-help-echo-function nil
   "*A function to call when help-echo is used in newer versions of Emacs.
 Typically used to display info about the line under the mouse.")
+(make-variable-buffer-local 'dframe-help-echo-function)
 
 (defvar dframe-mouse-click-function nil
   "*A function to call when the mouse is clicked.
 Valid clicks are mouse 2, our double mouse 1.")
+(make-variable-buffer-local 'dframe-mouse-click-function)
 
 (defvar dframe-mouse-position-function nil
   "*A function to called to position the cursor for a mouse click.")
+(make-variable-buffer-local 'dframe-mouse-position-function)
 
 (defvar dframe-power-click nil
   "Never set this by hand.  Value is t when S-mouse activity occurs.")
@@ -761,7 +769,8 @@ Must be bound to event E."
 The context is in WINDOW, viewing BUFFER, at POSITION.
 BUFFER and POSITION are optional because XEmacs doesn't use them."
   (when (and (not dframe-track-mouse-function)
-	     (bufferp buffer))
+	     (bufferp buffer)
+	     dframe-help-echo-function)
     (let ((dframe-suppress-message-flag t))
       (with-current-buffer buffer
 	(if position (goto-char position))
