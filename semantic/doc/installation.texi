@@ -17,3 +17,6 @@ lines into your individual @file{.emacs} file, or into
 
 If you would like to turn individual tools on or off in your init
 file, skip the first line.
+
+Semantic is a part of CEDET.  If you are installing semantic as a
+part of CEDET, see the CEDET @file{INSTALL} file for directions.
