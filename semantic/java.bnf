@@ -5,7 +5,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.6 2001/02/28 22:24:22 ponced Exp $
+# $Id: java.bnf,v 1.7 2001/04/13 10:29:17 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,53 +55,189 @@
      )%
 
 %token ABSTRACT     "abstract"
+%put ABSTRACT summary
+"Class|Method declaration modifier: abstract {class|<type>} <name> ..."
+
 %token BOOLEAN      "boolean"
+%put BOOLEAN summary
+"Primitive logical quantity type (true or false)"
+
 %token BREAK        "break"
+%put BREAK summary
+"break [<label>] ;"
+
 %token BYTE         "byte"
+%put BYTE summary
+"Integral primitive type (-128 to 127)"
+
 %token CASE         "case"
+%put CASE summary
+"switch(<expr>) {case <const-expr>: <stmts> ... }"
+
 %token CATCH        "catch"
+%put CATCH summary
+"try {<stmts>} catch(<parm>) {<stmts>} ... "
+
 %token CHAR         "char"
+%put CHAR summary
+"Integral primitive type ('\u0000' to '\uffff') (0 to 65535)"
+
 %token CLASS        "class"
+%put CLASS summary
+"Class declaration: class <name>"
+
 %token CONST        "const"
+%put CONST summary
+"Unused reserved word"
+
 %token CONTINUE     "continue"
+%put CONTINUE summary
+"continue [<label>] ;"
+
 %token DEFAULT      "default"
+%put DEFAULT summary
+"switch(<expr>) { ... default: <stmts>}"
+
 %token DO           "do"
+%put DO summary
+"do <stmt> while (<expr>);"
+
 %token DOUBLE       "double"
+%put DOUBLE summary
+"Primitive floating-point type (double-precision 64-bit IEEE 754)"
+
 %token ELSE         "else"
+%put ELSE summary
+"if (<expr>) <stmt> else <stmt>"
+
 %token EXTENDS      "extends"
+%put EXTENDS summary
+"SuperClass|SuperInterfaces declaration: extends <name> [, ...]"
+
 %token FINAL        "final"
+%put FINAL summary
+"Class|Member declaration modifier: final {class|<type>} <name> ..."
+
 %token FINALLY      "finally"
+%put FINALLY summary
+"try {<stmts>} ... finally {<stmts>}"
+
 %token FLOAT        "float"
+%put FLOAT summary
+"Primitive floating-point type (single-precision 32-bit IEEE 754)"
+
 %token FOR          "for"
+%put FOR summary
+"for ([<init-expr>]; [<expr>]; [<update-expr>]) <stmt>"
+
 %token GOTO         "goto"
+%put GOTO summary
+"Unused reserved word"
+
 %token IF           "if"
+%put IF summary
+"if (<expr>) <stmt> [else <stmt>]"
+
 %token IMPLEMENTS   "implements"
+%put IMPLEMENTS summary
+"Class SuperInterfaces declaration: implements <name> [, ...]"
+
 %token IMPORT       "import"
+%put IMPORT summary
+"Import package declarations: import <package>"
+
 %token INSTANCEOF   "instanceof"
+
 %token INT          "int"
+%put INT summary
+"Integral primitive type (-2147483648 to 2147483647)"
+
 %token INTERFACE    "interface"
+%put INTERFACE summary
+"Interface declaration: interface <name>"
+
 %token LONG         "long"
+%put LONG summary
+"Integral primitive type (-9223372036854775808 to 9223372036854775807)"
+
 %token NATIVE       "native"
+%put NATIVE summary
+"Method declaration modifier: native <type> <name> ..."
+
 %token NEW          "new"
+
 %token PACKAGE      "package"
+%put PACKAGE summary
+"Package declaration: package <name>"
+
 %token PRIVATE      "private"
+%put PRIVATE summary
+"Access level modifier: private {class|interface|<type>} <name> ..."
+
 %token PROTECTED    "protected"
+%put PROTECTED summary
+"Access level modifier: protected {class|interface|<type>} <name> ..."
+
 %token PUBLIC       "public"
+%put PUBLIC summary
+"Access level modifier: public {class|interface|<type>} <name> ..."
+
 %token RETURN       "return"
+%put RETURN summary
+"return [<expr>] ;"
+
 %token SHORT        "short"
+%put SHORT summary
+"Integral primitive type (-32768 to 32767)"
+
 %token STATIC       "static"
+%put STATIC summary
+"Declaration modifier: static {class|interface|<type>} <name> ..."
+
 %token STRICTFP     "strictfp"
+%put STRICTFP summary
+"Declaration modifier: strictfp {class|interface|<type>} <name> ..."
+
 %token SUPER        "super"
+
 %token SWITCH       "switch"
+%put SWITCH summary
+"switch(<expr>) {[case <const-expr>: <stmts> ...] [default: <stmts>]}"
+
+
 %token SYNCHRONIZED "synchronized"
+%put SYNCHRONIZED summary
+"synchronized (<expr>) ... | Method decl. modifier: synchronized <type> <name> ..."
+
 %token THIS         "this"
+
 %token THROW        "throw"
+%put THROW summary
+"throw <expr> ;"
+
 %token THROWS       "throws"
+%put THROWS summary
+"Method|Constructor declaration: throws <classType>, ..."
+
 %token TRANSIENT    "transient"
+%put TRANSIENT summary
+"Field declaration modifier: transient <type> <name> ..."
+
 %token TRY          "try"
+%put TRY summary
+"try {<stmts>} [catch(<parm>) {<stmts>} ...] [finally {<stmts>}]"
+
 %token VOID         "void"
+%put VOID summary
+"Method return type: void <name> ..."
+
 %token VOLATILE     "volatile"
+%put VOLATILE summary
+"Field declaration modifier: volatile <type> <name> ..."
+
 %token WHILE        "while"
+%put WHILE summary
+"while (<expr>) <stmt> | do <stmt> while (<expr>);"
   
 # --------
 # Grammar
@@ -459,6 +595,9 @@ expression: unary_expression operators_expression_opt
           ;
 
 # $Log: java.bnf,v $
+# Revision 1.7  2001/04/13 10:29:17  ponced
+# Added keyword summaries.
+#
 # Revision 1.6  2001/02/28 22:24:22  ponced
 # Fixed a bug on 'array_creation_expression' non-terminal which didn't
 # match primitive type arrays.
