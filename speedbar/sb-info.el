@@ -1,11 +1,11 @@
 ;;; sb-info --- Speedbar support for Info
 
-;; Copyright (C) 1997, 1998 Free Software Foundation
+;; Copyright (C) 1997, 1998, 2000 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.2.1
+;; Version: 0.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.11 1998/08/03 13:10:59 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.12 2000/06/20 02:16:16 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -68,6 +68,7 @@
     (define-key Info-speedbar-key-map "e" 'speedbar-edit-line)
     (define-key Info-speedbar-key-map "\C-m" 'speedbar-edit-line)
     (define-key Info-speedbar-key-map "+" 'speedbar-expand-line)
+    (define-key Info-speedbar-key-map "=" 'speedbar-expand-line)
     (define-key Info-speedbar-key-map "-" 'speedbar-contract-line)
     )
 
@@ -154,16 +155,16 @@ The INDENT level is ignored."
 	    (let ((pop-up-frames t)) (select-window (display-buffer buff)))
 	  (select-frame speedbar-attached-frame)
 	  (switch-to-buffer buff)))
-      (let ((junk (string-match "^(\\([^)]+\\))\\([^.]+\\)$" node))
-	    (file (match-string 1 node))
-	    (node (match-string 2 node)))
-	(Info-find-node file node)
-	;; If we do a find-node, and we were in info mode, restore
-	;; the old default method.  Once we are in info mode, it makes
-	;; sense to return to whatever method the user was using before.
-	(if (string= speedbar-initial-expansion-list-name "Info")
-	    (speedbar-change-initial-expansion-list
-	     speedbar-previously-used-expansion-list-name)))))
+      (if (string-match "^(\\([^)]+\\))\\([^.]+\\)$" node)
+	  (let ((file (match-string 1 node))
+		(node (match-string 2 node)))
+	    (Info-find-node file node)
+	    ;; If we do a find-node, and we were in info mode, restore
+	    ;; the old default method.  Once we are in info mode, it makes
+	    ;; sense to return to whatever method the user was using before.
+	    (if (string= speedbar-initial-expansion-list-name "Info")
+		(speedbar-change-initial-expansion-list
+		 speedbar-previously-used-expansion-list-name))))))
 
 (defun Info-speedbar-expand-node (text token indent)
   "Expand the node the user clicked on.
@@ -194,10 +195,11 @@ Optional THISFILE represends the filename of"
     (if (not (equal major-mode 'Info-mode))
 	(Info-mode))
     ;; Get the node into this buffer
-    (let ((junk (string-match "^(\\([^)]+\\))\\([^.]+\\)$" nodespec))
-	  (file (match-string 1 nodespec))
-	  (node (match-string 2 nodespec)))
-      (Info-find-node file node))
+    (if (string-match "^(\\([^)]+\\))\\([^.]+\\)$" nodespec)
+	(let ((file (match-string 1 nodespec))
+	      (node (match-string 2 nodespec)))
+	  (Info-find-node file node))
+      (error "Node %s not found!" nodespec))
     ;; Scan the created buffer
     (goto-char (point-min))
     (let ((completions nil)
@@ -209,7 +211,7 @@ Optional THISFILE represends the filename of"
 	(let ((name (match-string 1)))
 	  (if (looking-at " *\\(([^)]+)[^.\n]+\\)\\.")
 	      (setq name (cons name (match-string 1)))
-	    (if (looking-at " *\\(([^)]+)\\)\\.")
+	    (if (looking-at "[ \t]*\\(([^)]+)\\)\\.")
 		(setq name (cons name (concat (match-string 1) "Top")))
 	      (if (looking-at " \\([^.]+\\).")
 		  (setq name
