@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.51 2000/09/27 01:46:26 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.52 2000/09/28 03:18:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -398,6 +398,15 @@ string can be replaced with `Imports'.")
   "Value for `case-fold-search' when parsing.")
 (make-variable-buffer-local 'semantic-case-fold)
 
+(defvar semantic-flex-depth 0
+  "Default flexing depth.
+This specifies how many lists to create tokens in.")
+
+(defvar semantic-ignore-comments t
+  "Default comment handling.
+t means to strip comments when flexing.  Nil means to keep comments
+as part of the token stream.")
+
 (defvar semantic-expand-nonterminal nil
   "Function to call for each returned Non-terminal.
 Return a list of non-terminals derived from the first argument, or nil
@@ -512,12 +521,9 @@ If not provided, then only the POSITION can be provided."
 (add-hook 'change-major-mode-hook 'semantic-clear-toplevel-cache)
 
 ;;;###autoload
-(defun semantic-bovinate-toplevel (&optional depth trashcomments checkcache)
-  "Bovinate the entire current buffer to a list depth of DEPTH.
-DEPTH is optional, and defaults to 0.
-Optional argument TRASHCOMMENTS indicates that comments should be
-stripped from the main list of synthesized tokens.
-If third argument CHECKCACHE is non-nil, then flush the cache iff
+(defun semantic-bovinate-toplevel (&optional checkcache)
+  "Bovinate the entire current buffer.
+If the optional argument CHECKCACHE is non-nil, then flush the cache iff
 there has been a size change."
   (if (and semantic-toplevel-bovine-cache
 	   checkcache
@@ -525,7 +531,7 @@ there has been a size change."
       (semantic-clear-toplevel-cache))
   (cond
    (semantic-toplevel-bovinate-override
-    (funcall semantic-toplevel-bovinate-override depth trashcomments))
+    (funcall semantic-toplevel-bovinate-override checkcache))
    ((and semantic-toplevel-bovine-cache
 	 (car semantic-toplevel-bovine-cache)
 	 ;; Add a rule that knows how to see if there have
@@ -533,8 +539,7 @@ there has been a size change."
 	 )
     (car semantic-toplevel-bovine-cache))
    (t
-    (let ((ss (semantic-flex (point-min) (point-max)
-			     (or depth 0)))
+    (let ((ss (semantic-flex (point-min) (point-max)))
 	  (res nil)
 	  (semantic-overlay-error-recovery-stack nil))
       ;; Init a dump
@@ -543,9 +548,9 @@ there has been a size change."
       (working-status-forms (buffer-name) "done"
 	(setq res
 	      (semantic-bovinate-nonterminals
-	       ss 'bovine-toplevel depth trashcomments))
+	       ss 'bovine-toplevel semantic-flex-depth))
 	(working-status t))
-      (setq semantic-toplevel-bovine-cache 
+      (setq semantic-toplevel-bovine-cache
 	    (list (nreverse res) (point-max))
 	    semantic-toplevel-bovine-cache-check nil)
       (add-hook 'after-change-functions 'semantic-change-function nil t)
@@ -588,80 +593,74 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	  (message "Reparse needed...")))))
 
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
-					      depth trashcomments
-					      returnonerror)
+					      depth returnonerror)
   "Bovinate the entire stream STREAM starting with NONTERM.
 DEPTH is optional, and defaults to 0.
-Optional argument TRASHCOMMENTS indicates that comments should be
-stripped from the main list of synthesized tokens.
 Optional argument RETURNONERROR indicates that the parser should exit with
 the current results on a parse error."
-  (if (not depth) (setq depth 0))
+  (if (not depth) (setq depth semantic-flex-depth))
   (let ((result nil) (case-fold-search semantic-case-fold))
     (while stream
-      (if (not (and trashcomments (eq (car (car stream)) 'comment)))
-	  (let* ((nontermsym
-		  (semantic-bovinate-nonterminal
-		   stream semantic-toplevel-bovine-table nonterm))
-		 (stream-overlays (car (cdr (cdr nontermsym))))
-		 (tmpet nil)
-		 (token (car (cdr nontermsym)))
-		 (startcdr (nthcdr (- (length token) 2) token)))
-	    (if (not nontermsym)
-		(error "Parse error @ %d" (car (cdr (car stream)))))
-	    (semantic-overlay-stack-add stream-overlays)
-	    (if token
-		(let ((o
-		       (condition-case nil
-			   (semantic-make-overlay (car startcdr)
-						  (car (cdr startcdr))
-						  (current-buffer)
-						  ;; Examin start/rear
-						  ;; advance flags.
-						  )
-			 (error (debug token)
-				nil))))
-		  ;; Convert START/END into an overlay.
-		  (setcdr startcdr nil)
-		  (setcar startcdr o)
-		  (semantic-overlay-put o 'semantic token)
-		  ;; Expand based on local configuration
-		  (if (not semantic-expand-nonterminal)
-		      ;; no expanders
-		      (setq result (cons token result))
-		    ;; Glom generated tokens
-		    (setq tmpet (funcall semantic-expand-nonterminal token))
-		    (if (not tmpet)
-			(progn (setq result (cons token result))
-			       (semantic-overlay-stack-add o))
-		      ;; Fixup all overlays, start by deleting the old one
-		      (let ((motok tmpet) o start end)
-			(while motok
-			  (setq startcdr (nthcdr (- (length (car motok)) 1)
-						 (car motok))
-				;; this will support new overlays created by
-				;; the special function, or recycles
-				start (or (semantic-overlay-start
-					   (car startcdr)) start)
-				end (or (semantic-overlay-end
-					 (car startcdr)) end)
-				o (semantic-make-overlay start end
-							 (current-buffer)))
-			  (if (semantic-overlay-buffer (car startcdr))
-			      (semantic-overlay-delete (semantic-token-overlay
-							(car motok))))
-			  (semantic-overlay-stack-add o)
-			  (setcdr startcdr nil)
-			  (setcar startcdr o)
-			  (semantic-overlay-put o 'semantic (car motok))
-			  (setq motok (cdr motok))))
-		      (setq result (append tmpet result)))))
-	      (if returnonerror (setq stream nil))
-	      ;;(error "Parse error")
-	      )
-	    ;; Designated to ignore.
-	    (setq stream (car nontermsym)))
-	(setq stream (cdr stream)))
+      (let* ((nontermsym
+	      (semantic-bovinate-nonterminal
+	       stream semantic-toplevel-bovine-table nonterm))
+	     (stream-overlays (car (cdr (cdr nontermsym))))
+	     (tmpet nil)
+	     (token (car (cdr nontermsym)))
+	     (startcdr (nthcdr (- (length token) 2) token)))
+	(if (not nontermsym)
+	    (error "Parse error @ %d" (car (cdr (car stream)))))
+	(semantic-overlay-stack-add stream-overlays)
+	(if token
+	    (let ((o (condition-case nil
+			 (semantic-make-overlay (car startcdr)
+						(car (cdr startcdr))
+						(current-buffer)
+						;; Examin start/rear
+						;; advance flags.
+						)
+		       (error (debug token)
+			      nil))))
+	      ;; Convert START/END into an overlay.
+	      (setcdr startcdr nil)
+	      (setcar startcdr o)
+	      (semantic-overlay-put o 'semantic token)
+	      ;; Expand based on local configuration
+	      (if (not semantic-expand-nonterminal)
+		  ;; no expanders
+		  (setq result (cons token result))
+		;; Glom generated tokens
+		(setq tmpet (funcall semantic-expand-nonterminal token))
+		(if (not tmpet)
+		    (progn (setq result (cons token result))
+			   (semantic-overlay-stack-add o))
+		  ;; Fixup all overlays, start by deleting the old one
+		  (let ((motok tmpet) o start end)
+		    (while motok
+		      (setq startcdr (nthcdr (- (length (car motok)) 1)
+					     (car motok))
+			    ;; this will support new overlays created by
+			    ;; the special function, or recycles
+			    start (or (semantic-overlay-start
+				       (car startcdr)) start)
+			    end (or (semantic-overlay-end
+				     (car startcdr)) end)
+			    o (semantic-make-overlay start end
+						     (current-buffer)))
+		      (if (semantic-overlay-buffer (car startcdr))
+			  (semantic-overlay-delete (semantic-token-overlay
+						    (car motok))))
+		      (semantic-overlay-stack-add o)
+		      (setcdr startcdr nil)
+		      (setcar startcdr o)
+		      (semantic-overlay-put o 'semantic (car motok))
+		      (setq motok (cdr motok))))
+		  (setq result (append tmpet result)))))
+	  (if returnonerror (setq stream nil))
+	  ;;(error "Parse error")
+	  )
+	;; Designated to ignore.
+	(setq stream (car nontermsym)))
       (if stream
 	  (working-status (floor
 			   (* 100.0 (/ (float (car (cdr (car stream))))
@@ -704,6 +703,7 @@ so far, to be used in the error recovery stack."
 	(val nil)			;Value found in buffer.
 	(cvl nil)			;collected values list.
 	(out nil)			;Output
+	(ov nil)			;Overlay
 	(s-stack nil)			;rollback stream stack
 	(start nil)			;the beginning and end.
 	(end nil)
@@ -765,9 +765,6 @@ so far, to be used in the error recovery stack."
 	 (t
 	  (setq lse (car s)		;Get the local stream element
 		s (cdr s))		;update stream.
-	  ;; trash comments if it's turned on
-	  (while (eq (car (car s)) 'comment)
-	    (setq s (cdr s)))
 	  ;; Do the compare
 	  (if (eq (car lte) (car lse))	;syntactic match
 	      (let ((valdot (cdr lse)))
@@ -842,15 +839,17 @@ The return list is a lambda expression to be used in a bovine table."
   `(lambda (vals start end)
      (append ,@return-val (list start end))))
 
-(defun semantic-bovinate-from-nonterminal (start end nonterm &optional depth)
+(defun semantic-bovinate-from-nonterminal (start end nonterm
+						 &optional depth length)
   "Bovinate from within a nonterminal lambda from START to END.
 Depends on the existing environment created by `semantic-bovinate-stream'.
 Argument NONTERM is the nonterminal symbol to start with.
 Optional argument DEPTH is the depth of lists to dive into.
 Whan used in a `lambda' of a MATCH-LIST, there is no need to include
-a START and END part."
+a START and END part.
+Optional argument LENGTH specifies we are only interested in LENGTH tokens."
   (car-safe (cdr (semantic-bovinate-nonterminal
-		  (semantic-flex start end (or depth 1))
+		  (semantic-flex start end (or depth 1) length)
 		  ;; the byte compiler will complain about TABLE
 		  table
 		  nonterm))))
@@ -868,13 +867,12 @@ a START and END part."
   (nreverse
    (semantic-bovinate-nonterminals (semantic-flex start end (or depth 1))
 				   nonterm
-				   depth
-				   ;; Compiler will complain.
-				   trashcomments)))
+				   depth)))
 
 (defun semantic-bovinate-block-until-header (start end nonterm &optional depth)
   "Bovinate between START and END starting with NONTERM.
 If NONTERM is nil, start with `bovine-block-toplevel'.
+Optinal DEPTH specifies how many levels of parenthesis to enter.
 This command will parse until an error is encountered, and return
 the list of everything found until that moment.
 This is meant for finding variable definitions at the beginning of
@@ -884,8 +882,6 @@ commands, use `semantic-bovinate-from-nonterminal-full'."
    (semantic-bovinate-nonterminals (semantic-flex start end (or depth 1))
 				   nonterm
 				   depth
-				   (or (symbol-value 'trashcomments)
-				       t)
 				   ;; This says stop on an error.
 				   t)))
 
@@ -938,7 +934,7 @@ Argument COMMENT is additional description."
     (switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
     (other-window 1)
     (semantic-clear-toplevel-cache)
-    (semantic-bovinate-toplevel nil t)))
+    (semantic-bovinate-toplevel)))
 
 (defun semantic-bovinate-show (lse nonterminal matchlen tokenlen collection)
   "Display some info about the current parse.
@@ -1119,7 +1115,7 @@ Save the obarry into `semantic-flex-keywords-obarray'."
 Optional argument DEPTH is the depth to scan into lists."
   (semantic-flex (point-min) (point-max) depth))
 
-(defun semantic-flex (start end &optional depth)
+(defun semantic-flex (start end &optional depth length)
   "Using the syntax table, do something roughly equivalent to flex.
 Semantically check between START and END.  Optional argument DEPTH
 indicates at what level to scan over entire lists.
@@ -1128,7 +1124,9 @@ as (symbol start-expression .  end-expresssion).
 END does not mark the end of text scanned, only the end of the beginning
 of text scanned.  Thus, if a string extended past END, the end of the
 return token will be larger than END.  To truly restrict scanning, using
-`narrow-to-region'."
+narrow-to-region'.
+The last argument, LENGTH specifies that `semantic-flex' should only return
+LENGTH tokens."
   ;(message "Flexing muscles...")
   (if (not semantic-flex-keywords-obarray)
       (setq semantic-flex-keywords-obarray [ nil ]))
@@ -1141,14 +1139,16 @@ return token will be larger than END.  To truly restrict scanning, using
 		(concat "\\(\\s<\\|" comment-start-skip "\\)")
 	      (concat "\\(\\s<\\)")))
 	(newsyntax (copy-syntax-table (syntax-table)))
-	(mods semantic-flex-syntax-modifications))
+	(mods semantic-flex-syntax-modifications)
+	;; Use the default depth if it is not specified.
+	(depth (or depth semantic-flex-depth)))
     ;; Update the syntax table
     (while mods
       (modify-syntax-entry (car (car mods)) (car (cdr (car mods))) newsyntax)
       (setq mods (cdr mods)))
     (with-syntax-table newsyntax
       (goto-char start)
-      (while (< (point) end)
+      (while (and (< (point) end) (or (not length) (<= (length ts) length)))
 	(cond (;; catch newlines when needed
 	       (and semantic-flex-enable-newlines
 		    (looking-at "\n"))
@@ -1218,17 +1218,22 @@ return token will be larger than END.  To truly restrict scanning, using
 					    (setq ep (point)))))
 			      ts)))
 	      ((looking-at cs)
-	       ;; Zing to the end of this comment.
-	       (if (eq (car (car ts)) 'comment)
-		   (setcdr (cdr (car ts)) (save-excursion
-					    (forward-comment 1)
-					    (setq ep (point))))
-		 (setq ts (cons (cons 'comment
-				      (cons (match-beginning 0)
-					    (save-excursion
+	       (if semantic-ignore-comments
+		   ;; If the language doesn't deal with comments,
+		   ;; ignore them here.
+		   (progn (forward-comment 1)
+			  (setq ep (point)))
+		 ;; Language wants comments, link them together.
+		 (if (eq (car (car ts)) 'comment)
+		     (setcdr (cdr (car ts)) (save-excursion
 					      (forward-comment 1)
-					      (setq ep (point)))))
-				ts))))
+					      (setq ep (point))))
+		   (setq ts (cons (cons 'comment
+					(cons (match-beginning 0)
+					      (save-excursion
+						(forward-comment 1)
+						(setq ep (point)))))
+				  ts)))))
 	      ((looking-at "\\(\\s.\\|\\s$\\|\\s'\\)")
 	       (setq ts (cons (cons 'punctuation
 				    (cons (match-beginning 0) (match-end 0)))
