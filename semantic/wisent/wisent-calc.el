@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.16 2004/03/21 18:20:41 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.17 2004/03/24 13:31:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -81,11 +81,9 @@ Parse INPUT string and output the result of computation."
     (semantic-lex-init)
     (insert input)
     (let ((wisent-lex-istream (semantic-lex-buffer)))
-      (message "%s -> %s"
-               input
-               (wisent-parse semantic--parse-table
-                             #'wisent-lex
-                             #'error)))))
+      (message "%s -> %s" input
+               (wisent-parse semantic--parse-table 'wisent-lex))
+      )))
 
 (provide 'wisent-calc)
 
