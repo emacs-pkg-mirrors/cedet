@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.12 2002/08/04 16:17:09 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.13 2002/08/04 17:12:34 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -49,7 +49,7 @@
 
 (defconst wisent-java-parser-tables
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-04 17:55+0200
+    ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-04 18:56+0200
     (wisent-compile-grammar
      '((LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP IDENTIFIER STRING_LITERAL NUMBER_LITERAL ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED)
        nil
@@ -90,10 +90,10 @@
          (nreverse $2)))
        (class_body
         ((BRACE_BLOCK)
-         (semantic-bovinate-from-nonterminal-full
+         (semantic-bovinate-region
           (car $region1)
           (cdr $region1)
-          'class_member_declaration)))
+          'class_member_declaration 1)))
        (class_member_declaration
         ((LBRACE)
          nil)
@@ -121,10 +121,10 @@
          (identity $2)))
        (interface_body
         ((BRACE_BLOCK)
-         (semantic-bovinate-from-nonterminal-full
+         (semantic-bovinate-region
           (car $region1)
           (cdr $region1)
-          'interface_member_declaration)))
+          'interface_member_declaration 1)))
        (interface_member_declaration
         ((LBRACE)
          nil)
@@ -185,10 +185,10 @@
            ((BRACE_BLOCK)))
        (formal_parameter_list
         ((PAREN_BLOCK)
-         (semantic-bovinate-from-nonterminal-full
+         (semantic-bovinate-region
           (car $region1)
           (cdr $region1)
-          'formal_parameters)))
+          'formal_parameters 1)))
        (formal_parameters
         ((LPAREN)
          nil)
@@ -339,7 +339,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-04 17:55+0200
+   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-04 18:56+0200
    (semantic-lex-make-keyword-table
     '(("abstract" . ABSTRACT)
       ("boolean" . BOOLEAN)
@@ -495,7 +495,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-04 17:55+0200
+   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-04 18:56+0200
    (wisent-flex-make-token-table
     '(("number"
        (NUMBER_LITERAL))
@@ -590,7 +590,7 @@ This function is a Java specific `get-local-variables' override."
       (save-excursion
         (forward-char 1)
         (setq vars
-              (append (semantic-bovinate-from-nonterminal-full
+              (append (semantic-bovinate-region
                        (point)
                        (save-excursion (semantic-end-of-context) (point))
                        'field_declaration
@@ -605,7 +605,7 @@ This function is a Java specific `get-local-variables' override."
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-04 17:55+0200
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-04 18:56+0200
   (progn
     (semantic-install-function-overrides
      '((bovinate-nonterminal . wisent-bovinate-nonterminal)))
