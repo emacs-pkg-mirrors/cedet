@@ -37,6 +37,6 @@
   :web-site-url "http://cedet.sourceforge.net/eieio.shtml"
   :web-site-directory "/r@scp:shell.sourceforge.net:cedet/htdocs"
   :web-site-file "eieio.shtml"
-  :ftp-upload-site "/ftp@upload.sourceforge.net/incoming"
+  :ftp-upload-site "/ftp@upload.sourceforge.net:/incoming"
   :configuration-variables 'nil
   )
