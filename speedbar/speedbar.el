@@ -5,7 +5,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.211 2002/02/26 12:11:28 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.212 2002/02/28 16:14:31 zappo Exp $
 
 (defvar speedbar-version "0.14beta2"
   "The current version of speedbar.")
@@ -277,7 +277,15 @@ error occured, and the next fetch routine is tried.
 INSERT is a function which takes an INDENTation level, and a LIST of
 tags to insert.  It will then create the speedbar buttons.")
 
-(defcustom speedbar-track-mouse-flag (< emacs-major-version 21)
+(defcustom speedbar-use-tool-tips-flag (and (not (featurep 'xemacs))
+				       (>= emacs-major-version 21))
+  "*Non-nil means to use tool tips if they are avaialble.
+When tooltips are not available, mouse-tracking and minibuffer
+display is used instead."
+  :group 'speedbar
+  :type 'boolean)
+
+(defcustom speedbar-track-mouse-flag (not speedbar-use-tool-tips-flag)
   "*Non-nil means to display info about the line under the mouse."
   :group 'speedbar
   :type 'boolean)
@@ -556,7 +564,10 @@ singular expression.  This variable will be turned into
 `speedbar-file-regexp' for use with speedbar.  You should use the
 function `speedbar-add-supported-extension' to add a new extension at
 runtime, or use the configuration dialog to set it in your .emacs
-file."
+file.
+If you add an extension to this list, and it does not appear, you may
+need to also modify `completion-ignored-extension' which will also help
+file completion."
   :group 'speedbar
   :type '(repeat (regexp :tag "Extension Regexp"))
   :set (lambda (sym val)
@@ -1595,7 +1606,8 @@ MOUSE is the mouse face.  When this button is clicked on FUNCTION
 will be run with the TOKEN parameter (any Lisp object)"
   (put-text-property start end 'face face)
   (put-text-property start end 'mouse-face mouse)
-  (put-text-property start end 'help-echo #'dframe-help-echo)
+  (if speedbar-use-tool-tips-flag
+      (put-text-property start end 'help-echo #'dframe-help-echo))
   (put-text-property start end 'invisible nil)
   (put-text-property start end 'speedbar-text
 		     (buffer-substring-no-properties start end))
