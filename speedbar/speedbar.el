@@ -4,14 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.233 2003/09/26 04:01:51 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.234 2003/10/02 01:45:41 zappo Exp $
 
 (defvar speedbar-version "0.15beta1"
   "The current version of speedbar.")
 (defvar speedbar-incompatible-version "0.14beta4"
   "This version of speedbar is incompatible with this version.
-Due to massive API changes (removing the use of the worrd PATH) 
-we are not backward compatible to 0.14 or earlier.")
+Due to massive API changes (removing the use of the word PATH) 
+this version is not backward compatible to 0.14 or earlier.")
 
 ;; This file is part of GNU Emacs.
 
