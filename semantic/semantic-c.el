@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.3 2002/12/27 17:01:37 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.4 2003/01/24 12:31:47 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,8 +43,8 @@
 `((bovine-toplevel
  ( macro)
  ( type)
- ( var-or-fun)
  ( define)
+ ( var-or-fun)
  ( extern-c)
  ( template)
  ( using)
@@ -73,13 +73,30 @@
   ,(semantic-lambda
   (list nil)))
  ) ; end extern-c
+ (macro-expression-list
+ ( expression macro-expression-list punctuation "\\b;\\b"
+  ,(semantic-lambda
+  (list nil)))
+ ( expression
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end macro-expression-list
+ (macro-def
+ ( macro-expression-list
+  ,(semantic-lambda
+  (list nil)))
+ ( expression
+  ,(semantic-lambda
+  (list nil)))
+ ()
+ ) ; end macro-def
  (macro
  ( punctuation "\\b#\\b" macro-or-include
   ,(semantic-lambda
   (nth 1 vals)))
  ) ; end macro
  (macro-or-include
- ( DEFINE symbol opt-define-arglist opt-expression
+ ( DEFINE symbol opt-define-arglist macro-def
   ,(semantic-lambda
   (list (nth 1 vals) 'variable nil (nth 2 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
  ( INCLUDE system-include
@@ -96,9 +113,9 @@
  ()
  ) ; end opt-define-arglist
  (define
- ( punctuation "\\b#\\b" DEFINE symbol opt-expression
+ ( punctuation "\\b#\\b" DEFINE symbol opt-define-arglist macro-def
   ,(semantic-lambda
-  (list (nth 1 vals) 'variable nil (nth 2 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
+  (list (nth 2 vals) 'variable nil (nth 3 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
  ) ; end define
  (unionparts
  ( semantic-list
@@ -140,10 +157,10 @@
  (class-parents
  ( opt-class-protection opt-class-declmods namespace-symbol punctuation "\\b,\\b" class-parents
   ,(semantic-lambda
-  ( cons ( car (nth 3 vals)) (nth 5 vals))))
+  ( cons (nth 2 vals) (nth 4 vals))))
  ( opt-class-protection opt-class-declmods namespace-symbol
   ,(semantic-lambda
-  (nth 3 vals)))
+  (nth 2 vals)))
  ) ; end class-parents
  (opt-class-declmods
  ( class-declmods opt-class-declmods
@@ -264,12 +281,17 @@
  ( NAMESPACE symbol namespaceparts
   ,(semantic-lambda
   (list (nth 1 vals) 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
+ ( NAMESPACE namespaceparts
+  ,(semantic-lambda
+  (list "unnamed" 'type (nth 0 vals) (nth 1 vals) nil nil nil)))
  ) ; end type
  (using
  ( USING typeformbase punctuation "\\b;\\b"
   ,(semantic-lambda
   (list nil)))
- ( USING symbol punctuation "\\b:\\b" punctuation "\\b:\\b" typeformbase punctuation "\\b;\\b")
+ ( USING NAMESPACE typeformbase punctuation "\\b;\\b"
+  ,(semantic-lambda
+  (list nil)))
  ) ; end using
  (template
  ( TEMPLATE template-specifier opt-friend template-definition
@@ -325,12 +347,21 @@
  ( STRUCT symbol
   ,(semantic-lambda
   (list (nth 1 vals) 'type "struct" nil nil)))
+ ( TYPENAME symbol
+  ,(semantic-lambda
+  (list (nth 1 vals) 'type "struct" nil nil)))
+ ( builtintype symbol
+  ,(semantic-lambda
+  (nth 0 vals) (list 'type nil nil nil)))
  ( builtintype
   ,(semantic-lambda
   (nth 0 vals) (list 'type nil nil nil)))
- ( symbol
+ ( namespace-symbol symbol
   ,(semantic-lambda
-  (list (nth 0 vals) 'type nil nil nil)))
+  (nth 0 vals) (list 'type nil nil nil)))
+ ( namespace-symbol
+  ,(semantic-lambda
+  (nth 0 vals) (list 'type nil nil nil)))
  ) ; end template-type
  (template-definition
  ( type
@@ -375,12 +406,12 @@
  ( STATIC)
  ( CONST)
  ( VOLATILE)
- ( SIGNED)
- ( UNSIGNED)
  ( INLINE)
  ( REGISTER)
  ( FRIEND)
+ ( TYPENAME)
  ( METADECLMOD)
+ ( VIRTUAL)
  ) ; end DECLMOD
  (metadeclmod
  ( METADECLMOD
@@ -428,14 +459,38 @@
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end typeformbase
- (builtintype
+ (signedmod
+ ( UNSIGNED)
+ ( SIGNED)
+ ) ; end signedmod
+ (builtintype-types
  ( VOID)
  ( CHAR)
  ( SHORT)
  ( INT)
- ( LONG)
+ ( LONG INT
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) " " (nth 1 vals)))))
  ( FLOAT)
  ( DOUBLE)
+ ( LONG DOUBLE
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) " " (nth 1 vals)))))
+ ( LONG LONG
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) " " (nth 1 vals)))))
+ ( LONG)
+ ) ; end builtintype-types
+ (builtintype
+ ( signedmod builtintype-types
+  ,(semantic-lambda
+  (list ( concat ( car (nth 0 vals)) " " ( car (nth 1 vals))))))
+ ( builtintype-types
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ( signedmod
+  ,(semantic-lambda
+  (list ( concat ( car (nth 0 vals)) " int"))))
  ) ; end builtintype
  (codeblock-var-or-fun
  ( declmods typeformbase metadeclmod opt-ref var-or-func-decl
@@ -478,8 +533,8 @@
  ()
  ) ; end opt-under-p
  (opt-initializers
- ( punctuation "\\b:\\b" symbol semantic-list opt-initializers)
- ( punctuation "\\b,\\b" symbol semantic-list opt-initializers)
+ ( punctuation "\\b:\\b" namespace-symbol semantic-list opt-initializers)
+ ( punctuation "\\b,\\b" namespace-symbol semantic-list opt-initializers)
  ()
  ) ; end opt-initializers
  (opt-post-fcn-modifiers
@@ -545,9 +600,9 @@
  ()
  ) ; end opt-restrict
  (varname
- ( opt-stars opt-restrict symbol opt-bits opt-array opt-assign
+ ( opt-stars opt-restrict namespace-symbol opt-bits opt-array opt-assign
   ,(semantic-lambda
-  (list (nth 2 vals)) (nth 0 vals) (nth 3 vals) (nth 4 vals) (nth 5 vals)))
+  (nth 2 vals) (nth 0 vals) (nth 3 vals) (nth 4 vals) (nth 5 vals)))
  ) ; end varname
  (variablearg
  ( declmods typeformbase opt-ref opt-stars variablearg-opt-name
@@ -578,10 +633,18 @@
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end namespace-symbol
- (opt-class
- ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b"
+ (namespace-opt-class
+ ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b" namespace-opt-class
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) "::" ( car (nth 3 vals))))))
+ ( symbol opt-template-specifier punctuation "\\b:\\b" punctuation "\\b:\\b"
   ,(semantic-lambda
   (list (nth 0 vals))))
+ ) ; end namespace-opt-class
+ (opt-class
+ ( namespace-opt-class
+  ,(semantic-lambda
+  (nth 0 vals)))
  (
   ,(semantic-lambda
   (list nil)))
@@ -654,6 +717,12 @@
  ( punctuation "\\b-\\b" punctuation "\\b>\\b"
   ,(semantic-lambda
   (list "->")))
+ ( semantic-list "()"
+  ,(semantic-lambda
+  (list "()")))
+ ( semantic-list "\\[\\]"
+  ,(semantic-lambda
+  (list "[]")))
  ( punctuation "\\b<\\b")
  ( punctuation "\\b>\\b")
  ( punctuation "\\b\\*\\b")
@@ -682,12 +751,6 @@
   ,(semantic-lambda
   (list 'pure-virtual)))
  ) ; end fun-or-proto-end
- (opt-expression
- ( expression)
- (
-  ,(semantic-lambda
-  (list nil)))
- ) ; end opt-expression
  (type-cast
  ( semantic-list
  ,(lambda (vals start end)
@@ -699,7 +762,7 @@
  ( open-paren typeformbase close-paren)
  ) ; end type-cast-list
  (function-call
- ( symbol semantic-list)
+ ( namespace-symbol semantic-list)
  ) ; end function-call
  (expression
  ( number
@@ -708,7 +771,7 @@
  ( function-call
   ,(semantic-lambda
   (list ( identity start) ( identity end))))
- ( symbol
+ ( namespace-symbol
   ,(semantic-lambda
   (list ( identity start) ( identity end))))
  ( string
@@ -731,8 +794,15 @@
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
     ("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if)
     ("<[^\n>]+>" . semantic-flex-c-include-system)
+    ("\\(\\\\\n\\)" . semantic-flex-backslash-newline)
     )
   "Extensions to the flexer for C.")
+
+(defun semantic-flex-backslash-newline ()
+  "If there is a \ ending a line, then it isn't really a newline. Move cursor
+direct after the \"backslashed\"-newline and return nothing."
+  (goto-char (match-end 1))
+  nil)
 
 (defun semantic-flex-c-include-system ()
   "Move cursor to the end of system includes and return it.
@@ -940,7 +1010,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   def)
 
 (defvar semantic-c-keyword-table
-  (semantic-flex-make-keyword-table
+  (semantic-flex-make-keyword-table 
    `( ("include" . INCLUDE)
       ("define" . DEFINE)
       ("extern" . EXTERN)
@@ -958,6 +1028,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
       ("enum" . ENUM)
       ("typedef" . TYPEDEF)
       ("class" . CLASS)
+      ("typename" . TYPENAME)
       ("namespace" . NAMESPACE)
       ("using" . USING)
       ("template" . TEMPLATE)
@@ -1006,6 +1077,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("enum" summary "Enumeration Type Declaration: enum [name] { ... };")
      ("typedef" summary "Arbitrary Type Declaration: typedef <typedeclaration> <name>;")
      ("class" summary "Class Declaration: class <name>[:parents] { ... };")
+     ("typename" summary "typename is used to handle a qualified name as a typename;")
      ("namespace" summary "Namespace Declaration: namespace <name> { ... };")
      ("using" summary "using <namespace>;")
      ("template" summary "template <class TYPE ...> TYPE_OR_FUNCTION")
