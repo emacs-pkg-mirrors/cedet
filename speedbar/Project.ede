@@ -10,6 +10,7 @@
     :path ""
     :source '("dframe.el" "speedbar.el")
     :versionsource '("speedbar.el")
+    :aux-packages '("ezimage")
     )
    (ede-proj-target-makefile-info "info"
     :name "info"
