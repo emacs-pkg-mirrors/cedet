@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.23 2000/04/16 22:35:34 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.24 2000/04/21 01:57:01 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -302,7 +302,7 @@ or in line with a variable.  The last two elements must be START and END.
 
 It may seem odd to place NAME in slot 0, and the type-symbol in slot
 1, but this turns the returned elements into a list which can be used
-by alist based function. This makes it ideal for passing into generic
+by alist based function.  This makes it ideal for passing into generic
 sorters, string completion functions, and list searching functions.
 
 In the below entry formats, \"NAME\" is a string which is the name of
@@ -403,10 +403,6 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
   `(nth 4 ,token))
 
 (defmacro semantic-token-function-args (token)
-  "Retrieve the type of TOKEN."
-  `(nth 3 ,token))
-
-(defmacro semantic-token-type-parts (token)
   "Retrieve the type of TOKEN."
   `(nth 3 ,token))
 
@@ -589,6 +585,7 @@ Optional argument PARENT is the parent type if TOKEN is a detail."
 This functin must be overloaded, though it need not be used."
   (let ((s (semantic-fetch-overload 'summerize-nonterminal)))
     (if s
+	;; Prototype is non-local
 	(funcall s token prototype)
       (error "No generic implementation for prototypeing nonterminals"))))
 
