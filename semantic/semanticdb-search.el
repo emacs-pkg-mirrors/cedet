@@ -1,10 +1,10 @@
 ;;; semanticdb-search.el --- Searching through semantic databases.
 
-;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.5 2002/08/20 16:38:10 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.6 2003/02/25 15:02:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,6 +28,26 @@
 ;; Databases of various forms call all be searched.  These routines
 ;; cover many common forms of searching.
 ;;
+;; There are three types of searches that can be implemented:
+;;
+;; Basic Search:
+;;  These searches allow searching on specific attributes of tokens,
+;;  such as name or type.
+;;
+;; Advanced Search:
+;;  These are searches that were needed to accomplish some tasks
+;;  during in utilities.  Advanced searches include matching methods
+;;  defined outside some parent class.
+;;
+;;  The reason for advanced searches are so that external
+;;  repositories such as the Emacs obarray, or java .class files can
+;;  quickly answer these needed questions without dumping the entire
+;;  symbol list into Emacs for a regular semanticdb search.
+;;
+;; Generic Search:
+;;  The generic search, `semanticdb-find-nonterminal-by-function'
+;;  accepts a Emacs Lisp predicate that tests tokens in Semantic
+;;  format.  Most external searches cannot perform this search.
 
 (require 'semanticdb)
 
@@ -212,6 +232,24 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
    ignore-system
    find-file-match))
 
+;;; Advanced Search Routines
+;;
+(defun semanticdb-find-nonterminal-external-children-of-type
+  (type &optional databases search-parts search-includes diff-mode find-file-match ignore-system)
+  "Find all nonterminals which are child elements of TYPE.
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
+Return a list ((DB-TABLE . TOKEN-LIST) ...)."
+  (semanticdb-collect-find-results
+   databases
+   (lambda (db)
+     (semanticdb-find-nonterminal-external-children-of-type-method
+      db type search-parts search-includes diff-mode find-file-match))
+   ignore-system
+   find-file-match))
+
+;;; Generic Search routine
+;;
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-function
@@ -325,6 +363,27 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
      (semantic-find-nonterminal-by-extra-spec-value spec value stream sp si))
    search-parts search-includes diff-mode find-file-match))
 
+;;; Advanced Searches
+;;
+(defmethod semanticdb-find-nonterminal-external-children-of-type-method
+  ((database semanticdb-project-database) type search-parts search-includes diff-mode find-file-match)
+  "Find all nonterminals which are child elements of TYPE
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
+Return a list ((DB-TABLE . TOKEN-LIST) ...)."
+  (semanticdb-find-nonterminal-by-function-method
+   database
+   `(lambda (stream sp si)
+      (semantic-find-nonterminal-by-function
+       (lambda (tok)
+	 (let ((p (semantic-nonterminal-external-member-parent tok)))
+	   (and (stringp p) (string= ,type p)))
+	 )
+       stream sp si))
+   nil nil t))
+
+;;; Generic Search
+;;
 (defmethod semanticdb-find-nonterminal-by-function-method
   ((database semanticdb-project-database)
    function &optional search-parts search-includes diff-mode find-file-match)
