@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.68 2000/07/19 02:38:42 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.69 2000/08/01 23:15:35 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -44,17 +44,16 @@
 (eval-when-compile (require 'cl))
 
 ;;; Code:
-
-(eval-and-compile
-;; Abount the above.  EIEIO must process it's own code when it compiles
-;; itself, thus, by requiring outselves, we solve the problem.
-
 (defvar eieio-version "0.15"
   "Current version of EIEIO.")
 (defun eieio-version ()
   "Display the current version of EIEIO."
   (interactive)
   (message eieio-version))
+
+(eval-and-compile
+;; Abount the above.  EIEIO must process it's own code when it compiles
+;; itself, thus, by eval-and-compiling outselves, we solve the problem.
 
 (if (not (fboundp 'typep))
     (autoload 'typep "cl" "Determie if OBJ is of type TYPE." nil))
@@ -66,7 +65,7 @@
     (defalias 'eieio-compiled-function-arglist 'compiled-function-arglist)
 
   ;; Emacs doesn't have this function, but since FUNC is a vector, we can just
-  ;; grab the apropriate slot.
+  ;; grab the appropriate element.
   (defun eieio-compiled-function-arglist (func)
     "Return the argument list for the compiled function FUNC."
     (aref func 0))
@@ -75,26 +74,8 @@
 
 
 ;;;
-;; Variable declarations.  These variables are used to hold the call
-;; state when using methods.
+;; Variable declarations.
 ;;
-
-(defvar this nil
-  "Inside a method, this variable is the object in question.
-DO NOT SET THIS YOURSELF unless you are trying to simulate friendly fields.
-
-Note: Embedded methods are no longer supported.  The variable THIS is
-still set for CLOS methods for the sake of routines like
-`call-next-method'")
-
-(defvar scoped-class nil
-  "This is set to a class when a method is running.
-This is so we know we are allowed to check private parts or how to
-execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
-
-(defvar eieio-unbound (make-symbol "unbound")
-  "Never EVER change this.
-Uninterned symbol to represent an unbound slot in an object.")
 
 (defvar eieio-hook nil
   "*This hook is executed, then cleared each time `defclass' is called.
@@ -113,6 +94,23 @@ since EIEIO does not support all CLOS tags.")
 Set this to t permanently if a program is functioning well to get a
 small speed increase.  This variable is also used internally to handle
 default setting for optimization purposes.")
+
+;; State Variables
+(defvar this nil
+  "Inside a method, this variable is the object in question.
+DO NOT SET THIS YOURSELF unless you are trying to simulate friendly fields.
+
+Note: Embedded methods are no longer supported.  The variable THIS is
+still set for CLOS methods for the sake of routines like
+`call-next-method'")
+
+(defvar scoped-class nil
+  "This is set to a class when a method is running.
+This is so we know we are allowed to check private parts or how to
+execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
+
+(defconst eieio-unbound (make-symbol "unbound")
+  "Uninterned symbol representing an unbound slot in an object.")
 
 ;; This is a bootstrap for eieio-default-superclass so it has a value
 ;; while it is being built itself.
@@ -826,26 +824,30 @@ doc string, and eventually the body, such as:
 	      (and (object-p value) (obj-of-class-p value spec)))
 	(typep value spec))))
 
-(defun eieio-validate-slot-value (class field-idx value)
+(defun eieio-validate-slot-value (class field-idx value field)
   "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
-Checks the :type specifier."
+Checks the :type specifier.
+FIELD is the field that is being checked, and is only used when throwing
+and error."
   (if eieio-skip-typecheck
       nil
     ;; Trim off object IDX junk added in for the object index.
     (setq field-idx (- field-idx 3))
     (let ((st (aref (aref (class-v class) class-public-type) field-idx)))
       (if (not (eieio-perform-slot-validation st value))
-	  (signal 'invalid-slot-type (list st value))))))
+	  (signal 'invalid-slot-type (list class field st value))))))
 
-(defun eieio-validate-class-slot-value (class field-idx value)
+(defun eieio-validate-class-slot-value (class field-idx value field)
   "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
-Checks the :type specifier."
+Checks the :type specifier.
+FIELD is the field that is being checked, and is only used when throwing
+and error."
   (if eieio-skip-typecheck
       nil
     (let ((st (aref (aref (class-v class) class-class-allocation-type)
 		    field-idx)))
       (if (not (eieio-perform-slot-validation st value))
-	  (signal 'invalid-slot-type (list st value))))))
+	  (signal 'invalid-slot-type (list class field st value))))))
 
 (defun eieio-barf-if-slot-unbound (value instance slotname fn)
   "Throw a signal if VALUE is a representation of an UNBOUND slot.
@@ -971,7 +973,7 @@ Fills in OBJ's FIELD with VALUE."
 		  (eieio-class-field-name-index (aref obj object-class) field))
 	    ;; Oset that slot.
 	    (progn
-	      (eieio-validate-class-slot-value (object-class-fast obj) c value)
+	      (eieio-validate-class-slot-value (object-class-fast obj) c value field)
 	      (aset (aref (class-v (aref obj object-class))
 			  class-class-allocation-values)
 		    c value))
@@ -979,7 +981,7 @@ Fills in OBJ's FIELD with VALUE."
 	  (slot-missing obj field 'oset value)
 	  ;;(signal 'invalid-slot-name (list (object-name obj) field))
 	  )
-      (eieio-validate-slot-value (object-class-fast obj) c value)
+      (eieio-validate-slot-value (object-class-fast obj) c value field)
       (aset obj c value))))
 
 (defmacro oset-default (class field value)
@@ -1002,11 +1004,11 @@ Fills in the default value in CLASS' in FIELD with VALUE."
 	(if (setq c (eieio-class-field-name-index class field))
 	    (progn
 	      ;; Oref that slot.
-	      (eieio-validate-class-slot-value class c value)
+	      (eieio-validate-class-slot-value class c value field)
 	      (aset (aref (class-v class) class-class-allocation-values) c
 		    value))
 	  (signal 'invalid-slot-name (list (class-name class) field)))
-      (eieio-validate-slot-value class c value)
+      (eieio-validate-slot-value class c value field)
       (setcar (nthcdr (- c 3) (aref (class-v class) class-public-d))
 	      value))))
 
