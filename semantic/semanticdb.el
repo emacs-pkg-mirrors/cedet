@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.14 2001/02/21 21:10:18 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.15 2001/02/23 02:02:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,7 +22,7 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
-
+;; 
 ;;; Commentary:
 ;;
 ;; Maintain a database of tags for a group of files and enable
@@ -34,6 +34,11 @@
 (require 'eieio-base)
 
 ;;; Variables:
+(defgroup semanticdb nil
+  "Parser Generator Imenu interface."
+  :group 'semantic
+  )
+
 ;;;###autoload
 (defcustom semanticdb-global-mode nil
   "*If non-nil enable the use of `semanticdb-minor-mode'."
@@ -47,7 +52,7 @@
 
 (defcustom semanticdb-default-file-name "semantic.cache"
   "*File name of the semantic token cache."
-  :group 'semantic
+  :group 'semanticdb
   :type 'string)
 
 (defcustom semanticdb-persistent-path '(project)
@@ -61,14 +66,14 @@ list can also be a symbol.  Valid symbols are `never', which will
 disable any saving anywhere, `always', which enables saving
 everywhere, or `project', which enables saving in any directory that
 passes `semanticdb-directory-project-p'."
-  :group 'semantic
+  :group 'semanticdb
   :type nil)
 
 (defcustom semanticdb-save-database-hooks nil
   "*Hooks run after a database is saved.
 Each function is called with one argument, the object representing
 the database recently written."
-  :group 'semantic
+  :group 'semanticdb
   :type 'hook)
 
 (defvar semanticdb-database-list nil
