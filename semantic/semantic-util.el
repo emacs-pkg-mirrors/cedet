@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.21 2000/09/22 02:08:24 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.22 2000/09/25 23:04:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -291,9 +291,14 @@ in the new list."
     found))
 
 ;;; Bucketizing: Take and convert the tokens based on type.
-(defun semantic-bucketize (tokens)
-  "Sort TOKENS into a group of buckets based on type, and toss the rest.
-The buckets should be organized into a form usable by `semantic-sb-buttons'."
+;;
+(defun semantic-bucketize (tokens &optional filter)
+  "Sort TOKENS into a group of buckets based on token type.
+Unknown types are placed in a Misc bucket.
+The buckets will be organized into a form usable by `semantic-sb-buttons'.
+Optional argument FILTER is a filter function to be applied to each bucket.
+The filter function will take one argument, which is a list of tokens, and
+may re-organize the list with side-effects."
   (let ((bins (make-vector (1+ (length semantic-symbol->name-assoc-list)) nil))
 	ask toktype
 	(sn semantic-symbol->name-assoc-list)
@@ -312,18 +317,94 @@ The buckets should be organized into a form usable by `semantic-sb-buttons'."
 	    num (or (cdr ask) 0))
       (aset bins num (cons (car tokens) (aref bins num)))
       (setq tokens (cdr tokens)))
-    ;; Remove from buckets into a speedbar supported list.
+    ;; Remove from buckets into a list.
     (setq num 1)
     (while (< num (length bins))
       (when (aref bins num)
 	(setq out
 	      (cons (cons
 		     (cdr (nth (1- num) semantic-symbol->name-assoc-list))
-		     (aref bins num))
+		     ;; Filtering, First hacked by David Ponce david@dponce.com
+		     (funcall (or filter 'nreverse) (aref bins num)))
 		    out)))
       (setq num (1+ num)))
-    (if (aref bins 0) (setq out (cons (cons "Misc" (aref bins 0)) out)))
+    (if (aref bins 0)
+	(setq out (cons (cons "Misc"
+			      (funcall (or filter 'nreverse) (aref bins 0)))
+			out)))
     (nreverse out)))
+
+;; Some sorting functions
+(defun semantic-string-lessp-ci (s1 s2)
+  "Case insensitive version of `string-lessp'."
+  ;; Use downcase instead of upcase because an average name
+  ;; has more lower case characters.
+  (string-lessp (downcase s1) (downcase s2)))
+
+(defun semantic-sort-token-type (token)
+  "Return a type string for TOKEN guaranteed to be a string."
+  (let ((ty (semantic-token-type token)))
+    (cond ((stringp ty)
+	   ty)
+	  ((listp ty)
+	   (or (car ty) ""))
+	  (t ""))))
+
+(defun semantic-sort-tokens-by-name-increasing (tokens)
+  "Sort TOKENS by name in increasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (string-lessp (semantic-token-name b)
+			       (semantic-token-name a)))))
+
+(defun semantic-sort-tokens-by-name-decreasing (tokens)
+  "Sort TOKENS by name in decreasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (string-lessp (semantic-token-name a)
+			       (semantic-token-name b)))))
+
+(defun semantic-sort-tokens-by-type-increasing (tokens)
+  "Sort TOKENS by type in increasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (string-lessp (semantic-sort-token-type b)
+			       (semantic-sort-token-type a)))))
+
+(defun semantic-sort-tokens-by-type-decreasing (tokens)
+  "Sort TOKENS by type in decreasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (string-lessp (semantic-sort-token-type a)
+			       (semantic-sort-token-type b)))))
+
+(defun semantic-sort-tokens-by-name-increasing-ci (tokens)
+  "Sort TOKENS by name in increasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (semantic-string-lessp-ci (semantic-token-name b)
+					   (semantic-token-name a)))))
+
+(defun semantic-sort-tokens-by-name-decreasing-ci (tokens)
+  "Sort TOKENS by name in decreasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (semantic-string-lessp-ci (semantic-token-name a)
+					   (semantic-token-name b)))))
+
+(defun semantic-sort-tokens-by-type-increasing-ci (tokens)
+  "Sort TOKENS by type in increasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (semantic-string-lessp-ci (semantic-sort-token-type b)
+					   (semantic-sort-token-type a)))))
+
+(defun semantic-sort-tokens-by-type-decreasing-ci (tokens)
+  "Sort TOKENS by type in decreasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (semantic-string-lessp-ci (semantic-sort-token-type a)
+					   (semantic-sort-token-type b)))))
 
 ;;; Recursive searching through dependency trees
 ;;
