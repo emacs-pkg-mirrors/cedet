@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-skel.el,v 1.3 2003/02/17 01:57:43 zappo Exp $
+;; X-RCS: $Id: semantic-skel.el,v 1.4 2003/08/02 08:15:35 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,6 +29,7 @@
 ;; 
 
 (require 'semantic)
+(require 'semantic-skeleton-by)
 (require 'backquote)
 
 ;; Depending on what elements you include specialized support for
@@ -39,9 +40,6 @@
   (require 'senator))
 
 ;;; Code:
-(defvar semantic-toplevel-skeleton-bovine-table
-  nil
-  "Skeleton language specification.")
 
 ;; Create a lexical analyzer for your language.  You can use
 ;; both the provided analyzers, and your own custom analyzers
@@ -77,11 +75,6 @@
 (defun semantic-expand-skeleton-nonterminal (nonterm)
   "Expand NONTERM into a list of equivalent nonterminals, or nil."
   nil)
-
-(defvar semantic-skeleton-keyword-table
-  nil
-  "Some keywords used in skeleton.")
-
 
 ;;; Override methods & Variables
 ;;
@@ -95,10 +88,31 @@
 ;;;###autoload
 (defun semantic-default-skel-setup ()
   "Set up a buffer for semantic parsing of the skeleton language."
-;; Use this after defining override functions.
-;;  (semantic-install-function-overrides
-;;   '(
-;;     ))
+  (semantic-skeleton-by--install-parser)
+  ;; Commented out lines below are generally considered optional
+  ;; See the Emacs Doc for the symbols used below
+  (setq semantic-symbol->name-assoc-list '( (variable . "Variables")
+                                            (type     . "Types")
+                                            (function . "Functions")
+                                            (include  . "Includes")
+                                            (package  . "Exports"))
+        ;;semantic-expand-nonterminal 'semantic-expand-skeleton-nonterminal
+        ;;semantic-lex-extensions semantic-lex-skeleton-extensions
+        ;;semantic-dependency-include-path semantic-default-skeleton-path
+        imenu-create-index-function 'semantic-create-imenu-index
+        semantic-type-relation-separator-character '(".")
+        semantic-command-separation-character ";"
+        document-comment-start "/*"
+        document-comment-line-prefix " *"
+        document-comment-end " */"
+        ;; Semantic navigation inside 'type children
+        senator-step-at-tag-classes '(function variable)
+        )
+
+  ;; Use this after defining override functions.
+  ;;  (semantic-install-function-overrides
+  ;;   '(
+  ;;     ))
   )
 
 ;; Loading this file will install the parser.  Add this line
