@@ -3,9 +3,9 @@
 ;;;  Copyright (C) 1998, 99  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.3
+;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.13 1999/03/17 23:39:47 zappo Exp $
+;; RCS: $Id: ede.el,v 1.14 1999/03/20 16:13:56 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -48,7 +48,7 @@
 ;;  (global-ede-mode t)
 
 ;;; Code:
-(defvar ede-version "0.0"
+(defvar ede-version "0.4"
   "Current version of the Emacs EDE.")
 
 ;; From custom web page for compatibility between versions of custom
@@ -164,13 +164,23 @@ type is required and the load function used.")
 	 :documentation "File name where this project is stored.")
    ;; No initarg.  We don't want this saved.
    (root :documentation "The root project file if this is a subproject.")
+   ;; No initarg.  We don't want this saved in a file.
+   (subproj :initform nil
+	    :documentation "Sub projects controlled by this project.
+For Automake based projects, each directory is treated as a project.")
    (targets :initarg :targets
 	    :custom (repeat object)
 	    :documentation "List of top level targets in this project.")
-   ;; No initarg.  We don't want this saved in a file.
-   (subproj :custom (repeat object)
-	    :documentation "Sub projects controlled by this project.
-For Automake based projects, each directory is treated as a project.")
+   (configurations :initarg :configurations
+		   :initform ("debug" "release")
+		   :custom (repeat string)
+		   :documentation "List of available configuration types.
+Individual target/project types can form associations between a configuration,
+and target specific elements such as build variables.")
+   (configuration-default :initarg :configuration-default
+			  :initform "debug"
+			  :custom string
+			  :documentation "The default configuration.")
    (local-variables :initarg :local-variables
 		    :initform nil
 		    :custom (repeat (cons (sexp :tag "Variable")
@@ -216,6 +226,20 @@ Do not set this to non-nil globally.  It is used internally.")
 	      '(if (not dbka) (kill-buffer (current-buffer))))))
 (put 'ede-with-projectfile 'lisp-indent-function 1)
 
+(defun ede-singular-object (prompt)
+  "Using PROMPT, choose a single object from the current buffer."
+  (if (listp ede-object)
+      (ede-choose-object prompt ede-object)
+    ede-object))
+
+(defun ede-choose-object (prompt list-o-o)
+  "Using PROMPT, ask the user which OBJECT to use based on the name field.
+Argument LIST-O-O is the list of objects to choose from."
+  (let* ((al (object-assoc-list 'name list-o-o))
+	 (ans (completing-read prompt al nil t)))
+    (setq ans (assoc ans al))
+    (cdr ans)))
+
 ;;; Minor mode specification
 ;;
 (defvar ede-minor-mode nil
@@ -256,7 +280,8 @@ Do not set this to non-nil globally.  It is used internally.")
        [ "Add to Target" ede-add-file (ede-current-project) ]
        [ "Remove from Target" ede-remove-file
 	 (and ede-object
-	      (not (obj-of-class-p ede-object ede-project))) ]
+	      (or (listp ede-object)
+		  (not (obj-of-class-p ede-object ede-project)))) ]
        [ "Edit Projectfile" ede-edit-file-target
 	 (and ede-object
 	      (not (obj-of-class-p ede-object ede-project))) ]
@@ -392,7 +417,9 @@ ARGS are additional arguments to pass to method sym."
   (if (not ede-object)
       (error "Cannot invoke %s for %s" (symbol-name sym)
 	     (buffer-name)))
-  (apply sym ede-object args))
+  ;; Always query a target.  There should never be multiple
+  ;; projects in a single buffer.
+  (apply sym (ede-singular-object "Target: ") args))
 
 (defun ede-rescan-toplevel ()
   "Rescan all project files."
@@ -404,7 +431,9 @@ ARGS are additional arguments to pass to method sym."
 (defun ede-new-target ()
   "Create a new target specific to this type of project file."
   (interactive)
-  (project-new-target (ede-current-project)))
+  (project-new-target (ede-current-project))
+  (setq ede-object nil)
+  (setq ede-object (ede-buffer-object (current-buffer))))
 
 (defun ede-delete-target (target)
   "Delete TARGET from the current project."
@@ -412,7 +441,16 @@ ARGS are additional arguments to pass to method sym."
 		(let ((ede-object (ede-current-project)))
 		  (ede-invoke-method 'project-interactive-select-target
 				     "Target: "))))
-  (project-delete-target target))
+  ;; Find all sources in buffers associated with the condemned buffer.
+  (let ((condemned (ede-target-buffers target)))
+    (project-delete-target target)
+    ;; Loop over all project controlled buffers
+    (save-excursion
+      (while condemned
+	(set-buffer (car condemned))
+	(setq ede-object nil)
+	(setq ede-object (ede-buffer-object (current-buffer)))
+	(setq condemned (cdr condemned))))))
 
 (defun ede-add-file (target)
   "Add the current buffer to a TARGET in the current project."
@@ -420,14 +458,9 @@ ARGS are additional arguments to pass to method sym."
 		(let ((ede-object (ede-current-project)))
 		  (ede-invoke-method 'project-interactive-select-target
 				     "Target: "))))
-  (if ede-object
-      ;; Make sure a file is in only one target.
-      ;; Is this a valid assumption?
-      (if (y-or-n-p (format "Remove from %s? " (ede-name ede-object)))
-	  (ede-remove-file 'force)
-	(error "Quit")))
   (project-add-file target (buffer-file-name))
-  (setq ede-object target))
+  (setq ede-object nil)
+  (setq ede-object (ede-buffer-object (current-buffer))))
 
 (defun ede-remove-file (&optional force)
   "Remove the current file from targets.
@@ -435,11 +468,20 @@ Optional argument FORCE forces the file to be removed without asking."
   (interactive "P")
   (if (not ede-object)
       (error "Cannot invoke remove-file for %s" (buffer-name)))
-  (if (or force (y-or-n-p (format "Remove from %s? " (ede-name ede-object))))
-      (progn
-	(project-remove-file ede-object (ede-convert-path (ede-current-project)
-							  (buffer-file-name)))
-	(setq ede-object nil))))
+  (let ((eo (if (listp ede-object)
+		(prog1
+		    ede-object
+		  (setq force nil))
+	      (list ede-object))))
+    (while eo
+      (if (or force (y-or-n-p (format "Remove from %s? " (ede-name (car eo)))))
+	  (progn
+	    (project-remove-file (car eo)
+				 (ede-convert-path (ede-current-project)
+						   (buffer-file-name)))))
+      (setq eo (cdr eo)))
+    (setq ede-object nil)
+    (setq ede-object (ede-buffer-object (current-buffer)))))
 
 (defun ede-edit-file-target ()
   "Enter the project file to hand edit the current buffer's target."
@@ -704,7 +746,10 @@ nil if there is no previous directory."
   "Return the target object for BUFFER."
   (if (not buffer) (setq buffer (current-buffer)))
   (let ((po (ede-current-project)))
-    (if po (setq ede-object (ede-find-target po buffer)))))
+    (if po (setq ede-object (ede-find-target po buffer))))
+  (if (= (length ede-object) 1)
+      (setq ede-object (car ede-object)))
+  ede-object)
 
 (defmethod ede-target-in-project-p ((proj ede-project) target)
   "Is PROJ the parent of TARGET?
@@ -750,6 +795,21 @@ This includes buffers controlled by a specific target of PROJECT."
 	    (setq pl (cons (car bl) pl))))
       (setq bl (cdr bl)))
     pl))
+
+(defun ede-target-buffers (target)
+  "Return a list of buffers that are controlled by TARGET."
+  (let ((bl (buffer-list))
+	(pl nil))
+    (while bl
+      (save-excursion
+	(set-buffer (car bl))
+	(if (if (listp ede-object)
+		(member target ede-object)
+	      (eq ede-object target))
+	    (setq pl (cons (car bl) pl))))
+      (setq bl (cdr bl)))
+    pl))
+
 
 ;;; Project-local variables
 ;;
