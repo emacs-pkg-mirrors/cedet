@@ -4,7 +4,7 @@
 
 ;; Author: Klaus Berndl <klaus.berndl@sdm.de>
 ;; Keywords: syntax test
-;; X-RCS: $Id: semantic-regtest.el,v 1.1 2003/04/12 11:53:52 berndl Exp $
+;; X-RCS: $Id: semantic-regtest.el,v 1.2 2003/04/12 17:21:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -719,6 +719,45 @@ test output file and the reference file clickable.
       (append '(("\\.regtest\\.result\\'" . semantic-regtest-mode))
               auto-mode-alist))
 
+
+;;; Generic format
+;;
+;; Most tags have data in them unrelated to the details parsed out of
+;; a file.  Remove that, and format them in a simple way.
+
+(defun semantic-regtest-convert-tag-table (table)
+  "Convert the tag table TABLE to a generic format."
+  (mapcar #'semantic-regtest-convert-tag table))
+
+(define-overload semantic-regtest-convert-tag (tag)
+  "Convert TAG into a generic format.
+Recurses over children when they are found."
+  (let ((name (semantic-tag-name tag))
+	(class (semantic-tag-class tag))
+	(attr (semantic-tag-attributes tag))
+	(generic nil))
+    (while attr
+      (let ((sym (car attr))
+	    (val (car (cdr attr))))
+	(cond ((semantic-tag-p val)
+	       ;; This attribute is a tag (ie, a type perhaps?)
+	       (setq val (semantic-regtest-convert-tag val)))
+	      ((and (listp val)
+		    (semantic-tag-p (car val)))
+	       ;; List of more tags in this property.  Children/members
+	       (setq val (semantic-regtest-convert-tag-table val)))
+	      (t nil))
+	(setq generic (cons (list sym val) generic))
+	(setq attr (cdr (cdr attr)))))
+    ;; At this point, generic is an ALIST, not a PROPERTY LIST.
+    ;; We need to sort it so that order changes do not effect the
+    ;; test.
+    (setq generic (sort generic (lambda (a b)
+				  (string< (symbol-name (car a))
+					   (symbol-name (car b))))))
+    (append (list name class) 
+	    (apply 'append generic))
+    ))
 
 (provide 'semantic-regtest)
 
