@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.14 2003/08/25 17:16:25 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.15 2003/08/26 20:12:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -175,7 +175,7 @@ Return a bovination list to use."
       (semantic-tag-new-function
        (format "%S" (car (cdr (car (cdr rt)))))
        nil nil
-       'use-visible (and (nth 4 rt)
+       'user-visible (and (nth 4 rt)
 			 (not (eq (nth 4 rt) 'nil)))
        'prototype t
        :documentation (semantic-elisp-do-doc (nth 3 rt)))
@@ -298,9 +298,10 @@ syntax as specified by the syntax table."
 Optional argument NOSNARF is ignored."
   (let ((d (semantic-tag-docstring tag)))
     (if d
-	(if (and (> (length d) 0) (= (aref d 0) ?*))
-	    (substring d 1)
-	  d)
+	(substitute-command-keys
+	 (if (and (> (length d) 0) (= (aref d 0) ?*))
+	     (substring d 1)
+	   d))
       ;; doc isn't in the tag itself.  Lets pull it out of the sources.
       ;; If the tag isn't cooked, then we had just recursed.
       (when (semantic-overlay-p (semantic-tag-overlay tag))
