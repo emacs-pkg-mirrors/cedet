@@ -1,13 +1,13 @@
 ;;; senator-isearch.el --- SEmantic NAvigaTOR isearch support
 
-;; Copyright (C) 2000 by David Ponce
+;; Copyright (C) 2000, 2001 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 04 Dec 2000
 ;; Version: 1.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator-isearch.el,v 1.3 2001/01/03 15:41:11 david_ponce Exp $
+;; VC: $Id: senator-isearch.el,v 1.4 2001/01/24 21:27:46 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -30,7 +30,9 @@
 ;; 
 ;; This library improves isearch (and ishl) to allow overriding of the
 ;; basic search functions used by `isearch-search' and
-;; `isearch-lazy-highlight-search' (or `ishl-search').
+;; `isearch-lazy-highlight-search' (GNU Emacs before 21.0.95),
+;; `isearch-lazy-highlight-update' (GNU Emacs since 21.0.95) or
+;; `ishl-search' (GNU Emacs 20).
 ;;
 ;; This feature is needed by the SEmantic NAvigaTOR library to extend
 ;; isearch with an incremental semantic search mode. When isearch is
@@ -44,6 +46,9 @@
 ;;; Change Log:
 
 ;; $Log: senator-isearch.el,v $
+;; Revision 1.4  2001/01/24 21:27:46  zappo
+;; *** empty log message ***
+;;
 ;; Revision 1.3  2001/01/03 15:41:11  david_ponce
 ;; Improved isearch lazy highlighting support.
 ;;
@@ -244,26 +249,80 @@ REGEXP says which ring to use."
 ;; Emacs 20.  Not currently implemented for XEmacs (it seems that ishl
 ;; does not work).
 (cond
- (;; GNU Emacs 21 lazy highlighting
-  (fboundp 'isearch-lazy-highlight-search)
+ (;; GNU Emacs 21.0 lazy highlighting
+  (boundp 'isearch-lazy-highlight)
 
-  (defadvice isearch-lazy-highlight-search (around senator activate)
-    "Search ahead for the next or previous match, for lazy highlighting.
+  (if (fboundp 'isearch-lazy-highlight-search)
+      
+      ;; GNU Emacs before 21.0.95
+      (defadvice isearch-lazy-highlight-search (around senator activate)
+        "Search ahead for the next or previous match, for lazy highlighting.
 Attempt to do the search exactly the way the pending isearch would."
-    (let ((case-fold-search isearch-case-fold-search))
-      (setq ad-return-value
-            (funcall (if isearch-search-handler-provider
-                         (funcall isearch-search-handler-provider)
-                       (isearch-default-search-handler))
-                     isearch-string
-                     (if isearch-forward
-                         (if isearch-lazy-highlight-wrapped
-                             isearch-lazy-highlight-start
-                           nil)
-                       (if isearch-lazy-highlight-wrapped
-                           isearch-lazy-highlight-end
-                         nil))
-                     t))))
+        (let ((case-fold-search isearch-case-fold-search))
+          (setq ad-return-value
+                (funcall (if isearch-search-handler-provider
+                             (funcall isearch-search-handler-provider)
+                           (isearch-default-search-handler))
+                         isearch-string
+                         (if isearch-forward
+                             (if isearch-lazy-highlight-wrapped
+                                 isearch-lazy-highlight-start
+                               nil)
+                           (if isearch-lazy-highlight-wrapped
+                               isearch-lazy-highlight-end
+                             nil))
+                         t))))
+  
+    ;; GNU Emacs since 21.0.95
+    (defadvice isearch-lazy-highlight-update (around senator activate)
+      "Update highlighting of possible other matches for isearch."
+      (unless (and (eq isearch-lazy-highlight-window (selected-window))
+                   (equal isearch-lazy-highlight-start (window-start)))
+
+        ;; The search string or the visible window has changed.
+
+        (setq isearch-lazy-highlight-window (selected-window)
+              isearch-lazy-highlight-start (window-start)
+              isearch-lazy-highlight-end (window-end nil t)
+              isearch-lazy-highlight-last-string isearch-string)
+
+       ;; If the string is the same, the old overlays are still usable
+        ;; if they are still visible in the window.
+        (isearch-lazy-highlight-remove-overlays (window-start)
+                                                (window-end nil t))
+
+        (when (or (null isearch-lazy-highlight-max)
+                  (< (length isearch-lazy-highlight-overlays)
+                     isearch-lazy-highlight-max))
+          (save-excursion
+            (save-match-data
+              (let (found)
+                (goto-char isearch-lazy-highlight-start)
+                (while (let ((case-fold-search isearch-case-fold-search)
+                             (isearch-forward t))
+                         (funcall (if isearch-search-handler-provider
+                                      (funcall isearch-search-handler-provider)
+                                    (isearch-default-search-handler))
+                                  isearch-string
+                                  isearch-lazy-highlight-end
+                                  t))
+                  ;; Found the next match.
+                  (let ((ov (make-overlay (match-beginning 0)
+                                          (match-end 0))))
+               ;; If OV overlaps the current isearch overlay, suppress
+                 ;; its face property; otherwise, we sometimes get odd
+                    ;; looking face combinations.
+                    (unless (memq isearch-overlay
+                                  (overlays-at (match-beginning 0)))
+                      (overlay-put ov 'face isearch-lazy-highlight-face))
+
+                    (overlay-put ov 'priority 0)
+                    ;; Don't highlight on any other windows.
+                    (overlay-put ov 'window isearch-lazy-highlight-window)
+
+                    (push ov isearch-lazy-highlight-overlays)))))))))
+
+    )
         
   ;; Provide this function used by senator
   (defun senator-lazy-highlight-update ()
