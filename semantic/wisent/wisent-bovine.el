@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.31 2004/01/23 08:34:57 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.32 2004/02/18 14:39:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -218,12 +218,11 @@ the standard function `semantic-parse-stream'."
       (setq la-elt nil))
     ;; Parse
     (setq wisent-lex-istream stream
-          cache (condition-case nil
+          cache (semantic-safe "wisent-parse-stream: %s"
                     (wisent-parse semantic-toplevel-bovine-table
                                   wisent-lexer-function
                                   wisent-error-function
-                                  goal)
-                  (error nil)))
+                                  goal)))
     ;; Manage returned lookahead token
     (if wisent-lookahead
         (if (eq (caar la-elt) wisent-lookahead)
@@ -272,12 +271,11 @@ the standard function `semantic-parse-region'."
     (while wisent-lex-istream
       ;; Parse
       (setq wisent-lex-lookahead (car lstack)
-            tag (condition-case nil
+            tag (semantic-safe "wisent-parse-region: %s"
                     (wisent-parse semantic-toplevel-bovine-table
                                   wisent-lexer-function
                                   wisent-error-function
-                                  goal)
-                  (error nil)))
+                                  goal)))
       ;; Manage returned lookahead token
       (if wisent-lookahead
           (if (eq (car lstack) wisent-lookahead)
