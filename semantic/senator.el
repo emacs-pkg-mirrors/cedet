@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.45 2001/09/03 13:44:52 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.46 2001/09/30 00:05:28 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -887,8 +887,6 @@ Return a cons cell (XOFFSET . YOFFSET) so the position (X . Y) in
 WINDOW is equal to the position ((+ X XOFFSET) .  (+ Y YOFFSET)) in
 WINDOW'S frame."
   (let* ((window  (or window (selected-window)))
-         (w       (window-width window))
-         (h       (window-height window))
          (e       (window-edges window))
          (left    (nth 0 e))
          (top     (nth 1 e))
@@ -1580,6 +1578,9 @@ That is remove the unsupported :help stuff."
    )
   "Menu for senator minor mode.")
 
+(defvar senator-minor-menu nil
+  "Menu keymap build from `senator-menu-bar'.")
+
 (defvar senator-mode-map
   (let ((km (make-sparse-keymap)))
     (define-key km senator-prefix-key senator-prefix-map)
@@ -1588,6 +1589,11 @@ That is remove the unsupported :help stuff."
                       senator-menu-bar)
     km)
   "Keymap for senator minor mode.")
+
+(defvar senator-minor-mode nil
+  "Non-nil if Senator minor mode is enabled.
+Use the command `senator-minor-mode' to change this variable.")
+(make-variable-buffer-local 'senator-minor-mode)
 
 (defun senator-show-status ()
   "Update the modeline to show the senator minor mode state.
@@ -1609,11 +1615,6 @@ If `senator-isearch-semantic-mode' is non-nil append
                            'help-echo "mouse-3: minor mode menu"
                            'local-map mode-line-minor-mode-keymap))))
   (force-mode-line-update))
-
-(defvar senator-minor-mode nil
-  "Non-nil if Senator minor mode is enabled.
-Use the command `senator-minor-mode' to change this variable.")
-(make-variable-buffer-local 'senator-minor-mode)
 
 (defun senator-minor-mode-setup ()
   "Actually setup the senator minor mode.
