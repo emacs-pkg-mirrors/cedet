@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.89 2002/05/07 01:34:05 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.90 2002/05/07 02:17:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2515,4 +2515,5 @@ NOTFIRST indicates that this was not the first call in the recursive use."
 ;;
 (require 'semantic-util-modes)
 
+(provide 'semantic-util)
 ;;; semantic-util.el ends here
