@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.28 1997/02/26 02:50:07 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.29 1997/02/27 02:28:43 zappo Exp $
 ;;; Version: 0.4.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -1489,21 +1489,17 @@ updated."
 		 (concat " \\(" (regexp-quote newcf) "\\)\\("
 			 (regexp-quote speedbar-vc-indicator)
 			 "\\)?\n") nil t)
-		(progn
 		  ;; put the property on it
 		  (put-text-property (match-beginning 1)
 				     (match-end 1)
 				     'face 
 				     'speedbar-selected-face)
-		  (message "found...")
-		  )
 	      ;; Oops, it's not in the list.  Should it be?
 	      (if (and (string-match speedbar-file-regexp newcf)
 		       (string= (file-name-directory newcfd)
 				(expand-file-name default-directory)))
 		  ;; yes, it is (we will ignore unknowns for now...)
 		  (progn
-		    (message "Refreshing...")
 		    (speedbar-refresh)
 		    (if (re-search-forward 
 			 (concat " \\(" (regexp-quote newcf) "\\)\n") nil t)
