@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.7 2003/01/29 16:19:06 berndl Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.8 2003/01/30 08:09:16 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -818,8 +818,18 @@
     ("^#\\(if\\(def\\)?\\|el\\(if\\|se\\)\\|endif\\)" . semantic-flex-c-if)
     ("<[^\n>]+>" . semantic-flex-c-include-system)
     ("\\(\\\\\n\\)" . semantic-flex-backslash-newline)
+    ("L\\s\"" . semantic-flex-wide-char-literal)
     )
-  "Extensions to the flexer for C.")
+  "Extensions to the flexer for C and C++.")
+
+(defun semantic-flex-wide-char-literal ()
+  "Identify wide-char string- and char-literals like L\"string\" and L'c'
+and return them as string-token."
+  (let ((start (point)))
+    (forward-char 1)
+    ;; now we should be onto the string-delimiter direct after the L
+    (forward-sexp 1)
+    (cons 'string (cons start (point)))))
 
 (defun semantic-flex-backslash-newline ()
   "If there is a \ ending a line, then it isn't really a newline. Move cursor
