@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.1 1999/11/09 11:09:10 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.2 1999/11/09 20:35:31 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; Handle Emacs Lisp in and EDE Project file.
+;; Handle texinfo in and EDE Project file.
 
 ;;; Code:
 (defclass ede-proj-target-makefile-info (ede-proj-target-makefile)

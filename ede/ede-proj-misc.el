@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-misc.el,v 1.1 1999/11/09 10:48:36 zappo Exp $
+;; RCS: $Id: ede-proj-misc.el,v 1.2 1999/11/09 20:36:09 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -25,7 +25,9 @@
 
 ;;; Commentary:
 ;;
-;; Handle miscelaneous non compilable projects in and EDE Project file.
+;; Handle miscelaneous compilable projects in and EDE Project file.
+;; This misc target lets the user link in custom makefiles to an EDE
+;; project.
 
 ;;; Code:
 (defclass ede-proj-target-makefile-miscelaneous (ede-proj-target-makefile)

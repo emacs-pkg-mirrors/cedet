@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, scheme
-;; RCS: $Id: ede-proj-scheme.el,v 1.1 1999/11/09 11:09:50 zappo Exp $
+;; RCS: $Id: ede-proj-scheme.el,v 1.2 1999/11/09 20:36:45 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -25,7 +25,8 @@
 
 ;;; Commentary:
 ;;
-;; Handle scheme (Guile)  in and EDE Project file.
+;; Handle scheme (Guile) in and EDE Project file.
+;; This is a specialized do nothing class.
 
 ;;; Code:
 (defclass ede-proj-target-scheme (ede-proj-target)

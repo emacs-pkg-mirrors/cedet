@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-shared.el,v 1.1 1999/11/09 11:10:01 zappo Exp $
+;; RCS: $Id: ede-proj-shared.el,v 1.2 1999/11/09 20:37:20 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -25,7 +25,8 @@
 
 ;;; Commentary:
 ;;
-;; Handle Emacs Lisp in and EDE Project file.
+;; Handle shared object libraries in and EDE Project file.
+;; Tries to deal with libtool and non-libtool situations.
 
 (require 'ede-proj-prog)
 

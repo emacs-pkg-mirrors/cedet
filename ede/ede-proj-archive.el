@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-archive.el,v 1.2 1999/11/09 11:10:38 zappo Exp $
+;; RCS: $Id: ede-proj-archive.el,v 1.3 1999/11/09 20:34:58 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; Handle Emacs Lisp in and EDE Project file.
+;; Handle object code archives in and EDE Project file.
 
 (require 'ede-proj-obj)
 
