@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.1 2002/09/05 13:27:39 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.2 2002/09/10 08:31:20 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -36,7 +36,8 @@
 (require 'wisent-bovine)
 
 (eval-when-compile
-  (require 'font-lock))
+  (require 'font-lock)
+  (require 'semantic-edit))
 
 ;;;;
 ;;;; Set up lexer
@@ -541,6 +542,19 @@ It ignores whitespaces, newlines and comments."
    (nonterminal-children      . semantic-grammar-nonterminal-children)
    )
  t 'semantic-grammar-mode)
+
+(defun semantic-grammar-edits-new-change-hook-fcn (overlay)
+  "Function set into `semantic-edits-new-change-hook'.
+Argument OVERLAY is the overlay created to mark the change.
+When OVERLAY marks a change in the scope of a nonterminal token extend
+the change bounds to encompass the whole nonterminal token."
+  (let ((outer (car (semantic-find-nonterminal-by-overlay-in-region
+                     (semantic-edits-os overlay)
+                     (semantic-edits-oe overlay)))))
+    (if (eq 'nonterminal (semantic-token-token outer))
+        (semantic-overlay-move overlay
+                               (semantic-token-start outer)
+                               (semantic-token-end outer)))))
 
 ;;;; 
 ;;;; Semantic action expansion
@@ -1165,6 +1179,10 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
           ((?_ . "w") (?- . "w"))))
   ;; Set up Semantic environment
   (semantic-grammar-setup-semantic)
+  (semantic-make-local-hook 'semantic-edits-new-change-hooks)
+  (add-hook 'semantic-edits-new-change-hooks
+            'semantic-grammar-edits-new-change-hook-fcn
+            nil t)
   (run-hooks 'semantic-grammar-mode-hook))
 
 ;;;;
