@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.45 2004/10/19 13:50:56 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.46 2004/10/26 00:48:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,6 +94,26 @@
 (if (featurep 'xemacs)
     (defalias 'semantic-mode-line-update 'redraw-modeline)
   (defalias 'semantic-mode-line-update 'force-mode-line-update))
+
+
+;; subst-char-in-string is not found on the XEmacs <= 21.4.  Provide
+;; here for compatibility.
+(if (not (fboundp 'subst-char-in-string))
+    
+    (defun semantic-subst-char-in-string (fromchar tochar string &optional inplace)
+      "Replace FROMCHAR with TOCHAR in STRING each time it occurs.
+Unless optional argument INPLACE is non-nil, return a new string."
+      (let ((i (length string))
+	    (newstr (if inplace string (copy-sequence string))))
+	(while (> i 0)
+	  (setq i (1- i))
+	  (if (eq (aref newstr i) fromchar)
+	      (aset newstr i tochar)))
+	newstr))
+
+  (defalias 'semantic-subst-char-in-string 'subst-char-in-string)
+  )
+
 
 (defun semantic-delete-overlay-maybe (overlay)
   "Delete OVERLAY if it is a semantic token overlay."
@@ -260,6 +280,8 @@ debug them.
 Avoid using a large BODY since it is duplicated."
   ;;(declare (debug t) (indent 1))
   `(if debug-on-error
+       ;;(let ((inhibit-quit nil)) ,@body)
+       ;; Note to self: Doing the above screws up the wisent parser.
        (progn ,@body)
      (condition-case err
 	 (progn ,@body)
