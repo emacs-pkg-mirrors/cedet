@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.39 2001/05/16 14:42:57 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.40 2001/05/21 22:01:33 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -197,7 +197,8 @@ Does nothing if `senator-highlight-found' is nil."
 
 (defun senator-message (&rest args)
   "Call function `message' with ARGS without logging."
-  (let (message-log-max)
+  (let ((log-message-filter-function #'ignore) ; No logging (XEmacs)
+        (message-log-max nil))                 ; No logging (Emacs)
     (apply 'message args)))
 
 (defun senator-step-at-start-end-p (token)
@@ -214,51 +215,31 @@ Does nothing if `senator-highlight-found' is nil."
        (not (memq (semantic-token-token token)
                   senator-step-at-token-ids))))
 
-(defun senator-find-token-before (tokens pos comp &optional prev)
-  "Visit TOKENS and return the last one found at or before POS.
-COMP is the function used to compare a current visited token start
-position to POS.  That is `>=' to return the token before POS or `>'
-to return the token at or before POS.  PREV is the last token found or
-nil."
-  (let (token children)
-    (while tokens
-      (setq token (car tokens))
-      (if (funcall comp (semantic-token-start token) pos)
-          (throw 'found prev))
-      (or (senator-skip-p token)
-          (setq prev token))
-      (if (setq children (semantic-nonterminal-children token t))
-          (setq prev (senator-find-token-before children pos comp prev)))
-      (setq tokens (cdr tokens)))
-    prev))
-
-(defun senator-find-previous-token (tokens pos)
-  "Visit TOKENS and return the token before POS."
-  (catch 'found (senator-find-token-before tokens pos #'>=)))
-
-(defun senator-find-last-token (tokens pos)
-  "Visit TOKENS and return the token at or before POS."
-  (catch 'found (senator-find-token-before tokens pos #'>)))
-
-(defun senator-find-next-token (tokens pos)
-  "Visit TOKENS and return the token after POS."
-  (let (token children found)
-    (while (and tokens (not found))
-      (setq token (car tokens))
-      (if (and (not (senator-skip-p token))
-               (or (and (senator-step-at-start-end-p token)
-                        (> (semantic-token-end token) pos))
-                   (> (semantic-token-start token) pos)))
-          (setq found token)
-        (if (setq children (semantic-nonterminal-children token t))
-            (setq found (senator-find-next-token children pos))))
-      (setq tokens (cdr tokens)))
-    found))
-
 (defun senator-middle-of-token-p (pos token)
   "Return non-nil if POS is between start and end of TOKEN."
   (and (> pos (semantic-token-start token))
        (< pos (semantic-token-end   token))))
+
+(defun senator-step-at-parent (token)
+  "If must step at start/end of a TOKEN's parent return this parent.
+Return nil otherwise."
+  (if token
+      (let (parent parents)
+        (setq parents (cdr (nreverse
+                            (semantic-find-nonterminal-by-overlay
+                             (semantic-token-start token)))))
+        (while (and parents (not parent))
+          (setq parent  (car parents)
+                parents (cdr parents))
+          (if (or (senator-skip-p parent)
+                  (not (senator-step-at-start-end-p parent)))
+              (setq parent nil)))
+        parent)))
+
+(defun senator-previous-token-or-parent (pos)
+  "Return the token before POS or one of its parent where to step."
+  (let ((token (semantic-find-nonterminal-by-overlay-prev pos)))
+    (or (senator-step-at-parent token) token)))
 
 (defun senator-full-token-name (token parent)
   "Compose a full name from TOKEN name and PARENT names.
@@ -562,59 +543,81 @@ See `search-backward' for the meaning of BOUND NOERROR and COUNT."
 
 ;;;###autoload
 (defun senator-next-token ()
-  "Navigate to the next semantic token.
-Return the semantic token or nil if at end of buffer."
+  "Navigate to the next Semantic token.
+Return the token or nil if at end of buffer."
   (interactive)
-  (let ((pos    (point))
-        (tokens (senator-parse))
-        found where)
-    (setq found (senator-find-next-token tokens (point)))
-    (if (not found)
+  (let ((pos   (point))
+        (token (semantic-current-nonterminal))
+        where)
+    (if (and token
+             (not (senator-skip-p token))
+             (senator-step-at-start-end-p token)
+             (or (= pos (semantic-token-start token))
+                 (senator-middle-of-token-p pos token)))
+        nil
+      (if (setq token (senator-step-at-parent token))
+          nil
+        (setq token (semantic-find-nonterminal-by-overlay-next pos))
+        (while (and token (senator-skip-p token))
+          (setq token (semantic-find-nonterminal-by-overlay-next
+                       (semantic-token-start token))))))
+    (if (not token)
         (progn
           (goto-char (point-max))
           (senator-message "End of buffer"))
-      (cond ((and (senator-step-at-start-end-p found)
-                  (or (= pos (semantic-token-start found))
-                      (senator-middle-of-token-p pos found)))
+      (cond ((and (senator-step-at-start-end-p token)
+                  (or (= pos (semantic-token-start token))
+                      (senator-middle-of-token-p pos token)))
              (setq where "end")
-             (goto-char (semantic-token-end found)))
+             (goto-char (semantic-token-end token)))
             (t
              (setq where "start")
-             (goto-char (semantic-token-start found))))
-      (senator-momentary-highlight-token found)
+             (goto-char (semantic-token-start token))))
+      (senator-momentary-highlight-token token)
       (senator-message "%S: %s (%s)"
-                       (semantic-token-token found)
-                       (semantic-token-name  found)
+                       (semantic-token-token token)
+                       (semantic-token-name  token)
                        where))
-    found))
+    token))
 
 ;;;###autoload
 (defun senator-previous-token ()
-  "Navigate to the previous semantic token.
-Return the semantic token or nil if at beginning of buffer."
+  "Navigate to the previous Semantic token.
+Return the token or nil if at beginning of buffer."
   (interactive)
-  (let ((pos    (point))
-        (tokens (senator-parse))
-        found where)
-    (setq found (senator-find-previous-token tokens (point)))
-    (if (not found)
+  (let ((pos   (point))
+        (token (semantic-current-nonterminal))
+        where)
+    (if (and token
+             (not (senator-skip-p token))
+             (senator-step-at-start-end-p token)
+             (or (= pos (semantic-token-end token))
+                 (senator-middle-of-token-p pos token)))
+        nil
+      (if (setq token (senator-step-at-parent token))
+          nil
+        (setq token (senator-previous-token-or-parent pos))
+        (while (and token (senator-skip-p token))
+          (setq token (senator-previous-token-or-parent
+                       (semantic-token-start token))))))
+    (if (not token)
         (progn
           (goto-char (point-min))
           (senator-message "Beginning of buffer"))
-      (cond ((or (not (senator-step-at-start-end-p found))
-                 (= pos (semantic-token-end found))
-                 (senator-middle-of-token-p pos found))
+      (cond ((or (not (senator-step-at-start-end-p token))
+                 (= pos (semantic-token-end token))
+                 (senator-middle-of-token-p pos token))
              (setq where "start")
-             (goto-char (semantic-token-start found)))
+             (goto-char (semantic-token-start token)))
             (t
              (setq where "end")
-             (goto-char (semantic-token-end found))))
-      (senator-momentary-highlight-token found)
+             (goto-char (semantic-token-end token))))
+      (senator-momentary-highlight-token token)
       (senator-message "%S: %s (%s)"
-                       (semantic-token-token found)
-                       (semantic-token-name  found)
+                       (semantic-token-token token)
+                       (semantic-token-name  token)
                        where))
-    found))
+    token))
 
 (defvar senator-jump-completion-list nil
   "`senator-jump' stores here its current completion list.
@@ -1680,19 +1683,22 @@ minor mode is enabled.
 (defun senator-beginning-of-defun (&optional arg)
   "Move backward to the beginning of a defun.
 Use semantic tokens to navigate.
-ARG is the number of tokens to navigate."
-  (let ((senator-highlight-found nil)
-        ;; Step at beginning of next token with id specified in
-        ;; `senator-step-at-token-ids'.
-        (senator-step-at-start-end-token-ids nil))
-    (if (senator-previous-token)
-        (beginning-of-line))
+ARG is the number of tokens to navigate (not yet implemented)."
+  (let* ((senator-highlight-found nil)
+         ;; Step at beginning of next token with id specified in
+         ;; `senator-step-at-token-ids'.
+         (senator-step-at-start-end-token-ids t)
+         (token (senator-previous-token)))
+    (when token
+      (if (= (point) (semantic-token-end token))
+          (goto-char (semantic-token-start token)))
+      (beginning-of-line))
     (senator-message nil)))
 
 (defun senator-end-of-defun (&optional arg)
   "Move forward to next end of defun.
 Use semantic tokens to navigate.
-ARG is the number of tokens to navigate."
+ARG is the number of tokens to navigate (not yet implemented)."
   (let* ((senator-highlight-found nil)
          ;; Step at end of next token with id specified in
          ;; `senator-step-at-token-ids'.
