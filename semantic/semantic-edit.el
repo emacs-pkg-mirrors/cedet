@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.26 2004/06/12 13:01:37 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.27 2004/06/29 13:43:00 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,6 +56,7 @@
 
 ;;
 (require 'semantic)
+(require 'working)
 
 ;;; Code:
 (defvar semantic-after-partial-cache-change-hook nil
@@ -445,14 +446,16 @@ See `semantic-edits-change-leaf-token' for details on parents."
   "Signal that Semantic failed to parse changes.
 That is, display a message by passing all ARGS to `format', then throw
 a 'semantic-parse-changes-failed exception with value t."
-  (message "Semantic parse changes failed: %S" (apply 'format args))
+  (working-temp-message "Semantic parse changes failed: %S"
+                        (apply 'format args))
   (throw 'semantic-parse-changes-failed t))
 
 (defsubst semantic-edits-incremental-fail ()
   "When the incremental parser fails, we mark that we need a full reparse."
   ;;(debug)
   (semantic-parse-tree-set-needs-rebuild)
-  (message "Force full reparse (%s)" (buffer-name (current-buffer)))
+  (working-temp-message "Force full reparse (%s)"
+                        (buffer-name (current-buffer)))
   (run-hooks 'semantic-edits-incremental-reparse-failed-hooks))
 
 ;;;###autoload
@@ -472,8 +475,8 @@ the semantic cache to see what needs to be changed."
              (condition-case err
                  (semantic-edits-incremental-parser-1)
                (error
-                (message "incremental parser error: %S"
-                         (error-message-string err))
+                (working-temp-message "incremental parser error: %S"
+                                      (error-message-string err))
                 t))))))
     (when (eq changed-tags t)
       ;; Force a full reparse.
@@ -693,7 +696,7 @@ This function is for internal use by `semantic-edits-incremental-parser'."
        ((and (not tokens) (not newf-tokens))
         ;; A change that occured outside of any existing tokens
         ;; and there are no new tokens to replace it.
-        (message "White space changes")
+        (working-temp-message "White space changes")
         nil
         )
 
@@ -707,8 +710,8 @@ This function is for internal use by `semantic-edits-incremental-parser'."
         (setq changed-tokens
               (append newf-tokens changed-tokens))
 
-        (message "Inserted tokens: (%s)"
-                 (semantic-format-tag-name (car newf-tokens)))
+        (working-temp-message "Inserted tags: (%s)"
+                              (semantic-format-tag-name (car newf-tokens)))
         )
 
 ;;;; Old tokens removed
@@ -720,8 +723,8 @@ This function is for internal use by `semantic-edits-incremental-parser'."
         (setq changed-tokens
               (append tokens changed-tokens))
 
-        (message "Deleted tokens: (%s)"
-                 (semantic-format-tag-name (car tokens)))
+        (working-temp-message "Deleted tags: (%s)"
+                              (semantic-format-tag-name (car tokens)))
         )
 
 ;;;; One token was updated.
@@ -734,8 +737,8 @@ This function is for internal use by `semantic-edits-incremental-parser'."
         ;; Add this token to our list of changed toksns
         (setq changed-tokens (cons (car tokens) changed-tokens))
         ;; Debug
-        (message "Update Tag Table: %s"
-                 (semantic-format-tag-name (car tokens) nil t))
+        (working-temp-message "Update Tag Table: %s"
+                              (semantic-format-tag-name (car tokens) nil t))
         ;; Flush change regardless of above if statement.
         )
 
