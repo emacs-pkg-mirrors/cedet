@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.2 2000/04/15 20:57:40 zappo Exp $
+@c $Id: semantic.texi,v 1.3 2000/04/16 14:49:52 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -48,6 +48,7 @@ your .emacs file:
 * BNF conversion::      Using the BNF converter to make tables.
 * Compiling ::          Running the bovinator on a source file.
 * Debugging ::          Using the bovine table debugger.
+* Non-Terminals ::      How to use the nonterminal stream.
 @end menu
 
 @node Lexing, Bovinating, Top, Top
@@ -57,14 +58,14 @@ In order to reduce a source file into a token list, it must first be
 converted into a token stream.  Tokens are syntactic elements such as
 whitespace, symbols, strings, lists, and punctuation.
 
-The lexer uses the syntax table for conversion, so as long as that is
-set up correctly (along with the important @code{comment-start-skip}
-variable) you should be ok.
+The lexer uses the major-mode's syntax table for conversion, so as long
+as that is set up correctly (along with the important
+@code{comment-start-skip} variable) you should be ok.
 
 To extend the flexer, you can use the variable @code{semantic-flex-extensions}.
 
 @defvar semantic-flex-extensions
-For a give language buffer, this is an associate list.  The key is a
+For a given language buffer, this is an associatoin list.  The key is a
 regular expression used to match text in the buffer.  The data element
 is a function which will be called when that text is encountered.
 
@@ -111,11 +112,11 @@ Please see the documentation for the variable
 @node BNF conversion, Compiling, Bovinating, Top
 @chapter Using the BNF converter to make bovine tables
 
-The BNF converter takes a file in "Bovine Normal Form" which is very
-similar to "Backus-Naur Form", and is therefore a pun.  If you have
-ever used yacc or bison, you will find it similar.
+The BNF converter takes a file in "Bovine Normal Form" which is similar
+to "Backus-Naur Form".  If you have ever used yacc or bison, you will
+find it similar.
 
-It is important to have a Emacs Lisp file with a variable ready to take
+It is important to have an Emacs Lisp file with a variable ready to take
 the output of your table @xref{Bovinating}.  Also, make sure that the
 file @file{semantic-bnf} is loaded.  Give your language file the
 extension @file{.bnf} and you are ready.
@@ -127,7 +128,7 @@ near the top of the file which looks like this:
 # TABLE: semantic-ex.el:semantic-toplevel-c-bovine-table
 @end example
 
-This lets you specify the file, and variable where you want this
+This lets you specify the file and variable where you want this
 language file to be parsed to.  When you want to test your file, use the
 keyboard shortcut @kbd{C-c C-c} to parse the file, generate the
 variable, and load the new definition in.  You will then have to re-run
@@ -223,7 +224,7 @@ As a user, you can run the command @code{bovinate} which runs the
 previously mentioned command, and displays the returned tokens in a
 buffer.  This is a great tool for testing tables as you develop them.
 
-@node Debugging, , Compiling, Top
+@node Debugging, Non-Terminals, Compiling, Top
 @chapter Debugging a bovine table.
 
 To debug a language is a two step process.  The first tells emacs where
@@ -240,4 +241,67 @@ state are shown in the minibuffer.
 
 Pressing any key advances.  @kbd{C-g} halts the debugger.
 
+@node Non-Terminals, , Debugging, Top
+@chapter Using the Non-Termianal Stream
+
+The list of nontermianls returned from the parser is always language
+dependent, but should follow some simple conventions.  A generic entry
+in the stream should be of the form
+
+@example
+("NAME" type-symbol ["TYPE"] ... "DOCSTRING" START END)
+@end example
+
+In this case, @var{NAME} is the identifier being declared.
+@var{type-symbol} is a symbol representing the type of identifier being
+declared.  @var{TYPE} is a string containing the text of the type of
+this identifier, or nil if there is no typing information.
+@refill
+
+Additional information follows TYPE which is specific to the type of
+identifier being created.  The last three entries are @var{docstring},
+some documentation associated with this class, and @var{start} and
+@var{end}, which describe the bounds of this definition.
+@refill
+
+Some predefined nonterminals that can be used are:
+
+@example
+(\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS \"DOCSTRING\" START END)
+@end example
+
+The definition of a variable, or constant.  @var{CONST} is a boolean
+representing if this variable is considered a constant.
+@var{DEFAULT-VALUE} can be something apropriate such a a string, or list
+of parsed elements.  @var{MODIFIERS} are details about a variable that
+are not covered in the @var{TYPE} field.  @var{DOCSTRING} is optional.
+@refill
+
+@example
+(\"NAME\" function \"TYPE\" ( ARG-LIST ) \"DOCSTRING\" START END)
+@end example
+
+A function/procedure definition.  @var{DOCSTRING} is optional.  @var{ARG-LIST} is
+a list of variable definitions.
+
+@example
+(\"NAME\" type \"TYPE\" ( PART-LIST ) ( PARENTS ) \"DOCSTRING\" START END)
+@end example
+
+A type definition.  @var{TYPE} of a type could be anything, such as (in C)
+struct, union, typedef, or class.  The @var{PART-LIST} is only useful for
+structs that have multiple individual parts.  (It is recommended
+that these be variables, functions or types).  @var{PARENTS} is strictly for
+classes where there is inheritance.
+@refill
+
+@example
+(\"FILE\" include \"DOCSTRING\" START END)
+@end example
+
+In C, an #include statement.  In elisp, a require statement.
+Indicates additional locations of sources or definitions.
+@refill
+
 @bye
+
