@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.16 2001/10/05 19:30:34 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.17 2001/10/09 17:49:04 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -147,23 +147,42 @@ Return non-nil if there is no upper context."
 	    (def-edebug-spec semantic-with-buffer-narrowed-to-context
 	      (def-body))))
 
-(defun semantic-get-local-variables (&optional point)
-  "Get the local variables based on POINT's context.
-Local variables are returned in Semantic token format.
-Be default, this calculates the current bounds using context blocks
-navigation, then uses the parser with `bovine-inner-scope' to
-parse tokens at the beginning of the context.
-This can be overriden with `get-local-variables'."
-  (save-excursion
-    (if point (goto-char point))
-    (let ((vars
-	   (let ((s (semantic-fetch-overload 'get-local-variables))
-		 (case-fold-search semantic-case-fold))
-	     (if s (funcall s)
-	       (semantic-get-local-variables-default)
-	       ))))
-      (semantic-deoverlay-list vars)
-      vars)))
+(defun semantic-get-local-arguments (&optional point)
+  "Get arguments (variables) from the current context at POINT.
+Parameters are available if the point is in a function or method.
+This function returns a list of tokens.  If the local token returns
+just a list of strings, then this function will convert them to tokens.
+Part of this behavior can be overridden with `get-local-arguments'."
+  (if point (goto-char point))
+  (let* ((s (semantic-fetch-overload 'get-local-arguments))
+	 (case-fold-search semantic-case-fold)
+	 (params (if s (funcall s)
+		   (semantic-get-local-arguments-default)))
+	 (rparams nil)
+         tok)
+    ;; convert unsafe params to the right thing.
+    (while params
+      (setq tok     (car params)
+            params  (cdr params)
+            rparams (cons
+                     (cond
+                      ((semantic-token-p tok)
+                       (when (semantic-overlay-p
+                              (semantic-token-overlay tok))
+                         ;; Return a copy of token without overlay.
+                         ;; Don't use `semantic-deoverlay-token' here
+                         ;; because the original overlay must be kept!
+                         (setq tok (copy-sequence tok))
+                         (setcar (semantic-token-overlay-cdr tok)
+                                 (vector (semantic-token-start tok)
+                                         (semantic-token-end tok))))
+                       tok)
+                      ((stringp (car params))
+                       (list (car params) 'variable))
+                      (t
+                       (error "Unknown parameter element")))
+                     rparams)))
+    (nreverse rparams)))
 
 (defun semantic-get-local-variables-default ()
   "Get local values from a specific context.
@@ -234,19 +253,13 @@ Optional argument POINT is the location to start getting the variables from."
 	))))
 
 (defun semantic-get-all-local-variables-default ()
-  "Get all local variables for this context, and parent contexts.
-Local variables are returned in Semantic token format.  Uses
-`semantic-get-local-variables' and `semantic-get-local-arguments' to
-collect this information."
-  (let ((varlist nil)
-	(sublist nil))
-    ;; get the variables
-    (setq varlist (semantic-get-local-variables))
-    ;; arguments to some local function
-    (setq sublist (semantic-get-local-arguments))
-    (if sublist (setq varlist (cons sublist varlist)))
-    ;; fix er up.
-    (nreverse varlist)))
+  "Get all local variables for this context.
+That is a cons (LOCAL-ARGUMENTS . LOCAL-VARIABLES) where:
+
+- LOCAL-ARGUMENTS is collected by `semantic-get-local-arguments'.
+- LOCAL-VARIABLES is collected by `semantic-get-local-variables'."
+  (cons (semantic-get-local-arguments)
+        (semantic-get-local-variables)))
 
 ;;; Local context parsing
 ;;
