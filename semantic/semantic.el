@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.33 2000/04/30 22:52:00 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.34 2000/05/04 02:45:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -233,6 +233,10 @@
        (put 'working-status-forms 'lisp-indent-function 2)))))
 
 (require 'semantic-util)
+
+(defgroup semantic nil
+  "File and tag browser frame."
+  )
 
 ;;; Code:
 (defvar semantic-edebug nil
