@@ -5,7 +5,7 @@
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
-;; X-RCS: $Id: c.by,v 1.2 2002/12/29 18:07:02 ponced Exp $
+;; X-RCS: $Id: c.by,v 1.3 2003/01/24 18:14:55 ponced Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -85,6 +85,8 @@
 %token <semantic-list> BRACK_BLCK "\\[.*\\]$"
 %token <semantic-list> PAREN_BLCK "^("
 %token <semantic-list> VOID_BLCK  "^(void)$"
+%token <semantic-list> PARENS     "()"
+%token <semantic-list> BRACKETS   "\\[\\]"
 
 %token EXTERN "extern"
 %put EXTERN summary "Declaration Modifier: extern <type> <name> ..."
@@ -118,6 +120,8 @@
 %put TYPEDEF summary "Arbitrary Type Declaration: typedef <typedeclaration> <name>;"
 %token CLASS "class"
 %put CLASS summary "Class Declaration: class <name>[:parents] { ... };"
+%token TYPENAME "typename"
+%put TYPENAME summary "typename is used to handle a qualified name as a typename;"
 %token NAMESPACE "namespace"
 %put NAMESPACE summary "Namespace Declaration: namespace <name> { ... };"
 %token USING "using"
@@ -196,8 +200,10 @@
 declaration
   : macro
   | type
-  | var-or-fun
+ ;; TODO: Klaus Berndl <klaus.berndl@sdm.de>: Is the define here
+ ;; necessary or even wrong? Is this part not already covered by macro??
   | define
+  | var-or-fun
   | extern-c
   | template
   | using
@@ -230,13 +236,35 @@ extern-c
     ( nil )
   ;
 
+;; Klaus Berndl <klaus.berndl@sdm.de>: At least one-liner should be
+;; parsed correctly! Multi-line macros (every line ends with a '\') not
+;; being one code-block can not be parsed because \+newline is flexed
+;; as nothing and therefore we can not distinguish if the lines > 1
+;; belong to the macro or are separated statements! Maybe we need
+;; special backslash recognizing and then better macro-parsing. For the
+;; moment it's goog enough.
+macro-expression-list
+  : expression macro-expression-list SEMICOLON
+    ( nil )
+  | expression
+    ( nil )
+  ;
+
+macro-def
+  : macro-expression-list
+    ( nil )
+  | expression
+    ( nil )
+  | EMPTY 
+  ;
+
 macro
   : HASH macro-or-include
     ( ,$2 )
   ;
 
 macro-or-include
-  : DEFINE symbol opt-define-arglist opt-expression
+  : DEFINE symbol opt-define-arglist macro-def
     ( $2 variable nil $3
          (ASSOC const t)
          nil )
@@ -254,8 +282,10 @@ opt-define-arglist
 
 ;; This is used in struct parts.
 define
-  : HASH DEFINE symbol opt-expression
-    ( $2 variable nil $3
+  : HASH DEFINE symbol opt-define-arglist macro-def
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: should be $3 variable nil $4!
+ ;; \( $2 variable nil $3
+    ( $3 variable nil $4
          (ASSOC const t)
          nil )
   ;
@@ -313,9 +343,9 @@ opt-class-parents
 class-parents
   : opt-class-protection opt-class-declmods
     namespace-symbol COMA class-parents
-    ( ,(cons (car $4) $6 ) )
+    ( ,(cons $3 $5 ) )
   | opt-class-protection opt-class-declmods namespace-symbol
-    ( ,$4 )
+    ( ,$3 )
   ;
 
 opt-class-declmods
@@ -420,6 +450,8 @@ typedef-symbol-list
     ( $1 )
   ;
 
+;; TODO: Klaus Berndl <klaus.berndl@sdm.de>: symbol ->
+;; namespace-symbol?!  Answer: Probably symbol is correct here!
 typedefname
   : opt-stars symbol opt-bits opt-array
     ( $1 $2 )
@@ -433,16 +465,24 @@ struct-or-class
 type
   : typesimple SEMICOLON
     ( ,$1 )
+ ;; named namespaces like "namespace XXX {"
   | NAMESPACE symbol namespaceparts
     ( $2 type $1 $3 nil nil nil )
+ ;; unnamed namespaces like "namespace {"
+  | NAMESPACE namespaceparts
+    ( "unnamed" type $1 $2 nil nil nil )
   ;
+
+;; Klaus Berndl <klaus.berndl@sdm.de>: 
+;; We must parse "using namespace XXX" too
 
 ;; Using is vaguely like an include statement in the named portions
 ;; of the code.  We should probably specify a new token type for this.
 using
   : USING typeformbase SEMICOLON
     ( nil )
-  | USING symbol COLON COLON typeformbase SEMICOLON
+  | USING NAMESPACE typeformbase SEMICOLON
+    ( nil )
   ;
 
 template
@@ -492,15 +532,26 @@ opt-template-equal
   | ;;EMPTY
   ;
 
+;; Klaus Berndl <klaus.berndl@sdm.de>: args can look like normal args:
+;; template<class T, int i>
 template-type
   : CLASS symbol
     ( $2 type "class" nil nil )
   | STRUCT symbol
     ( $2 type "struct" nil nil )
+ ;; TODO: Klaus Berndl <klaus.berndl@sdm.de>: For the moment is is ok,
+ ;; that we parse the C++ keyword typename as a struct....
+  | TYPENAME symbol
+    ( $2 type "struct" nil nil)
+  | builtintype symbol
+    ( ,$1 type nil nil nil)
   | builtintype
-    ( ,$1 type nil nil nil )
-  | symbol
-    ( $1 type nil nil nil )
+    ( ,$1 type nil nil nil)
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: symbol -> namespace-symbol!
+  | namespace-symbol symbol
+    ( ,$1 type nil nil nil)
+  | namespace-symbol
+    ( ,$1 type nil nil nil)
   ;
 
 template-definition
@@ -542,11 +593,19 @@ DECLMOD
   | STATIC
   | CONST
   | VOLATILE
-  | SIGNED
-  | UNSIGNED
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: IMHO signed and unsigned are not
+ ;; decl-modes but these are only valid for some buildin-types like
+ ;; short, int etc... whereas "real" declmods are valid for all types,
+ ;; buildin and user-defined!
+ ;; | SIGNED
+ ;; | UNSIGNED
   | INLINE
   | REGISTER
   | FRIEND
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: There can be a few cases where
+ ;; TYPENAME is not allowed in C++-syntax but better than not
+ ;; recognizing the allowed situations.
+  | TYPENAME
   | METADECLMOD
  ;; This is a hack in case we are in a class.
   | VIRTUAL
@@ -591,14 +650,41 @@ typeformbase
     ( $1 )
   ;
 
-builtintype
+signedmod
+  : UNSIGNED
+  | SIGNED
+  ;
+
+;; Klaus Berndl <klaus.berndl@sdm.de>: builtintype-types was
+;; builtintype
+builtintype-types
   : VOID
   | CHAR
   | SHORT
   | INT
-  | LONG
+  | LONG INT
+    ( (concat $1 " " $2) )
   | FLOAT
   | DOUBLE
+  | LONG DOUBLE
+    ( (concat $1 " " $2) )
+ ;; TODO: Klaus Berndl <klaus.berndl@sdm.de>: Is there a long long, i
+ ;; think so?!
+  | LONG LONG
+    ( (concat $1 " " $2) )
+  | LONG
+  ;
+
+builtintype
+  : signedmod builtintype-types
+    ( (concat (car $1) " " (car $2)) )
+  | builtintype-types
+    ( ,$1 )
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: unsigned is synonym for unsigned
+ ;; int and signed for signed int. To make this confusing stuff clear we
+ ;; add here the int.
+  | signedmod
+    ( (concat (car $1) " int") )
   ;
 
 codeblock-var-or-fun
@@ -657,9 +743,10 @@ opt-under-p
   | ;;EMPTY
   ;
 
+;; Klaus Berndl <klaus.berndl@sdm.de>: symbol -> namespace-symbol
 opt-initializers
-  : COLON symbol semantic-list opt-initializers
-  | COMA symbol semantic-list opt-initializers
+  : COLON namespace-symbol semantic-list opt-initializers
+  | COMA namespace-symbol semantic-list opt-initializers
   | ;;EMPTY
   ;
 
@@ -723,9 +810,12 @@ opt-restrict
   | ;;EMPTY
   ;
 
+;; Klaus Berndl <klaus.berndl@sdm.de>: symbol -> namespace-symbol?! I
+;; think so. Can be that then also some invalid C++-syntax is parsed
+;; but this is better than not parsing valid syntax.
 varname
-  : opt-stars opt-restrict symbol opt-bits opt-array opt-assign
-    ( $3 ,$1 ,$4 ,$5 ,$6 )
+  : opt-stars opt-restrict namespace-symbol opt-bits opt-array opt-assign
+    ( ,$3 ,$1 ,$4 ,$5 ,$6 )
   ;
 
 ;; I should store more in this def, but leave it simple for now.
@@ -760,9 +850,24 @@ namespace-symbol
     ( $1 )
   ;
 
-opt-class
-  : symbol COLON COLON
+namespace-opt-class
+  : symbol COLON COLON namespace-opt-class
+    ( (concat $1 "::" (car $4)) )
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: We must recognize
+ ;; template-specifiers here so we can parse correctly the
+ ;; method-implementations of template-classes outside the
+ ;; template-class-declaration
+ ;; Example: TemplateClass1<T>::method_1(...)
+  | symbol opt-template-specifier COLON COLON
     ( $1 )
+  ;
+
+;; Klaus Berndl <klaus.berndl@sdm.de>: The opt-class of a func-decl
+;; must be able to recognize opt-classes with namespaces, e.g.
+;; Test1::Test2::classname::
+opt-class
+  : namespace-opt-class
+    ( ,$1 )
   | ;;EMPTY
     ( nil )
   ;
@@ -818,6 +923,12 @@ operatorsym
     ( "!=" )
   | MINUS GREATER
     ( "->" )
+ ;; TODO: Klaus Berndl <klaus.berndl@sdm.de>: We have to parse also
+ ;; operator() and operator[]
+  | PARENS
+    ( "()" )
+  | BRACKETS
+    ( "[]" )
   | LESS
   | GREATER
   | STAR
@@ -845,12 +956,6 @@ fun-or-proto-end
     ( 'pure-virtual )
   ;
 
-opt-expression
-  : expression
-  | ;;EMPTY
-    ( nil )
-  ;
-
 type-cast
   : semantic-list
     ( EXPAND $1 type-cast-list )
@@ -860,8 +965,9 @@ type-cast-list
   : open-paren typeformbase close-paren
   ;
 
+;; Klaus Berndl <klaus.berndl@sdm.de>: symbol -> namespace-symbol!
 function-call
-  : symbol semantic-list
+  : namespace-symbol semantic-list
   ;
 
 ;; Use expression for parsing only.  Don't actually return anything
@@ -871,7 +977,8 @@ expression
     ( (identity start) (identity end) )
   | function-call
     ( (identity start) (identity end) )
-  | symbol
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: symbol -> namespace-symbol!
+  | namespace-symbol
     ( (identity start) (identity end) )
   | string
     ( (identity start) (identity end) )
