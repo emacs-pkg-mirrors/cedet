@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.1 1999/05/03 18:06:03 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.2 1999/05/05 11:37:56 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -83,7 +83,9 @@
 ;; as the RESULT LAMBDA.  There are two default RESULT LAMBDAs which
 ;; can be used which cover the default case.  The RESULT LAMBDA must
 ;; return a valid synthetic token.  A synthetic token is always of the
-;; form ( TOKEN VALUE1 VALUE2 ... START END).  Token should be the same
+;; form ( NAME TOKEN VALUE1 VALUE2 ... START END).  NAME is the name
+;; to use for this token.  It is first so that a list of tokens is
+;; also an alist, or completion table.  Token should be the same
 ;; symbol as the synthetic token generated, though it does not have to
 ;; be.  The values can be anything you want, including other tokens.
 ;; START and END indicate where in the buffer this token is, and is
@@ -121,7 +123,7 @@
 ;;
 ;; (open-paren "(" symbol "defun" symbol semantic-list string
 ;;             (lambda (vals start end)
-;;                     (list 'function (nth 2 vals) nil (nth 3 vals)
+;;                     (list (nth 2 vals) 'function nil (nth 3 vals)
 ;;                           (nth 4 vals) start end)))
 ;;
 ;; The above will create a function token, whose format is
@@ -238,7 +240,7 @@ GENERIC ENTRIES:
  Bovine table entry return elements are up to the table author.  It is
 recommended, however, that the following format be used.
 
- (type-symbol \"NAME\" [\"TYPE\"] ... \"DOCSTRING\" START END)
+ (\"NAME\" type-symbol [\"TYPE\"] ... \"DOCSTRING\" START END)
 
 Where type-symbol is the type of return token found, and NAME is it's
 name.  If there is any typing informatin needed to describe this
@@ -249,9 +251,14 @@ could be the text of a comment appearing just before a function call,
 or in line with a variable.  Lastly, make sure the last two elements
 are START and END.
 
+It may seem odd to place NAME in slot 0, and the type-symbol in slot
+1, but this turns the returned elements into an alist based on name.
+This makes it ideal for passing into generic sorters, string
+completion functions, and list searching functions.
+
 TOP-LEVEL ENTRIES:
 
- (variable \"NAME\" \"TYPE\" CONST DEFAULT-VALUE \"DOCSTRING\" START END)
+ (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE \"DOCSTRING\" START END)
    The definition of a variable, or constant.  CONST is a boolean
    indicating that the variable is constant.  DEFAULT-VALUE can be
    something apropriate such a a string, or list of parsed elements.
@@ -259,11 +266,17 @@ TOP-LEVEL ENTRIES:
    Some languages do not have the TYPE field available for arg lists.
    In this case nil is appropriate.
 
- (function \"NAME\" \"TYPE\" ( ARG-LIST ) \"DOCSTRING\" START END)
+ (\"NAME\" function \"TYPE\" ( ARG-LIST ) \"DOCSTRING\" START END)
    A function/procedure definition.  DOCSTRING is optional.
    ARG-LIST is a list of variable definitions.
 
- (include \"FILE\" \"DOCSTRING\" START END)
+ (\"NAME\" type \"TYPE\" ( PART-LIST ) \"DOCSTRING\" START END)
+   A type definition.  TYPE of a type could be anything, such as (in C)
+   struct, union, typedef, or class.  The PART-LIST is only useful for
+   structs that have multiple individual parts.  (It is recommended
+   that these be variables or types).
+
+ (\"FILE\" include \"DOCSTRING\" START END)
    In C, an #include statement.  In elisp, a require statement.
    Indicates additional locations of sources or definitions.
 
@@ -275,6 +288,42 @@ OTHER ENTRIES:")
 ;; These functions use the flex and bovination engines to perform some
 ;; simple tasks useful to other programs.
 ;;
+(defmacro semantic-token-token (token)
+  "Retrieve from TOKEN the token identifier."
+  '(nth 1 ,token))
+
+(defmacro semantic-token-name (token)
+  "Retrieve the name of TOKEN."
+  `(car ,token))
+
+(defmacro semantic-token-docstring (token)
+  "Retrieve the doc string of TOKEN."
+  `(nth (- (length ,token) 3) ,token))
+
+(defmacro semantic-token-start (token)
+  "Retrieve the start location of TOKEN."
+  `(nth (- (length ,token) 2) ,token))
+
+(defmacro semantic-token-end (token)
+  "Retrieve the end location of TOKEN."
+  `(nth (- (length ,token) 1) ,token))
+
+(defmacro semantic-token-type (token)
+  "Retrieve the type of TOKEN."
+  `(nth 2 ,token))
+
+(defmacro semantic-token-function-args (token)
+  "Retrieve the type of TOKEN."
+  `(nth 3 ,token))
+
+(defmacro semantic-token-type-parts (token)
+  "Retrieve the type of TOKEN."
+  `(nth 3 ,token))
+
+(defmacro semantic-token-variable-default (token)
+  "Retrieve the default value of TOKEN."
+  `(nth 4 ,token))
+
 (defun semantic-bovinate-toplevel (&optional depth trashcomments)
   "Bovinate the entire current buffer to a list depth of DEPTH.
 DEPTH is optional, and defaults to 0.
@@ -297,7 +346,9 @@ stripped from the main list of synthesized tokens."
 	    (setq ss (cdr ss)))
 	  (working-status
 	   (if ss
-	       (* 100.0 (/ (float (car (cdr (car ss)))) (point-max)))
+	       (floor
+		(* 100.0 (/ (float (car (cdr (car ss))))
+			    (float (point-max)))))
 	     100)))
 	(working-dynamic-status t))
     (nreverse res)))
