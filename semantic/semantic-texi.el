@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.20 2003/08/28 02:55:20 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.21 2003/08/29 16:13:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +38,7 @@
   (require 'semanticdb-find)
   (require 'semantic-ctxt)
   (require 'semantic-imenu)
+  (require 'semantic-doc)
   (require 'document)
   (require 'senator))
 
@@ -307,7 +308,7 @@ Note: TYPE not yet implemented."
       (unless stream
 	(with-current-buffer (find-file-noselect (car f))
 	  (setq stream (semantic-bovinate-toplevel t))))
-      (setq match (semantic-find-first-tag-by-name name stream t nil))
+      (setq match (semantic-find-first-tag-by-name name stream))
       (when match
 	(set-buffer (semantic-tag-buffer match))
 	(goto-char (semantic-tag-start match)))
@@ -368,7 +369,7 @@ If TAG is nil, determine a tag based on the current position."
 		     doctag doctagvar))
 	      ((stringp docstringproto)
 	       (setq docstring docstringproto
-		     docvar docvarproto))))
+		     doctag doctagproto))))
     ;; Test for doc string
     (unless docstring
       (error "Could not find documentation for %s" (semantic-tag-name tag)))
@@ -401,7 +402,7 @@ The current buffer must include TAG."
     (while (and texi (not doctag))
       (set-buffer (find-file-noselect (car texi)))
       (setq doctag (semantic-find-first-tag-by-name
-		    name (semantic-bovinate-toplevel t) t nil)
+		    name (semantic-bovinate-toplevel t))
 	    docbuff (if doctag (current-buffer) nil))
       (setq texi (cdr texi)))
     (unless doctag
