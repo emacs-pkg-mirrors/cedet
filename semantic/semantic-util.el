@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.47 2001/02/09 11:54:18 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.48 2001/02/20 21:00:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1011,47 +1011,51 @@ This functin must be overloaded, though it need not be used."
     (if s
 	;; Prototype is non-local
 	(funcall s token)
-      ;; Cococt a cheap prototype using C like syntax.
-      (let* ((tok (semantic-token-token token))
-	     (type (if (member tok '(function variable type))
-		       (semantic-token-type token) ""))
-	     (args (cond ((eq tok 'function)
-			  (semantic-token-function-args token))
-			 ((eq tok 'type)
-			  (semantic-token-type-parts token))
-			 (t nil)))
-	     (const (semantic-token-extra-spec token 'const))
-	     (mods (append
-		    (if const '("const") nil)
-		    (semantic-token-extra-spec token 'typemodifiers)))
-	     (array (if (eq tok 'variable)
-			(let ((deref
-			       (semantic-token-variable-extra-spec
-				token 'dereference))
-			      (r ""))
-			  (while (and deref (/= deref 0))
-			    (setq r (concat r "[]")
-				  deref (1- deref)))
-			  r)))
-	     (suffix (if (eq tok 'variable)
-			 (semantic-token-variable-extra-spec token 'suffix)))
-	     )
-	(if (and (listp mods) mods)
-	    (setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
-	(if args
-	    (setq args
-		  (concat " " (if (eq tok 'type) "{" "(")
-			  (if (stringp (car args))
-			      (mapconcat (lambda (a) a) args ",")
-			    (mapconcat 'car args ","))
-			  (if (eq tok 'type) "}" ")"))))
-	(if (and type (listp type))
-	    (setq type (car type)))
-	(concat (or mods "")
-		(if type (concat type " "))
-		(semantic-token-name token)
-		(or args "")
-		(or array ""))))))
+      (semantic-prototype-nonterminal-default token))))
+
+(defun semantic-prototype-nonterminal-default (token)
+  "Default method for returning a prototype for TOKEN.
+This will work for C like languages."
+  (let* ((tok (semantic-token-token token))
+	 (type (if (member tok '(function variable type))
+		   (semantic-token-type token) ""))
+	 (args (cond ((eq tok 'function)
+		      (semantic-token-function-args token))
+		     ((eq tok 'type)
+		      (semantic-token-type-parts token))
+		     (t nil)))
+	 (const (semantic-token-extra-spec token 'const))
+	 (mods (append
+		(if const '("const") nil)
+		(semantic-token-extra-spec token 'typemodifiers)))
+	 (array (if (eq tok 'variable)
+		    (let ((deref
+			   (semantic-token-variable-extra-spec
+			    token 'dereference))
+			  (r ""))
+		      (while (and deref (/= deref 0))
+			(setq r (concat r "[]")
+			      deref (1- deref)))
+		      r)))
+	 (suffix (if (eq tok 'variable)
+		     (semantic-token-variable-extra-spec token 'suffix)))
+	 )
+    (if (and (listp mods) mods)
+	(setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
+    (if args
+	(setq args
+	      (concat " " (if (eq tok 'type) "{" "(")
+		      (if (stringp (car args))
+			  (mapconcat (lambda (a) a) args ",")
+			(mapconcat 'car args ","))
+		      (if (eq tok 'type) "}" ")"))))
+    (if (and type (listp type))
+	(setq type (car type)))
+    (concat (or mods "")
+	    (if type (concat type " "))
+	    (semantic-token-name token)
+	    (or args "")
+	    (or array ""))))
 
 (defun semantic-concise-prototype-nonterminal (token)
   "Return a concise prototype for TOKEN.
