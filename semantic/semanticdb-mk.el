@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-mk.el,v 1.2 2004/08/03 01:38:18 zappo Exp $
+;; X-RCS: $Id: semanticdb-mk.el,v 1.3 2004/08/09 02:22:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -52,7 +52,7 @@
   (while (and args
 	      (not
 	       (progn
-		 (message "Compare %s to %s" (car args) "-l")
+		 ;(message "Compare %s to %s" (car args) "-l")
 		 (string= (car args) "-l"))))
     (setq args (cdr args)))
   (when args
@@ -60,10 +60,15 @@
     ;; Grab the rest of the file names.
     ;; For each file, load it in, let semantic evaluate it for tags.
     (while args
-      (message "Loading %s" (car args))
-      (find-file (car args))
-      (semantic-fetch-tags)
-      (setq args (cdr args)))
+      (princ (concat "Loading " (car args) "... "))
+      (save-window-excursion
+	(let* ((buffer (find-file-noselect (car args)))
+	       (tags nil))
+	  (set-buffer buffer)
+	  (setq tags (semantic-fetch-tags))
+	  (princ (length tags))
+	  (princ " tags found .\n"))
+	(setq args (cdr args))))
     ))
 
 ;; Save the databases.
