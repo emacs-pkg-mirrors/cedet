@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-autogen.el,v 1.4 2002/08/10 13:58:02 zappo Exp $
+;; X-CVS: $Id: semantic-autogen.el,v 1.5 2002/08/11 13:19:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,13 +48,14 @@
   "Create semantic autoloads from sources."
   (interactive)
   (let* ((dir (file-name-directory (locate-library "semantic")))
-	  (generated-autoload-file (concat dir "semantic-al.el"))
-	  )
+	 (generated-autoload-file (concat dir "semantic-al.el"))
+	 )
     (find-file (concat dir "semantic-al.el"))
     (erase-buffer)
 
     (insert ";;; semantic-al.el --- Auto-generated file filled with autoloads.")
-    (update-autoloads-from-directories dir)
+    (update-autoloads-from-directories dir
+				       (concat dir "/wisent"))
     )
   (newline 2))
 
