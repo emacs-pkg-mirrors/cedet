@@ -3,8 +3,8 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.25 1997/02/08 21:43:39 zappo Exp $
-;;; Version: 0.4
+;;; RCS: $Id: speedbar.el,v 1.26 1997/02/10 03:15:48 zappo Exp $
+;;; Version: 0.4.2
 ;;; Keywords: file, tags, tools
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -194,6 +194,9 @@
 ;;;       Add `speedbar-get-focus' to switchto/raise the speedbar frame.
 ;;;       Editing thing-on-line will auto-raise the attached frame.
 ;;;       Bound `U' to `speedbar-up-directory' command.
+;;;       Refresh will now maintain all subdirectories that were open
+;;;        when the refresh was requested.  (This does not include the
+;;;        tags, only the directories)
 ;;;
 ;;; TODO:
 ;;; 1) Implement SHIFT-mouse2 to rescan buffers with imenu.
@@ -365,8 +368,9 @@ list of strings."
 	   speedbar-supported-extension-expressions)))))
 
 (defvar speedbar-do-update t
-  "*Indicate wether the speedbar should do automatic updates.  When
-this is `nil' then speedbar will not follow the attached frame's path.")
+  "*Indicate wether the speedbar should do automatic updates.
+When this is `nil' then speedbar will not follow the attached frame's path.
+When speedbar is active, use \\<speedbar-key-map> `\\[speedbar-toggle-updates]' to toggle this value.")
 
 (defvar speedbar-syntax-table nil
   "Syntax-table used on the speedbar.")
@@ -431,6 +435,7 @@ this is `nil' then speedbar will not follow the attached frame's path.")
 	;; Setup XEmacs Menubar
 	(defvar speedbar-menu
 	  '("Speed Bar"
+	    ["Run Speedbar" (speedbar-frame-mode 1) t]
 	    ["Refresh" speedbar-refresh t]
 	    ["Allow Auto Updates"
 	     speedbar-toggle-updates
@@ -552,8 +557,7 @@ this is `nil' then speedbar will not follow the attached frame's path.")
 (defvar speedbar-cached-frame nil
   "The frame that was last created, then removed from the display.")
 (defvar speedbar-full-text-cache nil
-  "The last open directory is saved in it's entirety for ultra-fast
-directory switching (between two directories)")
+  "The last open directory is saved in it's entirety for ultra-fast switching.")
 (defvar speedbar-timer nil
   "The speedbar timer used for updating the buffer.")
 (defvar speedbar-attached-frame nil
@@ -578,6 +582,7 @@ directories.")
 ;;; Mode definitions/ user commands
 ;;;
 ;;;###autoload
+(defalias 'speedbar 'speedbar-frame-mode)
 (defun speedbar-frame-mode (&optional arg)
   "Enable or disable speedbar.  Positive # means turn on, negative turns off.
 nil means toggle.  Once the speedbar frame is activated, a buffer in
@@ -653,16 +658,15 @@ supported at a time."
   (speedbar-frame-mode -1))
 
 (defun speedbar-frame-width ()
-  "Return the width of the speedbar frame in characters.  nil if it doesn't
-exist."
+  "Return the width of the speedbar frame in characters.
+nil if it doesn't exist."
   (and speedbar-frame (cdr (assoc 'width (frame-parameters speedbar-frame)))))
 
 (defun speedbar-mode ()
-  "The speedbar buffer allows the user to manage a list of directories
-and paths at different depths.  The first line represents the default
-path of the speedbar frame.  Each directory segment is a button which
-jumps speedbar's default directory to that path.  Buttons are
-activated by clicking mouse-2.
+  "The speedbar allows the user to manage a list of directories and tags.
+The first line represents the default path of the speedbar frame.
+Each directory segment is a button which jumps speedbar's default
+directory to that path.  Buttons are activated by clicking mouse-2.
 
 Each line starting with <+> represents a directory.  Click on the <+>
 to insert the directory listing into the current tree.  Click on the
@@ -739,9 +743,9 @@ Keybindings: \\<speedbar-key-map>
   speedbar-buffer)
 
 (defun speedbar-set-mode-line-format ()
-  "Sets the format of the mode line based on the current speedbar
-environment.  This gives visual indications of what is up.  It EXPECTS
-the speedbar frame and window to be the currently active frame and window."
+  "Sets the format of the mode line based on the current speedbar environment.
+This gives visual indications of what is up.  It EXPECTS the speedbar
+frame and window to be the currently active frame and window."
   (if (frame-live-p speedbar-frame)
       (save-excursion
 	(set-buffer speedbar-buffer)
@@ -751,10 +755,10 @@ the speedbar frame and window to be the currently active frame and window."
 	       (p3 (if speedbar-do-update "SPEEDBAR" "SLOWBAR"))
 	       (blank (- w (length p1) (length p3) (length p5)
 			 (if line-number-mode 4 0)))
-	       (p2 (if (wholenump blank)
+	       (p2 (if (> blank 0)
 		       (make-string (/ blank 2) ? )
 		     ""))
-	       (p4 (if (wholenump blank)
+	       (p4 (if (> blank 0)
 		       (make-string (+ (/ blank 2) (% blank 2)) ? )
 		     ""))
 	       (tf
@@ -795,7 +799,9 @@ modeline.  This is only useful for non-XEmacs"
     ))
 
 (defun speedbar-get-focus ()
-  "Move to the speedbar frame if it is available."
+  "Changes frame focus to or from the speedbar frame.
+If the selected frame is not speedbar, then speedbar frame is
+selected.  If the speedbar frame is active, then select the attached frame."
   (interactive)
   (if (eq (selected-frame) speedbar-frame)
       (if (frame-live-p speedbar-attached-frame)
@@ -807,25 +813,25 @@ modeline.  This is only useful for non-XEmacs"
   (other-frame 0))
 
 (defun speedbar-next (arg)
-  "Move to the next line in a speedbar buffer"
+  "Move to the next line in a speedbar buffer."
   (interactive "p")
   (forward-line (or arg 1))
   (speedbar-item-info)
   (speedbar-position-cursor-on-line))
 
 (defun speedbar-prev (arg)
-  "Move to the prev line in a speedbar buffer"
+  "Move to the previous line in a speedbar buffer."
   (interactive "p")
   (speedbar-next (if arg (- arg) -1)))
 
 (defun speedbar-scroll-up (&optional arg)
-  "Page down one screenfull of the speedbar"
+  "Page down one screenfull of the speedbar."
   (interactive "P")
   (scroll-up arg)
   (speedbar-position-cursor-on-line))
 
 (defun speedbar-scroll-down (&optional arg)
-  "Scroll down one page"
+  "Page up one screenfull of the speedbar."
   (interactive "P")
   (scroll-down arg)
   (speedbar-position-cursor-on-line))
