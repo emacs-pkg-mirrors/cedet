@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.7 2000/07/19 02:22:54 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.8 2000/08/20 21:58:05 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -35,6 +35,8 @@
 ;;  This provides some classes that can be used as a parent which
 ;; will automatically provide SPEEDBAR support for any list of objects
 ;; of that type.
+;;
+;; This file requires speedbar version 0.10 or later.
 
 ;;; Creating a new speedbar mode based on a pre-existing object hierarchy
 ;;
