@@ -1,12 +1,12 @@
 ;;; cogre.el --- COnnected GRaph Editor for Emacs
 
-;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.16 2003/09/24 13:51:52 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.17 2005/02/03 13:20:03 zappo Exp $
 
-(defvar cogre-version "0.4beta1"
+(defvar cogre-version "0.5"
   "Current version of Cogre.")
 
 ;; This file is not part of GNU Emacs.
