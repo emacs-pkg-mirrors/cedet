@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.9 2001/12/18 02:50:40 zappo Exp $
+ * $Id: test.cpp,v 1.10 2002/02/27 13:37:35 zappo Exp $
  *
  */
 
@@ -95,6 +95,12 @@ class3::class3()
 
 int class3::method1_for_class3( int a, int &b)
 {
+  int a;
+  class3 foo;
+
+  // Completion testing line should find external members.
+  a = foo.m;
+
   return 1;
 }
 
