@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.10 2001/09/29 23:42:44 ponced Exp $
+;; X-RCS: $Id: document.el,v 1.11 2001/10/26 14:13:07 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -764,15 +764,17 @@ This is to take advantage of TeXinfo's markup symbols."
       (setq string (document-texify-elisp-docstring string)))
   ;; Else, other languages are simpler.  Also, might as well
   ;; run the elisp version through also.
-  (let ((case-fold-search nil))
+  (let ((case-fold-search nil)
+	(start 0))
     (while (string-match
 	    "\\(^\\|[^{]\\)\\<\\([A-Z0-9_-]+\\)\\>\\($\\|[^}]\\)"
-	    string)
+	    string start)
       (setq string (concat (substring string 0 (match-beginning 2))
 			   "@var{"
 			   (match-string 2 string)
 			   "}"
-			   (substring string (match-end 2)))))
+			   (substring string (match-end 2)))
+	    start (match-end 2)))
     )
   string)
 
