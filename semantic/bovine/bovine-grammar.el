@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.14 2003/08/11 06:36:33 ponced Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.15 2003/09/02 14:51:03 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -181,7 +181,42 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
       (insert ")\n"))))
 
 (defun bovine-grammar-parsetable-builder ()
-  "Return the parser table expression as a string value."
+  "Return the parser table expression as a string value.
+The format of a bovine parser table is:
+
+ ( ( NONTERMINAL-SYMBOL1 MATCH-LIST1 )
+   ( NONTERMINAL-SYMBOL2 MATCH-LIST2 )
+   ...
+   ( NONTERMINAL-SYMBOLn MATCH-LISTn )
+ 
+Where each NONTERMINAL-SYMBOL is an artificial symbol which can appear
+in any child state.  As a starting place, one of the NONTERMINAL-SYMBOLS
+must be `bovine-toplevel'.
+
+A MATCH-LIST is a list of possible matches of the form:
+
+ ( STATE-LIST1
+   STATE-LIST2
+   ...
+   STATE-LISTN )
+
+where STATE-LIST is of the form:
+  ( TYPE1 [ \"VALUE1\" ] TYPE2 [ \"VALUE2\" ] ... LAMBDA )
+
+where TYPE is one of the returned types of the token stream.
+VALUE is a value, or range of values to match against.  For
+example, a SYMBOL might need to match \"foo\".  Some TYPES will not
+have matching criteria.
+
+LAMBDA is a lambda expression which is evaled with the text of the
+type when it is found.  It is passed the list of all buffer text
+elements found since the last lambda expression.  It should return a
+semantic element (see below.)
+
+For consistency between languages, try to use common return values
+from your parser.  Please reference the chapter \"Writing Parsers\" in
+the \"Language Support Developer's Guide -\" in the semantic texinfo
+manual."
   (let* ((start      (semantic-grammar-start))
          (scopestart (semantic-grammar-scopestart))
          (quotemode  (semantic-grammar-quotemode))
