@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.31 2001/07/13 16:04:35 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.32 2001/07/20 13:10:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -700,7 +700,7 @@ Override function for `semantic-nonterminal-protection'."
 			 'protected)))
 	    )
 	  (setq pp (cdr pp)))))
-    prot))
+    (or prot 'public)))
 
 
 (defun semantic-default-c-setup ()
