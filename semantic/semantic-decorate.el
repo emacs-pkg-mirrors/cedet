@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.1 2003/07/03 00:56:22 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.2 2003/07/04 20:59:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -137,26 +137,37 @@ instead of read-only."
 
 ;;; backwards compatability
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-highlight-token
 			 'semantic-highlight-tag)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-unhighlight-token
 			 'semantic-unhighlight-tag)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-momentary-unhighlight-token
 			 'semantic-momentary-unhighlight-tag)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-momentary-highlight-token
 			 'semantic-momentary-highlight-tag)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-set-token-face
 			 'semantic-set-tag-face)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-set-token-invisible
 			 'semantic-set-tag-invisible)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-token-invisible-p
 			 'semantic-tag-invisible-p)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-set-token-intangible
 			 'semantic-set-tag-intangible)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-token-intangible-p
 			 'semantic-tag-intangible-p)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-set-token-read-only
 			 'semantic-set-tag-read-only)
+;;;###autoload
 (semantic-alias-obsolete 'semantic-token-read-only-p
 			 'semantic-tag-read-only-p)
 
