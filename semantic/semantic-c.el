@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.14 2001/01/24 21:16:39 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.15 2001/01/31 15:31:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,6 +45,13 @@
  ( prototype)
  ( define)
  ) ; end declaration
+ (bovine-inner-scope
+ ( macro)
+ ( define)
+ ( variable)
+ ( prototype)
+ ( type)
+ ) ; end codeblock
  (include
  ( punctuation "\\b#\\b" INCLUDE punctuation "<" filename punctuation ">"
   ,(semantic-lambda
@@ -189,9 +196,7 @@
  (macro
  ( punctuation "\\b#\\b" DEFINE symbol opt-expression
   ,(semantic-lambda
-  (list (nth 2 vals) 'variable nil (nth 3 vals)
- (semantic-bovinate-make-assoc-list 'constt)
- nil)))
+  (list (nth 2 vals) 'variable nil (nth 3 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
  ) ; end macro
  (variable
  ( variabledef punctuation "\\b;\\b"
@@ -201,9 +206,7 @@
  (variabledef
  ( declmods typeform varnamelist
   ,(semantic-lambda
-  (list (nth 2 vals) 'variable (nth 1 vals) nil
- (semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil)'typemodifiers ( delete "const" (nth 0 vals)))
- nil)))
+  (list (nth 2 vals) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals))) nil)))
  ) ; end variabledef
  (opt-restrict
  ( symbol "\\<\\(__\\)?restrict\\>")
@@ -217,9 +220,7 @@
  (variablearg
  ( declmods typeform varname
   ,(semantic-lambda
-  (list ( car (nth 2 vals)) 'variable (nth 1 vals) nil
- (semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil)'typemodifiers ( delete "const" (nth 0 vals)))
- nil)))
+  (list ( car (nth 2 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals))) nil)))
  ) ; end variablearg
  (varnamelist
  ( varname punctuation "\\b,\\b" varnamelist
@@ -276,9 +277,7 @@
  (functiondef
  ( declmods typeform symbol arg-list
   ,(semantic-lambda
-  (list (nth 2 vals) 'function (nth 1 vals) (nth 3 vals)
- (semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil)'typemodifiers ( delete "const" (nth 0 vals)))
- nil)))
+  (list (nth 2 vals) 'function (nth 1 vals) (nth 3 vals) ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals))) nil)))
  ) ; end functiondef
  (prototype
  ( functiondef punctuation "\\b;\\b"
@@ -308,7 +307,7 @@
  ))
  ) ; end expression
  )
-       "C language specification.")
+            "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -330,7 +329,7 @@
 	     (let ((vl nil)
 		   (basety (semantic-token-type nonterm))
 		   (ty "")
-		   (mods (semantic-token-variable-modifier nonterm 'typemodifiers))
+		   (mods (semantic-token-variable-extra-spec nonterm 'typemodifiers))
 		   (suffix "")
 		   (lst (semantic-token-name nonterm))
 		   (cur nil)
