@@ -30,6 +30,8 @@
 
 *** operator()() and operator[]() are parsed correctly
 
+*** Better parsing of const and volatile (now also allowed to be after the type)
+
 *** Some minor fixes
 
 
