@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.12 2001/12/19 10:53:32 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.13 2002/02/13 09:43:37 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -125,16 +125,18 @@ working goodies."
         (setq wisent-lexer-lookahead nil))
       (funcall wisent-lexer-function)))
 
-(defun wisent-bovinate-nonterminal (stream table lexer error
+(defun wisent-bovinate-nonterminal (stream table
                                            &optional nonterminal)
   "Bovinate STREAM based on LALR TABLE.
-Use LEXER to get next input and ERROR as error reporting function.
 Optional argument NONTERMINAL is the nonterminal symbol to start with.
 Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
 list of semantic tokens found."
   (let* ((wisent-flex-istream stream)
-         (cache (wisent-parse table lexer error nonterminal)))
+         (cache (wisent-parse table
+                              #'wisent-lexer-wrapper
+                              wisent-error-function
+                              nonterminal)))
     (list wisent-flex-istream
           ;; Ensure to get only valid Semantic tokens from the LALR
           ;; parser!
@@ -157,11 +159,7 @@ with the current results on a parse error."
     (while stream
       (setq lookahead wisent-lexer-lookahead
             nontermsym (wisent-bovinate-nonterminal
-                        stream
-                        semantic-toplevel-bovine-table
-                        #'wisent-lexer-wrapper
-                        wisent-error-function
-                        nonterm)
+                        stream semantic-toplevel-bovine-table nonterm)
             stream     (car nontermsym)
             sstream    (nth 1 nontermsym))
       (if (and wisent-lookahead (eq lookahead wisent-lookahead))
@@ -194,8 +192,6 @@ with the current results on a parse error."
                               (wisent-bovinate-nonterminal
                                stream
                                semantic-toplevel-bovine-table
-                               #'wisent-lexer-wrapper
-                               wisent-error-function
                                nonterminal)
                             (error nil))))))
     (if (or (null (car new))            ; Clever reparse failed
