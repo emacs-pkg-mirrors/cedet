@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-config.el,v 1.8 1997/01/07 23:07:14 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.9 1997/01/10 23:08:20 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -71,11 +71,15 @@ the changes you just set.")
     (if (or (not edit-style) (eq edit-style 'dot-emacs))
 	(create-widget "config-file" widget-labeled-text
 		       :label "Config File  :" :text-length 40
+		       :help-hook (lambda (obj reason)
+				    (message "This is the lisp file to save changes in when AUTO-EDIT is true."))
 		       :value (data-object-symbol "config-file" :protect t
 						  :symbol 'dlg-config-file)))
     (if (or (not edit-style) (eq edit-style 'xdefaults))
 	(create-widget "x-config-file" widget-labeled-text
 		       :label "Xdefault File:" :text-length 40
+		       :help-hook (lambda (obj reason)
+				    (message "This is the X Defaults file to save changes in when AUTO-EDIT is true."))
 		       :value (data-object-symbol "x-file" :protect t
 						  :symbol 'dlg-xdefaults-file)))
     (create-widget "Modify running environment"
@@ -114,8 +118,8 @@ the changes you just set.")
 			      (message "Click to finish configuring."))))
 
 (defun dlg-face-box (face &optional bx by boxjust)
-  "Create a frame to edit FACE in.  Optionally set PARENT, and position it
-at BX and BY"
+  "Create a frame to edit FACE in.  Optionally set position at BX and BY
+using BOXJUST as the justification for the label."
   (dialog-build-group (create-widget (format "Edit %S" face) widget-frame
 				     :x bx :y by :position boxjust)
 
