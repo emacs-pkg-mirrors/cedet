@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.3 2000/06/13 14:27:34 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.4 2000/07/01 18:19:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,7 +46,7 @@
     (rule
      ( symbol colons elements commands
 	      ,(lambda (vals start end)
-		 (append  (list (nth 0 vals) 'function nil (nth 2 vals) nil)
+		 (append  (list (nth 0 vals) 'function nil (nth 2 vals) nil nil)
 			  (list start end))))
      ) ; end rule
     (conditional
@@ -65,6 +65,10 @@
      ) ; end conditional
     (equals
      ( punctuation ":" punctuation "="
+		   ,(lambda (vals start end)
+		      (append 
+		       (list start end))))
+     ( punctuation "+" punctuation "="
 		   ,(lambda (vals start end)
 		      (append 
 		       (list start end))))
