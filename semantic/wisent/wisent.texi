@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.7 2002/06/21 22:35:19 ponced Exp $
+@c $Id: wisent.texi,v 1.8 2002/06/22 22:34:50 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle The Bison-compatible Parser Generator for Emacs
@@ -50,8 +50,8 @@ Grammar
 
 Parsing
 
-* Writing a lexer::
-* Writing semantic actions::    
+* Writing a lexer::             
+* Actions goodies::             
 * Report errors::               
 * Error recovery::              
 
@@ -86,7 +86,7 @@ Wisent (the European Bison ;-) is an Elisp implementation of the GNU
 Compiler Compiler Bison.
 
 It can generate compilers compatible with the Semantic tool set
-@inforef{Top, , semantic.info}.
+(@inforef{Top, , semantic.info}).
 
 The Elisp code is a port of the C code of GNU Bison 1.28 & 1.31.
 
@@ -113,7 +113,7 @@ October 1982, ACM TOPLS Vol 4 No 4.
 
 @item 
 Wisent resolves shift/reduce conflicts using operator precedence and
-associativity @xref{Conflicts}.
+associativity.  @xref{Conflicts}.
 
 @item 
 Parser error recovery is accomplished using rules which match the
@@ -121,7 +121,7 @@ special token @code{error}.
 @end itemize
 
 For more details on the basic concepts for understanding Wisent, it is
-worthwhile to read the Bison manual ;) @inforef{Top, , bison.info}.
+worthwhile to read the Bison manual ;) (@inforef{Top, , bison.info}).
 It should be available at
 @url{http://www.gnu.org/manual/bison/index.html}.
 
@@ -129,6 +129,7 @@ Nevertheless there are some fundamental differences between Bison and
 Wisent.
 
 @itemize
+@item
 Wisent is intended to be used in Emacs.  It reads and produces Emacs
 Lisp data structures.  All the additional code used in grammars is
 Emacs Lisp code.
@@ -152,8 +153,8 @@ buffer.  Semantic heavily depends on the availability of this feature.
 
 In order for Wisent to parse a language, it must be described by a
 @dfn{context-free grammar}.  That is a grammar specified as rules that
-can be applied regardless of context @inforef{Language and Grammar, ,
-bison.info}.
+can be applied regardless of context.  @inforef{Language and Grammar,
+, bison.info}.
 
 The formal grammar is formulated using @dfn{terminal} and
 @dfn{nonterminal} items.  Terminals can be Emacs Lisp symbols or
@@ -164,36 +165,25 @@ elements of the language like numbers, strings, etc..
 
 For example @code{PLUS} can represent the operator @code{+}.
 
-Nonterminal symbols are described by rules of the form:
+Nonterminal symbols are described by rules:
 
 @example
-RESULT: COMPONENTS...
-      ;
+RESULT @result{} COMPONENTS...
 @end example
 
-where @var{RESULT} is the nonterminal symbol that this rule describes
-and @var{COMPONENTS} are various terminal and nonterminal items that
-are put together by this rule.
+@var{RESULT} is a nonterminal that this rule describes and
+@var{COMPONENTS} are various terminals and nonterminals that are put
+together by this rule.
 
-For example,
+For example, this rule:
 
 @example
-exp: exp PLUS exp
-   ;
+exp @result{} exp PLUS exp
 @end example
 
 says that two groupings of type @code{exp}, with a @code{PLUS} token in
-between, can be combinent ed into a larger grouping of type @code{exp}.
+between, can be combined into a larger grouping of type @code{exp}.
  
-By convention, a nonterminal symbol should be in lower case, such as
-@code{expr}, @code{stmt} or @code{declaration}.  Terminal symbols
-should be upper case to distinguish them from nonterminals: for
-example, @code{INTEGER}, @code{IDENTIFIER}, @code{IF} or
-@code{RETURN}.  A terminal symbol represents a particular keyword in
-the language and is conventionally the same as that keyword converted
-to upper case.  The terminal symbol @code{error} is reserved for error
-recovery.
-
 To be usable by the parser, a context-free grammar must be translated
 into an @dfn{automaton}, that is a set of tables used to drive the
 parser.  Like Bison, Wisent translates (compiles) context-free
@@ -228,7 +218,7 @@ The LALR(1) automaton is a vector of the form:
 @item actions
 A state/token matrix telling the parser what to do at every state
 based on the current look-ahead token.  That is shift, reduce, accept
-or error @xref{Parsing}.
+or error.  @xref{Parsing}.
 @item gotos
 A state/nonterminal matrix telling the parser the next state to go to
 after reducing with each rule.
@@ -287,9 +277,9 @@ Is the list of nonterminal definitions.  Each definition has the form:
 (NONTERM . RULES)
 @end lisp
 
-where @var{NONTERM} is the nonterminal
-symbol defined and @var{RULES} the list of rules that describe this
-nonterminal.  Each rule has the form:
+where @var{NONTERM} is the nonterminal symbol defined and @var{RULES}
+the list of rules that describe this nonterminal.  Each rule has the
+form:
 
 @lisp
 (COMPONENTS [PRECEDENCE] [ACTION])
@@ -312,6 +302,15 @@ For example,
 says that two groupings of type @samp{exp}, with a @samp{+} token in
 between, can be combined into a larger grouping of type @samp{exp}.
  
+By convention, a nonterminal symbol should be in lower case, such as
+@code{exp}, @code{stmt} or @code{declaration}.  Terminal symbols
+should be upper case to distinguish them from nonterminals: for
+example, @code{INTEGER}, @code{IDENTIFIER}, @code{IF} or
+@code{RETURN}.  A terminal symbol that represents a particular keyword
+in the language is conventionally the same as that keyword converted
+to upper case.  The terminal symbol @code{error} is reserved for error
+recovery.
+
 Scattered among the components can be @dfn{middle-rule} actions.
 Usually only @var{ACTION} is provided (@pxref{action}).
 
@@ -530,14 +529,13 @@ The four elementary operations performed are:
 @table @dfn
 @item shift
 This operation pushes the value of the last lexical token read (the
-look-ahead token) into a value stack and reads a new one. @xref{Writing
-a lexer}.
+look-ahead token) into a value stack and reads a new one.
+@xref{Writing a lexer}.
 @item reduce
 This operation replaces a nonterminal by its semantic value.  The
 nonterminal component values are popped from the value stack and
-reduced by the semantic action associated to this nonterminal.  The
-result is pushed back on top of value stack. @xref{Writing semantic
-actions}.
+reduced by the semantic action (@pxref{action}) associated to this
+nonterminal.  The result is pushed back on top of value stack.
 @item accept
 This operation stops the parser which has successfully processed all
 input tokens.  The semantic value of the start nonterminal is on top
@@ -557,30 +555,31 @@ Parse input using the automaton specified in @var{automaton}.
 @table @var
 @item automaton
 Is an LALR(1) automaton generated by
-@code{wisent-compile-grammar}. @xref{Grammar}.
+@code{wisent-compile-grammar}.  @xref{Grammar}.
 @item lexer
 Is a function with no argument called by the parser to obtain the next
-terminal (token) in input. @xref{Writing a lexer}.
+terminal (token) in input.  @xref{Writing a lexer}.
 @item error
 Is an optional reporting function called when a parse error occurs.
 It receives a message string to report.  It defaults to the function
-@code{error}. @xref{Report errors}.
+@code{error}.  @xref{Report errors}.
 @item start
 Specify the start symbol (nonterminal) used by the parser as its goal.
-It defaults to the start symbol defined in the grammar. @xref{Grammar}.
+It defaults to the start symbol defined in the grammar.
+@xref{Grammar}.
 @end table
 @end defun
 
 @menu
-* Writing a lexer::             What the parser must receive.
-* Writing semantic actions::    
+* Writing a lexer::             
+* Actions goodies::             
 * Report errors::               
 * Error recovery::              
 @end menu
 
-@node Writing a lexer, Writing semantic actions, Parsing, Parsing
+@node Writing a lexer, Actions goodies, Parsing, Parsing
 @comment  node-name,  next,  previous,  up
-@subsection What the parser must receive
+@section What the parser must receive
 
 It is important to understand that the parser does not parse
 characters, but lexical tokens, and does not know anything about
@@ -618,11 +617,11 @@ When there are no more tokens to read the lexer must return the token
 syntactic tokens and produces lexical tokens.  @xref{Wisent Flex}.
 
 To call the lexer in a semantic action use the function
-@code{wisent-lexer} (@pxref{Writing semantic actions}).
+@code{wisent-lexer} (@pxref{Actions goodies}).
 
-@node Writing semantic actions, Report errors, Writing a lexer, Parsing
+@node Actions goodies, Report errors, Writing a lexer, Parsing
 @comment  node-name,  next,  previous,  up
-@subsection Variables and macros useful in grammar actions.
+@section Variables and macros useful in grammar actions.
 
 @defvar wisent-input
 The last token read.
@@ -641,9 +640,9 @@ Each element of @var{POSITIONS} is a pair (@var{START-POS} .
 @var{POSITIONS} are available.
 @end defun
 
-@node Report errors, Error recovery, Writing semantic actions, Parsing
+@node Report errors, Error recovery, Actions goodies, Parsing
 @comment  node-name,  next,  previous,  up
-@subsection The error reporting function
+@section The error reporting function
 
 When the parser encounters a syntax error it calls a user-defined
 function.  It must be an Elisp function with one argument: a string
@@ -662,10 +661,10 @@ value of the variable @code{wisent-recovering} is non-nil.
 
 @node Error recovery,  , Report errors, Parsing
 @comment  node-name,  next,  previous,  up
-@subsection Error recovery
+@section Error recovery
 
-The error recovery mechanism of the Wisent's parser conforms to one
-Bison use (@inforef{Error Recovery, , bison.info}).
+The error recovery mechanism of the Wisent's parser conforms to the
+one Bison uses (@inforef{Error Recovery, , bison.info}).
  
 To recover from a syntax error you must write rules to recognize the
 special token @code{error}.  This is a terminal symbol that is
@@ -711,7 +710,7 @@ The actual value of this variable is local to the parser.
 
 @defun wisent-error msg
 Call the language specific error reporting function with message
-@var{MSG}. @xref{Report errors}.
+@var{MSG}.  @xref{Report errors}.
 
 
 See implementation of the function @code{wisent-skip-token} below, for
@@ -820,6 +819,268 @@ block delimited by @samp{LBRACE} (@code{@{}) and @samp{RBRACE}
 @node WY grammar format, Grammar styles, Wisent Bovine, Wisent Bovine
 @comment  node-name,  next,  previous,  up
 @section WY grammar format
+
+A convenient way to use the Wisent parser with Semantic is to define
+your grammar in @dfn{WY} form.  The WY grammar format is very close
+to the format used to describe a Bison's grammar.  The main
+differences are:
+
+@itemize @bullet
+@item
+The use of Emacs Lisp syntax in place of C like syntax.
+@item
+Semantic specific Percent-keywords.
+@end itemize
+
+So, if you are already familiar with Bison and have some knowledge of
+Emacs Lisp, writing WY grammars is straightforward ;-)
+
+A WY major mode provides syntax highlighting, automatic indentation
+and useful commands, to help writing WY files with Emacs, and to
+automatically generate the grammar is Lisp form with the declarations
+needed by Semantic.
+
+An interesting feature is that @code{wy-mode} is Semantic-enabled and
+the WY grammar is defined in a WY file: @file{wisent-wy.wy}!
+
+A good way to describe the WY grammar format, and to see how it looks,
+is to show its specification as a WY grammar:
+
+@example
+%start grammar
+
+;; Keywords
+%token LEFT            "left"
+%token NONASSOC        "nonassoc"
+%token PREC            "prec"
+%token PUT             "put"
+%token RIGHT           "right"
+%token START           "start"
+%token TOKEN           "token"
+%token LANGUAGEMODE    "languagemode"
+%token OUTPUTFILE      "outputfile"
+%token SETUPFUNCTION   "setupfunction"
+%token KEYWORDTABLE    "keywordtable"
+%token PARSETABLE      "parsetable"
+%token TOKENTABLE      "tokentable"
+
+;; Literals
+%token <string>        STRING
+%token <symbol>        SYMBOL
+%token <number>        NUMBER
+%token <char>          CHARACTER
+
+;; Blocks
+%token <semantic-list> PAREN_BLOCK "^("
+%token <semantic-list> BRACE_BLOCK "^@{"
+
+;; Parens
+%token <open-paren>    LBRACE      "@{"
+%token <close-paren>   RBRACE      "@}"
+
+;; Punctuations
+%token <punctuation>   COLON       ":"
+%token <punctuation>   SEMI        ";"
+%token <punctuation>   OR          "|"
+%token <punctuation>   LT          "<"
+%token <punctuation>   GT          ">"
+%token <punctuation>   PERCENT     "%"
+
+%%
+
+grammar:
+    PERCENT
+  | code
+  | declaration
+  | nonterminal
+  ;
+
+code:
+    PAREN_BLOCK
+  | BRACE_BLOCK
+  ;
+
+declaration:
+    languagemode_decl
+  | outputfile_decl
+  | setupfunction_decl
+  | keywordtable_decl
+  | parsetable_decl
+  | tokentable_decl
+  | token_decl
+  | start_decl
+  | left_decl
+  | right_decl
+  | nonassoc_decl
+  | put_decl
+  ;
+
+languagemode_decl:
+    LANGUAGEMODE symbols
+  ;
+
+outputfile_decl:
+    OUTPUTFILE string_value
+  ;
+
+string_value:
+    STRING
+  ;
+
+setupfunction_decl:
+    SETUPFUNCTION any_symbol
+  ;
+
+keywordtable_decl:
+    KEYWORDTABLE any_symbol
+  ;
+
+parsetable_decl:
+    PARSETABLE any_symbol
+  ;
+
+tokentable_decl:
+    TOKENTABLE any_symbol
+  ;
+
+token_decl:
+    TOKEN token_type_opt any_symbol string_value
+  | TOKEN token_type_opt symbols
+  ;
+
+token_type_opt:
+  ;; EMPTY
+  | token_type
+  ;
+
+token_type:
+    LT any_symbol GT
+  ;
+
+start_decl:
+    START symbols
+  ;
+
+left_decl:
+    LEFT token_type_opt items
+  ;
+
+right_decl:
+    RIGHT token_type_opt items
+  ;
+
+nonassoc_decl:
+    NONASSOC token_type_opt items
+  ;
+
+put_decl:
+    PUT any_symbol put_value
+  | PUT any_symbol put_value_list
+  | PUT put_name_list put_value
+  | PUT put_name_list put_value_list
+  ;
+
+put_name_list:
+    BRACE_BLOCK
+  ;
+
+put_names:
+    LBRACE
+  | RBRACE
+  | any_symbol
+  ;
+
+put_value_list:
+    BRACE_BLOCK
+  ;
+
+put_values:
+    LBRACE
+  | RBRACE
+  | put_value
+  ;
+
+put_value:
+    any_symbol any_value
+  ;
+
+any_value:
+    any_symbol
+  | STRING
+  | NUMBER
+  | PAREN_BLOCK
+  ;
+
+symbols:
+    symbols any_symbol
+  | any_symbol
+  ;
+
+nonterminal:
+    any_symbol COLON rules SEMI
+  ;
+
+rules:
+    rules OR rule
+  | rule
+  ;
+
+rule:
+ ;; empty
+  | rule item
+  | rule action
+  | rule level
+  ;
+
+level:
+    PERCENT PREC item
+  ;
+
+action:
+    PAREN_BLOCK
+  | BRACE_BLOCK
+  ;
+
+items:
+    items item
+  | item
+  ;
+
+item:
+    any_symbol
+  | CHARACTER
+  ;
+
+any_symbol:
+    SYMBOL
+  | LEFT
+  | NONASSOC
+  | PREC
+  | PUT
+  | RIGHT
+  | START
+  | TOKEN
+  | LANGUAGEMODE
+  | OUTPUTFILE
+  | SETUPFUNCTION
+  | KEYWORDTABLE
+  | PARSETABLE
+  | TOKENTABLE
+  ;
+@end example
+
+Notice that comments are like Emacs Lisp ones but start with two
+consecutive semicolons (@code{;;}) instead of a single one.  Because
+the single semicolon (@code{;}) is the end of rule delimiter.
+
+Also the WY grammar accepts single character literals as terminals
+(@samp{CHARACTER} tokens) in C-like syntax (@pxref{Example}).  For
+example, the following are valid character literals:
+
+@example
+'+', '-', ')', ';'    ;; punctuations
+'\n', ' '             ;; whitespaces
+@end example
 
 @node Grammar styles, Wisent Flex, WY grammar format, Wisent Bovine
 @comment  node-name,  next,  previous,  up
@@ -1001,23 +1262,25 @@ which can be made of multiple punctuations.
 
 Also the mapping between syntactic tokens and lexical ones uses regexp
 match by default, but can use string comparison too.
+@end defun
 
-The rules specifying how to do the mapping are defined in two symbol
-tables:
+The rules specifying how to do the mapping are defined in the
+following two symbol tables:
 
-@table @code
-@item semantic-flex-keywords-obarray
+@defvar semantic-flex-keywords-obarray
 The keyword table.
-@item wisent-flex-tokens-obarray
+@end defvar
+
+@defvar wisent-flex-tokens-obarray
 The token table.
-@end table
+@end defvar
 
 Keywords are directly mapped to equivalent Wisent's lexical tokens
 like this (@var{SF}- prefix means @code{semantic-flex}, @var{WF}-
 @code{wisent-flex}):
 
 @example
-@result{(SF-KEYWORD start . end) } (WF-KEYWORD "name" start . end)
+(SF-KEYWORD start . end) @result{} (WF-KEYWORD "name" start . end)
 @end example
 
 Mapping of other tokens obeys to rules in the token table.  Here is an
@@ -1101,7 +1364,6 @@ string comparison:
   (put entry 'multiple t))
 @end example
 @end enumerate
-@end defun
 
 @node Index,  , Wisent Bovine, Top
 @comment  node-name,  next,  previous,  up
