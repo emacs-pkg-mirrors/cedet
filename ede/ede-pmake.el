@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.38 2003/09/24 13:44:56 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.39 2003/10/02 01:45:00 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -422,10 +422,12 @@ Argument THIS is the target that should insert stuff."
 		"\trm -f "
 		(mapconcat (lambda (c) c) junk " ")
 		"\n\n"))
+    (insert ".PHONY: dist\n")
     (insert "\ndist:")
     (ede-proj-makefile-insert-dist-dependencies this)
     (insert "\n")
-    (unless (ede-subproject-p this)
+    (unless (or (ede-subproject-p this)
+		(oref this metasubproject))
       ;; Only delete if we are the toplevel project.
       (insert "\trm -rf $(DISTDIR)\n"))
     (insert "\tmkdir $(DISTDIR)\n")	;We may need a -p, but I think not.
@@ -457,13 +459,15 @@ Argument THIS is the target that should insert stuff."
     ;; Call our sub projects.
     (ede-map-subprojects
      this (lambda (sproj)
-	    (insert "\tcd "
-		    (directory-file-name (ede-subproject-relative-path sproj))
-		    "; $(MAKE) dist"
-		    "\n")))
+	    (let ((rp (directory-file-name (ede-subproject-relative-path sproj))))
+	      (insert "\tcd " rp
+		      "; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/" rp
+		      " dist"
+		      "\n"))))
 
     ;; Tar up the stuff.
-    (unless (ede-subproject-p this)
+    (unless (or (ede-subproject-p this)
+		(oref this metasubproject))
       (insert "\ttar -cvzf $(DISTDIR).tar.gz $(DISTDIR)\n"
 	      "\trm -rf $(DISTDIR)\n"))
 
@@ -556,7 +560,7 @@ Argument TARGETS are the targets we should depend on for TAGS."
     ;; Now recurse into all subprojects
     (setq tg (oref this subproj))
     (while tg
-      (insert "\tcd " (ede-subproject-relative-path (car tg)) "; make $@\n")
+      (insert "\tcd " (ede-subproject-relative-path (car tg)) "; make $(MFLAGS) $@\n")
       (setq tg (cdr tg)))
     (insert "\n")))
 
