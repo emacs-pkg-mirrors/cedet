@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.97 2002/07/29 03:24:55 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.98 2002/07/29 17:24:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1193,7 +1193,7 @@ variable for details on adding new types."
 PARENT and COLOR are ignored."
   (format "%S" token))
 
-(semantic-defoverload semantic-name-nonterminal (token &optional parent color)
+(define-overload semantic-name-nonterminal (token &optional parent color)
   "Return the name string describing TOKEN.
 The name is the shortest possible representation.
 Optional argument PARENT is the parent type if TOKEN is a detail.
@@ -1213,7 +1213,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	(setq name (semantic-colorize-text name (semantic-token-token token))))
     name))
 
-(semantic-defoverload semantic-abbreviate-nonterminal (token &optional parent color)
+(define-overload semantic-abbreviate-nonterminal (token &optional parent color)
   "Return an abbreviated string describing TOKEN.
 The abbrevIation is to be short, with possible symbols indicating
 the type of token, or other information.
@@ -1250,7 +1250,7 @@ This is a simple C like default."
 ;; Semantic 1.2.x had this misspelling.  Keep it for backwards compatibiity.
 (defalias 'semantic-summerize-nonterminal 'semantic-summarize-nonterminal)
 
-(semantic-defoverload semantic-summarize-nonterminal (token &optional parent color)
+(define-overload semantic-summarize-nonterminal (token &optional parent color)
   "Summarize TOKEN in a reasonable way.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors.")
@@ -1270,7 +1270,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
         (setq label (semantic-colorize-text label 'label)))
     (concat label ": " proto)))
 
-(semantic-defoverload semantic-prototype-nonterminal (token &optional parent color)
+(define-overload semantic-prototype-nonterminal (token &optional parent color)
   "Return a prototype for TOKEN.
 This function should be overloaded, though it need not be used.
 This is because it can be used to create code by language independent
@@ -1356,7 +1356,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	    (or args "")
 	    (or array ""))))
 
-(semantic-defoverload semantic-concise-prototype-nonterminal (token &optional parent color)
+(define-overload semantic-concise-prototype-nonterminal (token &optional parent color)
   "Return a concise prototype for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors.")
@@ -1508,7 +1508,7 @@ Colorize the new text based on COLOR."
 	     name)))
 	(t "")))
 
-(semantic-defoverload semantic-uml-abbreviate-nonterminal (token &optional parent color)
+(define-overload semantic-uml-abbreviate-nonterminal (token &optional parent color)
   "Return a UML style abbreviation for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors.")
@@ -1540,7 +1540,7 @@ COLOR indicates if the string should be colorized."
 		     semantic-function-argument-separator)
 	  ")"))
 
-(semantic-defoverload semantic-uml-prototype-nonterminal (token &optional parent color)
+(define-overload semantic-uml-prototype-nonterminal (token &optional parent color)
   "Return a UML style prototype for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors.")
@@ -1569,7 +1569,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
     text
     ))
 
-(semantic-defoverload semantic-uml-concise-prototype-nonterminal (token &optional parent color)
+(define-overload semantic-uml-concise-prototype-nonterminal (token &optional parent color)
   "Return a UML style concise prototype for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors.")
@@ -1651,7 +1651,7 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 			   (setq found (concat (car p) "/" name)))
 		       (setq p (cdr p)))
 		     found)))))))))
-(put 'semantic-find-dependency 'semantic-defoverload 'find-dependency)
+(put 'semantic-find-dependency 'semantic-overload 'find-dependency)
 
 (defun semantic-find-nonterminal (&optional token parent)
   "Find the location of TOKEN.
@@ -1691,7 +1691,7 @@ depended on, and functions will move to the specified definition."
 		  ;; the bovinator and concocted by us actually exists
 		  ;; in the buffer.
 		  (re-search-forward (semantic-token-name token) nil t)))))))))
-(put 'semantic-find-nonterminal 'semantic-defoverload 'find-nonterminal)
+(put 'semantic-find-nonterminal 'semantic-overload 'find-nonterminal)
 
 (defun semantic-find-documentation (&optional token nosnarf)
   "Find documentation from TOKEN and return it as a clean string.
@@ -1728,7 +1728,7 @@ If nosnarf if 'flex, then only return the flex token."
 	 ;; Not sure yet.  Fill in something clever later....
 	 nil
 	 )))))
-(put 'semantic-find-documentation 'semantic-defoverload 'find-documentation)
+(put 'semantic-find-documentation 'semantic-overload 'find-documentation)
 
 
 (defun semantic-find-doc-snarf-comment (nosnarf)
@@ -2030,7 +2030,7 @@ See `semantic-nonterminal-leaf'."
       (setq mods (cdr mods)))
     leaf))
 
-(semantic-defoverload semantic-nonterminal-static (token &optional parent)
+(define-overload semantic-nonterminal-static (token &optional parent)
   "Return non nil if TOKEN is static.
 Optional PARENT is the parent token of TOKEN.
 In UML, static methods and attributes mean that they are allocated
