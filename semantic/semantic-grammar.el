@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.48 2004/01/14 09:52:48 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.49 2004/01/14 09:59:33 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -467,7 +467,7 @@ That is properties set to any <type> by %put and %type statements.
 Properties set by %type statements take precedence over those set by
 %put statements."
   (let ((props (semantic-grammar-token-%put-properties tokens)))
-    (semantic-grammar-types-properties tokens props)))
+    (semantic-grammar-token-%type-properties tokens props)))
 
 (defun semantic-grammar-use-macros ()
   "Return macro definitions from %use-macros statements.
