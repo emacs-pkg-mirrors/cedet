@@ -1,9 +1,9 @@
 ;;; semantic-el.el --- Semantic details for Emacs Lisp
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.5 2002/10/30 15:58:14 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.6 2003/01/29 03:43:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -230,8 +230,18 @@ Return a bovination list to use."
 	      (when (listp args)
 		(semantic-elisp-desymbolify args))
 	      (semantic-bovinate-make-assoc-list
-	       'override-function t)
+	       'override-function t
+	       'parent (format "%S" (nth 2 rt))
+	       )
 	      nil)))
+     ((eq ts 'defvar-mode-local)
+      (list (format "%S" (nth 2 rt)) 'variable nil
+	    (nth 3 rt) ; default value
+	    (semantic-bovinate-make-assoc-list
+	     'override-variable t
+	     'parent sn
+	     )
+	    (nth 4 rt)))
      ;; Now for other stuff
      ((eq ts 'require)
       (list sn 'include nil nil))
