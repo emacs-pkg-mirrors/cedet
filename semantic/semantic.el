@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.63 2000/12/03 14:45:34 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.64 2000/12/03 14:52:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -386,15 +386,18 @@ The returned item may be an overlay or an unloaded buffer representation."
 
 ;;; Interfacing with the system
 ;;
+(defvar semantic-init-hooks nil
+  "*Hooks run when a buffer is initialized with a parsing table.")
+
 (defun semantic-find-file-hook ()
   "Run in `find-file-hooks'.
 Runs `semantic-init-hook' if the major mode is setup to use semantic."
   (if semantic-toplevel-bovine-table
-      (run-hooks 'semantic-init-hook)))
+      (run-hooks 'semantic-init-hooks)))
 (add-hook 'find-file-hooks 'semantic-find-file-hook)
 
 ;; Test the above hook.
-;;(add-hook 'semantic-init-hook (lambda () (message "init for semantic")))
+;;(add-hook 'semantic-init-hooks (lambda () (message "init for semantic")))
 
 ;;; Parsing functions
 ;;
