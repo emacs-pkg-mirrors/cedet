@@ -4,10 +4,15 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.168 2003/02/27 02:53:44 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.169 2003/03/08 16:36:37 zappo Exp $
 
-(defvar semantic-version "2.0beta1"
-  "Current version of Semantic.")
+(eval-and-compile
+  ;; Other package depend on this value at compile time via inversion.
+
+  (defvar semantic-version "2.0beta1"
+    "Current version of Semantic.")
+
+  )
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,6 +44,7 @@
 (require 'assoc)
 (require 'semantic-token)
 (require 'semantic-lex)
+(require 'inversion)
 
 (defun semantic-require-version (major minor &optional beta)
   "Non-nil if this version of semantic does not satisfy a specific version.
@@ -52,18 +58,9 @@ excluded if a released version is required.
 It is assumed that if the current version is newer than that specified,
 everything passes.  Exceptions occur when known incompatibilities are
 introduced."
-  (when (string-match "\\([0-9]+\\)\\.\\([0-9]+\\)\\( ?beta ?\\([0-9]+\\)\\)?"
-		      semantic-version)
-    (let ((vmajor (string-to-int (match-string 1 semantic-version)))
-	  (vminor (string-to-int (match-string 2 semantic-version)))
-	  (vbeta (match-string 4 semantic-version)))
-      (when vbeta (setq vbeta (string-to-int vbeta)))
-      (or (> major vmajor)
-	  (and (= major vmajor) (> minor vminor))
-	  (and (= major vmajor) (= minor vminor)
-	       (or (and (not beta) vbeta)
-		   (and beta vbeta (> beta vbeta)))))
-      )))
+  (inversion-test 'semantic
+		  (concat major "." minor
+			  (when beta (concat "beta" beta)))))
 
 (defgroup semantic nil
   "Parser Generator/Parser."
