@@ -1,8 +1,8 @@
 ;;; semantic-edit.el --- Edit Management for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.22 2003/09/16 19:05:57 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.23 2004/03/19 23:35:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -148,10 +148,10 @@ Argument START, END, and LENGTH specify the bounds of the change."
   ;; into one overlay.
   (let ((changes-in-change (semantic-changes-in-region (1- start) (1+ end)))
 	)
+    (semantic-parse-tree-set-needs-update)
     (if (not changes-in-change)
 	(let ((o (semantic-make-overlay start end)))
 	  (semantic-overlay-put o 'semantic-change t)
-          (semantic-parse-tree-set-needs-update)
 	  ;; Run the hooks safely.  When hooks blow it, our dirty
 	  ;; function will be removed from the list of active change
 	  ;; functions.
@@ -284,7 +284,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 		   start end)))
 	 (list-to-search nil))
     (if (not tokens)
-	(setq list-to-search semantic-toplevel-bovine-cache)
+	(setq list-to-search semantic--buffer-cache)
       ;; A leaf is always first in this list
       (if (and (< (semantic-tag-start (car tokens)) start)
 	       (> (semantic-tag-end (car tokens)) end))
@@ -330,7 +330,7 @@ The return value is a vector.
 Cell 0 is a list is a list of all tokens completely encompassed in change.
 Cell 1 is the cons cell into a master parser cache starting with
 the cell which occurs BEFORE the first position of CHANGE.
-Cell 2 is the parent of cell 1, or nil for the bovine cache.
+Cell 2 is the parent of cell 1, or nil for the buffer cache.
 This function returns nil if any token covered by change is not
 completely encompassed.
 See `semantic-edits-change-leaf-token' for details on parents."
@@ -383,7 +383,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	      ;; There are no tokens left, and all tokens originally
 	      ;; found are encompassed by the change.  Setup our list
 	      ;; from the cache
-	      (setq list-to-search semantic-toplevel-bovine-cache);; We have a token ouside the list.  Check for
+	      (setq list-to-search semantic--buffer-cache);; We have a token ouside the list.  Check for
 	    ;; We know we have a parent because it would
 	    ;; completely cover the change.  A token can only
 	    ;; do that if it is a parent after we get here.
@@ -649,7 +649,7 @@ the semantic cache to see what needs to be changed."
             (setq newf-tokens (semantic-parse-region
                                parse-start parse-end reparse-symbol))
             ;; Make sure all these tokens are given overlays.
-            ;; They have already been cooked by the bovinator and just
+            ;; They have already been cooked by the parser and just
             ;; need the overlays.
             (let ((tmp newf-tokens))
               (while tmp
@@ -704,7 +704,7 @@ the semantic cache to see what needs to be changed."
               ;; Add this token to our list of changed toksns
               (setq changed-tokens (cons (car tokens) changed-tokens))
               ;; Debug
-              (message "Rebovinated: %s"
+              (message "Update Tag Table: %s"
                        (semantic-format-tag-name (car tokens) nil t))
               ;; Flush change regardless of above if statement.
               )
@@ -759,7 +759,7 @@ pre-positioned to a convenient location."
 	 (last (nth (1- (length oldtokens)) oldtokens))
 	 (chil (if parent
 		   (semantic-tag-components parent)
-		 semantic-toplevel-bovine-cache))
+		 semantic--buffer-cache))
 	 (cachestart cachelist)
 	 (cacheend nil)
 	 (tmp oldtokens)
@@ -795,7 +795,7 @@ pre-positioned to a convenient location."
 
 (defun semantic-edits-splice-insert (newtokens parent cachelist)
   "Insert NEWTOKENS into PARENT using CACHELIST.
-PARENT could be nil, in which case CACHLIST is the bovine cache
+PARENT could be nil, in which case CACHLIST is the buffer cache
 which must be updated.
 CACHELIST must be searched to find where NEWTOKENS are to be inserted.
 The positions of NEWTOKENS must be synchronized with those in
@@ -809,7 +809,7 @@ convenient location, so use that."
 	;; We are at the beginning.
 	(let* ((pc (if parent
 		       (semantic-tag-components parent)
-		     semantic-toplevel-bovine-cache))
+		     semantic--buffer-cache))
 	       (nc (cons (car pc) (cdr pc)))  ; new cons cell.
 	       )
 	  ;; Splice the new cache cons cell onto the end of our list.
