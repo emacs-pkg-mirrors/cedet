@@ -1,0 +1,41 @@
+;; Object ede-proj-project
+;; EDE project file.
+(ede-proj-project "ede-proj-project"
+  :name "semantic"
+  :version "1.4.alpha2"
+  :file "Project.ede"
+  :targets (list 
+   (ede-proj-target-elisp "senator"
+    :name "senator"
+    :path ""
+    :source '("senator.el")
+    )
+   (ede-proj-target-elisp "(semantic-bnf.el semantic.el semantic-util.el)"
+    :name "semantic"
+    :path ""
+    :source '("semantic-bnf.el" "semantic.el" "semantic-util.el" "semantic-ctxt.el")
+    :versionsource '("semantic.el")
+    )
+   (ede-proj-target-elisp "tools"
+    :name "tools"
+    :path ""
+    :source '("document.el" "document-vars.el" "sformat.el" "semantic-make.el" "semantic-c.el" "semantic-java.el" "semantic-imenu.el" "semantic-el.el" "semantic-sb.el" "working.el" "semantic-mode.el" "semanticdb.el" "semantic-java.el")
+    )
+   (ede-proj-target-aux "misc"
+    :name "misc"
+    :path ""
+    :source '("INSTALL" "NEWS")
+    )
+   (ede-proj-target-makefile-info "info"
+    :name "info"
+    :path ""
+    :source '("semantic.texi")
+    )
+   (ede-proj-target-aux "aux"
+    :name "aux"
+    :path ""
+    :source '("c.bnf" "make.bnf" "java.bnf")
+    )
+   )
+  :configuration-variables 'nil
+  )
