@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.3 2000/07/14 02:29:53 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.4 2000/08/20 21:59:04 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -93,9 +93,9 @@
 ;;
 
 ;; allocate an object to use
-(setq ab (class-ab "abby")
-      a  (class-a "aye")
-      b (class-b "fooby"))
+(defvar ab (class-ab "abby"))
+(defvar a  (class-a "aye"))
+(defvar b (class-b "fooby"))
 
 ;; Play with call-next-method
 (defmethod class-cn ((a class-a))
@@ -175,6 +175,59 @@ METHOD is the method that was attempting to be called."
 (if (eq (class-fun3 ab) 'moose)
     nil
   (error "Call next method MI check failed."))
+
+
+;;; Test the BEFORE, PRIMARY, and AFTER method tags.
+;;
+(defvar class-fun-tag-state nil)
+
+(defmethod class-fun-tag :PRIMARY ((a class-a))
+  "Tagging fun primary A."
+  (unless (eq class-fun-tag-state 'before-generic)
+    (error "BEFORE generic not called before PRIMARY"))
+  (setq class-fun-tag-state 'primary-method))
+
+(defmethod class-fun-tag :BEFORE ((a class-a))
+  "Tagging fun before A."
+  (unless (eq class-fun-tag-state nil)
+    (error "BEFORE method not called first"))
+  (setq class-fun-tag-state 'before-method))
+
+(defmethod class-fun-tag :AFTER ((a class-a))
+  "Tagging fun after A."
+  (unless (eq class-fun-tag-state 'primary-generic)
+    (error "AFTER not called after PRIMARY generic"))
+  (setq class-fun-tag-state 'after-method))
+
+(defmethod class-fun-tag :PRIMARY (a)
+  "Generic untyped primary for A."
+  (unless (eq class-fun-tag-state 'primary-method)
+    (error "PRIMARY generic not called after BEFORE method"))
+  (setq class-fun-tag-state 'primary-generic))
+
+(defmethod class-fun-tag :BEFORE (a)
+  "Generic untyped before for A."
+  (unless (eq class-fun-tag-state 'before-method)
+    (error "BEFORE generic not called first"))
+  (setq class-fun-tag-state 'before-generic))
+
+(defmethod class-fun-tag :AFTER (a)
+  "Generic untyped after for A."
+  (unless (eq class-fun-tag-state 'after-method)
+    (error "AFTER generic not called after PRIMARY method"))
+  (setq class-fun-tag-state 'after-generic))
+
+(let ((class-fun-tag-state nil))
+  (condition-case er
+      (progn
+	(class-fun-tag a)
+	(unless (eq class-fun-tag-state 'after-generic)
+	  (error "AFTER generic not called last."))
+	)
+    (error 
+     (if (eq (car er) 'error)
+	 (error (car (cdr er)))
+       (error "%S" er)))))
 
 
 ;;; Test initialization methods
@@ -271,7 +324,7 @@ METHOD is the method that was attempting to be called."
   (invalid-slot-type nil))
 
 ;; Test out class allocated slots
-(setq aa (class-a "another"))
+(defvar aa (class-a "another"))
 (oset aa classslot 'moose)
 (if (eq (oref a classslot) (oref aa classslot))
     nil
@@ -323,7 +376,7 @@ METHOD is the method that was attempting to be called."
   '(:documentation "A class for testing slot arguments.")
   )
 
-(setq t1 (class-c "C1"))
+(defvar t1 (class-c "C1"))
 (if (not (and (eq (oref t1 slot-1) 'moose)
 	      (eq (oref t1 :moose) 'moose)))
     (error "Initialization of slot failed."))
