@@ -1,24 +1,16 @@
 <!-- -*- html -*- -->
-<body bgcolor=white text=black>
-<style>
-<!--
-A:visited { color: #000070 ; text-decoration: none }
-A:link { color: #0000B0 ; text-decoration: none }
-A:active { color: red ; text-decoration: underline overline }
-A[href]:hover.SB { background-color: orange ; text-decoration: none}
-A[href]:hover { text-decoration: underline overline }
--->
-</style>
-
 <tt>
 <table border=2 align=right><tr><td>
-<table bgcolor=white cellspacing=0 cellpadding=1>
+<table bgcolor=white cellspacing=0 cellpadding=1 width=210>
 
 <tr><td align=center>&nbsp<a href="/"    ><b><font size=+1>CEDET</font></b></a>&nbsp</td></tr>
 
 <tr><td  bgcolor=lightgreen><img src=dir-minus.gif>&nbsp<b>Libraries</b>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=eieio.shtml   ><b>EIEIO    </b></a>&nbsp</td></tr>
+<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=visbookmark.shtml><b><font size=-1>Vis Bookmarks</font></b></a>&nbsp</td></tr>
+<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=highlightcompile.shtml><b><font size=-1>LM Compile</font></b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=semantic.shtml><b>Semantic </b></a>&nbsp</td></tr>
+<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=intellisense.shtml><b><font size=-1>Intellisense</font></b></a>&nbsp</td></tr>
 
 <tr><td  bgcolor=lightgreen><img src=dir-minus.gif>&nbsp <b>Tools    </b>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=speedbar.shtml><b>Speedbar </b></a>&nbsp</td></tr>
@@ -32,14 +24,21 @@ A[href]:hover { text-decoration: underline overline }
 <tr><td  bgcolor=lightgreen><img src=dir-minus.gif>&nbsp <b>Other   </b>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=checkdoc.shtml><b>Checkdoc</b></a>&nbsp</td></tr>
 
-<tr><td  bgcolor=lightgreen><img src=dir-minus.gif>&nbsp <b>Project Info </b>&nbsp</td></tr>
+<tr><td  bgcolor=lightgreen><img src=dir-minus.gif>&nbsp<b>Project Information</b>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://www.sourceforge.net/projects/cedet><b>Project</b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886><b>Releases</b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/mail/?group_id=17886><b>Mailing Lists</b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/projects/rte><b>RPMs</b></a>&nbsp</td></tr>
 <tr><td >&nbsp</td></tr>
 
-<tr><td bgcolor=lightgreen>&lt;&lt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=ftpgate.shtml>Files</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;</td></tr>
+<tr><td bgcolor=lightgreen>
+
+<table cellspacing=0 cellpadding=1 width=100%><tr><td align=left>&lt;&lt;</td>
+<td align=center><a href=ftpgate.shtml>Files</a></td>
+<td align=right>&gt;&gt;</td>
+</tr></table>
+
+</td></tr>
 </table>
 </td></tr></table>
 </tt>
