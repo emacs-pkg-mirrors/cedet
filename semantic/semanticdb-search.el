@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.3 2002/08/11 02:01:58 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.4 2002/08/16 13:20:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,13 +37,15 @@
 ;;; Utils
 ;;
 ;; Convenience routines for searches
-(defun semanticdb-collect-find-results (databases function)
-  "Collect results across DATABASES for FUNCTION.
-If DATABASES is nil, search a range of associated databases calculated by
-`semanticdb-current-database-list'.  DATABASES is a list of variable
-`semanticdb-project-database' objects.
-FUNCTION should accept one argument, the database being searched."
-  (let* ((dbs (or databases
+(defun semanticdb-collect-find-results (result-in-databases
+					result-finding-function)
+  "Collect results across RESULT-IN-DATABASES for RESULT-FINDING-FUNCTION.
+If RESULT-IN-DATABASES is nil, search a range of associated databases
+calculated by `semanticdb-current-database-list'.
+RESULT-IN-DATABASES is a list of variable `semanticdb-project-database'
+objects.
+RESULT-FINDING-FUNCTION should accept one argument, the database being searched."
+  (let* ((dbs (or result-in-databases
 		  ;; Calculate what database to use.
 		  ;; Something simple and dumb for now.
 		  (or (semanticdb-current-database-list)
@@ -51,7 +53,7 @@ FUNCTION should accept one argument, the database being searched."
 	 (case-fold-search semantic-case-fold)
 	 (res (mapcar
 	       (lambda (db)
-		 (funcall function db))
+		 (funcall result-finding-function db))
 	       dbs))
 	 out)
     ;; Flatten the list.  The DB is unimportant at this stage.
@@ -60,7 +62,7 @@ FUNCTION should accept one argument, the database being searched."
     ;; Move across results, and throw out empties.
     (while res
       (if (car res)
-	  (setq out (cons res out)))
+	  (setq out (cons (car res) out)))
       (setq res (cdr res)))
     ;; Results
     out))
