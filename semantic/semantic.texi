@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.34 2001/04/13 16:51:31 zappo Exp $
+@c $Id: semantic.texi,v 1.35 2001/04/21 15:03:48 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -1198,7 +1198,7 @@ depended on, and functions will move to the specified definition.
 @defun semantic-find-documentation token
 Find documentation from @var{TOKEN} and return it as a clean string.
 @var{TOKEN} might have @var{DOCUMENTATION} set in it already.  If not, there may be
-some documentation in a comment preceeding TOKEN's definition which we
+some documentation in a comment preceding TOKEN's definition which we
 cal look for.  When appropriate, this can be overridden by a language specific
 enhancement.
 @end defun
@@ -1513,6 +1513,19 @@ be important to track if the database mode is turned on or off.
 Hooks run whenever @dfn{global-semanticdb-minor-mode} is run.
 Use @dfn{semanticdb-minor-mode-p} to determine if the mode has been turned
 on or off.
+@end deffn
+
+@deffn Option semanticdb-persistent-path
+List of valid paths that semanticdb will cache tokens to.
+When @dfn{global-semanticdb-minor-mode} is active, token lists will
+be saved to disk when Emacs exits.  Not all directories will have
+tokens that should be saved.
+The value should be a list of valid paths.  @var{A} path can be a string,
+indicating a directory in which to save a variable.  An element in the
+list can also be a symbol.  Valid symbols are @code{never}, which will
+disable any saving anywhere, @code{always}, which enables saving
+everywhere, or @code{project}, which enables saving in any directory that
+passes a list of predicates in @code{semantic-project-predicates}.
 @end deffn
 
 @subsection Searching
