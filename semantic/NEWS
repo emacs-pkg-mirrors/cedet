@@ -1,25 +1,37 @@
 * Changes for Semantic 1.4.3
 
-** Enhancements to the C/C++ grammar (now really complex C++ can be parsed)
+** Much better C/C++ grammar (almost complete) - now complex C++ can be parsed
 
 *** Fixed some aspects of 'using' (e.g. now "using namespace XXX" is possible)
 
-*** Fixed some aspects with namespaces, e.g. now unnamed namespaces are
-    correct parsed and "unnamed" is added as type-name and namespace-qualified
-    class-names are now allowed whereever it is necessary
+*** Much better namespace handling
 
-*** Better and complete handling of builtin-types, means better handling of
-    signed and unsigned, supporting composed builtins like 'long int'
+**** Unnamed namespaces are correct parsed and "unnamed" is added as type-name
 
-*** Improved template parsing:
+**** Namespace-qualified class- and type-names are now allowed whereever it is
+     necessary
+
+*** Much better handling of builtin-types
+
+**** signed and unsigned is now only allowed for builtin types
+
+**** Supporting composed builtins like 'long int' and 'long double'
+
+**** Parsing builtin-type wchar_t and also literals like L"str" and L'c'
+
+*** Much better template parsing:
 
 **** Templates in combination with namespaces
 
 **** Outside method-implementations for template classes are now correct parsed
      and also correct grouped to the type of the template class-declaration
 
-**** Template-specifier can now contain normal args like "int i" which is very
-     important.
+**** Template-specifier can now contain all flavors of normal args regardless
+     if builtin types or user-defined types and also in combination with
+     adress(&)- und dereferencing(*)-operator.
+
+**** All typemodifiers like const, volatile etc.. and pointers and
+     references of a template-parameter are parsed and displayed correct.
 
 **** Template types can now contain constant- and literal-arguments like in
      "foo<ClassX, 10> foo_10_var;"
@@ -29,7 +41,7 @@
 *** Improving macro-parsing, i.e. now also multiline-macros (every line ending
     with a \) are parsed correctly; same for arbitrary one-liners
     
-*** C++ keyword 'typename' is recognized and parsed now
+*** C++ keyword 'typename' is recognized and parsed
 
 *** operator()() and operator[]() are parsed correctly
 
@@ -41,8 +53,8 @@
 *** Correct parsing of string sequences like "string1" "string2" string3" which
     are concatenated by the cpp-precomiler to one string
 
-*** Parsing builtin-type wchar_t and also literals like L"str" and L'c'
-
+*** Improved typedef parsing with const/volatile types and template-types
+    
 *** Some minor fixes
 
 
