@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.2 2001/02/21 20:51:43 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.3 2001/02/22 02:45:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -333,6 +333,31 @@ manual, and update that."
 	 (semantic-texi-update-doc-from-texi token))
 	(t
 	 (semantic-texi-update-doc-from-source token))))
+
+(defun semantic-texi-goto-source (&optional token)
+  "Jump to the source for the definition in the texinfo file TOKEN.
+If TOKEN is nil, it is derived from the deffn under POINT."
+  (interactive)
+  (if (not (or (featurep 'semanticdb) (semanticdb-minor-mode-p)))
+      (error "Texinfo updating only works when `semanticdb' is being used"))
+  (semantic-bovinate-toplevel t)
+  (when (not token)
+    (beginning-of-line)
+    (setq token (semantic-current-nonterminal)))
+  (if (not (eq (semantic-token-token token) 'def))
+      (error "Only deffns (or defun or defvar) can be updated"))
+  (let* ((name (semantic-token-name token))
+	 (toks (semanticdb-find-nonterminal-by-name name nil t nil t t))
+	 (done nil)
+	 )
+    (save-excursion
+      (while (and toks (not done))
+	(set-buffer (semantic-token-buffer (car toks)))
+	(when (not (eq major-mode 'texinfo-mode))
+	  (switch-to-buffer (semantic-token-buffer (car toks)))
+	  (goto-char (semantic-token-start (car toks)))
+	  (setq done t))
+	(setq toks (cdr toks))))))
 
 (provide 'semantic-texi)
 
