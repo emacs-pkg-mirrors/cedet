@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.26 2002/08/07 17:57:37 ponced Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.27 2002/08/08 16:04:57 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -273,19 +273,29 @@ minor mode is enabled.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   t nil)
-
 
-;; This turns on semantic partial reparsing
+;;; This turns on semantic partial reparsing
 
 ;; The old version
 ;(add-hook 'semantic-change-hooks #'semantic-change-function-mark-dirty)
 ;(setq semantic-bovinate-incremental-parser #'semantic-cleanup-dirty-tokens)
 
 ;; The new version
-(add-hook 'semantic-change-hooks #'semantic-edits-change-function-handle-changes)
-;; This should be done in a more integral way, but this will work for now.
-(add-hook 'semantic-before-toplevel-cache-flush-hook #'semantic-edits-flush-changes)
+(autoload 'semantic-edits-flush-changes
+  "semantic-edit"
+  "Flush the changes in the current buffer.")
+(autoload 'semantic-edits-change-function-handle-changes
+  "semantic-edit"
+  "Run whenever a buffer controlled by `semantic-mode' change.")
 
+(add-hook 'semantic-change-hooks
+          #'semantic-edits-change-function-handle-changes)
+;; This should be done in a more integral way, but this will work for now.
+(add-hook 'semantic-before-toplevel-cache-flush-hook
+          #'semantic-edits-flush-changes)
+
+;;; Useful predefined setup
+;;
 (defvar semantic-load-turn-everything-on nil
   "Non-nil means turn on all features in the semantic package.")
 
