@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.8 1996/10/17 02:48:52 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.9 1996/10/19 11:45:34 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -266,6 +266,7 @@ Navigation commands:
   (use-local-map dialog-mode-map)
   (setq widget-toplevel-shell 
 	(widget-toplevel "topLevel" :parent t :rx 0 :x 0 :ry 0 :y 0))
+  (message "Constructing Dialog...")
   (verify widget-toplevel-shell t)
   (run-hooks 'dialog-mode-hooks))
 
@@ -282,6 +283,9 @@ on when done."
   (interactive)
   (dialog-with-readable
    (erase-buffer)
+   (message "Geometry Management...")
+   (verify-size widget-toplevel-shell)
+   (message "Rendering Dialog...")
    (draw widget-toplevel-shell)))
 
 (defun dialog-quit () "Quits a dialog."
@@ -375,7 +379,7 @@ registered with this area of text, otherwise run the default keybinding."
   "Create a dialog with name NAME of class CLASS.  PARENT will be the
 widget this new widget resides in, and RESOURCES is a list to be
 passed to the CLASS routine"
-  (message "Building Dialog... [%s]" name)
+  ;;(message "Building Dialog... [%s]" name)
   (let* ((con (class-constructor class))
 	 (new (apply con name resources)))
     ;; add this child to the parent, which sets news parent field
