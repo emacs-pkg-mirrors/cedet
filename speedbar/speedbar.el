@@ -1,11 +1,11 @@
 ;;; speedbar --- quick access to files and tags -*-byte-compile-warnings:nil;-*-
 
-;; Copyright (C) 1996, 1997 Eric M. Ludlam
+;;; Copyright (C) 1996, 97 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.5.1
+;; Version: 0.5.2
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.59 1997/09/12 21:45:55 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.60 1997/10/10 00:56:36 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@
 ;;   This will let you hit f4 (or whatever key you choose) to jump
 ;; focus to the speedbar frame.  Pressing RET or e to jump to a file
 ;; or tag will move you back to the attached frame.  The command
-;; `speedbar-get-fucus' will also create a speedbar frame if it does
+;; `speedbar-get-focus' will also create a speedbar frame if it does
 ;; not exist.
 ;;
 ;;   Once a speedbar frame is active, it takes advantage of idle time
@@ -254,6 +254,11 @@
 ;;         this to `reposition-window' will do nice things to function tags.
 ;;       Fixed text-cache default-directory bug.
 ;;       Emacs 20 char= support.
+;; 0.5.2 Customization
+;;         For older emacsen, you will need to download the new defcustom
+;;         package to get nice faces for speedbar
+;;       mouse1 Double-click is now the same as middle click.
+;;       No mouse pointer shape stuff for XEmacs (is there any?)
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -265,6 +270,39 @@
 
 (require 'assoc)
 (require 'easymenu)
+
+;; From custom web page for compatibility between versions of custom:
+(eval-and-compile
+  (condition-case ()
+      (require 'custom)
+    (error nil))
+  (if (and (featurep 'custom) (fboundp 'custom-declare-variable))
+      nil ;; We've got what we needed
+    ;; We have the old custom-library, hack around it!
+    (defmacro defgroup (&rest args)
+      nil)
+    (defmacro defface (var values doc &rest args)
+      (` (progn
+	   (defvar (, var) (quote (, var)))
+	   ;; To make colors for your faces you need to set your .Xdefaults
+	   ;; or set them up ahead of time in your .emacs file.
+	   (make-face (, var))
+	   )))
+    (defmacro defcustom (var value doc &rest args) 
+      (` (defvar (, var) (, value) (, doc))))))
+
+;; customization stuff
+(defgroup speedbar nil
+  "File and tag browser frame."
+  :group 'tools)
+
+(defgroup speedbar-faces nil
+  "Faces used in speedbar."
+  :group 'speedbar)
+
+(defgroup speedbar-vc nil
+  "Version control display in speedbar."
+  :group 'speedbar)
 
 ;;; Code:
 (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
@@ -294,10 +332,12 @@ t.  Functions which take a long time should maintain a state (where
 they are in their speedbar related calculations) and permit
 interruption.  See `speedbar-check-vc' as a good example.")
 
-(defvar speedbar-mode-specific-contents-flag t
+(defcustom speedbar-mode-specific-contents-flag t
   "*Non-nil means speedbar will show specail-mode contents.
 This permits some modes to create customized contents for the speedbar
-frame.")
+frame."
+  :group 'speedbar
+  :type 'boolean)
 
 (defvar speedbar-special-mode-expansion-list nil
   "Mode specific list of functions to call to fill in speedbar.
@@ -320,111 +360,136 @@ the speedbar display.")
 (defvar speedbar-load-hook nil
   "Hooks run when speedbar is loaded.")
 
-(defvar speedbar-desired-buffer nil
-  "Non-nil when speedbar is showing buttons specific a special mode.
-In this case it is the originating buffer.")
-
-(defvar speedbar-show-unknown-files nil
+(defcustom speedbar-show-unknown-files nil
   "*Non-nil show files we can't expand with a ? in the expand button.
-nil means don't show the file in the list.")
+nil means don't show the file in the list."
+  :group 'speedbar
+  :type 'boolean)
 
 ;; Xemacs timers aren't based on idleness.  Therefore tune it down a little
 ;; or suffer mightilly!
-(defvar speedbar-update-speed (if speedbar-xemacsp 5 1)
+(defcustom speedbar-update-speed (if speedbar-xemacsp 5 1)
   "*Idle time in seconds needed before speedbar will update itself.
 Updates occur to allow speedbar to display directory information
-relevant to the buffer you are currently editing.")
-(defvar speedbar-navigating-speed 10
+relevant to the buffer you are currently editing."
+  :group 'speedbar
+  :type 'integer)
+
+(defcustom speedbar-navigating-speed 10
   "*Idle time to wait after navigation commands in speedbar are executed.
 Navigation commands included expanding/contracting nodes, and moving
-between different directories.")
+between different directories."
+  :group 'speedbar
+  :type 'integer)
 
-(defvar speedbar-frame-parameters (list
-				   ;; Xemacs fails to delete speedbar
-				   ;; if minibuffer is off.
-				   ;(cons 'minibuffer
-				   ; (if speedbar-xemacsp t nil))
-				   ;; The above behavior seems to have fixed
-				   ;; itself somewhere along the line.
-				   ;; let me know if any problems arise.
-				   '(minibuffer . nil)
-				   '(width . 20)
-				   '(scroll-bar-width . 10)
-				   '(border-width . 0)
-				   '(unsplittable . t) )
+(defcustom speedbar-frame-parameters '((minibuffer . nil)
+				       (width . 20)
+				       (scroll-bar-width . 10)
+				       (border-width . 0)
+				       (unsplittable . t))
   "*Parameters to use when creating the speedbar frame.
 Parameters not listed here which will be added automatically are
 `height' which will be initialized to the height of the frame speedbar
 is attached to.  To add more frame defaults, `cons' new alist members
-onto this variable through the `speedbar-load-hook'")
+onto this variable through the `speedbar-load-hook'"
+  :group 'speedbar
+  :type '(repeat (sexp :tag "Parameter:")))
 
-(defvar speedbar-use-imenu-flag (stringp (locate-library "imenu"))
+(defcustom speedbar-use-imenu-flag (stringp (locate-library "imenu"))
   "*Non-nil means use imenu for file parsing.  nil to use etags.
 XEmacs doesn't support imenu, therefore the default is to use etags
-instead.  Etags support is not as robust as imenu support.")
+instead.  Etags support is not as robust as imenu support."
+  :group 'speedbar
+  :type 'boolean)
 
-(defvar speedbar-sort-tags nil
-  "*If Non-nil, sort tags in the speedbar display.")
+(defcustom speedbar-sort-tags nil
+  "*If Non-nil, sort tags in the speedbar display."
+  :group 'speedbar
+  :type 'boolean)
 
-(defvar speedbar-activity-change-focus-flag nil
+(defcustom speedbar-activity-change-focus-flag nil
   "*Non-nil means the selected frame will change based on activity.
 Thus, if a file is selected for edit, the buffer will appear in the
-selected frame and the focus will change to that frame.")
+selected frame and the focus will change to that frame."
+  :group 'speedbar
+  :type 'boolean)
 
-(defvar speedbar-directory-button-trim-method 'span
+(defcustom speedbar-directory-button-trim-method 'span
   "*Indicates how the directory button will be displayed.
 Possible values are:
  'span - span large directories over multiple lines.
  'trim - trim large directories to only show the last few.
- nil   - no trimming.")
+ nil   - no trimming."
+  :group 'speedbar
+  :type '(choice (const span) (const trim) (const nil)))
 
-(defvar speedbar-smart-directory-expand-flag t
+(defcustom speedbar-smart-directory-expand-flag t
   "*Non-nil means speedbar should use smart expansion.
 When smart expansion is enabled, then if speedbar is asked to display
 a new buffers location which is not in the current directory
-hierarchy, but it could be added, then it will be.")
+hierarchy, but it could be added, then it will be."
+  :group 'speedbar
+  :type 'boolean)
 
-(defvar speedbar-before-popup-hook nil
-  "*Hooks called before popping up the speedbar frame.")
+(defcustom speedbar-before-popup-hook nil
+  "*Hooks called before popping up the speedbar frame."
+  :group 'speedbar
+  :type 'hook)
 
-(defvar speedbar-before-delete-hook nil
-  "*Hooks called before deleting the speedbar frame.")
+(defcustom speedbar-before-delete-hook nil
+  "*Hooks called before deleting the speedbar frame."
+  :group 'speedbar
+  :type 'hook)
 
-(defvar speedbar-mode-hook nil
-  "*Hooks called after creating a speedbar buffer.")
+(defcustom speedbar-mode-hook nil
+  "*Hooks called after creating a speedbar buffer."
+  :group 'speedbar
+  :type 'hook)
 
-(defvar speedbar-timer-hook nil
-  "*Hooks called after running the speedbar timer function.")
+(defcustom speedbar-timer-hook nil
+  "*Hooks called after running the speedbar timer function."
+  :group 'speedbar
+  :type 'hook)
 
-(defvar speedbar-verbosity-level 1
+(defcustom speedbar-verbosity-level 1
   "*Verbosity level of the speedbar.  0 means say nothing.
 1 means medium level verbosity.  2 and higher are higher levels of
-verbosity.")
+verbosity."
+  :group 'speedbar
+  :type 'integer)
+
+(defcustom speedbar-vc-do-check t
+  "*Non-nil check all files in speedbar to see if they have been checked out.
+Any file checked out is marked with `speedbar-vc-indicator'"
+  :group 'speedbar-vc
+  :type 'boolean)
 
 (defvar speedbar-vc-indicator " *"
-  "*Text used to mark files which are currently checked out.
+  "Text used to mark files which are currently checked out.
 Currently only RCS is supported.  Other version control systems can be
 added by examining the function `speedbar-this-file-in-vc' and
 `speedbar-vc-check-dir-p'")
 
-(defvar speedbar-vc-do-check t
-  "*Non-nil check all files in speedbar to see if they have been checked out.
-Any file checked out is marked with `speedbar-vc-indicator'")
-
-(defvar speedbar-vc-path-enable-hook nil
-  "*Return non-nil if the current path should be checked for Version Control.
-Functions in this hook must accept one paramter which is the path
-being checked.")
-
-(defvar speedbar-scanner-reset-hook nil
+(defcustom speedbar-scanner-reset-hook nil
   "*Hook called whenever generic scanners are reset.
 Set this to implement your own scanning / rescan safe functions with
-state data.")
+state data."
+  :group 'speedbar
+  :type 'hook)
 
-(defvar speedbar-vc-in-control-hook nil
+(defcustom speedbar-vc-path-enable-hook nil
+  "*Return non-nil if the current path should be checked for Version Control.
+Functions in this hook must accept one paramter which is the path
+being checked."
+  :group 'speedbar-vc
+  :type 'hook)
+
+(defcustom speedbar-vc-in-control-hook nil
   "*Return non-nil if the specified file is under Version Control.
 Functions in this hook must accept two paramters.  The PATH of the
-current file, and the FILENAME of the file being checked.")
+current file, and the FILENAME of the file being checked."
+  :group 'speedbar-vc
+  :type 'hook)
 
 (defvar speedbar-vc-to-do-point nil
   "Local variable maintaining the current version control check position.")
@@ -432,14 +497,16 @@ current file, and the FILENAME of the file being checked.")
 (defvar speedbar-ignored-modes nil
   "*List of major modes which speedbar will not switch directories for.")
 
-(defvar speedbar-ignored-path-expressions
-  '("/log/$")
+(defcustom speedbar-ignored-path-expressions
+  '("/logs?/$")
   "*List of regular expressions matching directories speedbar will ignore.
 They should included paths to directories which are notoriously very
 large and take a long time to load in.  Use the function
 `speedbar-add-ignored-path-regexp' to add new items to this list after
 speedbar is loaded.  You may place anything you like in this list
-before speedbar has been loaded.")
+before speedbar has been loaded."
+  :group 'speedbar
+  :type '(repeat (regexp :tag "Path Regexp")))
 
 (defvar speedbar-file-unshown-regexp
   (let ((nstr "") (noext completion-ignored-extensions))
@@ -450,21 +517,6 @@ before speedbar has been loaded.")
     (concat nstr "\\|#[^#]+#$\\|\\.\\.?$"))
   "*Regexp matching files we don't want displayed in a speedbar buffer.
 It is generated from the variable `completion-ignored-extensions'")
-
-(defvar speedbar-supported-extension-expressions
-  (append '(".[CcHh]\\(++\\|pp\\|c\\|h\\)?" ".tex\\(i\\(nfo\\)?\\)?"
-	    ".el" ".emacs" ".p" ".java")
-	  (if speedbar-use-imenu-flag
-	      '(".f90" ".ada" ".pl" ".tcl" ".m"
-		"Makefile\\(\\.in\\)?")))
-  "*List of regular expressions which will match files supported by tagging.
-Do not prefix the `.' char with a double \\ to quote it, as the period
-will be stripped by a simplified optimizer when compiled into a
-singular expression.  This variable will be turned into
-`speedbar-file-regexp' for use with speedbar.  You should use the
-function `speedbar-add-supported-extension' to add a new extension at
-runtime, or use the configuration dialog to set it in your .emacs
-file.")
 
 (defun speedbar-extension-list-to-regex (extlist)
   "Takes EXTLIST, a list of extensions and transforms it into regexp.
@@ -485,13 +537,33 @@ with . followed by extensions, followed by full-filenames."
 	    (if regex2 (concat "\\(" regex2 "\\)") "")
 	    "\\)$")))
 
-(defvar speedbar-ignored-path-regexp
-  (speedbar-extension-list-to-regex speedbar-ignored-path-expressions)
+(defvar speedbar-ignored-path-regexp nil
   "Regular expression matching paths speedbar will not switch to.
 Created from `speedbar-ignored-path-expressions' with the function
 `speedbar-extension-list-to-regex' (A misnamed function in this case.)
 Use the function `speedbar-add-ignored-path-regexp' to modify this
 variable.")
+
+(defcustom speedbar-supported-extension-expressions
+  (append '(".[CcHh]\\(++\\|pp\\|c\\|h\\)?" ".tex\\(i\\(nfo\\)?\\)?"
+	    ".el" ".emacs" ".p" ".java")
+	  (if speedbar-use-imenu-flag
+	      '(".f90" ".ada" ".pl" ".tcl" ".m"
+		"Makefile\\(\\.in\\)?")))
+  "*List of regular expressions which will match files supported by tagging.
+Do not prefix the `.' char with a double \\ to quote it, as the period
+will be stripped by a simplified optimizer when compiled into a
+singular expression.  This variable will be turned into
+`speedbar-file-regexp' for use with speedbar.  You should use the
+function `speedbar-add-supported-extension' to add a new extension at
+runtime, or use the configuration dialog to set it in your .emacs
+file."
+  :group 'speedbar
+  :type '(repeat (regexp :tag "Extension Regexp"))
+  :set (lambda (sym val)
+	 (setq speedbar-supported-extension-expressions val
+	       speedbar-file-regexp (speedbar-extension-list-to-regex val)))
+  )
 
 (defvar speedbar-file-regexp
   (speedbar-extension-list-to-regex speedbar-supported-extension-expressions)
@@ -559,8 +631,8 @@ to toggle this value.")
 (defvar speedbar-key-map nil
   "Keymap used in speedbar buffer.")
 
-(autoload 'speedbar-configure-options "speedbcfg" "Configure speedbar variables" t)
-(autoload 'speedbar-configure-faces "speedbcfg" "Configure speedbar faces" t)
+;(autoload 'speedbar-configure-options "speedbcfg" "Configure speedbar variables" t)
+;(autoload 'speedbar-configure-faces "speedbcfg" "Configure speedbar faces" t)
 
 (if speedbar-key-map
     nil
@@ -635,6 +707,7 @@ to toggle this value.")
 
 	)
     ;; bind mouse bindings so we can manipulate the items on each line
+    (define-key speedbar-key-map [down-mouse-1] 'speedbar-double-click)
     (define-key speedbar-key-map [mouse-2] 'speedbar-click)
     ;; This is the power click for poping up new frames
     (define-key speedbar-key-map [S-mouse-2] 'speedbar-power-click)
@@ -700,6 +773,9 @@ to toggle this value.")
     ["Close" speedbar-close-frame t])
   "Menu items appearing at the end of the speedbar menu.")
 
+(defvar speedbar-desired-buffer nil
+  "Non-nil when speedbar is showing buttons specific a special mode.
+In this case it is the originating buffer.")
 (defvar speedbar-buffer nil
   "The buffer displaying the speedbar.")
 (defvar speedbar-frame nil
@@ -786,7 +862,9 @@ supported at a time.
 	(let ((params (cons (cons 'height (frame-height))
 			    speedbar-frame-parameters)))
 	  (setq speedbar-frame
-		(if (< emacs-major-version 20) ;a bug is fixed in v20 & later
+		(if (or speedbar-xemacsp ; no support in XEmacs?
+			;;a bug is fixed in v20 & later
+			(< emacs-major-version 20))
 		    (make-frame params)
 		  (let ((x-pointer-shape x-pointer-top-left-arrow)
 			(x-sensitive-text-pointer-shape x-pointer-hand2))
@@ -1958,6 +2036,23 @@ This should be bound to mouse event E."
   (speedbar-do-function-pointer)
   (speedbar-quick-mouse e))
 
+(defun speedbar-double-click (e)
+  "Activate any speedbar buttons where the mouse is clicked.
+This must be bound to a mouse event.  A button is any location of text
+with a mouse face that has a text property called `speedbar-function'.
+This should be bound to mouse event E."
+  (interactive "e")
+  ;; Emacs only.  Modify this to handle XEmacs eccentricities
+  (cond ((eq (car e) 'down-mouse-1)
+	 (mouse-set-point e))
+	((eq (car e) 'mouse-1)
+	 (speedbar-quick-mouse e))
+	((or (eq (car e) 'double-down-mouse-1)
+	     (eq (car e) 'tripple-down-mouse-1))
+	 (mouse-set-point e)
+	 (speedbar-do-function-pointer)
+	 (speedbar-quick-mouse e))))
+
 (defun speedbar-do-function-pointer ()
   "Look under the cursor and examine the text properties.
 From this extract the file/tag name, token, indentation level and call
@@ -2564,118 +2659,54 @@ regular expression EXPR"
 
 ;;; Color loading section  This is messy *Blech!*
 ;;
-(defun speedbar-load-color (sym l-fg l-bg d-fg d-bg &optional bold italic underline)
-  "Create a color for SYM with a L-FG and L-BG color, or D-FG and D-BG.
-Optionally make BOLD, ITALIC, or UNDERLINE if applicable.  If the background
-attribute of the current frame is determined to be light (white, for example)
-then L-FG and L-BG is used.  If not, then D-FG and D-BG is used.  This will
-allocate the colors in the best possible manor.  This will allow me to store
-multiple defaults and dynamically determine which colors to use."
-  (let* ((params (frame-parameters))
-	 (disp-res (if (fboundp 'x-get-resource)
-		       (if speedbar-xemacsp
-			   (x-get-resource ".displayType" "DisplayType" 'string)
-			 (x-get-resource ".displayType" "DisplayType"))
-		     nil))
-	 (display-type
-	  (cond (disp-res (intern (downcase disp-res)))
-		((and (fboundp 'x-display-color-p) (x-display-color-p)) 'color)
-		(t 'mono)))
-	 (bg-res (if (fboundp 'x-get-resource)
-		     (if speedbar-xemacsp
-			 (x-get-resource ".backgroundMode" "BackgroundMode" 'string)
-		       (x-get-resource ".backgroundMode" "BackgroundMode"))
-		   nil))
-	 (bgmode
-	  (cond (bg-res (intern (downcase bg-res)))
-		((let* ((bgc (or (cdr (assq 'background-color params))
-				 (if speedbar-xemacsp
-				     (x-get-resource ".background"
-						     "Background" 'string)
-				   (x-get-resource ".background"
-						   "Background"))
-				 ;; if no other options, default is white
-				 "white"))
-			(bgcr (if speedbar-xemacsp
-				  (color-instance-rgb-components
-				   (make-color-instance bgc))
-				(x-color-values bgc)))
-			(wcr (if speedbar-xemacsp
-				 (color-instance-rgb-components
-				  (make-color-instance "white"))
-			       (x-color-values "white"))))
-		   (< (apply '+ bgcr) (/ (apply '+ wcr) 3)))
-		 'dark)
-		(t 'light)))		;our default
-	 (set-p (function (lambda (face-name resource)
-			    (if speedbar-xemacsp
-				(x-get-resource
-				 (concat face-name ".attribute" resource)
-				 (concat "Face.Attribute" resource)
-				 'string)
-			      (x-get-resource
-			       (concat face-name ".attribute" resource)
-			       (concat "Face.Attribute" resource)))
-			    )))
-	 (nbg (cond ((eq bgmode 'dark) d-bg)
-		    (t l-bg)))
-	 (nfg (cond ((eq bgmode 'dark) d-fg)
-		    (t l-fg))))
+(defface speedbar-button-face '((((class color) (background light))
+				 (:foreground "green4"))
+				(((class color) (background dark))
+				 (:foreground "green3")))
+  "Face used for +/- buttons."
+  :group 'speedbar-faces)
 
-    (if (not (eq display-type 'color))
-	;; we need a face of some sort, so just make due with default
-	(progn
-	  (copy-face 'default sym)
-	  (if bold (condition-case nil
-		       (make-face-bold sym)
-		     (error (message "Cannot make face %s bold!"
-				     (symbol-name sym)))))
-	  (if italic (condition-case nil
-			 (make-face-italic sym)
-		       (error (message "Cannot make face %s italic!"
-				       (symbol-name sym)))))
-	  (set-face-underline-p sym underline)
-	  )
-      ;; make a colorized version of a face.  Be sure to check Xdefaults
-      ;; for possible overrides first!
-      (let ((newface (make-face sym)))
-	;; For each attribute, check if it might already be set by Xdefaults
-	(if (and nfg (not (funcall set-p (symbol-name sym) "Foreground")))
-	    (set-face-foreground newface nfg))
-	(if (and nbg (not (funcall set-p (symbol-name sym) "Background")))
-	    (set-face-background newface nbg))
+(defface speedbar-file-face '((((class color) (background light))
+			       (:foreground "cyan4"))
+			      (((class color) (background dark))
+			       (:foreground "cyan"))
+			      (t (:bold t)))
+  "Face used for file names."
+  :group 'speedbar-faces)
 
-	(if bold (condition-case nil
-		     (make-face-bold newface)
-		   (error (message "Cannot make face %s bold!"
-				       (symbol-name sym)))))
-	(if italic (condition-case nil
-		       (make-face-italic newface)
-		     (error (message "Cannot make face %s italic!"
-				     (symbol-name newface)))))
-	(set-face-underline-p newface underline)
-	))))
+(defface speedbar-directory-face '((((class color) (background light))
+				    (:foreground "blue4"))
+				   (((class color) (background dark))
+				    (:foreground "light blue")))
+  "Faced used for directory names."
+  :group 'speedbar-faces)
+(defface speedbar-tag-face '((((class color) (background light))
+			      (:foreground "brown"))
+			     (((class color) (background dark))
+			      (:foreground "yellow")))
+  "Face used for displaying tags."
+  :group 'speedbar-faces)
 
-(if (x-display-color-p)
-    (progn
-      (speedbar-load-color 'speedbar-button-face "green4" nil "green3" nil nil nil nil)
-      (speedbar-load-color 'speedbar-file-face "cyan4" nil "cyan" nil nil nil nil)
-      (speedbar-load-color 'speedbar-directory-face "blue4" nil "light blue" nil nil nil nil)
-      (speedbar-load-color 'speedbar-tag-face "brown" nil "yellow" nil nil nil nil)
-      (speedbar-load-color 'speedbar-selected-face "red" nil "red" nil nil nil t)
-      (speedbar-load-color 'speedbar-highlight-face nil "green" nil "sea green" nil nil nil)
-      ) ; color
-  (make-face 'speedbar-button-face)
-  ;;(make-face 'speedbar-file-face)
-  (copy-face 'bold 'speedbar-file-face)
-  (make-face 'speedbar-directory-face)
-  (make-face 'speedbar-tag-face)
-  ;;(make-face 'speedbar-selected-face)
-  (copy-face 'underline 'speedbar-selected-face)
-  ;;(make-face 'speedbar-highlight-face)
-  (copy-face 'highlight 'speedbar-highlight-face)
+(defface speedbar-selected-face '((((class color) (background light))
+				    (:foreground "red" :underline t))
+				  (((class color) (background dark))
+				   (:foreground "red" :underline t))
+				  (t (:underline t)))
+  "Face used to underline the file in the active window."
+  :group 'speedbar-faces)
 
-  ) ;; monochrome
+(defface speedbar-highlight-face '((((class color) (background light))
+				    (:background "green"))
+				   (((class color) (background dark))
+				    (:background "sea green"))
+				   (((class grayscale monochrome)
+				     (background light))
+				    (:background "black"))
+				   (((class grayscale monochrome)
+				     (background dark))
+				    (:background "white")))
+  "Face used for highlighting buttons with the mouse."
+  :group 'speedbar-faces)
 
 ;; some edebug hooks
 (add-hook 'edebug-setup-hook
