@@ -26,7 +26,7 @@
 This manual documents Semantic, a new intrastructure for parser
 based text analysis for Emacs.
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -74,34 +74,9 @@ Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
 @end titlepage
 @page
 
-@c *************************************************************************
-@c @ Macros
-@c *************************************************************************
+@c MACRO inclusion
+@include semanticheader.texi
 
-@c The word ``semantic'' is overloaded with two meanings in this manual.
-@c One is the name of this projects, i.e., a noun.
-@c The other is the usual English word, i.e., an adjective.
-@c This macro was created to distinguish between the two meanings.
-@c This macro should be used whenever you are referring to the name of
-@c this project.
-@c For now, this is simply the word ``semantic'' in italic font.
-@c In the future, this may turn into a logo similar to @TeX{}.
-@macro semantic{}
-@i{semantic}
-@end macro
-
-@c To be used within the glossary section.
-@macro keyword{kw}
-@anchor{\kw\}
-@b{\kw\}
-@end macro
-
-@c Simple macro to help document obsoleted functions.
-@macro obsolete{old,new}
-
-@code{\new\} introduced in @semantic{} version 2.0 supercedes
-@code{\old\} which is now obsolete.
-@end macro
 
 @c *************************************************************************
 @c @ Document
@@ -110,14 +85,14 @@ Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
 @node top
 @top @value{TITLE}
 
-Semantic is a program for Emacs which includes, at its core, a lexer,
-and a compiler compiler (bovinator).  Additional tools include a
-bnf->semantic table converter, example tables, and a speedbar tool.
+@semantic{} is a program for Emacs which includes, at its core, a
+lexer, and two compiler compilers (bovinator and wisent).  Additional
+tools include, support for imenu, speedbar, whichfunc, eldoc,
+hippie-expand, and several other build in tools.
 
-The core utility is the ``semantic bovinator'' which has similar
-behaviors as yacc or bison.  Since it is not designed to be as feature
-rich as these tools, it uses the term ``bovine'' for cow, a lesser
-cousin of the yak and bison.
+The core utility is the parser infrastructure which allows different
+types of parsers to be linked into the system.  Two build in parsers
+include the ``bovine'' parser, and the ``wisent'' parser.
 
 To send bug reports, or participate in discussions about semantic,
 use the mailing list cedet-semantic@@sourceforge.net via the URL:
@@ -126,12 +101,12 @@ use the mailing list cedet-semantic@@sourceforge.net via the URL:
 @menu
 * Overview::                    
 * Installation::                
-* Semantic User's Guide::       
-* Application Developer's Guide::  
-* Language Support Developer's Guide::  
-* Semantic Internals::          
-* Glossary::                    
-* GNU Free Documentation License::  
+* Semantic User's Guide: (semantic-user.info).
+* Application Developer's Guide: (semantic-appdev.info).
+* Language Support Developer's Guide: (semantic-langdev.info).
+* Semantic Internals:: 
+* Glossary::
+* GNU Free Documentation License:: 
 * Index::                       
 @end menu
 
@@ -144,21 +119,6 @@ use the mailing list cedet-semantic@@sourceforge.net via the URL:
 @chapter Installation
 
 @include installation.texi
-
-@node Semantic User's Guide
-@chapter Semantic User's Guide
-
-@include user-guide.texi
-
-@node Application Developer's Guide
-@chapter Application Developer's Guide
-
-@include app-dev-guide.texi
-
-@node Language Support Developer's Guide
-@chapter Language Support Developer's Guide
-
-@include lang-support-guide.texi
 
 @node Semantic Internals
 @chapter Semantic Internals
