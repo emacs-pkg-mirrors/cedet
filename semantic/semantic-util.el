@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.50 2001/02/23 02:00:58 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.51 2001/02/23 16:06:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1193,19 +1193,27 @@ If VISIBLE is non-nil, make the text visible."
   (semantic-overlay-put (semantic-token-overlay token) 'invisible
 			(not visible)))
 
+(defun semantic-token-invisible-p (token)
+  "Return non-nil if TOKEN is invisible."
+  (semantic-overlay-get (semantic-token-overlay token) 'invisible))
+
 (defun semantic-set-token-intangible (token &optional tangible)
   "Enable the text in TOKEN to be made intangible.
-If TANGIBLE is non-nil, make the text visible."
+If TANGIBLE is non-nil, make the text visible.
+This function does not have meaning in XEmacs because it seems that
+the extent 'intangible' property does not exist."
   (semantic-overlay-put (semantic-token-overlay token) 'intangible
 			(not tangible)))
 
 (defun semantic-token-intangible-p (token)
-  "Return non-nil if TOKEN is intangible."
+  "Return non-nil if TOKEN is intangible.
+This function does not have meaning in XEmacs because it seems that
+the extent 'intangible' property does not exist."
   (semantic-overlay-get (semantic-token-overlay token) 'intangible))
 
 (defun semantic-overlay-signal-read-only
   (overlay after start end &optional len)
-  "Hook used in modification hooks to preventi modification.
+  "Hook used in modification hooks to prevent modification.
 Allows deletion of the entire text.
 Argument OVERLAY, AFTER, START, END, and LEN are passed in by the system."
   ;; Stolen blithly from cpp.el in Emacs 21.1
@@ -1220,15 +1228,21 @@ Optional argument WRITABLE should be non-nil to make the text writable.
 instead of read-only."
   (let ((o (semantic-token-overlay token))
 	(hook (if writable nil '(semantic-overlay-signal-read-only))))
-    (semantic-overlay-put o 'modification-hooks hook)
-    (semantic-overlay-put o 'insert-in-front-hooks hook)
-    (semantic-overlay-put o 'insert-behind-hooks hook)))
+    (if (featurep 'xemacs)
+        ;; XEmacs extents have a 'read-only' property.
+        (semantic-overlay-put o 'read-only (not writable))
+      (semantic-overlay-put o 'modification-hooks hook)
+      (semantic-overlay-put o 'insert-in-front-hooks hook)
+      (semantic-overlay-put o 'insert-behind-hooks hook))))
 
 (defun semantic-token-read-only-p (token)
   "Return non-nil if the current TOKEN is marked read only."
   (let ((o (semantic-token-overlay token)))
-    (member 'semantic-overlay-signal-read-only
-	    (semantic-overlay-get o 'modification-hooks))))
+    (if (featurep 'xemacs)
+        ;; XEmacs extents have a 'read-only' property.
+        (semantic-overlay-get o 'read-only)
+      (member 'semantic-overlay-signal-read-only
+              (semantic-overlay-get o 'modification-hooks)))))
 
 (defun semantic-narrow-to-token (token)
   "Narrow to the region specified by TOKEN."
