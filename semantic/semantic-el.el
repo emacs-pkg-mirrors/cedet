@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.7 1999/05/23 13:29:37 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.8 1999/05/27 01:43:52 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 		 (lambda (vals start end)
 		   (list (nth 2 vals) 'variable nil
 			 (if (string= (nth 1 vals) "defconst") t nil)
-			 nil;(nth 4 vals)
+			 nil nil;(nth 4 vals)
 			 start end))))
     ;; In elisp, and include is just the require statement.
     (include
@@ -282,30 +282,36 @@
 			      (list start end))))
      ( punctuation "#" symbol "define" symbol opt-expression
 		   (lambda (vals start end)
-		     (append  (list (nth 2 vals) 'variable nil 't (nth 3 vals) nil)
+		     (append  (list (nth 2 vals) 'variable nil 't (nth 3 vals) nil nil)
 			      (list start end))))
      ) ; end variable
     (variabledef
      ( declmods typeform varnamelist
 		(lambda (vals start end)
-		  (append  (list (nth 2 vals) 'variable (nth 1 vals) ( string-match "const" ( car (nth 0 vals))) nil nil)
+		  (append  (list (nth 2 vals) 'variable (nth 1 vals) ( string-match "const" ( car (nth 0 vals))) nil nil nil)
 			   (list start end))))
      ) ; end variabledef
+    (varname
+     ( opt-stars symbol opt-bits opt-array opt-assign
+		 (lambda (vals start end)
+		   (append  (list (nth 1 vals)) (nth 0 vals) (nth 2 vals) (nth 3 vals) (nth 4 vals)
+			    (list start end))))
+     ) ; end varname
     (variablearg
-     ( declmods typeform symbol
+     ( declmods typeform varname
 		(lambda (vals start end)
-		  (append  (list (nth 2 vals) 'variable (nth 1 vals) ( string-match "const" ( car (nth 0 vals))) nil nil)
+		  (append  (list ( car (nth 2 vals)) 'variable (nth 1 vals) ( string-match "const" ( car (nth 0 vals))) nil nil nil)
 			   (list start end))))
      ) ; end variablearg
     (varnamelist
-     ( symbol opt-bits opt-array opt-assign punctuation "," varnamelist
-	      (lambda (vals start end)
-		(append  (list ( cons (append (list (nth 0 vals)) (nth 2 vals) (nth 3 vals)) (nth 5 vals)))
-			 (list start end))))
-     ( symbol opt-bits opt-array opt-assign
-	      (lambda (vals start end)
-		(append  (list (append (list (nth 0 vals)) (nth 2 vals) (nth 3 vals)))
-			 (list start end))))
+     ( varname punctuation "," varnamelist
+	       (lambda (vals start end)
+		 (append  (list ( cons (nth 0 vals) (nth 2 vals)))
+			  (list start end))))
+     ( varname
+       (lambda (vals start end)
+	 (append  (list (nth 0 vals))
+		  (list start end))))
      ) ; end varnamelist
     (arg-list
      ( semantic-list
@@ -382,26 +388,34 @@
   "Expand NONTERM into a list of equivalent nonterminals, or nil."
   (if (listp (car nonterm))
       (cond ((eq (semantic-token-token nonterm) 'variable)
+	     ;; The name part comes back in the form of:
+	     ;; ( NAME NUMSTARS BITS ARRAY ASSIGN )
 	     (let ((vl nil)
 		   (basety (semantic-token-type nonterm))
 		   (ty "")
+		   (mods "")
 		   (lst (semantic-token-name nonterm))
 		   (cur nil)
 		   (cnt 0))
 	       (while lst
 		 (setq cur (car lst))
-		 ;; name array assign
+		 (if (nth 2 cur)
+		     (setq mods (concat ":" (nth 2 cur))))
+		 (if (nth 3 cur)
+		     (setq mods (concat mods
+					"[" (length (nth 3 cur)) "]")))
 		 (if (= (length basety) 1)
 		     (progn
 		       (setq ty (car basety))
 		       (if (nth 1 cur)
-			   (setq ty (concat ty "[" (length (nth 1 cur)) "]"))))
+			   (setq ty (concat ty (make-string (nth 1 cur) ?*)))))
 		   (setq ty basety))
 		 (setq vl (cons (list (car cur)
 				      'variable
 				      ty
 				      (semantic-token-variable-const nonterm)
-				      (nth 2 cur)
+				      (nth 4 cur)
+				      mods
 				      (semantic-token-docstring nonterm)
 				      (semantic-token-start nonterm)
 				      (semantic-token-end nonterm))
