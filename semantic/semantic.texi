@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.8 2000/05/25 13:16:45 zappo Exp $
+@c $Id: semantic.texi,v 1.9 2000/06/11 19:40:29 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -20,7 +20,7 @@ END-INFO-DIR-ENTRY
 Copyright @copyright{} 1999, 2000 Eric M. Ludlam
 @end titlepage
 
-@node Top, , , (dir)Top
+@node Top, Lexing, (dir), (dir)
 @comment  node-name,  next,  previous,  up
 
 Semantic is a program for Emacs which includes, at its core, a lexer,
@@ -43,13 +43,13 @@ your .emacs file:
 @code{(setq max-specpdl-size 1000)}
 
 @menu
-* Lexing ::             Setting up the lexer for your language.
-* Bovinating ::         Setting up the parser for your language.
-* BNF conversion::      Using the BNF converter to make tables.
-* Compiling ::          Running the bovinator on a source file.
-* Debugging ::          Using the bovine table debugger.
-* Non-Terminals ::      How to use the nonterminal stream.
-* Utilities ::          Utilities for querying the nonterminal stream.
+* Lexing::                      Setting up the lexer for your language.
+* Bovinating::                  Setting up the parser for your language.
+* BNF conversion::              Using the BNF converter to make tables.
+* Compiling::                   Running the bovinator on a source file.
+* Debugging::                   Using the bovine table debugger.
+* Non-Terminals::               How to use the nonterminal stream.
+* Utilities::                   Utilities for querying the nonterminal stream.
 @end menu
 
 @node Lexing, Bovinating, Top, Top
@@ -64,7 +64,7 @@ that is set up correctly (along with the important
 @code{comment-start-skip} variable) te lexer should already work for you
 language.
 
-To extend the flexer, you can use the variable @code{semantic-flex-extensions}.
+There are three ways to extend the flexer.
 
 @defvar semantic-flex-extensions
 For a given language buffer, this is an associatoin list.  The key is a
@@ -79,6 +79,24 @@ nil is also valid in case the text does not satisfy some other criterion.
 
 TYPE can be any type of symbol, as long as it doesn't occur as a
 nonterminal in the language definition.
+@end defvar
+
+@defvar semantic-flex-syntax-modifications
+Updates to the syntax table for a given buffer.
+These changes are active only while this file is being flexed.
+This is a list where each element is of the form:
+@example
+  (CHAR CLASS) 
+@end example
+
+Where CHAR is the char passed to `modify-syntax-entry',
+and CLASS is the string also passed to `modify-syntax-entry' to define
+what class of syntax CHAR is.
+@end defvar
+
+@defvar semantic-flex-enable-newlines
+When flexing, report 'newlines as syntactic elements.
+Useful for languages where the newline is a special case terminator.
 @end defvar
 
 @node Bovinating, BNF conversion, Lexing, Top
@@ -330,7 +348,7 @@ In Emacs Lisp, a `provide' statement.  DETAIL might be an associated
 file name.
 @refill
 
-@node Utilities, , Non-Terminals, Top
+@node Utilities,  , Non-Terminals, Top
 @chapter Utilities
 
 There are many utilities which can be used in programs that use the
@@ -342,13 +360,13 @@ Some of these utils will use EDE if it is available.  EDE is a tool that
 tracks how program language files relate to eachother.
 
 @menu
-* Nonterminal queryies ::        Get info about one nonterminal token.
-* Nonterminal streams ::        Get info from a stream of nonterminals.
-* Nonterminal completion ::     Read nonterminal names in the minibuffer.
-* Override methods ::           Methods that are more language specific.
+* Nonterminal queryies::        Get info about one nonterminal token.
+* Nonterminal streams::         Get info from a stream of nonterminals.
+* Nonterminal completion::      Read nonterminal names in the minibuffer.
+* Override methods::            Methods that are more language specific.
 @end menu
 
-@node Nonterminal queryies, Nonterminal streams, , Utilities
+@node Nonterminal queryies, Nonterminal streams, Utilities, Utilities
 @section Nonterminal queryies
 
 These functions all take a single nonterminal (a list), and return some
@@ -517,7 +535,7 @@ from under point.
 @end defun
 
 
-@node Override methods, , Nonterminal completion, Utilities
+@node Override methods,  , Nonterminal completion, Utilities
 @section Override methods
 
 These functions are called `override methods' because they provide
