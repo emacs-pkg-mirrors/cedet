@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.4 2003/05/29 00:47:19 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.5 2003/07/09 15:21:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,7 +41,7 @@
 ;;; Tag to text overload functions
 ;;
 ;; abbreviations, prototypes, and coloring support.
-
+;;;###autoload
 (defvar semantic-format-tag-functions
   '(semantic-format-tag-name
     semantic-format-tag-abbreviate
@@ -64,6 +64,8 @@ COLOR indicates that the generated text should be colored using
 
 (make-obsolete-variable 'semantic-token->text-functions
 			'semantic-format-tag-functions)
+;;;###autoload
+(defalias 'semantic-token->text-functions 'semantic-format-tag-functions)
 
 (defvar semantic-format-tag-custom-list
   (append '(radio)
