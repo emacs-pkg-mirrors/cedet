@@ -1,0 +1,420 @@
+### wisent-awk.bnf --- GNU AWK Grammar
+
+## Copyright (C) 2002 David Ponce
+## Copyright 2001 Free Software Foundation, Inc.
+
+## Author: David Ponce <david@dponce.com>
+## Maintainer: David Ponce <david@dponce.com>
+## Created: 15 Jan 2002
+## Keywords: syntax
+## X-RCS: $Id: wisent-awk.bnf,v 1.1 2002/02/01 23:55:40 ponced Exp $
+
+## This file is not part of GNU Emacs.
+
+## This program is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License as
+## published by the Free Software Foundation; either version 2, or (at
+## your option) any later version.
+
+## This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
+
+## You should have received a copy of the GNU General Public License
+## along with this program; see the file COPYING.  If not, write to
+## the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+## Boston, MA 02111-1307, USA.
+
+### Commentary:
+##
+## This is a port of the Bison 1.31 GNU awk grammar found in file
+## tests/torture.at.  It is good to torture Wisent too ;-).
+## It should report 65 SR conflicts.
+## Implementation is in the file wisent-awk.el.
+
+### History:
+## 
+
+# --------
+# Settings
+# --------
+%parsermode    lalr ## Generate tables for the LALR parser
+%outputfile    wisent-awk.el
+%parsetable    wisent-awk-parser-tables
+%keywordtable  wisent-awk-keywords
+%tokentable    wisent-awk-tokens
+%languagemode  awk-mode
+%setupfunction wisent-awk-default-setup
+
+# Terminals
+%token FUNC_CALL literal ""
+%token NAME      literal ""
+%token REGEXP    literal ""
+%token ERROR     literal ""
+%token YNUMBER   literal ""
+%token YSTRING   literal ""
+%token RELOP     literal ""
+%token APPEND_OP literal ""
+%token ASSIGNOP  literal ""
+%token MATCHOP   literal ""
+%token NEWLINE   literal ""
+%token CONCAT_OP literal ""
+
+%token TWOWAYIO  dummy   ""
+%token UNARY     dummy   ""
+
+%token LEX_BEGIN    "BEGIN"
+%token LEX_END      "END"
+%token LEX_IF       "IF"
+%token LEX_ELSE     "ELSE"
+%token LEX_RETURN   "RETURN"
+%token LEX_DELETE   "DELETE"
+%token LEX_WHILE    "WHILE"
+%token LEX_DO       "DO"
+%token LEX_FOR      "FOR"
+%token LEX_BREAK    "BREAK"
+%token LEX_CONTINUE "CONTINUE"
+%token LEX_PRINT    "PRINT"
+%token LEX_PRINTF   "PRINTF"
+%token LEX_NEXT     "NEXT"
+%token LEX_EXIT     "EXIT"
+%token LEX_FUNCTION "FUNCTION"
+%token LEX_GETLINE  "GETLINE"
+%token LEX_NEXTFILE "NEXTFILE"
+%token LEX_IN       "IN"
+%token LEX_AND      "AND"
+%token LEX_OR       "OR"
+%token INCREMENT    "INCREMENT"
+%token DECREMENT    "DECREMENT"
+%token LEX_BUILTIN  "BUILTIN"
+%token LEX_LENGTH   "LENGTH"
+
+%token LPAR  parens "("
+%token RPAR  parens ")"
+%token LBRAK parens "["
+%token RBRAK parens "]"
+%token LBRAC parens "{"
+%token RBRAC parens "}"
+
+%token QUEST oper   "?"
+%token COLON oper   ":"
+%token COMMA oper   ","
+%token SEMI  oper   ";"
+%token LT    oper   "<"
+%token GT    oper   ">"
+%token PLUS  oper   "+"
+%token MINUS oper   "-"
+%token MULT  oper   "*"
+%token DIV   oper   "/"
+%token MOD   oper   "%"
+%token COMPL oper   "^"
+%token NOT   oper   "!"
+%token PIPE  oper   "|"
+%token DOLAR oper   "$"
+
+# Precedence (lowest to highest)
+%right    ASSIGNOP;
+%right    QUEST COLON;
+%left     LEX_OR;
+%left     LEX_AND;
+%left     LEX_GETLINE;
+%nonassoc LEX_IN;
+%left     FUNC_CALL LEX_BUILTIN LEX_LENGTH;
+%nonassoc COMMA;
+%nonassoc MATCHOP;
+%nonassoc RELOP LT GT PIPE APPEND_OP TWOWAYIO;
+%left     CONCAT_OP;
+%left     YSTRING YNUMBER;
+%left     PLUS MINUS;
+%left     MULT DIV MOD;
+%right    NOT UNARY;
+%right    COMPL;
+%left     INCREMENT DECREMENT;
+%left     DOLAR;
+%left     LPAR RPAR;
+
+# The grammar
+
+### Notice that we can't use 'start' as a nonterminal name here
+### because it is a reserved word in the BNF grammar (like other
+### symbols prefixed by the percent character '%').  I think we need
+### to fix that in a future release!       David.
+
+start_
+  : opt_nls program opt_nls
+  ;
+
+program
+  : rule
+  | program rule
+  | error
+  | program error
+  | EMPTY
+  ;
+
+rule
+  : LEX_BEGIN action
+  | LEX_END action
+  | LEX_BEGIN statement_term
+  | LEX_END statement_term
+  | pattern action
+  | action
+  | pattern statement_term
+  | function_prologue function_body
+  ;
+
+func_name
+  : NAME
+  | FUNC_CALL
+  | lex_builtin
+  ;
+
+lex_builtin
+  : LEX_BUILTIN
+  | LEX_LENGTH
+  ;
+
+function_prologue
+  : LEX_FUNCTION func_name LPAR opt_param_list r_paren opt_nls
+  ;
+                                                 
+function_body
+  : l_brace statements r_brace opt_semi opt_nls
+  | l_brace r_brace opt_semi opt_nls
+  ;
+
+
+pattern
+  : exp
+  | exp COMMA exp
+  ;
+
+# In this rule, want_regexp tells yylex that the next thing
+# is a regexp so it should read up to the closing slash.
+regexp
+  : DIV REGEXP DIV
+  ;
+
+action
+  : l_brace statements r_brace opt_semi opt_nls
+  | l_brace r_brace opt_semi opt_nls
+  ;
+
+statements
+  : statement
+  | statements statement
+  | error
+  | statements error
+  ;
+
+statement_term
+  : nls
+  | semi opt_nls
+  ;
+
+statement
+  : semi opt_nls
+  | l_brace r_brace
+  | l_brace statements r_brace
+  | if_statement
+  | LEX_WHILE LPAR exp r_paren opt_nls statement
+  | LEX_DO opt_nls statement LEX_WHILE LPAR exp r_paren opt_nls
+  | LEX_FOR LPAR NAME LEX_IN NAME r_paren opt_nls statement
+  | LEX_FOR LPAR opt_exp semi opt_nls exp semi opt_nls opt_exp r_paren opt_nls statement
+  | LEX_FOR LPAR opt_exp semi opt_nls semi opt_nls opt_exp r_paren opt_nls statement
+  | LEX_BREAK statement_term
+  | LEX_CONTINUE statement_term
+  | print LPAR expression_list r_paren output_redir statement_term
+  | print opt_rexpression_list output_redir statement_term
+  | LEX_NEXT statement_term
+  | LEX_NEXTFILE statement_term
+  | LEX_EXIT opt_exp statement_term
+  | LEX_RETURN opt_exp statement_term
+  | LEX_DELETE NAME LBRAK expression_list RBRAK statement_term
+  | LEX_DELETE NAME  statement_term
+  | exp statement_term
+  ;
+
+print
+  : LEX_PRINT
+  | LEX_PRINTF
+  ;
+
+if_statement
+  : LEX_IF LPAR exp r_paren opt_nls statement
+  | LEX_IF LPAR exp r_paren opt_nls statement LEX_ELSE opt_nls statement
+  ;
+
+nls
+  : NEWLINE
+  | nls NEWLINE
+  ;
+
+opt_nls
+  : EMPTY
+  | nls
+  ;
+
+input_redir
+  : EMPTY
+  | LT simp_exp
+  ;
+
+output_redir
+  : EMPTY
+  | GT exp
+  | APPEND_OP exp
+  | PIPE exp
+  | TWOWAYIO exp
+  ;
+
+opt_param_list
+  : EMPTY
+  | param_list
+  ;
+
+param_list
+  : NAME
+  | param_list comma NAME
+  | error
+  | param_list error
+  | param_list comma error
+  ;
+
+# optional expression, as in for loop
+opt_exp
+  : EMPTY
+  | exp
+  ;
+
+opt_rexpression_list
+  : EMPTY
+  | rexpression_list
+  ;
+
+rexpression_list
+  : rexp
+  | rexpression_list comma rexp
+  | error
+  | rexpression_list error
+  | rexpression_list error rexp
+  | rexpression_list comma error
+  ;
+
+opt_expression_list
+  : EMPTY
+  | expression_list
+  ;
+
+expression_list
+  : exp
+  | expression_list comma exp
+  | error
+  | expression_list error
+  | expression_list error exp
+  | expression_list comma error
+  ;
+
+# Expressions, not including the comma operator.
+exp
+  : variable ASSIGNOP exp
+  | LPAR expression_list r_paren LEX_IN NAME
+  | exp PIPE LEX_GETLINE opt_variable
+  | exp TWOWAYIO LEX_GETLINE opt_variable
+  | LEX_GETLINE opt_variable input_redir
+  | exp LEX_AND exp
+  | exp LEX_OR exp
+  | exp MATCHOP exp
+  | regexp
+  | NOT regexp %prec UNARY
+  | exp LEX_IN NAME
+  | exp RELOP exp
+  | exp LT exp
+  | exp GT exp
+  | exp QUEST exp COLON exp
+  | simp_exp
+  | exp simp_exp %prec CONCAT_OP
+  ;
+
+rexp
+  : variable ASSIGNOP rexp
+  | rexp LEX_AND rexp
+  | rexp LEX_OR rexp
+  | LEX_GETLINE opt_variable input_redir
+  | regexp
+  | NOT regexp %prec UNARY
+  | rexp MATCHOP rexp
+  | rexp LEX_IN NAME
+  | rexp RELOP rexp
+  | rexp QUEST rexp COLON rexp
+  | simp_exp
+  | rexp simp_exp %prec CONCAT_OP
+  ;
+
+simp_exp
+  : non_post_simp_exp
+  # Binary operators in order of decreasing precedence.
+  | simp_exp COMPL simp_exp
+  | simp_exp MULT simp_exp
+  | simp_exp DIV simp_exp
+  | simp_exp MOD simp_exp
+  | simp_exp PLUS simp_exp
+  | simp_exp MINUS simp_exp
+  | variable INCREMENT
+  | variable DECREMENT
+  ;
+
+non_post_simp_exp
+  : NOT simp_exp %prec UNARY
+  | LPAR exp r_paren
+  | LEX_BUILTIN LPAR opt_expression_list r_paren
+  | LEX_LENGTH LPAR opt_expression_list r_paren
+  | LEX_LENGTH
+  | FUNC_CALL LPAR opt_expression_list r_paren
+  | variable
+  | INCREMENT variable
+  | DECREMENT variable
+  | YNUMBER
+  | YSTRING
+  | MINUS simp_exp %prec UNARY
+  | PLUS simp_exp %prec UNARY
+  ;
+
+opt_variable
+  : EMPTY
+  | variable
+  ;
+
+variable
+  : NAME
+  | NAME LBRAK expression_list RBRAK
+  | DOLAR non_post_simp_exp
+  ;
+
+l_brace
+  : LBRAC opt_nls
+  ;
+
+r_brace
+  : RBRAC opt_nls
+  ;
+
+r_paren
+  : RPAR
+  ;
+
+opt_semi
+  : EMPTY
+  | semi
+  ;
+
+semi
+  : SEMI
+  ;
+
+comma
+  : COMMA opt_nls
+  ;
+
+### wisent-awk.bnf ends here
