@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.32 2001/10/28 02:00:36 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.33 2001/10/30 13:40:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -349,7 +349,13 @@ Sets up the semanticdb environment."
 	    (quit (message "semanticdb: Semantic Token generation halted."))
 	    (error (error "Semanticdb: bovination failed at startup")))
 	  )
-      (semantic-set-unmatched-syntax-cache (oref ctbl unmatched-syntax))
+      (condition-case nil
+          (semantic-set-unmatched-syntax-cache
+           (oref ctbl unmatched-syntax))
+        (unbound-slot
+         ;; Old version of the semanticdb table can miss the unmatched
+         ;; syntax slot.  If so, just clear the unmatched syntax cache.
+         (semantic-clear-unmatched-syntax-cache)))
       (semantic-set-toplevel-bovine-cache  (oref ctbl tokens))
       (semantic-overlay-cache)
       )
