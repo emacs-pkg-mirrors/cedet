@@ -304,6 +304,21 @@ filename : symbol PERIOD symbol
 
 will explicitly match one period when used in the above rule.
 
+@section Order of MATCH rules
+
+If a rule has multiple matches, order is important, for example
+
+@example
+headerfile : symbol PERIOD symbol
+           | symbol
+           ;
+@end example
+
+would match ``foo.h'' or the c++ header ``foo''.
+The bovine parser will first attempt to match the long form, and then
+the short form.  If they were in reverse order, then the long form
+would never be tested.
+
 @c @xref{Default syntactic tokens}.
 
 @node Optional Lambda Expression
