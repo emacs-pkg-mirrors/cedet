@@ -5,7 +5,7 @@
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
-;; X-RCS: $Id: c.by,v 1.8 2003/03/11 01:14:37 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.9 2003/03/30 01:29:25 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 %languagemode  c-mode c++-mode
 %setupfunction semantic-default-c-setup
 
-%(setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
+%(setq semantic-tag-expand-function 'semantic-expand-c-nonterminal
        semantic-dependency-include-path semantic-default-c-path
        semantic-orphaned-member-metaparent-type "struct"
        semantic-symbol->name-assoc-list
@@ -231,7 +231,7 @@ extern-c
  ;; entries of the list extracted, and spliced into the main
  ;; list of entries.  This must be done via the function
  ;; that expands singular nonterminals, such as int x,y;
-    ( extern (EXPANDFULL $3 extern-c-contents) )
+    (TAG 'extern :members (EXPANDFULL $3 extern-c-contents) )
   | EXTERN C
  ;; A plain extern "C" call should add something to the token,
  ;; but just strip it from the buffer here for now.
@@ -320,11 +320,10 @@ classsubparts
   | class-protection opt-symbol COLON
  ;; For QT, they may put a `slot' keyword between the protection
  ;; and the COLON.
-    (,$1 label )
+    (TAG $1 'label)
   | var-or-fun
   | type
   | define
-    (,$1 protection )
   | template
   | ;;EMPTY
   ;
@@ -380,7 +379,7 @@ namespacesubparts
   | var-or-fun
   | define
   | class-protection COLON
-    ( $1 protection )
+    (TAG $1 'label)
  ;; In C++, this label in a classsubpart represents
  ;; PUBLIC or PRIVATE bits.  Ignore them for now.
   | template
