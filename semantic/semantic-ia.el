@@ -1,10 +1,10 @@
 ;;; semantic-ia.el --- Interactive Analysis functions
 
-;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.4 2003/04/09 01:21:18 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.5 2004/01/13 03:43:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,6 +58,7 @@ Supports caching."
     (setq semantic-ia-cache (cons point symbols))
     symbols))
 
+;;;###autoload
 (defun semantic-ia-complete-symbol (point)
   "Complete the current symbol at POINT.
 Completion options are calculated with `semantic-analyze-possible-completions'."
@@ -94,6 +95,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
   :group 'semantic
   :type semantic-format-tag-custom-list)
 
+;;;###autoload
 (defun semantic-ia-complete-symbol-menu (point)
   "Complete the current symbol via a menu based at POINT.
 Completion options are calculated with `semantic-analyze-possible-completions'."
@@ -128,6 +130,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	   (insert "("))
 	  (t nil))))
 
+;;;###autoload
 (defun semantic-ia-complete-tip (point)
   "Pop up a tooltip for completion at POINT."
   (interactive "d")
