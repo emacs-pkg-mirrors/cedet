@@ -1,11 +1,11 @@
-;;; speedbar --- quick access to files and tags -*-byte-compile-warnings:nil;-*-
+;;; speedbar --- quick access to files and tags
 
 ;;; Copyright (C) 1996, 97 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.5.4
+;; Version: 0.5.5
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.62 1997/11/05 03:05:42 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.63 1997/11/12 00:24:39 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -266,8 +266,12 @@
 ;; 0.5.4 Fixed more problems for Emacs 20 so speedbar loads correctly.
 ;;       Updated some documentation strings.
 ;;       Added customization menu item, and customized some more variables.
+;; 0.5.5 Fixed so that there can be no ignored paths
+;;       Added .l & .lsp as lisp, suggested by: sshteingold@cctrading.com
+;;       You can now adjust height in `speedbar-frame-parameters'
+;;       XEmacs fix for use of `local-variable-p'
 
-;;; TODO:
+;;; Todo:
 ;; - More functions to create buttons and options
 ;; - filtering algorithms to reduce the number of tags/files displayed.
 ;; - Timeout directories we haven't visited in a while.
@@ -531,6 +535,13 @@ with . followed by extensions, followed by full-filenames."
 	    (if regex2 (concat "\\(" regex2 "\\)") "")
 	    "\\)$")))
 
+(defvar speedbar-ignored-path-regexp nil
+  "Regular expression matching paths speedbar will not switch to.
+Created from `speedbar-ignored-path-expressions' with the function
+`speedbar-extension-list-to-regex' (A misnamed function in this case.)
+Use the function `speedbar-add-ignored-path-regexp' to modify this
+variable.")
+
 (defcustom speedbar-ignored-path-expressions
   '("/logs?/$")
   "*List of regular expressions matching directories speedbar will ignore.
@@ -556,16 +567,9 @@ before speedbar has been loaded."
   "*Regexp matching files we don't want displayed in a speedbar buffer.
 It is generated from the variable `completion-ignored-extensions'")
 
-(defvar speedbar-ignored-path-regexp nil
-  "Regular expression matching paths speedbar will not switch to.
-Created from `speedbar-ignored-path-expressions' with the function
-`speedbar-extension-list-to-regex' (A misnamed function in this case.)
-Use the function `speedbar-add-ignored-path-regexp' to modify this
-variable.")
-
 (defcustom speedbar-supported-extension-expressions
   (append '(".[CcHh]\\(++\\|pp\\|c\\|h\\)?" ".tex\\(i\\(nfo\\)?\\)?"
-	    ".el" ".emacs" ".p" ".java")
+	    ".el" ".emacs" ".l" ".lsp" ".p" ".java")
 	  (if speedbar-use-imenu-flag
 	      '(".f90" ".ada" ".pl" ".tcl" ".m"
 		"Makefile\\(\\.in\\)?")))
@@ -889,8 +893,10 @@ supported at a time.
 	  )
       (if (frame-live-p speedbar-frame)
 	  (raise-frame speedbar-frame)
-	(let ((params (cons (cons 'height (frame-height))
-			    speedbar-frame-parameters)))
+	(let ((params (append speedbar-frame-parameters
+			      (list (cons 'height (frame-height))))))
+	      ;;(params (cons (cons 'height (frame-height))
+	      ;;	    speedbar-frame-parameters)))
 	  (setq speedbar-frame
 		(if (or speedbar-xemacsp ; no support in XEmacs?
 			;;a bug is fixed in v20 & later
@@ -1052,7 +1058,8 @@ and the existence of packages."
 		      (save-excursion
 			(select-frame speedbar-attached-frame)
 			(if (local-variable-p
-			     'speedbar-easymenu-definition-special)
+			     'speedbar-easymenu-definition-special
+			     (current-buffer))
 			    ;; If bound locally, we can use it
 			    speedbar-easymenu-definition-special)))
 		    ;; The trailer
@@ -1681,8 +1688,9 @@ name will have the function FIND-FUN and not token."
   (if (and speedbar-mode-specific-contents-flag
 	   speedbar-special-mode-expansion-list
 	   (local-variable-p
-	    'speedbar-special-mode-expansion-list))
-	   ;(eq (get major-mode 'mode-class 'special)))
+	    'speedbar-special-mode-expansion-list
+	    (current-buffer)))
+      ;;(eq (get major-mode 'mode-class 'special)))
       (speedbar-update-special-contents)
     (speedbar-update-directory-contents)))
 
@@ -1805,7 +1813,8 @@ This should only be used by modes classified as special."
 	      (if (and speedbar-mode-specific-contents-flag
 		       speedbar-special-mode-expansion-list
 		       (local-variable-p
-			'speedbar-special-mode-expansion-list))
+			'speedbar-special-mode-expansion-list
+			(current-buffer)))
 		  ;;(eq (get major-mode 'mode-class 'special)))
 		  (progn
 		    (if (<= 2 speedbar-verbosity-level)
@@ -1818,8 +1827,10 @@ This should only be used by modes classified as special."
 		;; Update all the contents if directories change!
 		(if (or (member (expand-file-name default-directory)
 				speedbar-shown-directories)
-			(string-match speedbar-ignored-path-regexp
-				      (expand-file-name default-directory))
+			(and speedbar-ignored-path-regexp
+			     (string-match
+			      speedbar-ignored-path-regexp
+			      (expand-file-name default-directory)))
 			(member major-mode speedbar-ignored-modes)
 			(eq af speedbar-frame)
 			(not (buffer-file-name)))
@@ -2545,12 +2556,13 @@ Returns the tag list, or t for an error."
 ;;
 (defvar speedbar-fetch-etags-parse-list
   '(;; Note that java has the same parse-group as c
-    ("\\.\\([cChH]\\|c++\\|cpp\\|cc\\|hh\\|java\\)$" . speedbar-parse-c-or-c++tag)
-    ("\\.el\\|\\.emacs" . "defun\\s-+\\(\\(\\w\\|[-_]\\)+\\)\\s-*\C-?")
+    ("\\.\\([cChH]\\|c\\+\\+\\|cpp\\|cc\\|hh\\|java\\)$" . 
+     speedbar-parse-c-or-c++tag)
+    ("^\\.emacs$\\|.\\(el\\|l\\|lsp\\)$" . 
+     "def[^i]+\\s-+\\(\\(\\w\\|[-_]\\)+\\)\\s-*\C-?")
     ("\\.tex$" . speedbar-parse-tex-string)
     ("\\.p" .
      "\\(\\(FUNCTION\\|function\\|PROCEDURE\\|procedure\\)\\s-+\\([a-zA-Z0-9_.:]+\\)\\)\\s-*(?^?")
-
     )
   "Associations of file extensions and expressions for extracting tags.
 To add a new file type, you would want to add a new association to the
@@ -2559,7 +2571,7 @@ extract an element from the tags output.  If the output is complex,
 use a function symbol instead of regexp.  The function should expect
 to be at the beginning of a line in the etags buffer.
 
-This variable is ignored if `speedbar-use-imenu-flag' is t")
+This variable is ignored if `speedbar-use-imenu-flag' is non-nil.")
 
 (defvar speedbar-fetch-etags-command "etags"
   "*Command used to create an etags file.
