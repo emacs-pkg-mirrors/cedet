@@ -4,6 +4,11 @@
   :name "Documentation"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-makefile-miscelaneous "images"
+    :name "images"
+    :path ""
+    :source '("grammar-fw-ov.png")
+    )
    (ede-proj-target-makefile-info "semantic-grammar"
     :name "semantic-grammar"
     :path ""
