@@ -21,7 +21,7 @@
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 ;;
-;; $Id: erlang.by,v 1.5 2004/03/10 19:32:06 ponced Exp $
+;; $Id: erlang.by,v 1.6 2004/09/22 11:16:03 ponced Exp $
 ;;
 
 %package semantic-erlang-by
@@ -77,22 +77,22 @@
 
 ;;; Punctuations
 ;;
-%token <punctuation> HASH      "\\b[#]\\b"
-%token <punctuation> PERIOD    "\\b[.]\\b"
-%token <punctuation> COLON     "\\b[:]\\b"
-%token <punctuation> SEMICOLON "\\b[;]\\b"
-%token <punctuation> STAR      "\\b[*]\\b"
-%token <punctuation> AMPERSAND "\\b[&]\\b"
-%token <punctuation> DIVIDE    "\\b[/]\\b"
-%token <punctuation> PLUS      "\\b[+]\\b"
-%token <punctuation> MINUS     "\\b[-]\\b"
-%token <punctuation> BANG      "\\b[!]\\b"
-%token <punctuation> WHY       "\\b[?]\\b"
-%token <punctuation> EQUAL     "\\b[=]\\b"
-%token <punctuation> LESS      "\\b[<]\\b"
-%token <punctuation> GREATER   "\\b[>]\\b"
-%token <punctuation> COMA      "\\b[,]\\b"
-%token <punctuation> VDEL      "\\b[|]\\b"
+%token <punctuation> HASH      "\\`[#]\\'"
+%token <punctuation> PERIOD    "\\`[.]\\'"
+%token <punctuation> COLON     "\\`[:]\\'"
+%token <punctuation> SEMICOLON "\\`[;]\\'"
+%token <punctuation> STAR      "\\`[*]\\'"
+%token <punctuation> AMPERSAND "\\`[&]\\'"
+%token <punctuation> DIVIDE    "\\`[/]\\'"
+%token <punctuation> PLUS      "\\`[+]\\'"
+%token <punctuation> MINUS     "\\`[-]\\'"
+%token <punctuation> BANG      "\\`[!]\\'"
+%token <punctuation> WHY       "\\`[?]\\'"
+%token <punctuation> EQUAL     "\\`[=]\\'"
+%token <punctuation> LESS      "\\`[<]\\'"
+%token <punctuation> GREATER   "\\`[>]\\'"
+%token <punctuation> COMA      "\\`[,]\\'"
+%token <punctuation> VDEL      "\\`[|]\\'"
 %token <punctuation> SIGN      "[-+]"
 ;; %token <charquote>   DOLLAR    "$"
 
