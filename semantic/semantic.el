@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.58 2000/10/16 13:06:16 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.59 2000/10/18 03:27:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -226,18 +226,22 @@
 ;;
 (if (featurep 'xemacs)
     (progn
+      (defalias 'semantic-overlay-live-p 'extent-live-p)
       (defalias 'semantic-make-overlay 'make-extent)
       (defalias 'semantic-overlay-put 'set-extent-property)
-      (defalias 'semantic-overlay-get 'get-extent-property)
+      (defalias 'semantic-overlay-get 'extent-property)
       (defalias 'semantic-overlay-delete 'delete-extent)
       (defalias 'semantic-overlays-at 'extents-at)
       (defalias 'semantic-overlays-in 'extents-in)
       (defalias 'semantic-overlay-buffer 'extent-buffer)
-      (defalias 'semantic-overlay-start 'extent-start)
-      (defalias 'semantic-overlay-end 'extent-end)
+      (defalias 'semantic-overlay-start 'extent-start-position)
+      (defalias 'semantic-overlay-end 'extent-end-position)
       (defalias 'semantic-overlay-next-change 'next-extent-change)
       (defalias 'semantic-overlay-previous-change 'previous-extent-change)
+      (defalias 'semantic-overlay-lists
+	(lambda () (list (extent-list))))
       )
+  (defalias 'semantic-overlay-live-p 'overlay-buffer)
   (defalias 'semantic-make-overlay 'make-overlay)
   (defalias 'semantic-overlay-put 'overlay-put)
   (defalias 'semantic-overlay-get 'overlay-get)
@@ -249,6 +253,7 @@
   (defalias 'semantic-overlay-end 'overlay-end)
   (defalias 'semantic-overlay-next-change 'next-overlay-change)
   (defalias 'semantic-overlay-previous-change 'previous-overlay-change)
+  (defalias 'semantic-overlay-lists 'overlay-lists)
   )
 
 (defvar semantic-edebug nil
@@ -339,7 +344,7 @@ a type nonterminal.
 
 TOP-LEVEL ENTRIES:
 
- (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS [OPTSUFFIX] 
+ (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS [OPTSUFFIX]
            \"DOCSTRING\" OVERLAY)
    The definition of a variable, or constant.
    CONST is a boolean representing if this variable is considered a constant.
@@ -537,7 +542,7 @@ If not provided, then only the POSITION can be provided."
   (setq semantic-toplevel-bovine-cache nil)
   ;; Nuke all semantic overlays.  This is faster than deleting based
   ;; on our data structure.
-  (let ((l (overlay-lists)))
+  (let ((l (semantic-overlay-lists)))
     (mapcar 'semantic-delete-overlay-maybe (car l))
     (mapcar 'semantic-delete-overlay-maybe (cdr l))
     )
@@ -678,13 +683,15 @@ the current results on a parse error."
 					     (car motok))
 			    ;; this will support new overlays created by
 			    ;; the special function, or recycles
-			    start (or (semantic-overlay-start
-				       (car startcdr)) start)
-			    end (or (semantic-overlay-end
-				     (car startcdr)) end)
+			    start (if (semantic-overlay-live-p (car startcdr))
+				      (semantic-overlay-start (car startcdr))
+				    start)
+			    end (if (semantic-overlay-live-p (car startcdr))
+				    (semantic-overlay-end (car startcdr))
+				  end)
 			    o (semantic-make-overlay start end
 						     (current-buffer)))
-		      (if (semantic-overlay-buffer (car startcdr))
+		      (if (semantic-overlay-live-p (car startcdr))
 			  (semantic-overlay-delete (semantic-token-overlay
 						    (car motok))))
 		      (semantic-overlay-stack-add o)
@@ -1118,7 +1125,7 @@ These keywords are matched explicitly, and converted into special symbols.")
   "Updates to the syntax table for this buffer.
 These changes are active only while this file is being flexed.
 This is a list where each element is of the form:
-  (CHAR CLASS) 
+  (CHAR CLASS)
 Where CHAR is the char passed to `modify-syntax-entry',
 and CLASS is the string also passed to `modify-syntax-entry' to define
 what class of syntax CHAR is.")
