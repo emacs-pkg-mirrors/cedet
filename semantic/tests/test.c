@@ -1,7 +1,7 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.6 2001/10/05 02:12:27 zappo Exp $
+ * $Id: test.c,v 1.7 2001/10/28 01:03:28 zappo Exp $
  *
  */
 /* types of include files */
@@ -9,6 +9,12 @@
 #include <includeme2.h>
 #include <subdir/includeme3.h>
 #include <includeme.notanhfile>
+
+#if 0
+int dont_show_function()
+{
+}
+#endif
 
 /* Global types */
 struct mystruct1 {
@@ -84,6 +90,7 @@ char varv2[1][2];
 char *varpa1 = "moose";
 struct mystruct2 vara2 = { 1, 'a', 0.0 };
 enum myenum1 vara3 = enum11;
+int vara4 = (int)0.0;
 
 int mvar1, mvar2, mvar3;
 char *mvarp1, *mvarp2, *mvarp3;
@@ -96,6 +103,10 @@ static register const unsigned int tmvar1;
 #define MACRO2(foo) (1+foo)
 
 /* Here are some function prototypes */
+
+/* This is legal, but I decided not to support inferred integer
+ * types on functions and variables.
+ */
 fun0();
 int funp1();
 char funp2(int arg11);
@@ -106,6 +117,10 @@ enum myenum1 funp5(char *arg41, union myunion1 *arg42);
 char funpp1 __P(char argp1, struct mystruct2 argp2, char *arg4p);
 
 /* Function Definitions */
+
+/* This is legal, but I decided not to support inferred integer
+ * types on functions and variables.
+ */
 fun0()
 {
   int sv = 0;
@@ -159,7 +174,7 @@ int funk3(arg_51, arg_53)
   int sv = 6;
   struct mystruct1 ms1;
 
-  fun3(ms1.slot12, arg_51);
+  fun3(ms1.slot12, arg_53 );
   sv = 7;
 
   ms1.slot11 = sv;
