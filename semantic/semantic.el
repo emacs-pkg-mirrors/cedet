@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.188 2004/07/20 17:57:19 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.189 2004/09/15 07:21:54 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -292,15 +292,14 @@ to use Semantic, and `semantic-init-hook' is run."
              (not (semantic-active-p))
              (not (run-hook-with-args-until-success
                    'semantic-inhibit-functions)))
-    ;; Force this buffer to have its cache refreshed.
-    (semantic-clear-toplevel-cache)
+    ;; Specify that this function has done it's work.  At this point
+    ;; we can consider that semantic is active in this buffer.
+    (setq semantic-new-buffer-fcn-was-run t)
     ;; Here are some buffer local variables we can initialize ourselves
     ;; of a mode does not choose to do so.
     (semantic-lex-init)
-    ;; Setup for a needed reparse.
-    (semantic-parse-tree-set-needs-rebuild)
-    ;; Specify that this function has done it's work.
-    (setq semantic-new-buffer-fcn-was-run t)
+    ;; Force this buffer to have its cache refreshed.
+    (semantic-clear-toplevel-cache)
     ;; Call DB hooks before regular init hooks
     (run-hooks 'semantic-init-db-hooks)
     ;; Lastly, set up semantic modes
@@ -410,21 +409,15 @@ NONTERMINAL is the rule to start parsing at if it is known.
 DEPTH specifies the lexical depth to scan.
 RETURNONERROR specifies that parsing should end when encountering
 unterminated syntax."
-  (if (or (eq semantic--parse-table t)
-	  (eq semantic--parse-table nil))
-      ;; If there is no table, or it was set to t, then we are here
-      ;; by some other mistake.  Do not throw an error deep in the parser.
-      (error "`semantic-oarse-region-default' called in a buffer that does not support bovine parsing.")
-    (if (or (< end start) (> end (point-max)))
-	(error "Invalid bounds passed to `semantic-parse-region'"))
-    (let ((lexbits (semantic-lex start end depth))
-	  tags)
-      ;; Init a dump
-      ;;    (if semantic-dump-parse
-      ;;	      (semantic-dump-buffer-init))
-      (setq tags (semantic-repeat-parse-whole-stream
-		  lexbits nonterminal returnonerror))
-      (nreverse tags))))
+  (when (or (null semantic--parse-table) (eq semantic--parse-table t))
+    ;; If there is no table, or it was set to t, then we are here by
+    ;; some other mistake.  Do not throw an error deep in the parser.
+    (error "No support found to parse buffer %S." (buffer-name)))
+  (when (or (< end start) (> end (point-max)))
+    (error "Invalid parse region bounds %S, %S." start end))
+  (nreverse
+   (semantic-repeat-parse-whole-stream
+    (semantic-lex start end depth) nonterminal returnonerror)))
 
 ;;; Parsing functions
 ;;
