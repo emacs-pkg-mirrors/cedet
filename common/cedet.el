@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.9 2004/06/24 08:03:22 ponced Exp $
+;; X-RCS: $Id: cedet.el,v 1.10 2004/07/21 18:16:09 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -78,7 +78,7 @@
 (eval-when-compile
   (require 'cl))
 
-(defconst cedet-version "1.0beta2"
+(defconst cedet-version "1.0beta3"
   "Current version of CEDET.")
 
 (defconst cedet-packages
