@@ -1,10 +1,10 @@
 ;;; semanticdb-system.el --- Build a file DB for some system files.
 
-;;; Copyright (C) 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.3 2003/11/29 23:14:34 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.4 2004/04/11 00:32:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -170,7 +170,7 @@ and parsed. After the database is created, save it, and return the DB."
   ;; 3) Load the file.  Allow normal semantic initialization.
   ;; 4) Kill file if it wasn't already in a buffer.
   (let ((files (semanticdb-collect-matching-filenames
-		path (oref-default class file-match-regex)))
+		path (oref-default dbclass file-match-regex)))
 	(sysdb (semanticdb-create-database dbclass path))
 	;; 2) Set up to use this database when loading.
 	(semanticdb-new-database-class dbclass)
