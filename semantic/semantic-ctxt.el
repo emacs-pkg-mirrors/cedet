@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.32 2004/03/06 15:18:21 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.33 2004/03/19 23:38:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -148,11 +148,11 @@ parse tags at the beginning of the context.
 This can be overriden with `get-local-variables'."
   ;; The working status is to let the parser work properly
   (working-status-forms
-      (semantic-bovination-working-message "Local")
+      (semantic-parser-working-message "Local")
       "done"
     (save-excursion
       (if point (goto-char point))
-      (let* ((semantic-bovination-working-type nil)
+      (let* ((semantic-working-type nil)
              ;; Disable parsing messages
              (working-status-dynamic-type nil)
              (s (semantic-fetch-overload 'get-local-variables))
@@ -174,10 +174,14 @@ Optional argument POINT specifies where to scan from."
       (save-excursion
         (forward-char 1)
         (setq vars
-              (append (semantic-bovinate-region-until-error
+	      ;; Note to self: This is specific to bovine parsers.
+	      ;; We need a better way to configure this generically.
+              (append (semantic-parse-region
                        (point)
                        (save-excursion (semantic-end-of-context) (point))
-                       'bovine-inner-scope)
+                       'bovine-inner-scope
+		       nil
+		       t)
                       vars))))
     vars))
 
