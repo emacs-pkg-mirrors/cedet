@@ -1,0 +1,7 @@
+@ignore
+@node Installation
+@chapter Installation
+@c This 'ignore' section fools texinfo-all-menus-update into creating
+@c proper menus for this chapter.
+@end ignore
+

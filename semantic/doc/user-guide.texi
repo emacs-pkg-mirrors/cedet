@@ -1,0 +1,55 @@
+@ignore
+@node Semantic User's Guide
+@chapter Semantic User's Guide
+@c This 'ignore' section fools texinfo-all-menus-update into creating
+@c proper menus for this chapter.
+@end ignore
+
+This chapter describes how to use semantic for the end user.
+Hopefully not much elisp knowledge is required for the
+target audience of this chapter.
+
+Also describe each of the applications that come with semantic
+as well as mention third party applications such as jdee and ecb.
+
+@menu
+* semanticdb::                  
+* speedbar::                    
+* senator::                     
+* analyzer::                    
+* class browser::               
+* document::                    
+* charts::                      
+@end menu
+
+@node semanticdb
+@section semanticdb
+@cindex semanticdb
+
+Describe what this is and how the user can control its behavior.
+
+@node speedbar
+@section speedbar
+@cindex speedbar
+
+Give brief overview and refer to the speedbar documentation.
+
+@node senator
+@section senator
+@cindex senator
+
+@node analyzer
+@section analyzer
+@cindex analyzer
+
+@node class browser
+@section class browser
+@cindex class browser
+
+@node document
+@section document
+@cindex document
+
+@node charts
+@section charts
+@cindex charts

@@ -1,0 +1,147 @@
+\input texinfo  @c -*-texinfo-*-
+@c %**start of header
+@setfilename semantic.info
+@set TITLE  Semantic Manual
+@set AUTHOR Semantic Developers
+@settitle @value{TITLE}
+
+@c *************************************************************************
+@c @ c@ Header
+@c *************************************************************************
+
+@c Merge all indexes into a single index.
+@syncodeindex vr cp
+@syncodeindex fn cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+@c @footnotestyle separate
+@c @paragraphindent 2
+@c @@smallbook
+@c %**end of header
+
+@iftex
+@finalout
+@end iftex
+
+@c @setchapternewpage odd
+@c @setchapternewpage off
+
+@ifinfo
+This file documents Semantic.
+
+Copyright @copyright{} 2002 @value{AUTHOR}
+@end ifinfo
+
+@titlepage
+@title @value{TITLE}
+@author by @value{AUTHOR}
+@page
+
+@vskip 0pt plus 1filll
+@center @emph{Get the latest information!}
+This document is authored in GNU Texinfo format.
+Any texinfo document can be converted to a variety of formats including
+HTML, PDF, RTF, Postscript, and of course GNU @code{info}.
+The GNU @code{info} files can be read online using the
+@code{Emacs} editor, or the @code{info} document viewing programs.
+
+Copyright @copyright{} 2002 @value{AUTHOR}
+
+@sp 2
+
+@end titlepage
+@page
+
+@c *************************************************************************
+@c @ Macros
+@c *************************************************************************
+
+@c fileref macro is workaround to texi2html bug where 4 or 5 argument
+@c @ref command is not handled properly.
+@macro fileref{file,node,name}
+@c
+@ifhtml
+@html
+<A TARGET=_top HREF="\file\_frame.html">\name\</A>
+@end html
+@end ifhtml
+@c
+@ifnothtml
+@ref{\node\,\name\,\name\,\file\}
+@end ifnothtml
+@c
+@end macro
+
+@c Like @uref, except "TARGET=_top" attibute is specified.
+@macro urefTopFrame{url,string}
+
+@ifhtml
+@html
+<A TARGET=_top HREF="\url\">\string\</A>
+@end html
+@end ifhtml
+@ifnothtml
+@uref{\url\,\string\}
+@end ifnothtml
+
+@end macro
+
+@c *************************************************************************
+@c @ Document
+@c *************************************************************************
+
+@node top
+@top @value{TITLE}
+
+@menu
+* Overview::
+* Installation::
+* Semantic User's Guide::
+* Application Developer's Guide::
+* Language Support Developer's Guide::
+* Semantic Internals::
+* Index::
+@end menu
+
+@node Overview
+@chapter Overview
+
+@include overview.texi
+
+@node Installation
+@chapter Installation
+
+@include installation.texi
+
+@node Semantic User's Guide
+@chapter Semantic User's Guide
+
+@include user-guide.texi
+
+@node Application Developer's Guide
+@chapter Application Developer's Guide
+
+@include app-dev-guide.texi
+
+@node Language Support Developer's Guide
+@chapter Language Support Developer's Guide
+
+@include lang-support-guide.texi
+
+@node Semantic Internals
+@chapter Semantic Internals
+
+@include internals.texi
+
+@node Index
+@unnumbered Index
+@printindex cp
+
+@iftex
+@contents
+@summarycontents
+@end iftex
+
+@bye

@@ -1,0 +1,13 @@
+@ignore
+@node Semantic Internals
+@chapter Semantic Internals
+@c This 'ignore' section fools texinfo-all-menus-update into creating
+@c proper menus for this chapter.
+@end ignore
+
+This chapter explains the internals of semantic.
+This information would not be needed by neither applicatioan developers
+nor grammar developers.
+
+It would be useful mostly for the hackers who would like to learn
+more about how semantic works.

@@ -1,0 +1,21 @@
+@ignore
+@node Application Developer's Guide
+@chapter Application Developer's Guide
+@c This 'ignore' section fools texinfo-all-menus-update into creating
+@c proper menus for this chapter.
+@end ignore
+
+@ignore
+
+This chapter is for developers of semantic applications
+such as JDEE and ECB.
+
+An application developer section needs to know how to get token lists,
+get details from tokens, extract and search those lists with and
+without the database, and convert tokens into displayable text
+strings in one of the many different formats.
+
+Most of the stuff from @ref{Programming,,,semantic}
+would go here.
+
+@end ignore

@@ -1,0 +1,91 @@
+@ignore
+@node Overview
+@chapter Overview
+@c This 'ignore' section fools texinfo-all-menus-update into creating
+@c proper menus for this chapter.
+@end ignore
+
+This chapter gives the overview of semantic and its goals.
+Things to mention here could be:
+
+@example
+* regular expressions (and syntax tables) are the basis of identifying
+  components of a buffer for purposes such as color highlighting
+* regexp is useful but has limitations
+* semantic provides new intrastructure that goes far beyond regexp
+  based text analysis by
+  - parse each buffer based on the grammar of the language
+  - define a uniform structure of the parse tree mostly independent of
+    any one language
+  - define an API so that programmers can develop applications that
+    work for all languages
+  - provide bison-like parser generator so that new languages can be
+    supported easily
+  - provide a set of applications that demonstrate the usefulness
+    of semantic.
+
+The following diagram illustrates the benefits of using semantic:
+
+* Semantic parses a language (for which a parser is available) and
+  produces a common parse tree regardless of the original source
+  language.
+
+* Semantic provides a common API based on which applications can be
+  written in a language independent way.  This means that the
+  application will work for ALL languages for which a semantic parser
+  can be witten.
+
+* Semantic provids good set of tools and examples for the appplication
+  writers.
+
+* Semantic also provies extensive tools for the parser developers as well.
+  For many languages, those that can be described using a context-free
+  grammer, all that one needs to do is write a grammar file along with
+  appropriate semantic rules.
+
+
+The words in all-capital are those that semantic itself provides.
+Others are current or future languages or applications that are not
+distributed along with semantic.
+
+
+                                                             Applications
+                                                                 and
+                                                              Utilities
+                                                                -------
+                                                               /       \
+               +---------------+    +--------+    +--------+
+         C --->| C      PARSER |--->|        |    |        |
+               +---------------+    |        |    |        |
+               +---------------+    | COMMON |    | COMMON |<--- SPEEDBAR
+      Java --->| JAVA   PARSER |--->|        |    |        |
+               +---------------+    | PARSE  |    | PARSE  |<--- SENATOR
+               +---------------+    |        |    |        |
+    Python --->| PYTHON PARSER |--->| TREE   |    | TREE   |<--- DOCUMENT
+               +---------------+    |        |    |        |
+               +---------------+    | FORMAT |    | API    |<--- SEMANTICDB
+    Scheme --->| SCHEME PARSER |--->|        |    |        |
+               +---------------+    |        |    |        |<--- jdee
+               +---------------+    |        |    |        |
+   Texinfo --->| TEXI.  PARSER |--->|        |    |        |<--- ecb
+               +---------------+    |        |    |        |
+
+                    ...                ...           ...         ...
+
+               +---------------+    |        |    |        |<--- app. 1
+   Lang. A --->| A      Parser |--->|        |    |        |
+               +---------------+    |        |    |        |<--- app. 2
+               +---------------+    |        |    |        |
+   Lang. B --->| B      Parser |--->|        |    |        |<--- app. 3
+               +---------------+    |        |    |        |
+
+                     ...        ...     ...          ...       ...
+
+               +---------------+    |        |    |        |
+   Lang. Y --->| Y      Parser |--->|        |    |        |<--- app. ?
+               +---------------+    |        |    |        |
+               +---------------+    |        |    |        |<--- app. ?
+   Lang. Z --->| Z      Parser |--->|        |    |        |
+               +---------------+    +--------+    +--------+
+@end example
+

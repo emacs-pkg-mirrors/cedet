@@ -1,0 +1,72 @@
+@ignore
+@node Language Support Developer's Guide
+@chapter Language Support Developer's Guide
+@c This 'ignore' section fools texinfo-all-menus-update into creating
+@c proper menus for this chapter.
+@end ignore
+
+@ignore
+
+This chapter is for those who would like to add a new parser to the
+growing family of parsers.
+This chapter should
+
+* describe wisent LALR parser, bovine LL parser, and give examples of
+  custom parsers.
+* describe grammar file formats, semantic actions.
+* describe how to write lexers
+* give examples such as wisent-awk, wisent-calc, etc
+
+@end ignore
+
+@menu
+* Parser Overview::             
+* Writing Grammars::            
+* Writing Lexers::              
+* Parser Error Handling::       
+@end menu
+
+@node Parser Overview
+@section Parser Overview
+@cindex Parser Overview
+
+@example
+wisent parsers
+bovine parsers
+custom parsers
+@end example
+
+@node Writing Grammars
+@section Writing Grammars
+@cindex Writing Grammars
+
+@ignore
+For the parser developer, I can think of two extra sections.  One for
+semanticdb extensions,  (If a system database is needed.)  A second
+for the `semantic-ctxt' extensions.  Many of the most interesting
+tools will completely fail to work without local context parsing
+support.
+
+Perhaps even a section on foreign tokens.  For example, putting a
+Java token into a C++ file could auto-gen a native method, just as
+putting a token into a Texinfo file converts it into documentation.
+
+In addition, in the "writing grammars" section should have
+subsections as listed in the examples of the overview section.  It
+might be useful to have a fourth section describing the similarities
+between the two file types (by and wy) and how to use the grammar
+mode.  (I'm not sure if that should be covered elsewhere.)
+@end ignore
+
+@node Writing Lexers
+@section Writing Lexers
+@cindex Writing Lexers
+
+@example
+semantic-flex?
+new lexer based on macros
+@end example
+
+@node Parser Error Handling
+@section Parser Error Handling
+@cindex Parser Error Handling
