@@ -51,8 +51,9 @@ Sample EIEIO driven chart
 This version has additional demo programs which are:
 <DL>
 <DT>linemark
-<DD>Maintain colored marks on lines in multiple buffers.
-Visual C++ bookmark UI as example code.
+<DD>Maintain colored marks on lines in multiple buffers.<br>
+<a href="visbookmark.shtml">Visual C++ bookmark UI</a> as example code.<br>
+<a href="highlightcompile.shtml">Hilight Compilation hits</a> as example code.
 <DT>tree
 <DD>display trees in emacs buffers.  Includes some examples
 <DT>call-tree
