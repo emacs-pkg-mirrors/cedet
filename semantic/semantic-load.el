@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.29 2002/08/11 16:28:25 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.30 2002/08/11 18:31:38 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 ;;; Add parser directories
 ;;
 (let ((dir (file-name-directory (locate-library "semantic"))))
+  (add-to-list 'load-path (concat dir "bovine"))
   (add-to-list 'load-path (concat dir "wisent"))
   )
 

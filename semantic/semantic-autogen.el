@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-autogen.el,v 1.5 2002/08/11 13:19:36 zappo Exp $
+;; X-CVS: $Id: semantic-autogen.el,v 1.6 2002/08/11 18:31:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,7 +55,8 @@
 
     (insert ";;; semantic-al.el --- Auto-generated file filled with autoloads.")
     (update-autoloads-from-directories dir
-				       (concat dir "/wisent"))
+				       (concat dir "/wisent")
+				       (concat dir "/bovine"))
     )
   (newline 2))
 
