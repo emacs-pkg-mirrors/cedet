@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.60 2003/07/25 17:33:33 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.61 2003/08/25 17:07:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -329,8 +329,9 @@ value.")
 (defvar semanticdb-search-system-databases t
   "Non nil if search routines are to include a system database.")
 
-(defun semanticdb-current-database-list ()
+(defun semanticdb-current-database-list (&optional dir)
   "Return a list of databases associated with the current buffer.
+If optional argument DIR is non-nil, then use DIR as the starting directory.
 If this buffer has a database, but doesn't have a project associated
 with it, return nil.
 First, it checks `semanticdb-project-root-functions', and if that
@@ -341,17 +342,18 @@ Always append `semanticdb-project-system-databases' if
   (let ((root nil)			; found root directory
 	(dbs nil)			; collected databases
 	(roots semanticdb-project-roots) ;all user roots
+	(dir (or dir default-directory))
 	)
     ;; Find the root based on project functions.
     (setq root (run-hook-with-args-until-success
 		'semanticdb-project-root-functions
-		default-directory))
+		dir))
     ;; Find roots based on strings
     (while (and roots (not root))
       (if (string-match (concat "^"
 				(regexp-quote
 				 (expand-file-name (car roots))))
-			(expand-file-name default-directory))
+			(expand-file-name dir))
 	  (setq root (car roots)))
       (setq roots (cdr roots)))
     ;; Find databases based on the root directory.
