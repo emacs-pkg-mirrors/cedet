@@ -1,10 +1,10 @@
 ;;; semantic-analyze.el --- Analyze semantic tokens against local context
 
-;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.17 2003/09/24 13:45:34 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.18 2004/01/15 02:38:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -336,32 +336,35 @@ types available."
 Usually bound to the dimension of a single symbol or command.")
    (prefix :initarg :prefix
 	   :type list
-	   :documentation "List of tokens defining local text.
+	   :documentation "List of tags defining local text.
 This can be nil, or a list where the last element can be a string
 representing text that may be incomplete.  Preceeding elements
 must be semantic tokens representing variables or functions
 called in a dereference sequence.")
    (prefixtypes :initarg :prefixtypes
 	   :type list
-	   :documentation "List of tokens defining types for :prefix.
+	   :documentation "List of tags defining types for :prefix.
 This list is one shorter than :prefix.  Each element is a semantic
 token representing a type matching the semantic token in the same
 position in PREFIX.")
    (scopetypes :initarg :scopetypes
 	       :type list
-	       :documentation "List of type tokens in scope.
+	       :documentation "List of type tags in scope.
 When in a function is called, it may have certain other types
 in scope, such as classes in it's lineage.  This is a list
 of all those classes.")
    (scope :initarg :scope
 	  :type list
-	  :documentation "List of tokens available in scopetype.
+	  :documentation "List of tags available in scopetype.
 See `semantic-analyze-scoped-nonterminals' for details.")
    (localvariables :initarg :localvariables
 		   :initform nil
 		   :type list
 		   :documentation "List of local variables.
 Local variables are defined withing the code scope.")
+   (buffer :initarg :buffer
+	   :type buffer
+	   :documentation "The buffer this context is derived from.")
    )
   "Base analysis data for a any context.")
 
@@ -470,6 +473,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 	  (setq context-return
 		  (semantic-analyze-context-functionarg
 		   "functionargument"
+		   :buffer (current-buffer)
 		   :function fntok
 		   :index arg
 		   :argument (list argtok)
@@ -491,6 +495,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 	      (setq context-return
 		    (semantic-analyze-context-assignment
 		     "assignment"
+		     :buffer (current-buffer)
 		     :assignee asstok
 		     :scope scope
 		     :scopetypes scopetypes
@@ -505,6 +510,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 	    (setq context-return
 		  (semantic-analyze-context
 		   "context"
+		   :buffer (current-buffer)
 		   :scope scope
 		   :scopetypes scopetypes
 		   :localvariables localvar
