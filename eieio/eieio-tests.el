@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.21 2002/02/21 21:23:33 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.22 2002/02/22 22:26:24 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -411,9 +411,15 @@ METHOD is the method that was attempting to be called."
 (if (not (slot-boundp a 'classslot))
     (error "Class allocatd slot thought unbound when it is bound."))
 
+(if (not (slot-boundp class-a 'classslot))
+    (error "Class allocatd slot thought unbound when it is bound."))
+
 (slot-makeunbound a 'classslot)
 
 (if (slot-boundp a 'classslot)
+    (error "Class allocatd slot thought bound when it is unbound."))
+
+(if (slot-boundp class-a 'classslot)
     (error "Class allocatd slot thought bound when it is unbound."))
 
 
