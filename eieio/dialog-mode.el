@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.9 1996/10/19 11:45:34 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.10 1996/11/01 05:37:24 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -77,6 +77,10 @@
 shell active in the current buffer.  There can be only one toplevel
 shell definition in a given buffer.")
 (make-variable-buffer-local 'widget-toplevel-shell)
+
+(defvar dialog-current-parent nil
+  "Defined while building buffers.  This represents the parent of
+newly created widgets.")
 
 ;;;
 ;;; Dialog mode variables
@@ -179,7 +183,7 @@ dynamically determine which colors to use."
 		       (x-get-resource ".backgroundMode" "BackgroundMode"))
 		   nil))
 	 (bgmode
-	  (cond (bg-res (intern (downcase bg-resource)))
+	  (cond (bg-res (intern (downcase bg-res)))
 		((and params 
 		      (fboundp 'x-color-values)
 		      (< (apply '+ (x-color-values
@@ -265,28 +269,29 @@ Navigation commands:
   (setq major-mode 'dialog-mode)
   (use-local-map dialog-mode-map)
   (setq widget-toplevel-shell 
-	(widget-toplevel "topLevel" :parent t :rx 0 :x 0 :ry 0 :y 0))
+	(widget-toplevel "topLevel" :parent t :rx 0 :x 0 :ry 1 :y 1))
   (message "Constructing Dialog...")
   (verify widget-toplevel-shell t)
   (run-hooks 'dialog-mode-hooks))
 
-(defmacro dialog-with-readable (&rest forms)
+(defmacro dialog-with-writeable (&rest forms)
   "Allow the buffer to be writable and evaluate forms.  Turn read-only back
 on when done."
-  (list 'let '((dialog-with-readable-buff (current-buffer)))
+  (list 'let '((dialog-with-writeable-buff (current-buffer)))
 	'(toggle-read-only -1)
 	(cons 'progn forms)
-	'(save-excursion (set-buffer dialog-with-readable-buff)
+	'(save-excursion (set-buffer dialog-with-writeable-buff)
 			 (toggle-read-only 1))))
+(put 'dialog-with-writeable 'lisp-indent-function 0)
 
 (defun dialog-refresh () "Refresh all visible widgets in this buffer"
   (interactive)
-  (dialog-with-readable
-   (erase-buffer)
-   (message "Geometry Management...")
-   (verify-size widget-toplevel-shell)
-   (message "Rendering Dialog...")
-   (draw widget-toplevel-shell)))
+  (dialog-with-writeable
+    (erase-buffer)
+    (message "Geometry Management...")
+    (verify-size widget-toplevel-shell)
+    (message "Rendering Dialog...")
+    (draw widget-toplevel-shell)))
 
 (defun dialog-quit () "Quits a dialog."
   (bury-buffer))
@@ -303,35 +308,42 @@ requires translation into arrays and things."
 		       (make-vector 1 coe))))))
     (lookup-key keymap cc t)))
 
+(defvar dialog-last-maybe-command nil
+  "The last command run by `dialog-handle-kbd*' for tracking
+last-command setting while running interpreted commands.")
+
 (defun dialog-handle-kbd () "Read the last kbd event, and handle it."
   (interactive)
-  (dialog-with-readable
-   (let ((dispatch (or (get-text-property (point) 'widget-object)
-		       widget-toplevel-shell)))
-     (input dispatch (if last-input-char last-input-char last-input-event)))))
+  (dialog-with-writeable
+    (let ((dispatch (or (get-text-property (point) 'widget-object)
+			widget-toplevel-shell)))
+      (input dispatch (if last-input-char last-input-char last-input-event)))))
 
 (defun dialog-handle-kbd-maybe ()
  "Read the last kbd event, and handle it. but only if a widget has
 registered with this area of text, otherwise run the default keybinding."
   (interactive)
-  (dialog-with-readable
-   (let ((dispatch (get-text-property (point) 'widget-object)))
-     (if dispatch
-	 (input dispatch (if last-input-char last-input-char
-			   last-input-event))
-       (let ((command (dialog-lookup-key global-map
-					 (if last-input-char last-input-char
-					   last-input-event))))
-	 (command-execute command t))))))
+  (dialog-with-writeable
+    (let ((dispatch (get-text-property (point) 'widget-object)))
+      (if (and dispatch (oref dispatch handle-motion))
+	  (input dispatch (if last-input-char last-input-char
+			    last-input-event))
+	(let ((command (dialog-lookup-key global-map
+					  (if last-input-char last-input-char
+					    last-input-event)))
+	      (last-command (if (eq last-command 'dialog-handle-kbd-maybe)
+				dialog-last-maybe-command)))
+	  (command-execute command t)
+	  (setq dialog-last-maybe-command command))))))
 
 (defun dialog-handle-meta-kbd () "Read the last kbd event, and handle it as a meta key"
   (interactive)
-  (dialog-with-readable
-   (let ((dispatch (or (get-text-property (point) 'widget-object)
-		       widget-toplevel-shell)))
-     (input dispatch (if (numberp last-input-char)
-			 (concat "\e" (char-to-string last-input-char))
-		       last-input-char)))))
+  (dialog-with-writeable
+    (let ((dispatch (or (get-text-property (point) 'widget-object)
+			widget-toplevel-shell)))
+      (input dispatch (if (numberp last-input-char)
+			  (concat "\e" (char-to-string last-input-char))
+			last-input-char)))))
 
 (defun dialog-next-widget (arg) "Move cursor to next logical widget"
   (interactive "P")
@@ -372,10 +384,79 @@ registered with this area of text, otherwise run the default keybinding."
   ;; First, check to see where the click is, and go there.  The cursor
   ;; will act as our in the widget fields.
   (mouse-set-point event)
-  (dialog-with-readable
-   (input widget-toplevel-shell event)))
+  (dialog-with-writeable
+    (let ((dispatch (or (get-text-property (point) 'widget-object)
+			widget-toplevel-shell)))
+      (input dispatch event))))
 
-(defun create-widget (name class parent &rest resources)
+;;; Widget creation routines and convenience functions
+(defmacro dialog-build-group (widget &rest forms)
+  "This is similar to a `progn' where new WIDGET becomes the  default
+parent for new widgets created within FORMS"
+  (list 'let (list (list 'dialog-current-parent widget))
+	(cons 'progn forms)))
+(put 'dialog-build-group 'lisp-indent-function 1)
+
+(defun create-widget (name class &rest resources)
+  "Creates a dialog widget with name NAME of class CLASS.  The parent
+will be defined from the current environment created by
+`dialog-build-group'.  RESOURCES is a list to be passed tot he
+CLASS routine.
+
+  This function is current BACKWARD COMPATIBLE so that an optional 3rd
+argument could be the parent widget, overriding any enviroment from
+`dialog-build-group'.  This will be removed in future versions."
+  (let* ((parent 
+	  (if (and (object-p (car resources)) 
+		   (obj-of-class-p (car resources) widget-group))
+	      (prog1 (car resources)
+		(setq resources (cdr resources)))
+	    (or dialog-current-parent widget-toplevel-shell)))
+	 (con (class-constructor class))
+	 (new (apply con name resources))
+	 )
+    ;; add this child to the parent, which sets news parent field
+    (add-child parent new)
+    ;; call the verifier on this new widget.  Verify will transfor
+    ;; construction values ('below, 'just-right, nil) into valid
+    ;; values in pertinent fields by recursivly dropping from high
+    ;; level widget restrictions to low-level widget restrictions
+    (verify new t)
+    new))
+
+;; Not backward compatible because it didn't exist before
+(defun create-widget-first (name class &rest resources)
+  "Creates a dialog widget with name NAME of class CLASS.  The parent
+will be defined from the current environment, and RESOURCES is a list
+to be passed tot he CLASS routine."
+  (let* ((con (class-constructor class))
+	 (new (apply con name resources))
+	 (parent (or dialog-current-parent widget-toplevel-shell)))
+    ;; add this child to the parent, which sets news parent field
+    (add-child parent new)
+    ;; call the verifier on this new widget.  Verify will transfor
+    ;; construction values ('below, 'just-right, nil) into valid
+    ;; values in pertinent fields by recursivly dropping from high
+    ;; level widget restrictions to low-level widget restrictions
+    (verify new t)
+    new))
+
+(defun create-widget-parent (name class parent &rest resources)
+  "Create a dialog widget with name NAME of class CLASS.  PARENT will
+be the widget this new widget resides in, and RESOURCES is a list to
+be passed to the CLASS routine"
+  (let* ((con (class-constructor class))
+	 (new (apply con name resources)))
+    ;; add this child to the parent, which sets news parent field
+    (add-child parent new)
+    ;; call the verifier on this new widget.  Verify will transfor
+    ;; construction values ('below, 'just-right, nil) into valid
+    ;; values in pertinent fields by recursivly dropping from high
+    ;; level widget restrictions to low-level widget restrictions
+    (verify new t)
+    new))
+
+(defun create-widget-parent-first (name class parent &rest resources)
   "Create a dialog with name NAME of class CLASS.  PARENT will be the
 widget this new widget resides in, and RESOURCES is a list to be
 passed to the CLASS routine"
@@ -383,7 +464,7 @@ passed to the CLASS routine"
   (let* ((con (class-constructor class))
 	 (new (apply con name resources)))
     ;; add this child to the parent, which sets news parent field
-    (add-child parent new)
+    (add-child parent new t)
     ;; call the verifier on this new widget.  Verify will transfor
     ;; construction values ('below, 'just-right, nil) into valid
     ;; values in pertinent fields by recursivly dropping from high
@@ -504,14 +585,6 @@ keystrokes, etc."
 	      (if object (put-text-property pnt end 'widget-object object))
 	      )))))
 
-(defun widget-bunch-o-chars (n char)
-  "Return string of n dashes"
-  (let ((ns (char-to-string char)) (nn 1))
-    (while (< nn n)
-      (setq nn (+ nn nn))
-      (setq ns (concat ns ns)))
-    (substring ns 0 n)))
-
 (defun dialog-widget-tree-primitive ()
   "Displays the current dialog box's widget tree in another buffer"
   (interactive)
@@ -559,83 +632,87 @@ the screen."
   "Creates a test dialog using as many widget features as currently works."
   (interactive)
   (switch-to-buffer (get-buffer-create "Dialog Test"))
+  (toggle-read-only -1)
   (erase-buffer)
   (dialog-mode)
   (let ((mytog (data-object "MyTog" :value t)))
 
-    (create-widget "Fred" widget-label widget-toplevel-shell
-		   :x 5 :y 1 :face 'modeline 
+    (create-widget "Fred" widget-label :face 'modeline 
+		   :x 10
 		   :label-value "This is a label\non several lines separated by \\n\nto make distinctions")
-    (create-widget "Click" widget-button widget-toplevel-shell
-		   :x 5 :y -3 :label-value "Quit"
-		   :box-face 'font-lock-comment-face
-		   :activate-hook (lambda (obj reason) "Activate Quit Button"
-				     (message "Quit!")
-				     (dialog-quit)))
-    (create-widget "Clack" widget-button widget-toplevel-shell
-		   :x -10 :y t :label-value "Widget\nTree"
-		   :box-face 'font-lock-comment-face
-		   :activate-hook (lambda (obj reason) "Draw a widget tree"
-				     (dialog-widget-tree-primitive)))
-    (create-widget "Cluck" widget-button widget-toplevel-shell
-		   :x -5 :y t :label-value "Class\nTree"
-		   :box-face 'font-lock-comment-face
-		   :activate-hook (lambda (obj reason) "Draw a widget tree"
-				     (eieio-browse)))
-    (create-widget "Clunk" widget-button widget-toplevel-shell
-		   :x -5 :y t :label-value "About\nDialog Mode"
-		   :box-face 'font-lock-comment-face
-		   :activate-hook (lambda (obj reason) "Draw a widget tree"
-				     (describe-function 'dialog-mode)))
-    (let ((myframe (create-widget "Togg Frame" widget-frame widget-toplevel-shell
-				   :x 5 :y -4
-				   :frame-label "Toggle Tests..."
-				   :box-face 'font-lock-reference-face)))
-      (create-widget "Togg" widget-toggle-button myframe
-		     :x 1 :y 1 :label-value "Toggle Me"
+
+    (dialog-build-group (create-widget "Push Button Frame" widget-frame
+				       :frame-label "Push Button Window"
+				       ;; :box-sides [ nil t nil t ]
+				       :position 'left-bottom)
+      (create-widget "Click" widget-push-button
+		     :y 1 :label-value "Quit"
+		     :box-face 'font-lock-comment-face
+		     :activate-hook (lambda (obj reason) "Activate Quit Button"
+				      (message "Quit!")
+				      (dialog-quit)))
+      (create-widget "Clack" widget-push-button
+		     :x -10 :y t :label-value "Widget\nTree"
+		     :box-face 'font-lock-comment-face
+		     :activate-hook (lambda (obj reason) "Draw a widget tree"
+				      (dialog-widget-tree-primitive)))
+      (create-widget "Cluck" widget-push-button
+		     :x -5 :y t :label-value "Class\nTree"
+		     :box-face 'font-lock-comment-face
+		     :activate-hook (lambda (obj reason) "Draw a widget tree"
+				      (eieio-browse)))
+      (create-widget "Clunk" widget-push-button
+		     :x -5 :y t :label-value "About\nDialog Mode"
+		     :box-face 'font-lock-comment-face
+		     :activate-hook (lambda (obj reason) "Draw a widget tree"
+				      (describe-function
+				       'dialog-mode))))
+    (dialog-build-group (create-widget "Togg Frame" widget-frame
+				       :frame-label "Toggle Tests..."
+				       ;;:box-sides [ t nil t nil ]
+				       :position 'center-top
+				       :box-face 'font-lock-reference-face)
+      (create-widget "Togg" widget-toggle-button
+		     :label-value "Toggle Me"
 		     :face 'underline  :ind-face 'highlight
 		     :state mytog
 		     :activate-hook (lambda (obj reason) "Switcharoo!"
-				       (message "Changed value")))
-      (create-widget "Forceon" widget-button myframe
+				      (message "Changed value")))
+      (create-widget "Forceon" widget-push-button
 		     :x -6 :y t :label-value "Turn On"
-		     :box-face font-lock-type-face
 		     :activate-hook 
 		     (list 'lambda '(obj reason) "Flip Tog"
 			   (list 'set-value mytog t)))
-      (create-widget "Forceoff" widget-button myframe
+      (create-widget "Forceoff" widget-push-button
 		     :x -6 :y t :label-value "Turn Off"
 		     :face 'underline
-		     :box-face font-lock-type-face
 		     :activate-hook
 		     (list 'lambda '(obj reason) "Flip Tog"
-			   (list 'set-value mytog nil)))
-      );; let
+			   (list 'set-value mytog nil))))
+      
+    (dialog-build-group (create-widget "Radio Frame" widget-radio-frame
+				       :frame-label "Radio tests"
+				       :position 'right-top)
+      
+      (create-widget "radio 1" widget-radio-button
+		     :label-value "First nifty option")
+      
+      (create-widget "radio 2" widget-radio-button
+		     :label-value "Second nifty option")
 
-    (let ((myframe (create-widget "Radio Frame" widget-radio-frame widget-toplevel-shell
-				  :x 5 :y -5
-				  :frame-label "Radio tests"
-				  :state 0)))
-      
-      (create-widget "radio 1" widget-radio-button myframe
-		     :x 2 :y 1 
-		     :state t
-		     :label-value "First option")
-      
-      (create-widget "radio 2" widget-radio-button myframe
-		     :x 2 :y -1
-		     :label-value "Second option")
-      
+      (create-widget "radio 3" widget-radio-button
+		     :label-value "Third nifty option")
       )
 
-    (create-widget "some-stuff" widget-option-button widget-toplevel-shell
-		   :x 10 :y -5
+    (create-widget "some-stuff" widget-option-button
 		   :face 'italic
 		   :option-list '("Moose" "Dog" "Cat" "Mouse" "Monkey" "Penguin")
 		   )
-    (create-widget "MyText" widget-text-field widget-toplevel-shell
-		   :x 5 :y -5 :width 20 :height 1
-		   :value "My First String")
+    (create-widget "MyText" widget-text-field
+		   :width 20 :value "My First String")
+    (create-widget "MyTextGroup" widget-labeled-text
+		   :text-length 20 :value "My Composite String"
+		   :label "Named String:" :unit "chars")
     )
   (dialog-refresh)
   (goto-char (point-min))
