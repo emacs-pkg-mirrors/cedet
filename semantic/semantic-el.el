@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.41 2001/02/22 22:48:13 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.42 2001/04/07 14:29:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,6 +66,9 @@ Return a bovination list to use."
 	 (sn (format "%S" ss))
 	 )
     (cond
+     ((listp ts)
+      ;; If the first elt is a list, then it is some arbitrary code.
+      (list "anonymous" 'code))
      ((or (eq ts 'defvar)
 	  (eq ts 'defconst)
 	  (eq ts 'defcustom)
