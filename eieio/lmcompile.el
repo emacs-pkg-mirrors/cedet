@@ -41,7 +41,12 @@
   ((errormarker :initarg :errormarker
 		:type marker
 		:documentation
-		"Marker pointing to the source of the match."))
+		"Marker pointing to the source of the match.")
+   (errmsg :initarg :errmsg
+	   :type string
+	   :documentation
+	   "The match text of the error in question.")
+   )
   "Linemark Group for one compile error highlight.
 Tracks additional information about the error.")
 
@@ -54,48 +59,20 @@ Tracks additional information about the error.")
 
 (defmethod linemark-display ((e lmcompile-linemark-entry) active-p)
   "Set object E to be active or inactive."
-  ;; A bug in linemark prevents individual entry colors.
-  ;; Fix the color here.
-  (when active-p
-    (condition-case nil
-	(save-excursion
-	  (set-buffer (marker-buffer (oref e errormarker)))
-	  (goto-char (oref e errormarker))
-	  
-	  (let ((face (cond ((re-search-forward "error" (point-at-eol) t)
-			     'linemark-stop-face)
-			    ((re-search-forward "warning" (point-at-eol) t)
-			     'linemark-caution-face)
-			    (t
-			     'linemark-funny-face))))
-	    (oset e :face face)
-	    ))
-      (error nil))
-    )
   ;; Do the rest of our work
   (call-next-method)
 
   ;; Add a tool tip
   (when (and active-p
 	     (slot-boundp e 'overlay)
-	     (oref e overlay))
+	     (oref e overlay)
+	     (slot-boundp e 'errmsg)
+	     )
 
-    (let ((em (oref e errormarker))
-	  (txt nil))
-      (condition-case nil
-	  (save-excursion
-	    (set-buffer (marker-buffer em))
-	    (goto-char em)
-	    (setq txt (buffer-substring-no-properties
-		       (point-at-bol) (point-at-eol)))
-	    )
-	(error nil))
-
-      (when txt
-	(linemark-overlay-put (oref e overlay)
-			      'help-echo
-			      txt))
-      ))
+    (linemark-overlay-put (oref e overlay)
+			  'help-echo
+			  (oref e errmsg))
+    )
   )
 
 (defun lmcompile-create-group (name)
@@ -113,7 +90,8 @@ Do not permit multiple groups with the same NAME."
       (setq linemark-groups (cons newgroup linemark-groups))
       newgroup)))
 
-(defvar lmcompile-error-group (lmcompile-create-group "compiler errors")
+(defvar lmcompile-error-group
+  (linemark-new-group 'lmcompile-linemark-group "compiler errors")
   "The LMCOMPILE error group object.")
 
 (defun lmcompile-clear ()
@@ -148,6 +126,7 @@ Works on grep, compile, or other type mode."
 	    (face nil)
 	    (case-fold-search t)
 	    (entry nil)
+	    (txt nil)
 	    )
 	(setq file (concat (car (cdr file))
 			   (car file)))
@@ -157,12 +136,43 @@ Works on grep, compile, or other type mode."
 	;; found eventually.
 	(when (file-exists-p file)
 
+	  (condition-case nil
+	      (save-excursion
+		(set-buffer (marker-buffer errmark))
+		(goto-char errmark)
+	  
+		(setq face (cond
+			    ((re-search-forward "error" (point-at-eol) t)
+			     'linemark-stop-face)
+			    ((re-search-forward "warning" (point-at-eol) t)
+			     'linemark-caution-face)
+			    (t
+			     'linemark-funny-face))))
+	    (error nil))
+
+	  (condition-case nil
+	      (save-excursion
+		(set-buffer (marker-buffer errmark))
+		(goto-char errmark)
+		(setq txt (buffer-substring-no-properties
+			   (point-at-bol) (point-at-eol)))
+		;; Strip positional information
+		(while (string-match "[0-9]:" txt)
+		  (setq txt (substring txt (match-end 0))))
+		;; Strip leading whitespace (if any)
+		(when (string-match "^\\s-++" txt)
+		  (setq txt (substring txt (match-end 0))))
+		)
+	    (error nil))
+
 	  (setq entry
 		(linemark-add-entry
 		 lmcompile-error-group
 		 :filename file
 		 :line line
 		 :errormarker errmark
+		 :face face
+		 :errmsg txt
 		 ))
 
 	  ))
