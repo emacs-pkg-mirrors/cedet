@@ -920,6 +920,38 @@ are saved using one mechanism, and some directories via a different
 mechanism.
 @end defvar
 
+@subsubsection Script Generated Cache Files
+
+You can create new semantic databases with the @file{semanticdb.sh}
+script file.  Give this script the directory you want parsed, and it
+will create a cache file for you.
+
+@example
+$ semanticdb.sh *.el
+@end example
+
+@subsubsection Create System Databases
+
+If your supported langauge stores the system libraries in readilly
+available parsable source code, you can pre-generate database files
+for them once, which will be used over and over for tools such as
+summary-mode, or the analyzer.
+
+Use the following command to create new system databases:
+
+@deffn Command semanticdb-create-system-database path &optional class
+Create a system database starting at @var{PATH}.
+@var{PATH} should be a top level directory for a series of files containing
+declarations for @var{SYSTEM} files.  In @var{C}, this would be header filaes.
+@var{CLASS} is the class for the database to create.  Only child classes
+of symbol @dfn{semanticdb-project-database-system} are accepted.
+@end deffn
+
+The CLASS requested here is a bit of archana representing the class
+name for the language the entry is for.  Use completion @kbd{SPC} to
+see the ones available.  The name of the language should be part of
+the class name.
+
 @node Customizing
 @section Customizing
 @cindex customizing
