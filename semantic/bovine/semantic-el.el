@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.25 2004/03/10 19:33:22 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.26 2004/03/20 00:20:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,7 +35,7 @@
   )
 
 ;;; Code:
-(defvar semantic-toplevel-elisp-bovine-table
+(defvar semantic--elisp-parse-table
   `((bovine-toplevel
      (semantic-list
       ,(lambda (vals start end)
@@ -661,8 +661,8 @@ See `semantic-format-tag-prototype' for Emacs Lisp for more details."
 (defvar-mode-local emacs-lisp-mode semantic-lex-analyzer
   'semantic-emacs-lisp-lexer)
 
-(defvar-mode-local emacs-lisp-mode semantic-toplevel-bovine-table
-  semantic-toplevel-elisp-bovine-table)
+(defvar-mode-local emacs-lisp-mode semantic--parse-table
+  semantic--elisp-parse-table)
 
 (defvar-mode-local emacs-lisp-mode semantic-function-argument-separator
   " ")
