@@ -1,9 +1,9 @@
 ;;; eieio-opt.el -- eieio optional functions (debug, printing, speedbar)
 
-;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.23 2002/12/10 01:35:53 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.24 2003/09/07 02:05:08 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -35,6 +35,7 @@
 (require 'eieio)
 
 ;;; Code:
+;;;###autoload
 (defun eieio-browse (&optional root-class)
   "Create an object browser window to show all objects.
 If optional ROOT-CLASS, then start with that, otherwise start with
