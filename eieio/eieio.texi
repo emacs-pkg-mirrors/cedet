@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.23 1999/09/16 18:41:16 zappo Exp $
+@c $Id: eieio.texi,v 1.24 1999/11/19 03:10:05 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -97,12 +97,9 @@ Complex documentation maintenance for emacs symbols.
 Automatic texinfo documentation generator.
 @end enumerate
 
-@section What EIEIO doesn't support
+@section Issues using EIEIO
 
 @table @asis
-@item Multiple inheritance
-We could say EIEIO is still in the Fungal stages of development as a
-class can have but one parent.  (This is being worked on)
 @item Complete @code{defclass} tag support
 All CLOS tags are currently supported, but some are not currently
 implemented correctly.
@@ -112,6 +109,7 @@ instantiated objects.  Using functions with side effects on object slot
 values can potentially cause modifications in the mock object.  EIEIO
 should use a deep copy but currently does not.
 @item :AROUND method tag
+This CLOS method tag is non-functional.
 @end table
 
 @section EIEIO example programs that are almost useful.
@@ -233,9 +231,11 @@ found in @var{options-or-doc}.  Each time a slot is defined the
 variables documentation string is updated to include the methods
 documentation as well.
 
-The parent class for @code{class-name} must be a list.  At this time
-only the first element of that list is known to work.  Additional
-superclasses will be used, but have not been tested.
+The parent class for @code{class-name} is @var{superclass-list} which
+must be a list.  Each element of this list must be a class.  These
+classes form the parents of the class being created.  If two parents
+share the same slot, the parent which appears in the list first sets the
+attributes for that slot.
 
 The slot list is a list of lists.  Each sublist defines an attribute.
 These lists are of the form @code{(name :tag1 value1 :tag2 value2 :tagn
@@ -361,7 +361,7 @@ the last parent is found, the search will recurse to this class.")
 
 When creating an object of any type, you can use it's constructor, or
 @code{make-instance}.  This, in turns calls the method
-@code{initialize=instance}, which then calls the method
+@code{initialize-instance}, which then calls the method
 @code{shared-initialize}.
 
 @defun initialize-instance obj &rest slots
@@ -393,6 +393,19 @@ This method is called when there is an attempt to access a slot that is
 not bound.  This will throw an @code{unbound-slot} signal.  If
 overridden it's return value will be returned from the function
 attempting to reference its value.
+@end defun
+
+@defun no-method-definition object method
+This method is called when there is an attempt to call a method on
+@var{object} when there is no method to call.  The default method throws
+a @code{no-method-definition} signal.  The return value of this function
+becomes the return value of the non-existant method.
+@end defun
+
+@defun no-next-method object args
+This method is called when an attempt to call @code{call-next-method} is
+made, and there is no next method that can be called.    The return
+value becomes the return value of @code{call-next-method}.
 @end defun
 
 Additional useful methods are:
@@ -625,6 +638,12 @@ For example code @xref{Default Superclass}.
 
 @end defun
 
+@defun call-next-method-p
+
+Return t if there is a next method we can call.
+
+@end defun
+
 In this implementation, not all features of CLOS exist.
 
 @enumerate
@@ -811,6 +830,16 @@ This signal is called when @var{method} is called, with @var{arguments}
 and nothing is resolved.  This occurs when @var{method} has been
 defined, but the arguments make it impossible for eieio to determine
 which method body to run.
+
+Overload the method @code{no-method-definition} to protect against this
+signal.
+@end deffn
+
+@deffn Signal no-next-method class arguments
+This signal is called if the function @code{call-next-method} is called
+and there is no next method to be called.
+
+Overload the method @code{no-next-method} to protect against this signal.
 @end deffn
 
 @deffn Signal invalid-slot-type slot spec value
