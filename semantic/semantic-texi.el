@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.6 2001/09/29 23:48:41 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.7 2001/11/17 15:51:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -182,6 +182,7 @@ thingy from it using the `document' tool."
     (require 'document)
     (document-insert-texinfo token b)))
 
+;;;###autoload
 (defun semantic-default-texi-setup ()
   "Set up a buffer for parsing of Texinfo files."
   ;; This will use our parser.
