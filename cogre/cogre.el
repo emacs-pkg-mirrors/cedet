@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.4 2001/04/25 02:44:45 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.5 2001/05/07 18:59:33 zappo Exp $
 
 (defvar cogre-version "0.0"
   "Current version of Cogre.")
@@ -54,6 +54,16 @@
 (defgroup cogre nil
   "COnnected GRaph Editor."
   )
+
+(defcustom cogre-horizontal-margins 10
+  "*Horizontal margins between nodes when they are being layed out."
+  :group 'cogre
+  :type 'number)
+
+(defcustom cogre-vertical-margins 7
+  "*Horizontal margins between nodes when they are being layed out."
+  :group 'cogre
+  :type 'number)
 
 (defface cogre-box-face  '((((class color) (background dark))
 			    (:background "gray30" :foreground "white"))
@@ -118,7 +128,17 @@ Elements must be erased before any graphical fields are changed.")
 	 :documentation
 	 "The name of this node.
 Node names must be unique within the current graph so that save
-references in links can be restored."))
+references in links can be restored.")
+   (menu :initform nil
+	 :type list
+	 :allocation class
+	 :documentation
+	 "List of menu items in Easymenu format of changeable things.
+Any given element may have several entries of details which are
+modifiable.
+Examples could be Add/Removing/Renaming slots, or changing linkages."
+)
+   )
   "A Graph Element.
 Graph elements are anything that is drawn into a `cogre-graph'.
 Graph elements have a method for marking themselves dirty.")
@@ -140,6 +160,11 @@ a list of strings representing the body of the node."
 		       :initform 1
 		       :documentation
 		       "Number of blank lines below the last line of text.")
+   (alignment :initform nil
+	      :type symbol
+	      :allocation class
+	      :documentation
+	      "Alignment of text when displayed in the box.")
    (rectangle :initarg :rectangle
 	      :initform nil
 	      :type list
@@ -259,6 +284,61 @@ arrows or circles.")
   (cogre-substitute 'next-line     'picture-move-down)
   (cogre-substitute 'previous-line 'picture-move-up)
   )
+
+(easy-menu-define
+  cogre-mode-menu cogre-mode-map "Connected Graph Menu"
+  '("Graph"
+    ("Insert" :filter cogre-insert-forms-menu)
+    ("Navigate"
+     ["Next Element" cogre-next-node t ]
+     ["Prev Element" cogre-prev-node t ]
+     ["Move Node Up"    cogre-move-node-up    (cogre-node-child-p (cogre-current-element)) ]
+     ["Move Node Down"  cogre-move-node-down  (cogre-node-child-p (cogre-current-element)) ]
+     ["Move Node Left"  cogre-move-node-left  (cogre-node-child-p (cogre-current-element)) ]
+     ["Move Node right" cogre-move-node-right (cogre-node-child-p (cogre-current-element)) ]
+     )
+    ("Change" :filter cogre-change-forms-menu)
+    "--"
+    [ "Refresh" cogre-refresh t ]
+    ))
+
+(defun cogre-insert-forms-menu (menu-def)
+  "Create a menu for cogre INSERT item.
+Argument MENU-DEF is the easy-menu definition."
+  (easy-menu-filter-return
+   (easy-menu-create-menu
+    "Insert Forms"
+    (let ((obj (cogre-current-element))
+	  (elements (eieio-build-class-alist 'cogre-graph-element))
+	  (newmenu nil))
+      (while elements
+	;; Added (car elements) to the menu.
+	(setq newmenu (cons
+		       (vector (car (car elements))
+			       (list 'cogre-new-node
+				     (point)
+				     (intern (car (car elements))))
+			       t)
+		       newmenu))
+	(setq elements (cdr elements)))
+      (append  (list [ "New Node" cogre-new-node t ]
+		     [ "New Link" cogre-new-link t ]
+		     )
+	       (nreverse newmenu))
+      ))))
+
+(defun cogre-change-forms-menu (menu-def)
+  "Create a menu for cogre CHANGE item.
+Argument MENU-DEF is the easy-menu definition."
+  (easy-menu-filter-return
+   (easy-menu-create-menu
+    "Change Forms"
+    (let* ((obj (cogre-current-element))
+	   (newmenu (if obj (oref obj menu))))
+      (append  '( [ "Name" cogre-set-element-name t ]
+		  )
+	       (nreverse newmenu))
+      ))))
 
 ;;; Buffer initialization
 ;;
@@ -394,7 +474,8 @@ NODETYPE is the eieio class name for the node to insert."
 	   (y (cogre-current-line))
 	   (n (make-instance nodetype "Node" :position (vector x y)))
 	   )
-      (cogre-render-buffer cogre-graph)
+      (if (interactive-p)
+	  (cogre-render-buffer cogre-graph))
       )))
 
 (defun cogre-new-link (mark point &optional linktype)
@@ -407,7 +488,8 @@ LINKTYPE is the eieio class name for the link to insert."
 		     (cogre-default-link)))
   (if (not linktype) (setq linktype cogre-link))
   (make-instance linktype "Link" :start mark :end point)
-  (cogre-render-buffer cogre-graph)
+  (if (interactive-p)
+      (cogre-render-buffer cogre-graph))
   )
 
 (defvar cogre-delete-dont-ask nil
@@ -479,9 +561,7 @@ If ARG is unspecified, assume 1."
   (interactive "nX: \nnY: ")
   (let ((e (cogre-current-element (point))))
     (cogre-erase e)
-    (if (> 0 x) (setq x 0))
-    (if (> 0 y) (setq y 0))
-    (oset e position (vector x y))
+    (cogre-move e x y)
     (picture-goto-coordinate x y)
     (if (interactive-p)
 	(cogre-render-buffer cogre-graph))))
@@ -640,6 +720,7 @@ Always make the width 2 greater than the widest string."
 	 (bottom-lines (oref node blank-lines-bottom))
 	 (title (cogre-node-title node))
 	 (slots (cogre-node-slots node))
+	 (align (oref node alignment))
 	 (first t)
 	 (rect nil))
     (while (> top-lines 0)
@@ -649,7 +730,7 @@ Always make the width 2 greater than the widest string."
 			    (progn (setq first nil)
 				   'cogre-box-first-face)
 			  'cogre-box-face)
-			node width)
+			node width align)
 		       rect)
 	    top-lines (1- top-lines)))
     (setq title (nreverse title))
@@ -660,7 +741,7 @@ Always make the width 2 greater than the widest string."
 			    (progn (setq first nil)
 				   'cogre-box-first-face)
 			  'cogre-box-face)
-			node width)
+			node width align)
 		       rect)
 	    title (cdr title)))
     (while slots
@@ -680,7 +761,7 @@ Always make the width 2 greater than the widest string."
 				       (= (length sl) 1))
 				  'cogre-box-last-face
 				'cogre-box-face))
-			    node width)
+			    node width align)
 			   rect)
 		sl (cdr sl))))
       (setq slots (cdr slots)))
@@ -690,10 +771,22 @@ Always make the width 2 greater than the widest string."
 			(if (= bottom-lines 1)
 			    'cogre-box-last-face
 			  'cogre-box-face)
-			node width)
+			node width align)
 		       rect)
 	    bottom-lines (1- bottom-lines)))
     (oset node rectangle (nreverse rect))))
+
+(defmethod cogre-move-delta ((node cogre-node) dx dy)
+  "Move NODE's position by DX, DY."
+  (let ((p (oref node position)))
+    (cogre-move node (+ (aref p 0) dx) (+ (aref p 1) dy))))
+
+(defmethod cogre-move ((node cogre-node) x y)
+  "Move NODE to position X, Y."
+  (if (> 0 x) (setq x 0))
+  (if (> 0 y) (setq y 0))
+  (oset node position (vector x y))
+  )
 
 (defmethod cogre-node-title ((node cogre-node))
   "Return a list of strings representing the title of the NODE.
@@ -904,16 +997,32 @@ The data returned is (X1 Y1 X2 Y2)."
 ;;; Low Level Rendering and status
 ;;
 
-(defun cogre-string-with-face (string face element &optional length)
+(defun cogre-string-with-face (string face element &optional length align)
   "Using text STRING, apply FACE to that text.
 The string in question belongs to the graph ELEMENT.
 If optional argument LENGTH is supplied, pad STRING on the left and
-right so that it is centered.  Return the new string."
+right so that it is centered.  If optional argument ALIGN is non-nil,
+the align the string either 'left or 'right.
+Return the new string."
   (if length
       (let* ((ws (- length (length string)))
-	     (sws (make-string (/ ws 2) ? ))
-	     (ews (make-string (+ (/ ws 2) (% ws 2)) ? )))
-      (setq string (concat sws string ews))))
+	     (sws (cond ((not align)
+			 (make-string (/ ws 2) ? ))
+			((eq align 'right)
+			 (make-string (1- ws) ? ))
+			((eq align 'left)
+			 " ")
+			(t "")
+			))
+	     (ews (cond ((not align)
+			 (make-string (+ (/ ws 2) (% ws 2)) ? ))
+			((eq align 'left)
+			 (make-string (1- ws) ? ))
+			((eq align 'right)
+			 " ")
+			(t "")
+			)))
+	(setq string (concat sws string ews))))
   (add-text-properties 0 (length string) (list 'face face
 					       'rear-nonsticky t
 					       'detachable t ;; xemacs
@@ -932,9 +1041,9 @@ right so that it is centered.  Return the new string."
 		     (point))
 		   t))
 
-(defun cogre-current-element (point)
+(defun cogre-current-element (&optional point)
   "Return the element under POINT."
-  (get-text-property point 'element))
+  (get-text-property (or point (point)) 'element))
 
 (defun cogre-current-line ()
   "Get the current line."
