@@ -19,7 +19,7 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 #
-# $Id: erlang.bnf,v 1.2 2003/06/03 22:39:25 zappo Exp $
+# $Id: erlang.bnf,v 1.3 2003/08/28 12:24:06 zappo Exp $
 #
 %start         module-decl
 %outputfile    semantic-erlang.el
@@ -235,8 +235,8 @@ binary-segment : basic-type binary-segment-rest
 #                    | EMPTY
 #                    ;
 
-binary-segment-rest : COLON integer-literal DIVIDE binary-type-spec-list
-                    | COLON integer-literal
+binary-segment-rest : COLON basic-type DIVIDE binary-type-spec-list
+                    | COLON basic-type
                     | DIVIDE binary-type-spec-list
                     | EMPTY
                     ;
@@ -257,7 +257,7 @@ binary-endian : symbol "big"
 	      | symbol "native"
 	      ;
 
-binary-unit : symbol "unit" COLON integer-literal
+binary-unit : symbol "unit" COLON basic-type
 	    ;
 
 binary-type-spec : binary-type 
