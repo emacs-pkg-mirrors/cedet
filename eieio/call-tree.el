@@ -1,50 +1,51 @@
-;;; call-tree.el - Uses tree mode to display a call tree of the
-;;;                give emacs lisp function.
-;;;
-;;; Copyright (C) 1996 Eric M. Ludlam
-;;;
-;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.1
-;;; RCS: $Id: call-tree.el,v 1.1 1996/06/16 07:30:05 zappo Exp $
-;;; Keywords: OO, tree, call-graph
-;;;                                                                          
-;;; This program is free software; you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 2, or (at your option)
-;;; any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program; if not, you can either send email to this
-;;; program's author (see below) or write to:
-;;;
-;;;              The Free Software Foundation, Inc.
-;;;              675 Mass Ave.
-;;;              Cambridge, MA 02139, USA. 
-;;;
-;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
-;;;
-;;; Tree can be found in the eieio distribution on:
-;;;  ftp://ftp.ultranet.com/pub/zappo
-;;;
+;;; call-tree.el --- Uses tree mode to display a call tree of the
+;;                  give emacs lisp function.
+;;
+;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;
+;; Author: <zappo@gnu.ai.mit.edu>
+;; Version: 0.1
+;; RCS: $Id: call-tree.el,v 1.2 1998/10/27 18:00:42 zappo Exp $
+;; Keywords: OO, tree, call-graph
+;;                                                                          
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, you can either send email to this
+;; program's author (see below) or write to:
+;;
+;;              The Free Software Foundation, Inc.
+;;              675 Mass Ave.
+;;              Cambridge, MA 02139, USA.
+;;
+;; Please send bug reports, etc. to zappo@gnu.org
+
+;; Tree can be found in the eieio distribution on:
+;;  ftp://ftp.ultranet.com/pub/zappo
+
 ;;; Commentary:
-;;;   This function allows the user to display a call tree for a
-;;; given function.  Function symbols are expanded only if they are
-;;; evaluated lisp expressions.  Compiled functions and (of course)
-;;; subroutines are not expanded.  Subroutines are not even listed in
-;;; the tree as they are assumed to be in there.
-;;;   This was created in the hopes that it would aid me in debugging
-;;; things by being able to visualize the flow of control.  As a
-;;; result, symbols are expanded multiple times, and recursion is
-;;; removed (and assumed)
-;;;
+;;   This function allows the user to display a call tree for a
+;; given function.  Function symbols are expanded only if they are
+;; evaluated Lisp expressions.  Compiled functions and (of course)
+;; subroutines are not expanded.  Subroutines are not even listed in
+;; the tree as they are assumed to be in there.
+;;   This was created in the hopes that it would aid me in debugging
+;; things by being able to visualize the flow of control.  As a
+;; result, symbols are expanded multiple times, and recursion is
+;; removed (and assumed)
+;;
 
 (require 'tree)
 
+;;; Code:
 (defclass call-tree-node (tree-node)
   ((symbol :initarg :symbol
 	   :initform nil)
@@ -73,14 +74,13 @@ This function is assumed to have been called from it's parent node")
   ))
 
 (defun call-tree-new-node (func)
-  "Build a call-tree-node based on the function FUNC"
+  "Build a variable `call-tree-node' based on the function FUNC."
   (call-tree-node (symbol-name func)
 		  :name (symbol-name func)
 		  :symbol func))
 
 (defun call-tree (func)
-  "Build a call tree using tree mode that shows all functions called
-by that function"
+  "Build a call tree to show all functions called by FUNC."
   (interactive "aFunction: ")
   (switch-to-buffer (tree-new-buffer (format "*CALL-TREE-%s*" func)))
   (erase-buffer)
@@ -89,8 +89,7 @@ by that function"
   (tree-refresh-tree))
 
 (defun call-tree-grow (func)
-  "Decompose the function stored in the object FUNC and create
-children"
+  "Decompose the function stored in the object FUNC and create children."
   (let* ((fvv (symbol-function (oref func symbol)))
 	 (fv (if (and (listp fvv) (listp (cdr fvv))) (cdr (cdr fvv)) nil))
 	 (nnl nil))
@@ -106,12 +105,11 @@ children"
 	    (setq nnl (cdr nnl)))))))
     
 (defun call-tree-grow-recurse (func forms)
-  "Recurse down a lamba forms list adding tree nodes to func the whole
-way"
+  "Recurse down FUNC's FORMS list adding tree nodes to func the whole way."
   (if (and (symbolp (car forms)) (fboundp (car forms)))
       (if (or (equal (car forms) 'macro))
 	  (setq forms nil)
-	(if (and (not (call-tree-duplicate func (car forms))) 
+	(if (and (not (call-tree-duplicate func (car forms)))
 		 (not (subrp (symbol-function (car forms))))
 		 (not (and (symbolp (symbol-function (car forms)))
 			   (subrp (symbol-function
@@ -128,7 +126,8 @@ way"
   )
 
 (defun call-tree-duplicate (func newfunc)
-  "Scan siblings in func to see if we already have it listed here"
+  "Scan siblings in FUNC to see if we already have it listed here.
+Argument NEWFUNC is a function I cannot devine at this time."
   (let ((fp (oref func children)))
     (while (and fp (not (eq (oref (car fp) symbol) newfunc)))
       (setq fp (cdr fp)))
@@ -136,7 +135,7 @@ way"
       
 
 (defun call-tree-recursive-p (func newfunc)
-  "Scan parents of FUNC for occurance of NEWFUNC"
+  "Scan parents of FUNC for occurance of NEWFUNC."
   (let ((fp func))
     (while (and fp (not (eq newfunc (oref fp symbol))))
       (setq fp (oref fp parent)))
@@ -144,3 +143,7 @@ way"
 
 ;;; end of lisp
 (provide 'call-tree)
+
+(provide 'call-tree)
+
+;;; call-tree.el ends here
