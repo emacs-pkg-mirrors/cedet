@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.119 2003/07/09 16:41:05 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.120 2003/08/17 02:46:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -87,7 +87,7 @@ Optional argument CHECKCACHE is passed to `semantic-bovinate-toplevel'."
 (defun semantic-something-to-tag-table (something)
   "Convert SOMETHING into a semantic tag table.
 Something can be a tag with a valid BUFFER property, a tag table, a
-buffer, or a filename.  If SOMETHING is nil, use the current buffer."
+buffer, or a filename.  If SOMETHING is nil return nil."
   (cond
    ;; A list of tags
    ((and (listp something)
