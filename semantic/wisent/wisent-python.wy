@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.32 2004/05/26 08:50:24 ponced Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.33 2004/09/15 07:28:14 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -32,12 +32,6 @@
 ;;
 ;;; To do:
 ;;
-;; * Modify the grammar to take advantage of scan-lists advice, i.e.,
-;;   generate INDENT_BLOCK tokens such as PAREN_BLOCK tokens rather than
-;;   generating whole bunch of lexical tokens.
-;;
-;; * Verify that \ character is handled properly by the lexer and parser.
-;;
 ;; * Verify that semantic-lex-python-number regexp is correct.
 
 ;; --------
@@ -60,29 +54,38 @@
 %start paren_classes
 %start indented_block_body
 
-%token <newline>     NEWLINE
+;; -------------------------------
+;; Misc. Python specific terminals
+;; -------------------------------
+;; The value of these tokens are for documentation only, they are not
+;; used by the lexer.
+%token <charquote>   BACKSLASH 	  "\\"
+%token <newline>     NEWLINE      "\n"
+%token <indentation> INDENT       "^\\s-+"
+%token <indentation> DEDENT       "[^:INDENT:]" 
+%token <indentation> INDENT_BLOCK "(INDENT DEDENT)"
 
-;; ---------------------
-;; Parenthesis terminals
-;; ---------------------
-%token <open-paren>  LPAREN 	"("
-%token <close-paren> RPAREN 	")"
-%token <open-paren>  LBRACE 	"{"
-%token <close-paren> RBRACE     "}"
-%token <open-paren>  LBRACK 	"["
-%token <close-paren> RBRACK 	"]"
+;; -----------------------------
+;; Block & Parenthesis terminals
+;; -----------------------------
+%type  <block>       ;;syntax "\\s(\\|\\s)" matchdatatype block
 
-;; ---------------
-;; Block terminals
-;; ---------------
-%token <semantic-list> PAREN_BLOCK     "^("
-%token <semantic-list> BRACE_BLOCK     "^{"
-%token <semantic-list> BRACK_BLOCK     "^\\["
-%token <semantic-list> INDENT_BLOCK    "^\\s-+"
+%token <block>       PAREN_BLOCK "(LPAREN RPAREN)"
+%token <block>       BRACE_BLOCK "(LBRACE RBRACE)"
+%token <block>       BRACK_BLOCK "(LBRACK RBRACK)"
+
+%token <open-paren>  LPAREN      "("
+%token <close-paren> RPAREN      ")"
+%token <open-paren>  LBRACE      "{"
+%token <close-paren> RBRACE      "}"
+%token <open-paren>  LBRACK      "["
+%token <close-paren> RBRACK      "]"
 
 ;; ------------------
 ;; Operator terminals
 ;; ------------------
+%type  <punctuation> ;;syntax "\\(\\s.\\|\\s$\\|\\s'\\)+" matchdatatype string
+
 %token <punctuation> LTLTEQ 	"<<="
 %token <punctuation> GTGTEQ 	">>="
 %token <punctuation> EXPEQ	"**="
@@ -117,143 +120,142 @@
 %token <punctuation> TILDE 	"~"
 %token <punctuation> BAR 	"|"
 %token <punctuation> COLON 	":"
-%token <punctuation> SEMICOLON 	";"
+%token <punctuation> SEMICOLON	";"
 %token <punctuation> COMMA 	","
 %token <punctuation> ASSIGN 	"="
-%token <punctuation> BACKQUOTE 	"`"
+%token <punctuation> BACKQUOTE	"`"
 
-%token <charquote>   BACKSLASH 	"\\"
-%put charquote string t
 
 ;; -----------------
 ;; Literal terminals
 ;; -----------------
 %token <string>      STRING_LITERAL
+
+%type  <number>      ;;syntax semantic-lex-number-expression
 %token <number>      NUMBER_LITERAL
 
+%type  <symbol>      ;;syntax "\\(\\sw\\|\\s_\\)+"
 %token <symbol>      NAME
-
-%token	     INDENT
-%token	     DEDENT
 
 ;; -----------------
 ;; Keyword terminals
 ;; -----------------
+%type  <keyword> ;;syntax "\\(\\sw\\|\\s_\\)+" matchdatatype keyword
 
-%token AND	     "and"
-%put   AND summary
+%keyword AND	     "and"
+%put     AND summary
 "Logical AND binary operator ... "
 
-%token ASSERT	     "assert"
-%put   ASSERT summary
+%keyword ASSERT	     "assert"
+%put     ASSERT summary
 "Raise AssertionError exception if <expr> is false"
 
-%token BREAK	     "break"
-%put   BREAK summary
+%keyword BREAK	     "break"
+%put     BREAK summary
 "Terminate 'for' or 'while loop"
 
-%token CLASS	     "class"
-%put   CLASS summary
+%keyword CLASS	     "class"
+%put     CLASS summary
 "Define a new class"
 
-%token CONTINUE	     "continue"
-%put   CONTINUE summary
+%keyword CONTINUE	     "continue"
+%put     CONTINUE summary
 "Skip to the next interation of enclosing for or whilte loop"
 
-%token DEF	     "def"
-%put   DEF summary
+%keyword DEF	     "def"
+%put     DEF summary
 "Define a new function"
 
-%token DEL	     "del"
-%put   DEL summary
+%keyword DEL	     "del"
+%put     DEL summary
 "Delete specified objects, i.e., undo what assignment did"
 
-%token ELIF	     "elif"
-%put   ELIF summary
+%keyword ELIF	     "elif"
+%put     ELIF summary
 "Shorthand for 'else if' following an 'if' statement"
 
-%token ELSE	     "else"
-%put ELSE summary
+%keyword ELSE	     "else"
+%put     ELSE summary
 "Start the 'else' clause following an 'if' statement"
 
-%token EXCEPT	     "except"
-%put   EXCEPT summary
+%keyword EXCEPT	     "except"
+%put     EXCEPT summary
 "Specify exception handlers along with 'try' keyword"
 
-%token EXEC	     "exec"
-%put   EXEC summary
+%keyword EXEC	     "exec"
+%put     EXEC summary
 "Dynamically execute python code"
 
-%token FINALLY	     "finally"
-%put   FINALLY summary
+%keyword FINALLY	     "finally"
+%put     FINALLY summary
 "Specify code to be executed after 'try' statements whether or not an exception occured"
 
-%token FOR	     "for"
-%put   FOR summary
+%keyword FOR	     "for"
+%put     FOR summary
 "Start a 'for' loop"
 
-%token FROM	     "from"
-%put   FROM summary
+%keyword FROM	     "from"
+%put     FROM summary
 "Modify behavior of 'import' statement"
 
-%token GLOBAL	     "global"
-%put   GLOBAL summary
+%keyword GLOBAL	     "global"
+%put     GLOBAL summary
 "Declare one or more symbols as global symbols"
 
-%token IF	     "if"
-%put   IF summary
+%keyword IF	     "if"
+%put     IF summary
 "Start 'if' conditional statement"
 
-%token IMPORT	     "import"
-%put   IMPORT summary
+%keyword IMPORT	     "import"
+%put     IMPORT summary
 "Load specified modules"
 
-%token IN	     "in"
-%put   IN summary
+%keyword IN	     "in"
+%put     IN summary
 "Part of 'for' statement "
 
-%token IS	     "is"
-%put   IS summary
+%keyword IS	     "is"
+%put     IS summary
 "Binary operator that tests for object equality"
 
-%token LAMBDA	     "lambda"
-%put   LAMDA summary
+%keyword LAMBDA	     "lambda"
+%put     LAMDA summary
 "Create anonymous function"
 
-%token NOT	     "not"
-%put   NOT summary
+%keyword NOT	     "not"
+%put     NOT summary
 "Unary boolean negation operator"
 
-%token OR	     "or"
-%put   OR summary
+%keyword OR	     "or"
+%put     OR summary
 "Binary logical 'or' operator"
 
-%token PASS	     "pass"
-%put   PASS summary
+%keyword PASS	     "pass"
+%put     PASS summary
 "Statement that does nothing"
 
-%token PRINT	     "print"
-%put   PRINT summary
+%keyword PRINT	     "print"
+%put     PRINT summary
 "Print each argument to standard output"
 
-%token RAISE	     "raise"
-%put   RAISE summary
+%keyword RAISE	     "raise"
+%put     RAISE summary
 "Raise an exception"
 
-%token RETURN	     "return"
-%put RETURN summary
+%keyword RETURN	     "return"
+%put     RETURN summary
 "Return from a function"
 
-%token TRY	     "try"
-%put   TRY summary
+%keyword TRY	     "try"
+%put     TRY summary
 "Start of statements protected by exception handlers"
 
-%token WHILE	     "while"
-%put   WHILE summary
+%keyword WHILE	     "while"
+%put     WHILE summary
 "Start a 'while' loop"
 
-%token YIELD	     "yield"
-%put   YIELD summary
+%keyword YIELD	     "yield"
+%put     YIELD summary
 "Create a generator function"
 
 %%
@@ -740,7 +742,10 @@ function_parameter
 ;; classdef: 'class' NAME ['(' testlist ')'] ':' suite
 class_declaration
   : CLASS NAME paren_class_list_opt COLON suite
-    (TYPE-TAG $2 $1 $5 $3)
+    (TYPE-TAG $2 $1             ;; Name "class"
+              $5                ;; Members
+              (cons $3 nil)     ;; (SUPERCLASSES . INTERFACES)
+              )
   ;
 
 ;; ['(' testlist ')']
@@ -751,7 +756,7 @@ paren_class_list_opt
 
 paren_class_list
   : PAREN_BLOCK
-    (EXPANDFULL $1 paren_classes)
+    (mapcar 'semantic-tag-name (EXPANDFULL $1 paren_classes))
   ;
 
 ;; parameters: '(' [varargslist] ')'
@@ -773,7 +778,7 @@ paren_classes
 ;; parser can parse general expressions, I don't see much benefit in
 ;; generating a string of expression as base class "name".
 paren_class
-  : NAME
+  : dotted_name
   ;
 
 ;;;****************************************************************************
