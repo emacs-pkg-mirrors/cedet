@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.30 2003/09/07 09:03:24 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.31 2004/01/23 08:34:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,7 +31,7 @@
 ;; Semantic environment.
 
 ;;; History:
-;; 
+;;
 
 ;;; Code:
 
@@ -40,7 +40,6 @@
 
 ;;; Lexical analysis
 ;;
-
 (defvar wisent-lex-istream nil
   "Input stream of `semantic-lex' syntactic tokens.")
 
@@ -48,47 +47,11 @@
   "Extra lookahead token.
 When non-nil it is directly returned by `wisent-lex-function'.")
 
-(defsubst wisent-lex-token-rules (symbol)
-  "Return matching rules of token class SYMBOL."
-  (semantic-lex-type-value (symbol-name symbol) 'noerror))
+;; Maintain this alias for compatibility until all WY grammars have
+;; been translated again to Elisp code.
+(semantic-alias-obsolete 'wisent-lex-make-token-table
+                         'semantic-lex-make-type-table)
 
-(defsubst wisent-lex-token-get (symbol property)
-  "For token class SYMBOL, return its PROPERTY value or nil."
-  (semantic-lex-type-get (symbol-name symbol) property 'noerror))
-
-(defun wisent-lex-make-token-table (specs &optional propspecs)
-  "Convert token SPECS into an obarray and return it.
-If optional argument PROPSPECS is non nil, then interpret it, and
-apply those properties (see `semantic-lex-make-type-table' for
-details)."
-  (let ((semantic-lex-types-obarray
-         (semantic-lex-make-type-table specs propspecs)))
-    ;; Set up some useful default properties
-    (semantic-lex-type-put "punctuation" 'char-literal t 'add)
-    (semantic-lex-type-put "open-paren"  'char-literal t 'add)
-    (semantic-lex-type-put "close-paren" 'char-literal t 'add)
-    semantic-lex-types-obarray))
-
-(defsubst wisent-lex-match (text default rules &optional usequal)
-  "Return lexical symbol matching TEXT or DEFAULT if not found.
-RULES is an alist of (TOKEN . MATCHER).  If optional argument USEQUAL
-is non-nil use direct string comparison between TEXT and MATCHERs
-instead of regexp match."
-  (if usequal
-      (or (car (rassoc text rules)) default)
-    (let* (lexem regex)
-      (while (and (not lexem) rules)
-        (if (or (null (setq regex (cdar rules)))
-                (string-match regex text))
-            (setq lexem (caar rules))
-          (setq rules (cdr rules))))
-      (or lexem default))))
-
-;;; Semantic 2.x lexical analysis
-;;
-
-;; Lexer creation macros
-;;
 (defmacro wisent-lex-eoi ()
   "Return an End-Of-Input lexical token.
 The EOI token is like this: ($EOI "" POINT-MAX . POINT-MAX)."
@@ -124,180 +87,6 @@ where VALUE is the buffer substring between START and END positions."
       (wisent-lex-istream
        ,@body)
       ((wisent-lex-eoi)))))
-
-;;; General purpose lexers
-;;
-
-(define-wisent-lexer wisent-flex
-  "Return the next available lexical token in Wisent's form.
-Eat syntactic tokens produced by `semantic-lex', available in
-variable `wisent-lex-istream', and return Wisent's lexical tokens.
-See documentation of `semantic-lex-tokens' for details on the
-syntactic tokens returned by `semantic-lex'.
-
-In most cases one syntactic token is mapped to one lexical token.  But
-in certain cases several successive syntactic tokens can be mapped to
-one lexical tokens.  A common case is given by arithmetic operators
-which can be made of multiple punctuations.
-
-Also the mapping between syntactic tokens and lexical ones uses regexp
-match by default, but can use string comparison too.
-
-The rules specifying how to do the mapping are defined in two symbol
-tables:
-
-  - The keyword table in variable `semantic-lex-keywords-obarray';
-
-  - The token table in variable `semantic-lex-tokens-obarray'.
-
-Keywords are directly mapped to equivalent Wisent's lexical tokens
-like this (SL- prefix means `semantic-lex', WL- `wisent-lex'):
-
-  (SL-KEYWORD start . end)  ->  (WL-KEYWORD \"name\" start . end)
-
-Mapping of other tokens obeys to rules in the token table.  Here is an
-example on how to define the mapping of 'punctuation syntactic tokens.
-
-1. Add (`intern') the symbol 'punctuation into the token table.
-
-2. Set its value to the mapping rules to use.  Mapping rules are an
-   alist of (WL-TOKEN . MATCHER) elements.  WL-TOKEN is the category
-   of the Wisent's lexical token (for example 'OPERATOR).  MATCHER is
-   the regular expression used to filter input data (for example
-   \"[+-]\").  The first element of the mapping rule alist defines a
-   default matching rule. It must be nil or have the form (WL-TOKEN).
-   When there is no mapping rule that matches the syntactic token
-   value, the default WL-TOKEN or nil is returned.
-
-   Thus, if the syntactic token symbol 'punctuation has the mapping
-   rules '(nil (OPERATOR . \"[+-]\")), the following token:
-
-   (punctuation 1 . 2)
-
-   will be mapped to the lexical token
-
-   (OPERATOR \"+\" 1 . 2)
-
-   if the buffer contained \"+\" between positions 1 and 2.
-
-   To define multiple matchers for the same WL-TOKEN just give
-   several (WL-TOKEN . MATCHER) values.  MATCHERs will be tried in
-   sequence until one matches.
-
-3. Optionally customize how `wisent-flex' will interpret mapping
-   rules, using symbol properties.
-
-   The following properties are recognized:
-
-   'string
-     If non-nil MATCHERs are interpreted as strings instead of
-     regexps, and matching uses direct string comparison.  This could
-     speed up things in certain cases.
-
-   'multiple
-     non-nil indicates to lookup at multiple successive syntactic
-     tokens and try to match the longest one.
-
-   'char-literal
-     non-nil indicates to return the first character of the syntactic
-     token value as the lexical token category.  It is the default for
-     punctuation, open-paren and close-paren syntactic tokens.  Use
-     this property when grammar contains references to character
-     literals.
-
-   'handler
-     If non-nil must specify a function with no argument that will be
-     called first to map the syntactic token.  It must return a
-     lexical token or nil, and update the input stream in variable
-     `wisent-lex-istream' accordingly.
-
-   The following example maps multiple punctuations to operators and
-   use string comparison:
-
-   (let ((entry (intern 'punctuation token-table)))
-     (set entry '(nil ;; No default mapping
-                  (LSHIFT . \"<<\") (RSHIFT . \">>\")
-                  (LT     .  \"<\") (GT     .  \">\")))
-     (put entry 'string   t)
-     (put entry 'multiple t))"
-  (let* ((is   wisent-lex-istream)
-         (flex (car is))
-         (stok (semantic-lex-token-class flex))
-         (text (semantic-lex-token-text flex))
-         default rules usequal wlex term beg end ends n is2)
-      
-    (if (setq term (semantic-lex-keyword-p text))
-       
-        ;; Keyword
-        ;; -------
-        (setq wlex (cons term
-                         (cons text
-                               (semantic-lex-token-bounds flex)))
-              ;; Eat input stream
-              wisent-lex-istream (cdr is))
-                
-        
-      ;; Token
-      ;; -----
-      (if (null (setq rules (wisent-lex-token-rules stok)))
-          ;; Eat input stream
-          (setq wisent-lex-istream (cdr is))
-          
-        ;; Map syntactic token following RULES
-        (setq default (car rules)
-              rules   (cdr rules))
-        (cond
-           
-         ;; If specified try a function first to map token.
-         ;; It must return a lexical token or nil and update the
-         ;; input stream (`wisent-lex-istream') accordingly.
-         ((and (setq n (wisent-lex-token-get stok 'handler))
-               (setq wlex (funcall n))))
-           
-         ;; Several/One mapping
-         ((wisent-lex-token-get stok 'multiple)
-          (setq beg  (semantic-lex-token-start flex)
-                end  (semantic-lex-token-end   flex)
-                ends (list end)
-                n    1
-                is2  (cdr is)
-                flex (car is2))
-          ;; Collect successive `semantic-lex' tokens
-          (while (and (eq (semantic-lex-token-class flex) stok)
-                      (= end (semantic-lex-token-start flex)))
-            (setq end  (semantic-lex-token-end flex)
-                  ends (cons end ends)
-                  n    (1+ n)
-                  is2  (cdr is2)
-                  flex (car is2)))
-          ;; Search the longest match
-          (setq usequal (wisent-lex-token-get stok 'string))
-          (while (and (not wlex) ends)
-            (setq end  (car ends)
-                  text (buffer-substring-no-properties beg end)
-                  term (wisent-lex-match text default rules usequal))
-            (if term
-                (setq wlex (cons term (cons text (cons beg end)))
-                      ;; Eat input stream
-                      wisent-lex-istream (nthcdr n is))
-              (setq n    (1- n)
-                    ends (cdr ends)))))
-           
-         ;; One/one token mapping
-         ((setq usequal (wisent-lex-token-get stok 'string)
-                term (wisent-lex-match text default rules usequal))
-          (setq wlex (cons term
-                           (cons text
-                                 (semantic-lex-token-bounds flex)))
-                ;; Eat input stream
-                wisent-lex-istream (cdr is))))))
-      
-    ;; Return value found or default one
-    (or wlex
-        (cons (if (wisent-lex-token-get stok 'char-literal)
-                  (aref text 0)
-                stok)
-              (cons text (semantic-lex-token-bounds flex))))))
 
 (define-wisent-lexer wisent-lex
   "Return the next available lexical token in Wisent's form.
@@ -389,7 +178,7 @@ The LALR parser automaton must be available in buffer local variable
 Must be installed by `semantic-install-function-overrides' to override
 the standard function `semantic-parse-stream'."
   (let (wisent-lex-istream wisent-lex-lookahead la-elt cache)
-    
+
     ;; IMPLEMENTATION NOTES:
     ;; `wisent-parse' returns a lookahead token when it stopped
     ;; parsing before encountering the end of input.  To re-enter the
@@ -419,7 +208,7 @@ the standard function `semantic-parse-stream'."
     ;;
     ;; where LOOKAHEAD-STACK is a list of lookahead tokens.  And
     ;; START/END are the bounds of the lookahead at top of stack.
-    
+
     ;; Retrieve lookahead token from stack
     (setq la-elt (car stream))
     (if (consp (car la-elt))
@@ -535,11 +324,11 @@ the standard function `semantic-parse-region'."
 (add-hook
  'edebug-setup-hook
  #'(lambda ()
-     
+
      (def-edebug-spec define-wisent-lexer
        (&define name stringp def-body)
        )
-     
+
      ))
 
 (provide 'wisent-bovine)
