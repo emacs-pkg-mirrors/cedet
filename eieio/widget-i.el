@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.11 1996/10/19 14:40:00 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.12 1996/11/01 05:31:28 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -65,10 +65,6 @@
 		(goto-char pnt)))
 	  (setq refs (cdr refs))))))
 
-(defmethod get-value ((this data-object))
-  "Get the value from the value out of the data object"
-  (oref this value))
-
 (defmethod render ((this data-object))
   "Return a string which represents the RENDERED version of our value.
 To render anything in emacs, we have to turn it into a string, so this
@@ -85,10 +81,6 @@ is ok."
 ;;
 ;; Core
 ;;
-(defmethod get-parent ((this widget-core))
-  "Returns the parent widget of selected widget"
-  (oref this parent))
-
 (defmethod verify ((this widget-core) fix)
   "Verifies that fields in the CORE part are correct.  If FIX, then
 fixable fields are adjusted, otherwise an error occurs."
@@ -135,7 +127,11 @@ in widget order."
 	(pw (if prev (oref prev width) 0))
 	(py (if prev (oref prev ny) 1))
 	(ph (if prev (oref prev height) 0))
-	(tx (oref this x))
+	(pb (if prev (oref prev boxed) nil))
+	(pbs (if prev (oref prev box-sides) [ nil nil nil nil ]))
+	(b  (oref this boxed))
+	(bs (oref this box-sides))
+	(tx (or (oref this x) 1))
 	(ty (oref this y)))
 
     (if (eq tx t)
@@ -143,14 +139,30 @@ in widget order."
       (if (listp tx)
 	  (setq tx (eval tx))
 	(if (> 0 tx)
-	    (setq tx (+ px pw -1 (- tx))))))
+	    (if prev
+		(setq tx (+ px pw -1 (- tx) (if (and b (aref bs 0)) 1 0)
+			    (if (and pb (aref pbs 1)) 1 0)))
+	      (setq tx 1)))))
+
+    (if (not ty)
+	(progn
+	  (if prev
+	      (if (same-class-p this (object-class prev))
+		  (setq ty -1)
+		(setq ty -2))
+	    (setq ty (if (and (oref this boxed) (aref (oref this box-sides) 2))
+			 1 0)))
+	  (oset this y ty)))
 
     (if (eq ty t)
 	(setq ty py)
       (if (listp ty)
 	  (setq ty (eval ty))
 	(if (> 0 ty)
-	    (setq ty (+ py ph -1 (- ty))))))
+	    (if prev
+		(setq ty (+ py ph -1 (- ty) (if (and b (aref bs 2)) 1 0)
+			    (if (and pb (aref pbs 3)) 1 0)))
+	      (setq ty 1)))))
 
     ;; Fix up RX and RY with parent coords, and our normalized coordinates
     (if (and (object-p (get-parent this))
@@ -180,44 +192,44 @@ in widget order."
 ;;
 ;; square
 ;;
-(defmethod verify ((this widget-square) fix)
-  "Verifies that a square widget has resonable size constraints"
-  (if (not (and (oref this x) (oref this y) 
-		(oref this width) (oref this height)))
-      ;; unfixable in this instance
-      (error "Square widget %s must have dimentions x,y and width,height" 
-	     (object-name this)))
-  (call-next-method))
-
 (defmethod draw ((this widget-square))
   "Draw handles border drawing.  Is just able to draw a box, which
 goes OUTSIDE the size specification of the widget itself, and does not
 count when being picked."
   ;; Draw a box around ourselves
   (if (oref this boxed)
-      (let* ((ch (widget-bunch-o-chars (oref this width) 
-				       (aref (oref this box-char) 4)))
-	     (br (concat (char-to-string (aref (oref this box-char) 0)) ch
+      (let* ((br (concat (char-to-string (aref (oref this box-char) 0))
+			 (make-string (oref this width) (aref (oref this box-char) 4))			 
 			 (char-to-string (aref (oref this box-char) 1))))
-	     (lr (concat (char-to-string (aref (oref this box-char) 2)) ch
+	     (lr (concat (char-to-string (aref (oref this box-char) 2))
+			 (make-string (oref this width) (aref (oref this box-char) 5))
 			 (char-to-string (aref (oref this box-char) 3))))
+	     (s (oref this box-sides))
 	     (yc 0)
 	     (x (oref this rx))
 	     (y (oref this ry)))
-	(goto-xy (1- x) (1- y))
 	;; We don't store ourselves on top of the box because we don't want
 	;; to recieve input.
-	(insert-overwrite-face br (oref this box-face))
+	(if (aref s 2) 
+	    (progn
+	      (goto-xy (1- x) (1- y))
+	      (insert-overwrite-face br (oref this box-face))))
 	(while (< yc (oref this height))
-	  (goto-xy (1- x) (+ y yc))
-	  (insert-overwrite-face (char-to-string (aref (oref this box-char) 5))
-				 (oref this box-face))
-	  (goto-xy (+ x (oref this width)) (+ y yc))
-	  (insert-overwrite-face (char-to-string (aref (oref this box-char) 5))
-				 (oref this box-face))
+	  (if (aref s 0)
+	      (progn
+		(goto-xy (1- x) (+ y yc))
+		(insert-overwrite-face (char-to-string (aref (oref this box-char) 6))
+				       (oref this box-face))))
+	  (if (aref s 1)
+	      (progn
+		(goto-xy (+ x (oref this width)) (+ y yc))
+		(insert-overwrite-face (char-to-string (aref (oref this box-char) 7))
+				       (oref this box-face))))
 	  (setq yc (1+ yc)))
-	(goto-xy (1- x) (+ y (oref this height)))
-	(insert-overwrite-face lr (oref this box-face)))))
+	(if (aref s 3)
+	    (progn
+	      (goto-xy (1- x) (+ y (oref this height)))
+	      (insert-overwrite-face lr (oref this box-face)))))))
 
 (defmethod move-cursor-to ((this widget-square))
   "Move the cursor so that it sits at a useful location inside this widget"
@@ -273,8 +285,12 @@ based on the number of children we have."
       (verify-position (car l) prev)
       (if (obj-of-class-p (car l) widget-group)
 	  (verify-size (car l)))
-      (let ((tw (+ (oref (car l) nx) (oref (car l) width) 2))
-	    (th (+ (oref (car l) ny) (oref (car l) height) 1)))
+      (let ((tw (+ (oref (car l) nx) (oref (car l) width) 1))
+	    (th (+ (oref (car l) ny) (oref (car l) height) 
+		   ;; vertical space is valueable. Only give extra space
+		   ;; for boxed widgets.
+		   (if (and (oref (car l) boxed) (aref (oref (car l) box-sides) 3))
+		       1 0))))
 	(if (< maxw tw) (setq maxw tw))
 	(if (< maxh th) (setq maxh th)))
       (setq prev (car l)
@@ -298,10 +314,6 @@ based on the number of children we have."
   ;; navigation list
   (clear-navigation-list widget-toplevel-shell)
   )
-
-(defmethod get-children ((this widget-group))
-  "Return our list of children widgets"
-  (oref this child-list))
 
 (defmethod input ((this widget-group) char-or-event)
   "Handles the input event char-or-event by passing it to it's
@@ -432,6 +444,9 @@ to the ARGth widget in some direction."
 ;;
 (defmethod verify ((this widget-frame) fix)
   "Verify a frame widget"
+  ;; If no frame label is specified, then use this object's name
+  (if (eq t (oref this frame-label))	;t means use the object's name
+      (oset this frame-label (object-name-string this)))
   ;; call parent's verify first to set our position, etc
   (call-next-method))
 
@@ -452,7 +467,7 @@ is known."
 		 ;; Its a string... make a label of some sort
 		 (save-match-data
 		   (let* ((posstr (symbol-name (oref this position)))
-			  (nlw (create-widget-first
+			  (nlw (create-widget-parent-first
 				(format "label on %s" (object-name this))
 				widget-label this 
 				:label-value tol
@@ -481,7 +496,7 @@ is known."
 				     (oref this height)))))
 		     (verify-position nlw nil)
 		     nlw))))))
-    (if (> (length (render (oref lw label-value))) (oref this width))
+    (if (and lw (> (length (render (oref lw label-value))) (oref this width)))
 	(oset this width (+ 2 (length tol))))
     (if lw (oset this frame-label lw))))
 
@@ -510,10 +525,53 @@ is known."
 
 
 ;;
+;; widget-labeled-text
+;;
+
+(defmethod verify ((this widget-labeled-text) fix)
+  "Initilize the `widget-labeled-text' class with the pre-determined widgets
+in a standard format."
+  (call-next-method)
+  (let ((lo (if (oref this label)
+		(transform-dataobject (oref this label) this 
+				      (concat (object-name this) "-label-data")
+				      fix)
+	      nil))	    
+	(uo (if (oref this unit)
+		(transform-dataobject (oref this unit) this 
+				      (concat (object-name this) "-unit-data")
+				      fix))))
+    (if (get-children this)
+	nil
+      ;; If we have no children ,create some.
+      (if lo
+	  (create-widget-parent (concat (object-name this) "-label")
+				widget-label this
+				:x 0 :y 0 :label-value lo))
+      (create-widget-parent (concat (object-name this) "-text-field")
+			    widget-text-field this
+			    :width (oref this text-length)
+			    :x (if lo -2 0) :y 0 :value (oref this value))
+      (if uo
+	  (create-widget-parent (concat (object-name this) "-unit")
+				widget-label this
+				:x -2 :y 0 :label-value uo))
+      )
+    (let ((tv (transform-dataobject (oref this value) this 
+				    (concat (object-name this) "-text-value")
+				    fix)))
+      (if tv (oset this value tv)
+	(error "Text value not a data object")))
+    ))
+
+;;
 ;; label
 ;;
 (defmethod verify ((this widget-label) fix)
   "Verify the label widget's componants."
+  ;; Do we even have a label value?  If not invent one
+  (if (not (oref this label-value))
+      (oset this label-value (object-name-string this)))
   ;; Make sure the label-value is a data object
   (let ((lv (transform-dataobject  (oref this label-value) this
 				   (object-name this) fix)))
@@ -679,12 +737,25 @@ help about this widget."
   "Draw the button widget to the display"
   ;; now draw the label part
   (call-next-method))
+
+;;;
+;;; Push Button
+;;;
+(defmethod verify ((this widget-push-button) fix)
+  "Verify a push button's parameters"
+  (call-next-method)
+  ;; Now that the size is defined, change the box if we are too big
+  (if (and (> (oref this height) 1) fix)
+      (progn
+	(oset this box-char [?+ ?+ ?+ ?+ ?- ?- ?| ?|])
+	(oset this box-sides [ t t t t ]))))
+
 
 ;;
 ;; Option Button
 ;;
 (defmethod verify ((this widget-option-button) fix)
-  "Verify button parameters"
+  "Verify an option button's parameters"
   ;; Verify my state button
   (let ((lv (transform-dataobject (oref this state) this "OptionIndex" fix)))
     (if lv
@@ -854,16 +925,21 @@ help about this widget."
   ;; find my position in my parent
   (let ((p (oref this parent)))
     (if (obj-of-class-p p widget-radio-frame)
-	(oset this radio-index (- (length (get-children p)) 2))
-      (error "Object %s must have parent type widget-radio-frame"
+	(oset this radio-index (- (length (get-children p)) 1))
+      (error "Object %s must have parent type `widget-radio-frame'"
 	     (object-name this))))
-  ;; Verify parent class members
-  (call-next-method)
   ;; find my parent's state
   (let* ((p (oref this parent))
 	 (ps (oref p state)))
     (oset this parent-state ps)
-    (add-reference ps this)))
+    (if (and fix (= (get-value ps) (oref this radio-index)))
+	(if (object-p (oref this state))
+	    (set-value (oref this state) t)
+	  (oset this state t)))
+    (add-reference ps this))
+  ;; Verify parent class members (create my own state variable)
+  (call-next-method))
+
 
 (defmethod update-symbol ((this widget-radio-button) sym)
   "If sym is STATE field, then update ourselves"
@@ -995,9 +1071,7 @@ help about this widget."
 	      os (substring os 0 tlen)))
     ;; see if string is too short
     (if (< (length os) tlen)
-	(setq os (concat
-		  os
-		  (widget-bunch-o-chars (- tlen (length os)) ? ))))
+	(setq os (concat os (make-string (- tlen (length os)) ? ))))
     ;; insert the string
     (insert-overwrite-face os (oref this face) (oref this focus-face) this)
     ;; show more-characters this way strings
