@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.44 2004/03/21 18:20:41 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.45 2004/03/26 11:14:45 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,14 +43,42 @@
   (require 'senator)
   (require 'document))
 
-;;;;
-;;;; Global stuff
-;;;;
+;;; Enable Semantic in `java-mode'.
+;;
+(defun wisent-java-expand-tag (tag)
+  "Expand compound declarations found in TAG into separate tags.
+TAG contains compound declarations when its class is `variable', and
+its name is a list of elements (NAME START . END), where NAME is a
+compound variable name, and START/END are the bounds of the
+corresponding compound declaration."
+  (let (elts elt clone start end xpand)
+    (when (and (semantic-tag-of-class-p tag 'variable)
+               (consp (setq elts (semantic-tag-name tag))))
+      (while elts
+        ;; For each compound element, clone the initial tag with the
+        ;; name and bounds of the compound variable declaration.
+        (setq elt   (car elts)
+              elts  (cdr elts)
+              start (if elts  (cadr elt) (semantic-tag-start tag))
+              end   (if xpand (cddr elt) (semantic-tag-end   tag))
+              clone (semantic-tag-clone tag (car elt))
+              xpand (cons clone xpand))
+        (semantic-tag-set-bounds clone start end))
+      xpand)))
+
+(defun wisent-java-init-parser-context ()
+  "Initialize context of the LR parser engine.
+Used as a local `wisent-pre-parse-hook' to cleanup the stack of enum
+names in scope."
+  (setq wisent-java-wy--enums nil))
 
 (defun wisent-java-default-setup ()
-  "Hook run to setup Semantic in `java-mode'.
-Use the alternate LALR(1) parser."
+  "Hook run to setup Semantic in `java-mode'."
+  ;; Use the Wisent LALR(1) parser to analyze Java sources.
   (wisent-java-wy--install-parser)
+  (semantic-make-local-hook 'wisent-pre-parse-hook)
+  (add-hook 'wisent-pre-parse-hook
+            'wisent-java-init-parser-context nil t)
   (setq
    ;; Lexical analysis
    semantic-lex-number-expression semantic-java-number-regexp
@@ -83,82 +111,27 @@ Use the alternate LALR(1) parser."
   ;; Setup javadoc stuff
   (semantic-java-doc-setup))
 
-(defun wisent-java-expand-tag (tag)
-  "Expand TAG into a list of equivalent tags, or nil.
-Expand special tags of class 'goal into a list of tags.  Each 'goal
-tag has an attribute `:tree' whose value is a list of already expanded
-tags in reverse order.
-Expand multiple variable declarations in the same statement, that is
-tags of class `variable' whose name is equal to a list of elements of
-the form (NAME START . END).  NAME is a variable name.  START and END
-are the bounds in the declaration, related to this variable NAME."
-  (let ((class (semantic-tag-class tag))
-        elts elt clone start end xpand)
-    (cond
-     ;; Expand a goal tag
-     ((eq class 'goal)
-      (nreverse (semantic-tag-get-attribute tag :tree)))
-     ;; Expand multiple names in the same variable declaration.
-     ((and (eq class 'variable)
-           (consp (setq elts (semantic-tag-name tag))))
-      (while elts
-        ;; For each name element, clone the initial tag and give it
-        ;; the name of the element.
-        (setq elt   (car elts)
-              elts  (cdr elts)
-              start (if elts  (cadr elt) (semantic-tag-start tag))
-              end   (if xpand (cddr elt) (semantic-tag-end   tag))
-              clone (semantic-tag-clone tag (car elt))
-              xpand (cons clone xpand))
-        ;; Set the bounds of the cloned tag with those of the name
-        ;; element.
-        (semantic-tag-set-bounds clone start end))
-      xpand))))
+(add-hook 'java-mode-hook 'wisent-java-default-setup)
 
-;;;;
-;;;; Simple parser error reporting function
-;;;;
-
-(defun wisent-java-parse-error (msg)
-  "Error reporting function called when a parse error occurs.
-MSG is the message string to report."
-;;   (let ((error-start (nth 2 wisent-input)))
-;;     (if (number-or-marker-p error-start)
-;;         (goto-char error-start)))
-  (message msg)
-  ;;(debug)
-  )
-
-;;;;
-;;;; Local context
-;;;;
-
+;;; Overridden Semantic API.
+;;
 (define-mode-overload-implementation semantic-get-local-variables
   java-mode ()
-  "Get local values from a specific context.
-Parse the current context for `field_declarations_opt' nonterminals to
-collect tags, such as local variables or prototypes."
-  (let ((vars nil)
-        ;; We want nothing to do with funny syntaxing while doing this.
-        (semantic-unmatched-syntax-hook nil))
+  "Get local variable declarations from the current context."
+  (let (result
+        ;; Ignore funny syntax while doing this.
+        semantic-unmatched-syntax-hook)
     (while (not (semantic-up-context (point) 'function))
       (save-excursion
         (forward-char 1)
-        (setq vars
-              (append (semantic-parse-region
-                       (point)
-                       (save-excursion (semantic-end-of-context) (point))
-                       'field_declarations_opt
-                       nil t)
-                      vars))))
-    vars))
-
-;;;;
-;;;; Semantic integration of the Java LALR parser
-;;;;
-
-;; Replace the default setup by this new one.
-(add-hook 'java-mode-hook #'wisent-java-default-setup)
+        (push (semantic-parse-region
+               (point)
+               (save-excursion (semantic-end-of-context) (point))
+               ;; See this production in wisent-java.wy.
+               'block_statement
+               nil t)
+              result)))
+    (apply 'append result)))
 
 (provide 'wisent-java)
 
