@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.17 1999/03/18 18:53:12 zappo Exp $
+@c $Id: eieio.texi,v 1.18 1999/09/05 19:21:21 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -60,21 +60,26 @@ As of this writing, updates can be found at:
 @chapter Introduction
 
   One thing emacs lisp does not support is structured data organization,
-and restricted function access.  As a programmer it's easy to break up a
-program into modules, and say "I won't access function or variable XYZ
-anywhere but here", but it's not protected from other programmers doing
-an apropos and thinking "Hey, this is a useful function and I will use
-it".  Then a program is upgraded, and the second programmer is unhappy.
+and restricted function access unless one uses the cl package.  As a
+programmer it's easy to break up a program into modules, and say "I
+won't access function or variable XYZ anywhere but here", but it's not
+protected from other programmers doing an apropos and thinking "Hey,
+this is a useful function and I will use it".  Then a program is
+upgraded, and the second programmer is unhappy.
 
-  I've recently attempted to make eieio CLOS compatible (Common Lisp
-Object System).  This compatibility is only at a fairly basic level.
+  I've have attempted to make EIEIO CLOS compatible (Common Lisp Object
+System).  This compatibility is only at a fairly basic level.
 
 @section What EIEIO supports
 
 @enumerate
 @item
-A structured framework for the creation of basic classes with public and
-private attributes and methods with singular inheritance similar to CLOS.
+A structured framework for the creation of basic classes with attributes
+and methods using singular inheritance similar to CLOS.
+@item
+Public and private classifications for slots (extensions to CLOS)
+@item
+Customization support in a class (extension to CLOS)
 @item
 Method definitions similar to CLOS.
 @item
@@ -84,11 +89,11 @@ Edebug support.
 @item
 Imenu updates
 @item
-byte compilation support of methods
+Byte compilation support of methods
 @item
-complex documentation maintenance for emacs symbols
+Complex documentation maintenance for emacs symbols
 @item
-automatic texinfo documentation generator
+Automatic texinfo documentation generator
 @end enumerate
 
 @section What EIEIO doesn't support
@@ -96,13 +101,17 @@ automatic texinfo documentation generator
 @table @asis
 @item Multiple inheritance
 We could say EIEIO is still in the Fungal stages of development as a
-class can have but one parent.
+class can have but one parent.  (This is being worked on)
 @item Complete @code{defclass} tag support
-Not all CLOS tags are currently supported, but the basic and necessary
-ones are.
+All CLOS tags are currently supported, but some are not currently
+implemented correctly.
+@item Mock object initializeres
+Each class contains a mock object used for fast initialization of
+instantiated objects.  Using functions with side effects on object slot
+values can potentially cause modifications in the mock object.  EIEIO
+should use a deep copy but currently does not.
 @item :AROUND method tag
 @end table
-
 
 @section EIEIO example programs that are almost useful.
 
@@ -149,8 +158,25 @@ or are mostly compatible.
 
 @table @code
 @item defclass
-Only a subset of slot keywords are avaliable (see below), and only
-single inheritance is currently supported
+All slot keywords are avaliable but not all work correctly.  Only single
+inheritance is currently supported.  Slot keyword differences are:
+
+@table @asis
+@item :reader, and :writer tags
+Create methods that throw errors instead of
+creating an unqualified method.
+@item :accessor
+should create an unqualified method to access a slot, but
+instead pre-builds a method that gets the slot's value.
+@item :type
+specifier uses the @code{typep} function from the @file{cl}
+package.  @xref{(cl)Type Predicates}. It therefore has the same issues as
+that package.
+@item  :initform specifier
+is implemented correctly, but slots are not `unbound', and merely gain a
+value of @code{nil}
+@end table
+
 @item make-instance
 Make instance works as expected, however it just uses the EIEIO instance
 creator automatically created when a new class is generated.
@@ -227,8 +253,8 @@ Name of a generic function which will write this slot.
 @item :reader
 Name of a generic function which will read this slot.
 @item :type
-A type specifier used to validate data set into this slot.  See
-@code{typep} for details on it's format.
+An unquoted type specifier used to validate data set into this slot.
+@xref{(cl)Type Predicates}.
 @item :allocation
 Unsupported: Either :class or :instance (defaults to :instance) used to
 specify how data is stored.
@@ -255,6 +281,7 @@ object maintains."
 	  :protection private)
    (reference :initarg :reference
 	      :initform nil
+              :type list
               :custom (repeat object)
 	      :documentation "List of objects looking at me.  The method 
 `update-symbol' is called for each member of `reference' whenever 
