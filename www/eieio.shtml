@@ -66,36 +66,36 @@ useful examples
 <h2>Tools using EIEIO</h2>
 
 <DL>
-<DT><a href=semantic.shtml>Semantic</a>
+<DT><a href="semantic.shtml">Semantic</a>
 <DD>Parser Generator.  The Database which tracks tokens between sessions
     uses EIEIO persistent data classes.
-<DT><a href=ede.shtml>EDE</a>
+<DT><a href="ede.shtml">EDE</a>
 <DD>Emacs Development Environment uses EIEIO to track project information,
     and uses persistend data classes, instance inheritors, and instance
     trackers.  It also uses speedbar classes to provide a project
     overview.
-<DT><a href=cogre.shtml>COGRE</a>
+<DT><a href="cogre.shtml">COGRE</a>
 <DD>COnnected GRaph Editor uses EIEIO to track graph elements.
-<DT><a href=http://jde.sunsite.dk/>JDE</a>
+<DT><a href="http://jde.sunsite.dk/">JDE</a>
 <DD>Java Development Environment for Emacs uses EIEIO to manage the debugger,
     dialogs, and more.
-<DT><a href=http://home.swipnet.se/mayhem/ecb.html>ECB</a>
+<DT><a href="http://home.swipnet.se/mayhem/ecb.html">ECB</a>
 <DD>Emacs Code Browser.  Browse your files and source code.
-<DT><a href=http://xae.sunsite.dk/>XAE</a>
+<DT><a href="http://xae.sunsite.dk/">XAE</a>
 <DD>XML Authoring tool.
 
-<DT><a href=http://www.neilvandyke.org/jomtool/>jomtool</a>
+<DT><a href="http://www.neilvandyke.org/jomtool/">jomtool</a>
 <DD>Java code generator.
 </DL>
 
 <h2>Read the docs:</h2>
 
 <P>You can read the 
-   <a href=info/eieio.html>html documentation</a>
+   <a href="info/eieio.html">html documentation</a>
    created from the texinfo file.</p>
 
 <h2>Notes:</h2>
-<P><a href=ede.shtml>EDE 0.6</a> will not work with EIEIO 0.13 or
+<P><a href="ede.shtml">EDE 0.6</a> will not work with EIEIO 0.13 or
 greater.  Please use EIEIO 0.12.</p>
 
 <P>EIEIO should work with Emacs 19.3x, 20.x, and 21 pre-release.  It should also work with XEmacs 20.x, and 21.x.
@@ -104,11 +104,11 @@ greater.  Please use EIEIO 0.12.</p>
 <h2>Downloading EIEIO</h2>
 
 <P>Live on the Edge!
-   <a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
-    eieio-0.17beta3.tar.gz</A> has much better error checking, and
+   <a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
+    eieio-0.17beta4.tar.gz</A> has much better error checking, and
     method invocations is now closer to the CLOS standard.</p>
 
-<P><a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
+<P><a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
     eieio-0.16.tar.gz</A> has a new set of base classes to build apps from.</p>
 
 <h3>RPMS</h3>

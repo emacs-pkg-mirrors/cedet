@@ -85,12 +85,12 @@ compiling lisp files.</P>
 
 <P>
 Live on the Edge!  Try
-<a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
-speedbar 0.14beta2</a>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
+speedbar 0.14beta3</a>
 </p>
 
 <P>
-<a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
 speedbar-0.13a.tar.gz</A>.  <br>There is a bug in the Makefile of
 speedbar 0.13a.  To build, use the command "make LOADPATH=." to work
 around the problem quickly.
@@ -99,7 +99,7 @@ around the problem quickly.
 <h3>RPMS</h3>
 
 <P>RPMS for speedbar can be downloaded from
-  <a href=http://sourceforge.net/projects/rte>Real Time Enterprises</a>
+  <a href="http://sourceforge.net/projects/rte">Real Time Enterprises</a>
   RPM site at sourceforge.</p>
 
 <h3>Older releases of Speedbar</h3>
