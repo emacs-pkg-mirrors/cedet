@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.226 2003/02/21 16:08:41 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.227 2003/02/21 16:27:59 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -212,7 +212,7 @@ speedbar buffer.")
 This keymap is local to each buffer that wants to define special keybindings
 effective when it's display is shown.")
 
-(defcustom speedbar-before-visiting-file-hook nil
+(defcustom speedbar-before-visiting-file-hook '(push-mark)
   "*Hooks run before speedbar visits a file in the selected frame.
 The default buffer is the buffer in the selected window in the attached frame."
   :group 'speedbar
@@ -220,6 +220,12 @@ The default buffer is the buffer in the selected window in the attached frame."
 
 (defcustom speedbar-visiting-file-hook nil
   "*Hooks run when speedbar visits a file in the selected frame."
+  :group 'speedbar
+  :type 'hook)
+
+(defcustom speedbar-before-visiting-tag-hook '(push-mark)
+  "*Hooks run before speedbar visits a tag in the selected frame.
+The default buffer is the buffer in the selected window in the attached frame."
   :group 'speedbar
   :type 'hook)
 
@@ -3209,7 +3215,7 @@ current indentation level."
   (let ((cdd (speedbar-line-path indent)))
     ;; Run before visiting file hook here.
     (let ((f (selected-frame)))
-      (dframe-select-attached-frame dframe-attached-frame)
+      (dframe-select-attached-frame speedbar-frame)
       (run-hooks 'speedbar-before-visiting-file-hook)
       (select-frame f))
     (speedbar-find-file-in-frame (concat cdd text))
@@ -3330,6 +3336,10 @@ indentation level."
   "For the tag TEXT in a file TOKEN, goto that position.
 INDENT is the current indentation level."
   (let ((file (speedbar-line-path indent)))
+    (let ((f (selected-frame)))
+      (dframe-select-attached-frame speedbar-frame)
+      (run-hooks 'speedbar-before-visiting-tag-hook)
+      (select-frame f))
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
     ;; Reset the timer with a new timeout when cliking a file
