@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.24 2004/03/05 03:21:43 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.25 2004/03/10 19:30:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -350,7 +350,7 @@ If TAG is nil, determine a tag based on the current position."
 	  (when (semantic-tag-buffer sourcetag)
 	    (set-buffer (semantic-tag-buffer sourcetag))
 	    (unless (eq major-mode 'texinfo-mode)
-	    (cond ((semantic-tag-get-attribute sourcetag 'prototype)
+	    (cond ((semantic-tag-get-attribute sourcetag :prototype-flag)
 		   ;; If we found a match with doc that is a prototype, then store
 		   ;; that, but don't exit till we find the real deal.
 		   (setq docstringproto (semantic-documentation-for-tag sourcetag)
@@ -358,7 +358,7 @@ If TAG is nil, determine a tag based on the current position."
 		  ((eq (semantic-tag-class sourcetag) 'variable)
 		   (setq docstringvar (semantic-documentation-for-tag sourcetag)
 			 doctagvar sourcetag))
-		  ((semantic-tag-get-attribute sourcetag 'override-function)
+		  ((semantic-tag-get-attribute sourcetag :override-function-flag)
 		   nil)
 		  (t
 		   (setq docstring (semantic-documentation-for-tag sourcetag))))
