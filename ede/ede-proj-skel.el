@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-skel.el,v 1.1 1999/11/10 15:28:52 zappo Exp $
+;; RCS: $Id: ede-proj-skel.el,v 1.2 1999/12/01 01:47:09 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -162,24 +162,14 @@
 ;; In general, none of these need to be defined unless your have slots
 ;; for auxiliary source files.
 
-;; This lets you make tweaks to the button which represents your target.
-;; You can tweek the representor, and the face.
-;;(defmethod ede-sb-button ((this ede-proj-target-%NAME%) depth)
-;;  "Insert a speedbar button at indentation DEPTH."
-;;  (speedbar-make-tag-line 'angle ?+
-;;			    'ede-object-expand
-;;			    this (ede-name this)
-;;			    nil this  ; nothing to jump to
-;;			    'speedbar-file-face depth))
-
 ;; This lets you add buttons of things your target contains which may
 ;; not be shown be default.
 ;;
 ;; You will need to tweek the functions used when clicking on the
 ;; expand icon (maybe) and the item name (maybe). Leave those alone
 ;; if they are simple source files.
-;;(defmethod ede-sb-expand ((this ede-proj-target-%NAME%) depth)
-;;  "Create buttons for items belonging to THIS at DEPTH."
+;;(defmethod eieio-speedbar-child-make-tag-lines ((this ede-proj-target-%NAME%))
+;;  "Create buttons for items belonging to THIS."
 ;;  (call-next-method) ;; get the default buttons inserted.
 ;;  (with-slots (%SOME-SLOTS%) this
 ;;    (mapcar (lambda (car)
