@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.1 2002/06/19 04:45:42 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.2 2002/06/21 07:57:31 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -37,16 +37,71 @@
 ;; The official Grammar file from the Python source code distribution
 ;; was the starting point of this wisent version.
 ;;
+;; Approximate non-terminal (NT) hierarchy of the python grammer for
+;; the `single_input' NT is shown below.
+;;
+;;   goal
+;;     single_input
+;;       NEWLINE
+;;       simple_stmt
+;;         small_stmt_list semicolon_opt NEWLINE
+;;           small_stmt
+;;             print_stmt
+;;             del_stmt
+;;             pass_stmt
+;;             flow_stmt
+;;             import_stmt
+;;             global_stmt
+;;             exec_stmt
+;;             assert_stmt
+;;             expr_stmt
+;;               augassign
+;;               testlist
+;;                 test
+;;                   test_testlambdef
+;;                   test_test
+;;                     and_test
+;;                       not_test
+;;                         comparison
+;;                           expr
+;;                             xor_expr
+;;                               and_expr
+;;                                 shift_expr
+;;                                   arith_expr
+;;                                     term
+;;                                       factor
+;;                                         power
+;;                                           atom
+;;                                           trailer
+;;                                             ( arglist_opt )
+;;                                               test
+;;                                             [ subscriptlist ]
+;;       compound_stmt NEWLINE
+;;         if_stmt
+;;         while_stmt
+;;         for_stmt
+;;         try_stmt
+;;         funcdef
+;;         classdef
+
 ;;; To do:
 ;;
 ;; * Debug the grammar so that it can parse at least all standard *.py
 ;;   files distributed along with python.
 ;;
+;; * Enhance the lexer so that DEDENT, INDENT, and NEWLINE tokens are
+;;   properly suppressed when a logical line continues on two or more
+;;   physical lines either explicitly via '\' or implicitly by missing
+;;   ')', ']', or '}'.
+;;
+;; * Delete most semantic rules when the grammar is debugged.
+;;
 ;; * Updated semantic-python-number-regexp based on Python reference
 ;;   manual.  Currently version is an exact replica from semantic-java.el.
 ;;
-;; * Optimize `string-indentation'.  This was a quick hack to get us going. 
+;; * Optimize `string-indentation'.  This was a quick hack to get us going.
 ;;
+;; * Figure out what ENDMARKER token is for.
 
 (require 'wisent-bovine)
 
@@ -64,9 +119,13 @@
 (defsubst string-indentation (pos)
   (save-excursion
     (goto-char pos)
-    (if (looking-at "\\s-*\\(#\\|$\\)")
-	-1
-      (current-indentation))))
+    (cond ((eobp)
+	   '(setq wisent-flex-istream
+		 (cons (cons 'newline (cons (point) (point)))
+		       wisent-flex-istream))
+	   0)
+	  ((looking-at "\\s-*\\(#\\|$\\)") -1)
+	  (t (current-indentation)))))
 
 (defun wisent-python-lex-bol ()
   "Handle BOL syntactic tokens.
@@ -102,7 +161,7 @@ Produce corresponding INDENT or DEDENT python's lexical tokens."
       ;; Leave 'bol token in place
       ;; Return a DEDENT lexical token
       (list 'DEDENT last-indent)))))
-  
+
 (defconst semantic-python-number-regexp
   (eval-when-compile
     (concat "\\("
@@ -146,7 +205,7 @@ we get around ot it.")
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-18 14:34-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 17:06-0700
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -210,15 +269,20 @@ we get around ot it.")
        (fpdef
 	((NAME))
 	((LPAREN fplist RPAREN)
-	 (format "(%s)" $2)))
+	 (format "(%s)"
+		 (or $2 ""))))
        (fplist
-	((fpdef_list comma_opt)))
+	((fpdef_list comma_opt)
+	 (format "%s %s"
+		 (or $1 "")
+		 (or $2 ""))))
        (fpdef_list
 	((fpdef))
 	((fpdef_list COMMA fpdef)
 	 (format "%s, %s" $1 $3)))
        (stmt
-	((single_input)))
+	((simple_stmt))
+	((compound_stmt)))
        (simple_stmt
 	((small_stmt_list semicolon_opt NEWLINE)
 	 (wisent-token
@@ -366,7 +430,9 @@ we get around ot it.")
        (dotted_name
 	((NAME))
 	((dotted_name PERIOD NAME)
-	 (format "%s %s %s" $1 $2 $3)))
+	 (format "%s %s %s"
+		 (or $1 "")
+		 $2 $3)))
        (global_stmt
 	((GLOBAL comma_sep_name_list)
 	 (format "global %s" $2)))
@@ -536,22 +602,35 @@ we get around ot it.")
 	((MINUS))
 	((TILDE)))
        (power
-	((atom trailer_opt exponent_opt)
+	((atom trailer_zom exponent_zom)
 	 (format "%s %s %s" $1
 		 (or $2 "")
 		 (or $3 ""))))
-       (trailer_opt
+       (trailer_zom
 	(nil)
-	((trailer)))
-       (exponent_opt
+	((trailer_zom trailer)
+	 (format "%s %s"
+		 (or $1 "")
+		 $2)))
+       (exponent_zom
 	(nil)
-	((EXPONENT factor)
-	 (format "** %s" $2)))
+	((exponent_zom EXPONENT factor)
+	 (format "%s ** %s"
+		 (or $1 "")
+		 $3)))
        (atom
-	((LPAREN testlist_opt RPAREN))
-	((LBRACK listmaker_opt RBRACK))
-	((LBRACE dictmaker_opt RBRACE))
-	((BACKQUOTE testlist BACKQUOTE))
+	((LPAREN testlist_opt RPAREN)
+	 (format "(%s)"
+		 (or $2 "")))
+	((LBRACK listmaker_opt RBRACK)
+	 (format "[%s]"
+		 (or $2 "")))
+	((LBRACE dictmaker_opt RBRACE)
+	 (format "{%s}"
+		 (or $2 "")))
+	((BACKQUOTE testlist BACKQUOTE)
+	 (format "`%s`"
+		 (or $2 "")))
 	((NAME))
 	((NUMBER_LITERAL))
 	((one_or_more_string)))
@@ -580,34 +659,53 @@ we get around ot it.")
 	((LAMBDA COLON test)
 	 (format "%s %s %s" $1 $2 $3)))
        (trailer
-	((LPAREN arglist_opt RPAREN))
-	((LBRACK subscriptlist RBRACK))
-	((PERIOD NAME)))
+	((LPAREN arglist_opt RPAREN)
+	 (format "(%s)"
+		 (or $2 "")))
+	((LBRACK subscriptlist RBRACK)
+	 (format "[%s]"
+		 (or $2 "")))
+	((PERIOD NAME)
+	 (format ".%s" $2)))
        (arglist_opt
 	(nil)
 	((arglist)))
        (subscriptlist
-	((comma_sep_subscript_list comma_opt)))
+	((comma_sep_subscript_list comma_opt)
+	 (format "%s %s"
+		 (or $1 "")
+		 (or $2 ""))))
        (comma_sep_subscript_list
 	((subscript))
 	((comma_sep_subscript_list COMMA subscript)))
        (subscript
-	((PERIOD PERIOD PERIOD))
+	((PERIOD PERIOD PERIOD)
+	 (format "..."))
 	((test))
-	((zero_or_one_test COLON zero_or_one_test zero_or_one_sliceop)))
+	((zero_or_one_test COLON zero_or_one_test zero_or_one_sliceop)
+	 (format "%s : %s %s"
+		 (or $1 "")
+		 (or $3 "")
+		 (or $4 ""))))
        (zero_or_one_sliceop
 	(nil)
 	((sliceop)))
        (sliceop
-	((COLON zero_or_one_test)))
+	((COLON zero_or_one_test)
+	 (format ": %s"
+		 (or $2 ""))))
        (zero_or_one_test
 	(nil)
 	((test)))
        (exprlist
-	((expr_list comma_opt)))
+	((expr_list comma_opt)
+	 (format "%s %s"
+		 (or $1 "")
+		 (or $2 ""))))
        (expr_list
 	((expr))
-	((expr_list COMMA expr)))
+	((expr_list COMMA expr)
+	 (format "%s, %s" $1 $2)))
        (testlist
 	((comma_sep_test_list comma_opt)
 	 (if $2
@@ -637,10 +735,15 @@ we get around ot it.")
 	((testlist_safe_term COMMA test)
 	 (format "%s %s %s" $1 $2 $3)))
        (dictmaker
-	((test COLON test colon_sep_test comma_opt)))
+	((test COLON test colon_sep_test comma_opt)
+	 (format "%s : %s %s %s" $1 $3 $4
+		 (or $5 ""))))
        (colon_sep_test
 	(nil)
-	((colon_sep_test COMMA test COLON test)))
+	((colon_sep_test COMMA test COLON test)
+	 (format "%s, %s : %s"
+		 (or $1 "")
+		 $3 $4)))
        (funcdef
 	((DEF NAME parameters COLON suite)
 	 (wisent-token
@@ -664,27 +767,48 @@ we get around ot it.")
 	  'classdef_stmt_list nil nil)))
        (paren_testlist_opt
 	(nil)
-	((LPAREN testlist RPAREN)))
+	((LPAREN testlist RPAREN)
+	 (format "(%s)"
+		 (or $2 ""))))
        (arglist
-	((argument_comma_zom arglist_trailer)))
-       (argument_comma_zom
-	(nil)
-	((argument_comma_zom argument COMMA)))
-       (arglist_trailer
-	((argument comma_opt))
-	((MULT test comma_mult_mult_test_opt))
-	((EXPONENT test)))
-       (comma_mult_mult_test_opt
-	(nil)
-	((COMMA EXPONENT test)))
-       (argument
-	((test_eq_opt test)
+	((argument_comma_zom arglist_trailer)
 	 (format "%s %s"
 		 (or $1 "")
+		 (or $2 ""))))
+       (argument_comma_zom
+	(nil)
+	((argument_comma_zom argument COMMA)
+	 (format "%s %s,"
+		 (or $1 "")
 		 $2)))
+       (arglist_trailer
+	((argument comma_opt)
+	 (format "%s%s" $1
+		 (or $2 "")))
+	((MULT test comma_mult_mult_test_opt)
+	 (format "* %s %s"
+		 (or $2 "")
+		 (or $3 "")))
+	((EXPONENT test)
+	 (format "** %s"
+		 (or $2 ""))))
+       (comma_mult_mult_test_opt
+	(nil)
+	((COMMA EXPONENT test)
+	 (format ", ** %s"
+		 (or $3 ""))))
+       (argument
+	((white_space_tokens_zom test eq_test_opt white_space_tokens_zom)
+	 (format "%s" $2)))
+       (white_space_tokens_zom
+	(nil)
+	((white_space_tokens_zom white_space_token)))
+       (white_space_token
+	((NEWLINE))
+	((INDENT)))
        (test_eq_opt
 	(nil)
-	((test ASSIGN)
+	((NAME ASSIGN)
 	 (format "%s = " $1)))
        (list_iter
 	((list_for))
@@ -702,7 +826,7 @@ we get around ot it.")
 
 (defconst wisent-python-keywords
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-18 14:34-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 17:06-0700
    (semantic-flex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -766,7 +890,7 @@ we get around ot it.")
 
 (defconst wisent-python-tokens
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-18 14:34-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 17:06-0700
    (wisent-flex-make-token-table
     '(("bol"
        (DEDENT)
@@ -837,7 +961,7 @@ we get around ot it.")
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-18 14:34-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 17:06-0700
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
 	  semantic-toplevel-bovine-table wisent-python-parser-tables
@@ -856,7 +980,7 @@ we get around ot it.")
      semantic-type-relation-separator-character '(".")
      semantic-command-separation-character ";"
      ;; Init indentation stack
-     wisent-python-lexer-indent-stack nil
+     wisent-python-lexer-indent-stack '(0)
 
      semantic-flex-python-extensions
      '(("\"\"\"" . semantic-flex-python-triple-quotes))
