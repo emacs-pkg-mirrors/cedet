@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: picture
-;; X-RCS: $Id: picture-hack.el,v 1.2 2001/06/06 16:26:21 zappo Exp $
+;; X-RCS: $Id: picture-hack.el,v 1.3 2001/08/08 00:44:09 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,13 +23,15 @@
 
 ;;; Commentary:
 ;;
-;; Picture-hack is a series of modifications to functions in picture.el,
+;; Picture-hack is a series of modifications to functions in picture.el
+;; and rect.el.
 ;; It also contains new functions which should live in picture.el
 ;;
 ;; These are hacks needed by COGRE.  Long term, I would like to see
 ;; these features merged back into picture mode.
 
 (require 'picture)
+(require 'rect)
 
 ;;; Code:
 
@@ -87,8 +89,26 @@ Leaves the region surrounding the rectangle."
 			       (length (car rectangle)))
 			      (picture-move-down (1- (length rectangle)))
 			      (point)))))
+    ;; This line is different from the one in Emacs 21, and enables
+    ;; the mark to only be pushed if it is interactivly called.
     (if (interactive-p) (push-mark))
     (insert-rectangle rectangle)))
+
+(if (condition-case nil
+	(and (clear-rectangle 0 0 t)
+	     nil)
+      (error t))
+
+    ;; In emacs 20, FILL is not an argument to clear rectangle as it is
+    ;; in emacs 21.  Add it here.  Fortunatly, `operate-on-rectangle' does
+    ;; take a fill argument.
+    (defun clear-rectangle (start end &optional fill)
+      "Blank out rectangle with corners at point and mark.
+The text previously in the region is overwritten by the blanks.
+When called from a program, requires two args which specify the corners."
+      (interactive "r")
+      (operate-on-rectangle 'clear-rectangle-line start end t))
+)
 
 (defun picture-insert (ch arg &rest textproperties)
   "Insert character CH, and move in the current picture motion direction.
