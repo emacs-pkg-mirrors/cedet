@@ -4,16 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: ede-pconf.el,v 1.6 2000/07/22 13:07:36 zappo Exp $
+;; RCS: $Id: ede-pconf.el,v 1.7 2000/09/24 15:26:37 zappo Exp $
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -33,14 +31,31 @@
 ;;; Code:
 (defmethod ede-proj-configure-file ((this ede-proj-project))
   "The configure.in script used by project THIS."
-  (ede-expand-filename (ede-toplevel this) "configure.in"))
+  (ede-expand-filename (ede-toplevel this) "configure.in" t))
+
+(defmethod ede-proj-configure-test-required-file ((this ede-proj-project) file)
+  "For project THIS, test that the file FILE exists, or create it."
+  (if (not (ede-expand-filename (ede-toplevel this) file))
+      (save-excursion
+	(find-file (ede-expand-filename (ede-toplevel this) file t))
+	(cond ((string= file "AUTHORS")
+	       (insert (user-full-name) " <" (user-login-name) ">"))
+	      ((string= file "NEWS")
+	       (insert "NEWS file for " (ede-name this)))
+	      (t (insert "\n")))
+	(save-buffer)
+	(if (not (y-or-n-p
+		  (format "I had to create the %s file for you.  Ok? " file)))
+	    (error "Quit")))))
+
 
 (defmethod ede-proj-configure-synchronize ((this ede-proj-project))
   "Synchronize what we know about project THIS into configure.in."
   (let ((b (find-file-noselect (ede-proj-configure-file this)))
 	(td (file-name-directory (ede-proj-configure-file this)))
 	(targs (oref this targets))
-	(postcmd ""))
+	(postcmd "")
+	(add-missing nil))
     ;; First, make sure we have a file.
     (if (not (file-exists-p (ede-proj-configure-file this)))
 	(autoconf-new-program b (oref this name) "Project.ede"))
@@ -53,56 +68,46 @@
      ;;
     (ede-proj-dist-makefile this)
     ;; Loop over all targets to clean and then add themselves in.
-    (while targs
-      (ede-proj-flush-autoconf (car targs))
-      (setq targs (cdr targs)))
-    (setq targs (oref this targets))
-    (while targs
-      (ede-proj-tweak-autoconf (car targs))
-      (setq targs (cdr targs)))
+    (mapcar 'ede-proj-flush-autoconf targs)
+    (mapcar 'ede-proj-tweak-autoconf targs)
     ;; Now save
     (save-buffer)
     ;; Verify aclocal
     (if (not (file-exists-p (ede-expand-filename (ede-toplevel this)
-						 "aclocal.m4")))
+						 "aclocal.m4" t)))
 	(setq postcmd "aclocal;autoconf;autoheader;")
       ;; Verify the configure script...
-      (if (not (file-exists-p (ede-expand-filename (ede-toplevel this)
-						   "configure")))
+      (if (not (ede-expand-filename (ede-toplevel this)
+				    "configure"))
 	  (setq postcmd "autoconf;autoheader;")
-	(if (not (file-exists-p (ede-expand-filename (ede-toplevel this)
-						     "config.h.in")))
+	(if (not (ede-expand-filename (ede-toplevel this) "config.h.in"))
 	    (setq postcmd "autoheader;"))))
     ;; Verify Makefile.in, and --add-missing files (cheaply)
-    (if (not (file-exists-p (ede-expand-filename (ede-toplevel this)
-						 "Makefile.in")))
+    (setq add-missing (ede-or (mapcar 'ede-proj-configure-add-missing targs)))
+    (if (not (ede-expand-filename (ede-toplevel this) "Makefile.in"))
 	(progn
 	  (setq postcmd (concat postcmd "automake"))
-	  (if (not (file-exists-p (ede-expand-filename (ede-toplevel this)
-						       "COPYING")))
+	  (if (or (not (ede-expand-filename (ede-toplevel this) "COPYING"))
+		  add-missing)
 	      (setq postcmd (concat postcmd " --add-missing")))
 	  (setq postcmd (concat postcmd ";")))
-      (if (not (file-exists-p (ede-expand-filename (ede-toplevel this)
-						   "COPYING")))
+      (if (or (not (ede-expand-filename (ede-toplevel this) "COPYING"))
+	      add-missing)
 	  (setq postcmd (concat postcmd "automake --add-missing;"))))
-    (if (not (file-exists-p (ede-expand-filename (ede-toplevel this)
-						 "AUTHORS")))
-	(save-excursion
-	  (find-file (ede-expand-filename (ede-toplevel this)
-					  "AUTHORS"))
-	  (insert (user-full-name) " <" (user-login-name) ">")
-	  (save-buffer)
-	  (if (not
-	       (y-or-n-p "I had to create the AUTHORS file for you.  Ok? "))
-	      (error "Quit"))))
+    ;; Verify a bunch of files that are required by automake.
+    (ede-proj-configure-test-required-file this "AUTHORS")
+    (ede-proj-configure-test-required-file this "NEWS")
+    (ede-proj-configure-test-required-file this "README")
+    (ede-proj-configure-test-required-file this "ChangeLog")
+    ;; Let specific targets get missing files.
+    (mapcar 'ede-proj-configure-create-missing targs)
     ;; Verify that we have a make system.
-    (if (or (not (file-exists-p (ede-expand-filename (ede-toplevel this)
-						     "Makefile")))
+    (if (or (not (ede-expand-filename (ede-toplevel this) "Makefile"))
 	    ;; Now is this one of our old Makefiles?
 	    (save-excursion
 	      (set-buffer (find-file-noselect
 			   (ede-expand-filename (ede-toplevel this)
-						"Makefile") t))
+						"Makefile" t)))
 	      (goto-char (point-min))
 	      ;; Here is the unique piece for our makefiles.
 	      (re-search-forward "For use with: make" nil t)))
@@ -111,11 +116,19 @@
 	(progn
 	  (compile postcmd)
 	  (switch-to-buffer "*Help*")
+	  (toggle-read-only -1)
 	  (erase-buffer)
 	  (insert "Preparing build environment
 
 Rerun the previous ede command when automake and autoconf are completed.")
 	  (goto-char (point-min))
+	  (let ((b (get-file-buffer
+		    (ede-expand-filename (ede-toplevel this)
+					 "Makefile"))))
+	    ;; This makes sure that if Makefile was loaded, and old,
+	    ;; that it gets flushed so we don't keep rebuilding
+	    ;; the autoconf system.
+	    (if b (kill-buffer b)))
 	  (error "Preparing build environment: Rerun your command when done")
 	  ))))
 
@@ -131,12 +144,23 @@ Rerun the previous ede command when automake and autoconf are completed.")
 
 (defmethod ede-proj-tweak-autoconf ((this ede-proj-target))
   "Tweak the configure file (current buffer) to accomodate THIS."
-  nil)
+  ;; Check the compilers belonging to THIS, and call the autoconf
+  ;; setup for those compilers.
+  (mapcar 'ede-proj-tweak-autoconf (ede-proj-compilers this)))
 
 (defmethod ede-proj-flush-autoconf ((this ede-proj-target))
   "Flush the configure file (current buffer) to accomodate THIS.
 By flushing, remove any cruft that may be in the file.  Subsequent
 calls to `ede-proj-tweak-autoconf' can restore items removed by flush."
+  nil)
+
+(defmethod ede-proj-configure-add-missing ((this ede-proj-target))
+  "Query if any files needed by THIS provided by automake are missing.
+Results in --add-missing being passed to automake."
+  nil)
+
+(defmethod ede-proj-configure-create-missing ((this ede-proj-target))
+  "Add any missing files for THIS by creating them."
   nil)
 
 (provide 'ede-pconf)
