@@ -4,9 +4,9 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.3 1996/07/28 18:51:36 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.4 1996/08/17 00:23:54 zappo Exp $
 ;;; Keywords: OO widget dialog
-;;;
+;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation; either version 2, or (at your option)
@@ -98,6 +98,7 @@ key is any value between 0 and 128"
   (define-key dialog-mode-map "\C-x" nil)
   (define-key dialog-mode-map "\e" nil)
   (define-key dialog-mode-map "\C-z" nil)
+  (define-key dialog-mode-map "\C-c" nil)
   (define-key dialog-mode-map "\C-h" nil)
   (define-key dialog-mode-map "\C-l" nil)
   (define-key dialog-mode-map "\C-g" nil)
@@ -330,19 +331,20 @@ same type."
 (defun goto-xy (x y)
   "Move cursor to position X Y in buffer, and add spaces and CRs if
 needed."
-  (let ((indent-tabs-mode nil)
-	(num (goto-line y)))
-    (if (and (= 0 num) (/= 0 (current-column))) (newline 1))
-    (if (eobp) (newline num))
-    ;; Now, a quicky column moveto/forceto method.
-    (if (/= (move-to-column x) x)
-	(let ((pnt (point)) (end nil))
-	  (indent-to x)
-	  (setq end (point))
-	  (if (and (/= pnt end) (fboundp 'put-text-property))
-	      (progn
-		(put-text-property pnt end 'face nil)
-		(put-text-property pnt end 'mouse-face nil)))))))
+  (if (eq major-mode 'dialog-mode)
+      (let ((indent-tabs-mode nil)
+	    (num (goto-line y)))
+	(if (and (= 0 num) (/= 0 (current-column))) (newline 1))
+	(if (eobp) (newline num))
+	;; Now, a quicky column moveto/forceto method.
+	(if (/= (move-to-column x) x)
+	    (let ((pnt (point)) (end nil))
+	      (indent-to x)
+	      (setq end (point))
+	      (if (and (/= pnt end) (fboundp 'put-text-property))
+		  (progn
+		    (put-text-property pnt end 'face nil)
+		    (put-text-property pnt end 'mouse-face nil))))))))
   
 (defun insert-overwrite-face (string face &optional focus-face)
   "Insert STRING into buffer at point, and cover it with FACE"
