@@ -5,6 +5,11 @@
   :version "2.0beta1"
   :file "Project.ede"
   :targets (list 
+   (semantic-ede-proj-target-grammar "metagrammar"
+    :name "metagrammar"
+    :path ""
+    :source '("semantic-grammar.wy")
+    )
    (ede-proj-target-elisp-autoloads "autoloads"
     :name "autoloads"
     :path ""
@@ -17,11 +22,6 @@
     :source '("semantic-ede-grammar.el")
     :partofall 'nil
     :aux-packages '("ede-proj" "eieio")
-    )
-   (ede-proj-target-makefile-miscelaneous "wy"
-    :name "wy"
-    :path ""
-    :source '("semantic-grammar.wy")
     )
    (ede-proj-target-makefile-miscelaneous "scripts"
     :name "scripts"
