@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.48 2001/04/27 00:24:58 zappo Exp $
+;; RCS: $Id: ede.el,v 1.49 2001/04/30 17:32:08 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -588,9 +588,11 @@ If ARG is negative, disable.  Toggle otherwise."
     (if (or (eq arg t) (> arg 0))
 	(progn
 	  (add-hook 'semanticdb-project-predicates 'ede-directory-project-p)
+	  (add-hook 'semanticdb-project-root-functions 'ede-toplevel-project-or-nil)
 	  (add-hook 'find-file-hooks 'ede-turn-on-hook)
 	  (add-hook 'dired-mode-hook 'ede-turn-on-hook))
       (remove-hook 'semanticdb-project-predicates 'ede-directory-project-p)
+      (remove-hook 'semanticdb-project-root-functions 'ede-toplevel-project-or-nil)
       (remove-hook 'find-file-hooks 'ede-turn-on-hook)
       (remove-hook 'dired-mode-hook 'ede-turn-on-hook))
     (let ((b (buffer-list)))
@@ -1157,10 +1159,17 @@ This depends on an up to day `ede-project-class-files' variable."
 (defun ede-up-directory (dir)
   "Return a path that is up one directory.
 Argument DIR is the directory to trim upwards."
-  (let ((newdir (file-name-directory (directory-file-name dir))))
-    (if (string= dir newdir)
-	nil
-      newdir)))
+  (let ((parent (expand-file-name ".." dir)))
+    (if (and (> (length parent) 1) (string= ".." (substring parent -2)))
+        nil
+      parent)))
+
+(defun ede-toplevel-project-or-nil (path)
+  "Starting with PATH, find the toplevel project directory, or return nil.
+nil is returned if the current directory is not a part ofa project."
+  (if (ede-directory-project-p path)
+      (ede-toplevel-project path)
+    nil))
 
 (defun ede-toplevel-project (path)
   "Starting with PATH, find the toplevel project directory."
@@ -1168,7 +1177,7 @@ Argument DIR is the directory to trim upwards."
     ;; Loop up to the topmost project, and then load that single
     ;; project, and it's sub projects.  When we are done, identify the
     ;; sub-project object belonging to file.
-    (setq toppath path newpath path)
+    (setq toppath (expand-file-name path) newpath (expand-file-name path))
     (while (ede-directory-project-p newpath)
       (setq toppath newpath newpath (ede-up-directory toppath)))
     toppath))
