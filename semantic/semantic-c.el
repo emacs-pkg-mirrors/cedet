@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.40 2001/09/29 23:44:33 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.41 2001/10/03 00:45:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -122,6 +122,7 @@
  ( PUBLIC)
  ( PRIVATE)
  ( PROTECTED)
+ ()
  ) ; end opt-class-protection
  (namespaceparts
  ( semantic-list
@@ -176,7 +177,7 @@
  ( struct-or-class opt-name opt-class-parents classparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type) (nth 0 vals) (list (nth 3 vals)) (nth 2 vals) (list nil nil)))
- ( UNION opt-name structparts
+ ( UNION opt-name classparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
  ( ENUM opt-name enumparts
@@ -184,7 +185,7 @@
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
  ( TYPEDEF typeformbase opt-stars symbol
   ,(semantic-lambda
-  (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
+  (list (nth 3 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
  ) ; end typesimple
  (struct-or-class
  ( STRUCT)
@@ -224,10 +225,21 @@
  ( VOLATILE)
  ( SIGNED)
  ( UNSIGNED)
- ( VIRTUAL)
  ( INLINE)
  ( REGISTER)
+ ( METADECLMOD)
  ) ; end DECLMOD
+ (metadeclmod
+ ( METADECLMOD
+  ,(semantic-lambda
+ ))
+ (
+  ,(semantic-lambda
+ ))
+ ) ; end metadeclmod
+ (METADECLMOD
+ ( VIRTUAL)
+ ) ; end METADECLMOD
  (opt-ref
  ( punctuation "\\b&\\b")
  ()
@@ -262,9 +274,9 @@
  ( DOUBLE)
  ) ; end builtintype
  (var-or-fun
- ( declmods typeformbase opt-ref var-or-func-decl
+ ( declmods typeformbase metadeclmod opt-ref var-or-func-decl
   ,(semantic-lambda
-  ( semantic-c-reconstitute-token (nth 3 vals) (nth 0 vals) (nth 1 vals))))
+  ( semantic-c-reconstitute-token (nth 4 vals) (nth 0 vals) (nth 1 vals))))
  ( declmods var-or-func-decl
   ,(semantic-lambda
   ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
@@ -464,6 +476,9 @@
  ( semantic-list
   ,(semantic-lambda
   (list nil)))
+ ( punctuation "\\b=\\b" number "^0$" punctuation "\\b;\\b"
+  ,(semantic-lambda
+  (list t)))
  ) ; end fun-or-proto-end
  (opt-expression
  ( expression)
@@ -472,13 +487,13 @@
   (list nil)))
  ) ; end opt-expression
  (expression
- ( symbol punctuation "\\." symbol
+ ( number punctuation "\\b\\.\\b" number
+  ,(semantic-lambda
+ ))
+ ( number
   ,(semantic-lambda
  ))
  ( symbol
-  ,(semantic-lambda
- ))
- ( punctuation "[!*&~]" symbol
   ,(semantic-lambda
  ))
  ( string
@@ -487,9 +502,10 @@
  ( semantic-list
   ,(semantic-lambda
  ))
+ ( punctuation "[-+*/%^|&]" expression)
  ) ; end expression
  )
-   "C language specification.")
+ "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -646,6 +662,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("register" summary "Declaration Modifier: register <type> <name> ...")
      ("signed" summary "Numeric Type Modifier: signed <numeric type> <name> ...")
      ("unsigned" summary "Numeric Type Modifier: unsigned <numeric type> <name> ...")
+     ("inline" summary "Function Modifier: inline <return  type> <name>(...) {...};")
      ("virtual" summary "Method Modifier: virtual <type> <name>(...) ...")
      ("struct" summary "Structure Type Declaration: struct [name] { ... };")
      ("union" summary "Union Type Declaration: union [name] { ... };")
@@ -758,6 +775,8 @@ Override function for `semantic-nonterminal-protection'."
 	document-comment-start "/*"
 	document-comment-line-prefix " *"
 	document-comment-end " */"
+	;; Semantic navigation inside 'type children
+	senator-step-at-token-ids '(function variable)
 	)
  
  ;; End code generated from c.bnf
