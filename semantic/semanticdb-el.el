@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.5 2003/02/27 02:58:59 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.6 2003/03/14 02:59:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -92,31 +92,28 @@ This was snarfed out of eldoc."
   "Convert SYM into a semantic token.
 TOKTYPE is a hint to the type of token desired."
   (cond ((and (eq toktype 'function) (fboundp sym))
-	 (list (symbol-name sym) 'function
-	       nil ;; return type
-	       (semantic-elisp-desymbolify
-		(semanticdb-elisp-sym-function-arglist sym)) ;; arg-list
-	       (semantic-bovinate-make-assoc-list
-		'user-visible (interactive-form sym)
-		) ;; assoc-list
-	       nil ;; doc
-	       ))
+	 (semantic-tag-new-function
+	  (symbol-name sym)
+	  nil ;; return type
+	  (semantic-elisp-desymbolify
+	   (semanticdb-elisp-sym-function-arglist sym)) ;; arg-list
+	  'user-visible (interactive-form sym)
+	  ))
 	((and (eq toktype 'variable) (boundp sym))
-	 (list (symbol-name sym) 'variable
-	       nil ;; type
-	       nil ;; value - ignore for now
-	       nil ;; assoc-list
-	       nil ;; doc
-	       ))
+	 (semantic-tag-new-variable
+	  (symbol-name sym)
+	  nil ;; type
+	  nil ;; value - ignore for now
+	  ))
 	((and (eq toktype 'type) (class-p sym))
-	 (list (symbol-name sym) 'type "class"
-	       (semantic-elisp-desymbolify
-		(aref (class-v semanticdb-project-database)
-		      class-public-a)) ;; slots
-	       (semantic-elisp-desymbolify (class-parents sym)) ;; parents
-	       nil ;; assoc
-	       nil ;; doc
-	       ))
+	 (semantic-tag-new-type
+	  (symbol-name sym)
+	  "class"
+	  (semantic-elisp-desymbolify
+	   (aref (class-v semanticdb-project-database)
+		 class-public-a)) ;; slots
+	  (semantic-elisp-desymbolify (class-parents sym)) ;; parents
+	  ))
 	((not toktype)
 	 ;; Figure it out on our own.
 	 (cond ((class-p sym)
@@ -154,14 +151,14 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
 	  (lambda (atom)
 	    (when (boundp atom)
 	      (setq semanticdb-elisp-mapatom-collector
-		    (cons (semanticdb-elisp-sym->nonterm atom 'function)
+		    (cons (semanticdb-elisp-sym->nonterm atom 'variable)
 			  semanticdb-elisp-mapatom-collector)))))
 	 ((eq token 'type)
 	  (lambda (atom)
 	    (when (or (class-p atom)
 		      )
 	      (setq semanticdb-elisp-mapatom-collector
-		    (cons (semanticdb-elisp-sym->nonterm atom 'function)
+		    (cons (semanticdb-elisp-sym->nonterm atom 'type)
 			  semanticdb-elisp-mapatom-collector)))))
 	 (t nil))
    search-parts search-includes diff-mode find-file-match)
