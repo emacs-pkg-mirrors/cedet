@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.16 2004/01/09 20:58:37 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.17 2004/02/12 02:02:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -266,6 +266,18 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 	(setq roots (cdr roots))))
      )
     ans))
+
+
+;;; FIND results and edebug
+;;
+(eval-after-load "cedet-edebug"
+  '(progn
+     (cedet-edebug-add-print-override
+      '(semanticdb-find-results-p object)
+      '(semanticdb-find-result-prin1-to-string object) )
+     ))
+
+
 
 ;;; API Functions
 ;;
