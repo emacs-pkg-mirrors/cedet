@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.6.3.b
+;; Version: 0.7a
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.79 1998/03/06 23:11:55 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.80 1998/03/09 16:08:37 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -305,14 +305,14 @@
 ;;       General documentation fixup.
 ;; 0.6.1 Fixed button-3 menu for Emacs 20.
 ;; 0.6.2 Added autoload tag to `speedbar-get-focus'
-;; 0.6.3 From lektu@lander.es (Juanma Barranquero), change check for
+;; 0.7   From lektu@lander.es (Juanma Barranquero), change check for
 ;;         setting mouse cursor style to be dependent on X.
 ;;       Changed expressions that look for `speedbar-vc-indicator'
 ;;         to use `speedbar-indicator-regex'.  This will enable
 ;;         multiple combined indicators.
 ;;       Added new stealthy function to mark files that have associated OBJs
 ;;         Identification uses `speedbar-obj-alist' to identify files to mark.
-;;       Adding indicators now selectivly removes stale related indicators 
+;;       Adding indicators now selectivly removes stale related indicators
 ;;         so for states that change, it is safe to re-evaluate
 ;;       Speedbar will now work in a non-windowing environment.
 ;;       `speedbar-update-flag' defaults to nil on terminals.
@@ -323,6 +323,9 @@
 ;;         specific depth of files.
 ;;       Merge the speedbspec file into this file, and simplify the
 ;;         method of setting up the special modes.
+;;       Added scheme .scm support.
+;;       Added `speedbar-hide-button-brackets-flag' to hide the brackets
+;;         around the + or - for emacsspeak.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -521,6 +524,9 @@ hierarchy would be replaced with the new directory."
   :group 'speedbar
   :type 'boolean)
 
+(defvar speedbar-hide-button-brackets-flag nil
+  "*Non-nil means speedbar will hide the brackets around the + or -.")
+
 (defcustom speedbar-before-popup-hook nil
   "*Hooks called before popping up the speedbar frame."
   :group 'speedbar
@@ -682,7 +688,7 @@ It is generated from the variable `completion-ignored-extensions'")
   (append '(".[CcHh]\\(\\+\\+\\|pp\\|c\\|h\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".l" ".lsp" ".p" ".java")
 	  (if speedbar-use-imenu-flag
-	      '(".f90" ".ada" ".pl" ".tcl" ".m"
+	      '(".f90" ".ada" ".pl" ".tcl" ".m" ".scm"
 		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
@@ -1830,6 +1836,10 @@ position to insert a new item, and that the new item will end with a CR"
 	 (mf (if exp-button-function 'speedbar-highlight-face nil))
 	 )
     (speedbar-make-button start end bf mf exp-button-function exp-button-data)
+    (if speedbar-hide-button-brackets-flag
+	(progn
+	  (put-text-property start (1+ start) 'invisible t)
+	  (put-text-property end (1- end) 'invisible t)))
     )
   (insert-char ?  1 nil)
   (put-text-property (1- (point)) (point) 'invisible nil)
@@ -1851,7 +1861,8 @@ position to insert a new item, and that the new item will end with a CR"
 	(speedbar-with-writable
 	  (goto-char (match-beginning 1))
 	  (delete-char 1)
-	  (insert-char char 1 t)))))
+	  (insert-char char 1 t)
+	  (put-text-property (point) (1- (point)) 'invisible nil)))))
 
 
 ;;; Build button lists
@@ -2210,9 +2221,7 @@ updated."
 		))
 	    (setq speedbar-last-selected-file newcf))
 	  (if (not sucf-recursive)
-	      (progn
-		(forward-line -1)
-		(speedbar-position-cursor-on-line)))
+	      (speedbar-position-cursor-on-line))
 	  (set-buffer lastb)
 	  (select-frame lastf)
 	  )))
