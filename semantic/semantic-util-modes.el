@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.27 2003/03/15 20:03:34 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.28 2003/03/16 13:04:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1052,13 +1052,14 @@ If there is no function, disable the header line."
   (save-excursion
     (goto-char (window-start (selected-window)))
     (forward-line -1)
+    (end-of-line)
     ;; Capture this function
     (let ((tag (semantic-current-nonterminal)))
       (if (or (not tag)
 	      (not (member (semantic-token-token tag)
 			   semantic-stickyfunc-sticky-classes)))
-	  ;; Clear!
-	  nil
+	  ;; Set it to be the text under the header line
+	  (buffer-substring (point-at-bol) (point-at-eol))
 	;; Get it
 	(goto-char (semantic-token-start tag))
 	(buffer-substring (point) (point-at-eol))
