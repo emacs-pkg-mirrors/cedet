@@ -5,7 +5,7 @@
 ;; Author: Richard Y. Kim, <ryk@ap.com>
 ;; Maintainer: Richard Y. Kim, <ryk@ap.com>
 ;; Created: Fri Jun 16 17:23:11 2000
-;; Version: $Id: sb-texinfo.el,v 1.6 2000/08/09 00:17:22 zappo Exp $
+;; Version: $Id: sb-texinfo.el,v 1.7 2000/12/11 23:44:51 zappo Exp $
 ;; Keywords:
 
 ;; This program is free software; you can redistribute it and/or
@@ -57,6 +57,10 @@
 ;;   you do not use texinfo mode provided by auctex!
 
 ;;; Change Log:
+;;;
+;;; 1.7 - By Eric Ludlam <zappo@gnu.org>
+;;;       In `speedbar-fetch-dynamic-texinfo', set the buffer to file
+;;;       to correspond to a speedbar change.
 ;;;
 ;;; 1.6 - By Eric Ludlam <zappo@gnu.org>
 ;;;       speedbar-insert-texinfo-list no longer sets sthm to nil.
@@ -120,6 +124,7 @@
 ;; This function along with it's parter, speedbar-insert-texinfo-list, are
 ;; designed to be added to the speedbar-dynamic-tags-function-list list.
 (defun speedbar-fetch-dynamic-texinfo ( filename )
+  (set-buffer (find-file-noselect filename))
   (if (not (eq major-mode 'texinfo-mode))
       t
     (condition-case nil
