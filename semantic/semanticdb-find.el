@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.17 2004/02/12 02:02:06 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.18 2004/03/19 03:27:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -187,6 +187,7 @@ Default action as described in `semanticdb-find-translate-path'."
 	nexttable)
     ;; Loop over all include tags adding to matchedtables
     (while includetags
+      (semantic-throw-on-input 'semantic-find-translate-path-includes-default)
       (setq nexttable (semanticdb-find-table-for-include (car includetags)))
       ;; (message "Scanning %s" (semantic-tag-name (car includetags)))
       (when (and nexttable
