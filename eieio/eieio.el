@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.15 1996/11/13 21:50:44 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.16 1996/11/13 23:30:42 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -178,6 +178,9 @@
 ;;;        Added `oset-default' to modify existing classes default values.
 ;;;        Optimized several convenience functions as macros, and made some
 ;;;           signals arise from more logical locations.
+;;;        Created and used signal symbols `no-method-definition' for
+;;;           method calls that do not resolve, and `invalid-slot-name'
+;;;           when the user tries to access an invalid slot name.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -570,8 +573,7 @@ the body, such as:
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (aref obj 1) field)))
-    (if (not c) (error "Named field %s does not occur in %s" 
-		       field (object-name obj)))
+    (if (not c) (signal 'invalid-slot-name (list (object-name obj) field)))
     (aref obj c)))
 
 (defalias 'slot-value 'oref-engine)
@@ -604,8 +606,7 @@ represent the actual stored value."
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (aref obj 1) field))
 	(nump (length (aref (class-v (aref obj 1)) class-public-a))))
-    (if (not c) (error "Named field %s does not occur in %s" 
-		       field (object-name obj)))
+    (if (not c) (signal 'invalid-slot-name (list (object-name obj) field)))
     (let ((val (if (< c (+ 3 nump))
 		   (nth (- c 3) (aref (class-v (aref obj 1)) class-public-d))
 		 (nth (- c nump 3) (aref (class-v (aref obj 1)) class-private-d)))))
@@ -629,8 +630,7 @@ represent the actual stored value."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (aref obj 1) field)))
-    (if (not c) (error "Named field %s does not occur in %s" 
-		       field (object-name obj)))
+    (if (not c) (signal 'invalid-slot-name (list (object-name obj) field)))
     (aset obj c value)))
 
 (defmacro oset-default (class field value)
@@ -646,8 +646,7 @@ VALUE.  This does not affect any existing objects of type CLASS"
   (let* ((scoped-class class)
 	 (c (eieio-field-name-index class field))
 	 (nump (length (aref (class-v class) class-public-a))))
-    (if (not c) (error "Named field %s does not occur in %s"
-		       field (class-name class)))
+    (if (not c) (signal 'invalid-slot-name (list (class-name class) field)))
     (setcar
      (if (< c (+ 3 nump))
 	 (nthcdr (- c 3) (aref (class-v class) class-public-d))
@@ -776,12 +775,16 @@ available methods which may be programmed in."
 
     ;; Now loop through all occurances forms which we must execute
     ;; (which are happilly sorted now) and execute them all!
-    (let ((rval nil))
+    (let ((rval nil) (found nil))
       (while lambdas
 	(if (car lambdas)
 	    (let ((scoped-class (cdr (car lambdas))))
+	      (setq found t)
 	      (setq rval (apply (car (car lambdas)) newargs))))
 	(setq lambdas (cdr lambdas)))
+      (if (not found) (signal 
+		       'no-method-definition
+		       (list method args)))
       rval)))
 
 (defun call-next-method ()
@@ -863,7 +866,7 @@ associated with CLASS."
   "Get the method implementation from METHOD-NAME of the correct TAG
 matching CLASS"
   (if (>= tag method-num-fields) (< tag 0)
-    (error "eieiomt-add: method tag error!"))
+    (error "eieiomt-get: method tag error!"))
   (let ((emto (get method-name 'eieio-method-obarray)))
     (if (not emto) 
 	nil
@@ -1053,6 +1056,17 @@ associated with this symbol.  Current method specific code is:")
     ;; tuck this bit of information away.
     (defgeneric-engine sym newdoc)
     ))
+
+;;;
+;;; Here are some special types of errors
+;;;
+(intern "no-method-definition")
+(put 'no-method-definition 'error-conditions '(no-method-definition error))
+(put 'no-method-definition 'error-message "No method definition")
+
+(intern "invalid-slot-name")
+(put 'invalid-slot-name 'error-conditions '(invalid-slot-name error))
+(put 'invalid-slot-name 'error-message "Invalid slot name")
 
 ;;;
 ;;; We want all object created by EIEIO to have some default set of
