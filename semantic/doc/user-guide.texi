@@ -15,10 +15,10 @@ from semantic.
 * ECB::                         Emacs Code Browser
 * imenu::                       Special support for Imenu.
 * senator::                     The Semantic Navigator
-* analyzer::                    Analyze local context
-* class browser::               Class hierarchy browser
-* document::                    Document generation functions
-* charts::                      Charting code statistics
+* Analyzer::                    Analyze local context
+* Class Browser::               Class hierarchy browser
+* Document::                    Document generation functions
+* Charts::                      Charting code statistics
 * Minor Modes::                 Useful minor modes
 * semanticdb::                  Cache your parsed buffers between sessions.
 * Customizing::                 
@@ -50,7 +50,7 @@ If you use @file{semantic-load.el}, you do not need to add the above
 lines in your @file{.emacs} file.
 
 Two additional speedbar modes are described in @ref{Speedbar Analysis}, and
-@ref{class browser}.
+@ref{Class Browser}.
 
 @node ECB
 @section ECB
@@ -693,6 +693,86 @@ Maximum size in bytes of buffers automatically reparsed.
 If this value is less than or equal to @var{0}, buffers are automatically
 reparsed regardless of their size.
 @end deffn
+
+@subsection Summary Mode
+
+Summary mode is an enhancement of the @dfn{eldoc} package.
+
+@deffn Command semantic-summary-mode &optional arg
+Minor mode to show useful things about tags in echo area.
+Enables/disables option @dfn{eldoc-mode} which supplies the support functions for
+this minor mode.
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
+
+@subsection Sticky Function Headers
+
+@deffn Command semantic-stickyfunc-mode &optional arg
+Minor mode to show the title of a tag in the header line.
+Enables/disables making the header line of functions sticky.
+A function (or other tag class specified by
+@code{semantic-stickyfunc-sticky-classes}) has a header line, meaning the
+first line which describes the rest of the construct.  This first
+line is what is displayed in the Emacs @var{21} header line.
+
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
+
+@defvar semantic-stickyfunc-sticky-classes
+List of tag classes which sticky func will display in the header line.
+@end defvar
+
+@subsection Tag Boundaries
+
+@deffn Command semantic-show-tag-boundaries-mode &optional arg
+Minor mode to display a boundary in front of tags.
+The boundary is displayed using an overline in Emacs @var{21}.
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
+
+@deffn Face semantic-tag-boundary-face
+Face used to show unmatched syntax in.
+The face is used in  @dfn{semantic-show-tag-boundaries-mode}.
+@end deffn
+
+@subsection Tag Attribute Highlighting
+
+@deffn Command semantic-highlight-by-attribute-mode &optional arg
+Minor mode to highlight tags based on some attribute.
+By default, the protection of a tag will give it a different
+background color.
+
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
+
+@defvar semantic-highlight-attribute-alist
+Association list of functions testing attributes of a tag and a faces.
+Each function must take one argument, the tag.
+Each face will be applied to those tags for which the function returns true.
+@end defvar
+
+@deffn Option semantic-highlight-attribute-face-private
+Face used to show privatly scoped tags in.
+The face is used in  @dfn{semantic-highlight-by-attribute-mode}.
+@end deffn
+
+@deffn Option semantic-highlight-attribute-face-protected
+Face used to show protected scoped tags in.
+The face is used in  @dfn{semantic-highlight-by-attribute-mode}.
+@end deffn
+
 
 @node semanticdb
 @section semanticdb
