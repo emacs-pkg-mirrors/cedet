@@ -245,6 +245,48 @@ See the function `message' for details on ARGS."
       (sit-for 0)
       )))
 
+;;; Display messages temporarily
+;;
+(cond
+ ;; We need timers to display messages temporarily
+ ((fboundp 'run-with-timer)
+
+  (defvar working-temp-message-delay 1
+    "Lifetime of a temporary message, in seconds.")
+  
+  (defvar working-temp-message-timer nil)
+  (defvar working-temp-message-saved nil)
+  
+  (defun working-temp-restore-message ()
+    "Restore a previous non temporary message."
+    (when (timerp working-temp-message-timer)
+      (cancel-timer working-temp-message-timer)
+      (setq working-temp-message-timer nil))
+    (when working-temp-message-saved
+      (working-message-echo working-temp-message-saved)
+      (setq working-temp-message-saved nil)))
+  
+  (defun working-temp-message (string &rest args)
+    "Display a message temporarily.
+Pass STRING and ARGS to the function `message'.
+The original message is restored to the echo area after
+`working-temp-message-delay' seconds."
+    ;;(declare (debug t))
+    (condition-case nil
+        (progn
+          (working-temp-restore-message)
+          (setq working-temp-message-saved (working-current-message))
+          (apply 'message string args)
+          (setq working-temp-message-timer
+                (run-with-timer working-temp-message-delay nil
+                                'working-temp-restore-message)))
+      (error
+       (working-temp-restore-message))))
+  )
+ (t
+  (defalias 'working-temp-message 'message)
+  ))
+
 ;;; Compatibility
 (cond ((fboundp 'run-with-timer)
        (defalias 'working-run-with-timer 'run-with-timer)
