@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.4 2002/09/03 23:52:05 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.5 2002/09/03 23:55:33 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta1"
@@ -208,12 +208,12 @@ Return nil if everything is ok.  Return an error string otherwise."
 	(cond
 	 ((not incompatible) nil)
 	 ((or (inversion-= req incompatible)
-		   (inversion-< req incompatible))
-	       ;; If the requested version is = or < than
-	       ;; what the package maintainer says is incompatible,
-	       ;; then throw that error.
-	       (format "Package %s version is not backward compatible with %s"
-		       minimum))
+	      (inversion-< req incompatible))
+	  ;; If the requested version is = or < than
+	  ;; what the package maintainer says is incompatible,
+	  ;; then throw that error.
+	  (format "Package %s version is not backward compatible with %s"
+		  minimum))
 	 ;; Things are ok.
 	 (t nil))
 	)
