@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.7 2002/07/20 08:05:00 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.8 2002/08/04 02:01:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,6 +28,7 @@
 ;; are constructed at build time into a single routine.  This will
 ;; eliminate uneeded if statements to speed the lexer.
 
+(require 'semantic-fw)
 ;;; Code:
 
 ;;; Compatibility
@@ -88,7 +89,8 @@ apply those properties"
 (defsubst semantic-lex-keyword-p (text)
   "Return non-nil if TEXT is a keyword in the keyword table.
 Return nil if TEXT is not in the symbol table."
-  (symbol-value (intern-soft text semantic-flex-keywords-obarray)))
+  (and semantic-flex-keywords-obarray
+       (symbol-value (intern-soft text semantic-flex-keywords-obarray))))
 
 (defun semantic-lex-keyword-put (text property value)
   "For keyword TEXT, set PROPERTY to VALUE."
@@ -324,13 +326,19 @@ Each analyzer should be an analyzer created with `define-lex-analyzer'."
             (current-depth 0)
             ;; Use the default depth when not specified.
             (depth (or depth semantic-lex-depth)))
+       ;; Maybe REMOVE THIS LATER.
+       ;; Trying to find incremental parser bug.
+       (if (> end (point-max))
+	   (error "Lex: End = %d, but point-max = %d" end (point-max)))
        (with-syntax-table semantic-lex-syntax-table
          (goto-char start)
          (while (and (< (point) end)
                      (or (not length) (<= (length token-stream) length)))
            (semantic-lex-one-token ,analyzers)
            (goto-char end-point)))
-       ;; Return to where we started
+       ;; Return to where we started.
+       ;; Do not wrap in protective stuff so that if there is an error
+       ;; thrown, the user knows where.
        (goto-char starting-position)
        ;; Return the token stream
        (nreverse token-stream))))
@@ -397,7 +405,7 @@ See also the function `semantic-lex-token'."
 	    (car mod) (nth 1 mod) semantic-lex-syntax-table))))
 
 ;;;###autoload
-(defsubst semantic-lex (start end &optional depth length)
+(define-overload semantic-lex (start end &optional depth length)
   "Lexically analyze text in the current buffer between START and END.
 Optional argument DEPTH indicates at what level to scan over entire
 lists.  The last argument, LENGTH specifies that `semantic-lex'
