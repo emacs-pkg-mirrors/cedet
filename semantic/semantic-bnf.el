@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.42 2001/10/03 00:31:28 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.43 2001/10/04 15:05:08 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -982,6 +982,7 @@ Optional argument COLOR determines if color is added to the text."
 
 (defvar semantic-bnf-syntax-help
   `( ("symbol" . "Syntax: A symbol of alpha numeric and symbol characters")
+     ("number" . "Syntax: Numeric characters.")
      ("punctuation" . "Syntax: Punctuation character.")
      ("semantic-list" . "Syntax: A list delimited by any valid list characters")
      ("open-paren" . "Syntax: Open Parenthisis character")
