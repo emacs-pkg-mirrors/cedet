@@ -1,9 +1,9 @@
 ;;; semantic-texi.el --- Semantic details for Texinfo files
 
-;;; Copyright (C) 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.12 2002/12/29 18:02:30 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.13 2003/03/31 10:07:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -60,17 +60,17 @@ name of this section is.")
 
 ;;; Code:
 (defun semantic-texi-parse-region (&rest ignore)
-  "Parse the current texinfo buffer for bovine tokens.
+  "Parse the current texinfo buffer for semantic tags.
 IGNORE any arguments, always parse the whole buffer.
-Each token returned is of the form:
- (\"NAME\" section children DOC OVERLAY)
+Each tag returned is of the form:
+ (\"NAME\" section (:members CHILDREN))
 or
- (\"NAME\" def DOC OVERLAY)
+ (\"NAME\" def)
 
 It is an override of 'parse-region and must be installed by the
 function `semantic-install-function-overrides'."
   ;;(semantic-texi-bovinate-headings)
-  (mapcar 'semantic-texi-raw-to-cooked-token
+  (mapcar 'semantic-texi-expand-tag
           (semantic-texi-bovinate-headings)))
 
 (defun semantic-texi-parse-changes ()
@@ -79,16 +79,16 @@ function `semantic-install-function-overrides'."
   ;;       To be implemented later.
   (semantic-parse-tree-set-needs-rebuild))
 
-(defun semantic-texi-raw-to-cooked-token (token)
-  "Cook the texinfo token TOKEN."
-  (let ((chil (semantic-texi-nonterminal-children token)))
+(defun semantic-texi-expand-tag (tag)
+  "Expand the texinfo tag TAG."
+  (let ((chil (semantic-texi-components tag)))
     (if chil
-	(setcar (nthcdr 2 token)
-		(mapcar 'semantic-texi-raw-to-cooked-token chil)))
-    (car (semantic-raw-to-cooked-token token))))
+        (semantic-tag-put-attribute
+         tag :members (mapcar 'semantic-texi-expand-tag chil)))
+    (car (semantic--tag-expand tag))))
 
 (defun semantic-texi-bovinate-headings ()
-  "Parse the current texinfo buffer for all bovine tokens now."
+  "Parse the current texinfo buffer for all semantic tags now."
   (let ((pass1 nil))
     ;; First search and snarf.
     (save-excursion
@@ -100,17 +100,34 @@ function `semantic-install-function-overrides'."
 	  )
 	(working-status t)))
     (setq pass1 (nreverse pass1))
-    ;; Now, make some tokens while creating a set of children.
+    ;; Now, make some tags while creating a set of children.
     (car (semantic-texi-recursive-combobulate-list pass1 0))
     ))
 
+(defsubst semantic-texi-new-section-tag (name members start end)
+  "Create a semantic tag of class section.
+NAME is the name of this section.
+MEMBERS is a list of semantic tags representing the elements that make
+up this section.
+START and END define the location of data described by the tag."
+  (append (semantic-tag name 'section :members members)
+          (list start end)))
+
+(defsubst semantic-texi-new-def-tag (name start end)
+  "Create a semantic tag of class def.
+NAME is the name of this definition.
+START and END define the location of data described by the tag."
+  (append (semantic-tag name 'def)
+          (list start end)))
+
 (defun semantic-texi-recursive-combobulate-list (sectionlist level)
-  "Rearrange SECTIONLIST to be a hierarchical token list starting at LEVEL.
-Return the rearranged new list, with all remaining tokens from
+  "Rearrange SECTIONLIST to be a hierarchical tag list starting at LEVEL.
+Return the rearranged new list, with all remaining tags from
 SECTIONLIST starting at ELT 2.  Sections not are not dealt with as soon as a
-token with greater section value than LEVEL is found."
+tag with greater section value than LEVEL is found."
   (let ((newl nil)
 	(oldl sectionlist)
+        tag
 	)
     (save-excursion
       (catch 'level-jump
@@ -138,10 +155,10 @@ token with greater section value than LEVEL is found."
 		      ;; Next, recurse into the body to find the end.
 		      (setq tmp (semantic-texi-recursive-combobulate-list
 				 (cdr oldl) (car (cdr levelmatch))))
-		      ;; Build a token
-		      (setq newl (cons
-				  (list text 'section (car tmp) nil begin (point))
-				  newl))
+		      ;; Build a tag
+                      (setq tag (semantic-texi-new-section-tag
+                                 text (car tmp) begin (point))
+                            newl (cons tag newl))
 		      ;; continue
 		      (setq oldl (cdr tmp))
 		      )
@@ -157,9 +174,8 @@ token with greater section value than LEVEL is found."
 		  ;; Seek the end of this definition
 		  (goto-char begin)
 		  (semantic-texi-forward-deffn)
-		  (setq newl (cons
-			      (list text 'def nil begin (point))
-			      newl))
+                  (setq tag (semantic-texi-new-def-tag text begin (point))
+                        newl (cons tag newl))
 		  ;; continue
 		  (setq oldl (cdr oldl)))
 		)
@@ -176,21 +192,19 @@ The cursor should be on the @ sign."
 	   (seek (concat "^@end\\s-+" (regexp-quote type))))
       (re-search-forward seek nil t))))
 
-(defun semantic-texi-nonterminal-children (nonterm)
-  "Return children belonging to NONTERM."
-  (if (eq (semantic-token-token nonterm) 'section)
-      (nth 2 nonterm)
-    nil))
+(defun semantic-texi-components (tag)
+  "Return components belonging to TAG."
+  (semantic-tag-get-attribute tag :members))
 
-(defun semantic-texi-insert-foreign-token (token tokenfile)
-  "Insert TOKEN from a foreign buffer in TOKENFILE.
-Assume TOKENFILE is a source buffer, and create a documentation
+(defun semantic-texi-insert-foreign-tag (tag tagfile)
+  "Insert TAG from a foreign buffer in TAGFILE.
+Assume TAGFILE is a source buffer, and create a documentation
 thingy from it using the `document' tool."
-  ;; This makes sure that TOKEN will be in an active buffer.
-  (let ((b (find-file-noselect tokenfile)))
+  ;; This makes sure that TAG will be in an active buffer.
+  (let ((b (find-file-noselect tagfile)))
     ;; Now call the document insert thingy.
     (require 'document)
-    (document-insert-texinfo token b)))
+    (document-insert-texinfo tag b)))
 
 ;;;###autoload
 (defun semantic-default-texi-setup ()
@@ -214,8 +228,8 @@ thingy from it using the `document' tool."
 	senator-step-at-start-end-token-ids '(section)
 	)
   (semantic-install-function-overrides
-   '((nonterminal-children . semantic-texi-nonterminal-children)
-     (insert-foreign-token . semantic-texi-insert-foreign-token)
+   '((tag-components . semantic-texi-components)
+     (insert-foreign-token . semantic-texi-insert-foreign-tag)
      )
    t)
   )
@@ -224,7 +238,7 @@ thingy from it using the `document' tool."
 (add-hook 'texinfo-mode-hook 'semantic-default-texi-setup)
 
 
-;;; Special features of Texinfo token streams
+;;; Special features of Texinfo tag streams
 ;;
 ;; This section provides specialized access into texinfo files.
 ;; Because texinfo files often directly refer to functions and programs
@@ -234,7 +248,8 @@ thingy from it using the `document' tool."
   "Find texinfo files associated with BUFFER."
   (save-excursion
     (if buffer (set-buffer buffer))
-    (cond ((and (fboundp 'ede-documentation-files) ede-minor-mode (ede-current-project))
+    (cond ((and (fboundp 'ede-documentation-files)
+                ede-minor-mode (ede-current-project))
 	   ;; When EDE is active, ask it.
 	   (ede-documentation-files)
 	   )
@@ -262,122 +277,120 @@ When this function exists, POINT is at the definition.
 If the doc was not found, an error is thrown.
 Note: TYPE not yet implemented."
   (let ((f (semantic-texi-associated-files))
-	stream
-	match)
+	stream match)
     (while (and f (not match))
-      (when (not stream)
-	(save-excursion
-	  (set-buffer (find-file-noselect (car f)))
+      (unless stream
+	(with-current-buffer (find-file-noselect (car f))
 	  (setq stream (semantic-bovinate-toplevel t))))
       (setq match (semantic-find-nonterminal-by-name name stream t nil))
       (when match
-	(set-buffer (semantic-token-buffer match))
-	(goto-char (semantic-token-start match)))
+	(set-buffer (semantic-tag-buffer match))
+	(goto-char (semantic-tag-start match)))
       (setq f (cdr f)))))
 
-(defun semantic-texi-update-doc-from-texi (&optional token)
-  "Update the documentation in the texinfo deffn class token TOKEN.
-The current buffer must be a texinfo file containing TOKEN.
-If TOKEN is nil, determine a token based on the current position."
+(defun semantic-texi-update-doc-from-texi (&optional tag)
+  "Update the documentation in the texinfo deffn class tag TAG.
+The current buffer must be a texinfo file containing TAG.
+If TAG is nil, determine a tag based on the current position."
   (interactive)
-  (if (not (or (featurep 'semanticdb) (semanticdb-minor-mode-p)))
-      (error "Texinfo updating only works when `semanticdb' is being used"))
+  (unless (or (featurep 'semanticdb) (semanticdb-minor-mode-p))
+    (error "Texinfo updating only works when `semanticdb' is being used"))
   (semantic-bovinate-toplevel t)
-  (when (not token)
+  (unless tag
     (beginning-of-line)
-    (setq token (semantic-current-nonterminal)))
-  (if (not (eq (semantic-token-token token) 'def))
-      (error "Only deffns (or defun or defvar) can be updated"))
-  (let* ((name (semantic-token-name token))
-	 (toks (mapcar
+    (setq tag (semantic-current-nonterminal)))
+  (unless (semantic-tag-of-class-p tag 'def)
+    (error "Only deffns (or defun or defvar) can be updated"))
+  (let* ((name (semantic-tag-name tag))
+	 (tags (mapcar
                 #'cdr
                 ;; `semanticdb-find-nonterminal-by-name' returns a
                 ;; list ((DB-TABLE . TOKEN) ...)
                 (semanticdb-find-nonterminal-by-name name nil t nil t t)))
 	 (docstring nil)
-	 (doctok nil))
+	 (doctag nil))
     (save-excursion
-      (while (and toks (not docstring))
-	(set-buffer (semantic-token-buffer (car toks)))
-	(when (not (eq major-mode 'texinfo-mode))
-	  (setq docstring (semantic-find-documentation (car toks))
-		doctok (if docstring (car toks) nil)))
-	(setq toks (cdr toks))))
-    (if (not docstring)
-	(error "Could not find documentation for %s" (semantic-token-name token)))
+      (while (and tags (not docstring))
+	(set-buffer (semantic-tag-buffer (car tags)))
+	(unless (eq major-mode 'texinfo-mode)
+	  (setq docstring (semantic-find-documentation (car tags))
+		doctag (if docstring (car tags) nil)))
+	(setq tags (cdr tags))))
+    (unless docstring
+      (error "Could not find documentation for %s" (semantic-tag-name tag)))
     ;; If we have a string, do the replacement.
-    (delete-region (semantic-token-start token)
-		   (semantic-token-end token))
-    ;; Use useful functions from the document library.
+    (delete-region (semantic-tag-start tag)
+		   (semantic-tag-end tag))
+    ;; Use useful functions from the docaument library.
     (require 'document)
-    (document-insert-texinfo doctok (semantic-token-buffer doctok))
+    (document-insert-texinfo doctag (semantic-tag-buffer doctag))
     ))
 
-(defun semantic-texi-update-doc-from-source (&optional token)
-  "Update the documentation for the source TOKEN.
-The current buffer must be a non-texinfo source file containing TOKEN.
-If TOKEN is nil, determine the token based on the current position.
-The current buffer must include TOKEN."
+(defun semantic-texi-update-doc-from-source (&optional tag)
+  "Update the documentation for the source TAG.
+The current buffer must be a non-texinfo source file containing TAG.
+If TAG is nil, determine the tag based on the current position.
+The current buffer must include TAG."
   (interactive)
-  (if (eq major-mode 'texinfo-mode)
-      (error "Not a source file"))
+  (when (eq major-mode 'texinfo-mode)
+    (error "Not a source file"))
   (semantic-bovinate-toplevel t)
-  (when (not token)
-    (setq token (semantic-current-nonterminal)))
-  (when (not (semantic-find-documentation token))
+  (unless tag
+    (setq tag (semantic-current-nonterminal)))
+  (unless (semantic-find-documentation tag)
     (error "Cannot find interesting documentation to use for %s"
-	   (semantic-token-name token)))
-  (let* ((name (semantic-token-name token))
+	   (semantic-tag-name tag)))
+  (let* ((name (semantic-tag-name tag))
 	 (texi (semantic-texi-associated-files))
-	 (doctok nil)
+	 (doctag nil)
 	 (docbuff nil))
-    (while (and texi (not doctok))
+    (while (and texi (not doctag))
       (set-buffer (find-file-noselect (car texi)))
-      (setq doctok (semantic-find-nonterminal-by-name
+      (setq doctag (semantic-find-nonterminal-by-name
 		    name (semantic-bovinate-toplevel t) t nil)
-	    docbuff (if doctok (current-buffer) nil))
+	    docbuff (if doctag (current-buffer) nil))
       (setq texi (cdr texi)))
-    (if (not doctok)
-	(error "Token %s is not yet documented.  Use the `document' command"
-	       name))
+    (unless doctag
+      (error "Tag %s is not yet documented.  Use the `document' command"
+             name))
     ;; Ok, we should have everything we need.  Do the deed.
     (if (get-buffer-window docbuff)
 	(set-buffer docbuff)
       (switch-to-buffer docbuff))
-    (goto-char (semantic-token-start doctok))
-    (delete-region (semantic-token-start doctok)
-		   (semantic-token-end doctok))
+    (goto-char (semantic-tag-start doctag))
+    (delete-region (semantic-tag-start doctag)
+		   (semantic-tag-end doctag))
     ;; Use useful functions from the document library.
     (require 'document)
-    (document-insert-texinfo token (semantic-token-buffer token))
+    (document-insert-texinfo tag (semantic-tag-buffer tag))
     ))
 
-(defun semantic-texi-update-doc (&optional token)
-  "Update the documentation for TOKEN.
+(defun semantic-texi-update-doc (&optional tag)
+  "Update the documentation for TAG.
 If the current buffer is a texinfo file, then find the source doc, and
 update it.  If the current buffer is a source file, then get the
 documentation for this item, find the existing doc in the associated
 manual, and update that."
   (interactive)
   (cond ((eq major-mode 'texinfo-mode)
-	 (semantic-texi-update-doc-from-texi token))
+	 (semantic-texi-update-doc-from-texi tag))
 	(t
-	 (semantic-texi-update-doc-from-source token))))
+	 (semantic-texi-update-doc-from-source tag))))
 
-(defun semantic-texi-goto-source (&optional token)
-  "Jump to the source for the definition in the texinfo file TOKEN.
-If TOKEN is nil, it is derived from the deffn under POINT."
+(defun semantic-texi-goto-source (&optional tag)
+  "Jump to the source for the definition in the texinfo file TAG.
+If TAG is nil, it is derived from the deffn under POINT."
   (interactive)
-  (if (not (or (featurep 'semanticdb) (semanticdb-minor-mode-p)))
-      (error "Texinfo updating only works when `semanticdb' is being used"))
+  (unless (or (featurep 'semanticdb) (semanticdb-minor-mode-p))
+    (error "Texinfo updating only works when `semanticdb' is being used"))
   (semantic-bovinate-toplevel t)
-  (when (not token)
+  (unless tag
     (beginning-of-line)
-    (setq token (semantic-current-nonterminal)))
-  (if (not (eq (semantic-token-token token) 'def))
-      (error "Only deffns (or defun or defvar) can be updated"))
-  (let* ((name (semantic-token-name token))
-	 (toks (mapcar
+    (setq tag (semantic-current-nonterminal)))
+  (unless (semantic-tag-of-class-p tag 'def)
+    (error "Only deffns (or defun or defvar) can be updated"))
+  (let* ((name (semantic-tag-name tag))
+	 (tags (mapcar
                 #'cdr
                 ;; `semanticdb-find-nonterminal-by-name' returns a
                 ;; list ((DB-TABLE . TOKEN) ...)
@@ -385,13 +398,13 @@ If TOKEN is nil, it is derived from the deffn under POINT."
 	 (done nil)
 	 )
     (save-excursion
-      (while (and toks (not done))
-	(set-buffer (semantic-token-buffer (car toks)))
-	(when (not (eq major-mode 'texinfo-mode))
-	  (switch-to-buffer (semantic-token-buffer (car toks)))
-	  (goto-char (semantic-token-start (car toks)))
+      (while (and tags (not done))
+	(set-buffer (semantic-tag-buffer (car tags)))
+	(unless (eq major-mode 'texinfo-mode)
+	  (switch-to-buffer (semantic-tag-buffer (car tags)))
+	  (goto-char (semantic-tag-start (car tags)))
 	  (setq done t))
-	(setq toks (cdr toks))))))
+	(setq tags (cdr tags))))))
 
 (provide 'semantic-texi)
 
