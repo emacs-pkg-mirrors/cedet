@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.91 2002/05/08 22:01:40 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.92 2002/05/16 07:40:06 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1450,15 +1450,16 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   "Summarize TOKEN in a reasonable way.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (let ((proto (semantic-prototype-nonterminal token nil color))
-	(label (capitalize
-		(or (cdr-safe (assoc (semantic-token-token token)
-				     semantic-symbol->name-assoc-list))
-		    (symbol-name (semantic-token-token token))))))
+  (let* ((proto (semantic-prototype-nonterminal token nil color))
+         (names (if parent
+                    semantic-symbol->name-assoc-list-for-type-parts
+                  semantic-symbol->name-assoc-list))
+         (tsymb (funcall semantic-bucketize-token-token token))
+         (label (capitalize (or (cdr-safe (assoc tsymb names))
+                                (symbol-name tsymb)))))
     (if color
-	(setq label (semantic-colorize-text label 'label)))
-    (concat label ": " proto))
-  )
+        (setq label (semantic-colorize-text label 'label)))
+    (concat label ": " proto)))
 
 (defun semantic-prototype-nonterminal (token &optional parent color)
   "Return a prototype for TOKEN.
