@@ -1,12 +1,12 @@
 ;;; wisent-python.el --- LALR grammar for Python
 ;;
-;; Copyright (C) 2002 Richard Kim
+;; Copyright (C) 2002, 2004 Richard Kim
 ;;
 ;; Author: Richard Kim <ryk@dspwiz.com>
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.44 2004/06/28 12:53:35 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.45 2004/08/04 02:34:23 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -263,9 +263,10 @@ the next logical line."
           (error "You have found a bug in python-next-line")))
     ;; the point now should be at the end of a line
     (forward-line 1)
-    (while (and (looking-at "\\s-*\\(\\s<\\|$\\)")
-                (not (eobp))) ;; skip blank and comment lines
-      (forward-line 1))))
+    (while (looking-at "\\s-*\\(\\s<\\|$\\)")  ;; skip blank and comment lines
+      (forward-line 1)
+      (if (eobp) (error "Unterminated List."))
+      )))
 
 (defun python-scan-lists ( &optional target-column )
   "Without actually changing the position, return the buffer position of
