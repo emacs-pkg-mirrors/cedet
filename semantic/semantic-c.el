@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.1 2002/11/21 09:58:27 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.2 2002/12/26 11:05:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -269,7 +269,7 @@
  ( USING typeformbase punctuation "\\b;\\b"
   ,(semantic-lambda
   (list nil)))
- ( USING symbol punctuation "\\b:\\b" COLONG typeformbase punctuation "\\b;\\b")
+ ( USING symbol punctuation "\\b:\\b" punctuation "\\b:\\b" typeformbase punctuation "\\b;\\b")
  ) ; end using
  (template
  ( TEMPLATE template-specifier opt-friend template-definition
@@ -861,7 +861,7 @@ Identifies the system include by looking backwards."
 	(t nil)))
 
 (defvar semantic-c-classname nil
-  "At parsetime, assign a class or struct name text here.
+  "At parse time, assign a class or struct name text here.
 It is picked up by `semantic-c-reconstitute-token' to determine
 if something is a constructor.  Value should be:
   ( TYPENAME .  TYPEOFTYPE)
@@ -940,7 +940,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   def)
 
 (defvar semantic-c-keyword-table
-  (semantic-flex-make-keyword-table 
+  (semantic-flex-make-keyword-table
    `( ("include" . INCLUDE)
       ("define" . DEFINE)
       ("extern" . EXTERN)
@@ -1177,7 +1177,7 @@ handled.  A class is abstract iff it's destructor is virtual."
    (t (semantic-nonterminal-abstract-default token parent))))
 
 (defun semantic-c-analyze-dereference-metatype (type)
-  "Dereference TYPE as described in `semantic-analyze-dereference-metatype.
+  "Dereference TYPE as described in `semantic-analyze-dereference-metatype'.
 If TYPE is a typedef, get TYPE's type by name or token, and return."
   (if (and (eq (semantic-token-token type) 'type)
 	   (string= (semantic-token-type type) "typedef"))
