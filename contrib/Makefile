@@ -11,20 +11,22 @@ ede_FILES=Project.ede Makefile
 
 EMACS=emacs
 LOADPATH=../common/ ../common/ ../semantic/ ../eieio/\
-   ../semantic/bovine/ ../semantic/wisent/ ../semantic/
+   ../speedbar/ ../common/ ../semantic/wisent/ ../semantic/
 LOADDEFS=contrib-loaddefs.el
 LOADDIRS=.
-Wisent_Languages_SEMANTIC_GRAMMAR=wisent-csharp.wy
+init_LISP=cedet-contrib-load.el
 EMACS=emacs
-Wisent_Languages_SAMENATIC_GRAMMAR_EL=wisent-csharp-wy.el
-lisp_LISP=cedet-contrib.el wisent-csharp.el
+setup_LISP=cedet-contrib.el
+wy_SEMANTIC_GRAMMAR=wisent-csharp.wy
 EMACS=emacs
-VERSION=1.0
+wy_SAMENATIC_GRAMMAR_EL=wisent-csharp-wy.el
+lisp_LISP=wisent-csharp.el
+VERSION=0.0
 DISTDIR=$(top)Contrib-$(VERSION)
 
 
 
-all: autoloads Wisent_Languages lisp
+all: autoloads init setup wy lisp
 
 .PHONY: autoloads
 autoloads: 
@@ -35,8 +37,26 @@ autoloads:
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
 	$(EMACS) -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
-.PHONY: Wisent_Languages
-Wisent_Languages: $(Wisent_Languages_SEMANTIC_GRAMMAR)
+.PHONY: init
+init: $(init_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+
+.PHONY: setup
+setup: $(setup_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+
+.PHONY: wy
+wy: $(wy_SEMANTIC_GRAMMAR)
 	@echo "(add-to-list 'load-path nil)" > grammar-make-script
 	@for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> grammar-make-script; \
@@ -62,10 +82,10 @@ clean:
 
 .PHONY: dist
 
-dist: $(Wisent_Languages_SAMENATIC_GRAMMAR_EL)
+dist: $(wy_SAMENATIC_GRAMMAR_EL)
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(Wisent_Languages_SEMANTIC_GRAMMAR) $(Wisent_Languages_SAMENATIC_GRAMMAR_EL) $(lisp_LISP) $(ede_FILES) $(DISTDIR)
+	cp $(init_LISP) $(setup_LISP) $(wy_SEMANTIC_GRAMMAR) $(wy_SAMENATIC_GRAMMAR_EL) $(lisp_LISP) $(ede_FILES) $(DISTDIR)
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 
