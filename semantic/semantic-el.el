@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.26 2000/05/04 02:42:15 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.27 2000/05/06 01:33:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -194,24 +194,13 @@
     (enumparts
      ( semantic-list
        ,(lambda (vals start end)
-	  
-	  (semantic-bovinate-from-nonterminal (car (nth 0 vals)) (cdr (nth 0 vals)) 'enumsubparts)
-	  ))
+	  (append 
+	   (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'enumsubparts)
+	   
+	   (list start end))))
      ) ; end enumparts
     (enumsubparts
-     ( open-paren "{" close-paren "}"
-		  ,(lambda (vals start end)
-		     (append  (list nil)
-			      (list start end))))
-     ( open-paren "{" enumsubparts
-		  ,(lambda (vals start end)
-		     (append  (nth 1 vals)
-			      (list start end))))
-     ( symbol opt-assign punctuation "," enumsubparts
-	      ,(lambda (vals start end)
-		 (append  ( cons (nth 0 vals) (nth 3 vals))
-			  (list start end))))
-     ( symbol opt-assign close-paren "}"
+     ( symbol opt-assign
 	      ,(lambda (vals start end)
 		 (append  (list (nth 0 vals))
 			  (list start end))))
@@ -366,9 +355,10 @@
 				 (list start end))))
      ( semantic-list
        ,(lambda (vals start end)
-	  
-	  (semantic-bovinate-from-nonterminal (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
-	  ))
+	  (append 
+	   (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
+	   
+	   (list start end))))
      ) ; end arg-list
     (knr-arguments
      ( variablearg punctuation ";" knr-arguments
@@ -383,31 +373,16 @@
     (arg-list-p
      ( open-paren "(" semantic-list close-paren ")"
 		  ,(lambda (vals start end)
-		     
-		     (semantic-bovinate-from-nonterminal (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-sub-list)
-		     ))
+		     (append 
+		      (semantic-bovinate-from-nonterminal-full (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-sub-list)
+		      
+		      (list start end))))
      ) ; end arg-list-p
     (arg-sub-list
-     ( open-paren "(" close-paren ")"
-		  ,(lambda (vals start end)
-		     (append  (list nil)
-			      (list start end))))
-     ( open-paren "(" symbol "void" close-paren ")"
-		  ,(lambda (vals start end)
-		     (append  (list nil)
-			      (list start end))))
-     ( open-paren "(" arg-sub-list
-		  ,(lambda (vals start end)
-		     (append  (nth 1 vals)
-			      (list start end))))
-     ( variablearg punctuation "," arg-sub-list
-		   ,(lambda (vals start end)
-		      (append  ( cons (nth 0 vals) (nth 2 vals))
-			       (list start end))))
-     ( variablearg close-paren ")"
-		   ,(lambda (vals start end)
-		      (append  (list (nth 0 vals))
-			       (list start end))))
+     ( variablearg
+       ,(lambda (vals start end)
+	  (append  (nth 0 vals)
+		   (list start end))))
      ( punctuation "\\." punctuation "\\." punctuation "\\." close-paren ")"
 		   ,(lambda (vals start end)
 		      (append  (list "...")
