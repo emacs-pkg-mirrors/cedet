@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.54 1999/11/15 20:24:58 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.55 1999/11/15 20:43:21 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1046,9 +1046,8 @@ If EXTRA, include that in the string returned to represent the symbol."
 ;;
 (defun slot-boundp (object slot)
   "Non-nil if OBJECT's SLOT is bound.
-Strictly speaking in CLOS, a slot can exist in OBJECT, but not be bound.
-This is not the case in EIEIO as all slots are bound at instantiation time.
-Therefore `slot-boundp' is really a macro calling `slot-exists-p'"
+Setting a slot's value makes it bound.  Calling `slot-makeunbound' will
+make a slot unbound."
   ;; Skip typechecking while retrieving this value.
   (let ((eieio-skip-typecheck t))
     ;; Return nil if the magic symbol is in there.
@@ -1223,12 +1222,14 @@ are the arguments passed in at the top level."
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
 	(lambdas nil)
 	(mclass (eieiomt-next scoped-class)))
-    ;; lookup the form to use for the PRIMARY object for the next level
-    (setq lambdas (eieio-generic-form eieio-generic-call-methodname
-				      method-primary mclass))
-    ;; Setup calling environment, and apply arguments...
-    (let ((scoped-class (cdr lambdas)))
-      (apply (car lambdas) newargs))))
+    (while mclass
+      ;; lookup the form to use for the PRIMARY object for the next level
+      (setq lambdas (eieio-generic-form eieio-generic-call-methodname
+					method-primary (car mclass)))
+      ;; Setup calling environment, and apply arguments...
+      (let ((scoped-class (cdr lambdas)))
+	(apply (car lambdas) newargs))
+      (setq mclass (cdr mclass)))))
 
 
 ;;;
@@ -1314,10 +1315,10 @@ function `class-parent' as class parent returns nil for superclasses.  This
 function performs no type checking!"
   ;; No type-checking because all calls are made from functions which
   ;; are safe and do checking for us.
-  (or (class-parent-fast class)
+  (or (class-parents-fast class)
       (if (eq class 'eieio-default-superclass)
 	  nil
-	'eieio-default-superclass)))
+	'(eieio-default-superclass))))
 
 (defun eieiomt-sym-optimize (s)
   "Find the next class above S which has a function body for the optimizer."
@@ -1327,12 +1328,12 @@ function performs no type checking!"
 	(cont t))
     (setq es (eieiomt-next es))
     (while (and es cont)
-      (setq ov (intern-soft (symbol-name es) eieiomt-optimizing-obarray))
+      (setq ov (intern-soft (symbol-name (car es)) eieiomt-optimizing-obarray))
       (if (fboundp ov)
 	  (progn
 	    (set s ov)			;store ov as our next symbol
 	    (setq cont nil))
-	(setq es (eieiomt-next es))))
+	(setq es (append (cdr es) (eieiomt-next (car es))))))
     ;; If there is no nearest call, then set our value to nil
     (if (not es) (set s nil))
     ))
