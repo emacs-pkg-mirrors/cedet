@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-class.el,v 1.10 1997/01/29 02:19:43 zappo Exp $
+;;; RCS: $Id: dlg-class.el,v 1.11 1997/02/23 14:02:25 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -639,7 +639,7 @@ the variables we are editing."
 ;; FACE-FOREGROUND
 (defmacro data-valid-color-p (c)
   "Work around annoying differences between emacsen"
-  (if (eval-when-compile (boundp 'x-color-defined-p))
+  (if (eval-when-compile (fboundp 'x-color-defined-p))
       (list 'x-color-defined-p c)
     (list 'valid-color-name-p c)))
 
