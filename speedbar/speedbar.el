@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.166 2000/05/13 15:20:46 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.167 2000/05/15 21:56:46 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -1334,13 +1334,10 @@ in the selected file.
     (toggle-read-only 1)
     (speedbar-set-mode-line-format)
     (if speedbar-xemacsp
-	(progn
-	  (make-local-variable 'mouse-motion-handler)
-	  (setq mouse-motion-handler 'speedbar-track-mouse-xemacs))
+	(set (make-local-variable 'mouse-motion-handler)
+	     'speedbar-track-mouse-xemacs)
       (if speedbar-track-mouse-flag
-	  (progn
-	    (make-local-variable 'track-mouse)
-	    (setq track-mouse t)))	;this could be messy.
+	  (set (make-local-variable 'track-mouse) t))	;this could be messy.
       (setq auto-show-mode nil))	;no auto-show for Emacs
     (run-hooks 'speedbar-mode-hook))
   (speedbar-update-contents)
@@ -3460,7 +3457,7 @@ directory with these items."
 	  nil))
       (speedbar-do-function-pointer)))
 
-(defun speedbar-expand-line (arg)
+(defun speedbar-expand-line (&optional arg)
   "Expand the line under the cursor.
 With universal argument ARG, flush cached data."
   (interactive "P")
@@ -4167,7 +4164,7 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 
 (defun speedbar-recenter ()
   "Recenter the current buffer so POINT is in the center of the window."
-  (recenter (window-hight (/ (selected-window) 2))))
+  (recenter (/ (window-height (selected-window)) 2)))
 
 
 ;;; Color loading section.
