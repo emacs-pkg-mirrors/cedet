@@ -6,11 +6,11 @@
 
 ;;; autoconf.el --- Mode for editing Autoconf configure.in files.
 
-;; Copyright (C) 2000 Free Software Foundation, Inc.
+;; Copyright (C) 2000, 2004 Free Software Foundation, Inc.
 
 ;; Author: Dave Love <fx@gnu.org>
 ;; Keywords: languages
-;; $Revision: 1.3 $
+;; $Revision: 1.4 $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -106,7 +106,6 @@ searching backwards at another AC_... command."
 			      t)
 	  (match-string-no-properties 3)))))
 
-;;;###autoload
 (defun autoconf-mode ()
   "Major mode for editing Autoconf configure.in files."
   (interactive)
