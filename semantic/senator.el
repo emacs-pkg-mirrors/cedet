@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.82 2003/09/02 16:17:56 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.83 2003/09/09 18:38:42 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1314,73 +1314,44 @@ unregistered if present."
               (nconc senator-registered-mode-entries (list entry))))
       entry)))
 
-(defconst senator-base-local-label  "In this buffer")
-(defconst senator-base-global-label "Globally")
-(defvar   senator-uniquify-count    nil)
-
 (defsubst senator-build-command-menu-item (label props)
   "Return a command menu item with an unique name based on LABEL.
 PROPS is the list of properties of this menu item."
   (if props
-      (senator-menu-item
-       (apply #'vector
-              (cons (concat label
-                            (make-string senator-uniquify-count ?\ ))
-                    props)))))
+      (senator-menu-item (apply #'vector (cons label props)))))
 
-(defcustom senator-mode-menu-item-format "_ %s"
-  "*Format of menu item labels in the \"Modes\" menu.
-This format is used when Emacs is displaying through a window system.
-The function `format' will receives an unique label string."
+(defcustom senator-mode-menu-local-toggle-label  "In this buffer"
+  "*Label of menu item that toggles a Semantic minor mode locally."
   :group 'senator
   :type 'string
   :set (lambda (sym val)
          (set-default sym val)
          (setq senator-modes-menu-cache nil)))
 
-(defcustom senator-mode-menu-item-format-tty "%s (%s)"
-  "*Format of menu item labels in the \"Modes\" menu.
-This format is used when Emacs is using a text-only terminal.
-The function `format' will receives the mode name and a label string."
+(defcustom senator-mode-menu-global-toggle-label "Globally"
+  "*Label of menu item that toggles a Semantic minor mode globally."
   :group 'senator
   :type 'string
   :set (lambda (sym val)
          (set-default sym val)
          (setq senator-modes-menu-cache nil)))
 
-(defun senator-build-mode-menu-items (entry)
-  "Return menu items for the registered minor mode ENTRY.
-Each entry will be displayed in the menu like this:
+(defun senator-build-mode-sub-menu (entry)
+  "Return a sub-menu for the registered minor mode ENTRY.
+The sub-menu displayed in the Senator/Modes menu looks like this:
 
-      Entry-Name
-  [x] _ In this buffer
-  [x] _ Globally"
-  (let ((name   (car entry))
-        (local  (cadr entry))
-        (global (cddr entry)))
-    (if window-system
-        (setq local  (senator-build-command-menu-item
-                      (format senator-mode-menu-item-format
-                              senator-base-local-label)
-                      local)
-              global (senator-build-command-menu-item
-                      (format senator-mode-menu-item-format
-                              senator-base-global-label)
-                      global)
-              name   (vector name nil nil)
-              senator-uniquify-count (1+ senator-uniquify-count))
-      ;; Merge mode name in active menu items (the only ones
-      ;; displayed) when using a text-only terminal.
-      (setq local  (senator-build-command-menu-item
-                    (format senator-mode-menu-item-format-tty
-                            name senator-base-local-label)
-                    local)
-            global (senator-build-command-menu-item
-                    (format senator-mode-menu-item-format-tty
-                            name senator-base-global-label)
-                    global)
-            name    nil))
-    (delq nil (list name local global))))
+  Entry-Name
+            [x] In this buffer
+            [x] Globally
+
+The menu item \"In this buffer\" toggles the minor mode locally.
+The menu item \"Globally\" toggles the minor mode globally."
+  (delq nil
+        (list (car entry)
+              (senator-build-command-menu-item
+               senator-mode-menu-local-toggle-label (cadr entry))
+              (senator-build-command-menu-item
+               senator-mode-menu-global-toggle-label (cddr entry)))))
 
 (defun senator-build-modes-menu (&rest ignore)
   "Build and return the \"Modes\" menu.
@@ -1389,18 +1360,16 @@ the function `senator-register-mode-menu-entry'.
 IGNORE any arguments.
 This function is a menu :filter."
   (or senator-modes-menu-cache
-      (setq senator-uniquify-count 0
-            senator-modes-menu-cache
-            (nconc
-             (apply #'nconc (mapcar #'senator-build-mode-menu-items
-                                    senator-registered-mode-entries))
-             (list "--"
-                   (senator-menu-item
-                    [ "Save global settings"
-                      senator-save-registered-mode-settings
-                      :help "\
+      (setq senator-modes-menu-cache
+            (nconc (mapcar 'senator-build-mode-sub-menu
+                           senator-registered-mode-entries)
+                   (list "--"
+                         (senator-menu-item
+                          [ "Save global settings"
+                            senator-save-registered-mode-settings
+                            :help "\
 Save global settings of Semantic minor modes in your init file."
-                      ]))))))
+                            ]))))))
 
 (defun senator-save-registered-mode-settings ()
   "Save current value of registered minor modes global setting.
