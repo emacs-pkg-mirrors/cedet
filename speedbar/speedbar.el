@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.236 2004/01/08 21:48:13 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.237 2004/02/23 13:57:25 zappo Exp $
 
-(defvar speedbar-version "0.15beta1"
+(defvar speedbar-version "0.15beta2"
   "The current version of speedbar.")
 (defvar speedbar-incompatible-version "0.14beta4"
   "This version of speedbar is incompatible with this version.
@@ -2410,6 +2410,46 @@ name will have the function FIND-FUN and not token."
       (speedbar-update-special-contents)
     (speedbar-update-directory-contents)))
 
+(defun speedbar-update-localized-contents ()
+  "Update the contents of the speedbar buffer for the current situation."
+  ;; Due to the historical growth of speedbar, we need to do something
+  ;; special for "files" mode.  Too bad.
+  (let ((name speedbar-initial-expansion-list-name)
+	(funclst (speedbar-initial-expansion-list))
+	)
+    (if (string= name "files")
+	;; Do all the files type work.  It still goes through the
+	;; expansion list stuff. :(
+	(if (or (member (expand-file-name default-directory)
+			speedbar-shown-directories)
+		(and speedbar-ignored-directory-regexp
+		     (string-match
+		      speedbar-ignored-directory-regexp
+		      (expand-file-name default-directory))))
+	    nil
+	  (if (<= 1 speedbar-verbosity-level)
+	      (speedbar-message "Updating speedbar to: %s..."
+				default-directory))
+	  (speedbar-update-directory-contents)
+	  (if (<= 1 speedbar-verbosity-level)
+	      (progn
+		(speedbar-message "Updating speedbar to: %s...done"
+				  default-directory)
+		(speedbar-message nil))))
+      ;; Else, we can do a short cut.  No text cache.
+      (let ((cbd (expand-file-name default-directory))
+	    )
+	(set-buffer speedbar-buffer)
+	(speedbar-with-writable
+	  (erase-buffer)
+	  (while funclst
+	    (setq default-directory cbd)
+	    (funcall (car funclst) cbd 0)
+	    (setq funclst (cdr funclst)))
+	(speedbar-reconfigure-keymaps)
+	(goto-char (point-min)))
+	))))
+
 (defun speedbar-update-directory-contents ()
   "Update the contents of the speedbar buffer based on the current directory."
 
@@ -2574,25 +2614,12 @@ Also resets scanner functions."
 			     major-mode)
 			    (speedbar-message nil))))
 		  ;; Update all the contents if directories change!
-		  (if (or (member (expand-file-name default-directory)
-				  speedbar-shown-directories)
-			  (and speedbar-ignored-directory-regexp
-			       (string-match
-				speedbar-ignored-directory-regexp
-				(expand-file-name default-directory)))
-			  (member major-mode speedbar-ignored-modes)
+		  (if (or (member major-mode speedbar-ignored-modes)
 			  (eq af (speedbar-current-frame))
 			  (not (buffer-file-name)))
 		      nil
-		    (if (<= 1 speedbar-verbosity-level)
-			(speedbar-message "Updating speedbar to: %s..."
-				 default-directory))
-		    (speedbar-update-directory-contents)
-		    (if (<= 1 speedbar-verbosity-level)
-			(progn
-			  (speedbar-message "Updating speedbar to: %s...done"
-				   default-directory)
-			  (speedbar-message nil)))))
+		    (speedbar-update-localized-contents)
+		    ))
 		(select-frame af)))
 	    ;; Now run stealthy updates of time-consuming items
 	    (speedbar-stealthy-updates)))))
