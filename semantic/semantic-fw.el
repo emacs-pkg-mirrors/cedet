@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.16 2003/03/15 20:06:46 emacsman Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.17 2003/03/27 07:42:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -227,6 +227,9 @@ hook."
           ;; Binding already exists
           ;; Check rebind consistency
           (cond
+           ((equal (symbol-value variable) value)
+            ;; Just ignore rebind with the same value.
+            )
            ((get variable 'constant)
             (error "Can't change the value of constant `%s'"
                    variable))
