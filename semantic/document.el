@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.2 2000/05/04 03:29:45 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.3 2000/05/06 01:33:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -175,6 +175,95 @@ When non-nil, query for a new documentation file."
 						 nonterm 'flex))
       (document-update-history comment (document-get-history-elt "")))))
 
+(defun document-insert-new-file-header (header)
+  "Insert a new header file into this buffer.  Add reference to HEADER.
+Used by `prototype' if this file doesn't have an introductory comment."
+  (interactive)
+  (goto-char 0)
+  (let ((pnt nil))
+    (insert (document-new-file-header header))
+    (if pnt
+	(goto-char pnt))))
+
+;;; Top level comment things.
+;;
+(defun document-new-file-header (&optional header)
+  "Return a comment string customized for the current buffer.
+Optional HEADER is the header file to use under Token."
+  (Sformat (list (list ?B '(lambda () (document-file-brief-comment)))
+		 (list ?D
+		       (if (boundp 'pnt)
+			   '(lambda () (setq pnt (Sformat-point)) "")
+			 ""))
+		 (list ?N '(lambda ()
+			     (document-copyright-notice)))
+		 (list ?O document-copyright-holder)
+		 (list ?Y (document-get-date-time-string "%Y"))
+		 (list ?T '(lambda ()
+			     (concat
+			      cpr-header-token
+			      " "
+			      (if header header
+				(semantic-prototype-file (current-buffer))))))
+		 (list ?H (document-get-history-elt "Created"))
+		 (list ?b (document-comment-start))
+		 (list ?m (document-comment-line-prefix))
+		 (list ?e (document-comment-end)))
+	   ;; This is lame!  Fix it sometime soon.
+	   (if (string-match "\\.c$" (buffer-file-name))
+	       document-file-comment
+	     document-header-comment)))
+
+(defun document-set-copyright-file (f)
+  "Interactively find the file name with the copyright blurb.
+Argument F is the file to use."
+  (interactive "FCopyright Notice File (RET for none): ")
+  (if (string= f (buffer-file-name))
+      (setq document-copyright-notice-file "")
+    (setq document-copyright-notice-file f)))
+
+(defun document-copyright-notice ()
+  "Create, or find a copyright notice.
+Adds the comment line PREFIX to each line."
+  (if (not document-copyright-notice-file)
+      (call-interactively 'document-set-copyright-file))
+  (if (= (length document-copyright-notice-file) 0)
+      "??Public Domain Software??"
+    (let* ((b (get-buffer-create "DOCUMENT TEMP"))
+	   (s nil)
+	   (plen (Sformat-column))
+	   (pstr (substring (concat (document-comment-line-prefix)
+				    "         ")
+			    0 plen)))
+      (setq s
+	    (save-excursion
+	      (set-buffer b)
+	      (insert-file-contents document-copyright-notice-file)
+	      ;; Now put comment marks all over.
+	      (goto-char 0)
+	      (forward-line 1)
+	      (end-of-line)
+	      (while (not (eobp))
+		(beginning-of-line)
+		(insert pstr)
+		(end-of-line)
+		(forward-char 1)
+		(end-of-line))
+	      (forward-char -1)
+	      (if (equal (following-char) ?\n)
+		  (delete-char 1))
+	      (set-buffer-modified-p nil)
+	      (buffer-string)))
+      (kill-buffer b)
+      s)))
+
+(defun document-file-brief-comment ()
+  "Make a brief comment about the file we are currently editing."
+  (Sformat (list (list ?F (file-name-nondirectory (buffer-file-name)))
+		 (list ?C '(lambda ()
+			    (read-string "Brief Description of file: "))))
+	   document-file-brief-comment))
+
 ;;; Documentatation generation functions
 ;;
 (defun document-generate-documentation (nonterm buffer)
@@ -193,10 +282,10 @@ When non-nil, query for a new documentation file."
       doc)))
 
 (defun document-generate-new-documentation (nonterm buffer)
-  "Look at elements of NONTERM to make documentation.
+  "Look at elements of NONTERM in BUFFER to make documentation.
 This will create a new documentation string from scratch."
-  
-  )
+  ;; We probably want more than this, but for now it's close.
+  (document-function-name-comment nonterm))
 
 ;;; Inline comment mangling.
 ;;
@@ -644,29 +733,14 @@ not account for verb parts."
 This search string can be used to find the text residing in TOKEN
 if it were inserted with FORMAT in the past."
   (setq format (document-format-for-native-comments format))
-  (let ((rs nil) (case-fold-search nil))
-    (if (string-match (concat "\\(%" (char-to-string token) "\\)") format)
-	(progn
-	  (setq rs (substring format 0 (match-beginning 1)))
-	  ;; scan for previous tokens and shorten
-	  (while (string-match "\\(%\\)" rs)
-	    (setq rs (substring rs (+ (match-end 1) 1))))
-	  (regexp-quote rs))
-      nil)))
+  (sformat-just-before-token-regexp token format))
 
 (defun document-just-after-token-regexp (token format)
   "Return a search expression for text after TOKEN in FORMAT.
 This search string can be used to find the text residing in TOKEN
 if it were inserted with FORMAT in the past."
   (setq format (document-format-for-native-comments format))
-  (let ((rs nil) (case-fold-search nil))
-    (if (string-match (concat "\\(%" (char-to-string token) "\\)") format)
-	(progn
-	  (setq rs (substring format (match-end 1)))
-	  (if (string-match "\\(%\\)" rs)
-	      (setq rs (substring rs 0 (match-beginning 1))))
-	  (regexp-quote rs))
-      nil)))
+  (sformat-just-after-token-regexp token format))
 
 ;; This function adds in the comment thingies so that the above
 ;; functions can work some magic.
