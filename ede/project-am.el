@@ -1,11 +1,11 @@
 ;;; project-am.el --- A project management scheme based on automake files.
 
-;;;  Copyright (C) 1998  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.11 1999/01/05 02:45:15 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.12 1999/02/03 18:26:00 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -81,11 +81,11 @@
   "Base target class for everything in project-am.")
 
 (defclass project-am-objectcode (project-am-target)
-  ((source :initarg :source :docstring "List of source files."))
+  ((source :initarg :source :documentation "List of source files."))
   "A target which creates object code, like a C program or library.")
 
 (defclass project-am-program (project-am-objectcode)
-  ((ldadd :initarg :ldadd :docstring "Additional LD args."
+  ((ldadd :initarg :ldadd :documentation "Additional LD args."
 	  :initform nil))
   "A top level program to build")
 
@@ -94,7 +94,7 @@
   "A top level library to build")
 
 (defclass project-am-lisp (project-am-target)
-  ((lisp :initarg :lisp :docstring "List of lisp files to build."))
+  ((lisp :initarg :lisp :documentation "List of lisp files to build."))
   "A group of Emacs Lisp programs to byte compile.")
 
 (defclass project-am-texinfo (project-am-target)
@@ -102,7 +102,7 @@
 	    ;; We cheat here.  I happen to know that THIS
 	    ;; is defined in eieio.
 	    :initform nil
-	    :docstring "Additional texinfo included in this one."))
+	    :documentation "Additional texinfo included in this one."))
   "A top level texinfo file to build.")
 
 (defclass project-am-man (project-am-target)
@@ -112,7 +112,7 @@
 (defclass project-am-makefile (ede-project)
   ((targets :initarg :targets
 	    :initform nil
-	    :docstring "Top level targets in this makefile.")
+	    :documentation "Top level targets in this makefile.")
    )
   "Encode one makefile.")
 
@@ -388,16 +388,16 @@ It does not check for existing project objects.  Use `project-am-load'."
 	  (if (not kb) (kill-buffer (current-buffer))))))))
 
 ;;; Methods:
-(defmethod project-find-target ((amf project-am-makefile) buffer)
+(defmethod ede-find-target ((amf project-am-makefile) buffer)
   "Fetch the target belonging to BUFFER."
   (or ede-object
-    (if (project-buffer-mine amf buffer)
+    (if (ede-project-mine amf buffer)
 	amf
       (let ((targ (oref amf :targets))
 	    (sobj (oref amf :subproj))
 	    (obj nil))
 	(while (and targ (not obj))
-	  (if (project-buffer-mine (car targ) buffer)
+	  (if (ede-project-mine (car targ) buffer)
 	      (setq obj (car targ)))
 	  (setq targ (cdr targ)))
 	(while (and sobj (not obj))
@@ -529,13 +529,13 @@ It does not check for existing project objects.  Use `project-am-load'."
 nil means that this buffer belongs to no-one."
   (if (not amf)
       nil
-    (if (project-buffer-mine amf buffer)
+    (if (ede-project-mine amf buffer)
 	amf
       (let ((targ (oref amf :targets))
 	    (sobj (oref amf :subproj))
 	    (obj nil))
 	(while (and targ (not obj))
-	  (if (project-buffer-mine (car targ) buffer)
+	  (if (ede-project-mine (car targ) buffer)
 	      (setq obj (car targ)))
 	  (setq targ (cdr targ)))
 	(while (and sobj (not obj))
@@ -543,26 +543,26 @@ nil means that this buffer belongs to no-one."
 		sobj (cdr sobj)))
 	obj))))
   
-(defmethod project-buffer-mine ((this project-am-makefile) buffer)
+(defmethod ede-project-mine ((this project-am-makefile) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (string= (oref this :file) (expand-file-name (buffer-file-name buffer))))
 
-(defmethod project-buffer-mine ((this project-am-objectcode) buffer)
+(defmethod ede-project-mine ((this project-am-objectcode) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (member (file-name-nondirectory (buffer-file-name buffer))
 	  (oref this :source)))
 
-(defmethod project-buffer-mine ((this project-am-texinfo) buffer)
+(defmethod ede-project-mine ((this project-am-texinfo) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (let ((bfn (buffer-file-name buffer)))
     (or (string= (oref this :name)  (file-name-nondirectory bfn))
 	(member (file-name-nondirectory bfn) (oref this :include)))))
 	
-(defmethod project-buffer-mine ((this project-am-man) buffer)
+(defmethod ede-project-mine ((this project-am-man) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (string= (oref this :name) (buffer-file-name buffer)))
 
-(defmethod project-buffer-mine ((this project-am-lisp) buffer)
+(defmethod ede-project-mine ((this project-am-lisp) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (member (file-name-nondirectory (buffer-file-name buffer))
 	  (oref this :lisp)))
