@@ -13,17 +13,12 @@
    (ede-proj-target-makefile-miscelaneous "examples"
     :name "examples"
     :path ""
-    :source '("skeleton.bnf" "semantic-skel.el" "skeleton.by")
+    :source '("semantic-skel.el" "skeleton.by")
     )
    (ede-proj-target-elisp "languages"
     :name "languages"
     :path ""
     :source '("semantic-c.el" "semantic-el.el" "semantic-java.el" "semantic-make.el" "semantic-scm.el")
-    )
-   (ede-proj-target-makefile-miscelaneous "bnf"
-    :name "bnf"
-    :path ""
-    :source '("c.bnf" "java.bnf" "make.bnf" "scheme.bnf")
     )
    (ede-proj-target-makefile-miscelaneous "by"
     :name "by"
