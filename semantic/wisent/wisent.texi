@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.1 2002/01/08 22:18:32 ponced Exp $
+@c $Id: wisent.texi,v 1.2 2002/01/14 19:57:02 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle Wisent: The Bison like parser generator for Emacs
@@ -113,7 +113,7 @@ in the language should be named after that keyword converted to upper
 case.  The terminal symbol @code{error} is reserved for error
 recovery.
 
-@defun wisent-compile-grammar grammar &optional start-list stream
+@defun wisent-compile-grammar grammar &optional start-list
 Compile grammar @var{GRAMMAR} and return the tables needed by the parser.
 
 @table @var
@@ -123,15 +123,6 @@ The @acronym{CFG} to process (@pxref{Grammar format}).
 Optional list of nonterminal symbols defined as extra entry points in
 the grammar.  The first nonterminal specified in the grammar is always
 defined as the main entry point in the grammar.
-@item stream
-Optional @code{standard-output} stream where the tables will be
-pretty-printed.
-
-@quotation
-@strong{WARNING}: As the tables resulting of grammar compilation can
-be very large pretty-printing (done via the standard function
-@code{pp}) can take a while and consume a lot of computer resources!
-@end quotation
 @end table
 
 The value returned by @code{wisent-compile-grammar} is a vector of
@@ -147,49 +138,18 @@ reduce, accept or error @xref{Parsing}.
 Hold the code of semantic actions associated to reductions.  By
 default semantic actions are byte-compiled to achieve best performance
 of the parser.
-
 @item terms
 This is an alist (association list) which allows the parser to
 retrieve terminal numbers it uses internally, from terminal symbols
 returned by lexical analysis.  This can be useful too to know what
 terminal symbol is associated to a number.
-
-@item STARTS
-Give the definitions of start nonterminals.
-This is an alist (association list) of @code{(NONTERM . TERM)}
-which associates a starting point nonterminal symbol @code{NONTERM}
-to a terminal symbol @code{TERM} that will be first shifted into
-the parser stack.
+@item starts
+Define the allowed start nonterminals.  This is an alist (association
+list) of @code{(NONTERM . TERM)} which associates a starting point
+nonterminal symbol @code{NONTERM} to a terminal symbol @code{TERM}
+that will be first shifted into the parser stack.
 @end table
 @end defun
-
-For example:
-
-@lisp
-(wisent-compile-grammar my-grammar nil (current-buffer))
-@end lisp
-
-inserts the parser tables value at point in current buffer.
-
->>> Is there a way to have a precompiled grammar pretty printed?
-    This would be a good (interactive) command, and make the above
-    API cleaner.  The bison command line compiler bundles all this
-    together because it doesn't maintain it's state, whereas wisent
-    loads it's tables into variables.
-
-    It might also be possible to create an output buffer later which
-    is faster by not usiing pp.
-
-<<< As a pre-compiled grammar is just a vector of vectors and lists,
-    it can be easily pretty printed (except the byte compiled code of
-    semantic actions).
-    
-    In fact I used this feature for debugging purpose while I ported
-    Scheme code to Elisp one, to check that both versions produced
-    the same tables from the same grammar.
-
-    I agree with you, it is a good idea to remove the STREAM parameter
-    from `wisent-compile-grammar'.
 
 @menu
 * Grammar format::              
@@ -474,8 +434,8 @@ When called from a recovery action the value of the variable
 @item start
 Specify the nonterminal symbol used by the parser as its goal.  It
 defaults to the first nonterminal specified in the grammar.
-@var{START} must be one the @var{STARTS} symbol specified at
-compilation time (@pxref{Grammar}).
+@var{START} must be one the entry point nonterminal symbols specified
+at compilation time (@pxref{Grammar}).
 @end table
 @end defun
 
