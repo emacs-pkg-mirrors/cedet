@@ -896,49 +896,52 @@ List of tag classes which sticky func will display in the header line.
 
 @section Tag Boundaries
 
-@deffn Command semantic-show-tag-boundaries-mode &optional arg
-Minor mode to display a boundary in front of tags.
-The boundary is displayed using an overline in Emacs @var{21}.
-With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+There used to be a tag boundaries mode.  This has been subsumed by
+Tag Decoration Mode.
+
+@section Tag Decoration Mode
+@cindex semantic-decoration-mode
+
+Decoration mode is a harness that allows any parsed tag to be
+highlighted based on some arbitrary feature of that tag.  Decoration
+mode is actually a full harness for providing any kind of decoration
+on a tag based on a prefix function.
+
+@deffn Command semantic-decoration-mode &optional arg
+@anchor{semantic-decoration-mode}
+Minor mode for decorating tags.
+Decorations are specified in @code{semantic-decoration-styles}.
+You can define new decoration styles with
+@dfn{define-semantic-decoration-style}.
+With prefix argument @var{arg}, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-@code{nil} if the
 minor mode is enabled.
 @end deffn
 
-@deffn Face semantic-tag-boundary-face
-Face used to show unmatched syntax in.
-The face is used in  @dfn{semantic-show-tag-boundaries-mode}.
-@end deffn
+You can create new types of decorations using the following function:
 
-@section Tag Attribute Highlighting
+@defun define-semantic-decoration-style name doc
+@anchor{define-semantic-decoration-style}
+Define a new decoration style with @var{name}.
+@var{doc} is a documentation string describing the decoration style @var{name}.
+It is appended to auto-generated doc strings.
 
-@deffn Command semantic-highlight-by-attribute-mode &optional arg
-Minor mode to highlight tags based on some attribute.
-By default, the protection of a tag will give it a different
-background color.
+This defines two new overload functions respectively called @code{NAME-p}
+and @code{NAME-highlight}, for which you must provide a default
+implementation in respectively the functions @code{NAME-p-default} and
+@code{NAME-highlight-default}.  Those functions are passed a tag.  @code{NAME-p}
+must return non-@code{nil} to indicate that the tag should be decorated by
+@code{NAME-highlight}.
 
-With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-@code{nil} if the
-minor mode is enabled.
-@end deffn
+To put primary decorations on a tag @code{NAME-highlight} must use
+functions like @dfn{semantic-set-tag-face}, @dfn{semantic-set-tag-intangible},
+etc., found in the semantic-decorate library.
 
-@defvar semantic-highlight-attribute-alist
-Association list of functions testing attributes of a tag and a faces.
-Each function must take one argument, the tag.
-Each face will be applied to those tags for which the function returns true.
-@end defvar
-
-@deffn Option semantic-highlight-attribute-face-private
-Face used to show privatly scoped tags in.
-The face is used in  @dfn{semantic-highlight-by-attribute-mode}.
-@end deffn
-
-@deffn Option semantic-highlight-attribute-face-protected
-Face used to show protected scoped tags in.
-The face is used in  @dfn{semantic-highlight-by-attribute-mode}.
-@end deffn
-
+To add other kind of decorations on a tag, @code{NAME-highlight} must use
+@dfn{semantic-decorate-tag}, and other functions of the semantic
+decoration @var{api} found in this library.
+@end defun
 
 @node semanticdb
 @chapter Semantic Database
@@ -991,6 +994,7 @@ perhaps symbols in a Java @file{.class} file.
 You can execute hooks when semanticdb is activated using its mode hook.
 
 @deffn Option semanticdb-mode-hooks
+@anchor{semanticdb-mode-hooks}
 Hooks run whenever @dfn{global-semanticdb-minor-mode} is run.
 Use @dfn{semanticdb-minor-mode-p} to determine if the mode has been turned
 on or off.
@@ -1003,10 +1007,12 @@ action is to save them when Emacs exits.  You can control the file
 name and directories where the caches are stored.
 
 @deffn Option semanticdb-default-file-name
+@anchor{semanticdb-default-file-name}
 File name of the semantic tag cache.
 @end deffn
 
 @deffn Option semanticdb-default-save-directory
+@anchor{semanticdb-default-save-directory}
 Directory name where semantic cache files are stored.
 If this value is @code{nil}, files are saved in the current directory.  If the value
 is a valid directory, then it overrides @code{semanticdb-default-file-name} and
@@ -1014,29 +1020,32 @@ stores caches in a coded file name in this directory.
 @end deffn
 
 @deffn Option semanticdb-persistent-path
+@anchor{semanticdb-persistent-path}
 List of valid paths that semanticdb will cache tags to.
 When @dfn{global-semanticdb-minor-mode} is active, tag lists will
 be saved to disk when Emacs exits.  Not all directories will have
 tags that should be saved.
-The value should be a list of valid paths.  @var{A} path can be a string,
+The value should be a list of valid paths.  @var{a} path can be a string,
 indicating a directory in which to save a variable.  An element in the
 list can also be a symbol.  Valid symbols are @code{never}, which will
 disable any saving anywhere, @code{always}, which enables saving
 everywhere, or @code{project}, which enables saving in any directory that
-passes a list of predicates in @code{semantic-project-predicates}.
+passes a list of predicates in @code{semanticdb-project-predicate-functions}.
 @end deffn
 
 @defvar semanticdb-project-predicate-functions
+@anchor{semanticdb-project-predicate-functions}
 List of predicates to try that indicate a directory belongs to a project.
 This list is used when @code{semanticdb-persistent-path} contains the value
-@code{project}.  If the predicate list is @code{nil}, then presume all paths are valid.
+@code{'project}.  If the predicate list is @code{nil}, then presume all paths are valid.
 
-Project Management software (such as @var{EDE} and @var{JDE}) should add their own
+Project Management software (such as @var{ede} and @var{jde}) should add their own
 predicates with @dfn{add-hook} to this variable, and semanticdb will save tag
 caches in directories controlled by them.
 @end defvar
 
 @deffn Option semanticdb-save-database-hooks
+@anchor{semanticdb-save-database-hooks}
 Hooks run after a database is saved.
 Each function is called with one argument, the object representing
 the database recently written.
@@ -1045,6 +1054,7 @@ the database recently written.
 @subsection Semanticdb Search Configuration
 
 @deffn Option semanticdb-project-roots
+@anchor{semanticdb-project-roots}
 List of directories, where each directory is the root of some project.
 All subdirectories of a root project are considered a part of one project.
 Values in this string can be overriden by project management programs
@@ -1052,16 +1062,19 @@ via the @code{semanticdb-project-root-functions} variable.
 @end deffn
 
 @defvar semanticdb-project-root-functions
+@anchor{semanticdb-project-root-functions}
 List of functions used to determine a given directories project root.
 Functions in this variable can override @code{semanticdb-project-roots}.
 Functions set in the variable are given one argument (a directory) and
-must return a string, (the root directory).  This variable should be used
-by project management programs like @var{EDE} or @var{JDE}.
+must return a string, (the root directory) or a list of strings (multiple
+root directories in a more complex system).  This variable should be used
+by project management programs like @var{ede} or @var{jde}.
 @end defvar
 
 @subsection Semanticdb System Backends
 
 @defvar semanticdb-project-system-databases
+@anchor{semanticdb-project-system-databases}
 List of databases containing system library information.
 Mode authors can create their own system databases which know
 detailed information about the system libraries for querying purposes.
@@ -1070,6 +1083,7 @@ value.
 @end defvar
 
 @defvar semanticdb-search-system-databases
+@anchor{semanticdb-search-system-databases}
 Non @code{nil} if search routines are to include a system database.
 @end defvar
 
@@ -1080,6 +1094,7 @@ variable to choose which back end class to use for your general tag
 storage.
 
 @defvar semanticdb-new-database-class
+@anchor{semanticdb-new-database-class}
 The default type of database created for new files.
 This can be changed on a per file basis, so that some directories
 are saved using one mechanism, and some directories via a different
@@ -1106,10 +1121,11 @@ summary-mode, or the analyzer.
 Use the following command to create new system databases:
 
 @deffn Command semanticdb-create-system-database path &optional class
-Create a system database starting at @var{PATH}.
-@var{PATH} should be a top level directory for a series of files containing
-declarations for @var{SYSTEM} files.  In @var{C}, this would be header filaes.
-@var{CLASS} is the class for the database to create.  Only child classes
+@anchor{semanticdb-create-system-database}
+Create a system database starting at @var{path}.
+@var{path} should be a top level directory for a series of files containing
+declarations for @var{system} files.  In @var{c}, this would be header filaes.
+@var{class} is the class for the database to create.  Only child classes
 of symbol @dfn{semanticdb-project-database-system} are accepted.
 @end deffn
 
