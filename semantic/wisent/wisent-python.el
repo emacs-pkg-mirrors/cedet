@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.27 2003/02/02 04:49:14 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.28 2003/02/08 05:39:53 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -49,6 +49,11 @@
 ;; this list.
 (defvar wisent-python-lexer-indent-stack '(0))
 
+;; Variable set to t only by `semantic-lex-python-charquote' so that
+;; `semantic-lex-python-beginning-of-line' will not generate any
+;; INDENT or DEDENT tokens for continued lines.
+(defvar wisent-python-explicit-line-continuation nil)
+
 ;; Python strings are delimited by either single quotes or double
 ;; quotes, e.g., "I'm a string" and 'I too am s string'.
 ;; In addition a string can have either a 'r' and/or 'u' prefix.
@@ -76,7 +81,7 @@
 DEDENT tokens by comparing current indentation level with the previous
 indentation values stored in `wisent-python-lexer-indent-stack'
 stack."
-  (and (bolp)
+  (and (and (bolp) (not wisent-python-explicit-line-continuation))
        (let ((last-indent (or (car wisent-python-lexer-indent-stack) 0))
 	     (last-pos (point))
 	     curr-indent)
@@ -115,6 +120,12 @@ stack."
 	   (not (eq last-pos (point))))
 	  )))
   nil ;; all the work was done in the previous form
+  )
+
+(define-lex-analyzer semantic-lex-python-reset-continued-line
+  "Reset `wisent-python-explicit-line-continuation' back to nil."
+  (setq wisent-python-explicit-line-continuation nil)
+  ()
   )
 
 (define-lex-analyzer semantic-lex-python-newline
@@ -161,12 +172,12 @@ then throw away any immediately following INDENT and DEDENT tokens."
 
 (define-lex-analyzer semantic-lex-python-charquote
   "Handle BACKSLASH syntactic tokens."
-  (looking-at "\\s\\+")
+  (looking-at "\\s\\")
   (forward-char 1)
-  (semantic-lex-token 'BACKSLASH (1- (point)) (point))
-  (when (looking-at "\n")
+  (when (looking-at "$")
     (forward-char 1)
-    (skip-chars-forward " \t"))
+    (skip-chars-forward " \t")
+    (setq wisent-python-explicit-line-continuation nil))
   (setq end-point (point)))
 
 ;; This is same as wisent-java-lex-symbol except for using 'NAME token
@@ -197,6 +208,7 @@ then throw away any immediately following INDENT and DEDENT tokens."
   ;; semantic-lex-python-beginning-of-line needs to be the first so
   ;; that we don't miss any DEDENT tokens at the beginning of lines.
   semantic-lex-python-beginning-of-line
+  semantic-lex-python-reset-continued-line
   ;; semantic-lex-python-string needs to come before symbols because
   ;; of the "r" and/or "u" prefix.
   semantic-lex-python-string
@@ -263,7 +275,9 @@ Otherwise simply call the original function."
 ;;;@ Parser
 ;;;****************************************************************************
 
-(define-mode-overload-implementation
+;; Commented this out after learning that there is no need to convert
+;; tokens to names.  See "(semantic)Style Guide". -ryk2/7/03.
+'(define-mode-overload-implementation
   semantic-parse-region python-mode
   (start end &optional nonterminal depth returnonerror)
   "Over-ride so that 'paren_classes' non-terminal tokens can be intercepted
@@ -282,7 +296,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:41-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-07 21:30-0800
   (eval-when-compile
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
@@ -329,7 +343,7 @@ then converted to simple names to comply with the semantic token style guide."
 	     (and $2
 		  (stringp $1)
 		  (string-match "^\\(\\sw\\|\\s_\\)+$" $1))
-	     (wisent-token $1 'variable nil nil)
+	     (wisent-token $1 'variable nil nil nil nil)
 	   (wisent-token $1 'code nil nil))))
        (expr_stmt_trailer
 	((augassign testlist))
@@ -509,7 +523,7 @@ then converted to simple names to comply with the semantic token style guide."
 	 nil))
        (funcdef
 	((DEF NAME function_parameter_list COLON suite)
-	 (wisent-token $2 'function nil $3)))
+	 (wisent-token $2 'function nil $3 nil nil)))
        (function_parameter_list
 	((PAREN_BLOCK)
 	 (semantic-parse-region
@@ -531,7 +545,7 @@ then converted to simple names to comply with the semantic token style guide."
 	 (wisent-token $2 'variable nil nil nil nil)))
        (classdef
 	((CLASS NAME paren_class_list_opt COLON suite)
-	 (wisent-token $2 'type $1 $5 $3)))
+	 (wisent-token $2 'type $1 $5 $3 nil)))
        (paren_class_list_opt
 	(nil)
 	((paren_class_list)))
@@ -547,9 +561,9 @@ then converted to simple names to comply with the semantic token style guide."
 	((RPAREN)
 	 nil)
 	((paren_class COMMA)
-	 (wisent-token $1 'variable nil nil))
+	 (wisent-token $1 'variable nil nil nil nil))
 	((paren_class RPAREN)
-	 (wisent-token $1 'variable nil nil)))
+	 (wisent-token $1 'variable nil nil nil nil)))
        (paren_class
 	((NAME)))
        (test
@@ -728,7 +742,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:41-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-07 21:30-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -790,7 +804,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:41-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-07 21:30-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -862,7 +876,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:41-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-07 21:30-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
