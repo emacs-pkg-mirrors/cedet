@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.21 2000/12/09 03:05:37 zappo Exp $
+@c $Id: semantic.texi,v 1.22 2000/12/10 23:46:52 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -32,15 +32,11 @@ behaviors as yacc or bison.  Since it is not designed to be as feature
 rich as these tools, it uses the term ``bovine'' for cow, a lesser
 cousin of the yak and bison.
 
-In it's current state, the bovinator is both fast (because it uses emacs
+In it's current state, the bovinator is both fast (because it uses Emacs
 tricks) and slow (it is recursive, and not table (array) based).  If you
 have experience with compiler compilers (bison, yacc, etc) your help to
 make these updates would be greatly appreciated.
 
-Because the bovinator is recursive, you may need to add the following to
-your .emacs file:
-
-@code{(setq max-specpdl-size 1000)}
 
 @menu
 * Install::             Installing semantic.
@@ -644,11 +640,15 @@ broken.
 @chapter Using the Non-Termianal Stream
 
 The list of nonterminals returned from the parser is always language
-dependent, but should follow some simple conventions.  A generic entry
-in the stream should be of the form
+dependent, but should follow some simple conventions.  Despite the fact
+that they are listed here, always use convenience functions because
+these structures change between releases.  When writing your parser,
+however, it is important to create yourtokens with these patterns.
+
+ A generic entry in the stream should be of the form
 
 @example
-("NAME" type-symbol ["TYPE"] ... "DOCSTRING" OVERLAY)
+("NAME" type-symbol ["TYPE"] ... "DOCSTRING")
 @end example
 
 In this case, @var{NAME} is the identifier being declared.
@@ -668,7 +668,7 @@ Some predefined nonterminals that can be used are:
 
 @example
 ("NAME" variable "TYPE" CONST DEFAULT-VALUE MODIFIERS [OPTSUFFIX]
-        "DOCSTRING" OVERLAY)
+        "DOCSTRING")
 @end example
 
 The definition of a variable, or constant.  @var{CONST} is a boolean
@@ -682,7 +682,7 @@ fields. @var{DOCSTRING} is optional.
 
 @example
 ("NAME" function "TYPE" ( ARG-LIST ) MODIFIERS [THROWS] 
-        "DOCSTRING" OVERLAY)
+        "DOCSTRING")
 @end example
 
 A function/procedure definition.
@@ -692,7 +692,7 @@ that support typed signal throwing.
 @var{DOCSTRING} is optional.
 
 @example
-("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) MODIFIERS "DOCSTRING" OVERLAY)
+("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) MODIFIERS "DOCSTRING")
 @end example
 
 A type definition.
@@ -703,7 +703,7 @@ or class.
 @var{PARENTS} is strictly for classes where there is inheritance.
 
 @example
-("FILE" include SYSTEM "DOCSTRING" OVERLAY)
+("FILE" include SYSTEM "DOCSTRING")
 @end example
 
 In C, an #include statement.  In elisp, a require statement.
@@ -711,7 +711,7 @@ Indicates additional locations of sources or definitions.
 @var{SYSTEM} is true if this include is part of a set of system includes.
 
 @example
-("NAME" package DETAIL "DOCSTRING" OVERLAY)
+("NAME" package DETAIL "DOCSTRING")
 @end example
 
 In Emacs Lisp, a `provide' statement.  @var{DETAIL} might be an associated
@@ -782,6 +782,14 @@ Retrieve the end location of @var{TOKEN}.
 Retrieve the type of @var{TOKEN}.
 @end defun
 
+@defun semantic-token-put token property value
+On @var{token}, set @var{property} to @var{value}.
+@end defun
+
+@defun semantic-token-get token property
+For @var{token} get the value of @var{property}.
+@end defun
+
 @defun semantic-token-type-parts token
 Retrieve the parts of the type @var{TOKEN}.
 @end defun
@@ -835,6 +843,11 @@ items matching a given criterion.
 
 @defun semantic-find-nonterminal-by-name name streamorbuffer
 Find a nonterminal @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a string.
+@end defun
+
+@defun semantic-find-nonterminal-by-property property value streamorbuffer
+Find all tokens where @var{property} equals @var{value}.
+Returns a list of all tokens with a match.
 @end defun
 
 @defun semantic-find-nonterminal-by-position position streamorbuffer &optional nomedian
@@ -1032,6 +1045,7 @@ Semantic.
 * speedbar::            How to use Semantic speedbar support
 * semanticdb::          Cache your parsed buffers between sessions.
 * senator::             The Semantic Navigator
+* miscellaneous:: 
 @end menu
 
 @node speedbar, semanticdb, Tools, Tools
@@ -1078,20 +1092,124 @@ To use semanticdb, add the following to your @file{.emacs} file:
 
 *Write section on programming api*
 
-@node senator, , semanticdb, Tools
+@node senator, miscellaneous, semanticdb, Tools
 @comment  node-name,  next,  previous,  up
 @section Semantic Navigator
 
 Senator stands for SEmantic NAvigaTOR and was written by David Ponce.
 
-*port commentary here*
+This library defines commands and a minor mode to navigate between
+semantic language tokens in the current buffer.
+
+@subsection Commands
+
+@deffn Command senator-next-token
+Move to the next token in the current buffer.
+@end deffn
+
+@deffn Command senator-previous-token
+Move to the previous token in the current buffer.
+@end deffn
+
+@deffn Command senator-search-forward string
+@deffnx Command senator-search-backward string
+Search forward and backward for a token matching @var{string}.
+@end deffn
+
+@deffn Command re-search-forward regex
+@deffnx Command re-search-backward regex
+Search forward and backward for a token matching the regular expression
+@var{regex}.
+@end deffn
+
+@deffn Command word-search-forward word
+@deffnx word-search-backward word
+Search forward and backward for a token whose name matches @var{word}.
+@end deffn
+
+@deffn Command senator-isearch-toggle-semantic-mode
+Toggles semantic search in isearch mode.  When semantic search is
+enabled, isearch is restricted to token names.
+@end deffn
+
+@deffn Command senator-minor-mode
+Toggle the SEmantic NAvigaTOR key bindings in the current buffer.
+
+The following default key bindings are provided when semantic minor
+mode is enabled:
+
+
+@table @key
+@item C-c , n
+senator-next-token
+@item C-c , p
+senator-previous-token
+@item C-c , i
+senator-isearch-toggle-semantic-mode
+@end table
+@end deffn
+
+@subsection Customization
+
+To enable the Senator keymap in all modes that support semantic parsing,
+use this:
+
+@example
+(add-hook 'semantic-init-hooks 'senator-minor-mode)
+@end example
+
+To customize navigation around different types of tokens, use the
+following variables:
+
+@defvar senator-step-at-token-ids
+List of symbols.  The symbols represent different token types.
+Navigation occurs only between tokens of these types.
+@end defvar
+
+@defvar senator-step-at-start-end-token-ids
+Navigation pauses at the beginning and end of tokens of this type.
+@end defvar
+
+To have a mode specific customization, do something like this in a hook:
+
+@example
+(add-hook 'mode-hook
+          (lambda ()
+            (setq senator-step-at-token-ids '(function variable))
+            (setq senator-step-at-start-end-token-ids '(function))
+            ))
+@end example
+
+This will cause navigation and search commands to stop only between
+functions and variables, and to step at start and end of functions
+only.
+
+@subsection Contact information for Senator
+
+Any comments, suggestions, bug reports or upgrade requests are
+welcome.  Please send them to David Ponce at david@@dponce.com
+
+@node miscellaneous, , senator, Tools
+@comment  node-name,  next,  previous,  up
+@section Miscellaneous commands
+
+@deffn Command semantic-show-dirty-mode arg
+Toggle highlighting of dirty tokens.  When optional argument @var{arg}
+is negative, disable this mode.  A positive argument enables it.  If
+@var{arg} is nil, toggle.
+
+When active, tokens in the current buffer marked ``dirty'' are
+highlighted.  A token is considered dirty if the token was generated
+before the most recent change to that token's text.
+@end deffn
+
 
 @node Index, , Tools, Top
 @comment  node-name,  next,  previous,  up
 @chapter Index
 
-@unnumbered Concept Index
-@printindex cp
+@unnumbered Function Index
+@printindex fn
 
 @bye
 
