@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.59.2.4 2003/01/24 12:31:22 berndl Exp $
+# X-RCS: $Id: c.bnf,v 1.59.2.5 2003/01/28 08:18:04 berndl Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -256,8 +256,6 @@ opt-define-arglist : semantic-list
 
 # This is used in struct parts.
 define : HASH DEFINE symbol opt-define-arglist macro-def
-# Klaus Berndl <klaus.berndl@sdm.de>: should be $3 variable nil $4!
-#	 ( $2 variable nil $3
 	 ( $3 variable nil $4
 	      (ASSOC const t)
 	      nil
@@ -395,10 +393,12 @@ typesimple : struct-or-class opt-name opt-template-specifier
 	     ( ,$2 type $1 $3 nil nil nil )
 	   | ENUM opt-name enumparts
 	     ( ,$2 type $1 $3 nil nil nil )
-           | TYPEDEF typeformbase typedef-symbol-list
+# Klaus Berndl <klaus.berndl@sdm.de>: a typedef can be a typeformbase
+# with all this declmods stuff.
+           | TYPEDEF declmods typeformbase cv-declmods typedef-symbol-list
 	   ## We put the type this typedef renames into PARENT
 	   ## but will move it in the expand function.
-	     ( $3 type $1 nil $2 nil nil )
+	     ( $5 type $1 nil $3 nil nil )
            ;
 
 typedef-symbol-list : typedefname COMA typedef-symbol-list
@@ -529,8 +529,7 @@ declmods : DECLMOD declmods
 
 DECLMOD : EXTERN
 	| STATIC
-	| CONST
-	| VOLATILE
+        | CVDECLMOD
 # Klaus Berndl <klaus.berndl@sdm.de>: IMHO signed and unsigned are not
 # decl-modes but these are only valid for some buildin-types like
 # short, int etc... whereas "real" declmods are valid for all types,
@@ -554,6 +553,18 @@ metadeclmod : METADECLMOD
 	    | EMPTY
 	      ()
 	    ;
+
+CVDECLMOD : CONST
+          | VOLATILE
+          ;
+
+cv-declmods : CVDECLMOD cv-declmods
+	      ( ,(cons ,(car ,$1) $2 ) )
+	    | CVDECLMOD
+              ( ,$1 )
+            | EMPTY
+              ()
+            ;
 
 METADECLMOD : VIRTUAL
 	    | MUTABLE
@@ -617,7 +628,14 @@ builtintype : signedmod builtintype-types
 	    ( (concat (car $1) " int") )
 	    ;
 
-codeblock-var-or-fun : declmods typeformbase metadeclmod
+# Klaus Berndl <klaus.berndl@sdm.de>: This parses also nonsense like
+# "const volatile int const volatile const const volatile a ..." but
+# IMHO nobody writes such code. Normaly we shoud define a rule like
+# typeformbase-mode which exactly defines the different allowed cases
+# and combinations of declmods (minus the CVDECLMOD) typeformbase and
+# cv-declmods so we could recognize more invalid code but IMHO this is
+# not worth the effort...
+codeblock-var-or-fun : declmods typeformbase declmods
 		       opt-ref var-or-func-decl
 		       ( ,(semantic-c-reconstitute-token ,$5 $1 $2 ) )
 		     ;
@@ -731,12 +749,14 @@ varname : opt-stars opt-restrict namespace-symbol opt-bits opt-array opt-assign
 	  ( ,$3 ,$1 ,$4 ,$5 ,$6 )
 	;
 
-# I should store more in this def, but leave it simple for now.
-variablearg : declmods typeformbase opt-ref opt-stars variablearg-opt-name
-	      ( (list $5) variable $2 nil
+# I should store more in this def, but leave it simple for now. Klaus
+# Berndl <klaus.berndl@sdm.de>: const and volatile can be written
+# after the type!
+variablearg : declmods typeformbase cv-declmods opt-ref opt-stars variablearg-opt-name
+	      ( (list $6) variable $2 nil
 		 (ASSOC const (if (member "const" $1) t nil)
 			typemodifiers (delete "const" $1)
-			reference (car ,$3)
+			reference (car ,$4)
 			)
 		 nil
 		 )
@@ -826,7 +846,7 @@ operatorsym : LESS LESS
 	      ( "!=" )
 	    | MINUS GREATER
 	      ( "->" )
-# TODO: Klaus Berndl <klaus.berndl@sdm.de>: We have to parse also
+# Klaus Berndl <klaus.berndl@sdm.de>: We have to parse also
 # operator() and operator[]
             | semantic-list "()"
 	      ( "()" )
