@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.15 2004/02/11 03:21:42 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.16 2004/02/19 02:17:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -179,7 +179,13 @@ multiple tag sources are scanned."
   (let ((copy (copy-sequence tags))
 	(sorted (sort (copy-sequence tags)
 		      (lambda (a b)
-			(< (semantic-tag-start a) (semantic-tag-start b)))))
+			(cond ((not (semantic-tag-with-position-p a))
+			       t)
+			      ((not (semantic-tag-with-position-p b))
+			       nil)
+			      (t
+			       (< (semantic-tag-start a)
+				  (semantic-tag-start b)))))))
 	(uniq nil))
     (while sorted
       (if (or (not uniq)
