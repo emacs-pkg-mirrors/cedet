@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.29 2003/03/17 01:20:31 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.30 2003/04/02 02:23:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -363,7 +363,7 @@ The face is used in  `semantic-show-unmatched-syntax-mode'."
 (defsubst semantic-clean-token-of-unmatched-syntax (token)
   "Clean the area covered by TOKEN of unmatched syntax markers."
   (semantic-clean-unmatched-syntax-in-region
-   (semantic-token-start token) (semantic-token-end token)))
+   (semantic-tag-start token) (semantic-tag-end token)))
 
 (defun semantic-show-unmatched-syntax (syntax)
   "Function set into `semantic-unmatched-syntax-hook'.
@@ -1016,7 +1016,7 @@ text for that function in Emacs 21's header line."
 
 ;;;###autoload
 (defun semantic-stickyfunc-mode (&optional arg)
-  "Minor mode to show useful things about tokens in echo area.
+  "Minor mode to show useful things about tokens in header line.
 Enables/disables making the header line of functions sticky.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
@@ -1055,14 +1055,14 @@ If there is no function, disable the header line."
 	   (forward-line -1)
 	   (end-of-line)
 	   ;; Capture this function
-	   (let ((tag (semantic-current-nonterminal)))
+	   (let ((tag (semantic-current-tag)))
 	     (if (or (not tag)
-		     (not (member (semantic-token-token tag)
+		     (not (member (semantic-tag-class tag)
 				  semantic-stickyfunc-sticky-classes)))
 		 ;; Set it to be the text under the header line
 		 (buffer-substring (point-at-bol) (point-at-eol))
 	       ;; Get it
-	       (goto-char (semantic-token-start tag))
+	       (goto-char (semantic-tag-start tag))
 	       (buffer-substring (point-at-bol) (point-at-eol))
 	       ))))
 	(start 0))
