@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.62 2004/04/29 10:12:19 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.63 2004/06/08 06:57:42 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -829,6 +829,8 @@ Lisp code."
         (message "Package `%s' is up to date." package)
       ;; Create the package
       (set-buffer semantic--grammar-output-buffer)
+      ;; Use Unix EOLs, so that the file is portable to all platforms.
+      (setq buffer-file-coding-system 'raw-text-unix)
       (erase-buffer)
       (unless (eq major-mode 'emacs-lisp-mode)
         (emacs-lisp-mode))
