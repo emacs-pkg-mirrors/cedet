@@ -4,7 +4,7 @@
 
 ;; Author: Klaus Berndl <klaus.berndl@sdm.de>
 ;; Keywords: syntax test
-;; X-RCS: $Id: semantic-regtest.el,v 1.2 2003/04/12 17:21:11 zappo Exp $
+;; X-RCS: $Id: semantic-regtest.el,v 1.3 2003/04/14 16:29:49 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -75,13 +75,13 @@
   :prefix "semantic-regtest-")
 
 (defcustom semantic-regtest-functions
-  '(semantic-prin1-nonterminal)
+  '(semantic-regtest-prin1-nonterminal)
   "*Functions used for the grammar/parser regression-test.
 
 Every element must be a function which gets one token-argument and must return
 a string which is the printed information about this token.
 
-If nil then always `semantic-prin1-nonterminal' is used."
+If nil then always `semantic-regtest-prin1-nonterminal' is used."
   :group 'semantic-regtest
   :type '(repeat (function :tag "Regression-test function")))
 
@@ -725,39 +725,179 @@ test output file and the reference file clickable.
 ;; Most tags have data in them unrelated to the details parsed out of
 ;; a file.  Remove that, and format them in a simple way.
 
+;; some code if this library runs with semantic 1.4
+(or (fboundp 'semantic-tag-name)
+    (defun semantic-tag-name (tag)
+      "See semantic 2.X for a description of this function."
+      (car tag)))
+
+(or (fboundp 'semantic-tag-class)
+    (defun semantic-tag-class (tag)
+      "See semantic 2.X for a description of this function."
+      (nth 1 tag)))
+
+(or (fboundp 'semantic-tag-attributes)
+    (defun semantic-tag-attributes (tag)
+      "See semantic 2.X for a description of this function."
+      (nth 2 tag)))
+
+(or (fboundp 'semantic-tag-p)
+    (defun semantic-tag-p (tag)
+      "See semantic 2.X for a description of this function."
+      (and (consp tag)
+           (stringp (car tag))
+           (symbolp (nth 1 tag)) (nth 1 tag)
+           (listp (nth 2 tag))
+           (listp (nth 3 tag))
+           )))
+
+(or (fboundp 'semantic-tag-make-plist)
+    (defun semantic-tag-make-plist (args)
+      "See semantic 2.X for a description of this function."
+      (let (plist key val)
+        (while args
+          (setq key  (car args)
+                val  (nth 1 args)
+                args (nthcdr 2 args))
+          (or (null key)
+              (overlayp key)
+              (overlayp val)
+              (member val '("" nil))
+              (and (numberp val) (zerop val))
+              (setq plist (cons key (cons val plist)))))
+        ;; It is not useful to reverse the new plist.
+        plist)))
+
+(or (fboundp 'semantic-tag)
+    (defun semantic-tag (name class &rest attributes)
+      "See semantic 2.X for a description of this function."
+      (list name class (semantic-tag-make-plist attributes) nil nil)))
+
+(or (fboundp 'semantic-tag-new-variable)
+    (defun semantic-tag-new-variable (name type default-value &rest attributes)
+      "See semantic 2.X for a description of this function."
+      (apply 'semantic-tag name 'variable
+             :type type
+             :default-value default-value
+             attributes)))
+
+(or (fboundp 'semantic-tag-new-function)
+    (defun semantic-tag-new-function (name type arg-list &rest attributes)
+      "See semantic 2.X for a description of this function."
+      (apply 'semantic-tag name 'function
+             :type type
+             :arguments arg-list
+             attributes)))
+
+(or (fboundp 'semantic-tag-new-type)
+    (defun semantic-tag-new-type (name type members parents &rest attributes)
+      "See semantic 2.X for a description of this function."
+      (apply 'semantic-tag name 'type
+             :type type
+             :members members
+             :superclasses (car parents)
+             :interfaces (cdr parents)
+             attributes)))
+
+(or (fboundp 'semantic-tag-new-include)
+    (defun semantic-tag-new-include (name system-flag &rest attributes)
+      "See semantic 2.X for a description of this function."
+      (apply 'semantic-tag name 'include
+             :system-flag system-flag
+             attributes)))
+
+(or (fboundp 'semantic-tag-new-package)
+    (defun semantic-tag-new-package (name detail &rest attributes)
+      "See semantic 2.X for a description of this function."
+      (apply 'semantic-tag name 'package
+             :detail detail
+             attributes)))
+
+(or (fboundp 'semantic-tag-new-code)
+    (defun semantic-tag-new-code (name detail &rest attributes)
+      "See semantic 2.X for a description of this function."
+      (apply 'semantic-tag name 'code
+             :detail detail
+             attributes)))
+
+
+(defconst semantic-regtest-new-tag-alist
+  '((type     . semantic-tag-new-type)
+    (function . semantic-tag-new-function)
+    (variable . semantic-tag-new-variable)
+    (include  . semantic-tag-new-include)
+    (package  . semantic-tag-new-package)
+    (code     . semantic-tag-new-code)))
+
+(defun semantic-regtest-convert-tag-14-to-20 (tag)
+  (if (semantic-token-p tag)
+      (let ((token-name (semantic-token-name tag))
+            (tag-creation-fcn (cdr (assoc (semantic-token-token tag)
+                                          semantic-regtest-new-tag-alist))))
+        (if tag-creation-fcn
+            (apply tag-creation-fcn token-name (cdr (cdr tag)))
+          ;; there is no predefined tag-creation function, so we use the generic
+          ;; one.
+          (semantic-tag token-name (semantic-token-token tag)
+                        (cdr (cdr tag)))))
+    tag))
+
 (defun semantic-regtest-convert-tag-table (table)
   "Convert the tag table TABLE to a generic format."
   (mapcar #'semantic-regtest-convert-tag table))
 
-(define-overload semantic-regtest-convert-tag (tag)
+(defun semantic-regtest--convert-tag (tag)
   "Convert TAG into a generic format.
 Recurses over children when they are found."
-  (let ((name (semantic-tag-name tag))
-	(class (semantic-tag-class tag))
-	(attr (semantic-tag-attributes tag))
-	(generic nil))
-    (while attr
-      (let ((sym (car attr))
-	    (val (car (cdr attr))))
-	(cond ((semantic-tag-p val)
-	       ;; This attribute is a tag (ie, a type perhaps?)
-	       (setq val (semantic-regtest-convert-tag val)))
-	      ((and (listp val)
-		    (semantic-tag-p (car val)))
-	       ;; List of more tags in this property.  Children/members
-	       (setq val (semantic-regtest-convert-tag-table val)))
-	      (t nil))
-	(setq generic (cons (list sym val) generic))
-	(setq attr (cdr (cdr attr)))))
-    ;; At this point, generic is an ALIST, not a PROPERTY LIST.
-    ;; We need to sort it so that order changes do not effect the
-    ;; test.
-    (setq generic (sort generic (lambda (a b)
-				  (string< (symbol-name (car a))
-					   (symbol-name (car b))))))
-    (append (list name class) 
-	    (apply 'append generic))
-    ))
+    (let* ((version-2 (not (semantic-require-version 2 0 1)))
+           (normed-tag (or (and version-2
+                                tag)
+                           (semantic-regtest-convert-tag-14-to-20 tag)))
+           (name (semantic-tag-name normed-tag))
+           (class (semantic-tag-class normed-tag))
+           (attr (semantic-tag-attributes normed-tag))
+           (generic nil))
+      (while attr
+        (let ((sym (car attr))
+              (val (if version-2
+                       (car (cdr attr))
+                     (semantic-regtest-convert-tag-14-to-20 (car (cdr attr))))))
+          (cond ((semantic-tag-p val)
+                 ;; This attribute is a tag (ie, a type perhaps?)
+                 (setq val (semantic-regtest-convert-tag val)))
+                ((and (listp val)
+                      (semantic-tag-p (if version-2 (car val)
+                                        (semantic-regtest-convert-tag-14-to-20 (car val)))))
+                 ;; List of more tags in this property.  Children/members
+                 (setq val (semantic-regtest-convert-tag-table val)))
+                (t nil))
+          (setq generic (cons (list sym val) generic))
+          (setq attr (cdr (cdr attr)))))
+      ;; At this point, generic is an ALIST, not a PROPERTY LIST.
+      ;; We need to sort it so that order changes do not effect the
+      ;; test.
+      (setq generic (sort generic (lambda (a b)
+                                    (string< (symbol-name (car a))
+                                             (symbol-name (car b))))))
+      (append (list name class) 
+              (apply 'append generic))
+      ))
+
+
+(if (fboundp 'define-overload)
+    (define-overload semantic-regtest-convert-tag (tag)
+      "Convert TAG into a generic format.
+Recurses over children when they are found."
+      (semantic-regtest--convert-tag tag))
+  (defun semantic-regtest-convert-tag (tag)
+    "Convert TAG into a generic format.
+Recurses over children when they are found."
+    (semantic-regtest--convert-tag tag)))
+
+
+(defun semantic-regtest-prin1-nonterminal (tag)
+  (prin1-to-string (semantic-regtest-convert-tag tag)))
+
 
 (provide 'semantic-regtest)
 
