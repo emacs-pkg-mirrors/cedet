@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.92 2001/04/07 14:10:32 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.93 2001/04/12 01:15:59 zappo Exp $
 
-(defvar semantic-version "1.4"
+(defvar semantic-version "1.4beta1"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -544,8 +544,9 @@ otherwise, do a full reparse."
     semantic-toplevel-bovine-cache
     )))
 
-(eval-when-compile (require 'semanticdb))
-
+;; These semanticdb calls will throw warnings in the byte compiler.
+;; Doing the right thing to make them available at compile time
+;; really messes up the compilation sequence.
 (defun semantic-file-token-stream (file &optional checkcache)
   "Return a token stream for FILE.
 If it is loaded, return the stream after making sure it's ok.
@@ -1128,6 +1129,8 @@ Argument COMMENT is additional description."
   (beginning-of-defun)
   (setq semantic-bovinate-debug-table (point-marker)))
 
+;; We will get warnings in here about semantic-bnf-* fns.
+;; We cannot require semantic-bnf due to compile eerrors.
 (defun semantic-bovinate-debug-buffer ()
   "Bovinate the current buffer in debug mode."
   (interactive)
@@ -1556,11 +1559,6 @@ LENGTH tokens."
 ;;
 (autoload 'semantic-create-imenu-index "semantic-imenu"
   "Create an imenu index for any buffer which supports Semantic.")
-(autoload 'bovinate "semantic-util"
-  "Bovinate the current buffer.  Show output in a temp buffer.
-Optional argument CLEAR will clear the cache before bovinating." t)
-(autoload 'bovinate-debug "semantic-util"
-  "Bovinate the current buffer and run in debug mode." t)
 (autoload 'senator-minor-mode "senator"
   "Minor mode for the SEmantic NAvigaTOR." t)
 (autoload 'global-semanticdb-minor-mode "semanticdb"
