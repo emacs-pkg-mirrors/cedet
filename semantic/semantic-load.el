@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.15 2001/11/26 21:17:14 ponced Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.16 2001/11/30 03:03:22 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 ;;
 (autoload 'semantic-bnf-mode "semantic-bnf" "Mode for Bovine Normal Form." t)
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
+(eval-after-load "speedbar" '(speedbar-add-supported-extension ".bnf"))
 
 (autoload 'semantic-default-c-setup "semantic-c")
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
@@ -212,9 +213,16 @@ If ARG is nil, then toggle."
 (defvar semantic-load-turn-everything-on nil
   "Non-nil means turn on all features in the semantic package.")
 
-(when semantic-load-turn-everything-on
-  
-  (if (fboundp #'which-func-mode)
+(defvar semantic-load-turn-useful-things-on nil
+  "Non-nil means turn on all `useful' features.
+Sadly `useful' here means things Eric wants on as opposed to some
+other criteria.")
+
+(when (or semantic-load-turn-everything-on
+	  semantic-load-turn-useful-things-on)
+
+  (if (and semantic-load-turn-everything-on
+	   (fboundp #'which-func-mode))
       (add-hook 'semantic-init-hooks (lambda ()
 				       (which-func-mode 1))))
 
@@ -223,15 +231,15 @@ If ARG is nil, then toggle."
     (add-hook 'semantic-init-hooks (lambda ()
 				     (imenu-add-to-menubar "TOKENS"))))
 
-  (global-semantic-show-dirty-mode 1)
+  (when semantic-load-turn-everything-on
+    (global-semantic-show-dirty-mode 1))
+
   (global-senator-minor-mode 1)
   (global-semantic-show-unmatched-syntax-mode 1)
   (global-semantic-auto-parse-mode 1)
   (global-semanticdb-minor-mode 1)
   (global-semantic-summary-mode 1)
-
-  (add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb)))
-  )
+ )
 
 (provide 'semantic-load)
 
