@@ -46,6 +46,6 @@ Running Checkdoc
 
 <p>You can download the latest release at:</p>
 
-<p><A HREF="ftp://cedet.sourceforge.net/pub/cedet/checkdoc.el-0.6.1b.gz">checkdoc.el-0.6.1b.gz</A></p>
+<p><A HREF="ftp/checkdoc.el-0.6.1b.gz">checkdoc.el-0.6.1b.gz</A></p>
 
 <!--#include file="footer.fsf.shtml"-->

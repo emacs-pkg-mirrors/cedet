@@ -104,13 +104,13 @@ around the problem quickly.
 
 <h3>Older releases of Speedbar</h3>
 
-<P><A HREF="ftp://cedet.sourceforge.net/pub/cedet/speedbar-0.12.tar.gz">
+<P><A HREF="ftp/speedbar-0.12.tar.gz">
 speedbar-0.12.tar.gz</A>.</P>
 
-<P><A HREF="ftp://cedet.sourceforge.net/pub/cedet/speedbar-0.11.1.tar.gz">
+<P><A HREF="ftp/speedbar-0.11.1.tar.gz">
 speedbar-0.11.1.tar.gz</A> fixes some Makefile bugs.</P>
 
-<P><A HREF="ftp://cedet.sourceforge.net/pub/cedet/speedbar-0.10.tar.gz"> speedbar-0.10.tar.gz</A>
+<P><A HREF="ftp/speedbar-0.10.tar.gz"> speedbar-0.10.tar.gz</A>
 (Now with documentation.)
 </P>
 

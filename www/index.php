@@ -148,14 +148,14 @@
    It's tools will be ported to Semantic.
 </P>
 
-<P><A HREF="download/X-0.3a.tar.gz"><b>X11 lib calls for Emacs, V
+<P><A HREF="ftp/X-0.3a.tar.gz"><b>X11 lib calls for Emacs, V
    0.3a</b></A> Imagine the binary network interface for X windows
    implemented in Emacs Lisp.  Is it useful?  Silly?  I dunno, but it
    was fun to play with.  No documentation.  Byte compile it, load
    "xhello.el" and run the function `XX' for the simple demo.<br>
 </p>
 
-<P><A HREF="download/hangman.el-0.1.gz"><b>Hangman</b></A> game for
+<P><A HREF="ftp/hangman.el-0.1.gz"><b>Hangman</b></A> game for
    emacs.  About as simple as it gets.
 </p>
 

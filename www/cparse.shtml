@@ -32,6 +32,6 @@ of arrays, static/local prototypes, and more comment expansion values.
 
 You can download the last stable release at:<p>
 
-<A HREF="ftp://cedet.sourceforge.net/pub/cedet/cparse-0.4.tar.gz">cparse-0.4.tar.gz</A><p>
+<A HREF="ftp/cparse-0.4.tar.gz">cparse-0.4.tar.gz</A><p>
 
 <!--#include file="footer.fsf.shtml"-->

@@ -1,11 +1,4 @@
 <!-- Generic footer for FSF related web pages -->
-<h3>Having Trouble with the FTP server?</h3>
-
-<P>I do not know why some folks have problems connecting the the FTP
-server.  If you do, try the
-<a href=ftpgate.shtml>ftp->http</a> gate I set up.
-</p>
-
 <br clear=both>
 <hr>
 <A href="http://sourceforge.net"> 
