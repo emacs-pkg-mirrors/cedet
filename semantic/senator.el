@@ -1,12 +1,12 @@
 ;;; senator.el --- SEmantic NAvigaTOR
 
-;; Copyright (C) 2000, 2001, 2002, 2003, 2004 by David Ponce
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.101 2004/12/01 14:22:45 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.102 2005/02/04 02:47:38 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1207,6 +1207,29 @@ If nil restore the global filter option `senator-search-tag-filter'."
     (semantic-set-tag-face       tag nil)))
 (semantic-alias-obsolete 'senator-clear-token 'senator-clear-tag)
 
+;;; Folding
+;;
+;; Use new folding state.  It might be wise to extend the idea
+;; of folding for hiding all but this, or show all children, etc.
+
+(defun senator-fold-tag (&optional tag)
+  "Fold the current tag."
+  (interactive)
+  (semantic-set-tag-folded (or tag (semantic-current-tag)) t))
+
+(defun senator-unfold-tag (&optional tag)
+  "Fold the current tag."
+  (interactive)
+  (semantic-set-tag-folded (or tag (semantic-current-tag)) nil))
+
+(defun senator-fold-tag-toggle (&optional tag)
+  "Fold the current tag."
+  (interactive)
+  (let ((tag (or tag (semantic-current-tag))))
+    (if (semantic-tag-folded-p tag)
+	(senator-unfold-tag tag)
+      (senator-fold-tag tag))))
+
 ;;;;
 ;;;; Misc. menu stuff.
 ;;;;
@@ -1662,6 +1685,9 @@ This is a buffer local variable.")
     (define-key km "\C-w" 'senator-kill-tag)
     (define-key km "\M-w" 'senator-copy-tag)
     (define-key km "\C-y" 'senator-yank-tag)
+    (define-key km "-"    'senator-fold-tag)
+    (define-key km "+"    'senator-unfold-tag)
+    
     km)
   "Default key bindings in senator minor mode.")
 
@@ -1763,6 +1789,15 @@ This is a buffer local variable.")
     )
    (list
     "Tag Properties"
+    (senator-menu-item
+     [ "Fold Tag"
+       senator-fold-tag-toggle
+       :active (semantic-current-tag)
+       :style toggle
+       :selected (let ((tag (semantic-current-tag)))
+                   (and tag (semantic-tag-folded-p tag)))
+       :help "Fold the current tag to one line"
+       ])
 ;;;    (senator-menu-item
 ;;;     [ "Hide Tag"
 ;;;       senator-make-invisible
