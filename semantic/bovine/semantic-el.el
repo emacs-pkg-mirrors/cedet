@@ -1,9 +1,9 @@
 ;;; semantic-el.el --- Semantic details for Emacs Lisp
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999-2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.31 2005/01/05 08:46:49 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.32 2005/01/12 23:02:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -415,17 +415,32 @@ into Emacs Lisp's memory."
   "Return the documentation string for TAG.
 Optional argument NOSNARF is ignored."
   (let ((d (semantic-tag-docstring tag)))
-    (when (and (not d) (semantic-tag-buffer tag))
-      ;; Doc isn't in the tag itself.  Lets pull it out of the
-      ;; sources.
-      (let ((semantic-elisp-store-documentation-in-tag t))
-        (setq tag (with-current-buffer (semantic-tag-buffer tag)
-                    (goto-char (semantic-tag-start tag))
-                    (semantic-elisp-use-read
-                     ;; concoct a lexical token.
-                     (cons (semantic-tag-start tag)
-                           (semantic-tag-end tag))))
-              d (semantic-tag-docstring tag))))
+    (when (not d)
+      (cond ((semantic-tag-buffer tag)
+	     ;; Doc isn't in the tag itself.  Lets pull it out of the
+	     ;; sources.
+	     (let ((semantic-elisp-store-documentation-in-tag t))
+	       (setq tag (with-current-buffer (semantic-tag-buffer tag)
+			   (goto-char (semantic-tag-start tag))
+			   (semantic-elisp-use-read
+			    ;; concoct a lexical token.
+			    (cons (semantic-tag-start tag)
+				  (semantic-tag-end tag))))
+		     d (semantic-tag-docstring tag))))
+	    ;; The tag may be the result of a system search.
+	    ((intern-soft (semantic-tag-name tag))
+	     (let ((sym (intern-soft (semantic-tag-name tag))))
+	       ;; Query into the global table o stuff.
+	       (cond ((eq (semantic-tag-class tag) 'function)
+		      (setq d (documentation sym)))
+		     (t
+		      (setq d (documentation-property sym)))))
+	     ;; Label it as system doc.. perhaps just for debugging
+	     ;; purposes.
+	     (if d (setq d (concat "Sytem Doc: \n" d)))
+	     ))
+      )
+    
     (when d
       (concat
        (substitute-command-keys
