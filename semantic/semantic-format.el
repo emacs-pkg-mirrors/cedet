@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.10 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.11 2003/11/20 15:21:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -473,24 +473,38 @@ UML attribute strings are things like {abstract} or {leaf}."
     )
   "Association of protection strings, and images to use.")
 
-(defun semantic-format-tag-uml-protection-to-string (protection-symbol color)
+(defvar semantic-format-tag-protection-symbol-to-string-assoc-list
+  '((public . "+")
+    (protected . "#")
+    (private . "-")
+    )
+  "Association list of the form (SYMBOL . \"STRING\") for protection symbols.
+This associates a symbol, such as 'public with the st ring \"+\".")
+
+(define-overload semantic-format-tag-uml-protection-to-string (protection-symbol color)
   "Convert PROTECTION-SYMBOL to a string for UML.
-Default character returns are:
+By default, uses `semantic-format-tag-protection-symbol-to-string-assoc-list'
+to convert.
+By defaul character returns are:
   public    -- +
   private   -- -
   protected -- #.
 If PROTECTION-SYMBOL is unknown, then the return value is
 `semantic-uml-no-protection-string'.
+COLOR indicates if we should use an image on the text.")
+
+(defun semantic-format-tag-uml-protection-to-string-default (protection-symbol color)
+  "Convert PROTECTION-SYMBOL to a string for UML.
+Uses `semantic-format-tag-protection-symbol-to-string-assoc-list' to convert.
+If PROTECTION-SYMBOL is unknown, then the return value is
+`semantic-uml-no-protection-string'.
 COLOR indicates if we should use an image on the text."
-  (let ((ezimage-use-images (and semantic-format-use-images-flag color)))
+  (let ((ezimage-use-images (and semantic-format-use-images-flag color))
+	(key (assoc protection-symbol
+		    semantic-format-tag-protection-symbol-to-string-assoc-list)))
     (ezimage-image-over-string
-     (cond ((eq protection-symbol 'public)
-	    "+")
-	   ((eq protection-symbol 'private)
-	    "-")
-	   ((eq protection-symbol 'protected)
-	    "#")
-	   (t semantic-uml-no-protection-string))
+     (or (cdr-safe key)
+	 semantic-uml-no-protection-string)
      semantic-format-tag-protection-image-alist)))
 
 (defsubst semantic-format-tag-uml-protection (tag parent color)
