@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.30 2002/08/10 14:20:51 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.1 2002/08/11 17:27:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
