@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.100 2001/04/27 00:42:29 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.101 2001/05/07 20:31:59 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17"
   "Current version of EIEIO.")
@@ -1141,6 +1141,11 @@ If EXTRA, include that in the string returned to represent the symbol."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (aref obj object-name))
 
+(defun object-set-name-string (obj name) "Set the string which is OBJ's NAME."
+  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (stringp name)) (signal 'wrong-type-argument (list 'stringp name)))
+  (aset obj object-name name))
+
 (defun object-class (obj) "Return the class struct defining OBJ."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (object-class-fast obj))
@@ -1726,7 +1731,7 @@ dynamically set from FIELDS."
 
 (defmethod slot-missing ((object eieio-default-superclass) slot-name
 			 operation &optional new-value)
-  "Slot missing is invoked when an attempt to access a slot in OBJECT  fails.
+  "Slot missing is invoked when an attempt to access a slot in OBJECT fails.
 SLOT-NAME is the name of the failed slot, OPERATION is the type of access
 that was requested, and optional NEW-VALUE is the value that was desired
 to be set."
