@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.24 2001/11/17 15:43:02 zappo Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.25 2002/05/15 19:21:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -996,11 +996,16 @@ This function is a Java specific `get-local-variables' override."
      document-comment-line-prefix " *"
      document-comment-end " */"
      ;; speedbar and imenu buckets name
-     semantic-symbol->name-assoc-list '((type     . "Classes")
-                                        (variable . "Variables")
-                                        (function . "Methods")
-                                        (include  . "Imports")
-                                        (package  . "Package"))
+     semantic-symbol->name-assoc-list-for-type-parts
+     ;; In type parts
+     '((type     . "Classes")
+       (variable . "Variables")
+       (function . "Methods"))
+     semantic-symbol->name-assoc-list
+     ;; Everywhere
+     (append semantic-symbol->name-assoc-list-for-type-parts
+             '((include  . "Imports")
+               (package  . "Package")))
      ;; Semantic navigation inside 'type children
      senator-step-at-token-ids '(function variable)
      )
