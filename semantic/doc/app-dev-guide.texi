@@ -107,8 +107,9 @@ developer needs to know to perform all of the tasks just listed.
 * Override Methods::            Language dependent functions covering
                                 conversion to text strings, language dependent
                                 queries and local context information
-* Parser Hooks::                How to know when tags change.
+* Parser Features::             Application available parser features.
 * Semantic Database::           Persistant storage of tags.
+* Idle Scheduling::             Scheduling jobs in idle time.
 * Example Programs::            Simple programming examples.
 * Current Context::             
 @end menu
@@ -1019,8 +1020,8 @@ about the current context: @xref{Context Analysis}.
 @node Making New Methods
 @section Making New Methods
 
-@node Parser Hooks
-@chapter Parser Hooks
+@node Parser Features
+@chapter Parser Features
 
 If you write a program that uses a tag table in a persistent
 display or database, it is necessary to know when tag tables change so
@@ -1028,6 +1029,24 @@ that your displays can be updated.  This is especially important as
 tags can be replaced, changed, or deleted, and the associated
 overlays will then throw errors when you try to use them.  Complete
 integration with tag changes can be achieved via several hooks.
+
+If you write an application that frequenly accesses the tags tables,
+it is important to make sure those tags are up to date, and to make
+sure you application does not adversely effect all the other minor
+modes that may be running.
+
+The semantic parser has many features and hooks that applications can
+use to provide a good user experience.
+
+@menu
+* Editing Buffers::     Let the parser know you are changing a buffer.
+* Parser State::        Knowing if the tag table is out of date
+* Parser Hooks::        Knowing when tags change
+* Lexical Safety::      Preventing lexical errors from making a mess
+@end menu
+
+@node Editing Buffers
+@section Editing Buffers
 
 One interesting way to interact with the parser is to let it know that
 changes you are going to make will not require re-parsing.
@@ -1041,24 +1060,36 @@ reparse, but will not change the tag structure, such
 as adding or updating top-level comments.
 @end defvar
 
-Next, it is sometimes useful to know what the current parsing state
+@node Parser State
+@section Parser State
+
+It is sometimes useful to know what the current parsing state
 is.  These function can let you know what level of re-parsing may be
 needed.  Careful choices on when to reparse can make your program much
 faster.
 
-@c PARSER STATE STUFF HERE
-
 @defun semantic-parse-tree-needs-update-p
+@anchor{semantic-parse-tree-needs-update-p}
 Return non-@code{nil} if the current parse tree needs to be updated.
 @end defun
 
 @defun semantic-parse-tree-needs-rebuild-p
+@anchor{semantic-parse-tree-needs-rebuild-p}
 Return non-@code{nil} if the current parse tree needs to be rebuilt.
 @end defun
 
+@defun semantic-parse-tree-unparseable-p
+@anchor{semantic-parse-tree-unparseable-p}
+Return non-@code{nil} if the current buffer has been marked unparseable.
+@end defun
+
 @defun semantic-parse-tree-up-to-date-p
+@anchor{semantic-parse-tree-up-to-date-p}
 Return non-@code{nil} if the current parse tree is up to date.
 @end defun
+
+@node Parser Hooks
+@section Parser Hooks
 
 If you just want to know when a buffer changes, use this hook.
 
@@ -1090,6 +1121,9 @@ updated in the current buffer.
 For language specific hooks, make sure you define this as a local hook.
 @end defvar
 
+It is also useful to clean up any data your application is using when
+semantic flushes its tags table.
+
 @defvar semantic-before-toplevel-cache-flush-hook
 Hooks run before the toplevel nonterminal cache is flushed.
 For language specific hooks, make sure you define this as a local
@@ -1097,6 +1131,41 @@ hook.  This hook is called before a corresponding
 @code{semantic-after-toplevel-cache-change-hook} which is also called
 during a flush when the cache is given a new value of nil.
 @end defvar
+
+@node Lexical Safety
+@section Lexical Safety
+
+If you application frequenly requests lists of tags upon user request,
+it may be important to avoid lexical problems that frequenly occur
+when the user has partially written an expression, such as starting a
+string, or argument list.
+
+You can protect your code from lexical problems with this macro:
+
+@defun semantic-lex-catch-errors symbol &rest forms
+@anchor{semantic-lex-catch-errors}
+Using @var{SYMBOL}, execute @var{FORMS} catching lexical errors.
+If @var{FORMS} results in a call to the parser that throws a lexical error,
+the error will be caught here without the buffer's cache being thrown
+out of date.
+If there is an error, the syntax that failed is returned.
+If there is no error, then the last value of @var{FORMS} is returned.
+@end defun
+
+It is important to provide a good @var{SYMBOL} so that these macros
+can nest correctly.
+
+If you want your code to run anyway, even if there is a lexical
+error, using this macro like this:
+
+@example
+(semantic-lex-catch-errors
+   (semantic-bovinate-toplevel t))
+@end example
+
+will put the parser into the 'unparseable' state, and allow other
+routines to request the tag table without incurring additional parser
+attempts.
 
 @node Semantic Database
 @chapter Semantic Database
@@ -1431,6 +1500,78 @@ but saved in a special way.  These databases are created with a
 script, or at some other convenient time.  They can then be searched
 normally.  They will appear on the same list of system databases as
 back ends that refer to object files indirectly.
+
+@node Idle Scheduling
+@chapter Idle Scheduling
+
+The Semantic Idle Scheduler is a minor mode which performs semantic
+specific tasks in idle time.
+See @inforef{Idle Scheduler, , semantic-user.info}.
+
+It performs the following tasks in order:
+
+@enumerate
+@item 
+Reprarse the current buffer if needed
+@item
+Reparse other buffers that need it
+@item
+Execute other scheduled semantic related operations.
+@end enumerate
+
+Care is take in the idle scheduler to exit immediatly if user input
+is detected, improving editing performance.
+
+The reason for grouping these tasks together is so that the automatic
+reparsing code executes before other idle services.  This allows
+lexically broken buffers to be detected so that the other
+applications that follow do not accidentally reparse the buffer
+leaving unmatched syntax all over.
+
+You can create new minor modes that are automatically scheduled by
+the semantic idle scheduler.  Create the new minor mode with:
+
+@defun define-semantic-idle-service name doc &rest forms
+@anchor{define-semantic-idle-service}
+Create a new idle services with @var{NAME}.
+@var{DOC} will be a documentation string describing @var{FORMS}.
+@var{FORMS} will be called during idle time after the current buffer's
+semantic tag information has been updated.
+This routines creates the following functions and variables:
+@end defun
+
+@section User Input Handling
+
+When writing an idle service, it is important for tasks that can take
+a long time to correctly exit upon user input.
+
+You can test for user input in your idle handler with the following
+routines:
+
+@defun semantic-throw-on-input from
+@anchor{semantic-throw-on-input}
+Exit with @dfn{throw} when in @dfn{semantic-exit-on-input} on user input.
+@var{FROM} is an indication of where this function is called from as a value
+to pass to @dfn{throw}.  It is recommended to use the name of the function
+calling this one.
+@end defun
+
+If you need to carefully extract from your function, you can wrap
+just a section of your function to exit on user input by wrapping it
+with this macro:
+
+@defun semantic-exit-on-input symbol &rest forms
+@anchor{semantic-exit-on-input}
+Using @var{SYMBOL} as an argument to @dfn{throw}, execute @var{FORMS}.
+If @var{FORMS} includes a call to @code{semantic-thow-on-input}, then
+if a user presses any key during execution, this form macro
+will exit with the value passed to @dfn{semantic-throw-on-input}.
+If @var{FORMS} completes, then the return value is the same as @dfn{progn}.
+@end defun
+
+Upon catching user input, you can try to detect if there was an exit
+from the return argument, and continue throwing with an additional
+call to @code{semantic-throw-on-input}.
 
 @node Example Programs
 @chapter Programming Examples
