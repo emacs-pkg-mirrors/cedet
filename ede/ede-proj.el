@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.33 2000/10/11 03:01:52 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.34 2000/10/14 02:51:49 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -49,7 +49,8 @@ distributed, and each should have a corresponding rule to build it.")
    (compiler :initarg :compiler
 	     :initform nil
 	     :type (or null symbol)
-	     ;;:custom (choice list o compilers)
+	     :custom (choice (const :tag "None" nil)
+			     :slotofchoices availablecompilers)
 	     :label "Compiler for building sources"
 	     :group make
 	     :documentation
@@ -60,7 +61,8 @@ of these compiler resources, and global customization thereof.")
    (linker :initarg :linker
 	     :initform nil
 	     :type (or null symbol)
-	     ;;:custom (choice list o linkers)
+	     :custom (choice (const :tag "None" nil)
+			     :slotofchoices availablelinkers)
 	     :label "Linker for combining intermediate object files."
 	     :group make
 	     :documentation
@@ -353,15 +355,26 @@ Argument TARGET is the project we are completing customization on."
 
 (defmethod project-add-file ((this ede-proj-target) file)
   "Add to target THIS the current buffer represented as FILE."
-  (setq file (ede-convert-path this file))
-  (object-add-to-list this 'source file t)
-  (ede-proj-save (ede-current-project)))
+  (let ((file (ede-convert-path this file))
+	(src (ede-target-sourcecode this))
+	(aux nil))
+    (while (and src (not (ede-want-file-p (car src) file)))
+      (setq src (cdr src)))
+    (when src
+      (setq src (car src))
+      (cond ((ede-want-file-source-p this file)
+	     (object-add-to-list this 'source file t))
+	    ((ede-want-file-auxiliary-p this file)
+	     (object-add-to-list this 'auxsource file t))
+	    (t (error "`project-add-file(ede-target)' source mismatch error")))
+      (ede-proj-save))))
 
 (defmethod project-remove-file ((target ede-proj-target) file)
   "For TARGET, remove FILE.
 FILE must be massaged by `ede-convert-path'."
   ;; Speedy delete should be safe.
   (object-remove-from-list target 'source (ede-convert-path target file))
+  (object-remove-from-list target 'auxsource (ede-convert-path target file))
   (ede-proj-save))
 
 (defmethod project-update-version ((this ede-proj-project))
@@ -448,10 +461,22 @@ Converts all symbols into the objects to be used."
 	  ;; Now that we have a pre-set linkers to use, convert type symbols
 	  ;; into objects for ease of use
 	  (setq link (mapcar 'symbol-value link))
-	(let ((avail (mapcar 'symbol-value (oref obj availablelinkers))))
-	  ;; LINK is not specified, so generate a list from the available
-	  ;; linkers list.
-	  (setq link (symbol-value (car avail)))))
+	(let ((avail (mapcar 'symbol-value (oref obj availablelinkers)))
+	      (st (oref obj sourcetype))
+	      (sources (oref obj source)))
+	  ;; LINKER is not specified, so generate a list from the available
+	  ;; compilers list.
+	  (while st
+	    (if (ede-want-any-source-files-p (symbol-value (car st)) sources)
+		(let ((c (ede-proj-find-linker avail (car st))))
+		  (if c (setq link (cons c link)))))
+	    (setq st (cdr st)))
+	  (unless link
+	    ;; No linker stands out!  Loop over our linkers and pull out
+	    ;; the first that has no source type requirement.
+	    (while (and avail (not (slot-boundp (car avail) 'sourcetype)))
+	      (setq avail (cdr avail)))
+	    (setq link (cdr avail)))))
       ;; Return the disovered linkers
       link)))
     
