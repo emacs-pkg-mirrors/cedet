@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98, 99 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.8.1
+;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.143 1999/04/28 11:05:48 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.144 1999/05/05 14:05:37 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -422,7 +422,13 @@ is attached to."
   "*Non-nil means use imenu for file parsing.  nil to use etags.
 XEmacs prior to 20.4 doesn't support imenu, therefore the default is to
 use etags instead.  Etags support is not as robust as imenu support."
-  :tag "User Imenu"
+  :tag "Use Imenu for tags"
+  :group 'speedbar
+  :type 'boolean)
+
+(defcustom speedbar-use-bovinator-flag (stringp (locate-library "semantic"))
+  "*Non-nil means use the semantic Bovinator for file parsing.  nil otherwise."
+  :tag "Use Semantic Bovinator for tags"
   :group 'speedbar
   :type 'boolean)
 
@@ -776,6 +782,8 @@ to toggle this value.")
   (modify-syntax-entry ?\" " " speedbar-syntax-table)
   (modify-syntax-entry ?( " " speedbar-syntax-table)
   (modify-syntax-entry ?) " " speedbar-syntax-table)
+  (modify-syntax-entry ?{ " " speedbar-syntax-table)
+  (modify-syntax-entry ?} " " speedbar-syntax-table)
   (modify-syntax-entry ?[ " " speedbar-syntax-table)
   (modify-syntax-entry ?] " " speedbar-syntax-table))
 
@@ -1977,6 +1985,8 @@ If PREVLINE, then put this button on the previous line.
 
 This is a convenience function for special mode that create their own
 specialized speedbar displays."
+  ;; What the fletch is this goto-char for?  Can I remove it safely??
+  ;; TODO: Investigate.
   (goto-char (point-max))
   (if (/= (current-column) 0) (insert "\n"))
   (if prevline (progn (delete-char -1) (insert " "))) ;back up if desired...
@@ -2570,6 +2580,14 @@ name will have the function FIND-FUN and not token."
 				   (1+ level)))
 	  (t (speedbar-message "Ooops!")))
     (setq lst (cdr lst))))
+
+(defun speedbar-insert-bovine-list (level lst)
+  "At LEVEL, insert the bovine parsed list LST.
+Use arcane knowledge about the semantic tokens in the tagged elements
+to create much wiser decisions about how to sort and group these items."
+  ;; The bovinator logic is *very* complex.  Do this elsewhere.
+  (require 'semantic-sb)
+  (semantic-sb-buttons level lst))
 
 ;;; Timed functions
 ;;
@@ -3461,12 +3479,18 @@ indentation level."
   (cond ((string-match "+" text)	;we have to expand this file
 	 (let* ((fn (expand-file-name (concat (speedbar-line-path indent)
 					      token)))
-		(lst (if speedbar-use-imenu-flag
-			(let ((tim (speedbar-fetch-dynamic-imenu fn)))
-			  (if (eq tim t)
-			      (speedbar-fetch-dynamic-etags fn)
-			    tim))
-		      (speedbar-fetch-dynamic-etags fn))))
+		(mode nil)
+		(lst (let ((tim t))
+		       (if speedbar-use-bovinator-flag
+			   (setq tim (speedbar-fetch-dynamic-bovine fn)
+				 mode 'bovine))
+		       (if (and (eq tim t) speedbar-use-imenu-flag)
+			  (setq tim (speedbar-fetch-dynamic-imenu fn)
+				mode 'imenu))
+		       (if (eq tim t)
+			   (setq tim (speedbar-fetch-dynamic-etags fn)
+				 mode 'etags))
+		       tim)))
 	   ;; if no list, then remove expando button
 	   (if (not lst)
 	       (speedbar-change-expand-button-char ??)
@@ -3474,9 +3498,11 @@ indentation level."
 	     (speedbar-with-writable
 	       (save-excursion
 		 (end-of-line) (forward-char 1)
-		 (speedbar-insert-generic-list indent
-					       lst 'speedbar-tag-expand
-					       'speedbar-tag-find))))))
+		 (if (eq mode 'bovine)
+		     (speedbar-insert-bovine-list indent lst)
+		   (speedbar-insert-generic-list indent lst
+						 'speedbar-tag-expand
+						 'speedbar-tag-find)))))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
@@ -3597,6 +3623,31 @@ interested in."
 	(goto-char cp)))))
 
 
+;;; Tag Management -- Semantic Bovinator
+;;
+(if (not speedbar-use-bovinator-flag)
+
+    nil
+
+(eval-when-compile (if (locate-library "semantic") (require 'semantic)))
+
+(defun speedbar-fetch-dynamic-bovine (file)
+  "Load FILE into a buffer, and generate tags using the Semantic Bovinator.
+Returns the tag list, or t for an error."
+  ;; Load this AND compile it in
+  (require 'semantic)
+  (save-excursion
+    (set-buffer (find-file-noselect file))
+    ;(if speedbar-power-click (setq imenu--index-alist nil))
+    (condition-case nil
+	(progn
+	  ;; TODO!
+	  ;; The bovinator is refuses to cache data.  It is up to speedbar
+	  ;; (who knows better) to do the caching for it.
+	  (semantic-bovinate-toplevel nil t))
+      (error t))))
+)
+
 ;;; Tag Management -- Imenu
 ;;
 (if (not speedbar-use-imenu-flag)
