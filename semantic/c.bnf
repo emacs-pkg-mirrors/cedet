@@ -1,9 +1,9 @@
-# Simple BNF notation for top-level C elements.
+# C & C++ BNF language specification
 #
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.24 2001/01/31 15:26:10 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.25 2001/02/02 04:14:53 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,18 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.25  2001/02/02 04:14:53  zappo
+# Added c++ to the list of language modes.
+# Added lots of operator symbol tokens.
+# Added DECLMOD symbol w/ complex regexp.
+# Added CLASS, OPERATOR, PUBLIC, PRIVATE, and PROTECTED token keywords.
+# Support parsing of a class.
+# Add class bit parsing for functions.
+# Add destructor bit parsing for functions.
+# Allow operator symbols for methods.
+# Added parent and destructor fields to extra-spec for functions.
+# The function rule now returns a function or prototype.
+#
 # Revision 1.24  2001/01/31 15:26:10  zappo
 # Added `codeblock' rule and `%scopestart'.
 #
@@ -45,7 +57,7 @@
 %outputfile    semantic-c.el
 %parsetable    semantic-toplevel-c-bovine-table
 %keywordtable  semantic-c-keyword-table
-%languagemode  c-mode
+%languagemode  (c-mode c++-mode)
 %setupfunction semantic-default-c-setup
 
 %(setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
@@ -64,24 +76,40 @@
 %token COLON punctuation ":"
 %token SEMICOLON punctuation ";"
 %token STAR punctuation "*"
+%token DIVIDE punctuation "/"
+%token PLUS punctuation "+"
+%token MINUS punctuation "-"
+%token BANG punctuation "!"
 %token EQUAL punctuation "="
+%token LESS punctuation "<"
+%token GREATER punctuation ">"
 %token COMA punctuation ","
+%token TILDE punctuation "~"
+
+#We don't care about most of this.  Regexps will be faster.
+%token DECLMOD symbol  "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\|virtual\\)"
 
 %token STRUCT "struct"
 %token UNION "union"
 %token ENUM "enum"
 %token TYPEDEF "typedef"
+%token CLASS "class"
+
+%token OPERATOR "operator"
+%token PUBLIC "public"
+%token PRIVATE "private"
+%token PROTECTED "protected"
 
 %put STRUCT type t
 %put UNION type t
 %put TYPEDEF type t
+%put CLASS type t
 
 declaration : include
 	    | macro
 	    | type
 	    | function
 	    | variable
-	    | prototype
 	    | define
 	    ;
 
@@ -117,6 +145,34 @@ structsubparts : variable
 	       # sometimes there are defines in structs.
 	       ;
 
+classparts : semantic-list
+	     (EXPANDFULL $1 classsubparts)
+	    ;
+
+classsubparts : variable
+	      | define
+	      | function
+	      | opt-class-protection COLON
+	      # In C++, this label in a classsubpart represents
+	      # PUBLIC or PRIVATE bits.  Ignore them for now.
+		(nil)
+	      | open-paren "{"
+		( nil )
+	      | close-paren "}"
+		( nil )
+	      ;
+
+opt-class-parents : COLON opt-class-protection symbol
+		    ( $3 )
+		  | EMPTY
+		    ( )
+		  ;
+
+opt-class-protection : PUBLIC
+		     | PRIVATE
+		     | PROTECTED
+		     ;
+
 enumparts : semantic-list
 	    (EXPANDFULL $1 enumsubparts)
 	  ;
@@ -140,6 +196,8 @@ typesimple : STRUCT opt-name structparts
 	     ( ,$2 type $1 $3 nil nil nil )
 	   | ENUM opt-name enumparts
 	     ( ,$2 type $1 $3 nil nil nil )	
+           | CLASS symbol opt-class-parents classparts
+	     ( $2 type $1 $4 ,$3 nil nil )
            | TYPEDEF typeform symbol
 	     ( $3 type $1 nil $2 nil nil )
            ;
@@ -154,9 +212,9 @@ opt-stars : STAR opt-stars
 	    ( 0 )
           ;
 
-declmods : symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)" declmods
+declmods : symbol DECLMOD declmods
 	   ( ,(cons $1 $2 ) )
-	 | symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)"
+	 | symbol DECLMOD
 	   ( $1 )
 	 | EMPTY
 	   ()
@@ -244,6 +302,18 @@ varnamelist : varname COMA varnamelist
 	      ( $1 )
 	    ;
 
+opt-class : symbol COLON COLON
+	    ( $1 )
+	  | EMPTY
+	    ( nil )
+	  ;
+
+opt-destructor : TILDE
+		 ( t )
+	       | EMPTY
+		 ( nil )
+	       ;
+
 arg-list : symbol "\\<__?P\\>" semantic-list
 	   (EXPAND $2 arg-list-p)
 	 | semantic-list knr-arguments
@@ -272,10 +342,38 @@ arg-sub-list : variablearg
 	       ( nil )
 	     ;
 
-functiondef : declmods typeform symbol arg-list
-	      ( $3 function $2 $4 
+operatorsym : LESS LESS
+	      ( "<<" )
+	    | GREATER GREATER
+	      ( ">>" )
+	    | EQUAL EQUAL
+	      ( "==" )
+	    | LESS EQUAL
+	      ( "<=" )
+	    | GREATER EQUAL
+	      ( ">=" )
+	    | BANG EQUAL
+	      ( "!=" )
+	    | LESS
+	    | GREATER
+	    | STAR
+	    | PLUS
+	    | MINUS
+	    | DIVIDE
+	    ;
+
+functionname : OPERATOR operatorsym
+	       ( ,$2 )
+	     | symbol
+	       ( $1 )
+	     ;
+
+functiondef : declmods typeform opt-class opt-destructor functionname arg-list
+	      ( ,$5 function $2 $6
 		   (ASSOC const (if (member "const" $1) t nil)
-			  typemodifiers (delete "const" $1))
+			  typemodifiers (delete "const" $1)
+			  parent (car $3)
+			  destructor (car $4) )
 		   nil
 		    )
             ;
@@ -284,9 +382,15 @@ prototype : functiondef SEMICOLON
 	    ( ,$1 )
 	  ;
 
-function : functiondef semantic-list
+function : functiondef fun-or-proto-end
 	   ( ,$1 )
          ;
+
+fun-or-proto-end: SEMICOLON
+		  ( t )
+		| semantic-list
+		  ( nil )
+		;
 
 opt-expression : expression
 	       | EMPTY ( nil )
