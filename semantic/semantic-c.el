@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.24 2001/04/13 02:25:22 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.25 2001/04/21 14:38:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -633,7 +633,7 @@ machine."
      ("void" summary "Built in type: void  No type")
      ("char" summary "Built in type: char  Character, or 8 bit numeric value")
      ("short" summary "Built in type: short  Small numeric value")
-     ("int" summary "Built in type: int  Numeric interger value")
+     ("int" summary "Built in type: int  Numeric integer value")
      ("long" summary "Built in type: long  Large numeric integer value")
      ("float" summary "Built in type: float  Numeric floating point value")
      ("double" summary "Built in type: double  Large floating point value")
