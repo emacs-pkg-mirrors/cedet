@@ -5,10 +5,10 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.78 2000/08/20 23:22:27 zappo Exp $
+;; Version: 0.16
+;; RCS: $Id: eieio.el,v 1.79 2000/09/28 18:50:40 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "0.15"
+(defvar eieio-version "0.16"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -192,7 +192,7 @@ Stored outright without modifications or stripping.")
 
 (defmacro generic-p (method)
   "Return t if symbol METHOD is a generic function.
-Only methods have the symbol `eieio-method-tree' as a property (which
+Only methods have the symbol `eieio-method-obarray' as a property (which
 contains a list of all bindings to that method type.)"
   `(and (fboundp ,method) (get ,method 'eieio-method-obarray)))
 
@@ -1653,13 +1653,16 @@ which are applied to change the object.  When overloading `clone', be
 sure to call `call-next-method' first and modify the returned object."
   (let ((nobj (copy-sequence obj))
 	(nm (aref obj object-name))
+	(passname (and params (stringp (car params))))
 	(num 1))
-    (if params (shared-initialize obj params))
-    (save-match-data
-      (if (string-match "-\\([0-9]+\\)" nm)
-	  (setq num (1+ (string-to-int (match-string 1 nm)))
-		nm (substring nm 0 (match-beginning 0)))))
-    (aset nobj object-name (concat nm "-" (int-to-string num)))
+    (if params (shared-initialize nobj (if passname (cdr params) params)))
+    (if (not passname)
+	(save-match-data
+	  (if (string-match "-\\([0-9]+\\)" nm)
+	      (setq num (1+ (string-to-int (match-string 1 nm)))
+		    nm (substring nm 0 (match-beginning 0))))
+	  (aset nobj object-name (concat nm "-" (int-to-string num))))
+      (aset nobj object-name (car params)))
     nobj))
 
 (defmethod destructor ((this eieio-default-superclass) &rest params)
@@ -1712,16 +1715,16 @@ this object."
 	  (publd (aref cv class-public-d))
 	  (eieio-print-depth (1+ eieio-print-depth)))
       (while publa
-	(let ((i (class-slot-initarg cl (car publa)))
-	      (v (eieio-oref this (car publa))))
-	  (if (or (not i) (equal v (car publd)))
-	      nil ;; Don't bother if it = default, or can't be initialized.
-	    (princ (make-string (* eieio-print-depth 2) ? ))
-	    (princ (symbol-name i))
-	    (princ " ")
-	    (let ((o (eieio-oref this (car publa))))
-	      (eieio-override-prin1 o))
-	    (princ "\n")))
+	(when (slot-boundp this (car publa))
+	  (let ((i (class-slot-initarg cl (car publa)))
+		(v (eieio-oref this (car publa))))
+	    (unless (or (not i) (equal v (car publd)))
+	      (princ (make-string (* eieio-print-depth 2) ? ))
+	      (princ (symbol-name i))
+	      (princ " ")
+	      (let ((o (eieio-oref this (car publa))))
+		(eieio-override-prin1 o))
+	      (princ "\n"))))
 	(setq publa (cdr publa) publd (cdr publd)))
       (princ (make-string (* eieio-print-depth 2) ? )))
     (princ ")\n")))
@@ -1774,6 +1777,9 @@ of `eq'."
 Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
   (cond ((class-p object) (class-name object))
 	((object-p object) (object-print object))
+	((and (listp object) (or (class-p (car object))
+				 (object-p (car object))))
+	 (concat "(" (mapconcat 'eieio-edebug-prin1-to-string object " ") ")"))
 	(t (prin1-to-string object noescape))))
 
 (add-hook 'edebug-setup-hook
@@ -1797,7 +1803,7 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 	    (def-edebug-spec object-p form)
 	    (def-edebug-spec class-constructor form)
 	    (def-edebug-spec generic-p form)
-	    (def-edebug-spec with-slots (form form def-body))
+	    (def-edebug-spec with-slots (list list def-body))
 	    ;; I suspect this isn't the best way to do this, but when
 	    ;; cust-print was used on my system all my objects
 	    ;; appeared as "#1 =" which was not useful.  This allows
