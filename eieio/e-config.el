@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: e-config.el,v 1.9 1997/01/18 23:48:43 zappo Exp $
+;;; RCS: $Id: e-config.el,v 1.10 1997/01/19 22:08:28 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -52,13 +52,19 @@ for emacs."
      "Display Line Number in Modeline" 'line-number-mode
      "Display Column Number in Modeline" 'column-number-mode
      "Truncate Lines" 'truncate-lines
-     "Suggest Key Bindings" 'suggest-key-bindings
+     "Suggest Key Bindings" (if (boundp 'suggest-key-bindings)
+				'suggest-key-bindings
+			      'teach-extended-commands-p)
      "Visible Bell" 'visible-bell
+     "Enable Recursive Minibuffers" 'enable-recursive-minibuffers
+     "Search Highlights Current Match" (if (boundp 'search-highlight)
+					   'search-highlight
+					 'isearch-highlight)
+     "Query Replace Highlight" 'query-replace-highlight
      "Inverse Video" 'inverse-video
      "Modeline Inverse Video" 'mode-line-inverse-video
-     "Search Highlights Current Match" 'search-highlight
-     "Query Replace Highlight" 'query-replace-highlight
-     "Enable Recursive Minibuffers" 'enable-recursive-minibuffers)
+     )
+
     (create-widget "Scroll Step:" widget-labeled-text
 		   :unit "lines" :text-length 10 
 		   :value (data-object-symbol-string-to-int 'scroll-step
@@ -68,8 +74,9 @@ for emacs."
 
     (create-widget "Display time in modeline" widget-toggle-button
 		   :state (data-object-command-option "(display-time)"))
-    (create-widget "Typing break mode (remind you to rest)" widget-toggle-button
-		   :state (data-object-symbol 'type-break-mode))
+    (if (boundp 'type-break-mode)
+	(create-widget "Typing break mode (remind you to rest)" widget-toggle-button
+		       :state (data-object-symbol 'type-break-mode)))
     (create-widget "Highlight Parenthesis" widget-toggle-button
 		   :state (data-object-symbol-feature
 			   'paren
@@ -81,13 +88,15 @@ for emacs."
 		   :state (data-object-symbol-feature
 			   'auto-show
 			   :unload-commands '(auto-show-mode -1)))
-    (create-widget "Magically Resize Minibuffer when needed." widget-toggle-button
-		   :state (data-object-symbol-feature
-			   'rsz-mini
-			   :unload-commands '(progn
-					       (remove-hook 'minibuffer-setup-hook
-							    'resize-minibuffer-setup)
-					       (resize-minibuffer-mode -1))))
+    (if (not dialog-xemacs-p)
+	(create-widget "Magically Resize Minibuffer when needed." widget-toggle-button
+		       :state (data-object-symbol-feature
+			       'rsz-mini
+			       :unload-commands
+			       '(progn
+				  (remove-hook 'minibuffer-setup-hook
+					       'resize-minibuffer-setup)
+				  (resize-minibuffer-mode -1)))))
     )
   (dlg-end)
   (dialog-refresh)
@@ -155,13 +164,14 @@ useful for programmers."
     (create-widget "Enable Local Variables" widget-toggle-button
 		   :state (data-object-symbol 'enable-local-variables))
 
-    (create-widget "Check for copyright update" widget-toggle-button
-		   :state (data-object-command-option
-			   "copyright"
-			   ;; Override the default.. this is more dependable
-			   :value (member 'copyright-update write-file-hooks)
-			   :command "(load-library \"copyright\")(add-hook 'write-file-hooks 'copyright-update)"
-			   :disable-command "(remove-hook 'write-file-hooks 'copyright-update)"))
+    (if (not dialog-xemacs-p)
+	(create-widget "Check for copyright update" widget-toggle-button
+		       :state (data-object-command-option
+			       "copyright"
+			       ;; Override the default.. this is more dependable
+			       :value (member 'copyright-update write-file-hooks)
+			       :command "(load-library \"copyright\")(add-hook 'write-file-hooks 'copyright-update)"
+			       :disable-command "(remove-hook 'write-file-hooks 'copyright-update)")))
     ;; compile stuff
     (require 'compile)
 
@@ -345,7 +355,9 @@ you will need to set the following as well."
   (interactive)
   (dlg-init 'dot-emacs)
   (require 'bookmark)
-  (dialog-build-group (format "Bookmark Options for v %s" bookmark-version)
+  (dialog-build-group (if (boundp 'bookmark-version)
+			  (format "Bookmark Options for v %s" bookmark-version)
+			"Bookmark Options")
     
   (dlg-bunch-of-simple-toggles
    "Require annotations with bookmarks" 'bookmark-use-annotations
@@ -417,30 +429,31 @@ you will need to set the following as well."
   "Creates a configure window with variables modifying variables
 useful for sending email."
   (interactive)
+  (if dialog-xemacs-p (error "This rmail dialog is not for XEmacs."))
   (dlg-init 'dot-emacs)
   (require 'rmail)
   (dialog-build-group "Rmail Options"
 
-  (create-widget "Rmail File               :" widget-labeled-text
-		 :text-length 20
-		 :value (data-object-symbol 'rmail-file-name))
+    (create-widget "Rmail File               :" widget-labeled-text
+		   :text-length 20
+		   :value (data-object-symbol 'rmail-file-name))
     
-  (create-widget "Secondary File Directory :" widget-labeled-text
-		 :text-length 20
-		 :value (data-object-symbol 'rmail-secondary-file-directory))
+    (create-widget "Secondary File Directory :" widget-labeled-text
+		   :text-length 20
+		   :value (data-object-symbol 'rmail-secondary-file-directory))
     
-  (create-widget "Default Secondary File   :" widget-labeled-text
-		 :text-length 20
-		 :value (data-object-symbol 'rmail-default-rmail-file))
+    (create-widget "Default Secondary File   :" widget-labeled-text
+		   :text-length 20
+		   :value (data-object-symbol 'rmail-default-rmail-file))
     
-  (dlg-bunch-of-simple-toggles
-   "Delete messages after saving to secondary file" 'rmail-delete-after-output
-   "Summary motion scrolls messages" 'rmail-summary-scroll-between-messages)
+    (dlg-bunch-of-simple-toggles
+     "Delete messages after saving to secondary file" 'rmail-delete-after-output
+     "Summary motion scrolls messages" 'rmail-summary-scroll-between-messages)
 
-  (dlg-info-button "Want to know more about reading mail?"
-		   "(emacs)rmail"
-		   "Click to read info pages about rmail.")
-  )
+    (dlg-info-button "Want to know more about reading mail?"
+		     "(emacs)rmail"
+		     "Click to read info pages about rmail.")
+    )
   (dlg-end)
   (dialog-refresh)
   )
@@ -628,6 +641,7 @@ useful for sending email."
   "Creates a configure window with variables modifying calendar mode."
   (interactive)
   (dlg-init 'dot-emacs)
+  (require 'calendar)
   (dialog-build-group "Calendar Options"
 
     (create-widget "Latitude :" widget-labeled-text
@@ -650,6 +664,8 @@ useful for sending email."
      "Show all Islamic Holidays" 'all-islamic-calendar-holidays
      "Show Holidays at Startup" 'view-calendar-holidays-initially)
     )
+  (require 'appt)
+  (require 'diary-ins)
   (dialog-build-group "Appointment Options"
 
     (create-widget "Diary File:" widget-labeled-text
@@ -815,6 +831,7 @@ to work with Ghostscript" widget-label :face 'bold-italic :x 5)
   "Creates a configure window with variables modifying how font lock is used."
   (interactive)
   (dlg-init 'dot-emacs)
+  (if dialog-xemacs-p (error "This font-lock dialog is not for XEmacs"))
   (dialog-build-group "Font Lock Options"
 
     (dlg-info-button "More about font-lock"
