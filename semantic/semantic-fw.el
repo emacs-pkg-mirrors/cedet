@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.20 2003/04/04 14:37:18 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.21 2003/07/22 18:26:01 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -157,6 +157,29 @@ FUN does not have arguments."
 
 ;;; Core Semantic bindings API
 ;;
+(defsubst semantic-set-parent-mode (mode parent)
+  "Set parent of major mode MODE to PARENT mode.
+To work properly, this function should be called after PARENT mode
+local variables have been defined."
+  (put mode 'semantic-mode-parent parent)
+  ;; Refresh mode bindings to get mode local variables inherited from
+  ;; PARENT. To work properly, the following should be called after
+  ;; PARENT mode local variables have been defined.
+  (semantic-map-mode-buffers mode 'semantic-activate-mode-bindings))
+
+(defsubst semantic-get-parent-mode (mode)
+  "Return the mode parent of the major mode MODE.
+ Return nil if MODE has no parent."
+  (or (get mode 'semantic-mode-parent)
+      (get mode 'derived-mode-parent)))
+
+(defmacro define-semantic-child-mode (mode parent &optional docstring)
+  "Make major mode MODE inherits semantic behavior from PARENT mode.
+DOCSTRING is optional and not used.
+To work properly, this should be put after PARENT mode local variables
+definition."
+  `(semantic-set-parent-mode ',mode ',parent))
+
 (defvar semantic-symbol-table nil
   "Buffer local semantic obarray.
 These symbols provide a hook for a `major-mode' to specify specific
@@ -174,7 +197,7 @@ mode or its parents."
                    mode  major-mode))
     (while (and mode (not table))
       (or (setq table (get mode 'semantic-symbol-table))
-          (setq mode  (get mode 'derived-mode-parent))))
+          (setq mode  (semantic-get-parent-mode mode))))
     table))
 
 (defun semantic-new-bindings (&optional table)
@@ -517,6 +540,7 @@ Returns the documentation as a string, also."
                   "define-lex-regex-analyzer"
                   "define-lex-simple-regex-analyzer"
                   "define-mode-overload-implementation"
+                  "define-semantic-child-mode"
                   "define-overload"
                   "define-wisent-lexer"
 		  "semantic-alias-obsolete"
