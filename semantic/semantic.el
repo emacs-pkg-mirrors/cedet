@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.42 2000/07/05 14:39:24 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.43 2000/09/08 22:21:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -213,25 +213,7 @@
 ;;; History:
 ;; 
 
-(eval-and-compile
-  (condition-case nil
-      (require 'working)
-    (error
-     (progn
-       (defmacro working-status-forms (message donestr &rest forms)
-	 "Contain a block of code during which a working status is shown."
-	 (list 'let (list (list 'msg message) (list 'dstr donestr)
-			  '(ref1 0))
-	       (cons 'progn forms)))
-  
-       (defun working-status (&optional percent &rest args)
-	 "Called within the macro `working-status-forms', show the status."
-	 (message "%s%s" (apply 'format msg args)
-		  (if (eq percent t) (concat "... " dstr)
-		    (format "... %3d%%" percent ))))
-  
-       (put 'working-status-forms 'lisp-indent-function 2)))))
-
+(require 'working)
 (require 'semantic-util)
 
 (defgroup semantic nil
@@ -379,6 +361,10 @@ return a symbol.  For example, Java return's includes, but the
 string can be replaced with `Imports'.")
 (make-variable-buffer-local 'semantic-symbol->name-assoc-list)
 
+(defvar semantic-case-fold nil
+  "Value for `case-fold-search' when parsing.")
+(make-variable-buffer-local 'semantic-case-fold)
+
 (defvar semantic-expand-nonterminal nil
   "Function to call for each returned Non-terminal.
 Return a list of non-terminals derived from the first argument, or nil
@@ -497,7 +483,7 @@ stripped from the main list of synthesized tokens.
 Optional argument RETURNONERROR indicates that the parser should exit with
 the current results on a parse error."
   (if (not depth) (setq depth 0))
-  (let ((result nil))
+  (let ((result nil) (case-fold-search semantic-case-fold))
     (while stream
       (if (not (and trashcomments (eq (car (car stream)) 'comment)))
 	  (let ((nontermsym
@@ -711,7 +697,7 @@ Use `bovine-toplevel' if it is not provided."
   (let ((ml (assq nonterminal table)))
     (semantic-bovinate-stream stream (cdr ml) table)))
 
-(defun semantic-bovinate-symbol-nonterminal-p (sym table)
+(defsubst semantic-bovinate-symbol-nonterminal-p (sym table)
   "Return non-nil if SYM is in TABLE, indicating it is NONTERMINAL."
   ;; sym is always a sym, so assq should be ok.
   (if (assq sym table) t nil))
@@ -870,6 +856,17 @@ list of semantic tokens found."
 	))
     (list s out)))
 
+
+;;; Bovine table functions
+;;
+;; These are functions that can be called from within a bovine table.
+;; Most of these have code auto-generated from other construct in the BNF.
+(defmacro semantic-lambda (&rest return-val)
+  "Create a lambda expression to return a list including RETURN-VAL.
+The return list is a lambda expression to be used in a bovine table."
+  `(lambda (vals start end)
+     (append ,@return-val (list start end))))
+
 (defun semantic-bovinate-from-nonterminal (start end nonterm &optional depth)
   "Bovinate from within a nonterminal lambda from START to END.
 Depends on the existing environment created by `semantic-bovinate-stream'.
@@ -971,7 +968,8 @@ what class of syntax CHAR is.")
 
 (defvar semantic-flex-enable-newlines nil
   "When flexing, report 'newlines as syntactic elements.
-Useful for languages where the newline is a special case terminator.")
+Useful for languages where the newline is a special case terminator.
+Only set this on a per mode basis, not globally.")
 (make-variable-buffer-local 'semantic-flex-enable-newlines)
 
 (defun semantic-flex-buffer (&optional depth)
