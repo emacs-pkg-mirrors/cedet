@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.46 2002/02/21 21:26:38 zappo Exp $
+@c $Id: eieio.texi,v 1.47 2002/02/23 22:28:09 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -822,9 +822,11 @@ Return non-@code{nil} if @var{obj} is an object.
 Return Non-@code{nil} if @var{obj-or-class} contains @var{slot} in its class.
 @end defun
 
-@defun slot-boundp obj slot
-Return Non-@code{nil} if @var{obj}'s @var{slot} is bound.  A slot is
-unbound if it has no :initform, and was never set.
+@defun slot-boundp object slot
+Non-@code{nil} if OBJECT's @var{SLOT} is bound.
+Setting a slot's value makes it bound.  Calling @dfn{slot-makeunbound} will
+make a slot unbound.
+@var{OBJECT} can be an instance or a class.
 @end defun
 
 @defun class-name class
