@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.2 2002/02/02 00:21:49 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.3 2002/02/04 22:37:31 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1977,7 +1977,7 @@ there are any reduce/reduce conflicts.")
   (let (i rule lhs rhs)
     (wisent-log "\n\nGrammar\n\n  Number, Rule\n")
     (setq i 1)
-    (while (< i nrules)
+    (while (<= i nrules)
       (setq rule (car (aref rule-table i))
             lhs  (car rule)
             rhs  (cdr rule))
@@ -2724,6 +2724,12 @@ DEF is the internal representation of a nonterminal definition."
   "Main start symbol.
 It gives the rules for start symbols.")
 
+(defvar wisent-no-xstarts-flag nil
+  "Non-nil means disable extra start symbols.
+That is don't add extra start rules to the grammar.  This is
+useful to compare the Wisent's generated automaton with the Bison's
+one.")
+
 (defun wisent-parse-grammar (grammar &optional start-list)
   "Parse GRAMMAR and build a suitable internal representation.
 Optional argument START-LIST is a list of extra start symbols.
@@ -2795,44 +2801,49 @@ list of tokens which must have been declared in TOKENS."
     (if (= (length defs) 0)
         (error "Grammar must contain at least one nonterminal"))
     
-    ;; Parse start symbols.
-    ;; STARTS is a list of symbols '(nt0 ... ntN).
-    ;; Build and push start rules in the grammar.  That is
-    ;; something like this:
-    ;;
-    ;; ($STARTS ((nt0) $1) ... ((ntN) $1))
-    ;;
-    ;; ($nt1    (($$nt1 nt1) $2))
-    ;; ...
-    ;; ($ntN    (($$ntN ntN) $2))
-
-    (setq defs   (nreverse defs)
-          lst    (nreverse (cons (caar defs) start-list))
+    (setq defs (nreverse defs)
           start-table nil)
-    (while lst
-      (setq var (car lst)
-            lst (cdr lst))
-      (or (assq var defs)
-          (error "Start symbol %s not found" var))
-      (or (assq var start-table) ;; Ignore duplicates
-          ;; For each nt start symbol
-          (setq ep-var   (make-symbol (format "$%s"  var))
-                ep-token (make-symbol (format "$$%s" var))
-                tokens   (cons ep-token tokens)
-                ;; Add entry (nt . $$nt) to start-table
-                start-table (cons (cons var ep-token) start-table)
-                ;; Add rule ($nt (($$nt nt) $2))
-                defs (cons (list ep-var (list (list ep-token var) '$2))
-                           defs)
-                ;; Add start rule (($nt) $1)
-                ep-def (cons (list (list ep-var) '$1) ep-def))))
     
-    (setq defs (cons (cons wisent-starts-nonterm ep-def) defs)
-          tokens (nreverse (cons wisent-error-term tokens))
+    ;; Parse extra start symbols if feature enabled.
+    (unless wisent-no-xstarts-flag
+      ;; STARTS is a list of symbols '(nt0 ... ntN).
+      ;;
+      ;; Build and push extra start rules in the grammar.  That is
+      ;; something like this:
+      ;;
+      ;; ($STARTS ((nt0) $1) ... ((ntN) $1))
+      ;;
+      ;; ($nt1    (($$nt1 nt1) $2))
+      ;; ...
+      ;; ($ntN    (($$ntN ntN) $2))
+
+      (setq lst    (nreverse (cons (caar defs) start-list)))
+      (while lst
+        (setq var (car lst)
+              lst (cdr lst))
+        (or (assq var defs)
+            (error "Start symbol %s not found" var))
+        (or (assq var start-table) ;; Ignore duplicates
+            ;; For each nt start symbol
+            (setq ep-var   (make-symbol (format "$%s"  var))
+                  ep-token (make-symbol (format "$$%s" var))
+                  tokens   (cons ep-token tokens)
+                  ;; Add entry (nt . $$nt) to start-table
+                  start-table (cons (cons var ep-token) start-table)
+                  ;; Add rule ($nt (($$nt nt) $2))
+                  defs (cons (list ep-var (list (list ep-token var) '$2))
+                             defs)
+                  ;; Add start rule (($nt) $1)
+                  ep-def (cons (list (list ep-var) '$1) ep-def))))
+    
+      (setq defs (cons (cons wisent-starts-nonterm ep-def) defs)))
+    
+    ;; Build the token and nonterminal lists
+    (setq tokens (nreverse (cons wisent-error-term tokens))
           token-list (cons wisent-eoi-term tokens)
           var-list (mapcar #'car defs))
     
-    ;; Concoct an ad hoc internal representation replacing symbols by
+    ;; Concoct an ad hoc internal representation mapping symbols with
     ;; item numbers
     (wisent-set-item-numbers)
     (setq error-token-number (wisent-item-number wisent-error-term)
