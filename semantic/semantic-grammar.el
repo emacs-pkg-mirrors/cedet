@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.41 2003/08/31 15:05:24 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.42 2003/09/07 09:01:42 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -40,6 +40,7 @@
 (eval-when-compile
   (require 'font-lock)
   (require 'semantic-edit)
+  (require 'semantic-find)
   (require 'semantic-format))
 
 ;;;;

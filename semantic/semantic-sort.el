@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.6 2003/09/02 16:16:12 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.7 2003/09/07 09:02:47 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,7 +35,9 @@
 
 (require 'assoc)
 (require 'semantic)
-(eval-when-compile (require 'semanticdb-find))
+(eval-when-compile
+  (require 'semantic-find)
+  (require 'semanticdb-find))
 
 ;;; Alphanumeric sorting
 ;;
