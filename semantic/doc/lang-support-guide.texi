@@ -1081,6 +1081,7 @@ new tags when they become available.
 Fetch available semantic tags from the current buffer.
 That is, return tags currently in the cache without parsing the
 current buffer.
+
 Parse operations happen asynchronously when needed on Emacs idle time.
 Use the @code{semantic-after-toplevel-cache-change-hook} and
 @code{semantic-after-partial-cache-change-hook} hooks to synchronize with
