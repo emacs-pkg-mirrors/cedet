@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.13 2003/04/06 01:05:06 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.14 2003/04/09 01:03:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,6 +40,7 @@
 (require 'inversion)
 (eval-and-compile
   (inversion-require 'eieio "0.18"))
+(require 'semantic-format)
 (require 'semantic-ctxt)
 (eval-when-compile (require 'semanticdb)
 		   (require 'semanticdb-find))
@@ -696,7 +697,7 @@ in a buffer."
   "*Function to use when creating items in Imenu.
 Some useful functions are found in `semantic-token->text-functions'."
   :group 'semantic
-  :type semantic-token->text-custom-list)
+  :type semantic-format-tag-custom-list)
 
 (defun semantic-analyze-princ-sequence (sequence &optional prefix)
   "Send the token SEQUENCE to standard out.
@@ -707,7 +708,7 @@ Use PREFIX as a label."
 	(princ (funcall semantic-analyze-summary-function
 			(car sequence)))
       (if (stringp (car sequence))
-	  (princ (semantic-colorize-text (car sequence) 'variable))
+	  (princ (semantic--format-colorize-text (car sequence) 'variable))
 	(format "%S" (car sequence))))
     (princ "\n")
     (setq sequence (cdr sequence))
