@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.48 2001/10/28 00:51:27 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.49 2001/11/17 15:50:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -44,12 +44,32 @@
  ( type)
  ( var-or-fun)
  ( define)
+ ( extern-c)
  ) ; end declaration
  (bovine-inner-scope
  ( define)
  ( codeblock-var-or-fun)
  ( type)
  ) ; end codeblock
+ (extern-c-contents
+ ( open-paren
+  ,(semantic-lambda
+  (list nil)))
+ ( bovine-toplevel)
+ ( close-paren
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end extern-c-contents
+ (extern-c
+ ( EXTERN string "C" semantic-list
+  ,(semantic-lambda
+  (list 'extern
+ (semantic-bovinate-from-nonterminal-full (car (nth 2 vals)) (cdr (nth 2 vals)) 'extern-c-contents)
+ )))
+ ( EXTERN string "C"
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end extern-c
  (macro
  ( punctuation "\\b#\\b" macro-or-include
   ,(semantic-lambda
@@ -551,7 +571,7 @@
   (list ( identity start) ( identity end))))
  ) ; end expression
  )
-                  "C language specification.")
+   "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
@@ -573,59 +593,63 @@
 
 (defun semantic-expand-c-nonterminal (nonterm)
   "Expand NONTERM into a list of equivalent nonterminals, or nil."
-  (if (listp (car nonterm))
-      (cond ((eq (semantic-token-token nonterm) 'variable)
-	     ;; The name part comes back in the form of:
-	     ;; ( NAME NUMSTARS BITS ARRAY ASSIGN )
-	     (let ((vl nil)
-		   (basety (semantic-token-type nonterm))
-		   (ty "")
-		   (mods (semantic-token-variable-extra-spec nonterm 'typemodifiers))
-		   (suffix "")
-		   (lst (semantic-token-name nonterm))
-		   (default nil)
-		   (cur nil))
-	       (while lst
-		 (setq suffix "" ty "")
-		 (setq cur (car lst))
-		 (if (nth 2 cur)
-		     (setq suffix (concat ":" (nth 2 cur))))
-		 (if (= (length basety) 1)
-		     (setq ty (car basety))
-		   (setq ty basety))
-		 (setq default (nth 4 cur))
-		 (setq vl (cons
-			   (list
-			    (car cur)	;name
-			    'variable
-			    ty		;type
-			    (if default
-				(buffer-substring-no-properties
-				 (car default) (car (cdr default))))
-			    (semantic-bovinate-make-assoc-list
-			     'const (semantic-token-variable-const nonterm)
-			     'suffix suffix
-			     'typemodifiers mods
-			     'dereference (length (nth 3 cur))
-			     'pointer (nth 1 cur)
-			     )
-			    (semantic-token-docstring nonterm) ;doc
-			    (semantic-token-properties nonterm) ;properties
-			    (semantic-token-overlay nonterm))
-			   vl))
-		 (setq lst (cdr lst)))
-	       vl))
-	    ((and (listp (car nonterm))
-		  (eq (semantic-token-token (car nonterm)) 'variable))
-	     ;; Argument lists come in this way.  Append all the expansions!
-	     (let ((vl nil))
-	       (while nonterm
-		 (setq vl (append (semantic-expand-c-nonterminal (car vl))
-				  vl)
-		       nonterm (cdr nonterm)))
-	       vl))
-	    (t nil))
-    nil))
+  (cond ((eq (car nonterm) 'extern)
+	 ;; We have hit an exter "C" command with a list after it.
+	 (car (cdr nonterm))
+	 )
+	((listp (car nonterm))
+	 (cond ((eq (semantic-token-token nonterm) 'variable)
+		;; The name part comes back in the form of:
+		;; ( NAME NUMSTARS BITS ARRAY ASSIGN )
+		(let ((vl nil)
+		      (basety (semantic-token-type nonterm))
+		      (ty "")
+		      (mods (semantic-token-variable-extra-spec nonterm 'typemodifiers))
+		      (suffix "")
+		      (lst (semantic-token-name nonterm))
+		      (default nil)
+		      (cur nil))
+		  (while lst
+		    (setq suffix "" ty "")
+		    (setq cur (car lst))
+		    (if (nth 2 cur)
+			(setq suffix (concat ":" (nth 2 cur))))
+		    (if (= (length basety) 1)
+			(setq ty (car basety))
+		      (setq ty basety))
+		    (setq default (nth 4 cur))
+		    (setq vl (cons
+			      (list
+			       (car cur) ;name
+			       'variable
+			       ty	;type
+			       (if default
+				   (buffer-substring-no-properties
+				    (car default) (car (cdr default))))
+			       (semantic-bovinate-make-assoc-list
+				'const (semantic-token-variable-const nonterm)
+				'suffix suffix
+				'typemodifiers mods
+				'dereference (length (nth 3 cur))
+				'pointer (nth 1 cur)
+				)
+			       (semantic-token-docstring nonterm) ;doc
+			       (semantic-token-properties nonterm) ;properties
+			       (semantic-token-overlay nonterm))
+			      vl))
+		    (setq lst (cdr lst)))
+		  vl))
+	       ((and (listp (car nonterm))
+		     (eq (semantic-token-token (car nonterm)) 'variable))
+		;; Argument lists come in this way.  Append all the expansions!
+		(let ((vl nil))
+		  (while nonterm
+		    (setq vl (append (semantic-expand-c-nonterminal (car vl))
+				     vl)
+			  nonterm (cdr nonterm)))
+		  vl))
+	       (t nil)))
+	(t nil)))
 
 (defvar semantic-c-classname nil
   "At parsetime, assign a class or struct name text here.
@@ -838,7 +862,7 @@ Override function for `semantic-nonterminal-protection'."
 		  ((string= (semantic-token-type parent) "struct") 'public))))
     (or prot 'public)))
 
-
+;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
   (semantic-install-function-overrides
