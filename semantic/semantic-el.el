@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.4 1999/05/17 17:29:03 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.5 1999/05/18 14:09:13 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -153,7 +153,7 @@
 			      (list start end))))
      ( variabledef punctuation ";" close-paren "}"
 		   (lambda (vals start end)
-		     (append  (list ( semantic-expand-c-nonterminal (nth 0 vals)))
+		     (append  ( semantic-expand-c-nonterminal (nth 0 vals))
 			      (list start end))))
      ) ; end structsubparts
     (enumparts
@@ -256,7 +256,7 @@
 		 (list start end))))
      ) ; end opt-bits
     (opt-array
-     ( semantic-list opt-array
+     ( semantic-list "^\\[.*\\]$" opt-array
 		     (lambda (vals start end)
 		       (append  (list ( cons 1 ( car (nth 1 vals))))
 				(list start end))))
@@ -310,10 +310,9 @@
     (arg-list
      ( semantic-list
        (lambda (vals start end)
-	 (append  (list ( semantic-expand-c-nonterminal
-			  (semantic-bovinate-from-nonterminal (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
-			  ))
-		  (list start end))))
+	 
+	 (semantic-bovinate-from-nonterminal (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
+	 ))
      ) ; end arg-list
     (arg-sub-list
      ( open-paren "(" close-paren ")"
@@ -330,11 +329,11 @@
 			     (list start end))))
      ( variablearg punctuation "," arg-sub-list
 		   (lambda (vals start end)
-		     (append  (list ( cons (nth 0 vals) (nth 2 vals)))
+		     (append  ( cons (nth 0 vals) (nth 2 vals))
 			      (list start end))))
      ( variablearg close-paren ")"
 		   (lambda (vals start end)
-		     (append  (list(list (nth 0 vals)))
+		     (append  (list (nth 0 vals))
 			      (list start end))))
      ) ; end arg-sub-list
     (functiondef
