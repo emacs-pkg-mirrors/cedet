@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.5 1999/05/18 14:09:13 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.6 1999/05/18 16:00:11 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -413,7 +413,7 @@
 	     ;; Argument lists come in this way.  Append all the expandsions!
 	     (let ((vl nil))
 	       (while nonterm
-		 (setq vl (append (semantic-expand-c-nonterm (car vl))
+		 (setq vl (append (semantic-expand-c-nonterminal (car vl))
 				  vl)
 		       nonterm (cdr nonterm)))
 	       vl))
