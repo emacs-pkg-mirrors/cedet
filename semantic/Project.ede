@@ -2,53 +2,35 @@
 ;; EDE project file.
 (ede-proj-project "semantic"
   :name "semantic"
-  :version "2.0beta3"
+  :version "1.4.1"
   :file "Project.ede"
   :targets (list 
-   (ede-proj-target-makefile-miscelaneous "wy"
-    :name "wy"
-    :path ""
-    :source '("semantic-grammar.wy")
-    )
-   (ede-proj-target-makefile-miscelaneous "scripts"
-    :name "scripts"
-    :path ""
-    :source '("semanticdb.sh")
-    )
    (ede-proj-target-makefile-miscelaneous "example"
     :name "example"
     :path ""
-    :source '("semantic-example.el")
+    :source '("semantic-skel.el" "skeleton.bnf" "semantic-example.el")
     )
    (ede-proj-target-elisp "nil"
     :name "init"
     :path ""
-    :source '("semantic-load.el" "semantic-autogen.el")
-    :auxsource '("semantic-al.el")
-    :rules (list 
-     (ede-makefile-rule "Custom-new"
-      :target "semantic-al.el"
-      :dependencies "$(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(init_LISP) $(wildcard bovine/*.el) $(wildcard wisent/*.el)"
-      :rules '("$(EMACS) -batch -l semantic-autogen.el -f semantic-hack-autoloads")
-      )
-     )
+    :source '("semantic-load.el")
+    :partofall 'nil
     )
    (ede-proj-target-elisp "semantic"
     :name "semantic"
     :path ""
-    :source '("semantic.el" "semantic-util.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-edit.el" "semantic-fw.el" "semantic-grammar.el")
+    :source '("semantic.el" "semantic-util.el" "semantic-bnf.el" "semantic-ctxt.el")
     :versionsource '("semantic.el")
-    :aux-packages '("semantic-bovine" "wisent")
     )
    (ede-proj-target-elisp "Languages"
     :name "Languages"
     :path ""
-    :source '("semantic-texi.el")
+    :source '("semantic-c.el" "semantic-el.el" "semantic-java.el" "semantic-make.el" "semantic-scm.el" "semantic-texi.el")
     )
    (ede-proj-target-elisp "tools"
     :name "tools"
     :path ""
-    :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el" "semanticdb-file.el" "semanticdb-search.el" "semanticdb-mk.el" "semanticdb-el.el" "semanticdb-obj.el" "semanticdb-system.el")
+    :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el")
     :aux-packages '("eieio" "speedbar")
     )
    (ede-proj-target-elisp "senator"
@@ -65,6 +47,11 @@
     :name "info"
     :path ""
     :source '("semantic.texi")
+    )
+   (ede-proj-target-aux "aux"
+    :name "aux"
+    :path ""
+    :source '("c.bnf" "make.bnf" "java.bnf" "scheme.bnf")
     )
    )
   :web-site-url "http://cedet.sourceforge.net/semantic.shtml"
