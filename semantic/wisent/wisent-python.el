@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.24 2003/01/31 04:16:26 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.25 2003/01/31 05:27:44 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -27,65 +27,10 @@
 
 ;;; Commentary:
 ;;
-;; This is a LALR python parser that follows the official python
-;; grammar closely.  The official Grammar file from the Python source
-;; code distribution was the starting point of this version.
+;; This file contains the python parser created from the grammar
+;; specified in wisent-python.wy file.  It also has some support code.
 ;;
-;; Approximate non-terminal (NT) hierarchy of the python grammer for
-;; the `single_input' NT is shown below.
-;;
-;;   goal
-;;     single_input
-;;       NEWLINE
-;;       simple_stmt
-;;         small_stmt_list semicolon_opt NEWLINE
-;;           small_stmt
-;;             print_stmt
-;;             del_stmt
-;;             pass_stmt
-;;             flow_stmt
-;;             import_stmt
-;;             global_stmt
-;;             exec_stmt
-;;             assert_stmt
-;;             expr_stmt
-;;               augassign
-;;               testlist
-;;                 test
-;;                   test_testlambdef
-;;                   test_test
-;;                     and_test
-;;                       not_test
-;;                         comparison
-;;                           expr
-;;                             xor_expr
-;;                               and_expr
-;;                                 shift_expr
-;;                                   arith_expr
-;;                                     term
-;;                                       factor
-;;                                         power
-;;                                           atom
-;;                                           trailer
-;;                                             ( arglist_opt )
-;;                                               test
-;;                                             [ subscriptlist ]
-;;       compound_stmt NEWLINE
-;;         if_stmt
-;;         while_stmt
-;;         for_stmt
-;;         try_stmt
-;;         funcdef
-;;         classdef
-
-;;; To do:
-;;
-;; * Debug the grammar so that it can parse at least all standard *.py
-;;   files distributed along with python.
-;;
-;; * Modify the grammar to take advantage of scan-lists advice, i.e.,
-;;   generate INDENT_BLOCK tokens such as PAREN_BLOCK tokens rather than
-;;   generating whole bunch of lexical tokens.
+;;; Code:
 
 (require 'wisent-bovine)
 
@@ -376,7 +321,7 @@ it to a form suitable for the Wisent's parser."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 20:10-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 21:21-0800
   (eval-when-compile
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
@@ -386,12 +331,10 @@ it to a form suitable for the Wisent's parser."
 	((simple_stmt))
 	((compound_stmt)))
        (simple_stmt
-	((small_stmt_list semicolon_opt NEWLINE)
-	 (identity $1)))
+	((small_stmt_list semicolon_opt NEWLINE)))
        (small_stmt_list
 	((small_stmt))
-	((small_stmt_list SEMICOLON small_stmt)
-	 (identity $1)))
+	((small_stmt_list SEMICOLON small_stmt)))
        (small_stmt
 	((expr_stmt))
 	((print_stmt))
@@ -407,9 +350,9 @@ it to a form suitable for the Wisent's parser."
 	 (wisent-token $1 'code nil nil)))
        (print_stmt_trailer
 	((test_list_opt)
-	 (or $1 ""))
+	 nil)
 	((GTGT test trailing_test_list_with_opt_comma_opt)
-	 (identity $2)))
+	 nil))
        (trailing_test_list_with_opt_comma_opt
 	(nil)
 	((trailing_test_list comma_opt)
@@ -452,11 +395,12 @@ it to a form suitable for the Wisent's parser."
 	 (wisent-token $1 'code nil nil)))
        (exprlist
 	((expr_list comma_opt)
-	 (identity $1)))
+	 nil))
        (expr_list
-	((expr))
+	((expr)
+	 nil)
 	((expr_list COMMA expr)
-	 (format "%s, %s" $1 $3)))
+	 nil))
        (pass_stmt
 	((PASS)
 	 (wisent-token $1 'code nil nil)))
@@ -477,7 +421,8 @@ it to a form suitable for the Wisent's parser."
 	 (wisent-token $1 'code nil nil)))
        (testlist_opt
 	(nil)
-	((testlist)))
+	((testlist)
+	 nil))
        (yield_stmt
 	((YIELD testlist)
 	 (wisent-token $1 'code nil nil)))
@@ -485,10 +430,9 @@ it to a form suitable for the Wisent's parser."
 	((RAISE zero_one_two_or_three_tests)
 	 (wisent-token $1 'code nil nil)))
        (zero_one_two_or_three_tests
-	(nil
-	 (identity ""))
+	(nil)
 	((test zero_one_or_two_tests)
-	 (identity $1)))
+	 nil))
        (zero_one_or_two_tests
 	(nil)
 	((COMMA test zero_or_one_comma_test)
@@ -504,8 +448,7 @@ it to a form suitable for the Wisent's parser."
 	 (wisent-token $2 'import nil nil)))
        (dotted_as_name_list
 	((dotted_as_name))
-	((dotted_as_name_list COMMA dotted_as_name)
-	 (identity $1)))
+	((dotted_as_name_list COMMA dotted_as_name)))
        (star_or_import_as_name_list
 	((MULT)
 	 nil)
@@ -520,8 +463,7 @@ it to a form suitable for the Wisent's parser."
 	((NAME name_name_opt)
 	 nil))
        (dotted_as_name
-	((dotted_name name_name_opt)
-	 (identity $1)))
+	((dotted_name name_name_opt)))
        (name_name_opt
 	(nil)
 	((NAME NAME)
@@ -535,8 +477,7 @@ it to a form suitable for the Wisent's parser."
 	 (wisent-token $1 'code nil nil)))
        (comma_sep_name_list
 	((NAME))
-	((comma_sep_name_list COMMA NAME)
-	 (format "%s" $1)))
+	((comma_sep_name_list COMMA NAME)))
        (exec_stmt
 	((EXEC expr exec_trailer)
 	 (wisent-token $1 'code nil nil)))
@@ -595,14 +536,16 @@ it to a form suitable for the Wisent's parser."
 	 (wisent-token $1 'code nil nil)))
        (except_clause_suite_pair_list
 	((except_clause COLON suite)
-	 (concat "except_clause_suite_pair_list"))
+	 nil)
 	((except_clause_suite_pair_list except_clause COLON suite)
-	 (concat "except_clause_suite_pair_list")))
+	 nil))
        (except_clause
-	((EXCEPT zero_one_or_two_test)))
+	((EXCEPT zero_one_or_two_test)
+	 nil))
        (zero_one_or_two_test
 	(nil)
-	((test zero_or_one_comma_test)))
+	((test zero_or_one_comma_test)
+	 nil))
        (funcdef
 	((DEF NAME function_parameter_list COLON suite)
 	 (wisent-token $2 'function nil $3)))
@@ -627,29 +570,29 @@ it to a form suitable for the Wisent's parser."
 	 (wisent-token $2 'variable nil nil nil nil)))
        (classdef
 	((CLASS NAME paren_testlist_opt COLON suite)
-	 (wisent-token $2 'type $1 $5 nil)))
+	 (wisent-token $2 'type $1 $5 $3)))
        (paren_testlist_opt
 	(nil)
-	((PAREN_BLOCK)))
+	((function_parameter_list)))
        (test
 	((test_test))
 	((lambdef)))
        (test_test
 	((and_test))
 	((test_test OR and_test)
-	 (format "%s %s %s" $1 $2 $3)))
+	 nil))
        (and_test
 	((not_test))
 	((and_test AND not_test)
-	 (format "%s %s %s" $1 $2 $3)))
+	 nil))
        (not_test
 	((NOT not_test)
-	 (format "NOT %s" $1))
+	 nil)
 	((comparison)))
        (comparison
 	((expr))
 	((comparison comp_op expr)
-	 (format "%s %s %s" $1 $2 $3)))
+	 nil))
        (comp_op
 	((LT))
 	((GT))
@@ -665,33 +608,33 @@ it to a form suitable for the Wisent's parser."
        (expr
 	((xor_expr))
 	((expr BAR xor_expr)
-	 (format "%s %s %s" $1 $2 $3)))
+	 nil))
        (xor_expr
 	((and_expr))
 	((xor_expr HAT and_expr)
-	 (format "%s %s %s" $1 $2 $3)))
+	 nil))
        (and_expr
 	((shift_expr))
 	((and_expr AMP shift_expr)
-	 (format "%s %s %s" $1 $2 $3)))
+	 nil))
        (shift_expr
 	((arith_expr))
 	((shift_expr shift_expr_operators arith_expr)
-	 (format "%s %s %s" $1 $2 $3)))
+	 nil))
        (shift_expr_operators
 	((LTLT))
 	((GTGT)))
        (arith_expr
 	((term))
 	((arith_expr plus_or_minus term)
-	 (format "%s %s %s" $1 $2 $3)))
+	 nil))
        (plus_or_minus
 	((PLUS))
 	((MINUS)))
        (term
 	((factor))
 	((term term_operator factor)
-	 (format "%s %s %s" $1 $2 $3)))
+	 nil))
        (term_operator
 	((MULT))
 	((DIV))
@@ -699,7 +642,7 @@ it to a form suitable for the Wisent's parser."
 	((DIVDIV)))
        (factor
 	((prefix_operators factor)
-	 (format "%s %s" $1 $2))
+	 nil)
 	((power)))
        (prefix_operators
 	((PLUS))
@@ -717,39 +660,36 @@ it to a form suitable for the Wisent's parser."
        (trailer_zom
 	(nil)
 	((trailer_zom trailer)
-	 (format "(%s %s)"
-		 (or $1 "")
-		 $2)))
+	 nil))
        (exponent_zom
 	(nil)
 	((exponent_zom EXPONENT factor)
-	 (format "(%s ** %s)"
-		 (or $1 "")
-		 $3)))
+	 nil))
        (trailer
-	((PAREN_BLOCK))
-	((BRACK_BLOCK))
+	((PAREN_BLOCK)
+	 nil)
+	((BRACK_BLOCK)
+	 nil)
 	((PERIOD NAME)
-	 (concat "." $2)))
+	 nil))
        (atom
 	((PAREN_BLOCK)
-	 (format "%s" $1))
+	 nil)
 	((BRACK_BLOCK)
-	 (format "%s" $1))
+	 nil)
 	((BRACE_BLOCK)
-	 (format "%s" $1))
+	 nil)
 	((BACKQUOTE testlist BACKQUOTE)
 	 nil)
 	((NAME))
-	((NUMBER_LITERAL)
-	 (concat $1))
+	((NUMBER_LITERAL))
 	((one_or_more_string)))
        (test_list_opt
 	(nil)
-	((testlist)))
+	((testlist)
+	 nil))
        (testlist
-	((comma_sep_test_list comma_opt)
-	 (identity $1)))
+	((comma_sep_test_list comma_opt)))
        (comma_sep_test_list
 	((test))
 	((comma_sep_test_list COMMA test)
@@ -762,7 +702,8 @@ it to a form suitable for the Wisent's parser."
 	  (concat $1 $2))))
        (lambdef
 	((LAMBDA varargslist_opt COLON test)
-	 (format "%s %s %s" $1 $2 $3)))
+	 (format "%s %s" $1
+		 (or $2 ""))))
        (varargslist_opt
 	(nil)
 	((varargslist)))
@@ -796,8 +737,7 @@ it to a form suitable for the Wisent's parser."
 	((fpdef_list comma_opt)))
        (fpdef_list
 	((fpdef))
-	((fpdef_list COMMA fpdef)
-	 (identity $1)))
+	((fpdef_list COMMA fpdef)))
        (eq_test_opt
 	(nil)
 	((ASSIGN test)
@@ -812,7 +752,7 @@ it to a form suitable for the Wisent's parser."
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 20:10-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 21:21-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -874,7 +814,7 @@ it to a form suitable for the Wisent's parser."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 20:10-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 21:21-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -946,7 +886,7 @@ it to a form suitable for the Wisent's parser."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 20:10-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 21:21-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -962,9 +902,7 @@ it to a form suitable for the Wisent's parser."
      ;; Character used to separation a parent/child relationship
      semantic-type-relation-separator-character '(".")
      semantic-command-separation-character ";"
-     ;; Init indentation stack
      wisent-python-lexer-indent-stack '(0)
-
      semantic-lex-analyzer #'semantic-python-lexer
      semantic-lex-depth	0
      )))
