@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: amusement
-;; X-RCS: $Id: bigclock.el,v 1.1 2000/08/21 02:11:44 zappo Exp $
+;; X-RCS: $Id: bigclock.el,v 1.2 2000/09/04 00:10:36 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -48,7 +48,7 @@
   :type '(repeat (sexp :tag "Parameter:")))
 
 (defcustom bigclock-update-flag dframe-have-timer-flag
-  "Flag determining if the clock will update."
+  "Non-nil means the clock will be able to update."
   :group 'bigclock
   :type 'boolean)
 
