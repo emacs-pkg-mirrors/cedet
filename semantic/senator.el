@@ -1,4 +1,3 @@
-
 ;;; senator.el --- SEmantic NAvigaTOR
 
 ;; Copyright (C) 2000, 2001, 2002, 2003 by David Ponce
@@ -7,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.77 2003/08/17 02:47:29 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.78 2003/08/17 10:23:22 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -130,7 +129,7 @@ navigation."
   :type '(repeat (symbol)))
 (make-variable-buffer-local 'senator-step-at-tag-classes)
 (make-obsolete-variable 'semantic-step-at-token-ids
-			'semantic-step-at-tag-classes)
+                        'semantic-step-at-tag-classes)
 
 ;;;###autoload
 (defcustom senator-step-at-start-end-tag-classes '(function)
@@ -147,7 +146,7 @@ a specific langage navigation."
                  (const  :tag "All" t)))
 (make-variable-buffer-local 'senator-step-at-start-end-tag-classes)
 (make-obsolete-variable 'senator-step-at-start-end-token-ids
-			'senator-step-at-start-end-tag-classes)
+                        'senator-step-at-start-end-tag-classes)
 
 (defcustom senator-highlight-found t
   "*If non-nil highlight tags found.
@@ -258,7 +257,7 @@ reverse order."
             parent (cdr parent)))
     (concat (semantic-tag-name tag) name)))
 (semantic-alias-obsolete 'senator-full-token-name
-			 'senator-full-tag-name)
+                         'senator-full-tag-name)
 
 (defvar senator-completion-cache nil
   "The latest full completion list is cached here.")
@@ -439,10 +438,10 @@ Uses `semanticdb' when available."
 ;;; Senator stream searching functions: no more supported.
 ;;
 (defun senator-find-nonterminal-by-name (&rest ignore)
-  (error "Use the semantic and semanticdb find API instead."))
+  (error "Use the semantic and semanticdb find API instead"))
 
 (defun senator-find-nonterminal-by-name-regexp (&rest ignore)
-  (error "Use the semantic and semanticdb find API instead."))
+  (error "Use the semantic and semanticdb find API instead"))
 
 ;;;;
 ;;;; Search functions
@@ -466,79 +465,51 @@ beginning of the name use (match-beginning 0)."
     (goto-char (match-beginning 0))
     (search-forward name)))
 
-(defun senator-search-forward-raw (searcher what &optional bound noerror count)
-  "Use SEARCHER to search WHAT in Semantic tag names after point.
-See `search-forward' for the meaning of BOUND NOERROR and COUNT."
-  (let* ((origin (point))
-         (count  (or count 1))
-         (step   (cond ((= count 0) 0)
-                       ((> count 0) 1)
-                       (t (setq count (- count))
-                          -1)))
-         found next sstart send tag tstart tend)
-    (or (= step 0)
-        (while (and (not found)
-                    (setq next (funcall searcher what bound t step)))
-          (setq sstart (match-beginning 0)
-                send   (match-end 0)
-                tag  (semantic-current-tag))
-        (if (= sstart send)
-            (setq found t)
-          (if tag
-              (setq tend   (senator-search-tag-name tag)
-                    tstart (match-beginning 0)
-                    found  (and (>= sstart tstart)
-                                (<= send tend)
-                                (= (setq count (1- count)) 0))))
-          (goto-char next))))
-    (cond ((null found)
-           (setq next origin
-                 send origin))
-          ((= step -1)
-           (setq next send
-                 send sstart))
-          (t
-           (setq next sstart)))
-    (goto-char next)
-    ;; Setup the returned value and the `match-data' or maybe fail!
-    (funcall searcher what send noerror step)))
+(defcustom senator-search-tag-filter nil
+  "*Function that filter searched tags.
+It is passed a tag and can return nil to exclude it from search."
+  :group 'senator
+  :type 'function)
 
-(defun senator-search-backward-raw (searcher what &optional bound noerror count)
-  "Use SEARCHER to search WHAT in Semantic tag names before point.
-See `search-backward' for the meaning of BOUND NOERROR and COUNT."
+(defun senator-search (searcher text &optional bound noerror count)
+  "Use the SEARCHER function to search from point for TEXT in a tag name.
+SEARCHER is typically the function `search-forward', `search-backward',
+`word-search-forward', `word-search-backward', `re-search-forward', or
+`re-search-backward'.  See one of the above function to see how the
+TEXT, BOUND, NOERROR, and COUNT arguments are interpreted."
   (let* ((origin (point))
          (count  (or count 1))
-         (step   (cond ((= count 0) 0)
-                       ((> count 0) 1)
-                       (t (setq count (- count))
-                          -1)))
+         (step   (cond ((> count 0) 1)
+                       ((< count 0) (setq count (- count)) -1)
+                       (0)))
          found next sstart send tag tstart tend)
-    (or (= step 0)
+    (or (zerop step)
         (while (and (not found)
-                    (setq next (funcall searcher what bound t step)))
+                    (setq next (funcall searcher text bound t step)))
           (setq sstart (match-beginning 0)
-                send   (match-end 0)
-                tag  (semantic-current-tag))
-        (if (= sstart send)
-            (setq found t)
-          (if tag
-              (setq tend   (senator-search-tag-name tag)
-                    tstart (match-beginning 0)
-                    found  (and (>= sstart tstart)
-                                (<= send tend)
-                                (= (setq count (1- count)) 0))))
-          (goto-char next))))
+                send   (match-end 0))
+          (if (= sstart send)
+              (setq found t)
+            (and (setq tag (semantic-current-tag))
+                 (or (null senator-search-tag-filter)
+                     (funcall senator-search-tag-filter tag))
+                 (setq tend   (senator-search-tag-name tag)
+                       tstart (match-beginning 0)
+                       found  (and (>= sstart tstart)
+                                   (<= send tend)
+                                   (zerop (setq count (1- count))))))
+            (goto-char next))))
     (cond ((null found)
            (setq next origin
                  send origin))
-          ((= step 1)
+          ((= next sstart)
            (setq next send
                  send sstart))
           (t
            (setq next sstart)))
     (goto-char next)
     ;; Setup the returned value and the `match-data' or maybe fail!
-    (funcall searcher what send noerror step)))
+    (funcall searcher text send noerror step)))
 
 ;;;;
 ;;;; Navigation commands
@@ -998,7 +969,7 @@ Set point to the end of the occurrence found, and return point.  See
 `search-forward' for details and the meaning of BOUND NOERROR and
 COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic search: ")
-  (senator-search-forward-raw #'search-forward what bound noerror count))
+  (senator-search 'search-forward what bound noerror count))
 
 ;;;###autoload
 (defun senator-re-search-forward (what &optional bound noerror count)
@@ -1007,7 +978,7 @@ Set point to the end of the occurrence found, and return point.  See
 `re-search-forward' for details and the meaning of BOUND NOERROR and
 COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic regexp search: ")
-  (senator-search-forward-raw #'re-search-forward what bound noerror count))
+  (senator-search 're-search-forward what bound noerror count))
 
 ;;;###autoload
 (defun senator-word-search-forward (what &optional bound noerror count)
@@ -1016,7 +987,7 @@ Set point to the end of the occurrence found, and return point.  See
 `word-search-forward' for details and the meaning of BOUND NOERROR and
 COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic word search: ")
-  (senator-search-forward-raw #'word-search-forward what bound noerror count))
+  (senator-search 'word-search-forward what bound noerror count))
 
 ;;;###autoload
 (defun senator-search-backward (what &optional bound noerror count)
@@ -1025,7 +996,7 @@ Set point to the beginning of the occurrence found, and return point.
 See `search-backward' for details and the meaning of BOUND NOERROR and
 COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic backward search: ")
-  (senator-search-backward-raw #'search-backward what bound noerror count))
+  (senator-search 'search-backward what bound noerror count))
 
 ;;;###autoload
 (defun senator-re-search-backward (what &optional bound noerror count)
@@ -1034,7 +1005,7 @@ Set point to the beginning of the occurrence found, and return point.
 See `re-search-backward' for details and the meaning of BOUND NOERROR
 and COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic backward regexp search: ")
-  (senator-search-backward-raw #'re-search-backward what bound noerror count))
+  (senator-search 're-search-backward what bound noerror count))
 
 ;;;###autoload
 (defun senator-word-search-backward (what &optional bound noerror count)
@@ -1044,7 +1015,7 @@ See `word-search-backward' for details and the meaning of BOUND
 NOERROR and COUNT.  COUNT is just ignored in the current
 implementation."
   (interactive "sSemantic backward word search: ")
-  (senator-search-backward-raw #'word-search-backward what bound noerror count))
+  (senator-search 'word-search-backward what bound noerror count))
 
 ;;;;
 ;;;; Others useful search commands (minor mode menu)
@@ -1082,9 +1053,39 @@ REGEXP says which ring to use."
     
     )
 
+(defvar senator-last-search-type nil
+  "Type of last non-incremental search command called.")
+
+(defun senator-nonincremental-repeat-search-forward ()
+  "Search forward for the previous search string or regexp."
+  (interactive)
+  (cond
+   ((and (eq senator-last-search-type 'string)
+         search-ring)
+    (senator-search-forward (car search-ring)))
+   ((and (eq senator-last-search-type 'regexp)
+         regexp-search-ring)
+    (senator-re-search-forward (car regexp-search-ring)))
+   (t
+    (error "No previous search"))))
+
+(defun senator-nonincremental-repeat-search-backward ()
+  "Search backward for the previous search string or regexp."
+  (interactive)
+  (cond
+   ((and (eq senator-last-search-type 'string)
+         search-ring)
+    (senator-search-backward (car search-ring)))
+   ((and (eq senator-last-search-type 'regexp)
+         regexp-search-ring)
+    (senator-re-search-backward (car regexp-search-ring)))
+   (t
+    (error "No previous search"))))
+
 (defun senator-nonincremental-search-forward (string)
   "Search for STRING  nonincrementally."
   (interactive "sSemantic search for string: ")
+  (setq senator-last-search-type 'string)
   (if (equal string "")
       (senator-search-forward (car search-ring))
     (isearch-update-ring string nil)
@@ -1093,6 +1094,7 @@ REGEXP says which ring to use."
 (defun senator-nonincremental-search-backward (string)
   "Search backward for STRING nonincrementally."
   (interactive "sSemantic search for string: ")
+  (setq senator-last-search-type 'string)
   (if (equal string "")
       (senator-search-backward (car search-ring))
     (isearch-update-ring string nil)
@@ -1101,6 +1103,7 @@ REGEXP says which ring to use."
 (defun senator-nonincremental-re-search-forward (string)
   "Search for the regular expression STRING nonincrementally."
   (interactive "sSemantic search for regexp: ")
+  (setq senator-last-search-type 'regexp)
   (if (equal string "")
       (senator-re-search-forward (car regexp-search-ring))
     (isearch-update-ring string t)
@@ -1109,38 +1112,37 @@ REGEXP says which ring to use."
 (defun senator-nonincremental-re-search-backward (string)
   "Search backward for the regular expression STRING nonincrementally."
   (interactive "sSemantic search for regexp: ")
+  (setq senator-last-search-type 'regexp)
   (if (equal string "")
       (senator-re-search-backward (car regexp-search-ring))
     (isearch-update-ring string t)
     (senator-re-search-backward string)))
 
-(defun senator-nonincremental-repeat-search-forward ()
-  "Search forward for the previous search string."
-  (interactive)
-  (if (null search-ring)
-      (error "No previous search"))
-  (senator-search-forward (car search-ring)))
-
-(defun senator-nonincremental-repeat-search-backward ()
-  "Search backward for the previous search string."
-  (interactive)
-  (if (null search-ring)
-      (error "No previous search"))
-  (senator-search-backward (car search-ring)))
-
-(defun senator-nonincremental-repeat-re-search-forward ()
-  "Search forward for the previous regular expression."
-  (interactive)
-  (if (null regexp-search-ring)
-      (error "No previous search"))
-  (senator-re-search-forward (car regexp-search-ring)))
-
-(defun senator-nonincremental-repeat-re-search-backward ()
-  "Search backward for the previous regular expression."
-  (interactive)
-  (if (null regexp-search-ring)
-      (error "No previous search"))
-  (senator-re-search-backward (car regexp-search-ring)))
+(defun senator-search-set-tag-class-filter (&optional classes)
+  "In current buffer, limit search scope to tag CLASSES.
+CLASSES is a list of tag class symbols or nil.
+If nil restore the global filter option `senator-search-tag-filter'."
+  (interactive "sClasses: ")
+  (setq classes
+        (cond
+         ((null classes)
+          nil)
+         ((symbolp classes)
+          (list classes))
+         ((stringp classes)
+          (mapcar 'read (split-string classes)))
+         (t
+          (signal 'wrong-type-argument (list classes)))
+         ))
+  (if classes
+      (let ((tag   (make-symbol "tag"))
+            (names (mapconcat 'symbol-name classes "', `")))
+        (set (make-local-variable 'senator-search-tag-filter)
+             `(lambda (,tag)
+                (memq (semantic-tag-class ,tag) ',classes)))
+        (message "Limit search to `%s' tags" names))
+    (kill-local-variable 'senator-search-tag-filter)
+    (message "Default search filter restored")))
 
 ;;;;
 ;;;; Tag Properties
@@ -1577,12 +1579,13 @@ This is a buffer local variable.")
 
 (defvar senator-prefix-map
   (let ((km (make-sparse-keymap)))
-    (define-key km "i" 'senator-isearch-toggle-semantic-mode)
-    (define-key km "j" 'senator-jump)
-    (define-key km "p" 'senator-previous-tag)
-    (define-key km "n" 'senator-next-tag)
-    (define-key km "\t" 'senator-complete-symbol)
-    (define-key km " " 'senator-completion-menu-popup)
+    (define-key km "f"    'senator-search-set-tag-class-filter)
+    (define-key km "i"    'senator-isearch-toggle-semantic-mode)
+    (define-key km "j"    'senator-jump)
+    (define-key km "p"    'senator-previous-tag)
+    (define-key km "n"    'senator-next-tag)
+    (define-key km "\t"   'senator-complete-symbol)
+    (define-key km " "    'senator-completion-menu-popup)
     (define-key km "\C-w" 'senator-kill-tag)
     (define-key km "\M-w" 'senator-copy-tag)
     (define-key km "\C-y" 'senator-yank-tag)
@@ -1616,54 +1619,55 @@ This is a buffer local variable.")
    (list
     "Search"
     (senator-menu-item
-     ["Search..."
+     ["String Forward..."
       senator-nonincremental-search-forward
       :active t
       :help "Search forward for a string"
       ])
     (senator-menu-item
-     ["Search Backwards..."
+     ["String Backwards..."
       senator-nonincremental-search-backward
       :active t
       :help "Search backwards for a string"
       ])
     (senator-menu-item
-     ["Repeat Search"
-      senator-nonincremental-repeat-search-forward
-      :active search-ring
-      :help "Repeat last search forward"
-      ])
-    (senator-menu-item
-     ["Repeat Backwards"
-      senator-nonincremental-repeat-search-backward
-      :active search-ring
-      :help "Repeat last search backwards"
-      ])
-    (senator-menu-item
-     ["Search Regexp..."
+     ["Regexp Forward..."
       senator-nonincremental-re-search-forward
       :active t
       :help "Search forward for a regular expression"
       ])
     (senator-menu-item
-     ["Search Regexp Backwards..."
+     ["Regexp Backwards..."
       senator-nonincremental-re-search-backward
       :active t
       :help "Search backwards for a regular expression"
       ])
+    "--"
     (senator-menu-item
-     ["Repeat Regexp"
-      senator-nonincremental-repeat-re-search-forward
-      :active regexp-search-ring
-      :help "Repeat last regular expression search forward"
+     ["Repeat Forward"
+      senator-nonincremental-repeat-search-forward
+      :active (or (and (eq senator-last-search-type 'string)
+                       search-ring)
+                  (and (eq senator-last-search-type 'regexp)
+                       regexp-search-ring))
+      :help "Repeat last search forward"
       ])
     (senator-menu-item
-     ["Repeat Regexp Backwards"
-      senator-nonincremental-repeat-re-search-backward
-      :active regexp-search-ring
-      :help "Repeat last regular expression search backwards"
+     ["Repeat Backwards"
+      senator-nonincremental-repeat-search-backward
+      :active (or (and (eq senator-last-search-type 'string)
+                       search-ring)
+                  (and (eq senator-last-search-type 'regexp)
+                       regexp-search-ring))
+      :help "Repeat last search backwards"
       ])
     "--"
+    (senator-menu-item
+     ["Limit search..."
+      senator-search-set-tag-class-filter
+      :active t
+      :help "In current buffer, limit search to certain classes of tag"
+      ])
     (senator-menu-item
      ["Semantic isearch mode"
       senator-isearch-toggle-semantic-mode
@@ -2063,7 +2067,7 @@ minor mode is enabled.
 (and (not (featurep 'xemacs))
      (> emacs-major-version 20)
      (progn
-
+       
        ;; Add Senator to the the minor mode menu in the mode line
        (define-key mode-line-mode-menu [senator-minor-mode]
          `(menu-item "Senator" senator-minor-mode
@@ -2240,7 +2244,7 @@ This function is overridable with the symbol `insert-foreign-tag'."
       (senator-insert-foreign-tag-default tag tagfile))
     (message (semantic-format-tag-summarize tag))))
 (semantic-alias-obsolete 'senator-insert-foreign-token
-			 'senator-insert-foreign-tag)
+                         'senator-insert-foreign-tag)
 
 (defun senator-copy-tag ()
   "Take the current tag, and place it in the tag ring."
@@ -2283,7 +2287,7 @@ kill ring."
         (kill-region (semantic-tag-start ct)
                      (semantic-tag-end ct)))))
 (semantic-alias-obsolete 'senator-copy-token-to-register
-			 'senator-copy-tag-to-register)
+                         'senator-copy-tag-to-register)
 
 (defadvice insert-register (around senator activate)
   "Insert contents of register REGISTER as a tag.
