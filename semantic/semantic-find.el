@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.2 2003/03/30 02:29:14 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.3 2003/03/30 03:43:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,6 +56,7 @@
 ;; These routines provide fast access to tokens based on a buffer that
 ;; has parsed tokens in it.  Uses overlays to perform the hard work.
 ;;
+;;;###autoload
 (defun semantic-find-tag-by-overlay (&optional positionormarker buffer)
   "Find all tags covering POSITIONORMARKER by using overlays.
 If POSITIONORMARKER is nil, use the current point.
@@ -82,6 +83,7 @@ from largest to smallest via the start location."
       (sort ret (lambda (a b) (< (semantic-tag-start a)
 				 (semantic-tag-start b)))))))
 
+;;;###autoload
 (defun semantic-find-tag-by-overlay-in-region (start end &optional buffer)
   "Find all tags which exist in whole or in part between START and END.
 Uses overlays to determine positin.
@@ -100,6 +102,7 @@ Optional BUFFER argument specifies the buffer to use."
       (sort ret (lambda (a b) (< (semantic-tag-start a)
 				 (semantic-tag-start b)))))))
 
+;;;###autoload
 (defun semantic-find-tag-by-overlay-next (&optional start buffer)
   "Find the next tag after START in BUFFER.
 If START is in an overlay, find the tag which starts next,
@@ -126,6 +129,7 @@ not the current tag."
       (when (and ol (semantic-tag-p (semantic-overlay-get ol 'semantic)))
 	(semantic-overlay-get ol 'semantic)))))
 
+;;;###autoload
 (defun semantic-find-tag-by-overlay-prev (&optional start buffer)
   "Find the next tag before START in BUFFER.
 If START is in an overlay, find the tag which starts next,
@@ -153,6 +157,7 @@ not the current tag."
 		 (semantic-tag-p (semantic-overlay-get ol 'semantic)))
 	(semantic-overlay-get ol 'semantic)))))
 
+;;;###autoload
 (defun semantic-find-tag-parent-by-overlay (tag)
   "Find the parent of TAG by overlays.
 Overlays are a fast way of finding this information for active buffers."
@@ -163,18 +168,21 @@ Overlays are a fast way of finding this information for active buffers."
     ;; the same start unless they are siblings.
     (car (cdr tag))))
 
+;;;###autoload
 (defun semantic-current-tag ()
   "Return the current tag in the current buffer.
 If there are more than one in the same location, return the
 smallest tag.  Return nil if there is no tag here."
   (car (nreverse (semantic-find-tag-by-overlay))))
 
+;;;###autoload
 (defun semantic-current-tag-parent ()
   "Return the current tags parent in the current buffer.
 A tag's parent would be a containing structure, such as a type
 containing a field.  Return nil if there is no parent."
   (car (cdr (nreverse (semantic-find-tag-by-overlay)))))
 
+;;;###autoload
 (defun semantic-current-tag-of-class (class)
   "Return the current (smallest) tags of CLASS in the current buffer.
 If the smallest tag is not of type CLASS, keep going upwards until one
@@ -230,6 +238,7 @@ TABLE  is a semantic tags table.  See `semantic-something-to-tag-table'."
 	  tags)
     (nreverse result)))
 
+;;;###autoload
 (defsubst semantic-find-first-tag-by-name (name &optional table)
   "Find the first tag with NAME in TABLE.
 NAME is a string.
@@ -238,6 +247,7 @@ This routine uses `assoc' to quickly find the first matching entry."
   (assoc-string name (semantic-something-to-tag-table table)
 		semantic-case-fold))
 
+;;;###autoload
 (defun semantic-find-tags-by-name (name &optional table)
   "Find all tags with NAME in TABLE.
 NAME is a string.
@@ -247,6 +257,7 @@ TABLE is a tag table.  See `semantic-something-to-tag-table'."
      (lambda (tag) (string= name (semantic-tag-name tag)))
      (semantic-something-to-tag-table table))))
 
+;;;###autoload
 (defun semantic-find-tags-for-completion (prefix &optional table)
   "Find all tags whos name begins with PREFIX in TABLE.
 PREFIX is a string.
@@ -263,6 +274,7 @@ Uses `compare-strings' for fast comparison."
 	   t))
      (semantic-something-to-tag-table table))))
 
+;;;###autoload
 (defun semantic-find-tags-by-name-regexp (regexp &optional table)
   "Find all tags with name matching REGEXP in TABLE.
 REGEXP is a string containing a regular expression,
@@ -274,6 +286,7 @@ attempting to do completions."
      (lambda (tag) (string-match regexp (semantic-tag-name tag)))
      (semantic-something-to-tag-table table))))
 
+;;;###autoload
 (defun semantic-find-tags-by-class (class &optional table)
   "Find all tags of class CLASS in TABLE.
 CLASS is a symbol representing the class of the token, such as
@@ -283,6 +296,7 @@ TABLE is a tag table.  See `semantic-something-to-tag-table'."
    (lambda (tag) (eq class (semantic-tag-class tag)))
    (semantic-something-to-tag-table table)))
 
+;;;###autoload
 (defun semantic-find-tags-by-type (type &optional table)
   "Find all tags of with a type TYPE in TABLE.
 TYPE is a string or tag representing a data type as defined in the
@@ -290,7 +304,7 @@ language the tags were parsed from, such as \"int\", or perhaps
 a tag whose name is that of a struct or class.
 TABLE is a tag table.  See `semantic-something-to-tag-table'."
   (semantic--find-tags-by-function
-   (lambda (tag) (eq class (semantic-tag-class tag)))
+   (lambda (tag) (eq type (semantic-tag-class tag)))
    (semantic-something-to-tag-table table)))
 
 ;;; Tag Table Flattening
@@ -301,6 +315,7 @@ TABLE is a tag table.  See `semantic-something-to-tag-table'."
 ;; of commands would be better off with a flattened list, where all
 ;; tags appear at the top level.
 
+;;;###autoload
 (defun semantic-flatten-tags-table (&optional table)
   "Flatten the tags table TABLE.
 All tags in TABLE, and all components of top level tags
@@ -488,7 +503,7 @@ If SEARCH-INCLUDES is non-nil, then all include files are also
 searched for matches.  This parameter hasn't be active for a while
 and is obsolete."
   (let ((streamlist (list
-		     (semantic-something-to-stream streamorbuffer)))
+		     (semantic-something-to-tag-table streamorbuffer)))
 	(includes nil)			;list of includes
 	(stream nil)			;current stream
         (tag  nil)                    ;current tag
@@ -539,7 +554,7 @@ The overloadable function `semantic-tag-components' is used for
 searching.
 If SEARCH-INCLUDES is non-nil, then all include files are also
 searched for matches."
-  (let ((stream (semantic-something-to-stream streamorbuffer))
+  (let ((stream (semantic-something-to-tag-table streamorbuffer))
 	(found nil)
         (case-fold-search semantic-case-fold))
     (while (and (not found) stream)
@@ -617,68 +632,68 @@ details are available of findable."
 
 
 ;;; Compatibility Aliases
-(semantic-alias-obsolete 'semantic-find-tag-by-overlay
-			 'semantic-find-token-by-overlay)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-overlay
+			 'semantic-find-tag-by-overlay)
 
-(semantic-alias-obsolete 'semantic-find-tag-by-overlay-in-region
-			 'semantic-find-token-by-overlay-in-region)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-overlay-in-region
+			 'semantic-find-tag-by-overlay-in-region)
 
-(semantic-alias-obsolete 'semantic-find-tag-by-overlay-next
-			 'semantic-find-token-by-overlay-next)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-overlay-next
+			 'semantic-find-tag-by-overlay-next)
 
-(semantic-alias-obsolete 'semantic-find-tag-by-overlay-prev
-			 'semantic-find-token-by-overlay-prev)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-overlay-prev
+			 'semantic-find-tag-by-overlay-prev)
 
-(semantic-alias-obsolete 'semantic-find-tag-parent-by-overlay
-			 'semantic-find-token-parent-by-overlay)
+(semantic-alias-obsolete 'semantic-find-nonterminal-parent-by-overlay
+			 'semantic-find-tag-parent-by-overlay)
 
-(semantic-alias-obsolete 'semantic-current-tag
-			 'semantic-current-token)
+(semantic-alias-obsolete 'semantic-current-nonterminal
+			 'semantic-current-tag)
 
-(semantic-alias-obsolete 'semantic-current-tag-parent
-			 'semantic-current-token-parent)
+(semantic-alias-obsolete 'semantic-current-nonterminal-parent
+			 'semantic-current-tag-parent)
 
-(semantic-alias-obsolete 'semantic-current-tag-of-class
-			 'semantic-current-token-of-class)
+(semantic-alias-obsolete 'semantic-current-nonterminal-of-class
+			 'semantic-current-tag-of-class)
 
-(semantic-alias-obsolete 'semantic-brute-find-first-tag-by-name
-			 'semantic-find-first-nonterminal-by-name)
+(semantic-alias-obsolete 'semantic-find-first-nonterminal-by-name
+			 'semantic-brute-find-first-tag-by-name)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-by-class
-			 'semantic-find-nonterminal-by-token)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-token
+			 'semantic-brute-find-tag-by-class)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-standard
-			 'semantic-find-nonterminal-standard)
+(semantic-alias-obsolete 'semantic-find-nonterminal-standard
+			 'semantic-brute-find-tag-standard)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-by-type
-			 'semantic-find-nonterminal-by-type)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-type
+			 'semantic-brute-find-tag-by-type)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-by-type-regexp
-			 'semantic-find-nonterminal-by-type-regexp)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-type-regexp
+			 'semantic-brute-find-tag-by-type-regexp)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-by-name-regexp
-			 'semantic-find-nonterminal-by-name-regexp)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-name-regexp
+			 'semantic-brute-find-tag-by-name-regexp)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-by-property
-			 'semantic-find-nonterminal-by-property)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-property
+			 'semantic-brute-find-tag-by-property)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-by-attribute
-			 'semantic-find-nonterminal-by-extra-spec)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-extra-spec
+			 'semantic-brute-find-tag-by-attribute)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-by-extra-spec-value
-			 'semantic-find-nonterminal-by-attribute-value)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-attribute-value
+			 'semantic-brute-find-tag-by-extra-spec-value)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-by-function
-			 'semantic-find-nonterminal-by-function)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-function
+			 'semantic-brute-find-tag-by-function)
 
-(semantic-alias-obsolete 'semantic-brute-find-first-tag-by-function
-			 'semantic-find-nonterminal-by-function-first-match)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-function-first-match
+			 'semantic-brute-find-first-tag-by-function)
 
-(semantic-alias-obsolete 'semantic-brute-find-tag-by-position
-			 'semantic-find-token-by-position)
+(semantic-alias-obsolete 'semantic-find-token-by-position
+			 'semantic-brute-find-tag-by-position)
 
-(semantic-alias-obsolete 'semantic-brute-find-innermost-tag-by-position
-			 'semantic-find-innermost-token-by-position)
+(semantic-alias-obsolete 'semantic-find-innermost-token-by-position
+			 'semantic-brute-find-innermost-tag-by-position)
 
 
 (provide 'semantic-find)
