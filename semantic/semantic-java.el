@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.2 2001/02/01 02:12:05 zappo Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.3 2001/02/05 14:39:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -423,7 +423,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-        "Java language specification.")
+         "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -611,7 +611,7 @@ See also `semantic-prototype-nonterminal'."
     ;; Character used to separation a parent/child relationship
     (set (make-local-variable
           'semantic-type-relation-separator-character)
-         ".")
+         '("."))
     ;; Java is case sensitive
     (setq semantic-case-fold nil)
     )
