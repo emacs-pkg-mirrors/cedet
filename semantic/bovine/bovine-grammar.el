@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.8 2003/03/16 09:28:52 ponced Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.9 2003/03/21 03:21:09 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -112,6 +112,14 @@ QUOTEMODE is the current mode of quotation."
    `(semantic-tag-new-package ,@parms)
    quotemode t))
 
+(defsubst bovine-grammar-expand-CODE-TAG (parms quotemode)
+  "Expand built-in PACKAGE-TAG expression.
+PARMS is the parameter list.
+QUOTEMODE is the current mode of quotation."
+  (bovine-grammar-expand-form
+   `(semantic-tag-new-CODE ,@parms)
+   quotemode t))
+
 (defun bovine-grammar-expand-form (form quotemode &optional inplace)
   "Expand FORM into a new one suitable to the bovine parser.
 FORM is a list in which we are substituting.
@@ -163,6 +171,9 @@ expanded from elsewhere."
     )
    ((eq (car form) 'PACKAGE-TAG)
     (bovine-grammar-expand-PACKAGE-TAG (cdr form) quotemode)
+    )
+   ((eq (car form) 'CODE-TAG)
+    (bovine-grammar-expand-CODE-TAG (cdr form) quotemode)
     )
    (t
     (if inplace (insert "\n("))
