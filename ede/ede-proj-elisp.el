@@ -1,10 +1,10 @@
 ;;; ede-proj-elisp.el --- EDE Generic Project Emacs Lisp support
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.3 1999/12/04 17:29:42 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.4 2000/06/23 23:10:46 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -100,6 +100,8 @@ These are removed with make clean."
 	(insert "\t  echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> "
 		(ede-name this) "-compile-script; \\\n")
 	(insert "\t  done\n")))
+  (insert "\t@echo \"(setq debug-on-error t)\" >> "
+	  (ede-name this) "-compile-script\n")
 ;  (let ((lp (oref this load-path)))
 ;    (while lp
 ;      (insert "\t@echo \"(add-to-list 'load-path \\\"" (car lp) "\\\")\" >> "
