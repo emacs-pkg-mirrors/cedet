@@ -3,8 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.1
-;;; RCS: $Id: dlg-class.el,v 1.3 1996/11/13 21:49:13 zappo Exp $
+;;; RCS: $Id: dlg-class.el,v 1.4 1996/11/18 00:26:34 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -57,7 +56,7 @@ different values of state")
 			      (get-value (oref this state)))))
 
 (defmethod verify :AFTER ((this widget-option-button-dlg-font-style) fix)
-  "Change our face to be dependant upon our init value in state."
+  "Change our face to be dependent upon our initialization value in state."
   (oset this face (aref [ 'default 'bold 'italic 'bold-italic ]
 			(get-value (oref this state))))
   (oset this focus-face (aref [ 'bold 'default 'bold-italic 'italic ]
@@ -69,14 +68,15 @@ different values of state")
 (defclass data-object-symbol (data-object)
   ((symbol :initarg :symbol
 	   :initform nil
-	   :documentation "Symbol whose value changes in parallel to :value"
+	   :docstring "Symbol whose value changes in parallel to :value"
 	   :protection private)
    (protect :initarg :protect
 	    :initform nil
-	    :documentation "Some symbols you never want to write to a file"
+	    :docstring "t if this symbol is not to be saved into a file"
 	    :protection private))
-  "This type of object will also maintain it's value as the
-variable associated with the symbol field")
+  "This is a type of `data-object' which will initialize itself to the
+value stored in the `symbol' field, and which will also (optionally)
+save its value back into `symbol' when the user edits it.")
 
 (defmethod dlg-init-symbol ((this data-object-symbol))
   "Make sure that the symbol part of of our data object is correctly
@@ -93,10 +93,12 @@ based upon the symbol we are editing"
 (defclass data-object-symbol-string-to-int (data-object-symbol)
   ((float-p :initarg :float-p
 	    :initform t
-	    :documentation "t when this object allows floating point numbers, nil otherwise"
+	    :docstring "t when this object allows floating point numbers, 
+nil indicates that only whole numbers are allowed"
 	    :protection private))
-  "This type of object will also maintain it's value as a number in the
-variable associated with the symbol field")
+  "This data object assumes that `symbol' will be a number.  The
+string it maintains will be translated back into a number whenever it
+is set back into `symbol'")
 
 (defmethod constructor :AFTER ((this data-object-symbol-string-to-int) &rest fields)
   "This method is called during construction to initialize the value field
@@ -108,11 +110,12 @@ based upon the symbol we are editing"
 (defclass data-object-symbol-list-index (data-object-symbol)
   ((string-list :initarg :string-list
 		:initform nil
-		:documentation "List into which our value indexes."
+		:docstring "List into which `value' indexes."
 		:protection private))
-  "This type of object will also maintain it's value as a number in the
+  "This type of object will also maintain its value as a number in the
 variable associated with the symbol field.  The symbol will be
-assigned a value from this string list.")
+assigned a value from this string list while the `value' slot
+maintains a number.")
 
 (defmethod constructor :AFTER ((this data-object-symbol-list-index) &rest fields)
   "This method is called during construction to initialize the value field
@@ -121,8 +124,10 @@ based upon the symbol we are editing"
 
 (defclass data-object-symbol-lisp-expression (data-object-symbol)
   nil
-  "This type of object will also maintain it's value as an expression in the
-variable associated with the symbol field")
+  "This type of object will maintain its value as an expression in the
+variable associated with the symbol field while `value' remains as a
+string.  `read' us used to translate the string, and `symbol' will not
+be changed if the read fails.")
 
 (defmethod constructor :AFTER ((this data-object-symbol-lisp-expression) &rest fields)
   "This method is called during construction to initialize the value field
@@ -137,7 +142,8 @@ based upon the symbol we are editing."
 
 (defclass data-object-symbol-default (data-object-symbol)
   nil
-  "This type of object uses setq-defualt for the given symbol")
+  "This type of object uses set-default for the given symbol instead
+of set as used by `data-object-symbol'")
 
 (defmethod constructor :AFTER ((this data-object-symbol-default) &rest fields)
   "This method is called during construction to initialize the value field
@@ -148,9 +154,13 @@ based upon the symbol we are editing"
 (defclass data-object-symbol-feature (data-object-symbol)
   ((unload-commands :initarg :unload-commands
 		    :initform nil
-		    :documentation "Some packages may need additional unloading commands run."
+		    :docstring "Some packages may need additional unloading commands run.
+Initialize this to be a string with the necessary commands needed to
+turn the feature off before it is unloaded."
 		    :protection private))
-  "This type of object uses require / unload-feature for the given symbol")
+  "This type of object uses require / unload-feature for the given
+symbol.  Some features turn themselves on automatically, which is why
+:unload-commands are needed to turn them off.")
 
 (defmethod constructor :AFTER ((this data-object-symbol-feature) &rest fields)
   "This method is called during construction to initialize the value field
@@ -161,7 +171,8 @@ based upon the symbol we are editing"
 (defclass data-object-symbol-hook (data-object-symbol)
   ((command :initarg :command
 	    :initform nil
-	    :documentation "A string representing a command to install in a hook."
+	    :docstring "A string representing a command to install in a hook.
+The hook value us interpreted by `read' before installation."
 	    :protection private))
   "This type of object uses add/remove-hook for the given symbol")
 
@@ -171,12 +182,13 @@ based upon the symbol we want to add a hook to."
   (dlg-init-symbol this)
   (if (not (boundp (oref this symbol)))	;make sure the hook exists first
       (set (oref this symbol) nil))
-  (oset this value (member (oref this command)
+  (oset this value (member (read (oref this command))
 			   (symbol-value (oref this symbol)))))
 
 (defclass data-object-symbol-disabled (data-object-symbol)
   nil
-  "This type of object uses (put ... 'disabled ...) for the given symbol")
+  "This type of object uses (put ... 'disabled ...) for the given
+symbol so that emacs will warn the user before they use it.")
 
 (defmethod constructor :AFTER ((this data-object-symbol-disabled) &rest fields)
   "This method is called during construction to initialize the value field
@@ -187,17 +199,20 @@ based upon the symbol we want to disable"
 (defclass data-object-command-option (data-object)
   ((command :initarg :command
 	    :initform nil
-	    :documentation "A string representing a command to execute in a .emacs file."
+	    :docstring "A string representing a command to execute in a .emacs file.
+This command is interpreted by `read', then `eval'uated in the running
+environment."
 	    :protection private)
    (disable-command :initarg :disable-command
 		    :initform nil
-		    :documentation "A string which allows `command' to be undone"
+		    :docstring "A string which allows `command' to be undone."
 		    :protection private)
    (protect :initarg :protect
 	    :initform nil
-	    :documentation "Some symbols you never want to write to a file"
+	    :docstring "Some symbols you never want to write to a file."
 	    :protection private))
-  "This type of object will optionally add a command to a .emacs file")
+  "This type of object will optionally add a command to a .emacs
+file.  It will also run the command to turn a given feature on or off.")
 
 (defmethod dlg-init-command ((this data-object-command-option))
   "Initialize the `command' field from name if applicable"
@@ -216,27 +231,28 @@ based upon the symbol we are editing"
 (defclass data-face-object (data-object)
   ((face :initarg :face
 	 :initform 'default
-	 :documentation "The face this data object maintains"
+	 :docstring "The face this data object maintains"
 	 :protection private))
-  "Takes a standard data object, and modifies it to be able to
+  "Takes a standard `data-object', and modifies it to be able to
 maintain a face.  Has nothing special about it, and should not be
-instantiated.")
+instantiated.  Use children of this class to modify specific features
+of a face.")
 
 (defclass data-face-foreground-object (data-face-object)
   nil
-  "Face object which maintains the foreground")
+  "`data-face-object' which maintains the foreground")
 
 (defclass data-face-background-object (data-face-object)
   nil
-  "Face object which maintains the background")
+  "`data-face-object' which maintains the background")
 
 (defclass data-face-underline-object (data-face-object)
   nil
-  "Face object which mnaintains current underline state")
+  "`data-face-object' which maintains current underline state")
 
 (defclass data-face-emphasis-object (data-face-object)
   nil
-  "Face object which maintains current emphasis state. (bold & italic combos)")
+  "`data-face-object' which maintains current emphasis state. (bold & italic combos)")
 
 ;;;
 ;;; Implementation of above classes.
@@ -492,8 +508,8 @@ the variables we are editing."
 (defmethod set-value :AFTER ((this data-object-command-option) value &optional setter)
   "When this data object value is set, set this as the new default."
   (if (oref this disable-command)
-      (cond (value (eval (oref this command)))
-	     (t (eval (oref this disable-command))))
+      (cond (value (eval (read (oref this command))))
+	     (t (eval (read (oref this disable-command)))))
     (cond (value
 	   (message "I can't disable this, so I won't enable it either"))
 	  (t (message "I can't disable this command."))))
