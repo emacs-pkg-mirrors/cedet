@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic token streams
 
-;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.5 2001/11/17 15:44:56 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.6 2003/04/02 02:18:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -105,8 +105,8 @@ exist in each database entry."
 (defun semantic-chart-token-complexity (tok)
   "Calculate the `complexity' of token TOK."
   (count-lines
-   (semantic-token-end tok)
-   (semantic-token-start tok)))
+   (semantic-tag-end tok)
+   (semantic-tag-start tok)))
 
 ;;;###autoload
 (defun semantic-chart-nonterminal-complexity-token
@@ -128,8 +128,8 @@ Only the most complex items are charted."
 		    (semantic-bovinate-toplevel t)))
 		 (t buffer-or-stream))
 	   'positiononly nil))
-	 (name (cond ((semantic-token-with-position-p (car stream))
-		      (buffer-name (semantic-token-buffer (car stream))))
+	 (name (cond ((semantic-tag-with-position-p (car stream))
+		      (buffer-name (semantic-tag-buffer (car stream))))
 		     (t "")))
 	 (cplx (mapcar (lambda (tok)
 			 (cons tok (semantic-chart-token-complexity tok)))
@@ -139,7 +139,7 @@ Only the most complex items are charted."
 	 (nums nil))
     (setq cplx (sort cplx (lambda (a b) (> (cdr a) (cdr b)))))
     (while (and cplx (<= (length names) (/ (- (frame-height) 7) 4)))
-      (setq names (cons (semantic-token-name (car (car cplx)))
+      (setq names (cons (semantic-tag-name (car (car cplx)))
 			names)
 	    nums (cons (cdr (car cplx)) nums)
 	    cplx (cdr cplx)))
