@@ -1,11 +1,10 @@
-
 ;;; speedbar --- quick access to files and tags in a frame
 
 ;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.213 2002/03/02 00:03:29 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.214 2002/03/15 15:14:41 zappo Exp $
 
 (defvar speedbar-version "0.14beta3"
   "The current version of speedbar.")
@@ -119,7 +118,10 @@ the user is done with the current expansion list.")
 
 (defvar speedbar-stealthy-function-list
   '(("files"
-     speedbar-update-current-file speedbar-check-vc speedbar-check-objects)
+     speedbar-update-current-file
+     speedbar-check-read-only
+     speedbar-check-vc
+     speedbar-check-objects)
     )
   "List of functions to periodically call stealthily.
 This list is of the form:
@@ -465,6 +467,12 @@ The expression `speedbar-obj-alist' defines who gets tagged.")
     ("\\.texi$" . ".info"))
   "Alist of file extensions, and their corresponding object file type.")
 
+(defvar speedbar-ro-to-do-point nil
+  "Local variable maintaining the current read only check position.")
+
+(defvar speedbar-object-read-only-indicator "%"
+  "Indicator to append onto a line if that item is Read Only.")
+
 (defvar speedbar-indicator-regex
   (concat (regexp-quote speedbar-indicator-separator)
 	  "\\("
@@ -473,6 +481,8 @@ The expression `speedbar-obj-alist' defines who gets tagged.")
 	  (regexp-quote (car speedbar-obj-indicator))
 	  "\\|"
 	  (regexp-quote (cdr speedbar-obj-indicator))
+	  "\\|"
+	  (regexp-quote speedbar-object-read-only-indicator)
 	  "\\)*")
   "Regular expression used when identifying files.
 Permits stripping of indicator characters from a line.")
@@ -1600,6 +1610,19 @@ specialized speedbar displays."
     (put-text-property start (point) 'invisible nil)
     (put-text-property start (point) 'mouse-face nil)))
 
+(defun speedbar-insert-separator (text)
+  "Insert a separation label of TEXT.
+Separators are not active, have no labels, depth, or actions."
+  (if speedbar-use-images
+      (let ((start (point)))
+	(insert "//")
+	(speedbar-insert-image-button-maybe start 2)))
+  (let ((start (point)))
+    (insert text "\n")
+    (speedbar-make-button start (point)
+			  'speedbar-separator-face
+			  nil nil nil)))
+
 (defun speedbar-make-button (start end face mouse function &optional token)
   "Create a button from START to END, with FACE as the display face.
 MOUSE is the mouse face.  When this button is clicked on FUNCTION
@@ -2541,7 +2564,8 @@ interrupted by the user."
   "Reset any variables used by functions in the stealthy list as state.
 If new functions are added, their state needs to be updated here."
   (setq speedbar-vc-to-do-point t
-	speedbar-obj-to-do-point t)
+	speedbar-obj-to-do-point t
+	speedbar-ro-to-do-point t)
   (run-hooks 'speedbar-scanner-reset-hook)
   )
 
@@ -2681,6 +2705,36 @@ indicator, then do not add a space."
 	  (insert indicator-string)
 	  (speedbar-insert-image-button-maybe start (length indicator-string))
 	  ))))
+
+(defun speedbar-check-read-only ()
+  "Scan all the files in a directory, and for each see if it is read only."
+  ;; Check for to-do to be reset.  If reset but no RCS is available
+  ;; then set to nil (do nothing) otherwise, start at the beginning
+  (save-excursion
+    (if speedbar-buffer (set-buffer speedbar-buffer))
+    (if (eq speedbar-ro-to-do-point t)
+	(setq speedbar-ro-to-do-point 0))
+    (if (numberp speedbar-ro-to-do-point)
+	(progn
+	  (goto-char speedbar-ro-to-do-point)
+	  (while (and (not (input-pending-p))
+		      (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-]\\] "
+					 nil t))
+	    (setq speedbar-ro-to-do-point (point))
+	    (if (not (file-writable-p (speedbar-line-text)))
+		(speedbar-add-indicator
+		 speedbar-object-read-only-indicator
+		 (regexp-quote speedbar-object-read-only-indicator))
+	      (speedbar-add-indicator
+	       " " (regexp-quote speedbar-object-read-only-indicator))))
+	  (if (input-pending-p)
+	      ;; return that we are incomplete
+	      nil
+	    ;; we are done, set to-do to nil
+	    (setq speedbar-ro-to-do-point nil)
+	    ;; and return t
+	    t))
+      t)))
 
 ;; Load efs/ange-ftp only if compiling to remove byte-compiler warnings.
 ;; Steven L Baur <steve@xemacs.org> said this was important:
@@ -3641,7 +3695,7 @@ DIRECTORY is the path to the currently active buffer, and ZERO is 0."
 (defun speedbar-buffer-buttons-engine (temp)
   "Create speedbar buffer buttons.
 If TEMP is non-nil, then clicking on a buffer restores the previous display."
-  (insert "Active Buffers:\n")
+  (speedbar-insert-separator "Active Buffers:")
   (let ((bl (buffer-list))
 	(case-fold-search t))
     (while bl
@@ -3657,10 +3711,11 @@ If TEMP is non-nil, then clicking on a buffer restores the previous display."
 				  (if fname (file-name-nondirectory fname))
 				  (buffer-name (car bl))
 				  'speedbar-buffer-click temp
-				  'speedbar-file-face 0)))
+				  'speedbar-file-face 0)
+	  (speedbar-buffers-tail-notes (car bl))))
       (setq bl (cdr bl)))
     (setq bl (buffer-list))
-    (insert "Scratch Buffers:\n")
+    (speedbar-insert-separator "Scratch Buffers:")
     (while bl
       (if (not (string-match "^\\*" (buffer-name (car bl))))
 	  nil
@@ -3669,10 +3724,11 @@ If TEMP is non-nil, then clicking on a buffer restores the previous display."
 	  (speedbar-make-tag-line 'bracket ?? nil nil
 				  (buffer-name (car bl))
 				  'speedbar-buffer-click temp
-				  'speedbar-file-face 0)))
+				  'speedbar-file-face 0)
+	  (speedbar-buffers-tail-notes (car bl))))
       (setq bl (cdr bl)))
     (setq bl (buffer-list))
-    (insert "Hidden Buffers:\n")
+    (speedbar-insert-separator "Hidden Buffers:")
     (while bl
       (if (not (string-match "^ " (buffer-name (car bl))))
 	  nil
@@ -3681,8 +3737,19 @@ If TEMP is non-nil, then clicking on a buffer restores the previous display."
 	  (speedbar-make-tag-line 'bracket ?? nil nil
 				  (buffer-name (car bl))
 				  'speedbar-buffer-click temp
-				  'speedbar-file-face 0)))
+				  'speedbar-file-face 0)
+	  (speedbar-buffers-tail-notes (car bl))))
       (setq bl (cdr bl)))))
+
+(defun speedbar-buffers-tail-notes (buffer)
+  "Add a note to the end of the last tag line.
+Argument BUFFER is the buffer being tested."
+  (let (mod ro)
+    (save-excursion
+      (set-buffer buffer)
+      (setq mod (buffer-modified-p)
+	    ro buffer-read-only))
+    (if ro (speedbar-insert-button "%" nil nil nil nil t))))
 
 (defun speedbar-buffers-item-info ()
   "Display information about the current buffer on the current line."
@@ -3853,6 +3920,27 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 				     (background dark))
 				    (:background "white")))
   "Face used for highlighting buttons with the mouse."
+  :group 'speedbar-faces)
+
+(defface speedbar-separator-face '((((class color) (background light))
+				    (:background "blue"
+				     :foreground "white"
+				     :overline "white"))
+				   (((class color) (background dark))
+				    (:background "blue"
+				     :foreground "white"
+				     :overline "white"))
+				   (((class grayscale monochrome)
+				     (background light))
+				    (:background "black"
+				     :foreground "white"
+				     :overline "white"))
+				   (((class grayscale monochrome)
+				     (background dark))
+				    (:background "white"
+				     :foreground "black"
+				     :overline "black")))
+  "Face used for separator labes in a display."
   :group 'speedbar-faces)
 
 ;; some edebug hooks
