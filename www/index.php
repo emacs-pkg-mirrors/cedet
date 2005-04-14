@@ -126,6 +126,12 @@
    was fun to play with.  No documentation.  Byte compile it, load
    "xhello.el" and run the function `XX' for the simple demo.<br>
 </p>
+<P>
+   Newer versions of this X package are in CVS, and can be downloaded
+   from the very nifty XWEM project (Window manager written in Emacs Lisp).
+   You can download that from 
+   <a href="www.xwem.org">XWEM home page.</a>
+</p>
 
 <P><A HREF="ftp/hangman.el-0.1.gz"><b>Hangman</b></A> game for
    Emacs.  About as simple as it gets.
