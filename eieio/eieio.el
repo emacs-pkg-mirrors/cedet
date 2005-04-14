@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.138 2005/04/14 18:59:05 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.139 2005/04/14 20:54:17 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0beta1"
   "Current version of EIEIO.")
@@ -1504,7 +1504,6 @@ This should only be called from a generic function."
   ;; We must expand our arguments first as they are always
   ;; passed in as quoted symbols
   (let ((newargs nil) (mclass nil)  (lambdas nil) (tlambdas nil) (keys nil)
-	;; (static nil)
 	(eieio-generic-call-methodname method)
 	(eieio-generic-call-arglst args)
 	(firstarg nil))
@@ -1526,7 +1525,6 @@ This should only be called from a generic function."
 	   (setq mclass (object-class-fast firstarg)))
 	  ((class-p firstarg)
 	   (setq mclass firstarg
-		 ;; static t
 		 )))
     ;; Now create a list in reverse order of all the calls we have
     ;; make in order to successfully do this right.  Rules:
@@ -1553,8 +1551,9 @@ This should only be called from a generic function."
       (setq tlambdas
 	    (or (and mclass (eieio-generic-form method method-primary mclass))
 		(eieio-generic-form method method-primary nil)))
-      (setq lambdas (cons tlambdas lambdas)
-	    keys (cons method-primary keys))
+      (when tlambdas
+	(setq lambdas (cons tlambdas lambdas)
+	      keys (cons method-primary keys)))
 
       ;; :BEFORE methods
       (setq tlambdas
@@ -1568,9 +1567,8 @@ This should only be called from a generic function."
 	    keys (append (make-list (length tlambdas) method-before) keys))
       )
 
-    ;; If there were no methods found, then there
-    ;; could be static methods.
-    (when (not tlambdas)
+    ;; If there were no methods found, then there could be :STATIC methods.
+    (when (not lambdas)
       (setq tlambdas
 	    (eieio-generic-form method method-static mclass))
       (setq lambdas (cons tlambdas lambdas)
@@ -1578,21 +1576,30 @@ This should only be called from a generic function."
 
     ;; Now loop through all occurances forms which we must execute
     ;; (which are happilly sorted now) and execute them all!
-    (let ((rval nil) (found nil))
+    (let ((rval nil) (lastval nil) (rvalever nil) (found nil))
       (while lambdas
 	(if (car lambdas)
 	    (let ((scoped-class (cdr (car lambdas)))
 		  (eieio-generic-call-key (car keys)))
 	      (setq found t)
-	      (setq rval (apply (car (car lambdas)) newargs))))
+	      ;;(setq rval (apply (car (car lambdas)) newargs))
+	      (setq lastval (apply (car (car lambdas)) newargs))
+	      (when (or (= eieio-generic-call-key method-primary)
+			(= eieio-generic-call-key method-static))
+	      	(setq rval lastval
+	      	      rvalever t))
+	      ))
 	(setq lambdas (cdr lambdas)
 	      keys (cdr keys)))
       (if (not found)
 	  (if (object-p (car args))
-	      (setq rval (no-applicable-method (car args) method))
+	      (setq rval (no-applicable-method (car args) method)
+		    rvalever t)
 	    (signal
 	     'no-method-definition
 	     (list method args))))
+      ;; Right Here... it could be that lastval is returned when
+      ;; rvalever is nil.  Is that right?
       rval)))
 
 (defun eieiomt-method-list (method key class)
