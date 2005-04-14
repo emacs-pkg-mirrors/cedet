@@ -4,7 +4,7 @@
 ;; Copyright (C) 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-test-methodinvoke.el,v 1.3 2005/04/14 13:29:58 zappo Exp $
+;; RCS: $Id: eieio-test-methodinvoke.el,v 1.4 2005/04/14 18:47:18 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -194,3 +194,11 @@
   ;;(message "%S" eieio-test-method-order-list)
   (eieio-test-match ans)
   )
+
+(defmethod H :STATIC ((class A))
+  "No need to do work in here."
+  'moose)
+
+;; Both of these situations should succeed.
+(H A)
+(H (A nil))
