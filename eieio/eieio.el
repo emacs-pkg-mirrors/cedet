@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.136 2005/04/14 13:28:54 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.137 2005/04/14 18:46:25 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0beta1"
   "Current version of EIEIO.")
@@ -1503,7 +1503,7 @@ This should only be called from a generic function."
   ;; We must expand our arguments first as they are always
   ;; passed in as quoted symbols
   (let ((newargs nil) (mclass nil)  (lambdas nil) (tlambdas nil) (keys nil)
-	(static nil)
+	;; (static nil)
 	(eieio-generic-call-methodname method)
 	(eieio-generic-call-arglst args)
 	(firstarg nil))
@@ -1525,7 +1525,8 @@ This should only be called from a generic function."
 	   (setq mclass (object-class-fast firstarg)))
 	  ((class-p firstarg)
 	   (setq mclass firstarg
-		 static t)))
+		 ;; static t
+		 )))
     ;; Now create a list in reverse order of all the calls we have
     ;; make in order to successfully do this right.  Rules:
     ;; 1) Only call generics if scoped-class is not defined
@@ -1533,14 +1534,7 @@ This should only be called from a generic function."
     ;; 2) Only call static if this is a static method.
     ;; 3) Only call specifics if the definition allows for them.
     ;; 4) Call in order based on :BEFORE, :PRIMARY, and :AFTER
-    (if static
-	(progn
-	  (setq tlambdas
-		(eieio-generic-form method method-static mclass))
-	  (setq lambdas (cons tlambdas lambdas)
-		keys (cons method-static keys))
-	  )
-      
+    (when (object-p firstarg)
       ;; Non-static calls do all this stuff.
 
       ;; :AFTER methods
@@ -1572,6 +1566,15 @@ This should only be called from a generic function."
       (setq lambdas (append tlambdas lambdas)
 	    keys (append (make-list (length tlambdas) method-before) keys))
       )
+
+    ;; If there were no methods found, then there
+    ;; could be static methods.
+    (when (not tlambdas)
+      (setq tlambdas
+	    (eieio-generic-form method method-static mclass))
+      (setq lambdas (cons tlambdas lambdas)
+	    keys (cons method-static keys)))
+
     ;; Now loop through all occurances forms which we must execute
     ;; (which are happilly sorted now) and execute them all!
     (let ((rval nil) (found nil))
