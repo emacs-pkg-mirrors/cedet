@@ -4,7 +4,7 @@
 ;; Copyright (C) 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-test-methodinvoke.el,v 1.1 2005/04/03 16:11:28 zappo Exp $
+;; RCS: $Id: eieio-test-methodinvoke.el,v 1.2 2005/04/14 01:03:29 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -82,8 +82,6 @@
   (eieio-test-method-store))
 (defmethod F ((p AA))
   (eieio-test-method-store))
-(defmethod F ((p AAA))
-  (eieio-test-method-store))
 
 (defmethod F :BEFORE ((p A))
   (eieio-test-method-store))
@@ -104,7 +102,9 @@
 	     (F :BEFORE AAA)
 	     (F :BEFORE AA)
 	     (F :BEFORE A)
-	     (F :PRIMARY AAA)
+	     ;; Not primary A method
+	     (F :PRIMARY AA)
+	     ;; No call-next-method in AA to get to A.
 	     (F :AFTER A)
 	     (F :AFTER AA)
 	     (F :AFTER AAA)
@@ -154,7 +154,9 @@
 	     (F :BEFORE B-base2)
 	     (F :PRIMARY B)
 	     (F :PRIMARY B-base1)
-	     (F :PRIMARY B-base2)
+	     ;; (F :PRIMARY B-base2)
+	     ;; Note, call next method would not call B-base2 unless
+	     ;; there was a call-next-method in B-base1.
 	     (F :AFTER B-base2)
 	     (F :AFTER B-base1)
 	     (F :AFTER B)
