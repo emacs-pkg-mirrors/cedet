@@ -4,7 +4,7 @@
 ;; Copyright (C) 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-test-methodinvoke.el,v 1.4 2005/04/14 18:47:18 zappo Exp $
+;; RCS: $Id: eieio-test-methodinvoke.el,v 1.5 2005/04/14 20:55:39 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -195,6 +195,8 @@
   (eieio-test-match ans)
   )
 
+;;; Test static invokation
+;;
 (defmethod H :STATIC ((class A))
   "No need to do work in here."
   'moose)
@@ -202,3 +204,16 @@
 ;; Both of these situations should succeed.
 (H A)
 (H (A nil))
+
+;;; Return value from :PRIMARY
+;;
+(defmethod I :PRIMARY ((a A))
+  ":primary")
+
+(defmethod I :AFTER ((a A))
+  ":after")
+
+(let ((ans  (I (A nil))))
+  (unless (string= ans ":primary")
+    (error "Value %S erroneously provided in method call."
+	   ans)))
