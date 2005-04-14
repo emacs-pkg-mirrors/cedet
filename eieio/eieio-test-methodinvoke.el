@@ -4,7 +4,7 @@
 ;; Copyright (C) 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-test-methodinvoke.el,v 1.2 2005/04/14 01:03:29 zappo Exp $
+;; RCS: $Id: eieio-test-methodinvoke.el,v 1.3 2005/04/14 13:29:58 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -78,16 +78,16 @@
 (defclass AA (A) ())
 (defclass AAA (AA) ())
 
-(defmethod F ((p A))
-  (eieio-test-method-store))
-(defmethod F ((p AA))
-  (eieio-test-method-store))
-
 (defmethod F :BEFORE ((p A))
   (eieio-test-method-store))
 (defmethod F :BEFORE ((p AA))
   (eieio-test-method-store))
 (defmethod F :BEFORE ((p AAA))
+  (eieio-test-method-store))
+
+(defmethod F ((p A))
+  (eieio-test-method-store))
+(defmethod F ((p AA))
   (eieio-test-method-store))
 
 (defmethod F :AFTER ((p A))
@@ -110,6 +110,34 @@
 	     (F :AFTER AAA)
 	     )))
   (F (AAA nil))
+  (setq eieio-test-method-order-list (nreverse eieio-test-method-order-list))
+  (eieio-test-match ans))
+
+(defmethod G :BEFORE ((p A))
+  (eieio-test-method-store))
+(defmethod G :BEFORE ((p AAA))
+  (eieio-test-method-store))
+
+(defmethod G ((p A))
+  (eieio-test-method-store))
+
+(defmethod G :AFTER ((p A))
+  (eieio-test-method-store))
+(defmethod G :AFTER ((p AAA))
+  (eieio-test-method-store))
+
+
+(let ((eieio-test-method-order-list nil)
+      (ans '(
+	     (G :BEFORE AAA)
+	     (G :BEFORE A)
+	     ;; Not primary A method
+	     (G :PRIMARY A)
+	     ;; No call-next-method in AA to get to A.
+	     (G :AFTER A)
+	     (G :AFTER AAA)
+	     )))
+  (G (AAA nil))
   (setq eieio-test-method-order-list (nreverse eieio-test-method-order-list))
   (eieio-test-match ans))
 
