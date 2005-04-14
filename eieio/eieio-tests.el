@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.29 2005/04/03 16:12:32 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.30 2005/04/14 01:10:19 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -252,15 +252,14 @@ METHOD is the method that was attempting to be called."
 
 (defmethod class-fun2 ((b class-b))
   "More fun with class B."
-  ;(error "Class B fun2 should not be called")
-  'emu
+  (error "Class B fun2 should not be called")
   )
 
 (defmethod class-fun2 ((ab class-ab))
   "More fun with class AB."
   (call-next-method))
 
-(if (eq (class-fun2 ab) 'emu)
+(if (eq (class-fun2 ab) 'moose)
     nil
   (error "Call next method inheritance check failed."))
 
