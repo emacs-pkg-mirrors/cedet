@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.134 2005/04/03 16:14:47 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.135 2005/04/14 00:44:58 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0beta1"
   "Current version of EIEIO.")
@@ -1638,13 +1638,14 @@ are the arguments passed in at the top level."
       (error "Call-next-method not called within a class specific method"))
   (if (and (/= eieio-generic-call-key method-primary)
 	   (/= eieio-generic-call-key method-static))
-      (error "Cannot `call-next-method' except in :PRIMARY or :STATIC methods."))
+      (error "Cannot `call-next-method' except in :PRIMARY or :STATIC methods.")
+    )
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
 	(lambdas nil)
 	(mclass (eieiomt-next scoped-class))
 	(callsomething nil)
 	(returnval nil))
-    (while mclass ;(and mclass (not callsomething))
+    (while (and mclass (not callsomething))
       ;; lookup the form to use for the PRIMARY object for the next level
       (setq lambdas (eieio-generic-form eieio-generic-call-methodname
 					eieio-generic-call-key (car mclass)))
