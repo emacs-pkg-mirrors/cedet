@@ -1,10 +1,10 @@
 ;;; eieio-base.el --- Base classes for EIEIO.
 
 ;;;
-;; Copyright (C) 2000, 2001, 2002, 2004 Eric M. Ludlam
+;; Copyright (C) 2000, 2001, 2002, 2004, 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.18 2004/07/13 14:58:28 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.19 2005/04/14 00:48:38 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -276,7 +276,7 @@ access to it."
 (defmethod slot-missing ((obj eieio-named)
 			 slot-name operation &optional new-value)
   "Called when a on-existant slot is accessed.
-For variable `eieio-named', provide an imaginary `object-nam' slot.
+For variable `eieio-named', provide an imaginary `object-name' slot.
 Argument OBJ is the Named object.
 Argument SLOT-NAME is the slot that was attempted to be accessed.
 OPERATION is the type of access, such as `oref' or `oset'.
