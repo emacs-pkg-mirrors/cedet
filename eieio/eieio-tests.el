@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.30 2005/04/14 01:10:19 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.31 2005/04/14 19:00:09 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -500,6 +500,16 @@ METHOD is the method that was attempting to be called."
 	   :group vorlon
 	   :accessor get-slot-2
 	   :protection :private)
+   (slot-3 :initarg :emu
+	   :initform emu
+	   :type symbol
+	   :allocation :class
+	   :documentation "Third slot test class allocated accessor"
+	   :custom symbol
+	   :label "Fuzz"
+	   :group tokra
+	   :accessor get-slot-3
+	   :protection :private)
    )
   (:custom-groups (foo))
   "A class for testing slot arguments."
@@ -526,6 +536,12 @@ METHOD is the method that was attempting to be called."
       (class-c "C2" :moose "not a symbol")
       (error "A string was set on a symbol slot during init."))
   (invalid-slot-type nil))
+
+(if (not (eq (get-slot-3 t1) 'emu))
+    (error "Accessor to private :class slot returned bad value from object."))
+
+(if (not (eq (get-slot-3 class-c) 'emu))
+    (error "Accessor to private :class slot returned bad value from class."))
 
 ;; Slot protection
 (defclass prot-0 ()
