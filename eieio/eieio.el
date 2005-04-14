@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.137 2005/04/14 18:46:25 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.138 2005/04/14 18:59:05 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0beta1"
   "Current version of EIEIO.")
@@ -520,7 +520,8 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	(if acces
 	    (progn
 	      (eieio-defmethod acces
-		(list (list (list 'this cname))
+		(list (if (eq alloc :class) :STATIC :PRIMARY)
+		      (list (list 'this cname))
 		      (format
 		       "Retrieves the slot `%s' from an object of class `%s'"
 		       name cname)
