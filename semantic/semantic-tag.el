@@ -1,8 +1,8 @@
 ;;; semantic-tag.el --- tag creation and access
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.31 2005/01/28 10:14:39 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.32 2005/04/15 15:39:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -329,6 +329,11 @@ Returns the list of tag members if it is compound."
       (semantic-tag-type-members tagtype)
       )))
 
+(defun semantic-tag-faux-p (tag)
+  "Return non-nil if tag is a FAUX tag.
+FAUX tags are created to represent a construct that is
+not known to exist in the code."
+  (semantic--tag-get-property tag 'faux))
 
 ;;; Tag creation
 ;;
@@ -439,6 +444,12 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
   (apply 'semantic-tag name 'code
          :detail detail
          attributes))
+
+(defsubst semantic-tag-set-faux (tag)
+  "Set TAG to be a new FAUX tag.
+FAUX tags represent constructs not found in the source code.
+You can identify a faux tag with `semantic-tag-faux-p'"
+  (semantic--tag-put-property tag 'faux t))
 
 ;;; Copying and cloning tags.
 ;;
