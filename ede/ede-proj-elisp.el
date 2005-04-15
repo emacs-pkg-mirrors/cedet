@@ -1,10 +1,10 @@
 ;;; ede-proj-elisp.el --- EDE Generic Project Emacs Lisp support
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.26 2004/04/06 00:37:35 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.27 2005/04/15 15:34:15 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -298,7 +298,6 @@ Always return an empty string for an autoloads generator."
 
 (defmethod ede-proj-makefile-insert-variables :AFTER ((this ede-proj-target-elisp-autoloads))
   "Insert variables needed by target THIS."
-  (call-next-method)
   (ede-pmake-insert-variable-shared "LOADDEFS"
     (insert (oref this autoload-file)))
   (ede-pmake-insert-variable-shared "LOADDIRS"
