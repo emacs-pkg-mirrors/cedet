@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.36 2005/01/29 04:34:51 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.37 2005/04/15 16:55:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -376,7 +376,7 @@ Override function for `semantic-tag-protection'."
     ;; If we have a typed parent, look for :public style labels.
     (when (and parent (eq (semantic-tag-class parent) 'type))
       (let ((pp (semantic-tag-type-members parent)))
-	(while (and pp (not (eq (car pp) token)))
+	(while (and pp (not (semantic-equivalent-tag-p (car pp) token)))
 	  (when (eq (semantic-tag-class (car pp)) 'label)
 	    (setq prot
 		  (cond ((string= (semantic-tag-name (car pp)) "public")
