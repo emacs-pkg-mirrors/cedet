@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.23 2005/04/01 12:23:35 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.24 2005/04/15 16:54:28 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -50,6 +50,9 @@
 %token <punctuation>   GREATER    "\\`[>]\\'"
 %token <punctuation>   COMA       "\\`[,]\\'"
 %token <punctuation>   TILDE      "\\`[~]\\'"
+%token <punctuation>   MOD        "\\`[%]\\'"
+%token <punctuation>   HAT        "\\`[^]\\'"
+%token <punctuation>   OR         "\\`[|]\\'"
 %token <punctuation>   OPSTART    "[-+*/%^|&]"
 %token <string>        C          "\"C\""
 %token <number>        ZERO       "^0$"
@@ -954,7 +957,11 @@ arg-sub-list
   ;
 
 operatorsym
-  : LESS LESS
+  : LESS LESS EQUAL 
+    ( "<<=" )
+  : GREATER GREATER EQUAL 
+    ( ">>=" )
+  | LESS LESS
     ( "<<" )
   | GREATER GREATER
     ( ">>" )
@@ -966,6 +973,24 @@ operatorsym
     ( ">=" )
   | BANG EQUAL
     ( "!=" )
+  | PLUS EQUAL
+    ( "+=" )
+  | MINUS EQUAL
+    ( "-=" )
+  | STAR EQUAL
+    ( "*=" )
+  | DIVIDE EQUAL
+    ( "/=" )
+  | MOD EQUAL
+    ( "%=" )
+  | AMPERSAND EQUAL
+    ( "&=" )
+  | OR EQUAL
+    ( "|=" )
+  | HAT EQUAL
+    ( "^=" )
+  | MINUS GREATER STAR
+    ( "->*" )
   | MINUS GREATER
     ( "->" )
  ;; Klaus Berndl: We have to parse also operator() and operator[]
@@ -976,11 +1001,25 @@ operatorsym
   | LESS
   | GREATER
   | STAR
+  | PLUS PLUS
+    ( "++" )
   | PLUS
+  | MINUS MINUS
+    ( "--" )
   | MINUS
+  | AMPERSAND AMPERSAND
+    ( "&&" )
+  | AMPERSAND
+  | OR OR
+    ( "||" )
+  | OR
   | DIVIDE
   | EQUAL
   | BANG
+  | TILDE
+  | MOD
+  | HAT
+  | COMA
   ;
 
 functionname
