@@ -1,10 +1,10 @@
 ;;; semantic-sort.el --- Utilities for sorting and re-arranging tag tables.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.17 2004/03/10 19:29:19 ponced Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.18 2005/04/15 15:42:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,6 +35,7 @@
 
 (require 'assoc)
 (require 'semantic)
+(require 'semanticdb)
 (eval-when-compile
   (require 'semantic-find)
   (require 'semanticdb-find))
@@ -407,24 +408,24 @@ buckets with the bucket function."
     (while parent-buckets
       (if (car (car parent-buckets))
 	  (let* ((tmp (car parent-buckets))
-		 (fauxtok (semantic-tag-new-type
+		 (fauxtag (semantic-tag-new-type
 			   (car tmp)
 			   semantic-orphaned-member-metaparent-type
 			   nil ;; Part list
 			   nil ;; parents (unknown)
 			   ))
 		 (bucketkids (cdr tmp)))
-	    (semantic--tag-put-property fauxtok 'faux t) ;; properties
+	    (semantic--tag-put-property fauxtag 'faux t) ;; properties
 	    (if semantic-mark-external-member-function
 		(setq bucketkids
 		      (mapcar (lambda (tok)
 				(funcall semantic-mark-external-member-function
-					 tok fauxtok))
+					 tok fauxtag))
 			      bucketkids)))
-	    (semantic-tag-put-attribute fauxtok :members bucketkids)
+	    (semantic-tag-put-attribute fauxtag :members bucketkids)
 	    ;; We have a bunch of methods with no parent in this file.
 	    ;; Create a meta-type to hold it.
-	    (setq out (cons fauxtok out))
+	    (setq out (cons fauxtag out))
 	    ))
       (setq parent-buckets (cdr parent-buckets)))
     ;; Return the new list.
@@ -530,6 +531,34 @@ See `semantic-tag-external-member-children' for details."
 	;; tag into the generated lambda.
        (semantic-tag-external-member-p ',tag tok))
      (current-buffer))
+    ))
+
+;;;###autoload
+(define-overload semantic-tag-external-class (tag)
+  "Return a list of real tags that faux TAG might represent.
+
+In some languages, a method can be defined on an object which is
+not in the same file.  In this case,
+`semantic-adopt-external-members' will create a faux-tag.  If it
+is necessary to get the tag from which for faux TAG was most
+likely derived, then this function is needed."
+  (unless (semantic-tag-faux-p tag)
+    (signal 'wrong-type-argument (list tag 'semantic-tag-faux-p)))
+  (:override)
+  )
+
+(defun semantic-tag-external-class-default (tag)
+  "Return a list of real tags that faux TAG might represent.
+See `semantic-tag-external-class' for details."
+  (if (and (fboundp 'semanticdb-minor-mode-p)
+	   (semanticdb-minor-mode-p))
+      (let* ((semanticdb-search-system-databases nil)
+	     (m (semanticdb-find-tags-by-class 
+		 (semantic-tag-class tag)
+		 (semanticdb-find-tags-by-name (semantic-tag-name tag)))))
+	(semanticdb-strip-find-results m t))
+    ;; Presumably, if the tag is faux, it is not local.
+    nil
     ))
 
 (semantic-alias-obsolete 'semantic-nonterminal-external-member-children
