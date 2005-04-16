@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.24 2005/04/15 16:54:28 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.25 2005/04/16 07:45:57 ponced Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -959,7 +959,7 @@ arg-sub-list
 operatorsym
   : LESS LESS EQUAL 
     ( "<<=" )
-  : GREATER GREATER EQUAL 
+  | GREATER GREATER EQUAL 
     ( ">>=" )
   | LESS LESS
     ( "<<" )
