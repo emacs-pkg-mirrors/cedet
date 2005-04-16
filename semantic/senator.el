@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.102 2005/02/04 02:47:38 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.103 2005/04/16 03:22:35 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1231,6 +1231,93 @@ If nil restore the global filter option `senator-search-tag-filter'."
       (senator-fold-tag tag))))
 
 ;;;;
+;;;;
+;;;;
+(defun senator-go-to-up-reference (&optional tag)
+  "Move up one reference from the current TAG.
+A \"reference\" could be any interesting feature of TAG.
+In C++, a function may have a 'parent' which is non-local.
+If that parent which is only a reference in the function tag
+is found, we can jump to it.
+Some tags such as includes have other reference features."
+  (interactive)
+  (let ((newtag (semantic-up-reference (or tag (semantic-current-tag)))))
+    (if (not newtag)
+	(error "No up reference found.")
+      (push-mark)
+      (semantic-go-to-tag newtag)
+      (switch-to-buffer (current-buffer))
+      (semantic-momentary-highlight-tag newtag))))
+
+(define-overload semantic-up-reference (tag)
+  "Return a tag that is referredto by TAG.
+A \"reference\" could be any interesting feature of TAG.
+In C++, a function may have a 'parent' which is non-local.
+If that parent which is only a reference in the function tag
+is found, we can jump to it.
+Some tags such as includes have other reference features.")
+
+(defun semantic-up-reference-default (tag)
+  "Return a tag that is referredto by TAG.
+Makes C/C++ language like assumptions."
+  (cond ((semantic-tag-faux-p tag)
+	 ;; Faux tags should have a real tag in some other location.
+	 (let ((options (semantic-tag-external-class tag)))
+	   ;; I should do something a little better than
+	   ;; this.  Oy!
+	   (car options)
+	   ))
+	((eq (semantic-tag-class tag) 'include)
+	 ;; Include always point to another file.
+	 tag
+	 ;; Note: if you then call 'semantic-go-to-tag', then
+	 ;; you would just to the source of this tag.
+	 )
+	((and (eq (semantic-tag-class tag) 'function)
+	      (semantic-tag-function-parent tag))
+	 ;; Is there a parent of the function to jump to?
+	 (let* ((p (semantic-tag-function-parent tag))
+		(sr1 (semanticdb-find-tags-by-name p))
+		(sr2 (when sr1
+		       (semanticdb-find-tags-by-class 'type sr1)))
+		)
+	   (semanticdb-find-result-nth-in-buffer sr2 0)
+	   )
+	 )
+	((and (eq (semantic-tag-class tag) 'function)
+	      (semantic-tag-get-attribute tag :prototype-flag))
+	 ;; Is there a parent of the function to jump to?
+	 (let* ((p (semantic-tag-name tag))
+		(sr1 (semanticdb-find-tags-by-name p))
+		(sr2 (when sr1
+		       (semanticdb-find-tags-by-class 
+			(semantic-tag-class tag)
+			sr1)))
+		(int 0)
+		(len (semanticdb-find-result-length sr2)))
+	   (while (and (< int len)
+		       (semantic-tag-get-attribute
+			(semanticdb-find-result-nth-in-buffer sr2 int)
+			:prototype-flag))
+	     (setq int (1+ int)))
+	   (semanticdb-find-result-nth-in-buffer sr2 int)
+	   ))
+	((semantic-tag-type tag)
+	 ;; Get the data type, and try to find that.
+	 (let* ((type (semantic-tag-type tag))
+		(tn (cond ((stringp type)
+			   type)
+			  ((semantic-tag-p type)
+			   (semantic-tag-name type))
+			  (t (error "No known type."))))
+		(sr1 (semanticdb-find-tags-by-name tn))
+		(sr2 (when sr1
+		       (semanticdb-find-tags-by-class 'type sr1))))
+	   (semanticdb-find-result-nth-in-buffer sr2 0)
+	   ))
+	(t nil)))
+
+;;;;
 ;;;; Misc. menu stuff.
 ;;;;
 
@@ -1680,6 +1767,7 @@ This is a buffer local variable.")
     (define-key km "J"    'semantic-complete-jump)
     (define-key km "p"    'senator-previous-tag)
     (define-key km "n"    'senator-next-tag)
+    (define-key km "u"    'senator-go-to-up-reference)
     (define-key km "\t"   'senator-complete-symbol)
     (define-key km " "    'senator-completion-menu-popup)
     (define-key km "\C-w" 'senator-kill-tag)
@@ -1707,6 +1795,12 @@ This is a buffer local variable.")
       senator-previous-tag
       :active t
       :help "Go to the previous tag found"
+      ])
+    (senator-menu-item
+     ["Up Reference"
+      senator-go-to-up-reference
+      :active t
+      :help "Navigate up one reference by tag."
       ])
     (senator-menu-item
      ["Jump in this file..."
