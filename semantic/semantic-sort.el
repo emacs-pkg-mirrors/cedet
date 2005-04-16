@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.18 2005/04/15 15:42:30 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.19 2005/04/16 14:25:00 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -415,7 +415,7 @@ buckets with the bucket function."
 			   nil ;; parents (unknown)
 			   ))
 		 (bucketkids (cdr tmp)))
-	    (semantic--tag-put-property fauxtag 'faux t) ;; properties
+	    (semantic-tag-set-faux fauxtag) ;; properties
 	    (if semantic-mark-external-member-function
 		(setq bucketkids
 		      (mapcar (lambda (tok)
