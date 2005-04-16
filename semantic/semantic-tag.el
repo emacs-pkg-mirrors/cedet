@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.32 2005/04/15 15:39:44 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.33 2005/04/16 14:25:44 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -333,7 +333,7 @@ Returns the list of tag members if it is compound."
   "Return non-nil if tag is a FAUX tag.
 FAUX tags are created to represent a construct that is
 not known to exist in the code."
-  (semantic--tag-get-property tag 'faux))
+  (semantic--tag-get-property tag :faux-flag))
 
 ;;; Tag creation
 ;;
@@ -449,7 +449,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
   "Set TAG to be a new FAUX tag.
 FAUX tags represent constructs not found in the source code.
 You can identify a faux tag with `semantic-tag-faux-p'"
-  (semantic--tag-put-property tag 'faux t))
+  (semantic--tag-put-property tag :faux-flag t))
 
 ;;; Copying and cloning tags.
 ;;
