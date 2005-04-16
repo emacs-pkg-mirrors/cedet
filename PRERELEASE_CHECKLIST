@@ -1,7 +1,50 @@
 Prerelease Checklist:
+--------------------
 
-  This is a list of things to try before posting a release to make sure
+  This is a list of things to do/try before posting a release to make sure
   the release will work as well as can be expected:
+
+Before a dist is made:
+---------------------
+
+Update all version numbers
+
+  * C-x C-f cedet/<package>/<package>.el
+  * M-x ede-update-version
+    - Update version to next logical number.
+
+Update cedet.el version numbers
+
+  * cedet/common/cedet.el has version references for all
+    sub-packages in CEDET.
+     - Updating this list protects users from shadow packages.
+
+Update CEDET version number
+
+  * Edit cedet/Makefile
+  * Edit CEDET_VERSION variable.
+
+Update all Makefiles
+
+  * C-x C-f cedet/<package>/<package>.el
+  * M-x ede-proj-regenerate
+
+Add a CVS tag
+
+  * Create a new copy of CVS TRUNK
+    - mkdir <some dir>
+    - cvs -d <username>@cvs.sourceforge.net:/cvsroot/cedet co cedet
+    - mv cedet cedet-<branchname>  # (such as 1p0beta3)
+    - cd cedet
+    - cvs tag -b <branchname>     
+
+  * update new sandbox to branch
+    - cvs update -r <branchname>
+
+  * Apply patches to above while resolving other issues.
+
+After a dist is made:
+--------------------
 
 CEDET & Common area
 
@@ -142,3 +185,16 @@ COGRE
 
      - Verify the grpah.  (on parent, some direct children.)
      - Move some blocks around (M-f, M-b, M-n, M-p)
+
+
+After patches are applied:
+-------------------------
+
+After patches are applied to the release branch, merge them back into
+TRUNK.
+
+  In a sandbox with TRUNK/HEAD active.
+  * cvs update -j <branchname> filename
+
+    - This merges changes from the branch into the trunk.
+    - Use emacs to check these branch merges in.
