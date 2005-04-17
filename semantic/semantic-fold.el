@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-fold.el,v 1.2 2005/02/03 18:57:48 zappo Exp $
+;; X-RCS: $Id: semantic-fold.el,v 1.3 2005/04/17 16:56:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,8 +43,9 @@ Clicking on the fringe icon would `fold' methods open or closed.")
   "Return non-nil if TAG is a type, or a non-prototype function."
   (let ((c (semantic-tag-class tag)))
     (and
+     semantic-folding-mode
      (or
-      ;; All types get a line?
+      ;; All types can be folded
       (eq c 'type)
       ;; Functions which aren't prototypes get a line.
       (and (eq c 'function)
@@ -74,7 +75,7 @@ Clicking on the fringe icon would `fold' methods open or closed.")
   )
 
 (defun semantic-tag-folding-decoration-highlight-default (tag)
-  "Highlight the first line of TAG as a boundary."
+  "Provide a folding +/- icon on TAG."
   (with-current-buffer (semantic-tag-buffer tag)
     (let ((o (semantic-decorate-tag
 	      tag
@@ -82,14 +83,15 @@ Clicking on the fringe icon would `fold' methods open or closed.")
 	      (save-excursion
 		(goto-char (semantic-tag-start tag))
 		(point))
-	      nil))	  (str (copy-sequence "+")))
+	      nil))
+	  (str (copy-sequence "+")))
       (put-text-property 0 1 'display
 			 (if (semantic-tag-folded-p tag)
-			     (list '(left-fringe 
+			     (list '(left-fringe
 				     tag-fold-plus
 				     semantic-tag-folding-fringe-face)
 				   "+")
-			   (list '(left-fringe 
+			   (list '(left-fringe
 				   tag-fold-minus
 				   semantic-tag-folding-fringe-face)
 				 "-"))
@@ -104,6 +106,7 @@ Clicking on the fringe icon would `fold' methods open or closed.")
 ;; minor mode to manage the keymap for hte +/- in the fringe.
 ;;
 
+;;;###autoload
 (defun global-semantic-folding-mode (&optional arg)
   "Toggle global use of option `semantic-folding-mode'.
 If ARG is positive, enable, if it is negative, disable.
