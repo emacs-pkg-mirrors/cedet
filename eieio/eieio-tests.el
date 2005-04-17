@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.32 2005/04/17 14:58:50 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.33 2005/04/17 15:00:56 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -297,6 +297,33 @@ METHOD is the method that was attempting to be called."
 ;;; Test the BEFORE, PRIMARY, and AFTER method tags.
 ;;
 (load-file "eieio-test-methodinvoke.el")
+
+;;; Test value of a generic function call
+;;
+(defvar class-fun-value-seq '())
+
+(defmethod class-fun-value :BEFORE ((a class-a))
+  "Return `before', and push `before' in `class-fun-value-seq'."
+  (push 'before class-fun-value-seq)
+  'before)
+
+(defmethod class-fun-value :PRIMARY ((a class-a))
+  "Return `primary', and push `primary' in `class-fun-value-seq'."
+  (push 'primary class-fun-value-seq)
+  'primary)
+
+(defmethod class-fun-value :AFTER ((a class-a))
+  "Return `after', and push `after' in `class-fun-value-seq'."
+  (push 'after class-fun-value-seq)
+  'after)
+
+(let ((value (class-fun-value a)))
+  (unless (eq value 'primary)
+    (error
+     "Value of the generic function call isn't the primary method value [%S]."
+     value))
+  (unless (equal class-fun-value-seq '(after primary before))
+    (error "Methods were not called from :BEFORE to :AFTER.")))
 
 
 ;;; Test initialization methods
