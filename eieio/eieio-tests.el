@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.31 2005/04/14 19:00:09 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.32 2005/04/17 14:58:50 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -146,34 +146,47 @@
   ((some-slot :initform nil
 	      :allocation :class
 	      :documentation "A slot."))
-  :documentation "A class used for testing static methods."
-  :abstract t)
+  :documentation "A class used for testing static methods.")
 
-(defmethod static-method-class-method :STATIC ((c static-method-class))
+(defmethod static-method-class-method :STATIC ((c static-method-class) value)
   "Test static methods.
 Argument C is the class bound to this static method."
-  (oset-default c some-slot t))
+  (if (object-p c) (setq c (object-class c)))
+  (oset-default c some-slot value))
 
 (condition-case nil
-    (static-method-class-method static-method-class)
-  (error (error "Failed to call static method.")))
-(if (not (eq (oref static-method-class some-slot) t))
-    (error "Call to static method did not run."))
+    (static-method-class-method static-method-class 'class)
+  (error (error "Failed to call static method on a class.")))
+(if (not (eq (oref static-method-class some-slot) 'class))
+    (error "Call to static method on a class did not run."))
+
+(condition-case nil
+    (static-method-class-method (static-method-class "test") 'object)
+  (error (error "Failed to call static method on an object.")))
+(if (not (eq (oref static-method-class some-slot) 'object))
+    (error "Call to static method on an object did not run."))
 
 (defclass static-method-class-2 (static-method-class)
   ()
   "A second class after the previous for static methods.")
 
-(defmethod static-method-class-method :STATIC ((c static-method-class-2))
+(defmethod static-method-class-method :STATIC ((c static-method-class-2) value)
   "Test static methods.
 Argument C is the class bound to this static method."
-  (oset-default c some-slot 'moose))
+  (if (object-p c) (setq c (object-class c)))
+  (oset-default c some-slot (intern (concat "moose-" (symbol-name value)))))
 
 (condition-case nil
-    (static-method-class-method static-method-class-2)
-  (error (error "Failed to call 2nd static method.")))
-(if (not (eq (oref static-method-class-2 some-slot) 'moose))
-    (error "Call to 2nd static method did not run."))
+    (static-method-class-method static-method-class-2 'class)
+  (error (error "Failed to call 2nd static method on a class.")))
+(if (not (eq (oref static-method-class-2 some-slot) 'moose-class))
+    (error "Call to 2nd static method on a class did not run."))
+
+(condition-case nil
+    (static-method-class-method (static-method-class-2 "test") 'object)
+  (error (error "Failed to call 2nd static method on an object.")))
+(if (not (eq (oref static-method-class-2 some-slot) 'moose-object))
+    (error "Call to 2nd static method on an object did not run."))
 
 
 ;;; Perform method testing
