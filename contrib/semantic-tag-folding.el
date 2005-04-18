@@ -69,17 +69,9 @@
 
 
 (require 'semantic-decorate-mode)
+(require 'cl)
 
 ;;; Code:
-(defun global-semantic-tag-folding-mode (&optional arg)
-  "Toggle global use of option `semantic-tag-folding-mode'.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  (interactive "P")
-  (setq global-semantic-tag-folding-mode
-        (semantic-toggle-minor-mode-globally
-         'semantic-tag-folding-mode arg)))
-
 ;;;###autoload
 (defcustom global-semantic-tag-folding-mode nil
   "*If non-nil enable global use of variable `semantic-tag-folding-mode'.
@@ -92,6 +84,15 @@ Clicking on a + or - in the fringe will fold that tag."
   :initialize 'custom-initialize-default
   :set (lambda (sym val)
          (global-semantic-tag-folding-mode (if val 1 -1))))
+
+(defun global-semantic-tag-folding-mode (&optional arg)
+  "Toggle global use of option `semantic-tag-folding-mode'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  (interactive "P")
+  (setq global-semantic-tag-folding-mode
+        (semantic-toggle-minor-mode-globally
+         'semantic-tag-folding-mode arg)))
 
 (defcustom semantic-tag-folding-mode-hook nil
   "*Hook run at the end of function `semantic-tag-folding-mode'."
@@ -109,6 +110,20 @@ Clicking on a + or - in the fringe will fold that tag."
 Use the command `semantic-tag-folding-mode' to change this variable.")
 
 (make-variable-buffer-local 'semantic-tag-folding-mode)
+
+(defvar semantic-tag-folding-decoration-mode-hook-enabled t
+  "Used to disable `semantic-tag-folding-decoration-mode-hook'.
+This is done when semantic-tag-folding mode turns on semantic-decoration mode.")
+
+
+(defvar semantic-tag-folding-saved-decoration-styles nil
+"The saved value of `semantic-decoration-styles'.")
+(make-variable-buffer-local 'semantic-tag-folding-saved-decoration-styles)
+
+(defvar semantic-tag-folding-decoration-style
+  '(("semantic-tag-folding" . t))
+  "Only turn on semantic-tag-folding decorations.
+A value for variable `semantic-decoration-styles'.")
 
 (defun semantic-tag-folding-mode-setup ()
   "Setup option `semantic-tag-folding-mode'.
@@ -150,11 +165,6 @@ in Emacs 20.4."
         (semantic-decoration-mode 1))))
   semantic-tag-folding-mode)
 
-(defvar semantic-tag-folding-decoration-style
-  '(("semantic-tag-folding" . t))
-  "Only turn on semantic-tag-folding decorations.
-A value for variable `semantic-decoration-styles'.")
-
 (add-hook 'semantic-decoration-mode-hook 'semantic-tag-folding-decoration-mode-hook)
 
 (defun semantic-tag-folding-decoration-mode-hook ()
@@ -188,14 +198,6 @@ A value for variable `semantic-decoration-styles'.")
         ;; M-x tag-folding -> M-x decoration M-x decoration, only keep
         ;; the semantic-tag-folding-decoration-style active
        (semantic-tag-folding-mode 1))))))
-
-(defvar semantic-tag-folding-saved-decoration-styles nil
-"The saved value of `semantic-decoration-styles'.")
-(make-variable-buffer-local 'semantic-tag-folding-saved-decoration-styles)
-
-(defvar semantic-tag-folding-decoration-mode-hook-enabled t
-  "Used to disable `semantic-tag-folding-decoration-mode-hook'.
-This is done when semantic-tag-folding mode turns on semantic-decoration mode.")
 
 ;;;###autoload
 (defun semantic-tag-folding-mode (&optional arg)
@@ -275,6 +277,14 @@ If set to t, the body of a hidden tag is shown as a tooltip
 Function which determines whether a tag should be folded by
 default when `semantic-tag-folding' is activated."  )
 
+(defcustom semantic-tag-folding-fringe-image-style 'triangles
+  "Fringe image style.
+This variable determines the bitmaps drawn in the fringe to
+  indicate folded or unfolded (expanded) tags."
+  :group 'semantic
+  :type '(choice (const triangles)
+                 (const plusminus))
+  :set 'semantic-tag-folding-set-fringe-image-style)
 
 (defun semantic-tag-folding-set-fringe-image-style  (&optional symbol value)
   "Set the bitmaps for this folding \"fringe style\".
@@ -363,15 +373,6 @@ unfolded."
       #B11111110])
     )
    ))
-
-(defcustom semantic-tag-folding-fringe-image-style 'triangles
-  "Fringe image style.
-This variable determines the bitmaps drawn in the fringe to
-  indicate folded or unfolded (expanded) tags."
-  :group 'semantic
-  :type '(choice (const triangles)
-                 (const plusminus))
-  :set 'semantic-tag-folding-set-fringe-image-style)
 
 (defun semantic-tag-folding-allow-folding-of (class)
 "Is folding of tags of semantic class CLASS allowed?"
