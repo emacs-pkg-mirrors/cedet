@@ -85,6 +85,7 @@ Clicking on a + or - in the fringe will fold that tag."
   :set (lambda (sym val)
          (global-semantic-tag-folding-mode (if val 1 -1))))
 
+;;;###autoload
 (defun global-semantic-tag-folding-mode (&optional arg)
   "Toggle global use of option `semantic-tag-folding-mode'.
 If ARG is positive, enable, if it is negative, disable.
