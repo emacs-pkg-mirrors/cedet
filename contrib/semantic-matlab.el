@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-matlab.el,v 1.2 2005/01/16 22:04:36 zappo Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.3 2005/04/18 20:37:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,8 +53,7 @@
 ;; the information we need.
 ;;; Code:
 (defvar semantic-matlab-match-function-re
-  (concat "\\(^\\s-*function\\b[ \t\n.]*\\)\\(\\(\\[[^]]*\\]\\|\\sw+\\)"
-	  "[ \t\n.]*=[ \t\n.]*\\|\\(\\)\\)\\(\\sw+\\)")
+  "\\(^\\s-*function\\b[ \t\n.]*\\)\\(.*\\)\\(\\sw+\\)("
   "Expression to match a function start line.
 There are no reliable numeric matches in this expression.
 Know that `match-end' of 0 is the end of the functin name.")
@@ -67,7 +66,7 @@ Return argument is:
   (START END RETURNVARS NAME ARGUMENTS)"
   (save-excursion
     (if buffer (set-buffer buffer))
-    (let ((re (matlab-match-function-re))
+    (let ((re semantic-matlab-match-function-re)
 	  start ret fn arg end
 	  (taglist nil)
 	  )
@@ -77,9 +76,9 @@ Return argument is:
 	      ret (buffer-substring-no-properties
 		   (match-beginning 2) (match-end 2))
 	      fn (buffer-substring-no-properties
-		  (match-beginning 4) (match-end 4))
+		  (match-beginning 3) (match-end 3))
 	      arg (buffer-substring-no-properties
-		   (match-end 4) (save-excursion
+		   (match-end 3) (save-excursion
 				   (matlab-end-of-command)
 				   (point)))
 	      end (save-excursion
@@ -186,9 +185,8 @@ Return list is:
 
 ;; Enable this autoload once versions of matlab.el are synchronized and
 ;; generally available.
-; ** ;###autoload
+;;;###autoload
 (add-hook 'matlab-mode-hook 'semantic-default-matlab-setup)
-
 
 (provide 'semantic-matlab)
 
