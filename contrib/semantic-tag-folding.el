@@ -236,20 +236,39 @@ minor mode is enabled."
 (make-variable-buffer-local 'semantic-decoration-styles)
 
 
-(defcustom semantic-tag-folding-allow-folding-of  '((type . inner) (function . t) (variable . t) (include . t) (comment . t) (code . t))
+(defcustom semantic-tag-folding-allow-folding-of
+  '((type . inner) (function . t) (variable . t) (include . t)
+    (comment . t) (code . t))
   "A set of semantic classes.  Tags of these classes will be allowed to be folded and unfolded by this mode."
   :group 'semantic
   :type ;;    '(alist    :key-type  symbol   :value-type boolean :options (type function variable include package code))
-  '(set (cons :format "%v" (const :tag "Types" type) (choice :tag "Fold by default" (const :tag "Outer type(s) as well as inner types" all)
-                                                             (const :tag "Only inner types" inner)
-                                                             (const :tag "Neither" )))
-        (cons :format "%v" (const :tag "Function/method declarations" function) (boolean :tag "Fold by default"))
-        (cons :format "%v" (const :tag "Varible declarations" variable) (boolean :tag "Fold by default"))
-        (cons :format "%v" (const :tag "Blocks of consecutive include/import statements" include) (boolean :tag "Fold by default"))
-        (cons :format "%v" (const :tag "Comment blocks preceeding tags" comment) (boolean :tag "Fold by default"))
-        (cons :format "%v" (const :tag "Code regions" code) (boolean :tag "Fold by default"))
-        (cons :format "%v" (const :tag "Package declarations" package) (boolean :tag "Fold by default"))
-        (repeat :tag "Other Semantic classes" (cons :format "%v" (symbol :tag "Semantic class" code) (boolean :tag "Fold by default")))))
+  '(set (cons :format "%v" (const :tag "Types" type)
+	      (choice :tag "Fold by default"
+		      (const :tag "Outer type(s) as well as inner types" all)
+		      (const :tag "Only inner types" inner)
+		      (const :tag "Neither" )))
+        (cons :format "%v"
+	      (const :tag "Function/method declarations" function)
+	      (boolean :tag "Fold by default"))
+        (cons :format "%v"
+	      (const :tag "Varible declarations" variable)
+	      (boolean :tag "Fold by default"))
+        (cons :format "%v"
+	      (const :tag "Blocks of consecutive include/import statements" include)
+	      (boolean :tag "Fold by default"))
+        (cons :format "%v"
+	      (const :tag "Comment blocks preceeding tags" comment)
+	      (boolean :tag "Fold by default"))
+        (cons :format "%v" 
+	      (const :tag "Code regions" code)
+	      (boolean :tag "Fold by default"))
+        (cons :format "%v"
+	      (const :tag "Package declarations" package)
+	      (boolean :tag "Fold by default"))
+        (repeat :tag "Other Semantic classes"
+		(cons :format "%v" (symbol :tag "Semantic class" code)
+		      (boolean :tag "Fold by default")))
+	))
 (make-variable-buffer-local 'semantic-tag-folding-allow-folding-of)
 
 (defcustom semantic-tag-folding-tag-higlight-time 1
@@ -277,15 +296,6 @@ If set to t, the body of a hidden tag is shown as a tooltip
   "Default folding of tags.
 Function which determines whether a tag should be folded by
 default when `semantic-tag-folding' is activated."  )
-
-(defcustom semantic-tag-folding-fringe-image-style 'triangles
-  "Fringe image style.
-This variable determines the bitmaps drawn in the fringe to
-  indicate folded or unfolded (expanded) tags."
-  :group 'semantic
-  :type '(choice (const triangles)
-                 (const plusminus))
-  :set 'semantic-tag-folding-set-fringe-image-style)
 
 (defun semantic-tag-folding-set-fringe-image-style  (&optional symbol value)
   "Set the bitmaps for this folding \"fringe style\".
@@ -375,6 +385,15 @@ unfolded."
     )
    ))
 
+(defcustom semantic-tag-folding-fringe-image-style 'triangles
+  "Fringe image style.
+This variable determines the bitmaps drawn in the fringe to
+  indicate folded or unfolded (expanded) tags."
+  :group 'semantic
+  :type '(choice (const triangles)
+                 (const plusminus))
+  :set 'semantic-tag-folding-set-fringe-image-style)
+
 (defun semantic-tag-folding-allow-folding-of (class)
 "Is folding of tags of semantic class CLASS allowed?"
   (assq class semantic-tag-folding-allow-folding-of))
@@ -392,7 +411,8 @@ TAG is what is being hidden, not the body of TAG."
       (semantic-tag-folding-hidden-by-default 'comment)
     (let* ((c (semantic-tag-class tag))
           (default (semantic-tag-folding-hidden-by-default c)))
-      ;; `default' is the value to be returned, unless TAG is a type and only inner types are to  be hidden
+      ;; `default' is the value to be returned, unless TAG is a type
+      ;; and only inner types are to  be hidden
       (if (and default (eq c 'type) (eq default 'inner))
           ;; the outermost type has no parent
           (semantic-find-tag-parent-by-overlay tag)
@@ -406,11 +426,14 @@ influence the output of this function."
   (let ((c (semantic-tag-class tag)))
     (and
      (semantic-tag-with-position-p tag)
-     (or (semantic-tag-folding-allow-folding-of 'comment) (semantic-tag-folding-allow-folding-of c))
+     (or (semantic-tag-folding-allow-folding-of 'comment)
+	 (semantic-tag-folding-allow-folding-of c))
      ;; we only want the first include from a block of includes
      (or (not (eq c 'include))
          (not (semantic-find-tag-by-overlay-prev (semantic-tag-start tag)))
-         (not (eq (semantic-tag-class (semantic-find-tag-by-overlay-prev (semantic-tag-start tag))) 'include))))))
+         (not (eq (semantic-tag-class
+		   (semantic-find-tag-by-overlay-prev (semantic-tag-start tag))) 'include)))
+     )))
 
 (defun semantic-tag-folding-highlight-default (tag)
   "Create decoration overlays for TAG.
@@ -426,10 +449,9 @@ collapsed."
                          (goto-char tag-start)
                          (when (forward-comment -1)
                            (do ((ret (point-at-eol) (point-at-eol)))
-                               ( ;;until we see an empty line, or there are no more comments
-                                (or (re-search-backward "
-
-" (- (point) 2) t)
+                               ( ;; until we see an empty line, or there are
+				 ;; no more comments
+                                (or (re-search-backward "\n\n" (- (point) 2) t)
                                     (not (forward-comment -1)))
                                 ;; return
                                 ret)))))
@@ -478,64 +500,89 @@ is non-nil if the fold region is a comment."
              (ov2 (semantic-decorate-tag tag start2 (+ start2 1)))
              (marker-string "+"))
         (overlay-put ov 'semantic-tag-folding t)
-        (overlay-put ov 'isearch-open-invisible 'semantic-tag-folding-show-block)
+        (overlay-put ov 'isearch-open-invisible
+		     'semantic-tag-folding-show-block)
 
         ;; check for fold state attributes
-        (if (and (symbolp semantic-tag-folding-function) (semantic-tag-get-attribute tag 'semantic-tag-folding-comment) comment)
-            (setq fold (eq (semantic-tag-get-attribute tag 'semantic-tag-folding-comment) 'fold)))
+        (if (and (symbolp semantic-tag-folding-function)
+		 (semantic-tag-get-attribute tag 'semantic-tag-folding-comment)
+		 comment)
+            (setq fold (eq (semantic-tag-get-attribute 
+			    tag 'semantic-tag-folding-comment) 'fold)))
 
-        (if (and (symbolp semantic-tag-folding-function) (semantic-tag-get-attribute tag 'semantic-tag-folding-tag) (not comment))
-            (setq fold (eq (semantic-tag-get-attribute tag 'semantic-tag-folding-tag) 'fold)))
+        (if (and (symbolp semantic-tag-folding-function)
+		 (semantic-tag-get-attribute tag 'semantic-tag-folding-tag)
+		 (not comment))
+            (setq fold (eq (semantic-tag-get-attribute 
+			    tag 'semantic-tag-folding-tag) 'fold)))
 
         (if (or (not fold)
                 ;; don't fold this region if point is inside it
                 (and (> end point) (< start point)))
             ;; just display the unfolded bitmap in the fringe
-            (setq marker-string (propertize marker-string 'display '((left-fringe semantic-tag-folding-unfolded) "-")))
+            (setq marker-string (propertize
+				 marker-string 'display
+				 '((left-fringe semantic-tag-folding-unfolded)
+				   "-")))
           ;; fold the body and display a + in the fringe
           (overlay-put ov 'invisible 'semantic-tag-fold)
-          (setq marker-string (propertize marker-string 'display '((left-fringe semantic-tag-folding-folded) "+" ))))
+          (setq marker-string (propertize
+			       marker-string
+			       'display
+			       '((left-fringe semantic-tag-folding-folded)
+				 "+" ))))
         (when semantic-tag-folding-show-tooltips
           (overlay-put ov2 'mouse-face 'highlight)
           (overlay-put ov2 'help-echo (buffer-substring (+ 1 start) end)))
 ;;        (if (and (<= (semantic-tag-start tag) start) (>= (semantic-tag-end tag) end))
             (overlay-put ov 'semantic-tag-folding-tag tag)
 ;;             )
-        (overlay-put ov 'semantic-tag-folding-overlay-type (if comment 'semantic-tag-folding-comment 'semantic-tag-folding-tag))
+        (overlay-put ov 'semantic-tag-folding-overlay-type
+		     (if comment
+			 'semantic-tag-folding-comment
+		       'semantic-tag-folding-tag))
         (overlay-put ov 'semantic-tag-folding-marker-string marker-string)
         (overlay-put ov2 'before-string marker-string)))))
 
 (defun semantic-tag-folding-fold-block ()
   "Fold the smallest enclosing tag at point."
   (interactive)
- (semantic-tag-folding-set-overlay-visibility (semantic-tag-folding-get-overlay) t))
+ (semantic-tag-folding-set-overlay-visibility
+  (semantic-tag-folding-get-overlay) t))
 
 (defun semantic-tag-folding-show-block (&optional ov)
   "Unfold overlay OV, or the smallest enclosing tag at point."
   (interactive)
-  (semantic-tag-folding-set-overlay-visibility (or ov (semantic-tag-folding-get-overlay)) nil))
-
+  (semantic-tag-folding-set-overlay-visibility
+   (or ov (semantic-tag-folding-get-overlay)) nil))
 
 (defun semantic-tag-folding-show-all ()
   "Unfold all the tags in this buffer."
   (interactive)
-    (semantic-tag-folding-fold-or-show-tags (semantic-fetch-available-tags) nil))
+    (semantic-tag-folding-fold-or-show-tags
+     (semantic-fetch-available-tags) nil))
 
 (defun semantic-tag-folding-fold-all ()
   "Fold all the tags in this buffer."
   (interactive)
-    (semantic-tag-folding-fold-or-show-tags (semantic-fetch-available-tags) t))
+    (semantic-tag-folding-fold-or-show-tags
+     (semantic-fetch-available-tags) t))
 
 (defun semantic-tag-folding-show-children ()
   "Unfold all the tags in this buffer."
   (interactive)
-  (semantic-tag-folding-fold-or-show-tags (cons (semantic-current-tag) (semantic-tag-components (semantic-current-tag))) nil))
+  (semantic-tag-folding-fold-or-show-tags
+   (cons (semantic-current-tag)
+	 (semantic-tag-components (semantic-current-tag)))
+   nil))
 
 (defun semantic-tag-folding-fold-children ()
   "Unfold all the tags in this buffer."
   (interactive)
-  (semantic-tag-folding-fold-or-show-tags (cons (semantic-current-tag) (semantic-tag-components (semantic-current-tag))) t))
-
+  (semantic-tag-folding-fold-or-show-tags
+   (cons (semantic-current-tag) 
+	 (semantic-tag-components (semantic-current-tag)))
+   t))
 
 (defun semantic-tag-folding-fold-or-show-tags (tags fold)
 "Change the fold state of TAGS to FOLD."
