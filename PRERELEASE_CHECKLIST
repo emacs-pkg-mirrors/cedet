@@ -9,25 +9,9 @@ Before a dist is made:
 
 Update all version numbers
 
-  * C-x C-f cedet/<package>/<package>.el
-  * M-x ede-update-version
-    - Update version to next logical number.
-
-Update cedet.el version numbers
-
-  * cedet/common/cedet.el has version references for all
-    sub-packages in CEDET.
-     - Updating this list protects users from shadow packages.
-
-Update CEDET version number
-
-  * Edit cedet/Makefile
-  * Edit CEDET_VERSION variable.
-
-Update all Makefiles
-
-  * C-x C-f cedet/<package>/<package>.el
-  * M-x ede-proj-regenerate
+  * M-x load-file RET ~/cedet/cedet-update-version.el
+  * M-x cuv-update
+    - Answer all questions, updating verion numbers as needed.
 
 Add a CVS tag
 
