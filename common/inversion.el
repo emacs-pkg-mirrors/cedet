@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.21 2005/04/19 03:27:07 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.22 2005/04/19 17:59:10 ponced Exp $
 
 ;;; Code:
 (defvar inversion-version "1.1"
@@ -74,22 +74,24 @@
 ;; 
 ;; Sept 3, 2002:  First general publication.
 
-(defvar inversion-decoder-ring
+(defconst inversion-decoders
   '(
     (alpha  "^\\([0-9]+\\)\\.\\([0-9]+\\)alpha\\([0-9]+\\)$" 3)
-    (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)beta\\([0-9]+\\)$" 3)
-    (prerelease "^\\([1-10]+\\)\\.\\([1-10]+\\)pre\\([1-10]+\\)$" 3)
+    (beta "^\\([0-9]+\\)\\.\\([0-9]+\\)beta\\([0-9]+\\)$" 3)
+    (prerelease "^\\([0-9]+\\)\\.\\([0-9]+\\)pre\\([0-9]+\\)$" 3)
     (full   "^\\([0-9]+\\)\\.\\([0-9]+\\)$" 2)
     (point  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\.\\([0-9]+\\)$" 3)
     )
-  "List of regular expressions for version strings.
-Each element is of the form:
+  "List of decoders for version strings.
+Each decoder is of the form:
+
   ( RELEASE-TYPE REGEXP MAX )
-Where RELEASE-TYPE is a symbol specifying something like `beta'
-or `alpha'.  REGEXP is the regular expression to match.
+
+RELEASE-TYPE is a symbol specifying something like `beta' or `alpha'.
+REGEXP is the regular expression to match a version string.
 MAX is the maximum number of match-numbers in the release number.
-The order of the list is important.  Least stable versions should
-be first.  More stable version should be last.")
+Decoders must be ordered to decode least stable versions before the
+more stable ones.")
 
 ;;; Version Checking
 ;;
@@ -98,26 +100,22 @@ be first.  More stable version should be last.")
 Return value is of the form:
   (RELEASE MAJOR MINOR ...)
 where RELEASE is a symbol such as `full', or `beta'."
-  (let ((ring inversion-decoder-ring)
+  (let ((decoders inversion-decoders)
 	(result nil))
-    (while (and ring (not result))
-      (if (string-match (car (cdr (car ring))) version-string)
+    (while (and decoders (not result))
+      (if (string-match (nth 1 (car decoders)) version-string)
 	  (let ((ver nil)
-		(num-left (nth 2 (car ring)))
+		(num-left (nth 2 (car decoders)))
 		(count 1))
 	    (while (<= count num-left)
-	      (setq ver
-		    (cons (string-to-int
-			   (substring version-string
-				      (match-beginning count)
-				      (match-end count)))
-			  ver)
+	      (setq ver (cons (string-to-int
+                               (substring version-string
+                                          (match-beginning count)
+                                          (match-end count)))
+                              ver)
 		    count (1+ count)))
-	    (setq result
-		  (cons (car (car ring))
-			(nreverse ver)))
-	    ))
-      (setq ring (cdr ring)))
+	    (setq result (cons (caar decoders) (nreverse ver))))
+        (setq decoders (cdr decoders))))
     result))
 
 (defun inversion-package-version (package)
@@ -164,9 +162,9 @@ not an indication of new features or bug fixes."
 
 (defun inversion-release-to-number (release-symbol)
   "Convert RELEASE-SYMBOL into a number."
-  (let* ((ra (assoc release-symbol inversion-decoder-ring))
-	 (rn (- (length inversion-decoder-ring)
-		(length (member ra inversion-decoder-ring)))))
+  (let* ((ra (assoc release-symbol inversion-decoders))
+	 (rn (- (length inversion-decoders)
+		(length (member ra inversion-decoders)))))
     rn))
 
 (defun inversion-= (ver1 ver2)
