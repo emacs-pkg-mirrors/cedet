@@ -1,9 +1,9 @@
 ;;; cedet-update-version --- Update version numberes in all cedet packages.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: cedet-update-version.el,v 1.1 2005/04/19 01:34:31 zappo Exp $
+;; X-RCS: $Id: cedet-update-version.el,v 1.2 2005/04/19 01:40:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
