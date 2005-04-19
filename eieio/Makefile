@@ -10,7 +10,7 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH=../common/ ../speedbar/
+LOADPATH=../common/ ../speedbar/ 
 LOADDEFS=eieio-loaddefs.el
 LOADDIRS=.
 init_LISP=eieio-load.el
@@ -21,7 +21,7 @@ eieio_info_TEXINFOS=eieio.texi
 MAKEINFO=makeinfo
 test_LISP=eieio-tests.el eieio-test-methodinvoke.el
 Misc_MISC=INSTALL ChangeLog
-VERSION=1.0
+VERSION=1.0beta1
 DISTDIR=$(top)eieio-$(VERSION)
 
 
