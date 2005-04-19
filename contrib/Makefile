@@ -21,8 +21,8 @@ setup_LISP=cedet-contrib.el
 wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-javascript-jv.wy
 EMACS=emacs
 wy_SAMENATIC_GRAMMAR_EL=wisent-csharp-wy.el wisent-javascript-jv-wy.el
-lisp_LISP=wisent-csharp.el semantic-matlab.el wisent-javascript.el
-VERSION=1.0
+lisp_LISP=wisent-csharp.el semantic-matlab.el wisent-javascript.el semantic-tag-folding.el
+VERSION=1.0pre1
 DISTDIR=$(top)Contrib-$(VERSION)
 
 
