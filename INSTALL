@@ -50,6 +50,10 @@ install scripts:
 ;; Enabling SEMANTIC minor modes.  See semantic/INSTALL for more ideas.
 (semantic-load-enable-code-helpers)
 
+  Some items in the contrib directory may need additional study or
+  installation.  Read contrib/INSTALL for specifics on those extra
+  packages.
+
 4) Configuration:
 
 You can configure how the individual packages load in the above example
