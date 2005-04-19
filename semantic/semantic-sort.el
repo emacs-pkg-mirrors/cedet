@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.19 2005/04/16 14:25:00 ponced Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.20 2005/04/19 02:57:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -445,7 +445,7 @@ has some sort of label defining a parent.  The parent return will
 be a string.
 
 The default behavior, if not overridden with
-`tag-tag-member-parent' is get the 'parent extra
+`tag-member-parent' gets the 'parent extra
 specifier of TAG.
 
 If this function is overridden, use
