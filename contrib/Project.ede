@@ -1,7 +1,8 @@
-;; Object ede-proj-project
+;; Object Contrib
 ;; EDE project file.
-(ede-proj-project "ede-proj-project"
+(ede-proj-project "Contrib"
   :name "Contrib"
+  :version "1.0pre1"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-aux "misc"
