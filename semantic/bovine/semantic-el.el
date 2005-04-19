@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.34 2005/02/17 03:59:00 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.35 2005/04/19 02:59:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -397,7 +397,7 @@ Return a bovination list to use."
 
 ;;; Mode setup
 ;;
-(define-mode-local-override semantic-find-dependency
+(define-mode-local-override semantic-dependency-tag-file
   emacs-lisp-mode (tag)
   "Find the file BUFFER depends on described by TAG."
   (let ((f (file-name-sans-extension
