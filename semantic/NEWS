@@ -126,6 +126,12 @@ table.
 
 Called to lexically analyze text in an area of the current buffer.
 
+*** debugging bad syntax
+
+Using `semantic-lex-debug-analyzers' combined with `debug-on-error'
+allows you to debug analyzers inside usually protected parsing
+routines.
+
 ** Parsing
 
 *** API to manage a parse tree state.
