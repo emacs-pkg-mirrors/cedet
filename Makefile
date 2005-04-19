@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.10 2005/02/03 13:19:01 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.11 2005/04/19 01:48:26 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -48,8 +48,9 @@ FIND=find
 #RM = rm -f
 
 ############### Internal part of the Makefile ###############
-CEDET_VERSION=1.0pre1
-CEDET_FILES=Makefile INSTALL
+CEDET_VERSION=$(shell grep "defconst cedet-version" common/cedet.el | cut -d " " -f 3)
+
+CEDET_FILES=Makefile INSTALL cedet-update-version.el PRERELEASE_CHECKLIST
 DIST_ROOT=cedet-$(CEDET_VERSION)
 DIST_DIR=$(CEDET_HOME)/$(DIST_ROOT)
 DIST_FILE=$(DIST_DIR).tar.gz
@@ -130,5 +131,8 @@ dist: # $(CEDET_PACKAGES)
 	done;
 	tar -cvzf $(DIST_FILE) $(DIST_ROOT)
 	rm -rf $(DIST_DIR)
+
+testvar:
+	@echo "$(TESTVAR)=$($(TESTVAR))"
 
 # Makefile ends here
