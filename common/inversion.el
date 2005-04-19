@@ -1,9 +1,9 @@
 ;;; inversion.el --- When you need something in version XX.XX
 
-;;; Copyright (C) 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.20 2003/09/23 15:13:28 ponced Exp $
+;; X-RCS: $Id: inversion.el,v 1.21 2005/04/19 03:27:07 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.1"
@@ -78,6 +78,7 @@
   '(
     (alpha  "^\\([0-9]+\\)\\.\\([0-9]+\\)alpha\\([0-9]+\\)$" 3)
     (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)beta\\([0-9]+\\)$" 3)
+    (prerelease "^\\([1-10]+\\)\\.\\([1-10]+\\)pre\\([1-10]+\\)$" 3)
     (full   "^\\([0-9]+\\)\\.\\([0-9]+\\)$" 2)
     (point  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\.\\([0-9]+\\)$" 3)
     )
