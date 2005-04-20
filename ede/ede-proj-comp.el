@@ -1,10 +1,10 @@
 ;;; ede-proj-comp.el --- EDE Generic Project compiler/rule driver
 
-;;;  Copyright (C) 1999, 2000, 2001, 2004  Eric M. Ludlam
+;;;  Copyright (C) 1999, 2000, 2001, 2004, 2005  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-comp.el,v 1.7 2004/03/27 02:58:21 zappo Exp $
+;; RCS: $Id: ede-proj-comp.el,v 1.8 2005/04/20 02:45:15 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -242,8 +242,8 @@ This will prevent rules from creating duplicate variables or rules."
 	     ((consp obj)
 	      (autoconf-insert-new-macro (car obj) (cdr obj)))
 	     (t (error "Autoconf directives must be a string, or cons cell")))
-     ))
-  (oref this autoconf))
+     )
+   (oref this autoconf)))
 
 (defmethod ede-proj-flush-autoconf ((this ede-compilation-program))
   "Flush the configure file (current buffer) to accomodate THIS."
