@@ -3,10 +3,10 @@
 ;;; Copyright (C) 2002, 2003, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.22 2005/04/19 17:59:10 ponced Exp $
+;; X-RCS: $Id: inversion.el,v 1.23 2005/04/20 03:16:17 zappo Exp $
 
 ;;; Code:
-(defvar inversion-version "1.1"
+(defvar inversion-version "1.2"
   "Current version of InVersion.")
 (defvar inversion-incompatible-version "0.1alpha1"
   "An earlier release which is incompatible with this release.")
@@ -77,7 +77,7 @@
 (defconst inversion-decoders
   '(
     (alpha  "^\\([0-9]+\\)\\.\\([0-9]+\\)alpha\\([0-9]+\\)$" 3)
-    (beta "^\\([0-9]+\\)\\.\\([0-9]+\\)beta\\([0-9]+\\)$" 3)
+    (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)beta\\([0-9]+\\)$" 3)
     (prerelease "^\\([0-9]+\\)\\.\\([0-9]+\\)pre\\([0-9]+\\)$" 3)
     (full   "^\\([0-9]+\\)\\.\\([0-9]+\\)$" 2)
     (point  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\.\\([0-9]+\\)$" 3)
@@ -393,7 +393,9 @@ INSTALLDIR path."
 	(c3 (inversion-decode-version "1.3beta4"))
 	(c4 (inversion-decode-version "1.3beta5"))
 	(c5 (inversion-decode-version "1.3.4"))
-	(c6 (inversion-decode-version "2.3alpha1")))
+	(c6 (inversion-decode-version "2.3alpha1"))
+	(c7 (inversion-decode-version "1.3"))
+	(c8 (inversion-decode-version "1.3pre1")))
     (if (not (and
 	      (inversion-= c1 c1)
 	      (inversion-< c1i c1)
@@ -406,11 +408,20 @@ INSTALLDIR path."
 	      (inversion-< c2 c6)
 	      (inversion-< c3 c5)
 	      (inversion-< c3 c6)
+	      (inversion-< c7 c6)
+	      (inversion-< c4 c7)
+	      (inversion-< c2 c7)
+	      (inversion-< c8 c6)
+	      (inversion-< c8 c7)
+	      (inversion-< c4 c8)
+	      (inversion-< c2 c8)
 	      ;; Negatives
 	      (not (inversion-< c3 c2))
 	      (not (inversion-< c4 c3))
 	      (not (inversion-< c5 c4))
 	      (not (inversion-< c6 c5))
+	      (not (inversion-< c7 c2))
+	      (not (inversion-< c7 c8))
 	      ;; Test the tester on inversion
 	      (not (inversion-test 'inversion inversion-version))
 	      ;; Test that we throw an error
