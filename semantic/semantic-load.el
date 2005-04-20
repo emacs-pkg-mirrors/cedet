@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.43 2005/01/29 04:34:06 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.44 2005/04/20 19:36:18 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -106,7 +106,13 @@ This includes `semantic-load-enable-minimum-features' plus:
   (when (boundp 'header-line-format)
     (global-semantic-stickyfunc-mode 1))
 
-  (global-semantic-idle-completions-mode 1)
+  ;; Idle Completions mode is more annoying than useful
+  ;; when it keeps splitting the window to show you completions.
+  ;; Using speedbar for this would be better.
+  (condition-case nil
+      (when (and (featurep 'tooltip) tooltip-mode)
+	(global-semantic-idle-completions-mode 1))
+    (error nil))
 
   (global-semantic-idle-summary-mode 1)
 
