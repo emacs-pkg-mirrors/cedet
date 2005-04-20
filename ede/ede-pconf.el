@@ -1,10 +1,10 @@
 ;;; ede-pconf.el --- configure.in maintenance for EDE
 
-;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;  Copyright (C) 1998, 1999, 2000, 2005  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: ede-pconf.el,v 1.10 2001/01/10 06:55:03 zappo Exp $
+;; RCS: $Id: ede-pconf.el,v 1.11 2005/04/20 02:43:47 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -68,8 +68,8 @@
      ;;
     (ede-proj-dist-makefile this)
     ;; Loop over all targets to clean and then add themselves in.
-    (ede-map-targets 'ede-proj-flush-autoconf this)
-    (ede-map-targets 'ede-proj-tweak-autoconf this)
+    (ede-map-targets this 'ede-proj-flush-autoconf)
+    (ede-map-targets this 'ede-proj-tweak-autoconf)
     ;; Now save
     (save-buffer)
     ;; Verify aclocal
@@ -83,7 +83,8 @@
 	(if (not (ede-expand-filename (ede-toplevel this) "config.h.in"))
 	    (setq postcmd "autoheader;"))))
     ;; Verify Makefile.in, and --add-missing files (cheaply)
-    (setq add-missing (ede-map-any-target-p 'ede-proj-configure-add-missing this))
+    (setq add-missing (ede-map-any-target-p this
+					    'ede-proj-configure-add-missing))
     (if (not (ede-expand-filename (ede-toplevel this) "Makefile.in"))
 	(progn
 	  (setq postcmd (concat postcmd "automake"))
