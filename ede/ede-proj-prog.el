@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-prog.el,v 1.6 2001/05/19 23:04:59 zappo Exp $
+;; RCS: $Id: ede-proj-prog.el,v 1.7 2005/04/20 02:51:44 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -65,9 +65,12 @@ options to the linker.")
       (concat (ede-name this) "_LDADD")
     (mapcar (lambda (c) (insert " -l" c)) (oref this ldlibs)))
   ;; For other targets THIS depends on
-  (ede-pmake-insert-variable-shared
-      (concat (ede-name this) "_DEPENDENCIES")
-    (mapcar (lambda (d) (insert d)) (oref this FOOOOOOOO)))
+  ;;
+  ;; NOTE: FIX THIS
+  ;; 
+  ;;(ede-pmake-insert-variable-shared
+  ;;    (concat (ede-name this) "_DEPENDENCIES")
+  ;;  (mapcar (lambda (d) (insert d)) (oref this FOOOOOOOO)))
   (call-next-method))
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile-program))
