@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.33 2005/04/16 14:25:44 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.34 2005/04/22 02:24:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,9 +34,8 @@
 ;;       with standard styles common to typed object oriented languages.
 ;;       These functions can access these data elements from a tag.
 ;;    3) Generic Tag Access
-;;       Not implemented yet.
-;;       Access to tag structure in a more direct way.  May not be forward
-;;       compatible.
+;;       Access to tag structure in a more direct way.
+;;         ** May not be forward compatible.
 ;;
 ;; II.  There is also an API for tag creation.  Use `semantic-tag' to create
 ;;     a new tag.
