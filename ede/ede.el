@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.66 2005/04/19 03:20:27 zappo Exp $
+;; RCS: $Id: ede.el,v 1.67 2005/04/22 01:46:33 zappo Exp $
 (defconst ede-version "1.0pre1"
   "Current version of the Emacs EDE.")
 
@@ -812,7 +812,11 @@ Argument FILE is the file or directory to load a project from."
 				:name (read-string "Name: ")
 				:file
 				(expand-file-name (oref obj proj-file))
-				:targets nil))))
+				:targets nil)))
+	 (inits (oref obj initializers)))
+    (while inits
+      (eieio-oset nobj (car inits) (car (cdr inits)))
+      (setq inits (cdr (cdr inits))))
     (if (ede-parent-project)
 	(ede-add-subproject (ede-parent-project) nobj))
     (ede-commit-project nobj))
