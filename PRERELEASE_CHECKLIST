@@ -47,6 +47,7 @@ CEDET & Common area
        is updated.
      - Check `inversion' based requires to make sure the correct dependencies
        exist.
+     - M-x inversion-unit-test RET
 
   * Start in a clean Emacs:
     - Start emacs this way:
@@ -61,7 +62,11 @@ EIEIO
 
   * In a clean Emacs
 
-    M-x load-library RET eieio-tests RET
+    M-x load-file RET eieio/eieio-tests.el RET
+    M-x load-file RET eieio/eieio-test-methodinvoke.el RET
+
+  * Running tests for semantic/semanticdb, and EDE both test
+    other basic EIEIO features.
 
 Semantic
 
@@ -152,6 +157,18 @@ EDE
      - For files in these project, verify the Project menu
      - Try builds for these files
      - Try some other menu items
+
+   * Create a new test project.
+     - Create a new directory, and a test file.
+     - M-x ede-new RET Make RET testname RET
+     - M-x ede-proj-regenerate RET
+     - Verify Makefile creation.
+     - Create source files (like main.c, or main.el)
+     - Create targets with those source files.  Verify Makefile.
+
+     - Repeat above with an EDE project of type Automake
+     - Verify construction of all automake support files like AUTHORS
+       file, and running of autoconf.
 
 COGRE
 
