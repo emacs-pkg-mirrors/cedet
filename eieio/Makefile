@@ -20,7 +20,7 @@ examples_LISP=tree.el call-tree.el chart.el eieio-speedbar.el linemark.el lmcomp
 eieio_info_TEXINFOS=eieio.texi
 MAKEINFO=makeinfo
 test_LISP=eieio-tests.el eieio-test-methodinvoke.el
-Misc_MISC=INSTALL ChangeLog
+Misc_MISC=INSTALL ChangeLog NEWS
 VERSION=1.0beta1
 DISTDIR=$(top)eieio-$(VERSION)
 
