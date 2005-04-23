@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.53 2005/02/17 02:03:32 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.54 2005/04/23 12:50:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -748,8 +748,44 @@ This makes it appear that the first line of that tag is
 
 (defvar semantic-stickyfunc-mode-map
   (let ((km (make-sparse-keymap)))
+    (define-key km [ header-line down-mouse-1 ] 'semantic-stickyfunc-menu)
     km)
   "Keymap for stickyfunc minor mode.")
+
+(defvar semantic-stickyfunc-popup-menu nil
+  "Menu used if the user clicks on the header line used by stickyfunc mode.")
+
+(easy-menu-define
+  semantic-stickyfunc-popup-menu
+  semantic-stickyfunc-mode-map
+  "Stickyfunc Menu"
+  '("Stickyfunc Mode"  :visible (progn nil)
+    [ "Copy Headerline Tag" senator-copy-tag  
+      :active (semantic-current-tag)
+      :help "Copy the current tag to the tag ring"]
+    [ "Kill Headerline Tag" senator-kill-tag
+      :active (semantic-current-tag)
+      :help "Kill tag text to the kill ring, and copy the tag to the tag ring"
+      ]
+    [ "Copy Headerline Tag to Register" senator-copy-tag-to-register
+      :active (semantic-current-tag)
+      :help "Copy the current tag to a register"
+      ]
+    [ "Narrow To Headerline Tag" senator-narrow-to-defun
+      :active (semantic-current-tag)
+      :help "Narrow to the bounds of the current tag."]
+    [ "Fold Headerline Tag" senator-fold-tag-toggle
+      :active (semantic-current-tag)
+      :style toggle
+      :selected (let ((tag (semantic-current-tag)))
+		  (and tag (semantic-tag-folded-p tag)))
+      :help "Fold the current tag to one line"
+      ]
+    "---"
+    [ "About This Header Line"
+      (lambda () (interactive)
+	(describe-function 'semantic-stickyfunc-mode)) t])
+  )
 
 (defvar semantic-stickyfunc-mode nil
   "Non-nil if stickyfunc minor mode is enabled.
@@ -948,6 +984,22 @@ If there is no function, disable the header line."
     (while (string-match "\t" str start)
       (setq str (replace-match "        " t t str 0)))
     str))
+
+(defun semantic-stickyfunc-menu (event)
+  "Popup a menu that can help a user understand stickyfunc-mode.
+Argument EVENT describes the event that caused this function to be called."
+  (interactive "e")
+  (let* ((startwin (selected-window))
+	 (win (car (car (cdr event))))
+	 (eb (window-buffer win))
+	 )
+    (select-window win t)
+    (save-excursion
+      (goto-char (window-start win))
+      (sit-for 0)
+      (popup-menu semantic-stickyfunc-popup-menu event)
+      )
+    (select-window startwin)))
 
 (semantic-add-minor-mode 'semantic-stickyfunc-mode
                          "" ;; Don't need indicator.  It's quite visible
