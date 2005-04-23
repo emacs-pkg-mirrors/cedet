@@ -187,6 +187,12 @@ COGRE
      - Verify the grpah.  (on parent, some direct children.)
      - Move some blocks around (M-f, M-b, M-n, M-p)
 
+DEPENDANT TOOLS
+---------------
+
+   * Test this new release against dependent tools, including:
+     - JDEE
+     - ECB
 
 After patches are applied:
 -------------------------
