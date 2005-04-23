@@ -41,7 +41,7 @@
    (ede-proj-target-makefile-miscelaneous "Misc"
     :name "Misc"
     :path ""
-    :source '("INSTALL" "ChangeLog")
+    :source '("INSTALL" "ChangeLog" "NEWS")
     :partofall 'nil
     )
    )
