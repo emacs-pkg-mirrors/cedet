@@ -19,7 +19,7 @@ Add a CVS tag
     - mkdir <some dir>
     - cvs -d <username>@cvs.sourceforge.net:/cvsroot/cedet co cedet
     - mv cedet cedet-<branchname>  # (such as 1p0beta3)
-    - cd cedet
+    - cd cedet-branchname
     - cvs tag -b <branchname>     
 
   * update new sandbox to branch
