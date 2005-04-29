@@ -1,5 +1,5 @@
 ;;; semantic-tag-folding.el --- semantic decoration style to enable folding of semantic tags
-;; Time-stamp: <2005-02-27 11:04:57 sacharya>
+;; Time-stamp: <2005-04-28 17:03:44 sacharya>
 
 ;;; Copyright (C) 2005 Suraj Acharya
 
@@ -237,8 +237,8 @@ minor mode is enabled."
 
 
 (defcustom semantic-tag-folding-allow-folding-of
-  '((type . inner) (function . t) (variable . t) (include . t)
-    (comment . t) (code . t))
+  '((type . nil) (function . nil) (variable . nil) (include . nil)
+    (comment . nil) (package . nil))
   "A set of semantic classes.  Tags of these classes will be allowed to be folded and unfolded by this mode."
   :group 'semantic
   :type ;;    '(alist    :key-type  symbol   :value-type boolean :options (type function variable include package code))
@@ -259,11 +259,14 @@ minor mode is enabled."
         (cons :format "%v"
 	      (const :tag "Comment blocks preceeding tags" comment)
 	      (boolean :tag "Fold by default"))
-        (cons :format "%v" 
+        (cons :format "%v"
+	      (const :tag "Package declarations" package)
+	      (boolean :tag "Fold by default"))
+        (cons :format "%v"
 	      (const :tag "Code regions" code)
 	      (boolean :tag "Fold by default"))
         (cons :format "%v"
-	      (const :tag "Package declarations" package)
+	      (const :tag "Code regions" block)
 	      (boolean :tag "Fold by default"))
         (repeat :tag "Other Semantic classes"
 		(cons :format "%v" (symbol :tag "Semantic class" code)
@@ -315,7 +318,8 @@ unfolded."
   (if symbol (set-default symbol value))
   (cond
    ((not (functionp 'define-fringe-bitmap)) nil)
-   ((eq semantic-tag-folding-fringe-image-style 'plusminus)
+   ((eq value 'plusminus)
+
     (define-fringe-bitmap  'semantic-tag-folding-folded
       ;; a plus sign
       [#B00011000
@@ -346,7 +350,7 @@ unfolded."
       [#B11111111
        #B11111111]))
 
-   ((eq semantic-tag-folding-fringe-image-style 'triangles)
+   ((eq value 'triangles)
 
     (define-fringe-bitmap  'semantic-tag-folding-unfolded
       ;; a triangle pointing downwards
@@ -365,23 +369,24 @@ unfolded."
        #B111000
        #B110000
        #B100000])
-   (define-fringe-bitmap  'semantic-tag-folding-highlight-top
-     ;; a triangle pointing downwards
-     [#B11111110
-      #B01000100
-      #B00101000
-      #B00010000])
 
-   (define-fringe-bitmap  'semantic-tag-folding-highlight-middle
-     ;; a vertical bar
-     [#B00010000] nil nil '(center t))
+    (define-fringe-bitmap  'semantic-tag-folding-highlight-top
+      ;; a triangle pointing downwards
+      [#B11111110
+       #B01000100
+       #B00101000
+       #B00010000])
 
-   (define-fringe-bitmap  'semantic-tag-folding-highlight-bottom
-     ;; a triangle pointing upwards
-     [#B00010000
-      #B00101000
-      #B01000100
-      #B11111110])
+    (define-fringe-bitmap  'semantic-tag-folding-highlight-middle
+      ;; a vertical bar
+      [#B00010000] nil nil '(center t))
+
+    (define-fringe-bitmap  'semantic-tag-folding-highlight-bottom
+      ;; a triangle pointing upwards
+      [#B00010000
+       #B00101000
+       #B01000100
+       #B11111110])
     )
    ))
 
@@ -395,8 +400,11 @@ This variable determines the bitmaps drawn in the fringe to
   :set 'semantic-tag-folding-set-fringe-image-style)
 
 (defun semantic-tag-folding-allow-folding-of (class)
-"Is folding of tags of semantic class CLASS allowed?"
-  (assq class semantic-tag-folding-allow-folding-of))
+  "Is folding of tags of semantic class CLASS allowed?"
+  (or
+   (assq class semantic-tag-folding-allow-folding-of)
+   (assq class (car (last semantic-tag-folding-allow-folding-of)))
+   ))
 
 (defun semantic-tag-folding-hidden-by-default (class)
 "Are tags of semantic class CLASS to be hidden by default?"
@@ -439,44 +447,45 @@ influence the output of this function."
   "Create decoration overlays for TAG.
 Also put a marker in the fringe for each thing that can be
 collapsed."
-  (with-current-buffer (semantic-tag-buffer tag)
-    (let ((point (point))
-          (tag-start (semantic-tag-start tag))
-          (tag-end (semantic-tag-end tag)))
-      ;; fold the comment preceding this tag
-      (if (semantic-tag-folding-allow-folding-of 'comment)
-          (let ((start (progn
+  (when (semantic-tag-buffer tag)
+    (with-current-buffer (semantic-tag-buffer tag)
+      (let ((point (point))
+            (tag-start (semantic-tag-start tag))
+            (tag-end (semantic-tag-end tag)))
+        ;; fold the comment preceding this tag
+        (if (semantic-tag-folding-allow-folding-of 'comment)
+            (let ((start (progn
+                           (goto-char tag-start)
+                           (when (forward-comment -1)
+                             (do ((ret (point-at-eol) (point-at-eol)))
+                                 ( ;; until we see an empty line, or there are
+                                  ;; no more comments
+                                  (or (re-search-backward "\n\n" (- (point) 2) t)
+                                      (not (forward-comment -1)))
+                                  ;; return
+                                  ret)))))
+                  (end (progn
                          (goto-char tag-start)
-                         (when (forward-comment -1)
-                           (do ((ret (point-at-eol) (point-at-eol)))
-                               ( ;; until we see an empty line, or there are
-				 ;; no more comments
-                                (or (re-search-backward "\n\n" (- (point) 2) t)
-                                    (not (forward-comment -1)))
-                                ;; return
-                                ret)))))
-                (end (progn
-                       (goto-char tag-start)
-                       (- (point-at-bol) 1))))
-            (semantic-tag-folding-create-folding-overlays tag start end point t)))
-      ;; Fold the body of this tag.
-      ;; If folding comments is enabled all tags are passed into this
-      ;; function, so we need to check if folding is enabled for this
-      ;; tag type
-      (if (or (not (semantic-tag-folding-allow-folding-of 'comment)) (semantic-tag-folding-allow-folding-of (semantic-tag-class tag)))
-          (let ((start (progn
-                         (goto-char tag-start)
-                         (point-at-eol)))
-                (end (if (eq (semantic-tag-class tag) 'include)
-                         (progn
-                           (let ((tag-cursor tag) (last-tag-cursor tag))
-                             (while (eq (semantic-tag-class tag-cursor) 'include)
-                               (setq last-tag-cursor tag-cursor)
-                               (setq tag-cursor (semantic-find-tag-by-overlay-next (semantic-tag-end tag-cursor))))
-                             (semantic-tag-end last-tag-cursor)))
-                       tag-end)))
-            (semantic-tag-folding-create-folding-overlays tag start end point nil)))
-      (goto-char point))))
+                         (- (point-at-bol) 1))))
+              (semantic-tag-folding-create-folding-overlays tag start end point t)))
+        ;; Fold the body of this tag.
+        ;; If folding comments is enabled all tags are passed into this
+        ;; function, so we need to check if folding is enabled for this
+        ;; tag type
+        (if (or (not (semantic-tag-folding-allow-folding-of 'comment)) (semantic-tag-folding-allow-folding-of (semantic-tag-class tag)))
+            (let ((start (progn
+                           (goto-char tag-start)
+                           (point-at-eol)))
+                  (end (if (eq (semantic-tag-class tag) 'include)
+                           (progn
+                             (let ((tag-cursor tag) (last-tag-cursor tag))
+                               (while (eq (semantic-tag-class tag-cursor) 'include)
+                                 (setq last-tag-cursor tag-cursor)
+                                 (setq tag-cursor (semantic-find-tag-by-overlay-next (semantic-tag-end tag-cursor))))
+                               (semantic-tag-end last-tag-cursor)))
+                         tag-end)))
+              (semantic-tag-folding-create-folding-overlays tag start end point nil)))
+        (goto-char point)))))
 
 
 (defun semantic-tag-folding-create-folding-overlays (tag start end point comment)
@@ -486,9 +495,9 @@ positions, usually inside TAG, but can be outside for comment and
 include block overlays.  POINT is the saved location of point,
 this is used to unfold any TAGS around point by default.  COMMENT
 is non-nil if the fold region is a comment."
-  (let ((fold (or (and  (functionp semantic-tag-folding-function)
-                     (apply semantic-tag-folding-function (list tag comment)))
-                  semantic-tag-folding-function)))
+  (let ((fold (if (functionp semantic-tag-folding-function)
+                  (apply semantic-tag-folding-function (list tag comment))
+                semantic-tag-folding-function)))
     (when (and start end (< start end) (> (count-lines start end) 1))
       (let* ((ov (semantic-decorate-tag tag start end))
              (start2 (if comment
@@ -507,13 +516,13 @@ is non-nil if the fold region is a comment."
         (if (and (symbolp semantic-tag-folding-function)
 		 (semantic-tag-get-attribute tag 'semantic-tag-folding-comment)
 		 comment)
-            (setq fold (eq (semantic-tag-get-attribute 
+            (setq fold (eq (semantic-tag-get-attribute
 			    tag 'semantic-tag-folding-comment) 'fold)))
 
         (if (and (symbolp semantic-tag-folding-function)
 		 (semantic-tag-get-attribute tag 'semantic-tag-folding-tag)
 		 (not comment))
-            (setq fold (eq (semantic-tag-get-attribute 
+            (setq fold (eq (semantic-tag-get-attribute
 			    tag 'semantic-tag-folding-tag) 'fold)))
 
         (if (or (not fold)
@@ -580,7 +589,7 @@ is non-nil if the fold region is a comment."
   "Unfold all the tags in this buffer."
   (interactive)
   (semantic-tag-folding-fold-or-show-tags
-   (cons (semantic-current-tag) 
+   (cons (semantic-current-tag)
 	 (semantic-tag-components (semantic-current-tag)))
    t))
 
