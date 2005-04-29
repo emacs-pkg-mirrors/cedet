@@ -513,13 +513,13 @@ is non-nil if the fold region is a comment."
 		     'semantic-tag-folding-show-block)
 
         ;; check for fold state attributes
-        (if (and (symbolp semantic-tag-folding-function)
+        (if (and (functionp semantic-tag-folding-function)
 		 (semantic-tag-get-attribute tag 'semantic-tag-folding-comment)
 		 comment)
             (setq fold (eq (semantic-tag-get-attribute
 			    tag 'semantic-tag-folding-comment) 'fold)))
 
-        (if (and (symbolp semantic-tag-folding-function)
+        (if (and (functionp semantic-tag-folding-function)
 		 (semantic-tag-get-attribute tag 'semantic-tag-folding-tag)
 		 (not comment))
             (setq fold (eq (semantic-tag-get-attribute
@@ -595,10 +595,11 @@ is non-nil if the fold region is a comment."
 
 (defun semantic-tag-folding-fold-or-show-tags (tags fold)
 "Change the fold state of TAGS to FOLD."
-  (lexical-let ((fold fold)) (when semantic-decoration-mode
-    (semantic-decorate-clear-decorations tags)
-    (let ((semantic-tag-folding-function fold))
-      (semantic-decorate-add-decorations tags)))))
+  (lexical-let ((fold fold)) 
+    (when semantic-decoration-mode
+      (semantic-decorate-clear-decorations tags)
+      (let ((semantic-tag-folding-function fold))
+        (semantic-decorate-add-decorations tags)))))
 
 (defun semantic-tag-folding-get-overlay ()
   "Return the innermost semantic-tag-folding-folding overlay at point."
