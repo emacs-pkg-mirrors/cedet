@@ -1,11 +1,11 @@
 ;;; project-am.el --- A project management scheme based on automake files.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2003  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2003, 2005  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.24 2003/04/14 12:30:23 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.25 2005/04/30 15:00:02 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -43,12 +43,13 @@
   ;; Compatibility for makefile mode.
   (condition-case nil
       (require 'makefile "make-mode")
-    (error (require 'make-mode)))
+    (error (require 'make-mode "make-mode")))
 
-  (require 'eieio)
-  (require 'ede))
+  ;; Requiring the .el files prevents incomplete builds.
+  (require 'eieio "eieio.el")
+  (require 'ede "ede.el"))
 
-(eval-when-compile (require 'ede-speedbar))
+(eval-when-compile (require 'ede-speedbar "ede-speedbar.el"))
 (eval-when-compile (require 'compile))
 
 ;; customization stuff
