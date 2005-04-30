@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.44 2005/04/20 19:36:18 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.45 2005/04/30 18:02:33 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -80,13 +80,8 @@ This includes:
   "Enable some semantic features that provide coding assistance.
 This includes `semantic-load-enable-minimum-features' plus:
   `imenu' - Lists Semantic generated tags in the menubar.
-  `semantic-decoration-mode' - Decorate tags based on various attributes.
-  `semantic-stickyfunc-mode' - Tracks current function in header-line
-                               (when available).
   `semantic-idle-summary-mode' - Show a summary for the tag indicated by
                                  code under point.  (intellisense)
-  `semantic-idle-completions-mode' - Provide smart symbol completion
-                                 automatically at idle time.
   `senator-minor-mode' - Semantic Navigator, and global menu for all
                          features semantic."
   (interactive)
@@ -101,6 +96,24 @@ This includes `semantic-load-enable-minimum-features' plus:
 					  semantic-load-imenu-string)
 				       (error nil)))))
 
+  (global-semantic-idle-summary-mode 1)
+
+  ;; Do this last.  This allows other minor modes to get loaded
+  ;; in so they appear in the menu properly.
+  (global-senator-minor-mode 1)
+
+  )
+
+(defun semantic-load-enable-guady-code-helpers ()
+  "Enable semantic features that provide guady coding assistance.
+This includes `semantic-load-enable-code-helpers'.
+  `semantic-stickyfunc-mode' - Tracks current function in header-line
+                               (when available).
+  `semantic-idle-completions-mode' - Provide smart symbol completion
+                                 automatically at idle time.
+  `semantic-decoration-mode' - Decorate tags based on various attributes."
+  (interactive)
+
   (global-semantic-decoration-mode 1)
 
   (when (boundp 'header-line-format)
@@ -114,12 +127,7 @@ This includes `semantic-load-enable-minimum-features' plus:
 	(global-semantic-idle-completions-mode 1))
     (error nil))
 
-  (global-semantic-idle-summary-mode 1)
-
-  ;; Do this last.  This allows other minor modes to get loaded
-  ;; in so they appear in the menu properly.
-  (global-senator-minor-mode 1)
-
+  (semantic-load-enable-code-helpers)
   )
 
 (defun semantic-load-enable-excessive-code-helpers ()
@@ -130,11 +138,9 @@ This includes all features of `semantic-load-enable-code-helpers' plus:
 
   (semantic-load-enable-code-helpers)
 
-  (if (and semantic-load-turn-everything-on
-	   (fboundp #'which-func-mode))
+  (if (fboundp #'which-func-mode)
       (add-hook 'semantic-init-hooks (lambda ()
 				       (which-func-mode 1))))
-
   )
 
 (defun semantic-load-enable-semantic-debugging-helpers ()
