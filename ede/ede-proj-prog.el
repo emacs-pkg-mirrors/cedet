@@ -1,10 +1,10 @@
 ;;; ede-proj-prog.el --- EDE Generic Project program support
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2005  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-prog.el,v 1.7 2005/04/20 02:51:44 zappo Exp $
+;; RCS: $Id: ede-proj-prog.el,v 1.8 2005/04/30 17:49:12 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,7 +38,9 @@
 	   :documentation
 	   "Libraries, such as \"m\" or \"Xt\" which this program dependso on.
 The linker flag \"-l\" is automatically prepended.  Do not include a \"lib\"
-prefix, or a \".so\" suffix."
+prefix, or a \".so\" suffix.
+
+Note: Currently only used for Automake projects."
 	   )
    (ldflags :initarg :ldflags
 	    :initform nil
@@ -47,7 +49,9 @@ prefix, or a \".so\" suffix."
 	    :documentation
 	    "Additional flags to add when linking this target.
 Use ldlibs to add addition libraries.  Use this to specify specific
-options to the linker.")
+options to the linker.
+
+Note: Not currently used.  This bug needs to be fixed.")
    )
    "This target is an executable program.")
 
