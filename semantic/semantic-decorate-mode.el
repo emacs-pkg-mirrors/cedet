@@ -1,10 +1,10 @@
 ;;; semantic-decorate-mode.el --- Minor mode for decorating tags
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.9 2004/06/29 11:07:30 ponced Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.10 2005/04/30 18:01:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -312,6 +312,15 @@ Call `semantic-decorate-add-decorations' to add decorations.
 Called from `semantic-after-partial-cache-change-hook'."
   (semantic-decorate-add-decorations tag-list))
 
+
+;;; Enable/Disable toggling
+;;
+(defun semantic-decoration-style-enabled-p (style)
+  "Return non-nil if STYLE is currently enabled.
+Return nil if the style is disabled, or does not exist."
+  (let ((pair (assoc style semantic-decoration-styles)))
+    (and pair (cdr pair))))
+
 (defun semantic-toggle-decoration-style (name &optional arg)
   "Turn on/off the decoration style with NAME.
 Decorations are specified in `semantic-decoration-styles'.
@@ -338,13 +347,39 @@ Return non-nil if the decoration style is enabled."
           (message "Decoration style %s turned %s" (car style)
                    (if flag "on" "off"))))
       flag)))
+
+(defvar semantic-decoration-menu-cache nil
+  "Cache of the decoration menu.")
+
+(defun semantic-decoration-build-style-menu (style)
+  "Build a menu item for controlling a specific decoration STYLE."
+  (vector (car style)
+	  `(lambda () (interactive)
+	     (semantic-toggle-decoration-style
+	      ,(car style)))
+	  :style 'toggle
+	  :selected `(semantic-decoration-style-enabled-p ,(car style))
+	  ))
+
+(defun semantic-build-decoration-mode-menu (&rest ignore)
+  "Create a menu listing all the known decorations for toggling.
+IGNORE any input arguments."
+  (or semantic-decoration-menu-cache
+      (setq semantic-decoration-menu-cache
+	    (mapcar 'semantic-decoration-build-style-menu
+		    semantic-decoration-styles)
+	    )))
+
 
 ;;; Defining decoration styles
 ;;
-(defmacro define-semantic-decoration-style (name doc)
+(defmacro define-semantic-decoration-style (name doc &rest flags)
   "Define a new decoration style with NAME.
 DOC is a documentation string describing the decoration style NAME.
 It is appended to auto-generated doc strings.
+An Optional list of FLAGS can also be specified.  Flags are:
+  :enabled <value>  - specify the default enabled value for NAME.
+
 
 This defines two new overload functions respectively called `NAME-p'
 and `NAME-highlight', for which you must provide a default
@@ -361,8 +396,15 @@ To add other kind of decorations on a tag, `NAME-highlight' must use
 `semantic-decorate-tag', and other functions of the semantic
 decoration API found in this library."
   (let ((predicate   (semantic-decorate-style-predicate   name))
-        (highlighter (semantic-decorate-style-highlighter name)))
+        (highlighter (semantic-decorate-style-highlighter name))
+	(defaultenable (if (plist-member flags :enabled)
+			   (plist-get flags :enabled)
+			 t))
+	)
     `(progn
+       ;; Clear the menu cache so that new items are added when
+       ;; needed.
+       (setq semantic-decoration-menu-cache nil)
        ;; Create an override method to specify if a given tag belongs
        ;; to this type of decoration
        (define-overload ,predicate (tag)
@@ -375,7 +417,8 @@ decoration API found in this library."
                   name doc))
        ;; Add this to the list of primary decoration modes.
        (add-to-list 'semantic-decoration-styles
-                    (cons ',(symbol-name name) t))
+                    (cons ',(symbol-name name)
+			  ,defaultenable))
        )))
 
 ;;; Predefined decoration styles
@@ -407,8 +450,10 @@ Used by decoration style: `semantic-tag-boundary'."
       (and (eq c 'function)
            (not (semantic-tag-get-attribute tag :prototype-flag)))
       )
+     ;; Note: The below restriction confused users.
+     ;;
      ;; Nothing smaller than a few lines
-     (> (- (semantic-tag-end tag) (semantic-tag-start tag)) 150)
+     ;;(> (- (semantic-tag-end tag) (semantic-tag-start tag)) 150)
      ;; Random truth
      t)
     ))
@@ -429,7 +474,8 @@ Used by decoration style: `semantic-tag-boundary'."
 ;;; Private member highlighting
 ;;
 (define-semantic-decoration-style semantic-decoration-on-private-members
-  "Highlight class members that are designated as PRIVATE access.")
+  "Highlight class members that are designated as PRIVATE access."
+  :enabled nil)
 
 (defface semantic-decoration-on-private-members-face
   '((((class color) (background dark))
@@ -463,7 +509,8 @@ Used by the decoration style: `semantic-decoration-on-protected-members'."
   :group 'semantic-faces)
 
 (define-semantic-decoration-style semantic-decoration-on-protected-members
-  "Highlight class members that are designated as PROTECTED access.")
+  "Highlight class members that are designated as PROTECTED access."
+  :enabled nil)
 
 (defun semantic-decoration-on-protected-members-p-default (tag)
   "Return non-nil if TAG has PROTECTED access."
