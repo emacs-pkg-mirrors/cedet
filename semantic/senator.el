@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.103 2005/04/16 03:22:35 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.104 2005/04/30 18:05:17 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1459,7 +1459,7 @@ Valid keywords include:
 		 )
 		((eq style :variable)
 		 (senator-menu-item
-		  (vector (concat "Customize" name)
+		  (vector (concat "Customize " name)
 			  `(lambda (ARG) (interactive "p")
 			     (customize-variable (quote ,sym)))
 			  :help (format "Customize Variable %s" name)))
@@ -1882,6 +1882,33 @@ This is a buffer local variable.")
       ])
     )
    (list
+    "Tag Copy/Paste"
+    (senator-menu-item
+     [ "Copy Tag"
+       senator-copy-tag
+       :active (semantic-current-tag)
+       :help "Copy the current tag to the tag ring"
+       ])
+    (senator-menu-item
+     [ "Kill Tag"
+       senator-kill-tag
+       :active (semantic-current-tag)
+       :help "Kill tag text to the kill ring, and copy the tag to the tag ring"
+       ])
+    (senator-menu-item
+     [ "Yank Tag"
+       senator-yank-tag
+       :active (not (ring-empty-p senator-tag-ring))
+       :help "Yank a tag from the tag ring, inserting a summary/prototype"
+       ])
+    (senator-menu-item
+     [ "Copy Tag to Register"
+       senator-copy-tag-to-register
+       :active (semantic-current-tag)
+       :help "Copy the current tag to a register"
+       ])
+    )
+   (list
     "Tag Properties"
     (senator-menu-item
      [ "Fold Tag"
@@ -1892,18 +1919,6 @@ This is a buffer local variable.")
                    (and tag (semantic-tag-folded-p tag)))
        :help "Fold the current tag to one line"
        ])
-;;;    (senator-menu-item
-;;;     [ "Hide Tag"
-;;;       senator-make-invisible
-;;;       :active t
-;;;       :help "Make the current tag invisible"
-;;;       ])
-;;;    (senator-menu-item
-;;;     [ "Show Tag"
-;;;       senator-make-visible
-;;;       :active t
-;;;       :help "Make the current tag invisible"
-;;;       ])
     (senator-menu-item
      [ "Read Only"
        senator-toggle-read-only
@@ -1950,33 +1965,13 @@ This is a buffer local variable.")
        :help "Remove all special face properties on the current tag "
        ] )
     )
-   (list
-    "Tag Copy/Paste"
-    (senator-menu-item
-     [ "Copy Tag"
-       senator-copy-tag
-       :active (semantic-current-tag)
-       :help "Copy the current tag to the tag ring"
-       ])
-    (senator-menu-item
-     [ "Kill Tag"
-       senator-kill-tag
-       :active (semantic-current-tag)
-       :help "Kill tag text to the kill ring, and copy the tag to the tag ring"
-       ])
-    (senator-menu-item
-     [ "Yank Tag"
-       senator-yank-tag
-       :active (not (ring-empty-p senator-tag-ring))
-       :help "Yank a tag from the tag ring, inserting a summary/prototype"
-       ])
-    (senator-menu-item
-     [ "Copy Tag to Register"
-       senator-copy-tag-to-register
-       :active (semantic-current-tag)
-       :help "Copy the current tag to a register"
-       ])
-    )
+   (if (or (featurep 'xemacs) (> emacs-major-version 20))
+       (list "Tag Decorations" :filter 'semantic-build-decoration-mode-menu)
+     ;; The :filter feature seems broken in GNU Emacs versions before
+     ;; 21.1.  So dont delay the menu creation.  This also means that
+     ;; new registered decoration entries will not be added "on the
+     ;; fly" to the menu :-(
+     (cons "Tag Decorations" (semantic-build-decoration-mode-menu)))
    "--"
    (list
     "Analyze"
