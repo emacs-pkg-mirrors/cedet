@@ -322,71 +322,71 @@ unfolded."
 
     (define-fringe-bitmap  'semantic-tag-folding-folded
       ;; a plus sign
-      [#B00011000
-       #B00011000
-       #B00011000
-       #B11111111
-       #B11111111
-       #B00011000
-       #B00011000
-       #B00011000])
+      [#b00011000
+       #b00011000
+       #b00011000
+       #b11111111
+       #b11111111
+       #b00011000
+       #b00011000
+       #b00011000])
     
     (define-fringe-bitmap  'semantic-tag-folding-unfolded
       ;; a minus sign
-      [#B11111111
-       #B11111111])
+      [#b11111111
+       #b11111111])
 
     (define-fringe-bitmap  'semantic-tag-folding-highlight-top
       ;; a minus sign
-      [#B11111111
-       #B11111111])
+      [#b11111111
+       #b11111111])
 
     (define-fringe-bitmap  'semantic-tag-folding-highlight-middle
       ;; a vertical bar
-      [#B00011000] nil nil '(center t))
+      [#b00011000] nil nil '(center t))
 
     (define-fringe-bitmap  'semantic-tag-folding-highlight-bottom
       ;; a minus sign
-      [#B11111111
-       #B11111111]))
+      [#b11111111
+       #b11111111]))
 
    ((eq value 'triangles)
 
     (define-fringe-bitmap  'semantic-tag-folding-unfolded
       ;; a triangle pointing downwards
-      [#B11111110
-       #B01000100
-       #B00101000
-       #B00010000])
+      [#b11111110
+       #b01000100
+       #b00101000
+       #b00010000])
 
     (define-fringe-bitmap  'semantic-tag-folding-folded
       ;; a filled triangle pointing to the right
-      [#B100000
-       #B110000
-       #B111000
-       #B111100
-       #B111100
-       #B111000
-       #B110000
-       #B100000])
+      [#b100000
+       #b110000
+       #b111000
+       #b111100
+       #b111100
+       #b111000
+       #b110000
+       #b100000])
 
     (define-fringe-bitmap  'semantic-tag-folding-highlight-top
       ;; a triangle pointing downwards
-      [#B11111110
-       #B01000100
-       #B00101000
-       #B00010000])
+      [#b11111110
+       #b01000100
+       #b00101000
+       #b00010000])
 
     (define-fringe-bitmap  'semantic-tag-folding-highlight-middle
       ;; a vertical bar
-      [#B00010000] nil nil '(center t))
+      [#b00010000] nil nil '(center t))
 
     (define-fringe-bitmap  'semantic-tag-folding-highlight-bottom
       ;; a triangle pointing upwards
-      [#B00010000
-       #B00101000
-       #B01000100
-       #B11111110])
+      [#b00010000
+       #b00101000
+       #b01000100
+       #b11111110])
     )
    ))
 
