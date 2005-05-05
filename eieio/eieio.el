@@ -5,9 +5,9 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.140 2005/04/30 17:57:14 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.141 2005/05/05 01:42:44 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "1.0beta1"
+(defvar eieio-version "1.0beta2"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1487,6 +1487,10 @@ reverse-lookup that name, and recurse with the associated slot value."
 (defvar eieio-generic-call-key nil
   "When using `call-next-method', provides a context for the current key.
 Keys are a number representing :BEFORE, :PRIMARY, and :AFTER methods.")
+(defvar eieio-generic-call-next-method-list nil
+  "When executing a PRIMARY or STATIC method, track the 'next-method'.
+During executions, the list is first generated, then as each next method
+is called, the next method is popped off the stack.")
 
 (defun eieio-generic-call (method args)
   "Call METHOD with ARGS.
@@ -1497,7 +1501,8 @@ This should only be called from a generic function."
   (let ((newargs nil) (mclass nil)  (lambdas nil) (tlambdas nil) (keys nil)
 	(eieio-generic-call-methodname method)
 	(eieio-generic-call-arglst args)
-	(firstarg nil))
+	(firstarg nil)
+	(primarymethodlist nil))
     ;; get a copy
     (setq newargs args
 	  firstarg (car newargs))
@@ -1544,7 +1549,9 @@ This should only be called from a generic function."
 		(eieio-generic-form method method-primary nil)))
       (when tlambdas
 	(setq lambdas (cons tlambdas lambdas)
-	      keys (cons method-primary keys)))
+	      keys (cons method-primary keys)
+	      primarymethodlist
+	      (eieiomt-method-list method method-primary mclass)))
 
       ;; :BEFORE methods
       (setq tlambdas
@@ -1563,20 +1570,29 @@ This should only be called from a generic function."
       (setq tlambdas
 	    (eieio-generic-form method method-static mclass))
       (setq lambdas (cons tlambdas lambdas)
-	    keys (cons method-static keys)))
+	    keys (cons method-static keys)
+	    primarymethodlist  ;; Re-use even with bad name here
+	    (eieiomt-method-list method method-static mclass)))
 
     ;; Now loop through all occurances forms which we must execute
-    ;; (which are happilly sorted now) and execute them all!
+    ;; (which are happily sorted now) and execute them all!
     (let ((rval nil) (lastval nil) (rvalever nil) (found nil))
       (while lambdas
 	(if (car lambdas)
-	    (let ((scoped-class (cdr (car lambdas)))
-		  (eieio-generic-call-key (car keys)))
+	    (let* ((scoped-class (cdr (car lambdas)))
+		   (eieio-generic-call-key (car keys))
+		   (has-return-val
+		    (or (= eieio-generic-call-key method-primary)
+			(= eieio-generic-call-key method-static)))
+		   (eieio-generic-call-next-method-list
+		    ;; Use the cdr, as the first element is the fcn
+		    ;; we are calling right now.
+		    (when has-return-val (cdr primarymethodlist)))
+		   )
 	      (setq found t)
 	      ;;(setq rval (apply (car (car lambdas)) newargs))
 	      (setq lastval (apply (car (car lambdas)) newargs))
-	      (when (or (= eieio-generic-call-key method-primary)
-			(= eieio-generic-call-key method-static))
+	      (when has-return-val
 	      	(setq rval lastval
 	      	      rvalever t))
 	      ))
@@ -1621,19 +1637,7 @@ CLASS is the starting class to search from in the method tree."
 
 (defun next-method-p ()
   "Return a list of lambdas which qualify as the `next-method'."
-  (let ((lambdas nil)
-	(mclass (eieiomt-next scoped-class)))
-    ;; NOTE TO SELF:
-    ;;
-    ;; This finds the first.  If there is multiple inheritance, then
-    ;; should we return a list?  Since this is a predicate, I guess
-    ;; it doesn't need to be that picky.
-    (while (and (not lambdas) mclass)
-      ;; lookup the form to use for the PRIMARY object for the next level
-      (setq lambdas (eieio-generic-form eieio-generic-call-methodname
-					eieio-generic-call-key (car mclass))
-	    mclass (cdr mclass)))
-    (if lambdas t nil)))
+  eieio-generic-call-next-method-list)
 
 (defun call-next-method (&rest replacement-args)
   "Call the next logical method from another method.
@@ -1645,33 +1649,21 @@ are the arguments passed in at the top level."
       (error "Call-next-method not called within a class specific method"))
   (if (and (/= eieio-generic-call-key method-primary)
 	   (/= eieio-generic-call-key method-static))
-      (error "Cannot `call-next-method' except in :PRIMARY or :STATIC methods.")
+      (error "Cannot `call-next-method' except in :PRIMARY or :STATIC methods")
     )
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
-	(lambdas nil)
-	(mclass (eieiomt-next scoped-class))
-	(callsomething nil)
-	(returnval nil))
-    (while (and mclass (not callsomething))
-      ;; lookup the form to use for the PRIMARY object for the next level
-      (setq lambdas (eieio-generic-form eieio-generic-call-methodname
-					eieio-generic-call-key (car mclass)))
-      (if lambdas
-	  ;; Setup calling environment, and apply arguments...
-	  (let ((scoped-class (cdr lambdas)))
-	    (setq callsomething t)
-	    (setq returnval (apply (car lambdas) newargs))))
-      (setq mclass (cdr mclass)))
-    (if (not callsomething)
-	(progn
-	  (setq lambdas (eieio-generic-form eieio-generic-call-methodname
-					    eieio-generic-call-key nil))
-	  (if lambdas
-	      (let ((scoped-class nil))
-		(apply (car lambdas) newargs))
-	    (no-next-method (car newargs))))
-      returnval)))
-
+	(next (car eieio-generic-call-next-method-list))
+	(returnval nil)
+	)
+    (if (or (not next) (not (car next)))
+	(no-next-method (car newargs))
+      (let* ((eieio-generic-call-next-method-list
+	      (cdr eieio-generic-call-next-method-list))
+	     (scoped-class (cdr next))
+	     (fcn (car next))
+	     )
+	(apply fcn newargs)
+	))))
 
 ;;;
 ;; eieio-method-tree : eieiomt-
