@@ -4,7 +4,7 @@
 ;; Copyright (C) 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-test-methodinvoke.el,v 1.5 2005/04/14 20:55:39 zappo Exp $
+;; RCS: $Id: eieio-test-methodinvoke.el,v 1.6 2005/05/05 01:52:56 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -59,7 +59,7 @@
 
 (defun eieio-test-method-store ()
   "Store current invocation class symbol in the invocation order list."
-  (let* ((keysym (aref [ nil :BEFORE :PRIMARY :AFTER ] 
+  (let* ((keysym (aref [ :STATIC :BEFORE :PRIMARY :AFTER ]
 		       (or eieio-generic-call-key 0)))
 	 (c (list eieio-generic-call-methodname keysym scoped-class)))
     (setq eieio-test-method-order-list
@@ -69,7 +69,7 @@
   "Do a test match."
   (if (equal rightanswer eieio-test-method-order-list)
       t
-    (error "Test Failed!")))
+    (error "eieio-test-methodinvoke.el: Test Failed!")))
 
 ;;; This Example was submitted by darkman:
 ;;
@@ -161,10 +161,14 @@
   (call-next-method))
 
 (defmethod F ((p B-base1))
-  (eieio-test-method-store))
+  (eieio-test-method-store)
+  (call-next-method))
 
 (defmethod F ((p B-base2))
-  (eieio-test-method-store))
+  (eieio-test-method-store)
+  (when (next-method-p)
+    (call-next-method))
+  )
 
 (defmethod F :AFTER ((p B-base1))
   (eieio-test-method-store))
@@ -180,11 +184,11 @@
 	     (F :BEFORE B)
 	     (F :BEFORE B-base1)
 	     (F :BEFORE B-base2)
+
 	     (F :PRIMARY B)
 	     (F :PRIMARY B-base1)
-	     ;; (F :PRIMARY B-base2)
-	     ;; Note, call next method would not call B-base2 unless
-	     ;; there was a call-next-method in B-base1.
+	     (F :PRIMARY B-base2)
+
 	     (F :AFTER B-base2)
 	     (F :AFTER B-base1)
 	     (F :AFTER B)
@@ -207,13 +211,55 @@
 
 ;;; Return value from :PRIMARY
 ;;
+(defmethod I :BEFORE ((a A))
+  (eieio-test-method-store)
+  ":before")
+
 (defmethod I :PRIMARY ((a A))
+  (eieio-test-method-store)
   ":primary")
 
 (defmethod I :AFTER ((a A))
+  (eieio-test-method-store)
   ":after")
 
-(let ((ans  (I (A nil))))
+(let ((eieio-test-method-order-list nil)
+      (ans  (I (A nil))))
   (unless (string= ans ":primary")
     (error "Value %S erroneously provided in method call."
 	   ans)))
+
+;;; Multiple inheritance and the 'constructor' method.
+;;
+;; Constructor is a static method, so this is really testing
+;; static method invocation and multiple inheritance.
+;;
+(defclass C-base1 () ())
+(defclass C-base2 () ())
+(defclass C (C-base1 C-base2) ())
+
+(defmethod constructor :STATIC ((p C-base1) &rest args)
+  (eieio-test-method-store)
+  (if (next-method-p) (call-next-method))
+  )
+
+(defmethod constructor :STATIC ((p C-base2) &rest args)
+  (eieio-test-method-store)
+  (if (next-method-p) (call-next-method))
+  )
+
+(defmethod constructor :STATIC ((p C) &rest args)
+  (eieio-test-method-store)
+  (call-next-method)
+  )
+
+(let ((eieio-test-method-order-list nil)
+      (ans '(
+	     (constructor :STATIC C)
+	     (constructor :STATIC C-base1)
+	     (constructor :STATIC C-base2)
+	     )))
+  (C nil)
+  (setq eieio-test-method-order-list (nreverse eieio-test-method-order-list))
+  (eieio-test-match ans)
+  )
