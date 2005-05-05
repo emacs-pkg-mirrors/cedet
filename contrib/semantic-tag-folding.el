@@ -91,6 +91,8 @@ Clicking on a + or - in the fringe will fold that tag."
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
+  (if (not (fboundp 'define-fringe-bitmap))
+      (error "semantic-tag-folding cannot be used in XEmacs"))
   (setq global-semantic-tag-folding-mode
         (semantic-toggle-minor-mode-globally
          'semantic-tag-folding-mode arg)))
@@ -132,16 +134,21 @@ The minor mode can be turned on only if semantic feature is available
 and the current buffer was set up for parsing.  In addition,
 `semantic-tag-folding-mode' is only available when fringe images are available
 in Emacs 20.4."
-  (add-to-invisibility-spec '(semantic-tag-fold . t))
   (if semantic-tag-folding-mode
       (if (not (and (featurep 'semantic) (semantic-active-p)
                     (fboundp 'define-fringe-bitmap)))
           (progn
             ;; Disable minor mode if semantic stuff not available
             (setq semantic-tag-folding-mode nil)
-            (error "Buffer %s cannot be folded by semantic"
-                   (buffer-name)))
+            (cond 
+             ((not (and (featurep 'semantic) (semantic-active-p)))
+              (error "Buffer %s cannot be folded by semantic"
+                     (buffer-name)))
+             (t  ;; no define-fringe-bitmap
+              (error "semantic-tag-folding cannot be used in XEmacs")
+              )))
         ;; Enable decoration mode
+        (add-to-invisibility-spec '(semantic-tag-fold . t))
         (setq semantic-tag-folding-saved-decoration-styles semantic-decoration-styles)
         (if semantic-decoration-mode
             ;; if decoration mode is already on, ensure that semantic-tag-folding is enabled
