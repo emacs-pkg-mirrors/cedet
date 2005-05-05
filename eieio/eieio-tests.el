@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.33 2005/04/17 15:00:56 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.34 2005/05/05 01:53:51 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -317,7 +317,8 @@ METHOD is the method that was attempting to be called."
   (push 'after class-fun-value-seq)
   'after)
 
-(let ((value (class-fun-value a)))
+(let* ((class-fun-value-seq nil)
+       (value (class-fun-value a)))
   (unless (eq value 'primary)
     (error
      "Value of the generic function call isn't the primary method value [%S]."
