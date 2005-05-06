@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.31 2005/04/01 02:51:01 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.32 2005/05/06 01:53:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -546,9 +546,11 @@ Returns a value only if it is a keyword."
 (defun semantic-idle-summary-current-symbol-info-context ()
   "Return a string message describing the current context.
 Use the semantic analyzer to find the symbol information."
-  (let ((analysis (semantic-analyze-current-context (point))))
-    (semantic-analyze-interesting-tag analysis))
-  )
+  (let ((analysis (condition-case nil
+		      (semantic-analyze-current-context (point))
+		    (error nil))))
+    (when analysis
+      (semantic-analyze-interesting-tag analysis))))
 
 (defun semantic-idle-summary-current-symbol-info-default ()
   "Return a string message describing the current context."
