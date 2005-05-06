@@ -1,9 +1,9 @@
 ;;; semantic-debug.el --- Language Debugger framework
 
-;;; Copyright (C) 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.11 2004/03/19 23:46:30 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.12 2005/05/06 01:54:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -379,7 +379,8 @@ The parser needs to be on the load path, or this routine returns nil."
       (error "No parser is associated with this buffer"))
   (let ((parser (locate-library semantic-debug-parser-source t)))
     (if parser
-	(find-file-noselect parser))))
+	(find-file-noselect parser)
+      (error "Cannot find parser source.  It should be on the load-path."))))
 
 ;;; Debugger commands
 ;;
