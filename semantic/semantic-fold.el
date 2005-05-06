@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-fold.el,v 1.3 2005/04/17 16:56:46 zappo Exp $
+;; X-RCS: $Id: semantic-fold.el,v 1.4 2005/05/06 01:55:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,7 +37,8 @@
 ;;
 (define-semantic-decoration-style semantic-tag-folding-decoration
   "Place folding icons in the Emacs fringe.
-Clicking on the fringe icon would `fold' methods open or closed.")
+Clicking on the fringe icon would `fold' methods open or closed."
+  :enabled nil)
   
 (defun semantic-tag-folding-decoration-p-default (tag)
   "Return non-nil if TAG is a type, or a non-prototype function."
