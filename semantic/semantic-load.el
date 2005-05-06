@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.45 2005/04/30 18:02:33 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.46 2005/05/06 01:54:07 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -56,6 +56,10 @@
 Sadly `useful' here means things Eric wants on as opposed to some
 other criteria.")
 
+(defvar semantic-load-system-cache-loaded nil
+  "Non nil when the system caches have been loaded.
+Prevent this load system from loading files in twice.")
+
 (defun semantic-load-enable-minimum-features ()
   "Enable the minimum number of semantic features for basic usage.
 This includes:
@@ -70,9 +74,11 @@ This includes:
 
   ;; This loads any created system databases which get linked into
   ;; any searches performed.
-  (if (and (boundp 'semanticdb-default-system-save-directory)
+  (if (and (null semantic-load-system-cache-loaded)
+	   (boundp 'semanticdb-default-system-save-directory)
 	   (stringp semanticdb-default-system-save-directory)
 	   (file-exists-p semanticdb-default-system-save-directory))
+      (setq semantic-load-system-cache-loaded t)
       (semanticdb-load-system-caches))
   )
 
