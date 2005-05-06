@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: cedet-update-changelog.el,v 1.1 2005/04/24 01:21:20 zappo Exp $
+;; X-RCS: $Id: cedet-update-changelog.el,v 1.2 2005/05/06 00:05:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,6 +34,17 @@
 
 (require 'cedet)
 ;;; Code:
+
+(defvar cuc-my-machine-name (let ((sn (system-name)))
+			      ;; Only the first part of the name...
+			      (if (string-match "\\." sn)
+				  (concat
+				   (substring sn 0 (match-beginning 0))
+				   "\\("
+				   (substring sn (match-beginning 0))
+				   "\\)?")
+				sn))
+  "The name of the machine running this code as output by rcs2diff.")
 
 (defvar cuc-dirs
   (let ((pack cedet-packages)
@@ -71,18 +82,50 @@
       (cuc-update-changelog (car d))
       (setq d (cdr d)))))
 
+(defun cuc-make-search-name (name)
+  "Make a search name based on NAME."
+  (concat name " +<" name "@" cuc-my-machine-name ">"))
+
 (defun cuc-fixup-ChangeLog-names ()
-  "Update the names in the current ChangeLog."
+  "Update the names in the current ChangeLog.
+Because the names come out of rcs2log as if on my machine, they
+need to be transformed into the actual values."
   (interactive)
   (save-excursion
     ;; Eric's Name
     (goto-char (point-min))
-    (while (re-search-forward (regexp-quote "<zappo@projectile>")
+    (while (re-search-forward (concat "<zappo@"
+				      cuc-my-machine-name
+				      ">")
 			      nil t)
       (replace-match "<zappo@gnu.org>" t t))
-    ;; David's Name
+    ;; David's Name.  (Why 2?)
     (goto-char (point-min))
-    (while (re-search-forward (regexp-quote "ponced  <ponced@projectile>")
-			      nil t)
+    (while (or (re-search-forward
+		(concat "\\("
+			(cuc-make-search-name "ponced")
+			"\\|"
+			(cuc-make-search-name "david_ponce")
+			"\\)")
+		nil t))
       (replace-match "David Ponce  <david@dponce.com>" t t))
+    ;; Richard's Name
+    (goto-char (point-min))
+    (while (re-search-forward (cuc-make-search-name "emacsman")
+			      nil t)
+      (replace-match "Richard Y. Kim <ryk@ap.com>" t t))
+    ;; Klaus's Name
+    (goto-char (point-min))
+    (while (re-search-forward (cuc-make-search-name "berndl")
+			      nil t)
+      (replace-match "Klaus Berndl <klaus.berndl@sdm.de>" t t))
+    ;; Suraj's Name
+    (goto-char (point-min))
+    (while (re-search-forward (cuc-make-search-name "surajacharya")
+			      nil t)
+      (replace-match "Suraj Acharya <sacharya@gmail.com>" t t))
     ))
+
+(provide 'cedet-update-changelog)
+
+;;; cedet-update-changelog.el ends here
