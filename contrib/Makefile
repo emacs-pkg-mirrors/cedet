@@ -22,7 +22,7 @@ wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-javascript-jv.wy
 EMACS=emacs
 wy_SAMENATIC_GRAMMAR_EL=wisent-csharp-wy.el wisent-javascript-jv-wy.el
 lisp_LISP=wisent-csharp.el wisent-javascript.el semantic-tag-folding.el
-VERSION=1.0pre1
+VERSION=1.0pre2
 DISTDIR=$(top)Contrib-$(VERSION)
 
 
@@ -36,7 +36,7 @@ autoloads:
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
 .PHONY: init
 init: $(init_LISP)
@@ -45,7 +45,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: setup
 setup: $(setup_LISP)
@@ -54,7 +54,7 @@ setup: $(setup_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: wy
 wy: $(wy_SEMANTIC_GRAMMAR)
@@ -73,7 +73,7 @@ lisp: $(lisp_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 tags: 
 
