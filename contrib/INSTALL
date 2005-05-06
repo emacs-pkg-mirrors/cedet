@@ -9,11 +9,6 @@ automatically.
 
 --------------------
 
-semantic-matlab.el:
-   Written by Eric Ludlam @ The MathWorks
-   Provides semantic parsing for MATLAB scripts.
-   If you have matlab.el, it will be automatically loaded and used.
-
 semantic-tag-folding.el:
    Written by Suraj Acharya
    Provides a fancy folding mode that takes advantage of the latest
