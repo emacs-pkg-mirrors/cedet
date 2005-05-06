@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.27 2005/04/15 15:34:15 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.28 2005/05/06 00:56:43 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ A lisp target may be one general program with many separate lisp files in it.")
      "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
      "done;"
      "@echo \"(setq debug-on-error t)\" >> $@-compile-script"
-     "$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^"
+     "\"$(EMACS)\" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^"
      )
    :autoconf '("AM_PATH_LISPDIR")
    :sourcetype '(ede-source-emacs)
@@ -260,7 +260,7 @@ Files do not need to be added to this target.")
      "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
      "done;"
      "@echo \"(require 'cedet-autogen)\" >> $@-compile-script"
-     "$(EMACS) -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)"
+     "\"$(EMACS)\" -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)"
      )
    :sourcetype '(ede-source-emacs)
    )
