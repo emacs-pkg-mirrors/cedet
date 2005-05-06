@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.6 2005/02/04 19:29:39 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.7 2005/05/06 01:52:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -158,7 +158,8 @@ of symbol `semanticdb-project-database-system' are accepted."
     (while f
       ;; Emacs makes backup files if we save out the systemDB too often.
       ;; prevent loading backup files which are icky.
-      (unless (backup-file-name-p (car f))
+      (when (string-match (concat semanticdb-default-file-name "$")
+			  (car f))
 	(semanticdb-load-database (car f)))
       ;; NOTE FOR THE FUTURE: Verify the system was not expanded for
       ;; each.  This may be slow.
