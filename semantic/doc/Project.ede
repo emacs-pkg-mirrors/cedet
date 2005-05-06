@@ -23,7 +23,7 @@
    (ede-proj-target-makefile-info "semantic-user.info"
     :name "semantic-user.info"
     :path ""
-    :source '("user-guide.texi")
+    :source '("user-guide.texi" "minor-modes.texi")
     )
    (ede-proj-target-makefile-info "semantic-appdev"
     :name "semantic-appdev.info"
