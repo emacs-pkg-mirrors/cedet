@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.13 2005/04/19 01:58:26 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.14 2005/05/06 00:51:48 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -78,7 +78,7 @@
 (eval-when-compile
   (require 'cl))
 
-(defconst cedet-version "1.0pre1"
+(defconst cedet-version "1.0pre2"
   "Current version of CEDET.")
 
 (defconst cedet-packages
@@ -86,11 +86,11 @@
     ;;PACKAGE   MIN-VERSION      INSTALLDIR
     (cedet         ,cedet-version  "common" )
     (cogre         "0.5"                    )
-    (ede           "1.0pre1"                )
-    (eieio         "1.0beta1"               )
-    (semantic      "2.0pre1"                )
+    (ede           "1.0pre2"                )
+    (eieio         "1.0beta2"               )
+    (semantic      "2.0pre2"                )
     (speedbar      "1.0pre1"                )
-    (cedet-contrib "1.0pre1"      "contrib" )
+    (cedet-contrib "1.0pre2"      "contrib" )
     )
   "Table of CEDET packages to install.")
 
