@@ -4,12 +4,12 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.193 2005/04/19 03:21:06 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.194 2005/05/06 01:52:46 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
 
-  (defvar semantic-version "2.0pre1"
+  (defvar semantic-version "2.0pre2"
     "Current version of Semantic.")
 
   )
