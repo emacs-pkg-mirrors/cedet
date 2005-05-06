@@ -18,11 +18,11 @@ init_LISP=ede-load.el
 EMACS=emacs
 ede_LISP=project-am.el ede.el ede-pmake.el ede-pconf.el ede-proj.el ede-dired.el ede-proj-elisp.el ede-proj-misc.el ede-proj-obj.el ede-proj-prog.el ede-proj-archive.el ede-proj-shared.el ede-proj-info.el ede-proj-scheme.el ede-proj-aux.el ede-proj-comp.el ede-source.el ede-util.el ede-system.el ede-speedbar.el
 aux-lisp_LISP=autoconf-edit.el autoconf-compat.el
-misc_AUX=NEWS README TODO ede-proj-skel.el
+misc_AUX=NEWS README TODO ede-proj-skel.el ChangeLog
 ede_info_TEXINFOS=ede.texi ede-projects.texi ede-targets.texi ede-sourcecode.texi ede-compilers.texi
 MAKEINFO=makeinfo
 test_AUX=
-VERSION=1.0pre1
+VERSION=1.0pre2
 DISTDIR=$(top)EDE-$(VERSION)
 
 
@@ -36,7 +36,7 @@ autoloads:
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
 .PHONY: init
 init: $(init_LISP)
@@ -45,7 +45,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: ede
 ede: $(ede_LISP)
@@ -54,7 +54,7 @@ ede: $(ede_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: aux-lisp
 aux-lisp: $(aux-lisp_LISP)
@@ -63,7 +63,7 @@ aux-lisp: $(aux-lisp_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 ede.info: $(ede_info_TEXINFOS)
 	$(MAKEINFO) $<
