@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.245 2005/04/19 03:21:54 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.246 2005/05/06 01:57:19 zappo Exp $
 
 (defvar speedbar-version "1.0pre1"
   "The current version of speedbar.")
@@ -99,18 +99,9 @@ excluded if a released version is required.
 It is assumed that if the current version is newer than that specified,
 everything passes.  Exceptions occur when known incompatibilities are
 introduced."
-  (when (string-match "\\([0-9]+\\)\\.\\([0-9]+\\)\\( ?beta ?\\([0-9]+\\)\\)?"
-		      speedbar-version)
-    (let ((vmajor (string-to-int (match-string 1 speedbar-version)))
-	  (vminor (string-to-int (match-string 2 speedbar-version)))
-	  (vbeta (match-string 4 speedbar-version)))
-      (when vbeta (setq vbeta (string-to-int vbeta)))
-      (or (> major vmajor)
-	  (and (= major vmajor) (> minor vminor))
-	  (and (= major vmajor) (= minor vminor)
-	       (or (and (not beta) vbeta)
-		   (and beta vbeta (> beta vbeta)))))
-      )))
+  (inversion-test 'speedbar
+		  (concat major "." minor
+			  (when beta (concat "beta" beta)))))
 
 (defvar speedbar-initial-expansion-mode-alist
   '(("buffers" speedbar-buffer-easymenu-definition speedbar-buffers-key-map
