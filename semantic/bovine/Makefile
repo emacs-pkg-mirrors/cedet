@@ -18,7 +18,7 @@ bovinator_LISP=semantic-bovine.el bovine-grammar.el bovine-debug.el bovine-gramm
 EMACS=emacs
 examples_MISC=semantic-skel.el skeleton.by
 languages_LISP=semantic-c.el semantic-el.el semantic-make.el semantic-scm.el semantic-java.el erlang-edoc.el semantic-erlang.el
-VERSION=2.0pre1
+VERSION=2.0pre2
 DISTDIR=$(top)semantic-$(VERSION)/bovine
 
 
@@ -42,7 +42,7 @@ bovinator: $(bovinator_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 examples: 
 	@
@@ -54,7 +54,7 @@ languages: $(languages_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 tags: 
 
