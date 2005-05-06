@@ -367,7 +367,9 @@ senator-previous-tag
 @item C-c , i
 senator-isearch-toggle-semantic-mode
 @item C-c , j
-senator-jump
+semantic-complete-jump-local
+@item C-c , J
+semantic-complete-jump
 @item C-c , TAB
 senator-complete-symbol
 @item C-c , SPC
@@ -378,7 +380,10 @@ senator-yank-tag
 senator-kill-tag
 @item C-c , M-w
 senator-copy-tag
-@item C-c ,
+@item C-c , +
+senator-unfold-tag
+@item C-c , -
+senator-fold-tag
 @end table
 @end deffn
 
@@ -452,7 +457,7 @@ Another command that uses the analyzer context can derive a completion
 list.
 
 @deffn Command semantic-analyze-possible-completions context
-Return a list of semantic tokens which are possible completions.
+Return a list of semantic tags which are possible completions.
 @var{CONTEXT} is either a position (such as point), or a precalculated
 context.  Passing in a context is useful if the caller also needs
 to access parts of the analysis.
@@ -537,8 +542,8 @@ from the ``Display'' menu item on speedbar's menu.
 @cindex Class Browser
 
 The semantic class browser is a library that can covert a project
-group of files into an object structure that contains links between
-structures so that the inheritance links between semantic tokens can
+file group into an object structure that contains links between
+structures so that the inheritance links between semantic tags can
 be easily navigated.
 
 The core to this library is one function in @file{semantic-cb.el}.
@@ -721,6 +726,7 @@ Application Developers Guide
 @menu
 * Reparsing Options::           
 * Idle Summary Mode::           
+* Idle Completions Mode::
 @end menu
 
 @node Reparsing Options
@@ -789,6 +795,22 @@ minor mode is enabled
 
 @obsolete{semantic-summary-mode, semantic-idle-summary-mode}
 
+@deffn Option semantic-idle-summary-function
+@anchor{semantic-idle-summary-function}
+Function to use when displaying tag information during idle time.
+Some useful functions are found in @code{semantic-format-tag-functions}.
+@end deffn
+
+@node Idle Completions Mode
+@section Idle Completions Mode
+
+The definition of completion lists is described in the Analyzer
+section @ref{Analyzer}.
+
+The Idle Completions mode will calculate the list of possible
+completions in idle time, and display them in a popup list, and also
+highlight the symbol that needs completion.
+
 @deffn semantic-idle-completions-mode &optional arg
 @anchor{semantic-idle-completions-mode}
 Display a tooltip with a list of possible completions near the cursor.
@@ -801,147 +823,14 @@ the current buffer was set up for parsing.  Return non-nil if the
 minor mode is enabled
 @end deffn
 
+This mode operates by using the command
+@code{semantic-complete-inline-analyzer}.
 
 @node Minor Modes
 @chapter Minor Modes
 @cindex Minor Modes
 
-@section Highlight Edits Mode
-
-Highlight edits mode is useful mostly for debugging the incremental
-parser.  As you change text, that effected text is highlighted, and
-you can visual predict what actions the incremental parser will need
-to make.
-
-@deffn Command semantic-highlight-edits-mode &optional arg
-Minor mode for highlighting changes made in a buffer.
-Changes are tracked by semantic so that the incremental parser can work
-properly.
-With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-@code{nil} if the
-minor mode is enabled.
-@end deffn
-
-@deffn Face semantic-highlight-edits-face
-Face used to show dirty tokens in @code{semantic-highlight-edits-mode}.
-@end deffn
-
-@section Parser State
-
-@deffn Command semantic-show-parser-state-mode &optional arg
-Minor mode for displaying parser cache state in the modeline.
-The cache can be in one of three states.  They are
-Up to date, Partial reprase needed, and Full reparse needed.
-The state is indicated in the modeline with the following characters:
-@table @code
-@item -
-The cache is up to date.
-@item !
-The cache requires a full update.
-@item ~
-The cache needs to be incrementally parsed.
-@item %
-The buffer is not lexically parseable.
-@item @@
-Auto-parse in progress (not set here.)
-@end table
-With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-@code{nil} if the
-minor mode is enabled.
-@end deffn
-
-@section Unmatched Syntax Highlighting
-
-@deffn Command semantic-show-unmatched-syntax-mode &optional arg
-Minor mode to highlight unmatched syntax tokens.
-When a parser executes, some elements in the buffer may not match any
-parser rules.  These text characters are considered unmatched syntax.
-Often time, the display of unmatched syntax can expose coding
-problems before the compiler is run.
-
-With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-@code{nil} if the
-minor mode is enabled.
-
-@kbd{C-c , `}		@dfn{semantic-show-unmatched-syntax-next}
-@end deffn
-
-@deffn Option semantic-unmatched-syntax-face
-Face used to show unmatched-syntax in.
-The face is used in  @dfn{semantic-show-unmatched-syntax-mode}.
-@end deffn
-
-@section Sticky Function Headers
-
-@deffn Command semantic-stickyfunc-mode &optional arg
-Minor mode to show the title of a tag in the header line.
-Enables/disables making the header line of functions sticky.
-A function (or other tag class specified by
-@code{semantic-stickyfunc-sticky-classes}) has a header line, meaning the
-first line which describes the rest of the construct.  This first
-line is what is displayed in the Emacs @var{21} header line.
-
-With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-@code{nil} if the
-minor mode is enabled.
-@end deffn
-
-@defvar semantic-stickyfunc-sticky-classes
-List of tag classes which sticky func will display in the header line.
-@end defvar
-
-@section Tag Boundaries
-
-There used to be a tag boundaries mode.  This has been subsumed by
-Tag Decoration Mode.
-
-@section Tag Decoration Mode
-@cindex semantic-decoration-mode
-
-Decoration mode is a harness that allows any parsed tag to be
-highlighted based on some arbitrary feature of that tag.  Decoration
-mode is actually a full harness for providing any kind of decoration
-on a tag based on a prefix function.
-
-@deffn Command semantic-decoration-mode &optional arg
-@anchor{semantic-decoration-mode}
-Minor mode for decorating tags.
-Decorations are specified in @code{semantic-decoration-styles}.
-You can define new decoration styles with
-@dfn{define-semantic-decoration-style}.
-With prefix argument @var{arg}, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-@code{nil} if the
-minor mode is enabled.
-@end deffn
-
-You can create new types of decorations using the following function:
-
-@defun define-semantic-decoration-style name doc
-@anchor{define-semantic-decoration-style}
-Define a new decoration style with @var{name}.
-@var{doc} is a documentation string describing the decoration style @var{name}.
-It is appended to auto-generated doc strings.
-
-This defines two new overload functions respectively called @code{NAME-p}
-and @code{NAME-highlight}, for which you must provide a default
-implementation in respectively the functions @code{NAME-p-default} and
-@code{NAME-highlight-default}.  Those functions are passed a tag.  @code{NAME-p}
-must return non-@code{nil} to indicate that the tag should be decorated by
-@code{NAME-highlight}.
-
-To put primary decorations on a tag @code{NAME-highlight} must use
-functions like @dfn{semantic-set-tag-face}, @dfn{semantic-set-tag-intangible},
-etc., found in the semantic-decorate library.
-
-To add other kind of decorations on a tag, @code{NAME-highlight} must use
-@dfn{semantic-decorate-tag}, and other functions of the semantic
-decoration @var{api} found in this library.
-@end defun
+@include minor-modes.texi
 
 @node semanticdb
 @chapter Semantic Database
