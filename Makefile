@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.11 2005/04/19 01:48:26 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.12 2005/05/06 00:51:00 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -84,7 +84,7 @@ $(__BUILD_AUTOLOADS):
 
 recompile: autoloads
 	cd $(CEDET_HOME) && \
-	$(EMACS) -batch -q --no-site-file -l common/cedet.el \
+	"$(EMACS)" -batch -q --no-site-file -l common/cedet.el \
 	-f batch-byte-recompile-directory $(CEDET_PACKAGES)
 
 ## Cleanup
