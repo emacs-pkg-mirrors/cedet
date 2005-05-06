@@ -13,12 +13,12 @@ images_MISC=grammar-fw-ov.png
 semantic-grammar_TEXINFOS=grammar-fw.texi
 MAKEINFO=makeinfo
 Documentation_TEXINFOS=semantic.texi glossary.texi overview.texi installation.texi fdl.texi internals.texi semanticheader.texi
-semantic-user_info_TEXINFOS=user-guide.texi
+semantic-user_info_TEXINFOS=user-guide.texi minor-modes.texi
 semantic-appdev_info_TEXINFOS=app-dev-guide.texi tags.texi
 semantic-langdev_info_TEXINFOS=lang-support-guide.texi
 bovine_info_TEXINFOS=bovine.texi
 wisent_info_TEXINFOS=wisent.texi
-VERSION=2.0pre1
+VERSION=2.0pre2
 DISTDIR=$(top)semantic-$(VERSION)/doc
 
 
