@@ -18,7 +18,7 @@ init_LISP=cedet-load.el
 EMACS=emacs
 setup_LISP=cedet.el
 common_LISP=cedet-autogen.el cedet-compat.el ezimage.el inversion.el pprint.el sformat.el fame.el working.el cedet-edebug.el mode-local.el
-VERSION=1.0pre1
+VERSION=1.0pre2
 DISTDIR=$(top)common-$(VERSION)
 
 
@@ -32,7 +32,7 @@ autoloads:
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
 .PHONY: init
 init: $(init_LISP)
@@ -41,7 +41,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: setup
 setup: $(setup_LISP)
@@ -50,7 +50,7 @@ setup: $(setup_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: common
 common: $(common_LISP)
@@ -59,7 +59,7 @@ common: $(common_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY:icons
 icons:
