@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.48 2005/01/28 10:14:08 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.49 2005/05/08 23:29:24 surajacharya Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,6 +56,7 @@
       (defalias 'semantic-overlay-buffer          'extent-buffer)
       (defalias 'semantic-overlay-start           'extent-start-position)
       (defalias 'semantic-overlay-end             'extent-end-position)
+      (defalias 'semantic-overlay-size            'extent-length)
       (defalias 'semantic-overlay-next-change     'next-extent-change)
       (defalias 'semantic-overlay-previous-change 'previous-extent-change)
       (defalias 'semantic-overlay-lists
@@ -82,6 +83,7 @@
   (defalias 'semantic-overlay-buffer          'overlay-buffer)
   (defalias 'semantic-overlay-start           'overlay-start)
   (defalias 'semantic-overlay-end             'overlay-end)
+  (defalias 'semantic-overlay-size            'overlay-size)
   (defalias 'semantic-overlay-next-change     'next-overlay-change)
   (defalias 'semantic-overlay-previous-change 'previous-overlay-change)
   (defalias 'semantic-overlay-lists           'overlay-lists)
