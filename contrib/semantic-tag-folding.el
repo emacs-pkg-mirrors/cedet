@@ -72,6 +72,38 @@
 (require 'cl)
 
 ;;; Code:
+
+;; xemacs compatibility
+;; http://www.opensource.apple.com/darwinsource/10.3/emacs-56/emacs/lisp/progmodes/hideshow.el
+(when (or (not (fboundp 'add-to-invisibility-spec))
+          (not (fboundp 'remove-from-invisibility-spec)))
+  ;; `buffer-invisibility-spec' mutators snarfed from Emacs 20.3 lisp/subr.el
+  (defun add-to-invisibility-spec (arg)
+    (cond
+     ((or (null buffer-invisibility-spec) (eq buffer-invisibility-spec t))
+      (setq buffer-invisibility-spec (list arg)))
+     (t
+      (setq buffer-invisibility-spec
+            (cons arg buffer-invisibility-spec)))))
+  (defun remove-from-invisibility-spec (arg)
+    (when buffer-invisibility-spec
+      (setq buffer-invisibility-spec
+            (delete arg buffer-invisibility-spec)))))
+
+;; http://list-archive.xemacs.org/xemacs-patches/200206/msg00144.html
+;; `propertize' is a builtin in GNU Emacs 21.
+(when (not (fboundp 'propertize))
+  (defun propertize (string &rest properties)
+    "Return a copy of STRING with text properties added.
+First argument is the string to copy.
+Remaining arguments form a sequence of PROPERTY VALUE pairs for text
+properties to add to the result."
+    (let ((str (copy-sequence string)))
+      (add-text-properties 0 (length str)
+                           properties
+                           str)
+      str)))
+
 ;;;###autoload
 (defcustom global-semantic-tag-folding-mode nil
   "*If non-nil enable global use of variable `semantic-tag-folding-mode'.
@@ -91,8 +123,6 @@ Clicking on a + or - in the fringe will fold that tag."
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
-  (if (not (fboundp 'define-fringe-bitmap))
-      (error "semantic-tag-folding cannot be used in XEmacs"))
   (setq global-semantic-tag-folding-mode
         (semantic-toggle-minor-mode-globally
          'semantic-tag-folding-mode arg)))
@@ -136,17 +166,12 @@ and the current buffer was set up for parsing.  In addition,
 in Emacs 20.4."
   (if semantic-tag-folding-mode
       (if (not (and (featurep 'semantic) (semantic-active-p)
-                    (fboundp 'define-fringe-bitmap)))
+                    ))
           (progn
             ;; Disable minor mode if semantic stuff not available
             (setq semantic-tag-folding-mode nil)
-            (cond 
-             ((not (and (featurep 'semantic) (semantic-active-p)))
-              (error "Buffer %s cannot be folded by semantic"
-                     (buffer-name)))
-             (t  ;; no define-fringe-bitmap
-              (error "semantic-tag-folding cannot be used in XEmacs")
-              )))
+            (error "Buffer %s cannot be folded by semantic"
+                   (buffer-name)))
         ;; Enable decoration mode
         (add-to-invisibility-spec '(semantic-tag-fold . t))
         (setq semantic-tag-folding-saved-decoration-styles semantic-decoration-styles)
@@ -466,9 +491,11 @@ collapsed."
                            (when (forward-comment -1)
                              (do ((ret (point-at-eol) (point-at-eol)))
                                  ( ;; until we see an empty line, or there are
-                                  ;; no more comments
+                                  ;; no more comments, or we reach the
+                                  ;; beginning of the buffer
                                   (or (re-search-backward "\n\n" (- (point) 2) t)
-                                      (not (forward-comment -1)))
+                                      (not (forward-comment -1))
+                                      (bobp))
                                   ;; return
                                   ret)))))
                   (end (progn
@@ -515,8 +542,8 @@ is non-nil if the fold region is a comment."
                        (semantic-tag-start tag)))
              (ov2 (semantic-decorate-tag tag start2 (+ start2 1)))
              (marker-string "+"))
-        (overlay-put ov 'semantic-tag-folding t)
-        (overlay-put ov 'isearch-open-invisible
+        (semantic-overlay-put ov 'semantic-tag-folding t)
+        (semantic-overlay-put ov 'isearch-open-invisible
 		     'semantic-tag-folding-show-block)
 
         ;; check for fold state attributes
@@ -541,24 +568,24 @@ is non-nil if the fold region is a comment."
 				 '((left-fringe semantic-tag-folding-unfolded)
 				   "-")))
           ;; fold the body and display a + in the fringe
-          (overlay-put ov 'invisible 'semantic-tag-fold)
+          (semantic-overlay-put ov 'invisible 'semantic-tag-fold)
           (setq marker-string (propertize
 			       marker-string
 			       'display
 			       '((left-fringe semantic-tag-folding-folded)
 				 "+" ))))
         (when semantic-tag-folding-show-tooltips
-          (overlay-put ov2 'mouse-face 'highlight)
-          (overlay-put ov2 'help-echo (buffer-substring (+ 1 start) end)))
+          (semantic-overlay-put ov2 'mouse-face 'highlight)
+          (semantic-overlay-put ov2 'help-echo (buffer-substring (+ 1 start) end)))
 ;;        (if (and (<= (semantic-tag-start tag) start) (>= (semantic-tag-end tag) end))
-            (overlay-put ov 'semantic-tag-folding-tag tag)
+            (semantic-overlay-put ov 'semantic-tag-folding-tag tag)
 ;;             )
-        (overlay-put ov 'semantic-tag-folding-overlay-type
+        (semantic-overlay-put ov 'semantic-tag-folding-overlay-type
 		     (if comment
 			 'semantic-tag-folding-comment
 		       'semantic-tag-folding-tag))
-        (overlay-put ov 'semantic-tag-folding-marker-string marker-string)
-        (overlay-put ov2 'before-string marker-string)))))
+        (semantic-overlay-put ov 'semantic-tag-folding-marker-string marker-string)
+        (semantic-overlay-put ov2 'before-string marker-string)))))
 
 (defun semantic-tag-folding-fold-block ()
   "Fold the smallest enclosing tag at point."
@@ -610,35 +637,35 @@ is non-nil if the fold region is a comment."
 
 (defun semantic-tag-folding-get-overlay ()
   "Return the innermost semantic-tag-folding-folding overlay at point."
-  (labels ((overlay-size (ov)
-             (- (overlay-end ov) (overlay-start ov))))
+  (labels ((semantic-overlay-size (ov)
+             (- (semantic-overlay-end ov) (semantic-overlay-start ov))))
     (car
      (sort
-      (remove-if-not (lambda (ov) (overlay-get ov 'semantic-tag-folding))
-                     (overlays-at (point-at-eol)))
+      (remove-if-not (lambda (ov) (semantic-overlay-get ov 'semantic-tag-folding))
+                     (semantic-overlays-at (point-at-eol)))
       (lambda (x y)
-        (< (overlay-size x) (overlay-size y)))))))
+        (< (semantic-overlay-size x) (semantic-overlay-size y)))))))
 
 (defun semantic-tag-folding-set-overlay-visibility (ov fold &optional called-by-reveal-mode)
   "Change the visibility of overlay OV.
 If FOLD is non-nil OV is hidden.  Also changes the fringe bitmap
 to indcate the new state.  CALLED-BY-REVEAL-MODE is t when this
 overlay is folded or expanded by reveal mode."
-  (when (and (overlayp ov)
+  (when (and (semantic-overlay-p ov)
              ;; if reveal mode is hiding an overlay, it should've been folded by reveal mode
-             (or (not called-by-reveal-mode) (not fold) (overlay-get ov 'semantic-tag-reveal-mode)))
-    (overlay-put ov 'invisible (if fold 'semantic-tag-fold))
-    (let ((tag (overlay-get ov 'semantic-tag-folding-tag)))
+             (or (not called-by-reveal-mode) (not fold) (semantic-overlay-get ov 'semantic-tag-reveal-mode)))
+    (semantic-overlay-put ov 'invisible (if fold 'semantic-tag-fold))
+    (let ((tag (semantic-overlay-get ov 'semantic-tag-folding-tag)))
       
       (when tag
-        (semantic-tag-put-attribute tag (overlay-get ov 'semantic-tag-folding-overlay-type) (if fold 'fold 'show))
+        (semantic-tag-put-attribute tag (semantic-overlay-get ov 'semantic-tag-folding-overlay-type) (if fold 'fold 'show))
         (if fold
             (put-text-property 0 1 'display '((left-fringe semantic-tag-folding-folded) "+")
-                               (overlay-get ov 'semantic-tag-folding-marker-string))
+                               (semantic-overlay-get ov 'semantic-tag-folding-marker-string))
           ;; show
           (put-text-property 0 1 'display '((left-fringe semantic-tag-folding-unfolded) "-")
-                             (overlay-get ov 'semantic-tag-folding-marker-string))
-          (overlay-put ov 'semantic-tag-reveal-mode called-by-reveal-mode)
+                             (semantic-overlay-get ov 'semantic-tag-folding-marker-string))
+          (semantic-overlay-put ov 'semantic-tag-reveal-mode called-by-reveal-mode)
           (semantic-tag-folding-highlight-overlay ov))))))
 
 ;; set the function to be called when regions are revealed and hidden by reveal-mode.
@@ -661,19 +688,19 @@ lines that OV extends over for
   (when semantic-tag-folding-tag-higlight-time
     (let ((overlays nil))
       (labels ((make-fringe (fringe string)
-                 (setq overlays (cons (make-overlay (point-at-bol) (+ 1(point-at-bol))) overlays) )
-                 (overlay-put (car overlays) 'before-string
+                 (setq overlays (cons (semantic-make-overlay (point-at-bol) (+ 1(point-at-bol))) overlays) )
+                 (semantic-overlay-put (car overlays) 'before-string
                               (propertize string 'display `(left-fringe ,fringe)))))
         (save-excursion
-          (goto-char (overlay-start ov))
+          (goto-char (semantic-overlay-start ov))
           (make-fringe 'semantic-tag-folding-highlight-top "+")
           (forward-line)
-          (while (< (point-at-eol) (overlay-end ov))
+          (while (< (point-at-eol) (semantic-overlay-end ov))
             (make-fringe 'semantic-tag-folding-highlight-middle "|")
             (forward-line))
           (make-fringe 'semantic-tag-folding-highlight-bottom "+"))
         (sit-for semantic-tag-folding-tag-higlight-time)
-        (mapc 'delete-overlay overlays)))))
+        (mapc 'semantic-overlay-delete overlays)))))
 
 (defun semantic-tag-folding-click (event)
   "Handle fringe click EVENT by folding/unfolding blocks."
