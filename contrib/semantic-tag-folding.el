@@ -174,6 +174,8 @@ in Emacs 20.4."
                    (buffer-name)))
         ;; Enable decoration mode
         (add-to-invisibility-spec '(semantic-tag-fold . t))
+        (if (featurep 'xemacs)
+            (set (make-local-variable 'line-move-ignore-invisible) t))
         (setq semantic-tag-folding-saved-decoration-styles semantic-decoration-styles)
         (if semantic-decoration-mode
             ;; if decoration mode is already on, ensure that semantic-tag-folding is enabled
@@ -522,6 +524,42 @@ collapsed."
         (goto-char point)))))
 
 
+(defun semantic-tag-folding-get-attribute-overlay (tag create-if-null)
+  "Get the overlay used to store the fold state for TAG.
+Create the overlay if CREATE-IF-NULL is non-nil."
+  (let* ((pos (semantic-tag-start tag))
+        (ov (car (remove-if-not 
+                 (lambda (ov) 
+                   (semantic-overlay-get ov 'semantic-tag-folding-attributes))
+                 (semantic-overlays-at pos)))))
+    (when (and create-if-null (null ov))
+      (setq ov (semantic-make-overlay (- pos 1) (+ 1 pos)))
+      (semantic-overlay-put ov 'semantic-tag-folding-attributes t))
+    ov))
+
+(defun semantic-tag-folding-get-folding-attribute (comment)
+  "Return the symbol used to store the fold state.
+The symbol returned is for a tag (COMMENT is nil) or the comment
+preceeding a tag (COMMENT is non-nil)"
+  (if comment
+      'semantic-tag-folding-comment
+    'semantic-tag-folding-tag))
+
+(defun semantic-tag-folding-get-fold-state (tag comment)
+  "Return the fold state for TAG. 
+If COMMENT is non-nil return the fold state for the comment preceeding TAG."
+  (let* ((attr (semantic-tag-folding-get-folding-attribute comment))
+         (ov (semantic-tag-folding-get-attribute-overlay tag nil)))
+    (and ov (semantic-overlay-get ov attr))))
+
+(defun semantic-tag-folding-set-fold-state (tag comment state)
+  "Set the fold state for TAG to STATE. 
+If COMMENT is non-nil set the fold state for the comment preceeding TAG."
+  (let* ((attr (semantic-tag-folding-get-folding-attribute comment))         
+         (ov (semantic-tag-folding-get-attribute-overlay tag t)))
+    (semantic-overlay-put ov attr state)))
+
+
 (defun semantic-tag-folding-create-folding-overlays (tag start end point comment)
 "Create an overlay for `semantic-tag-overlay'.
 Create an overlay associated TAG.  START and END are buffer
@@ -547,21 +585,16 @@ is non-nil if the fold region is a comment."
 		     'semantic-tag-folding-show-block)
 
         ;; check for fold state attributes
-        (if (and (functionp semantic-tag-folding-function)
-		 (semantic-tag-get-attribute tag 'semantic-tag-folding-comment)
-		 comment)
-            (setq fold (eq (semantic-tag-get-attribute
-			    tag 'semantic-tag-folding-comment) 'fold)))
+        (if (functionp semantic-tag-folding-function)
+            (let ((state (semantic-tag-folding-get-fold-state tag comment)))
+              (if state 
+                  (setq fold (eq state 'fold)))))
 
-        (if (and (functionp semantic-tag-folding-function)
-		 (semantic-tag-get-attribute tag 'semantic-tag-folding-tag)
-		 (not comment))
-            (setq fold (eq (semantic-tag-get-attribute
-			    tag 'semantic-tag-folding-tag) 'fold)))
+        ;; don't fold this region if point is inside it
+        (if (and (> end point) (< start point))
+            (setq fold nil))
 
-        (if (or (not fold)
-                ;; don't fold this region if point is inside it
-                (and (> end point) (< start point)))
+        (if (not fold)
             ;; just display the unfolded bitmap in the fringe
             (setq marker-string (propertize
 				 marker-string 'display
@@ -574,18 +607,24 @@ is non-nil if the fold region is a comment."
 			       'display
 			       '((left-fringe semantic-tag-folding-folded)
 				 "+" ))))
+        
+        ;; store the marker string and tag as a property of the
+        ;; overlay so we use it to change the displayed fold state
+        ;; later (in semantic-tag-folding-set-overlay-visibility)
+        (semantic-overlay-put ov 'semantic-tag-folding-marker-string marker-string)
+        (semantic-overlay-put ov 'semantic-tag-folding-tag tag)
+        (semantic-overlay-put ov 'semantic-tag-folding-comment-overlay comment)
+
+        (semantic-overlay-put ov2 'before-string marker-string)
+        
+        ;; store fold state as a function of the tag (unless the default state is being set) 
+        (unless (functionp semantic-tag-folding-function)
+          (semantic-tag-folding-set-fold-state tag comment fold))
+
+        ;; tooltips
         (when semantic-tag-folding-show-tooltips
           (semantic-overlay-put ov2 'mouse-face 'highlight)
-          (semantic-overlay-put ov2 'help-echo (buffer-substring (+ 1 start) end)))
-;;        (if (and (<= (semantic-tag-start tag) start) (>= (semantic-tag-end tag) end))
-            (semantic-overlay-put ov 'semantic-tag-folding-tag tag)
-;;             )
-        (semantic-overlay-put ov 'semantic-tag-folding-overlay-type
-		     (if comment
-			 'semantic-tag-folding-comment
-		       'semantic-tag-folding-tag))
-        (semantic-overlay-put ov 'semantic-tag-folding-marker-string marker-string)
-        (semantic-overlay-put ov2 'before-string marker-string)))))
+          (semantic-overlay-put ov2 'help-echo (buffer-substring (+ 1 start) end)))))))
 
 (defun semantic-tag-folding-fold-block ()
   "Fold the smallest enclosing tag at point."
@@ -658,7 +697,7 @@ overlay is folded or expanded by reveal mode."
     (let ((tag (semantic-overlay-get ov 'semantic-tag-folding-tag)))
       
       (when tag
-        (semantic-tag-put-attribute tag (semantic-overlay-get ov 'semantic-tag-folding-overlay-type) (if fold 'fold 'show))
+        (semantic-tag-folding-set-fold-state tag (semantic-overlay-get ov 'semantic-tag-folding-comment-overlay) (if fold 'fold 'show))
         (if fold
             (put-text-property 0 1 'display '((left-fringe semantic-tag-folding-folded) "+")
                                (semantic-overlay-get ov 'semantic-tag-folding-marker-string))
