@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.104 2005/04/30 18:05:17 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.105 2005/05/13 08:07:46 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -449,22 +449,27 @@ Uses `semanticdb' when available."
 ;;;;
 
 (defun senator-search-tag-name (tag)
-  "Search the TAG name in TAG bounds.
-Set point to the end of the name, and return point.  To get the
-beginning of the name use (match-beginning 0)."
+  "Search for TAG name in current buffer.
+Limit the search to TAG bounds.
+If found, set point to the end of the name, and return point.  The
+beginning of the name is at (match-beginning 0).
+Return nil if not found, that is if TAG name doesn't come from the
+source."
   (let ((name (semantic-tag-name tag)))
     (setq name (if (string-match "\\`\\([^[]+\\)[[]" name)
                    (match-string 1 name)
                  name))
     (goto-char (semantic-tag-start tag))
-    (re-search-forward (concat
-                        ;; the tag name is at the beginning of a
-                        ;; word or after a whitespace or a punctuation
-                        "\\(\\<\\|\\s-+\\|\\s.\\)"
-                        (regexp-quote name))
-                       (semantic-tag-end tag))
-    (goto-char (match-beginning 0))
-    (search-forward name)))
+    (when (re-search-forward (concat
+                              ;; the tag name is expected at the
+                              ;; beginning of a word or after a
+                              ;; whitespace or a punctuation
+                              "\\(\\<\\|\\s-+\\|\\s.\\)"
+                              (regexp-quote name))
+                             (semantic-tag-end tag)
+                             t)
+      (goto-char (match-beginning 0))
+      (search-forward name))))
 
 (defcustom senator-search-tag-filter nil
   "*Function that filter searched tags.
@@ -494,8 +499,8 @@ TEXT, BOUND, NOERROR, and COUNT arguments are interpreted."
             (and (setq tag (semantic-current-tag))
                  (or (null senator-search-tag-filter)
                      (funcall senator-search-tag-filter tag))
-                 (setq tend   (senator-search-tag-name tag)
-                       tstart (match-beginning 0)
+                 (setq tend   (senator-search-tag-name tag))
+                 (setq tstart (match-beginning 0)
                        found  (and (>= sstart tstart)
                                    (<= send tend)
                                    (zerop (setq count (1- count))))))
