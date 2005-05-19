@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.105 2005/05/13 08:07:46 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.106 2005/05/19 09:36:35 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -471,11 +471,24 @@ source."
       (goto-char (match-beginning 0))
       (search-forward name))))
 
-(defcustom senator-search-tag-filter nil
-  "*Function that filter searched tags.
-It is passed a tag and can return nil to exclude it from search."
+(defcustom senator-search-ignore-tag-classes
+  '(code block)
+  "*List of ignored tag classes.
+Tags of those classes are excluded from search."
   :group 'senator
-  :type 'function)
+  :type '(repeat (symbol :tag "class")))
+
+(defun senator-search-default-tag-filter (tag)
+  "Default function that filters searched tags.
+Ignore tags of classes in `senator-search-ignore-tag-classes'"
+  (not (memq (semantic-tag-class tag)
+             senator-search-ignore-tag-classes)))
+
+(defvar senator-search-tag-filter-functions
+  '(senator-search-default-tag-filter)
+  "List of functions to be called to filter searched tags.
+Each function is passed a tag. If one of them returns nil, the tag is
+excluded from the search.")
 
 (defun senator-search (searcher text &optional bound noerror count)
   "Use the SEARCHER function to search from point for TEXT in a tag name.
@@ -497,8 +510,8 @@ TEXT, BOUND, NOERROR, and COUNT arguments are interpreted."
           (if (= sstart send)
               (setq found t)
             (and (setq tag (semantic-current-tag))
-                 (or (null senator-search-tag-filter)
-                     (funcall senator-search-tag-filter tag))
+                 (run-hook-with-args-until-failure
+                  'senator-search-tag-filter-functions tag)
                  (setq tend   (senator-search-tag-name tag))
                  (setq tstart (match-beginning 0)
                        found  (and (>= sstart tstart)
@@ -1125,10 +1138,12 @@ REGEXP says which ring to use."
     (isearch-update-ring string t)
     (senator-re-search-backward string)))
 
+(defvar senator--search-filter nil)
+
 (defun senator-search-set-tag-class-filter (&optional classes)
   "In current buffer, limit search scope to tag CLASSES.
-CLASSES is a list of tag class symbols or nil.
-If nil restore the global filter option `senator-search-tag-filter'."
+CLASSES is a list of tag class symbols or nil.  If nil only global
+filters in `senator-search-tag-filter-functions' remain active."
   (interactive "sClasses: ")
   (setq classes
         (cond
@@ -1141,14 +1156,21 @@ If nil restore the global filter option `senator-search-tag-filter'."
          (t
           (signal 'wrong-type-argument (list classes)))
          ))
+  ;; Clear previous filter.
+  (remove-hook 'senator-search-tag-filter-functions
+               senator--search-filter t)
+  (kill-local-variable 'senator--search-filter)
   (if classes
       (let ((tag   (make-symbol "tag"))
             (names (mapconcat 'symbol-name classes "', `")))
-        (set (make-local-variable 'senator-search-tag-filter)
+        (set (make-local-variable 'senator--search-filter)
              `(lambda (,tag)
                 (memq (semantic-tag-class ,tag) ',classes)))
+        (semantic-make-local-hook
+         'senator-search-tag-filter-functions)
+        (add-hook 'senator-search-tag-filter-functions
+                  senator--search-filter nil t)
         (message "Limit search to `%s' tags" names))
-    (kill-local-variable 'senator-search-tag-filter)
     (message "Default search filter restored")))
 
 ;;;;
