@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.68 2005/05/06 00:56:06 zappo Exp $
+;; RCS: $Id: ede.el,v 1.69 2005/05/20 01:47:18 zappo Exp $
 (defconst ede-version "1.0pre2"
   "Current version of the Emacs EDE.")
 
@@ -820,6 +820,9 @@ Argument FILE is the file or directory to load a project from."
     (if (ede-parent-project)
 	(ede-add-subproject (ede-parent-project) nobj))
     (ede-commit-project nobj))
+  ;; Have the menu appear
+  (setq ede-minor-mode t)
+  ;; Allert the user
   (message "Project created and saved.  You may now create targets."))
 
 (defmethod ede-add-subproject ((proj-a ede-project) proj-b)
