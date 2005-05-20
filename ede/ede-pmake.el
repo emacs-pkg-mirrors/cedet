@@ -1,10 +1,10 @@
 ;;; ede-pmake.el --- EDE Generic Project Makefile code generator.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.44 2004/12/15 04:26:12 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.45 2005/05/20 01:46:36 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -321,12 +321,29 @@ sources variable."
   (ede-proj-makefile-insert-source-variables this moresource)
   )
 
+(defmethod ede-proj-makefile-configuration-variables ((this ede-proj-target-makefile)
+						      configuration)
+  "Return a list of configuration variables from THIS.
+Use CONFIGURATION as the current configuration to query."
+  (cdr (assoc configuration (oref this configuration-variables))))
+
 (defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-makefile)
 					       &optional moresource)
   "Insert variables needed by target THIS.
 Optional argument MORESOURCE is a list of additional sources to add to the
 sources variable."
   (call-next-method)
+  (let* ((proj (ede-target-parent this))
+	 (conf-table (ede-proj-makefile-configuration-variables
+		      this (oref proj configuration-default)))
+	 (conf-done nil)
+	 )
+    ;; Add in all variables from the configuration not allready covered.
+    (mapc (lambda (c)
+	    (if (member (car c) conf-done)
+		nil
+	      (insert (car c) "=" (cdr c) "\n")))
+	  conf-table))
   (let ((comp (ede-proj-compilers this))
 	(link (ede-proj-linkers this))
 	(name (ede-proj-makefile-target-name this))
