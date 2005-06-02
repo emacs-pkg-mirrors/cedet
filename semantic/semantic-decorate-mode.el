@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.10 2005/04/30 18:01:05 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.11 2005/06/02 07:08:06 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -361,6 +361,7 @@ Return non-nil if the decoration style is enabled."
 	  :selected `(semantic-decoration-style-enabled-p ,(car style))
 	  ))
 
+;;;###autoload
 (defun semantic-build-decoration-mode-menu (&rest ignore)
   "Create a menu listing all the known decorations for toggling.
 IGNORE any input arguments."
