@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.49 2005/05/08 23:29:24 surajacharya Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.50 2005/06/02 07:09:04 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,6 +101,12 @@
     (defalias 'semantic-mode-line-update 'redraw-modeline)
   (defalias 'semantic-mode-line-update 'force-mode-line-update))
 
+;; Since Emacs 22 major mode functions should use `run-mode-hooks' to
+;; run major mode hooks.
+(defalias 'semantic-run-mode-hooks
+  (if (fboundp 'run-mode-hooks)
+      'run-mode-hooks
+    'run-hooks))
 
 ;; subst-char-in-string is not found on the XEmacs <= 21.4.  Provide
 ;; here for compatibility.
@@ -279,7 +285,8 @@ Avoid using a large BODY since it is duplicated."
      (condition-case err
 	 (progn ,@body)
        (error
-        (message ,format (error-message-string err))
+        (message ,format (format "%S - %s" (current-buffer)
+                                 (error-message-string err)))
         nil))))
 (put 'semantic-safe 'lisp-indent-function 1)
 
