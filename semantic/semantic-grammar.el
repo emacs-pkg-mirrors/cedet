@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.66 2005/01/13 12:27:39 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.67 2005/06/02 07:09:53 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1298,7 +1298,7 @@ the change bounds to encompass the whole nonterminal tag."
   (add-hook 'semantic-edits-new-change-hooks
             'semantic-grammar-edits-new-change-hook-fcn
             nil t)
-  (run-hooks 'semantic-grammar-mode-hook))
+  (semantic-run-mode-hooks 'semantic-grammar-mode-hook))
 
 ;;;;
 ;;;; Useful commands
