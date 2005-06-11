@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.54 2005/04/23 12:50:47 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.55 2005/06/11 08:01:31 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -859,7 +859,6 @@ when it lands in the sticky line.")
 
 (defvar semantic-stickyfunc-old-hlf nil
   "Value of the header line when entering sticky func mode.")
-(make-variable-buffer-local 'semantic-stickyfunc-old-hlf)
 
 (defconst semantic-stickyfunc-header-line-format
   '(:eval (list semantic-stickyfunc-indent-string
@@ -883,9 +882,9 @@ text for that function in Emacs 21's header line."
 	  (error "Sticky Function mode requires Emacs 21"))
 	;; Enable the mode
 	;; Save previous buffer local value of header line format.
-	(kill-local-variable 'semantic-stickyfunc-old-hlf)
 	(when (local-variable-p 'header-line-format (current-buffer))
-	  (setq semantic-stickyfunc-old-hlf header-line-format))
+	  (set (make-local-variable 'semantic-stickyfunc-old-hlf)
+	       header-line-format))
 	(setq header-line-format semantic-stickyfunc-header-line-format)
 	)
     ;; Disable sticky func mode
@@ -894,7 +893,8 @@ text for that function in Emacs 21's header line."
     (when (eq header-line-format semantic-stickyfunc-header-line-format)
       (kill-local-variable 'header-line-format)
       (when (local-variable-p 'semantic-stickyfunc-old-hlf (current-buffer))
-	(setq header-line-format semantic-stickyfunc-old-hlf))))
+	(setq header-line-format semantic-stickyfunc-old-hlf)
+	(kill-local-variable 'semantic-stickyfunc-old-hlf))))
   semantic-stickyfunc-mode)
 
 ;;;###autoload
