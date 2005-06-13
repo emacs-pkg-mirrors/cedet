@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.55 2005/06/11 08:01:31 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.56 2005/06/13 05:52:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -882,7 +882,9 @@ text for that function in Emacs 21's header line."
 	  (error "Sticky Function mode requires Emacs 21"))
 	;; Enable the mode
 	;; Save previous buffer local value of header line format.
-	(when (local-variable-p 'header-line-format (current-buffer))
+	(when (and (local-variable-p 'header-line-format (current-buffer))
+		   (not (eq header-line-format
+			    semantic-stickyfunc-header-line-format)))
 	  (set (make-local-variable 'semantic-stickyfunc-old-hlf)
 	       header-line-format))
 	(setq header-line-format semantic-stickyfunc-header-line-format)
