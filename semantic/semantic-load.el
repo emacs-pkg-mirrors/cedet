@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.46 2005/05/06 01:54:07 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.47 2005/06/30 01:33:19 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -74,12 +74,12 @@ This includes:
 
   ;; This loads any created system databases which get linked into
   ;; any searches performed.
-  (if (and (null semantic-load-system-cache-loaded)
-	   (boundp 'semanticdb-default-system-save-directory)
-	   (stringp semanticdb-default-system-save-directory)
-	   (file-exists-p semanticdb-default-system-save-directory))
-      (setq semantic-load-system-cache-loaded t)
-      (semanticdb-load-system-caches))
+  (when (and (null semantic-load-system-cache-loaded)
+	     (boundp 'semanticdb-default-system-save-directory)
+	     (stringp semanticdb-default-system-save-directory)
+	     (file-exists-p semanticdb-default-system-save-directory))
+    (setq semantic-load-system-cache-loaded t)
+    (semanticdb-load-system-caches))
   )
 
 (defun semantic-load-enable-code-helpers ()
@@ -171,7 +171,7 @@ These modes include:
   )
 
 ;; Old style variables
-(cond 
+(cond
  (semantic-load-turn-everything-on
   (semantic-load-enable-excessive-code-helpers))
  (semantic-load-turn-useful-things-on
