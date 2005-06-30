@@ -138,7 +138,7 @@ Intellisense
   from 1.4 to 2.0, but the confusion as to what a token or
   nonterminal is will now be clear.
 <dt><b>More Languages supported.</b>
-<dd>New parsers for Python, and Erlang.
+<dd>New parsers such as HTML, Python, C#, Javascript and Erlang.
 <dt><b>Smart Completion</b>
 <dd>Completes using symbols actually available in a
     given context via the Analyzer.  (Restricted to project files.)
@@ -267,12 +267,6 @@ Thanks to David Ponce for creating this fix.
 <P>RPMS for semantic can be downloaded from
   <a href="http://sourceforge.net/projects/rte">Real Time Enterprises</a>
   RPM site at sourceforge.</p>
-
-<h3>Gentoo</h3>
-
-<P>You can get Gentoo linux packages from
-<a href="http://userfs.cec.wustl.edu/~jap1/ebuilds/semantic/">
-Jacob Perkin's ebuilds FTP area</a>.
 
 <h3>Even Older releases of Semantic</h3>
 
