@@ -18,7 +18,7 @@ Add a CVS tag
   * Create a new copy of CVS TRUNK
     - mkdir <some dir>
     - cvs -d <username>@cvs.sourceforge.net:/cvsroot/cedet co cedet
-    - mv cedet cedet-<branchname>  # (such as 1p0beta3)
+    - mv cedet cedet-<branchname>  # (such as cedet-1p0beta3)
     - cd cedet-branchname
     - cvs tag -b <branchname>     
 
@@ -26,6 +26,19 @@ Add a CVS tag
     - cvs update -r <branchname>
 
   * Apply patches to above while resolving other issues.
+
+Update Changelogs
+
+  * Use a fresh emacs
+    - emacs -q
+    - M-x load-file RET common/cedet.el RET
+  * Update the Log from CVS
+    - M-x load-file RET cedet-update-changelog.el RET
+    - M-x cuc-update-all-changelogs RET
+
+Build a DIST file
+
+  * make dist
 
 After a dist is made:
 --------------------
