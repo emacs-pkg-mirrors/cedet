@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.194 2005/05/06 01:52:46 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.195 2005/06/30 01:29:25 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -386,7 +386,7 @@ If END needs to be extended due to a lexical token being too large, it
 will be silently ignored.
 
 Optional arguments:
-NONTERMINAL is the rule to start parsing at. 
+NONTERMINAL is the rule to start parsing at.
 DEPTH specifies the lexical depth to decend for parser that use
 lexical analysis as their first step.
 RETURNONERROR specifies that parsing should stop on the first
@@ -412,9 +412,9 @@ unterminated syntax."
   (when (or (null semantic--parse-table) (eq semantic--parse-table t))
     ;; If there is no table, or it was set to t, then we are here by
     ;; some other mistake.  Do not throw an error deep in the parser.
-    (error "No support found to parse buffer %S." (buffer-name)))
+    (error "No support found to parse buffer %S" (buffer-name)))
   (when (or (< end start) (> end (point-max)))
-    (error "Invalid parse region bounds %S, %S." start end))
+    (error "Invalid parse region bounds %S, %S" start end))
   (nreverse
    (semantic-repeat-parse-whole-stream
     (or (cdr (assq start semantic-lex-block-streams))
@@ -597,7 +597,7 @@ Does nothing if the current buffer doesn't need reparsing."
   ;; These checks actually occur in `semantic-fetch-tags', but if we
   ;; do them here, then all the bovination hooks are not run, and
   ;; we save lots of time.
-  (cond 
+  (cond
    ;; If the buffer was previously marked unparseable,
    ;; then don't waste our time.
    ((semantic-parse-tree-unparseable-p)
