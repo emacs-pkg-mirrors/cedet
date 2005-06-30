@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.12 2005/05/06 01:54:47 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.13 2005/06/30 01:27:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,7 +34,7 @@
 ;;
 ;; The debugger uses EIEIO objects.  One object controls the user
 ;; interface, including stepping, data-view, queries.  A second
-;; object implemented here represents the parser itself. A third represents
+;; object implemented here represents the parser itself.  A third represents
 ;; a parser independent frame which knows how to highlight the parser buffer.
 ;; Each parser must implement the interface and override any methods as needed.
 ;;
@@ -380,7 +380,7 @@ The parser needs to be on the load path, or this routine returns nil."
   (let ((parser (locate-library semantic-debug-parser-source t)))
     (if parser
 	(find-file-noselect parser)
-      (error "Cannot find parser source.  It should be on the load-path."))))
+      (error "Cannot find parser source.  It should be on the load-path"))))
 
 ;;; Debugger commands
 ;;
@@ -498,7 +498,7 @@ Do not update any tokens already parsed."
 	)
     (if location
 	(semantic-debug-parser-break parser location)
-      (error "Not on a rule."))
+      (error "Not on a rule"))
     )
   )
 
@@ -562,7 +562,7 @@ down to your parser later."
 A frame is of the form:
   ( .. .what ? .. )
 "
-  (error "Parser has not implemented frame values.")
+  (error "Parser has not implemented frame values")
   )
 
 
