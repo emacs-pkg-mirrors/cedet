@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.38 2005/04/01 02:20:26 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.39 2005/06/30 01:32:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -689,7 +689,7 @@ START and END define the bounds of the token in the current buffer."
   `(cons ,symbol (cons ,start ,end)))
 
 (defun semantic-lex-expand-block-specs (specs)
-  "Expand block specifications SPECS into a lisp form.
+  "Expand block specifications SPECS into a Lisp form.
 SPECS is a list of (BLOCK BEGIN END) elements where BLOCK, BEGIN, and
 END are token class symbols that indicate to produce one collapsed
 BLOCK token from tokens found between BEGIN and END ones.
