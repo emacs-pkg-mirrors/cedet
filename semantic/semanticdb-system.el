@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.7 2005/05/06 01:52:21 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.8 2005/06/30 01:26:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -192,16 +192,16 @@ and parsed. After the database is created, save it, and return the DB."
 	 )
     (if (and (> (length files) semanticdb-system-database-warn-level)
 	     semanticdb-system-db-directory-search-recursed
-	     (y-or-n-p 
+	     (y-or-n-p
 	      (format
-	       "%d files found.  Try again without scanning subdirectories?"
+	       "%d files found.  Try again without scanning subdirectories? "
 	       (length files))))
 	(setq files (semanticdb-collect-matching-filenames
 		     path (oref-default dbclass file-match-regex) t)))
     (when (> (length files) semanticdb-system-database-warn-level)
       (if (y-or-n-p
 	   (format
-	    "There are %d files which could a long time to parse.  Proceed?"
+	    "There are %d files which could a long time to parse.  Proceed? "
 	    (length files)))
 	  nil ;; Okie dokie
 	(error "")))
@@ -243,7 +243,8 @@ and parsed. After the database is created, save it, and return the DB."
     sysdb))
 
 (defun semanticdb-collect-matching-filenames (path regexp &optional not-recursive)
-  "Collect a list of all filenames starting at PATH matching REGEXP."
+  "Collect a list of all filenames starting at PATH matching REGEXP.
+Optional argument NOT-RECURSIVE suggests that this function will not recurse."
   (let ((returnfiles nil)
 	(dirs (list path))
 	(files nil)
