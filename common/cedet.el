@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.14 2005/05/06 00:51:48 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.15 2005/06/30 01:14:39 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -93,6 +93,29 @@
     (cedet-contrib "1.0pre2"      "contrib" )
     )
   "Table of CEDET packages to install.")
+
+(defun cedet-version ()
+  "Display all active versions of CEDET and Dependant packages."
+  (interactive)
+  (with-output-to-temp-buffer "*CEDET*"
+    (princ "CEDET Version:\t") (princ cedet-version)
+    (let ((p cedet-packages))
+      (while p
+	(let ((sym (symbol-name (car (car p)))))
+	  (princ "\n  ")
+	  (princ sym)
+	  (princ " version:\t")
+	  (if (< (length sym) 5)
+	      (princ "\t"))
+	  (if (< (length sym) 13)
+	      (princ "\t"))
+	  (if (featurep (car (car p)))
+	      (princ (symbol-value (intern-soft (concat sym "-version"))))
+	    (progn
+	      (princ (nth 1 (car p)))
+	      (princ "\t  *Not Loaded*"))))
+	(setq p (cdr p))))
+    ))
 
 ;; This file must be in "<INSTALL-DIR>/cedet/common"!
 (let ((default-directory
