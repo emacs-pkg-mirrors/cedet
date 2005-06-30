@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.26 2005/02/02 13:49:21 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.27 2005/06/30 01:26:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,7 @@
 ;;    These searches scan a database table  collection for tags based
 ;;    on name.
 ;;
-;;   Basic Brute Search:
+;;   Basic Attribute Search:
 ;;    These searches allow searching on specific attributes of tags,
 ;;    such as name, type, or other attribute.
 ;;
@@ -44,10 +44,8 @@
 ;;    The reason for advanced searches are so that external
 ;;    repositories such as the Emacs obarray, or java .class files can
 ;;    quickly answer these needed questions without dumping the entire
-;;    symbol list into Emacs for a regular semanticdb search.
-;;
-;;   Generic Brute Search:
-;;    The generic search, `semanticdb-find-nonterminal-by-function'
+;;    symbol list into Emacs for additional refinement searches via
+;;    regular semanticdb search.
 ;;
 ;; How databases are decided upon is another important aspect of a
 ;; database search.  When it comes to searching for a name, there are
@@ -57,6 +55,13 @@
 ;;    Basic search means that tags looking for a given name start
 ;;    with a specific search path.  Names are sought on that path
 ;;    until it is empty or items on the path can no longer be found.
+;;    Use `semanticdb-dump-all-table-summary' to test this list.
+;;    Use `semanticdb-find-throttle-custom-list' to refine this list.
+;;
+;;   Deep Search:
+;;    A deep search will search more than just the global namespace.
+;;    It will recurse into tags that contain more tags, and search
+;;    those too.
 ;;
 ;;   Brute Search:
 ;;    Brute search means that all tables in all databases in a given
@@ -85,6 +90,13 @@
 ;;    tag - Get that tag's buffer of file file.  See above.
 ;;    table - Search that table, and it's include list.
 ;;
+;; Search Results:
+;;
+;;   Semanticdb returns the results in a specific format.  There are a
+;;   series of routines for using those results, and results can be
+;;   passed in as a search-path for refinement searches with
+;;   semanticdb.  Apropos for semanticdb.*find-result for more.
+;;
 ;; Application:
 ;;
 ;; Here are applications where different searches are needed which
@@ -93,7 +105,7 @@
 ;; eldoc - popup help
 ;;   => Requires basic search using default path.  (Header files ok)
 ;; tag jump - jump to a named tag
-;;   => Requires a brute search useing whole project. (Source files only)
+;;   => Requires a brute search useing whole project.  (Source files only)
 ;; completion - Completing symbol names in a smart way
 ;;   => Basic search (headers ok)
 ;; type analysis - finding type definitions for variables & fcns
@@ -288,7 +300,10 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
       (let ((db (semanticdb-directory-loaded-p (file-name-directory tmp))))
 	(if db
 	    ;; We have a database, but perhaps not a table?
-	    (setq ans (semanticdb-file-table db tmp)))
+	    (setq ans (semanticdb-file-table db tmp))
+	  ;; ELSE: we could load a cache if it isn't already loaded
+	  ;; based on another throttle value.
+	  )
 	(if ans
 	    ;; We are A-ok!
 	    nil
@@ -334,7 +349,7 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 ;;; Perform interactive tests on the path/search mechanisms.
 ;;
 (defun semanticdb-find-test-translate-path (&optional arg)
-  "Call and output results of `semanticdb-find-translate-path'
+  "Call and output results of `semanticdb-find-translate-path'.
 With ARG non-nil, specify a BRUTISH translation.
 See `semanticdb-find-default-throttle' and `semanticdb-project-roots'
 for details on how this list is derived."
@@ -469,7 +484,7 @@ the TAG was found.  Sometimes TABLE can be nil."
     (while (< i len)
       (let ((tag (semanticdb-find-result-nth result i)))
 	(if (not (semantic-tag-p (car tag)))
-	    (error "%d entry is not a tag." i)))
+	    (error "%d entry is not a tag" i)))
       (setq i (1+ i)))))
 
 (defun semanticdb-find-result-nth-in-buffer (result n)
