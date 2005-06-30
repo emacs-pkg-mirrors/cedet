@@ -21,7 +21,7 @@ MAKEINFO=makeinfo
 opt_LISP=rpm.el sb-gud.el sb-info.el sb-rmail.el sb-w3.el sb-texinfo.el bigclock.el sb-html.el sb-ant.el
 aux_AUX=INSTALL ChangeLog
 images_MISC=sb-dir-plus.xpm sb-dir-minus.xpm sb-dir.xpm sb-pg-plus.xpm sb-pg-minus.xpm sb-pg.xpm sb-mail.xpm sb-tag-plus.xpm sb-tag-minus.xpm sb-tag.xpm sb-tag-gt.xpm sb-tag-v.xpm sb-tag-type.xpm sb-image.el sb-obj.xpm sb-chk.xpm sb-objod.xpm sb-label.xpm sb-ro.xpm sb-doc.xpm sb-info.xpm sb-doc-plus.xpm sb-doc-minus.xpm sb-box.xpm sb-box-plus.xpm sb-box-minus.xpm
-VERSION=1.0pre1
+VERSION=1.0pre3
 DISTDIR=$(top)speedbar-$(VERSION)
 
 
@@ -35,7 +35,7 @@ autoloads:
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
 .PHONY: init
 init: $(init_LISP)
@@ -44,7 +44,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: speedbar
 speedbar: $(speedbar_LISP)
@@ -53,7 +53,7 @@ speedbar: $(speedbar_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 speedbar.info: $(info_TEXINFOS)
 	$(MAKEINFO) $<
@@ -65,7 +65,7 @@ opt: $(opt_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 images: 
 	@

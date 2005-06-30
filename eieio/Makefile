@@ -21,7 +21,7 @@ eieio_info_TEXINFOS=eieio.texi
 MAKEINFO=makeinfo
 test_LISP=eieio-tests.el eieio-test-methodinvoke.el
 Misc_MISC=INSTALL ChangeLog NEWS
-VERSION=1.0beta2
+VERSION=1.0pre3
 DISTDIR=$(top)eieio-$(VERSION)
 
 

@@ -22,7 +22,7 @@ misc_AUX=NEWS README TODO ede-proj-skel.el ChangeLog
 ede_info_TEXINFOS=ede.texi ede-projects.texi ede-targets.texi ede-sourcecode.texi ede-compilers.texi
 MAKEINFO=makeinfo
 test_AUX=
-VERSION=1.0pre2
+VERSION=1.0pre3
 DISTDIR=$(top)EDE-$(VERSION)
 
 
