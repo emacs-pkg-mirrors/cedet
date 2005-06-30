@@ -1,8 +1,8 @@
 ;;; semantic-fw.el --- Framework for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.50 2005/06/02 07:09:04 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.51 2005/06/30 01:30:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
