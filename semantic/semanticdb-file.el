@@ -1,10 +1,10 @@
 ;;; semanticdb-file.el --- Save a semanticdb to a cache file.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.15 2004/10/26 00:49:01 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.16 2005/06/30 01:24:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -125,7 +125,7 @@ If DIRECTORY doesn't exist, create a new one."
 		:semantic-tag-version semantic-version
 		:semanticdb-version semanticdb-file-version)))
     ;; Set this up here.   We can't put it in the constructor because it
-    ;; would be saved, and we want DB files to be portable.      
+    ;; would be saved, and we want DB files to be portable.
     (oset db reference-directory directory)
     db))
 
@@ -278,10 +278,11 @@ File name excludes any directory part."
   semanticdb-default-file-name)
 
 (defmethod semanticdb-file-name-directory :STATIC
-  ((dbclass semanticdb-project-database-file) path)
-  "Return the path to where DBCLASS will save its cache file related to PATH."
+  ((dbclass semanticdb-project-database-file) directory)
+  "Return the relative directory to where DBCLASS will save its cache file.
+The returned path is related to DIRECTORY."
   (if semanticdb-default-save-directory
-      (let ((file path)
+      (let ((file directory)
 	    dir-sep-string)
         (when (memq system-type '(windows-nt ms-dos))
           ;; Normalize DOSish file names: convert all slashes to
@@ -312,7 +313,7 @@ File name excludes any directory part."
      (expand-file-name
          (concat (file-name-as-directory semanticdb-default-save-directory)
                  file)))
-    path))
+    directory))
 
 (defmethod semanticdb-cache-filename :STATIC
   ((dbclass semanticdb-project-database-file) path)
