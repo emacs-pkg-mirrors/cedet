@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.37 2005/04/01 02:27:28 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.38 2005/06/30 01:20:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,7 +111,7 @@ Return non-nil if there is no upper context."
 	  (progn
 	    (forward-sexp 1)
 	    (forward-char -1))
-	(error 
+	(error
 	 ;; If an error occurs, get the current tag from the cache,
 	 ;; and just go to the end of that.  Make sure we end up at least
 	 ;; where start was so parse-region type calls work.
@@ -339,7 +339,7 @@ Depends on `semantic-type-relation-separator-character'."
 	 (case-fold-search semantic-case-fold)
 	 (symlist nil)
 	 end)
-    (with-syntax-table semantic-lex-syntax-table    
+    (with-syntax-table semantic-lex-syntax-table
       (save-excursion
 	(if (looking-at "\\w\\|\\s_")
 	    (forward-sexp 1)
@@ -390,7 +390,7 @@ Return nil if there is nothing relevant.")
 By default, assume that \"=\" indicates an assignment."
   (if point (goto-char point))
   (let ((case-fold-search semantic-case-fold))
-    (with-syntax-table semantic-lex-syntax-table    
+    (with-syntax-table semantic-lex-syntax-table
       (condition-case nil
 	  (semantic-with-buffer-narrowed-to-command
 	    (save-excursion
@@ -426,7 +426,7 @@ The call will be identifed for C like langauges with the form
   "Return the index of the argument position the cursor is on at POINT.")
 
 (defun semantic-ctxt-current-argument-default (&optional point)
-  "Return the index of the argument the cursor is on.
+  "Return the index of the argument the cursor is on at POINT.
 Depends on `semantic-function-argument-separation-character'."
   (if point (goto-char point))
   (let ((case-fold-search semantic-case-fold))
