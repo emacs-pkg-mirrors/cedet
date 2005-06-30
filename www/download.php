@@ -18,6 +18,10 @@ going onto each pre-release.  Try out a pre-release and send in bug
 reports on the build process, or anything else.
 
 <p>Try out
+<a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=338764">
+cedet-1.0pre3.tar.gz</a>.
+
+<p>Try out
 <a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=326500">
 cedet-1.0pre2.tar.gz</a>.
 

@@ -19,6 +19,7 @@
 
 <tr><td  class=BAR><img src=dir-minus.gif>&nbsp <b>Download</b>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<b>1.0 Pre Releases</b>&nbsp</td></tr>
+<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=338764><b>1.0pre3</b></a>&nbsp</td></tr>
 <tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=326500><b>1.0pre2</b></a>&nbsp</td></tr>
 <tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=322793><b>1.0pre1</b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<b>1.0 Betas</b>&nbsp</td></tr>
