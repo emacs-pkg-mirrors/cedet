@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.106 2005/05/19 09:36:35 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.107 2005/06/30 01:37:28 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1240,17 +1240,17 @@ filters in `senator-search-tag-filter-functions' remain active."
 ;; of folding for hiding all but this, or show all children, etc.
 
 (defun senator-fold-tag (&optional tag)
-  "Fold the current tag."
+  "Fold the current TAG."
   (interactive)
   (semantic-set-tag-folded (or tag (semantic-current-tag)) t))
 
 (defun senator-unfold-tag (&optional tag)
-  "Fold the current tag."
+  "Fold the current TAG."
   (interactive)
   (semantic-set-tag-folded (or tag (semantic-current-tag)) nil))
 
 (defun senator-fold-tag-toggle (&optional tag)
-  "Fold the current tag."
+  "Fold the current TAG."
   (interactive)
   (let ((tag (or tag (semantic-current-tag))))
     (if (semantic-tag-folded-p tag)
@@ -1270,7 +1270,7 @@ Some tags such as includes have other reference features."
   (interactive)
   (let ((newtag (semantic-up-reference (or tag (semantic-current-tag)))))
     (if (not newtag)
-	(error "No up reference found.")
+	(error "No up reference found")
       (push-mark)
       (semantic-go-to-tag newtag)
       (switch-to-buffer (current-buffer))
@@ -1317,7 +1317,7 @@ Makes C/C++ language like assumptions."
 	 (let* ((p (semantic-tag-name tag))
 		(sr1 (semanticdb-find-tags-by-name p))
 		(sr2 (when sr1
-		       (semanticdb-find-tags-by-class 
+		       (semanticdb-find-tags-by-class
 			(semantic-tag-class tag)
 			sr1)))
 		(int 0)
@@ -1336,7 +1336,7 @@ Makes C/C++ language like assumptions."
 			   type)
 			  ((semantic-tag-p type)
 			   (semantic-tag-name type))
-			  (t (error "No known type."))))
+			  (t (error "No known type"))))
 		(sr1 (semanticdb-find-tags-by-name tn))
 		(sr2 (when sr1
 		       (semanticdb-find-tags-by-class 'type sr1))))
