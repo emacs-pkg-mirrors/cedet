@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.11 2005/06/02 07:08:06 ponced Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.12 2005/06/30 01:28:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -204,7 +204,7 @@ If ARG is nil, then toggle."
 
 ;;;###autoload
 (defcustom global-semantic-decoration-mode nil
-  "*If non-nil, enable global use of `semantic-decoration-mode'.
+  "*If non-nil, enable global use of command `semantic-decoration-mode'.
 When this mode is activated, decorations specified by
 `semantic-decoration-styles'."
   :group 'semantic
@@ -222,7 +222,7 @@ When this mode is activated, decorations specified by
 
 ;;;###autoload
 (defvar semantic-decoration-mode nil
-  "Non-nil if `semantic-decoration-mode' is enabled.
+  "Non-nil if command `semantic-decoration-mode' is enabled.
 Use the command `semantic-decoration-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-decoration-mode)
 
