@@ -70,7 +70,7 @@ useful examples
 
 <DL>
 <DT><a href="semantic.shtml">Semantic</a>
-<DD>Parser Generator.  The Database which tracks tokens between sessions
+<DD>Parser Generator.  The Database which tracks tags between sessions
     uses EIEIO persistent data classes.
 <DT><a href="ede.shtml">EDE</a>
 <DD>Emacs Development Environment uses EIEIO to track project information,
