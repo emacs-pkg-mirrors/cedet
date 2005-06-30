@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.54 2005/03/01 03:07:53 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.55 2005/06/30 01:33:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,7 +61,7 @@ This will replace the named bucket that would have usually occured here."
 ;;; Buffer setting for correct mode manipulation.
 (defun semantic-sb-tag-set-buffer (tag)
   "Set the current buffer to something associated with TAG.
-use the speedbar-line-file to get this info if needed."
+use the `speedbar-line-file' to get this info if needed."
   (if (semantic-tag-buffer tag)
       (set-buffer (semantic-tag-buffer tag))
     (let ((f (speedbar-line-file)))
@@ -350,7 +350,7 @@ TEXT TOKEN and INDENT are the details."
       (setq sordid (cdr sordid)))))
 
 (defun semantic-sb-insert-tag-table (level table)
-  "At LEVEL, insert the tag table TABLD.
+  "At LEVEL, insert the tag table TABLE.
 Use arcane knowledge about the semantic tokens in the tagged elements
 to create much wiser decisions about how to sort and group these items."
   (semantic-sb-buttons level table))
