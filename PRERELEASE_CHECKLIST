@@ -187,6 +187,11 @@ COGRE
      - Verify the grpah.  (on parent, some direct children.)
      - Move some blocks around (M-f, M-b, M-n, M-p)
 
+GENERAL
+
+   * Run `checkdoc' against various source files to make sure
+     doc strings are conforming.
+
 DEPENDANT TOOLS
 ---------------
 
