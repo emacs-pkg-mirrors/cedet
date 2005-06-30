@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.21 2005/01/30 22:03:52 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.22 2005/06/30 01:21:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 
 ;; Create the database, and add it to searchable databases for Emacs Lisp mode.
 (defvar-mode-local emacs-lisp-mode semanticdb-project-system-databases
-  (list 
+  (list
    (semanticdb-project-database-emacs-lisp "Emacs"))
   "Search Emacs core for symbols.")
 

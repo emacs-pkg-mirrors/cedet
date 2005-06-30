@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.41 2005/04/01 02:48:16 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.42 2005/06/30 01:18:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,7 +45,7 @@
 ;; prefix - The beginning of a symbol, usually used to look up something
 ;;       incomplete.
 ;; type - The name of a datatype in the langauge.
-;; metatype - If a type is named in a declaration like: 
+;; metatype - If a type is named in a declaration like:
 ;;       struct moose somevariable;
 ;;       that name "moose" can be turned into a concrete type.
 ;; tag sequence - In C code, a list of dereferences, such as:
@@ -579,7 +579,7 @@ the values 1 through 4.")
    (argument :initarg :argument
 	     :type list
 	     :documentation "A sequence of tags for the :index argument.
-The argument can accept a value of some type, and this contains the 
+The argument can accept a value of some type, and this contains the
 tag for that definition.  It should be a tag, but might
 be just a string in some circumstances.")
    )
@@ -589,7 +589,7 @@ be just a string in some circumstances.")
   () ; No extra data.
   "Analysis class for return data.
 Return data methods identify the requred type by the return value
-of the parent function.") 
+of the parent function.")
 
 ;;;###autoload
 (define-overload semantic-analyze-current-context (&optional position)
@@ -774,7 +774,7 @@ Optional argument DESIRED-TYPE may be a non-type tag to analyze."
 	   ;; Well, if it is a string, the predecessor might be
 	   ;; interesting.
 	   (car (cdr prefix)))
-	  (t 
+	  (t
 	   ;; Nope, nothing good.
 	   nil))
     ))

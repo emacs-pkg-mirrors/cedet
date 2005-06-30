@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic tag tables
 
-;;; Copyright (C) 1999, 2000, 2001, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2003, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.8 2003/11/20 14:54:46 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.9 2005/06/30 01:19:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,7 +42,7 @@ exist with a given class.  See `semantic-symbol->name-assoc-list'
 for tokens which will be charted.
 TAGTABLE is passedto `semantic-something-to-tag-table'."
   (interactive)
-  (let* ((stream (semantic-something-to-tag-table 
+  (let* ((stream (semantic-something-to-tag-table
 		  (or tagtable (current-buffer))))
 	 (names (mapcar 'cdr semantic-symbol->name-assoc-list))
 	 (nums (mapcar

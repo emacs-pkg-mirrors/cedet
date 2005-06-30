@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.37 2005/01/17 10:45:21 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.38 2005/06/30 01:20:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -830,11 +830,11 @@ PARTIAL indicates if we are doing a partial completion."
 	     (cemlen (semanticdb-find-result-length cem)))
 	(cond ((and cem (= cemlen 1))
 	       'done)
-	      ((and (not cem) 
-		    (not (semantic-collector-all-completions 
+	      ((and (not cem)
+		    (not (semantic-collector-all-completions
 			  obj (semantic-completion-text))))
 	       'empty)
-	      ((and partial (semantic-collector-try-completion-whitespace 
+	      ((and partial (semantic-collector-try-completion-whitespace
 			     obj (semantic-completion-text)))
 	       'complete-whitespace)))
     'complete))
@@ -918,7 +918,7 @@ Output must be in semanticdb Find result format."
 		    (semanticdb-find-tags-by-name
 		     prefix
 		     answer))
-	      (oset obj current-exact-match 
+	      (oset obj current-exact-match
 		    complete-not-uniq)
 	      prefix
 	      )
@@ -1133,7 +1133,7 @@ inserted into the current context.")
   (list (cons (save-excursion
 		(set-buffer (oref (oref obj context) buffer))
 		semanticdb-current-table)
-	      (semantic-find-tags-for-completion 
+	      (semantic-find-tags-for-completion
 	       prefix
 	       (oref obj first-pass-completions)))))
 
@@ -1339,7 +1339,7 @@ one in the source buffer."
       (let* ((mbc (semantic-completion-text))
 	     (ftn (semantic-tag-name tag))
 	     (diff (substring ftn (length mbc))))
-	(semantic-completion-message 
+	(semantic-completion-message
 	 (format "%s [%d of %d matches]" diff (1+ (oref obj focus)) tablelength)))
       )))
 
