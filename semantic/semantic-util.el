@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic tag tables
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.128 2005/01/06 01:41:14 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.129 2005/06/30 01:35:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -138,8 +138,7 @@ Start search with BUFFER.  Recurse through all dependencies till found.
 The return item is of the form (BUFFER TOKEN) where BUFFER is the buffer
 in which TOKEN (the token found to match NAME) was found.
 
-THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON.
-"
+THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON."
   (save-excursion
     (set-buffer buffer)
     (let* ((stream (semantic-fetch-tags))
@@ -242,7 +241,7 @@ STREAM is the list of tags to complete from."
 
 
 
-;;; Interactive Functions for 
+;;; Interactive Functions for
 ;;
 (defun semantic-describe-tag (&optional tag)
   "Describe TAG in the minibuffer.
