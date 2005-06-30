@@ -528,8 +528,8 @@ collapsed."
   "Get the overlay used to store the fold state for TAG.
 Create the overlay if CREATE-IF-NULL is non-nil."
   (let* ((pos (semantic-tag-start tag))
-        (ov (car (remove-if-not 
-                 (lambda (ov) 
+        (ov (car (remove-if-not
+                 (lambda (ov)
                    (semantic-overlay-get ov 'semantic-tag-folding-attributes))
                  (semantic-overlays-at pos)))))
     (when (and create-if-null (null ov))
@@ -546,16 +546,16 @@ preceeding a tag (COMMENT is non-nil)"
     'semantic-tag-folding-tag))
 
 (defun semantic-tag-folding-get-fold-state (tag comment)
-  "Return the fold state for TAG. 
+  "Return the fold state for TAG.
 If COMMENT is non-nil return the fold state for the comment preceeding TAG."
   (let* ((attr (semantic-tag-folding-get-folding-attribute comment))
          (ov (semantic-tag-folding-get-attribute-overlay tag nil)))
     (and ov (semantic-overlay-get ov attr))))
 
 (defun semantic-tag-folding-set-fold-state (tag comment state)
-  "Set the fold state for TAG to STATE. 
+  "Set the fold state for TAG to STATE.
 If COMMENT is non-nil set the fold state for the comment preceeding TAG."
-  (let* ((attr (semantic-tag-folding-get-folding-attribute comment))         
+  (let* ((attr (semantic-tag-folding-get-folding-attribute comment))
          (ov (semantic-tag-folding-get-attribute-overlay tag t)))
     (semantic-overlay-put ov attr state)))
 
@@ -587,7 +587,7 @@ is non-nil if the fold region is a comment."
         ;; check for fold state attributes
         (if (functionp semantic-tag-folding-function)
             (let ((state (semantic-tag-folding-get-fold-state tag comment)))
-              (if state 
+              (if state
                   (setq fold (eq state 'fold)))))
 
         ;; don't fold this region if point is inside it
@@ -617,7 +617,7 @@ is non-nil if the fold region is a comment."
 
         (semantic-overlay-put ov2 'before-string marker-string)
         
-        ;; store fold state as a function of the tag (unless the default state is being set) 
+        ;; store fold state as a function of the tag (unless the default state is being set)
         (unless (functionp semantic-tag-folding-function)
           (semantic-tag-folding-set-fold-state tag comment fold))
 
@@ -668,7 +668,7 @@ is non-nil if the fold region is a comment."
 
 (defun semantic-tag-folding-fold-or-show-tags (tags fold)
 "Change the fold state of TAGS to FOLD."
-  (lexical-let ((fold fold)) 
+  (lexical-let ((fold fold))
     (when semantic-decoration-mode
       (semantic-decorate-clear-decorations tags)
       (let ((semantic-tag-folding-function fold))
