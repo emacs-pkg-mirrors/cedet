@@ -3,9 +3,9 @@
 ;;; Copyright (C) 2004, 2005 Eric Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: cedet-contrib.el,v 1.5 2005/05/06 00:53:34 zappo Exp $
+;; X-RCS: $Id: cedet-contrib.el,v 1.6 2005/06/30 02:36:11 zappo Exp $
 
-(defvar cedet-contrib-version "1.0pre2"
+(defvar cedet-contrib-version "1.0pre3"
   "Current version of contributed libraries.")
 
 ;; CEDET is free software; you can redistribute it and/or modify
