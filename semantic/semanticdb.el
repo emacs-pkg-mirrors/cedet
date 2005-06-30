@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.73 2005/01/29 04:25:33 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.74 2005/06/30 01:21:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -190,7 +190,7 @@ If one isn't found, create one."
   (semanticdb-create-database semanticdb-new-database-class filename))
 
 (defun semanticdb-directory-loaded-p (path)
-  "Return the project belonging to Path if it was already loaded."
+  "Return the project belonging to PATH if it was already loaded."
   (eieio-instance-tracker-find path 'reference-directory 'semanticdb-database-list))
 
 (defmethod semanticdb-file-table ((obj semanticdb-project-database) filename)
