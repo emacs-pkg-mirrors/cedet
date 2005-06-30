@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.6 2005/02/03 04:57:40 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.7 2005/06/30 01:28:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -305,7 +305,8 @@ nil implies the tag should be fully shown."
 	  ))
 
 (defun semantic-set-tag-folded-isearch (overlay)
-  "Called by isearch if it discovers text in the folded region."
+  "Called by isearch if it discovers text in the folded region.
+OVERLAY is passed in by isearch."
   (semantic-set-tag-folded (semantic-current-tag) nil)
   )
 
