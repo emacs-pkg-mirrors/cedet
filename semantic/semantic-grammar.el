@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.67 2005/06/02 07:09:53 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.68 2005/06/30 01:31:05 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1867,7 +1867,7 @@ Optional argument COLOR determines if color is added to the text."
 				  (car prefix))))
 	     (tags (semantic-find-tags-for-completion completetext
 						      (current-buffer))))
-	(semantic-analyze-tags-of-class-list 
+	(semantic-analyze-tags-of-class-list
 	 tags (oref context prefixclass)))
       )))
 

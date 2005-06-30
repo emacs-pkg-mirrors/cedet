@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.10 2005/02/20 20:51:15 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.11 2005/06/30 01:35:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -81,7 +81,7 @@ depended on (see `semantic-dependency-tag-file'."
 	    ;; Here we make an assumption that the text returned by
 	    ;; the parser and concocted by us actually exists
 	    ;; in the buffer.
-	    (re-search-forward (semantic-tag-name tag) 
+	    (re-search-forward (semantic-tag-name tag)
 			       (semantic-tag-end parent)
 			       t))
 	   (t
@@ -143,7 +143,7 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
       (ede-expand-filename (ede-toplevel)
 			   (semantic-tag-name tag))
     (let
-	((result 
+	((result
 	  (if (semantic--tag-get-property tag 'dependency-file)
 	      (semantic--tag-get-property tag 'dependency-file)
 	    (:override
@@ -207,6 +207,6 @@ file prototypes belong in."
                          'semantic-dependency-tag-file)
 
 
-(provide 'semantic-tag-files)
+(provide 'semantic-tag-file)
 
-;;; semantic-tag-find.el ends here
+;;; semantic-tag-file.el ends here

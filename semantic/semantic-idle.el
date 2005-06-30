@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.32 2005/05/06 01:53:30 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.33 2005/06/30 01:31:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -335,7 +335,7 @@ Does nothing if the current buffer doesn't need reparsing."
   ;; These checks actually occur in `semantic-fetch-tags', but if we
   ;; do them here, then all the bovination hooks are not run, and
   ;; we save lots of time.
-  (cond 
+  (cond
    ;; If the buffer was previously marked unparseable,
    ;; then don't waste our time.
    ((semantic-parse-tree-unparseable-p)

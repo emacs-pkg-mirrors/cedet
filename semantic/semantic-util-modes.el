@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.56 2005/06/13 05:52:33 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.57 2005/06/30 01:36:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,7 +48,7 @@ ignore PROPERTIES."
     string)
   )
 
-;;; Group for all semantic enhancing modes 
+;;; Group for all semantic enhancing modes
 (defgroup semantic-modes nil
   "Minor modes associated with the Semantic architecture."
   :group 'semantic)
@@ -760,7 +760,7 @@ This makes it appear that the first line of that tag is
   semantic-stickyfunc-mode-map
   "Stickyfunc Menu"
   '("Stickyfunc Mode"  :visible (progn nil)
-    [ "Copy Headerline Tag" senator-copy-tag  
+    [ "Copy Headerline Tag" senator-copy-tag
       :active (semantic-current-tag)
       :help "Copy the current tag to the tag ring"]
     [ "Kill Headerline Tag" senator-kill-tag
