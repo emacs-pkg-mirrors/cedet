@@ -9,6 +9,17 @@ includeing:
    EDE - File manager/ Makefile generator
    COGRE - Connected Graph Editor
 
+REQUIREMENTS:
+
+   The CEDET suite requires either Emacs 21.3 or XEmacs 21.3 or better
+   for all features to work.  Older versions of either will also work
+   with fewer CEDET features being available.
+
+   If you use a binary install of Emacs, you may need the .el
+   files for Emacs available for some aspects of the build.
+
+INSTALL:
+
 You can install all these packagees at once with the CEDET build and
 install scripts:
 
@@ -78,10 +89,10 @@ install scripts:
 
 4) Configuration:
 
-You can configure how the individual packages load in the above example
-by adding settings in the comment section.  Please read individual
-INSTALL files for each package for details on configuring them.
-See the texinfo manuals for details on more specific configurations.
+   You can configure how the individual packages load in the above example
+   by adding settings in the comment section.  Please read individual
+   INSTALL files for each package for details on configuring them.
+   See the texinfo manuals for details on more specific configurations.
 
 5) To send bug reports, or participate in discussions on these
    packages, choose a mailing list:
@@ -100,4 +111,19 @@ See the texinfo manuals for details on more specific configurations.
    mailing list cedet-devel@sourceforge.net via the URL:
 
    http://lists.sourceforge.net/lists/listinfo/cedet-devel
+
+OTHER REQUIREMENTS:
+
+   You may also need to download some of the following files for more
+   obscure features.
+
+   To use the JavaScript parser:
+   javascript-mode.el : http://www.emacswiki.org/cgi-bin/wiki/JavaScriptMode
+   
+   To use the UML chart generation from "M-x semantic-dot":
+   graphviz dot programs, including "dotty"
+   http://www.graphviz.org/
+
+   To use the graphviz dot parser:
+   graphviz-dot-mode.el: See the commentary in cogre/wisent-dot.el
 
