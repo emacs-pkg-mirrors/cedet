@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-fold.el,v 1.4 2005/05/06 01:55:24 zappo Exp $
+;; X-RCS: $Id: semantic-fold.el,v 1.5 2005/08/15 20:04:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,6 +35,7 @@
 
 ;;; Tag Folding Mode
 ;;
+;;; Code:
 (define-semantic-decoration-style semantic-tag-folding-decoration
   "Place folding icons in the Emacs fringe.
 Clicking on the fringe icon would `fold' methods open or closed."
@@ -158,7 +159,7 @@ in Emacs 20.4."
           (progn
             ;; Disable minor mode if semantic stuff not available
             (setq semantic-folding-mode nil)
-            (error "Buffer %s cannot be folded by semantic."
+            (error "Buffer %s cannot be folded by semantic"
                    (buffer-name)))
 	;; Enable the decoration.
         )
@@ -217,7 +218,7 @@ a folding icon on this line."
     )))
 
 (defun semantic-folding-click (e)
-  "What happens when you click on a folding icon."
+  "Respond to event E when you click on a folding icon."
   (interactive "e")
   (mouse-minibuffer-check e)
   ;;(message "%S" e)
@@ -236,3 +237,7 @@ a folding icon on this line."
       (mouse-set-point e)
       )))
 
+
+(provide 'semantic-fold)
+
+;;; semantic-fold.el ends here
