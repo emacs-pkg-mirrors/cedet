@@ -189,6 +189,14 @@ If not provided, then only the position can be provided.
 @obsolete{semantic-token-docstring,semantic-tag-docstring}
 @end defun
 
+@defun semantic-tag-named-parent tag
+@anchor{semantic-tag-parent}
+Return the parent of @var{tag}.
+That is the value of the `:parent' attribute.
+If a definition can occur outside an actual parent structure, but
+refers to that parent by name, then the @code{:parent} attribute should be used.
+@end defun
+
 @defun semantic-tag-variable-constant-p tag
 Return non-@code{nil} if the variable that @var{tag} describes is a constant.
 That is the value of the attribute @code{:constant-flag}.
