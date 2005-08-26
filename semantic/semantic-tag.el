@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.35 2005/06/30 01:34:43 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.36 2005/08/26 20:30:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -514,6 +514,15 @@ If not provided, then only the POSITION can be provided."
           (semantic-lex-token-text (car (semantic-lex p (1+ p)))))
       p)))
 
+;;; Generic attributes for tags of any class.
+;;
+(defsubst semantic-tag-named-parent (tag)
+  "Return the parent of TAG.
+That is the value of the `:parent' attribute.
+If a definition can occur outside an actual parent structure, but
+refers to that parent by name, then the :parent attribute should be used."
+  (semantic-tag-get-attribute tag :parent))
+
 ;;; Tags of class `type'
 ;;
 (defsubst semantic-tag-type-members (tag)
@@ -550,7 +559,7 @@ That is the value of the `:throws' attribute."
 That is the value of the `:parent' attribute.
 A function has a parent if it is a method of a class, and if the
 function does not appear in body of it's parent class."
-  (semantic-tag-get-attribute tag :parent))
+  (semantic-tag-named-parent tag))
 
 (defsubst semantic-tag-function-destructor-p (tag)
   "Return non-nil if TAG describes a destructor function.
