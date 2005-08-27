@@ -370,7 +370,7 @@ Default behavior is to get @dfn{semantic-tag-components} in addition
 to the components of an anonymous types (if applicable.)
 
 @table @strong
-@item Note for language authors:
+@item Language authors, please note:
 If a mode defines a language tag that has tags in it with overlays
 you should still return them with this function.
 Ignoring this step will prevent several features from working
