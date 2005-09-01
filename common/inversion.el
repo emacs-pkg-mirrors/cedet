@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.23 2005/04/20 03:16:17 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.24 2005/09/01 00:06:12 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.2"
@@ -202,7 +202,7 @@ not an indication of new features or bug fixes."
 VERSION, INCOMPATIBLE-VERSION and MINIMUM are of similar format to
 return entries of `inversion-decode-version', or a classic version
 string.	 INCOMPATIBLE-VERSION can be nil.
-RESERVED arguments are kept for a later user.
+RESERVED arguments are kept for a later use.
 Return:
 - nil if everything is ok
 - 'outdated if VERSION is less than MINIMUM.
