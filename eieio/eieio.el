@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.142 2005/06/30 02:36:48 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.143 2005/09/01 00:07:00 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0pre3"
   "Current version of EIEIO.")
@@ -2056,7 +2056,7 @@ This writes out the vector version of this object.  Complex and recursive
 object are discouraged from being written.
   If optional COMMENT is non-nil, include comments when outputting
 this object."
-  (if (not comment) nil
+  (when comment
     (princ ";; Object ")
     (princ (object-name-string this))
     (princ "\n")
