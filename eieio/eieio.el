@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.143 2005/09/01 00:07:00 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.144 2005/09/07 13:30:27 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0pre3"
   "Current version of EIEIO.")
@@ -522,7 +522,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	      (eval (macroexpand
 		     (list  'defsetf acces '(widget) '(store)
 			    (list 'list ''eieio-oset 'widget
-				  (list 'quote (list 'quote acces)) 'store))))
+				  (list 'quote (list 'quote name)) 'store))))
 	      ;;`(defsetf ,acces (widget) (store) (eieio-oset widget ',cname store))
 	      )
 	  )
