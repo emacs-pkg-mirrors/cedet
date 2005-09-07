@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.34 2005/05/05 01:53:51 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.35 2005/09/07 13:30:54 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -583,6 +583,10 @@ METHOD is the method that was attempting to be called."
 
 (if (not (eq (get-slot-3 class-c) 'emu))
     (error "Accessor to private :class slot returned bad value from class."))
+
+(setf (get-slot-3 t1) 'moose)
+(if (not (eq (get-slot-3 t1) 'moose))
+    (error "setf and get through accessor failed!"))
 
 ;; Slot protection
 (defclass prot-0 ()
