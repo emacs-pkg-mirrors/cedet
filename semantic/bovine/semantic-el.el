@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.35 2005/04/19 02:59:03 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.36 2005/09/07 18:10:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -210,10 +210,14 @@ Return a bovination list to use."
 
 (semantic-elisp-setup-form-parser
     (lambda (form start end)
-      (condition-case foo
-          (semantic-parse-region start end nil 1)
-        (error (message "MUNGE: %S" foo)
-               nil)))
+      (let ((tags
+             (condition-case foo
+                 (semantic-parse-region start end nil 1)
+               (error (message "MUNGE: %S" foo)
+                      nil))))
+        (if (semantic-tag-p (car-safe tags))
+            tags
+          (semantic-tag-new-code (format "%S" (car form)) nil))))
   eval-and-compile
   eval-when-compile
   )
