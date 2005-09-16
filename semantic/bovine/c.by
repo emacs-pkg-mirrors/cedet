@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.25 2005/04/16 07:45:57 ponced Exp $
+;; X-RCS: $Id: c.by,v 1.26 2005/09/16 18:19:23 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -987,13 +987,10 @@ operatorsym
     ( "&=" )
   | OR EQUAL
     ( "|=" )
-  | HAT EQUAL
-    ( "^=" )
   | MINUS GREATER STAR
     ( "->*" )
   | MINUS GREATER
     ( "->" )
- ;; Klaus Berndl: We have to parse also operator() and operator[]
   | PARENS
     ( "()" )
   | BRACKETS
@@ -1018,8 +1015,13 @@ operatorsym
   | BANG
   | TILDE
   | MOD
-  | HAT
   | COMA
+ ;; HAT EQUAL seems to have a really unpleasant result and
+ ;; breaks everything after it.  Leave it at the end, though it
+ ;; doesn't seem to work.
+  | HAT EQUAL
+    ( "^=" )
+  | HAT
   ;
 
 functionname
