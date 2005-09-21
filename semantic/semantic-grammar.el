@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.68 2005/06/30 01:31:05 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.69 2005/09/21 06:22:00 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1686,38 +1686,51 @@ Only tags of type 'nonterminal will be so marked."
 (define-mode-local-override semantic-ctxt-current-function
   semantic-grammar-mode (&optional point)
   "Determine the name of the current function at POINT."
-  (if (semantic-grammar-in-lisp-p)
+  (save-excursion
+    (and point (goto-char point))
+    (when (semantic-grammar-in-lisp-p)
       (with-mode-local emacs-lisp-mode
-	(semantic-ctxt-current-function point))
-    nil
-    ))
+        (semantic-ctxt-current-function)))))
 
 (define-mode-local-override semantic-ctxt-current-argument
   semantic-grammar-mode (&optional point)
   "Determine the argument index of the called function at POINT."
-  (if (semantic-grammar-in-lisp-p)
+  (save-excursion
+    (and point (goto-char point))
+    (when (semantic-grammar-in-lisp-p)
       (with-mode-local emacs-lisp-mode
-	(semantic-ctxt-current-argument point))
-    nil
-    ))
+        (semantic-ctxt-current-argument)))))
 
 (define-mode-local-override semantic-ctxt-current-assignment
   semantic-grammar-mode (&optional point)
   "Determine the tag being assigned into at POINT."
-  (if (semantic-grammar-in-lisp-p)
+  (save-excursion
+    (and point (goto-char point))
+    (when (semantic-grammar-in-lisp-p)
       (with-mode-local emacs-lisp-mode
-	(semantic-ctxt-current-assignment point))
-    nil
-    ))
+        (semantic-ctxt-current-assignment)))))
 
 (define-mode-local-override semantic-ctxt-current-class-list
   semantic-grammar-mode (&optional point)
   "Determine the class of tags that can be used at POINT."
-  (if (semantic-grammar-in-lisp-p)
-      (with-mode-local emacs-lisp-mode
-	(semantic-ctxt-current-class-list point))
-    '(nonterminal keyword)
-    ))
+  (save-excursion
+    (and point (goto-char point))
+    (if (semantic-grammar-in-lisp-p)
+        (with-mode-local emacs-lisp-mode
+          (semantic-ctxt-current-class-list))
+      '(nonterminal keyword))))
+
+(define-mode-local-override semantic-ctxt-current-mode
+  semantic-grammar-mode (&optional point)
+  "Return the major mode active at POINT.
+POINT defaults to the value of point in current buffer.
+Return `emacs-lisp-mode' is POINT is within Lisp code, otherwise
+return the current major mode."
+  (save-excursion
+    (and point (goto-char point))
+    (if (semantic-grammar-in-lisp-p)
+        'emacs-lisp-mode
+      (semantic-ctxt-current-mode-default))))
 
 (define-mode-local-override semantic-format-tag-abbreviate
   semantic-grammar-mode (tag &optional parent color)
