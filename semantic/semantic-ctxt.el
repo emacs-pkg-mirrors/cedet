@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.38 2005/06/30 01:20:54 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.39 2005/09/21 06:21:07 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -475,6 +475,17 @@ Assume a functional typed language.  Uses very simple rules."
 	       '(type))
 	      (t nil))))))
 
+(define-overload semantic-ctxt-current-mode (&optional point)
+  "Return the major mode active at POINT.
+POINT defaults to the value of point in current buffer.
+You should override this function in multiple mode buffers to
+determine which major mode apply at point.")
+
+(defun semantic-ctxt-current-mode-default (&optional point)
+  "Return the major mode active at POINT.
+POINT defaults to the value of point in current buffer.
+This default implementation returns the current major mode."
+  major-mode)
 
 ;;; Scoped Types
 ;;
