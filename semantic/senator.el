@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.108 2005/09/01 00:11:55 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.109 2005/09/21 06:25:01 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -2461,26 +2461,6 @@ used by add log.")
 (defvar senator-tag-ring (make-ring 20)
   "Ring of tags for use with cut and paste.")
 
-(defun semantic-insert-foreign-tag-default (tag tagfile)
-  "Insert TAG from a foreign buffer into the current buffer.
-This is the default behavior for `semantic-insert-foreign-tag'.
-Assumes the current buffer is a language file, and attempts to insert
-a prototype/function call.
-Argument TAGFILE is the file from wence TAG came."
-  ;; Long term goal:
-  ;; Have a mechanism for a tempo-like template insert for the given
-  ;; tag.
-  (insert (semantic-format-tag-prototype tag)))
-
-(define-overload semantic-insert-foreign-tag (tag tagfile)
-  "Insert TAG from a foreign buffer into the current buffer.
-TAG will have originated from TAGFILE.
-This function is overridable with the symbol `insert-foreign-tag'."
-  (if (or (not tag) (not (semantic-tag-p tag)))
-      (signal 'wrong-type-argument (list tag 'semantic-tag-p)))
-  (:override)
-  (message (semantic-format-tag-summarize tag)))
-
 (make-obsolete-overload 'semantic-insert-foreign-token
                         'semantic-insert-foreign-tag)
 
@@ -2491,10 +2471,11 @@ This function is overridable with the symbol `insert-foreign-tag'."
   "Take the current tag, and place it in the tag ring."
   (interactive)
   (senator-parse)
-  (let ((ct (senator-current-tag)))
-    (ring-insert senator-tag-ring (cons ct (buffer-file-name)))
-    (message (semantic-format-tag-summarize ct))
-    ct))
+  (let ((ft (semantic-obtain-foreign-tag)))
+    (when ft
+      (ring-insert senator-tag-ring ft)
+      (message (semantic-format-tag-summarize ft)))
+    ft))
 (semantic-alias-obsolete 'senator-copy-token 'senator-copy-tag)
 
 (defun senator-kill-tag ()
@@ -2513,8 +2494,9 @@ The form the tag takes is differnet depending on where it is being
 yanked to."
   (interactive)
   (or (ring-empty-p senator-tag-ring)
-      (let ((tag (ring-ref senator-tag-ring 0)))
-        (semantic-insert-foreign-tag (car tag) (cdr tag)))))
+      (let ((ft (ring-ref senator-tag-ring 0)))
+          (semantic-foreign-tag-check ft)
+          (semantic-insert-foreign-tag ft))))
 (semantic-alias-obsolete 'senator-yank-token 'senator-yank-tag)
 
 (defun senator-copy-tag-to-register (register &optional kill-flag)
@@ -2522,11 +2504,13 @@ yanked to."
 Optional argument KILL-FLAG will delete the text of the tag to the
 kill ring."
   (interactive "cTag to register: \nP")
-  (let ((ct (senator-current-tag)))
-    (set-register register (cons ct (buffer-file-name)))
-    (if kill-flag
-        (kill-region (semantic-tag-start ct)
-                     (semantic-tag-end ct)))))
+  (senator-parse)
+  (let ((ft (semantic-obtain-foreign-tag)))
+    (when ft
+      (set-register register ft)
+      (if kill-flag
+          (kill-region (semantic-tag-start ft)
+                       (semantic-tag-end ft))))))
 (semantic-alias-obsolete 'senator-copy-token-to-register
                          'senator-copy-tag-to-register)
 
@@ -2535,8 +2519,8 @@ kill ring."
 If senator is not active, use the original mechanism."
   (let ((val (get-register (ad-get-arg 0))))
     (if (and senator-minor-mode (interactive-p)
-             (listp val) (semantic-tag-p (car val)))
-        (semantic-insert-foreign-tag (car val) (cdr val))
+             (semantic-foreign-tag-p val))
+        (semantic-insert-foreign-tag val)
       ad-do-it)))
 
 (defadvice jump-to-register (around senator activate)
@@ -2544,10 +2528,10 @@ If senator is not active, use the original mechanism."
 If senator is not active, use the original mechanism."
   (let ((val (get-register (ad-get-arg 0))))
     (if (and senator-minor-mode (interactive-p)
-             (listp val) (semantic-tag-p (car val)))
+             (semantic-foreign-tag-p val))
         (progn
-          (find-file (cdr val))
-          (goto-char (semantic-tag-start (car val))))
+          (switch-to-buffer (semantic-tag-buffer val))
+          (goto-char (semantic-tag-start val)))
       ad-do-it)))
 
 (defun senator-transpose-tags-up ()
