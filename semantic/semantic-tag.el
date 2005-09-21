@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.36 2005/08/26 20:30:52 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.37 2005/09/21 06:23:05 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -144,13 +144,44 @@ That function is for internal use only."
         (semantic-overlay-move o start end)
       (semantic--tag-set-overlay tag (vector start end)))))
 
-(defsubst semantic-tag-buffer (tag)
+(defun semantic-tag-buffer (tag)
   "Return the buffer TAG resides in.
+If TAG has an originating file, read that file into a (maybe new)
+buffer, and return it.
 Return nil if there is no buffer for this tag."
   (let ((o (semantic-tag-overlay tag)))
-    (and (semantic-overlay-p o)
-         (semantic-overlay-live-p o)
-         (semantic-overlay-buffer o))))
+    (cond
+     ;; TAG is currently linked to a buffer, return it.
+     ((and (semantic-overlay-p o)
+           (semantic-overlay-live-p o))
+      (semantic-overlay-buffer o))
+     ;; TAG has an originating file, read that file into a buffer, and
+     ;; return it.
+     ((semantic--tag-get-property tag :filename)
+      (find-file-noselect (semantic--tag-get-property tag :filename)))
+     ;; TAG is not in Emacs right now, no buffer is available.
+     )))
+
+(defun semantic-tag-mode (&optional tag)
+  "Return the major mode active for TAG.
+TAG defaults to the tag at point in current buffer.
+If TAG has a :mode property return it.
+If point is inside TAG bounds, return the major mode active at point.
+Return the major mode active at beginning of TAG otherwise.
+See also the function `semantic-ctxt-current-mode'."
+  (or tag (setq tag (semantic-current-tag)))
+  (or (semantic--tag-get-property tag :mode)
+      (let ((buffer (semantic-tag-buffer tag))
+            (start (semantic-tag-start tag))
+            (end   (semantic-tag-end tag)))
+        (save-excursion
+          (and buffer (set-buffer buffer))
+          ;; Unless point is inside TAG bounds, move it to the
+          ;; beginning of TAG.
+          (or (and (>= (point) start) (< (point) end))
+              (goto-char start))
+          (require 'semantic-ctxt)
+          (semantic-ctxt-current-mode)))))
 
 (defsubst semantic--tag-attributes-cdr (tag)
   "Return the cons cell whose car is the ATTRIBUTES part of TAG.
@@ -705,7 +736,6 @@ DO NOT use this fcn in new code.  Use one of the above instead."
   (if positiononly
       (semantic-tag-components-with-overlays tag)
     (semantic-tag-components tag)))
-
 
 ;;; Tag Region
 ;;
@@ -737,7 +767,6 @@ DO NOT use this fcn in new code.  Use one of the above instead."
 	  (lambda ()
 	    (def-edebug-spec semantic-with-buffer-narrowed-to-tag
 	      (def-body))))
-
 
 ;;; Tag Hooks
 ;;
@@ -937,16 +966,76 @@ This function is for internal use only."
             (list tag))
       (list tag))))
 
+;; Foreign tags
+;;
+(defmacro semantic-foreign-tag-invalid (tag)
+  "Signal that TAG is an invalid foreign tag."
+  `(signal 'wrong-type-argument '(semantic-foreign-tag-p ,tag)))
+
+(defsubst semantic-foreign-tag-p (tag)
+  "Return non-nil if TAG is a foreign tag.
+That is, a tag unlinked from the originating buffer, which carries the
+originating buffer file name, and major mode."
+  (and (semantic-tag-p tag)
+       (semantic--tag-get-property tag :foreign-flag)))
+
+(defsubst semantic-foreign-tag-check (tag)
+  "Check that TAG is a valid foreign tag.
+Signal an error if not."
+  (or (semantic-foreign-tag-p tag)
+      (semantic-foreign-tag-invalid tag)))
+
+(defun semantic-foreign-tag (&optional tag)
+  "Return a copy of TAG as a foreign tag, or nil if it can't be done.
+TAG defaults to the tag at point in current buffer.
+See also `semantic-foreign-tag-p'."
+  (or tag (setq tag (semantic-current-tag)))
+  (when (semantic-tag-p tag)
+    (let ((ftag (semantic-tag-copy tag nil t)))
+      ;; A foreign tag must carry its originating buffer file name!
+      (when (semantic--tag-get-property ftag :filename)
+        (semantic--tag-put-property
+         ftag :mode (semantic-tag-mode tag))
+        (semantic--tag-put-property ftag :foreign-flag t)
+        ftag))))
+
+;; High level obtain/insert foreign tag overloads
+;;
+;;;###autoload
+(define-overload semantic-obtain-foreign-tag (&optional tag)
+  "Obtain a foreign tag from TAG.
+TAG defaults to the tag at point in current buffer.
+Return the obtained foreign tag or nil if failed."
+  (semantic-foreign-tag tag))
+
+(defun semantic-insert-foreign-tag-default (foreign-tag)
+  "Insert FOREIGN-TAG into the current buffer.
+The default behavior assumes the current buffer is a language file,
+and attempts to insert a prototype/function call."
+  ;; Long term goal: Have a mechanism for a tempo-like template insert
+  ;; for the given tag.
+  (insert (semantic-format-tag-prototype foreign-tag)))
+
+;;;###autoload
+(define-overload semantic-insert-foreign-tag (foreign-tag)
+  "Insert FOREIGN-TAG into the current buffer.
+Signal an error if FOREIGN-TAG is not a valid foreign tag.
+This function is overridable with the symbol `insert-foreign-tag'."
+  (semantic-foreign-tag-check foreign-tag)
+  (:override)
+  (message (semantic-format-tag-summarize foreign-tag)))
+
 ;;; EDEBUG display support
 ;;
 (eval-after-load "cedet-edebug"
   '(progn
-     (cedet-edebug-add-print-override '(semantic-tag-p object)
-				      '(concat "#<TAG " (semantic-format-tag-name object) ">"))
-     (cedet-edebug-add-print-override '(and (listp object) (semantic-tag-p (car object)))
-				      '(cedet-edebug-prin1-recurse object) )
+     (cedet-edebug-add-print-override
+      '(semantic-tag-p object)
+      '(concat "#<TAG " (semantic-format-tag-name object) ">"))
+     (cedet-edebug-add-print-override
+      '(and (listp object) (semantic-tag-p (car object)))
+      '(cedet-edebug-prin1-recurse object))
      ))
-
 
 ;;; Compatibility
 ;;
