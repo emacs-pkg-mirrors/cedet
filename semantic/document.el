@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.25 2004/03/19 23:36:11 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.26 2005/09/21 06:20:25 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -772,25 +772,27 @@ Leaves other formatting elements the way they are."
 (defun document-massage-to-texinfo (tag buffer string)
   "Massage TAG's documentation from BUFFER as STRING.
 This is to take advantage of TeXinfo's markup symbols."
-  (if (save-excursion (set-buffer buffer)
-		      (eq major-mode 'emacs-lisp-mode))
+  (let ((mode (with-current-buffer buffer (semantic-tag-mode tag))))
+    (when (eq mode 'emacs-lisp-mode)
       ;; Elisp has a few advantages.  Hack it in.
       (setq string (document-texify-elisp-docstring string)))
-  ;; Else, other languages are simpler.  Also, might as well
-  ;; run the elisp version through also.
-  (let ((case-fold-search nil)
-	(start 0))
-    (while (string-match
-	    "\\(^\\|[^{]\\)\\<\\([A-Z0-9_-]+\\)\\>\\($\\|[^}]\\)"
-	    string start)
-      (setq string (concat (substring string 0 (match-beginning 2))
-			   "@var{"
-			   (downcase (match-string 2 string))
-			   "}"
-			   (substring string (match-end 2)))
-	    start (match-end 2)))
-    )
-  string)
+    ;; Else, other languages are simpler.  Also, might as well
+    ;; run the elisp version through also.
+    (let ((case-fold-search nil)
+          (start 0))
+      (while (string-match
+              "\\(^\\|[^{]\\)\\<\\([A-Z0-9_-]+\\)\\>\\($\\|[^}]\\)"
+              string start)
+        (setq string (concat (substring string 0 (match-beginning 2))
+                             "@var{"
+                             (if (eq mode 'emacs-lisp-mode)
+                                 (downcase (match-string 2 string))
+                               (match-string 2 string))
+                             "}"
+                             (substring string (match-end 2)))
+              start (match-end 2)))
+      )
+    string))
 
 ;; This FN was taken from EIEIO and modified.  Maybe convert later.
 (defun document-texify-elisp-docstring (string)
