@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.31 2005/01/16 22:04:00 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.32 2005/09/21 06:23:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -222,15 +222,15 @@ The cursor should be on the @ sign."
   (semantic-tag-get-attribute tag :members))
 
 (define-mode-local-override semantic-insert-foreign-tag
-  texinfo-mode (tag tagfile)
+  texinfo-mode (foreign-tag)
   "Insert TAG from a foreign buffer in TAGFILE.
 Assume TAGFILE is a source buffer, and create a documentation
 thingy from it using the `document' tool."
   ;; This makes sure that TAG will be in an active buffer.
-  (let ((b (find-file-noselect tagfile)))
+  (let ((b (semantic-tag-buffer foreign-tag)))
     ;; Now call the document insert thingy.
     (require 'document)
-    (document-insert-texinfo tag b)))
+    (document-insert-texinfo foreign-tag b)))
 
 
 (define-mode-local-override semantic-ctxt-current-class-list
