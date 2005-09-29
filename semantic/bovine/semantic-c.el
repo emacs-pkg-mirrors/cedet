@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.37 2005/04/15 16:55:19 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.38 2005/09/29 14:38:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -353,6 +353,16 @@ Optional PARENT and COLOR are ignored."
 	name
       (concat "(*" name ")"))
     ))
+
+(define-mode-local-override semantic-format-tag-canonical-name
+  c-mode (tag &optional parent color)
+  "Create a cannonical name for TAG.
+PARENT specifies a parent class.
+COLOR indicates that the text should be type colorized.
+Enhances the base class to search for the entire parent
+tree to make the name accurate."
+  (semantic-format-tag-canonical-name-default tag parent color)
+  )
 
 (define-mode-local-override semantic-tag-protection
   c-mode (token &optional parent)
