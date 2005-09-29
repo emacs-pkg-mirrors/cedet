@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.27 2005/09/29 14:36:43 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.28 2005/09/29 14:38:16 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -846,7 +846,8 @@ documentation."
   (if (eq (point) (point-min))
       (progn
 	(switch-to-buffer (current-buffer))
-	(error "Position cursor in %s, and try inserting documentation again"))
+	(error "Position cursor in %s, and try inserting documentation again"
+	       file))
     (point-marker)))
 
 (defun document-locate-file (buffer &optional override)
