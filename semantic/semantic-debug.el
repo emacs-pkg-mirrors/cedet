@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.13 2005/06/30 01:27:43 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.14 2005/09/29 14:34:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -203,7 +203,7 @@ If RULE and MATCH indicies are specified, highlight those also."
 	;; Rule, an int, is the rule inside the nonterminal we are following.
 	(re-search-forward ":\\s-*")
 	(while (/= 0 rule)
-	  (re-search-forward "\\s-*|\\s-*")
+	  (re-search-forward "^\\s-*|\\s-*")
 	  (setq rule (1- rule)))
 
 	;; Now find the match inside the rule
@@ -217,6 +217,10 @@ If RULE and MATCH indicies are specified, highlight those also."
 	(semantic-overlay-put o 'face 'highlight)
 
 	(object-add-to-list iface 'overlays o)
+
+	;; If we have a match for a sub-rule, have the parser position
+	;; move so we can see it in the output window for very long rules.
+	(semantic-debug-set-parser-location iface (semantic-overlay-start o))
 
 	))))
 
