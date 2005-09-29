@@ -1,10 +1,10 @@
 ;;; document.el --- Use the semantic parser to generate documentation.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.26 2005/09/21 06:20:25 ponced Exp $
+;; X-RCS: $Id: document.el,v 1.27 2005/09/29 14:36:43 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -77,16 +77,17 @@ This is used to create a history element.")
 ;;; User Functions
 ;;
 (defun document (&optional resetfile)
-  "Document the function or variable the cursor is in.
+  "Document in a texinfo file the function or variable the cursor is in.
 Optional argument RESETFILE is provided w/ universal argument.
-When non-nil, query for a new documentation file."
+When non-nil, query for a new documentation file.
+To document a function in a source file, use `document-inline'."
   (interactive (if current-prefix-arg
 		   (save-excursion
 		     (list (document-locate-file
 			    (current-buffer) t)))))
   ;; First, garner some information from Semantic.
   (semantic-fetch-tags)
-  (let ((cdi (semantic-brute-find-tag-by-position (point) (current-buffer)))
+  (let ((cdi (semantic-current-tag))
 	(cdib (current-buffer)))
     ;; Make sure we have a file.
     (document-locate-file (current-buffer))
@@ -105,7 +106,7 @@ When non-nil, query for a new documentation file."
   "Document the current function with an inline comment."
   (interactive)
   (semantic-fetch-tags)
-  (let ((cf (semantic-brute-find-tag-by-position (point) (current-buffer))))
+  (let ((cf (semantic-current-tag)))
     (document-insert-defun-comment cf (current-buffer))))
 
 ;;; Documentation insertion functions
