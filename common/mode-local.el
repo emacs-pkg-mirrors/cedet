@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.7 2005/03/24 09:18:54 ponced Exp $
+;; X-RCS: $Id: mode-local.el,v 1.8 2005/09/29 14:23:54 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -770,6 +770,11 @@ invoked interactively."
 
 ;;; find-func support (Emacs 21.4, or perhaps 22.1)
 ;;
+(condition-case nil
+    ;; Try to get find-func so we can modify it.
+    (require 'find-func)
+  (error nil))
+
 (when (boundp 'find-function-regexp)
   (unless (string-match "ine-overload" find-function-regexp)
     (if (string-match "(def\\\\(" find-function-regexp)
@@ -783,7 +788,6 @@ invoked interactively."
     )
   ;; The regexp for variables is a little more kind.
   )
-  
 
 ;; TODO: Add XEmacs support
 (when (fboundp 'font-lock-add-keywords)
