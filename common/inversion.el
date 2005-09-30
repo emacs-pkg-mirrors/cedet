@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.24 2005/09/01 00:06:12 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.25 2005/09/30 19:37:34 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.2"
@@ -76,9 +76,9 @@
 
 (defconst inversion-decoders
   '(
-    (alpha  "^\\([0-9]+\\)\\.\\([0-9]+\\)alpha\\([0-9]+\\)$" 3)
-    (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)beta\\([0-9]+\\)$" 3)
-    (prerelease "^\\([0-9]+\\)\\.\\([0-9]+\\)pre\\([0-9]+\\)$" 3)
+    (alpha  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*alpha\\([0-9]+\\)?$" 3)
+    (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*beta\\([0-9]+\\)?$" 3)
+    (prerelease "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*pre\\([0-9]+\\)?$" 3)
     (full   "^\\([0-9]+\\)\\.\\([0-9]+\\)$" 2)
     (point  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\.\\([0-9]+\\)$" 3)
     )
@@ -108,11 +108,14 @@ where RELEASE is a symbol such as `full', or `beta'."
 		(num-left (nth 2 (car decoders)))
 		(count 1))
 	    (while (<= count num-left)
-	      (setq ver (cons (string-to-int
-                               (substring version-string
-                                          (match-beginning count)
-                                          (match-end count)))
-                              ver)
+	      (setq ver (cons
+			 (if (match-beginning count)
+			     (string-to-int
+			      (substring version-string
+					 (match-beginning count)
+					 (match-end count)))
+			   1)
+			 ver)
 		    count (1+ count)))
 	    (setq result (cons (caar decoders) (nreverse ver))))
         (setq decoders (cdr decoders))))
@@ -391,9 +394,9 @@ INSTALLDIR path."
 	(c1i (inversion-package-incompatibility-version 'inversion))
 	(c2 (inversion-decode-version "1.3alpha2"))
 	(c3 (inversion-decode-version "1.3beta4"))
-	(c4 (inversion-decode-version "1.3beta5"))
+	(c4 (inversion-decode-version "1.3 beta5"))
 	(c5 (inversion-decode-version "1.3.4"))
-	(c6 (inversion-decode-version "2.3alpha1"))
+	(c6 (inversion-decode-version "2.3alpha"))
 	(c7 (inversion-decode-version "1.3"))
 	(c8 (inversion-decode-version "1.3pre1")))
     (if (not (and
