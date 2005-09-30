@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.248 2005/09/13 00:44:02 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.249 2005/09/30 20:26:17 zappo Exp $
 
 (defvar speedbar-version "1.0"
   "The current version of speedbar.")
@@ -27,8 +27,8 @@ this version is not backward compatible to 0.14 or earlier.")
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;

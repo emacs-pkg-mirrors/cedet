@@ -1,6 +1,6 @@
 ;;; eieiocomp.el --- compile the eieio distribution
 
-;; Copyright (C) 1996, 1997, 1998 Eric M. Ludlam
+;; Copyright (C) 1996, 1997, 1998, 2005 Eric M. Ludlam
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -13,16 +13,13 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; if not, you can either send email to this
-;; program's author (see below) or write to:
-;;
-;;              The Free Software Foundation, Inc.
-;;              675 Mass Ave.
-;;              Cambridge, MA 02139, USA.
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
 ;;
 ;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
 ;;
-;; $Id: eieiocomp.el,v 1.2 1998/10/27 17:44:18 zappo Exp $
+;; $Id: eieiocomp.el,v 1.3 2005/09/30 20:17:50 zappo Exp $
 
 ;;; Code:
 (load-library "bytecomp")

@@ -9,7 +9,7 @@
 ;; Author: Richard Y. Kim, <ryk@dspwiz.com>
 ;; Maintainer: Richard Y. Kim, <ryk@dspwiz.com>
 ;; Created: Mon Apr 09 09:44:06 2001
-;; Version: $Id: sb-ant.el,v 1.2 2003/06/09 12:47:10 zappo Exp $
+;; Version: $Id: sb-ant.el,v 1.3 2005/09/30 20:25:50 zappo Exp $
 ;; Keywords: speedbar, html
 
 ;; This program is free software; you can redistribute it and/or
@@ -24,8 +24,8 @@
 
 ;; You should have received a copy of the GNU General Public
 ;; License along with this program; if not, write to the Free
-;; Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-;; MA 02111-1307 USA
+;; Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+;; MA 02110-1301 USA
 
 ;; This small add-on to speedbar provides an alternate way to view ANT
 ;; project files. It simply lists all the available targets.
