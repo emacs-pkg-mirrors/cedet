@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.19 2005/02/03 14:08:11 zappo Exp $
+ * $Id: test.cpp,v 1.20 2005/09/30 20:52:37 zappo Exp $
  *
  */
 
@@ -12,7 +12,12 @@
 
 #include <c++-test.hh>
 
+#include <stdio.h>
 double var1 = 1.2;
+
+int simple1(int a) {
+
+}
 
 struct foo1 {
   int test;
@@ -27,7 +32,7 @@ struct foo2 : public foo1 {
 class class1 {
 private:
   int var11;
-  struct foo var12;
+  struct foo1 var12;
 public:
   int p_var11;
   struct foo p_var12;
@@ -81,10 +86,11 @@ public:
   
   /* Methods */
   int method_for_class3(int a, char b);
+
   int inline_method(int c) { return c; }
 
   /* Operators */
-  class3& operator= (const class3& something);
+  class3& operator^= (const class3& something);
 
   /* Funny declmods */
   const class3 * const method_const_ptr_ptr(const int * const argconst) const = 0;
@@ -95,16 +101,21 @@ class3::class3()
   /* Constructor outside the definition. */
 }
 
+int class3::method_for_class3(int a, char b)
+{
+}
+
 int class3::method1_for_class3( int a, int &b)
 {
-  int c;
-  class3 foo;
+  int cvariablename;
+  class3 fooy;
 
   // Complktion testing line should find external members.
-  a = foo.me
+  a = fooy.me
+  b = c
 
-  if (foo.emb) {
-    
+  if (fooy.emb) {
+    simple1(c)
   }
 
   return 1;
@@ -146,6 +157,19 @@ void *class3::method5_for_class3( int a, int b) const
 class class4 : class1 {
   // Pure virtual methods.
   void virtual print () const = 0;
+
+public:
+  // The whacky constructor type
+  class4()
+    try : class1(args)
+  {
+    // constructor body	
+  }
+  catch ()
+    {
+      
+    }
+  
 
 };
 
@@ -220,6 +244,7 @@ class Action
   virtual String& operator[]() = 0;
   virtual void operator!() = 0;
   virtual void operator->() = 0;
+  virtual T& operator+=();
 };
 
 // class with namespace qualified parents
