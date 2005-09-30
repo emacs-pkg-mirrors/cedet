@@ -1,7 +1,7 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.10 2004/07/20 18:32:44 zappo Exp $
+ * $Id: test.c,v 1.11 2005/09/30 20:50:39 zappo Exp $
  *
  */
 /* types of include files */
@@ -119,6 +119,8 @@ struct mystrct1 funp4(struct mystruct2 arg31, union myunion2 arg32);
 enum myenum1 funp5(char *arg41, union myunion1 *arg42);
 
 char funpp1 __P(char argp1, struct mystruct2 argp2, char *arg4p);
+
+int fun1();
 
 /* Here is a function pointer */
 int (*funcptr)(int a, int b);
