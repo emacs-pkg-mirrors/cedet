@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.12 2005/05/06 00:51:00 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.13 2005/09/30 20:06:46 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -19,8 +19,8 @@
 ##
 ## You should have received a copy of the GNU General Public License
 ## along with GNU Emacs; see the file COPYING.  If not, write to the
-## Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-## Boston, MA 02111-1307, USA.
+## Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+## Boston, MA 02110-1301, USA.
 
 ######## You can customize this part of the Makefile ########
 

@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.25 2005/09/30 19:37:34 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.26 2005/09/30 20:07:32 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.2"
@@ -23,8 +23,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;
