@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tools
-;; X-RCS: $Id: quickpeek.el,v 1.8 2001/01/25 19:17:55 zappo Exp $
+;; X-RCS: $Id: quickpeek.el,v 1.9 2005/09/30 20:42:14 zappo Exp $
 
 (defvar quickpeek-version "0.5"
   "The current version of quickpeek.")
@@ -21,8 +21,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this software; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
 ;;
