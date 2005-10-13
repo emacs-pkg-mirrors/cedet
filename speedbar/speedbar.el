@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.249 2005/09/30 20:26:17 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.250 2005/10/13 07:36:27 ponced Exp $
 
-(defvar speedbar-version "1.0"
+(defvar speedbar-version "1.0.1"
   "The current version of speedbar.")
 (defvar speedbar-incompatible-version "0.14beta4"
   "This version of speedbar is incompatible with this version.
