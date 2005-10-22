@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.18 2005/09/30 20:26:27 zappo Exp $
+@c $Id: speedbar.texi,v 1.19 2005/10/22 02:54:34 zappo Exp $
 @c
 
 @c This file is part of GNU Emacs
@@ -30,8 +30,9 @@
 @ifnottex
 Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2005 Free Software Foundation, Inc.
 
+@quotation
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.1 or
+under the terms of the GNU Free Documentation License, Version 1.2 or
 any later version published by the Free Software Foundation; with the
 Invariant Sections being ``The GNU Manifesto'', ``Distribution'' and
 ``GNU GENERAL PUBLIC LICENSE'', with the Front-Cover texts being ``A GNU
@@ -47,7 +48,13 @@ This document is part of a collection distributed under the GNU Free
 Documentation License.  If you want to distribute this document
 separately from the collection, you can do so by adding a copy of the
 license to the document, as described in section 6 of the license.
+@end quotation
 @end ifnottex
+
+@dircategory Emacs
+@direntry
+* Speedbar: (speedbar). File/Tag summarizing utility.
+@end direntry
 
 @titlepage
 @sp 10
@@ -57,25 +64,7 @@ license to the document, as described in section 6 of the license.
 @vskip 0pt plus 1 fill
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright{} 1999, 2000 Free Software Foundation, Inc.
-@sp 1
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.1 or
-any later version published by the Free Software Foundation; with the
-Invariant Sections being ``The GNU Manifesto'', ``Distribution'' and
-``GNU GENERAL PUBLIC LICENSE'', with the Front-Cover texts being ``A GNU
-Manual'', and with the Back-Cover Texts as in (a) below.  A copy of the
-license is included in the section entitled ``GNU Free Documentation
-License'' in the Emacs manual.
-
-(a) The FSF's Back-Cover Text is: ``You have freedom to copy and modify
-this GNU Manual, like GNU software.  Copies published by the Free
-Software Foundation raise funds for GNU development.''
-
-This document is part of a collection distributed under the GNU Free
-Documentation License.  If you want to distribute this document
-separately from the collection, you can do so by adding a copy of the
-license to the document, as described in section 6 of the license.
+@insertcopying
 @end titlepage
 
 @syncodeindex fn cp
@@ -104,7 +93,7 @@ authors of other packages to provide speedbar summaries customized to
 the needs of that mode.
 
 Throughout this manual, activities are defined as `clicking on', or
-`expanding' items.  Clicking means using using @kbd{Mouse-2} on a
+`expanding' items.  Clicking means using @kbd{Mouse-2} on a
 button.  Expanding refers to clicking on an expansion button to display
 an expanded summary of the entry the expansion button is
 on.  @xref{Basic Navigation}.
@@ -176,9 +165,6 @@ to use.
 These key bindings are common across all modes:
 
 @table @kbd
-@item delete, SPC
-@cindex scrolling in speedbar
-Scroll up and down one page.
 @item Q
 @cindex quitting speedbar
 Quit speedbar, and kill the frame.
@@ -530,7 +516,7 @@ files are interesting with
 any file that matches the same pattern used for completion in
 @code{find-file}.  This is derived from the variable
 @code{completion-ignored-extensions}.  This filter will override the
-supported extensions, so beif you add something to be supported, and
+supported extensions, so if you add something to be supported, and
 it doesn't appear, check for this.
 
 You can toggle the display of uninteresting files from the toggle menu
@@ -1039,8 +1025,8 @@ With a numeric argument (@kbd{C-u}), flush cached data before expanding.
 Contract the item under the cursor.
 @end table
 
-@cindex @code{speedbar-line-path}
-These function require that function @code{speedbar-line-path} be
+@cindex @code{speedbar-line-directory}
+These function require that function @code{speedbar-line-directory} be
 correctly overloaded to work.
 
 Next, register your extension like this;
@@ -1073,14 +1059,14 @@ like this:
 (speedbar-add-mode-functions-list
  '("MYEXTENSION"
    (speedbar-item-info . MyExtension-speedbar-item-info)
-   (speedbar-line-path . MyExtension-speedbar-line-path)))
+   (speedbar-line-directory . MyExtension-speedbar-line-directory)))
 @end example
 
 The first element in the list is the name of you extension.  The second
 is an alist of functions to overload.  The function to overload is
 first, followed by what you want called instead.
 
-For @code{speedbar-line-path} your function should take an optional DEPTH
+For @code{speedbar-line-directory} your function should take an optional DEPTH
 parameter.  This is the starting depth for heavily indented lines.  If
 it is not provided, you can derive it like this:
 
@@ -1110,7 +1096,7 @@ summary to display in the minibuffer.
 
 There are several helper functions you can use if you are going to use
 built in tagging.  These functions can be @code{or}ed since each one
-returns non-nil if it displays a message.  They are:
+returns non-@code{nil} if it displays a message.  They are:
 
 @table @code
 @cindex @code{speedbar-item-info-file-helper}
@@ -1135,6 +1121,29 @@ Your custom function might look like this:
 
 Once you have done all this, speedbar will show an entry in the
 @samp{Displays} menu declaring that your extension is available.
+
+If your major mode is running slowly, you may need to add a set of
+stealthy update functions.
+
+@defvar speedbar-stealthy-function-list
+@anchor{speedbar-stealthy-function-list}
+List of functions to periodically call stealthily.
+Each function must return @code{nil} if interrupted, or @code{t} if completed.
+Stealthy functions which have a single operation should always return
+@code{t}.  Functions which take a long time should maintain a state (where
+they are in their speedbar related calculations) and permit
+interruption.  See @dfn{speedbar-check-vc} as a good example.
+@end defvar
+
+Stealthy functions are currently used in files mode.  The first
+activity is to display the main list with minimal decorations though
+the buttons function.  Once that is done, additional work can be done
+decorating different lines after the fact.
+
+For files mode, VC status and read-only markers can calculated after
+the first display is up.  Because the process of calculating that
+information can be slow, these functions are interruptable, and will
+continue processing at a later time out.
 
 @node Tagging Extensions, Creating a display, Major Display Modes, Extending
 @section Tagging Extensions
@@ -1168,8 +1177,7 @@ display information required.
 
 @cindex @code{speedbar-create-tag-hierarchy}
 It is often useful to use @code{speedbar-create-tag-hierarchy} on your
-token list.  See that function's documentation for details on what it
-requires.
+tag list @ref{Creating a display}.
 
 @cindex @code{speedbar-dynamic-tags-function-list}
 Once these two functions are written, modify the variable
@@ -1181,9 +1189,22 @@ beginning, like this:
 	     '(my-fetch-dynamic-tags  . my-insert-tag-list))
 @end example
 
-If your parser is only good for a few types of files, make sure that it
-is either a buffer local modification, or that the tag generator returns
-@code{t} for non valid buffers.
+@defvar speedbar-dynamic-tags-function-list
+@anchor{speedbar-dynamic-tags-function-list}
+A list of functions which will return and insert a list of tags.
+Each element is of the form ( @var{fetch} .  @var{insert} ) where @var{fetch}
+is a function which takes one parameter (the file to tag) and returns a
+list of tags.  The tag list can be of any form as long as the
+corresponding insert method can handle it.  If it returns @code{t}, then an
+error occurred, and the next fetch routine is tried.
+@var{insert} is a function which takes an INDENTation level, and a @var{list} of
+tags to insert.  It will then create the speedbar buttons.
+@end defvar
+
+If your parser is only good for a few types of files (ie, just texinfo
+files), make sure that it is either a buffer local modification (set
+only in texi files), or that the tag generator returns @code{t} for
+unsupported buffers.
 
 @node Creating a display, , Tagging Extensions, Extending
 @section Creating a display
@@ -1210,6 +1231,19 @@ depth which indicates how far down the tree it is.  This information is
 stored in invisible text at the beginning of each line, and is used by
 the navigation commands.
 
+@menu
+* Creating Buttons::
+* Generic Tag Lists::
+* Expand Buttons::
+@end menu
+
+@node Creating Buttons, Generic Tag Lists, , Creating a display
+@subsection Creating Speedbar Buttons
+
+While it is certainly possible to insert your own text and add
+decorations to it, it is preferable to use the speedbar button
+creation API instead.
+
 @defun speedbar-insert-button text face mouse function &optional token prevline
 This function inserts one button into the current location.
 @var{text} is the text to insert.  @var{face} is the face in which it
@@ -1218,10 +1252,20 @@ when the mouse passes over it.  @var{function} is called whenever the
 user clicks on the text.
 
 The optional argument @var{token} is extra data to associated with the
-text.  Lastly @var{prevline} should be non-nil if you want this line to
+text.  Lastly @var{prevline} should be non-@code{nil} if you want this line to
 appear directly after the last button which was created instead of on
 the next line.
 @end defun
+
+This routine creates a single button in the display, such as a [+]
+button, or the text that goes after it.  It is designed to be called
+iteratively with indicators on when to add carriage returns between
+buttons.
+
+To insert a more traditional speedbar line that includes an expansion
+button followed by clickable text, it is preferable to create a
+tag-line.  Tag lines should be used to represent typical data a user
+will interact with.
 
 @defun speedbar-make-tag-line exp-button-type exp-button-char exp-button-function exp-button-data tag-button tag-button-function tag-button-data tag-button-face depth
 
@@ -1245,6 +1289,23 @@ Lastly, @var{depth} shows the depth of expansion.
 This function assumes that the cursor is in the speedbar window at the
 position to insert a new item, and that the new item will end with a CR.
 @end defun
+
+Major display modes that use this function will have a consistant look
+and feel and reliable image use.
+
+@node Generic Tag Lists, Expand Buttons, Creating Buttons, Creating a display
+@subsection Generic Tag Lists
+
+For data stored in a hierarchical list, it is likely possible to
+have the entire data structure inserted with the speedbar generic list
+methods.
+
+These insertion functions assume that the data represents 'tags', or
+data extracted from inside a file, and they are marked with tag
+markers.
+
+Tags stored in this format can then be manipulated by the tag
+hierarchy methods described earlier in this manual.
 
 @defun speedbar-insert-generic-list level list expand-fun find-fun
 
@@ -1287,6 +1348,130 @@ Two good values are @code{nil} and @code{'statictag}.
 
 @end defun
 
+@node Expand Buttons, , Generic Tag Lists, Creating a display
+@subsection Expand Buttons
+
+Once you have made some buttons, you need to hitch them up to
+do something once clicked on.  This is set up with
+@code{speedbar-make-tag-line} which takes two functions.  One is for
+the expand button, and the other for the tag.
+
+The function for the tag can be anything, but the expand button has
+certain expectations.  When that button is has a @code{+} in it, that
+indicates that there is ``more'' inside.  A @code{-} indicates that a
+section can be closed.
+
+The expand function takes the same signature as all speedbar button
+functions, such as:
+
+@example
+(defun MY-expand-function (text token indent)
+   "Display more information about MY thing.
+..."
+@end example
+
+This function should then use the @var{text} parameter to determine
+what to do.  For example:
+
+@example
+  (cond ((string-match "+" text)	;we have to expand this file
+         ;; Expand stuff here
+         )
+	((string-match "-" text)	;we have to contract this node
+         ;; Contract stuff here
+         ))
+@end example
+
+When expanding or contracting, you will need to change the
+@code{+} or @code{-} into the opposite symbol.  You can do that with
+
+@defun speedbar-change-expand-button-char char
+@anchor{speedbar-change-expand-button-char}
+Change the expansion button character to @var{char} for the current line.
+@end defun
+
+Our sample would then look like this:
+
+@example
+  (cond ((string-match "+" text)	;we have to expand this file
+         ;; Expand stuff here
+	 (speedbar-change-expand-button-char ?-)
+         )
+	((string-match "-" text)	;we have to contract this node
+         ;; Contract stuff here
+	 (speedbar-change-expand-button-char ?+)
+         ))
+@end example
+
+To expand text, the speedbar buffer needs to be writable.  The initial
+button insertion function runs while the buffer is writable, but an
+expand function will need to change that.  The best way is to use
+@code{speedbar-with-writable}.
+
+@defun speedbar-with-writable &rest forms
+@anchor{speedbar-with-writable}
+Allow the speedbar buffer to be writable and evaluate @var{forms}.
+@end defun
+
+Once the buffer is writable, then you can insert more information
+using any mechanism you like.  Remember that the cursor will be on the
+expand button just clicked though.  As such, the code might look like
+this:
+
+@example
+  (cond ((string-match "+" text)	;we have to expand this file
+         ;; Expand stuff here
+	 (speedbar-change-expand-button-char ?-)
+	 (speedbar-with-writable
+	   (save-excursion
+	     (end-of-line) (forward-char 1)
+             ;; Insert goodies here.
+           ))         
+         )
+@end example
+
+Contracting a node is a bit easier.  You can just use this built in
+function to do the work:
+
+@defun speedbar-delete-subblock indent
+@anchor{speedbar-delete-subblock}
+Delete text from point to indentation level @var{indent} or greater.
+Handles end-of-sublist smartly.
+
+Remember that @var{indent} is also available as passed into
+@code{MY-expand-function}.
+@end defun
+
+The end result would then look like this:
+
+@example
+  (cond ((string-match "+" text)	;we have to expand this file
+         ;; Expand stuff here
+	 (speedbar-change-expand-button-char ?-)
+	 (speedbar-with-writable
+	   (save-excursion
+	     (end-of-line) (forward-char 1)
+             ;; Insert goodies here.
+           ))         
+         )
+	((string-match "-" text)	;we have to contract this node
+         ;; Contract stuff here
+	 (speedbar-change-expand-button-char ?+)
+	 (speedbar-delete-subblock indent))
+         ))
+@end example
+
+Expand buttons, unlike other speedbar operations can cause new data to
+appear in speedbar which would be useful to force onto the screen.
+You can then recenter using this function:
+
+@defun speedbar-center-buffer-smartly
+@anchor{speedbar-center-buffer-smartly}
+Recenter a speedbar buffer so the current indentation level is all visible.
+This assumes that the cursor is on a file, or tag of a file which the user is
+interested in.
+@end defun
+
 @node Index, , Extending, Top
 @comment  node-name,  next,  previous,  up
 @unnumbered Concept Index
@@ -1295,3 +1480,7 @@ Two good values are @code{nil} and @code{'statictag}.
 @bye
 @c  LocalWords:  speedbar's xref slowbar kbd subsubsection
 @c  LocalWords:  keybindings
+
+@ignore
+   arch-tag: e1fc85f0-1eeb-489f-a8d4-a2bfe711fa02
+@end ignore
