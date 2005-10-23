@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.28 2005/09/30 20:21:49 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.29 2005/10/23 01:29:29 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -424,7 +424,7 @@ typesimple
   | TYPEDEF declmods typeformbase cv-declmods typedef-symbol-list
  ;;;; We put the type this typedef renames into PARENT
  ;;;; but will move it in the expand function.
-    (TYPE-TAG $5 $1 nil $3 )
+    (TYPE-TAG $5 $1 nil (list $3) )
   ;
 
 typedef-symbol-list
