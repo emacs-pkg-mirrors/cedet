@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.9 2005/10/23 14:27:53 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.10 2005/10/23 14:37:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -69,7 +69,11 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	 )
     ;; Complete this symbol.
     (if (null syms)
-	(message "No smart completions found.")
+	(progn
+	  (message "No smart completions found.  Trying senator-complete-symbol.")
+	  (if (semantic-analyze-context-p a)
+	      (senator-complete-symbol)
+	      ))
       ;; Use try completion to seek a common substring.
       (let ((tc (try-completion pre syms)))
 	(if (and (stringp tc) (not (string= tc pre)))
