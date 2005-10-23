@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.8 2005/09/30 20:20:37 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.9 2005/10/23 14:27:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,7 +116,8 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	    (senator-completion-menu-point-as-event)
 	    "Completions")))
       (when ans
-	(setq ans (aref (cdr ans) 0))
+	(if (not (semantic-tag-p ans))
+	    (setq ans (aref (cdr ans) 0)))
 	(delete-region (car (oref a bounds)) (cdr (oref a bounds)))
 	(semantic-ia-insert-tag ans))
       )))
