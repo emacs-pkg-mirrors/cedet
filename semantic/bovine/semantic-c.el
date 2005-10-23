@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.39 2005/09/30 20:22:12 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.40 2005/10/23 01:30:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -209,7 +209,7 @@ Go to the next line."
 				    ;; name shows up as a parent of this
 				    ;; typedef.
 				    :typedef
-				    (semantic-token-type-parent tag)
+				    (semantic-tag-type-superclasses tag)
 				    :documentation
 				    (semantic-tag-docstring tag))
 				   vl))
