@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.10 2005/10/23 14:37:28 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.11 2005/11/03 16:21:00 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,14 +111,20 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
     ;; Complete this symbol.
     (if (not syms)
 	(error "No completions available"))
-    (let ((ans
-	   (imenu--mouse-menu
-	    (mapcar (lambda (tok)
-		      (cons (funcall semantic-ia-completion-menu-format-tag-function tok)
-			    (vector tok)))
-		    syms)
-	    (senator-completion-menu-point-as-event)
-	    "Completions")))
+    (let* ((menu
+            (mapcar
+             (lambda (tag)
+               (cons
+                (funcall semantic-ia-completion-menu-format-tag-function tag)
+                (vector tag)))
+             syms))
+           (ans
+            (imenu--mouse-menu
+             ;; XEmacs needs that the menu has at least 2 items.  So,
+             ;; include a nil item that will be ignored by imenu.
+             (cons nil menu)
+             (senator-completion-menu-point-as-event)
+             "Completions")))
       (when ans
 	(if (not (semantic-tag-p ans))
 	    (setq ans (aref (cdr ans) 0)))
