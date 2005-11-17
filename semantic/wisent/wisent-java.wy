@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.23 2005/09/30 20:25:27 zappo Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.24 2005/11/17 09:13:16 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1213,14 +1213,20 @@ local_variable_declaration_statement
 
 local_variable_declaration
   : type variable_declarators
-    (EXPANDTAG
-     (VARIABLE-TAG $2 $1 nil)
-     )
+    (let* ((decls (mapcar 'car $2))
+           (anons (apply 'nconc (nreverse (mapcar 'cdr $2)))))
+      (EXPANDTAG
+       (VARIABLE-TAG decls $1 nil
+                     :members anons)
+       ))
   | FINAL type variable_declarators
-    (EXPANDTAG
-     (VARIABLE-TAG $3 $2 nil
-                   :typemodifiers (list $1))
-     )
+    (let* ((decls (mapcar 'car $3))
+           (anons (apply 'nconc (nreverse (mapcar 'cdr $3)))))
+      (EXPANDTAG
+       (VARIABLE-TAG decls $2 nil
+                     :typemodifiers (list $1)
+                     :members anons)
+       ))
   ;
 
 statement
