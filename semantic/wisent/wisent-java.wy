@@ -1,12 +1,12 @@
 ;;; wisent-java.wy -- LALR grammar for Java
 ;;
-;; Copyright (C) 2002, 2003, 2004 David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2005 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.24 2005/11/17 09:13:16 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.25 2005/11/22 15:26:22 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -910,7 +910,10 @@ variable_initializer
 method_declaration
   : method_header method_body
     (let ((tag (eval $1)))
-      (semantic-tag-put-attribute tag :body $2)
+      ;; Don't store the :body attribute in function tag as this
+      ;; information is not (yet) used by Semantic.  This will save
+      ;; space in the DB.
+      ;;(semantic-tag-put-attribute tag :body $2)
       (EXPANDTAG tag)
       )
   ;
@@ -1017,7 +1020,7 @@ method_body
 static_initializer
   : STATIC block
     (when $2
-      (semantic-tag-put-attribute $2 :static-flag t)
+      (semantic-tag-put-attribute $2 :typemodifiers (list $1))
       $2)
   ;
 
@@ -1030,8 +1033,11 @@ constructor_declaration
                    :typemodifiers $1
                    :throws $3
                    :constructor-flag t
-                   :body $4)
-     )
+                   ;; Don't store the :body attribute in function tag
+                   ;; as this information is not (yet) used by
+                   ;; Semantic.  This will save space in the DB.
+                   ;;:body $4
+                   ))
   | modifiers_opt LT type_parameter_list_1 constructor_declarator
     throws_opt constructor_body
     (EXPANDTAG
@@ -1040,8 +1046,11 @@ constructor_declaration
                    :template-specifier $3
                    :throws $5
                    :constructor-flag t
-                   :body $6)
-     )
+                   ;; Don't store the :body attribute in function tag
+                   ;; as this information is not (yet) used by
+                   ;; Semantic.  This will save space in the DB.
+                   ;;:body $6
+                   ))
   ;
 
 constructor_declarator
@@ -1185,7 +1194,7 @@ block_statements
   : block_statements_reverse
     (EXPANDTAG
      (TAG "block" 'block
-          :value (apply 'nconc (nreverse $1)))
+          :members (apply 'nconc (nreverse $1)))
      )
   ;
 
