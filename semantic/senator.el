@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.110 2005/09/30 20:21:37 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.111 2005/11/22 15:24:39 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -242,7 +242,21 @@ Return nil otherwise."
 
 (defun senator-previous-tag-or-parent (pos)
   "Return the tag before POS or one of its parent where to step."
-  (let ((tag (semantic-find-tag-by-overlay-prev pos)))
+  (let (ol tag)
+    (while (and pos (> pos (point-min)) (not tag))
+      (setq pos (semantic-overlay-previous-change pos))
+      (when pos
+        ;; Get overlays at position
+        (setq ol (semantic-overlays-at pos))
+        ;; find the overlay that belongs to semantic
+        ;; and STARTS or ENDS at the found position.
+        (while (and ol (not tag))
+          (setq tag (semantic-overlay-get (car ol) 'semantic))
+          (unless (and tag (semantic-tag-p tag)
+                       (or (= (semantic-tag-start tag) pos)
+                           (= (semantic-tag-end   tag) pos)))
+            (setq tag nil
+                  ol (cdr ol))))))
     (or (senator-step-at-parent tag) tag)))
 
 (defun senator-full-tag-name (tag parent)
