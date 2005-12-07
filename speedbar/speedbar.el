@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.250 2005/10/13 07:36:27 ponced Exp $
+;; X-RCS: $Id: speedbar.el,v 1.251 2005/12/07 16:54:26 zappo Exp $
 
 (defvar speedbar-version "1.0.1"
   "The current version of speedbar.")
@@ -304,7 +304,7 @@ use etags instead.  Etags support is not as robust as imenu support."
 (defvar speedbar-dynamic-tags-function-list
   '((speedbar-fetch-dynamic-imenu . speedbar-insert-imenu-list)
     (speedbar-fetch-dynamic-etags . speedbar-insert-etags-list))
-  "Set to a list of functions which will return and insert a list of tags.
+  "A list of functions which will return and insert a list of tags.
 Each element is of the form ( FETCH .  INSERT ) where FETCH
 is a function which takes one parameter (the file to tag) and returns a
 list of tags.  The tag list can be of any form as long as the
@@ -325,6 +325,16 @@ display is used instead."
   "*Non-nil means to display info about the line under the mouse."
   :group 'speedbar
   :type 'boolean)
+
+(defcustom speedbar-default-position 'left-right
+  "*Default position of the speedbar frame.
+Possible values are 'left, 'right or 'left-right.
+If value is 'left-right, the most suitable location is
+determined automatically."
+  :group 'speedbar
+  :type '(radio (const :tag "Automatic" left-right)
+		(const :tag "Left" left)
+		(const :tag "Right" right)))
 
 (defcustom speedbar-sort-tags nil
   "*If non-nil, sort tags in the speedbar display.  *Obsolete*.
@@ -960,7 +970,7 @@ supported at a time.
 	(t
 	 (dframe-reposition-frame speedbar-frame
 				  (dframe-attached-frame speedbar-frame)
-				  'left-right))))
+				  speedbar-default-position))))
 
 (defun speedbar-detach ()
   "Detach the current Speedbar from auto-updating.
