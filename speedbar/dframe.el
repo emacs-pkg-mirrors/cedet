@@ -1,10 +1,10 @@
 ;;; dframe --- dedicate frame support modes
 
-;;; Copyright (C) 1996, 97, 98, 99, 2000, 01, 02, 03, 04 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 2000, 01, 02, 03, 04, 05 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.28 2005/09/30 20:25:40 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.29 2005/12/07 16:52:51 zappo Exp $
 
 (defvar dframe-version "1.3"
   "The current version of the dedicated frame library.")
@@ -507,7 +507,7 @@ a cons cell indicationg a position of the form (LEFT . TOP)."
 	     (setq newleft (+ pfx pfw 5)
 		   newtop pfy))
 	    ((eq location 'left)
-	     (setq newleft (+ pfx 10 nfw)
+	     (setq newleft (- pfx 10 nfw)
 		   newtop pfy))
 	    ((eq location 'left-right)
 	     (setq newleft
