@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.25 2005/11/22 15:26:22 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.26 2006/01/09 11:18:42 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -881,7 +881,11 @@ variable_declarators
   : variable_declarator
     (list $1)
   | variable_declarators COMMA variable_declarator
-    (cons $3 $1)
+    (progn
+      ;; Set the end of the compound declaration to the end of the
+      ;; COMMA delimiter.
+      (setcdr (cdar (car $1)) (cdr $region2))
+      (cons $3 $1))
   ;
 
 variable_declarator
