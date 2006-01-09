@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.111 2005/11/22 15:24:39 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.112 2006/01/09 11:17:26 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -475,11 +475,12 @@ source."
                  name))
     (goto-char (semantic-tag-start tag))
     (when (re-search-forward (concat
-                              ;; the tag name is expected at the
-                              ;; beginning of a word or after a
-                              ;; whitespace or a punctuation
+                              ;; The tag name is expected to be
+                              ;; between word delimiters, whitespaces,
+                              ;; or punctuations.
                               "\\(\\<\\|\\s-+\\|\\s.\\)"
-                              (regexp-quote name))
+                              (regexp-quote name)
+                              "\\(\\>\\|\\s-+\\|\\s.\\)")
                              (semantic-tag-end tag)
                              t)
       (goto-char (match-beginning 0))
