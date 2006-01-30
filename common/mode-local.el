@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.9 2005/09/30 20:07:36 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.10 2006/01/30 12:51:20 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -555,7 +555,9 @@ BODY is the implementation of this function."
 	   ,(format "%s\n\nOverride %s in `%s' buffers."
 		    docstring name mode)
 	   ;; The body for this implementation
-	   ,@body))
+	   ,@body)
+         ;; For find-func to locate the definition of NEWNAME.
+         (put ',newname 'definition-name ',name))
        (mode-local-bind '((,name . ,newname))
                         '(override-flag t)
                         ',mode))
