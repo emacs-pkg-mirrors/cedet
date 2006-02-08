@@ -1,9 +1,9 @@
 ;;; semantic-load.el --- Autoload definitions for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.48 2005/09/30 20:21:00 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.49 2006/02/08 02:28:40 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -110,8 +110,8 @@ This includes `semantic-load-enable-minimum-features' plus:
 
   )
 
-(defun semantic-load-enable-guady-code-helpers ()
-  "Enable semantic features that provide guady coding assistance.
+(defun semantic-load-enable-gaudy-code-helpers ()
+  "Enable semantic features that provide gaudy coding assistance.
 This includes `semantic-load-enable-code-helpers'.
   `semantic-stickyfunc-mode' - Tracks current function in header-line
                                (when available).
