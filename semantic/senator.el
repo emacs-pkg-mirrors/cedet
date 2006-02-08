@@ -1,12 +1,12 @@
 ;;; senator.el --- SEmantic NAvigaTOR
 
-;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 by David Ponce
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.113 2006/02/08 02:29:58 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.114 2006/02/08 02:31:35 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1952,12 +1952,6 @@ This is a buffer local variable.")
     )
    (list
     "Tag Properties"
-    (senator-menu-item
-     [ "Narrow To Tag"
-       senator-narrow-to-tag
-       :active (semantic-current-tag)
-       :help "Narrow selection to the current tag."
-       ])
     (senator-menu-item
      [ "Fold Tag"
        senator-fold-tag-toggle
