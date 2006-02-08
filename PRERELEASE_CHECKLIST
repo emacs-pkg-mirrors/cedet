@@ -55,12 +55,13 @@ CEDET & Common area
      - Other
 
   * Check version numbers of different tools.
-     - Check the declared version numbers.
-     - Make sure that if changes were made to those modules, the version
-       is updated.
-     - Check `inversion' based requires to make sure the correct dependencies
-       exist.
      - M-x inversion-unit-test RET
+
+     - Verify output of:
+       M-x cedet-version RET
+       - Check the declared version numbers.
+       - Make sure that if changes were made to those modules, the version
+         is updated.
 
   * Start in a clean Emacs:
     - Start emacs this way:
