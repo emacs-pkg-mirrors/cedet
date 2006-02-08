@@ -2,12 +2,12 @@
 ;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05 Eric M. Ludlam
+;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.145 2005/09/30 20:18:05 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.146 2006/02/08 04:22:13 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "1.0pre3"
+(defvar eieio-version "1.0"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
