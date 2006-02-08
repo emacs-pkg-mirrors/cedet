@@ -1,12 +1,12 @@
 ;;; inversion.el --- When you need something in version XX.XX
 
-;;; Copyright (C) 2002, 2003, 2005 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.26 2005/09/30 20:07:32 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.27 2006/02/08 04:16:13 zappo Exp $
 
 ;;; Code:
-(defvar inversion-version "1.2"
+(defvar inversion-version "1.3"
   "Current version of InVersion.")
 (defvar inversion-incompatible-version "0.1alpha1"
   "An earlier release which is incompatible with this release.")
@@ -367,23 +367,26 @@ INSTALLDIR path."
   (let ((ver (inversion-find-version package)))
     ;; If PACKAGE not found or a bad version already in `load-path',
     ;; prepend the new PACKAGE path, so it will be loaded first.
-    (when (or (not ver)
-	      (inversion-check-version (car ver) (cdr ver) minimum))
-      (let* ((default-directory
-	       (or installdir
-		   (expand-file-name (format "./%s" package))))
-	     subdir)
-	(when (file-directory-p default-directory)
-	  ;; Add SUBDIRS
-	  (while subdirs
-	    (setq subdir  (expand-file-name (car subdirs))
-		  subdirs (cdr subdirs))
-	    (when (file-directory-p subdir)
-	      (message "%S added to `load-path'" subdir)
-	      (add-to-list 'load-path subdir)))
-	  ;; Add the main path
-	  (message "%S added to `load-path'" default-directory)
-	  (add-to-list 'load-path default-directory))))))
+    (when ver
+      (let ((icv (inversion-check-version (car ver) (cdr ver) minimum)))
+	(if icv
+	    (error "Package %s minimum version requirement %s not met with available version %s"
+		   package minimum (car ver)))))
+    (let* ((default-directory
+	     (or installdir
+		 (expand-file-name (format "./%s" package))))
+	   subdir)
+      (when (file-directory-p default-directory)
+	;; Add SUBDIRS
+	(while subdirs
+	  (setq subdir  (expand-file-name (car subdirs))
+		subdirs (cdr subdirs))
+	  (when (file-directory-p subdir)
+	    (message "%S added to `load-path'" subdir)
+	    (add-to-list 'load-path subdir)))
+	;; Add the main path
+	(message "%S added to `load-path'" default-directory)
+	(add-to-list 'load-path default-directory)))))
 
 ;;; Inversion tests
 ;;
