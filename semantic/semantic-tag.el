@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.38 2005/09/30 20:21:12 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.39 2006/02/08 02:30:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -741,8 +741,10 @@ DO NOT use this fcn in new code.  Use one of the above instead."
 ;;
 ;; A Tag represents a region in a buffer.  You can narrow to that tag.
 ;;
-(defun semantic-narrow-to-tag (tag)
+(defun semantic-narrow-to-tag (&optional tag)
   "Narrow to the region specified by TAG."
+  (interactive)
+  (if (not tag) (setq tag (semantic-current-tag)))
   (narrow-to-region (semantic-tag-start tag)
 		    (semantic-tag-end tag)))
 
