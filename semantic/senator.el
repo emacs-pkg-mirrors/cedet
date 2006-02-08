@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.112 2006/01/09 11:17:26 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.113 2006/02/08 02:29:58 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1952,6 +1952,12 @@ This is a buffer local variable.")
     )
    (list
     "Tag Properties"
+    (senator-menu-item
+     [ "Narrow To Tag"
+       senator-narrow-to-tag
+       :active (semantic-current-tag)
+       :help "Narrow selection to the current tag."
+       ])
     (senator-menu-item
      [ "Fold Tag"
        senator-fold-tag-toggle
