@@ -22,7 +22,7 @@ wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-javascript-jv.wy
 EMACS=emacs
 wy_SAMENATIC_GRAMMAR_EL=wisent-csharp-wy.el wisent-javascript-jv-wy.el
 lisp_LISP=wisent-csharp.el wisent-javascript.el semantic-tag-folding.el
-VERSION=1.0pre3
+VERSION=1.0
 DISTDIR=$(top)Contrib-$(VERSION)
 
 
@@ -64,7 +64,7 @@ wy: $(wy_SEMANTIC_GRAMMAR)
 	done;
 	@echo "(require 'semantic-load)" >> grammar-make-script
 	@echo "(require 'semantic-grammar)" >> grammar-make-script
-	${EMACS} -batch --no-site-file -l grammar-make-script -f semantic-grammar-batch-build-packages $^
+	"$(EMACS)" -batch --no-site-file -l grammar-make-script -f semantic-grammar-batch-build-packages $^
 
 .PHONY: lisp
 lisp: $(lisp_LISP)
