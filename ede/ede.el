@@ -1,11 +1,11 @@
 ;;; ede.el --- Emacs Development Environment gloss
 
-;;;  Copyright (C) 1998-2005  Eric M. Ludlam
+;;;  Copyright (C) 1998-2006  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.72 2005/09/30 20:16:24 zappo Exp $
-(defconst ede-version "1.0pre3"
+;; RCS: $Id: ede.el,v 1.73 2006/02/08 04:21:20 zappo Exp $
+(defconst ede-version "1.0"
   "Current version of the Emacs EDE.")
 
 ;; This software is free software; you can redistribute it and/or modify
