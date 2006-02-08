@@ -1,10 +1,10 @@
 ;;; semantic-ia.el --- Interactive Analysis functions
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.11 2005/11/03 16:21:00 ponced Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.12 2006/02/08 02:32:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -169,6 +169,21 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	   )
 	  (t (message str))
 	  )))
+
+;;;###autoload
+(defun semantic-ia-show-summary (point)
+  "Display a summary for the symbol under POINT."
+  (interactive "P")
+  (let* ((ctxt (semantic-analyze-current-context point))
+	 (pf (reverse (oref ctxt prefix)))
+	 (sum nil)
+	)
+    (while (and pf (not sum))
+      (if (semantic-tag-p (car pf))
+	  (setq sum (semantic-format-tag-summarize (car pf) nil t)))
+      (setq pf (cdr pf)))
+    (message "%s" sum)
+    ))
 
 ;;;###autoload
 (defun semantic-ia-show-doc (point)
