@@ -2,7 +2,6 @@
 ;; EDE project file.
 (ede-proj-project "Contrib"
   :name "Contrib"
-  :version "1.0pre3"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-aux "misc"
