@@ -1,10 +1,10 @@
 ;;; eieio-tests.el -- eieio tests routines
 
 ;;;
-;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.36 2005/09/30 20:18:22 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.37 2006/02/09 02:23:09 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -293,7 +293,7 @@ METHOD is the method that was attempting to be called."
 
 ;;; Test the BEFORE, PRIMARY, and AFTER method tags.
 ;;
-(load-file "eieio-test-methodinvoke.el")
+(load-library "eieio-test-methodinvoke.el")
 
 ;;; Test value of a generic function call
 ;;
