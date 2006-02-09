@@ -1,12 +1,12 @@
 ;;; wisent-python.el --- Semantic support for Python
 ;;
-;; Copyright (C) 2002, 2004 Richard Kim
+;; Copyright (C) 2002, 2004, 2006 Richard Kim
 ;;
 ;; Author: Richard Kim <ryk@dspwiz.com>
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.48 2005/09/30 20:25:30 zappo Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.49 2006/02/09 02:21:18 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -297,6 +297,22 @@ To be implemented for python!  For now just return nil."
    ;; The following is no more necessary as semantic-lex is overriden
    ;; in python-mode.
    ;; semantic-lex-analyzer 'wisent-python-lexer
+
+   ;; Semantic to take over from the one provided by python.
+   ;; The python one, if it uses the senator advice, will hang
+   ;; Emacs unrecoverably.
+   imenu-create-index-function 'semantic-create-imenu-index
+
+   ;; I need a python guru to update this list:
+   semantic-symbol->name-assoc-list-for-type-parts '((variable . "Variables")
+						     (function . "Methods"))
+   semantic-symbol->name-assoc-list '((type . "Classes")
+				      (variable . "Variables")
+				      (function . "Functions")
+				      (include  . "Imports")
+				      (package  . "Package")
+				      (code . "Code")))
+
    ))
 
 ;;;###autoload
