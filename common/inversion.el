@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.28 2006/02/08 12:38:05 ponced Exp $
+;; X-RCS: $Id: inversion.el,v 1.29 2006/02/09 01:40:39 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.3"
@@ -345,7 +345,10 @@ Return nil when VERSION-STRING was not found."
 	 version)
     (when file
       (with-temp-buffer
-	(insert-file-contents-literally file)
+	;; The 3000 is a bit arbitrary, but should cut down on
+	;; fileio as version info usually is at the very top
+	;; of a file.  AFter a long commentary could be bad.
+	(insert-file-contents-literally file nil 0 3000)
 	(goto-char (point-min))
 	(when (re-search-forward (format tag package 'version) nil t)
 	  (setq version (list (match-string idx)))
@@ -387,7 +390,17 @@ INSTALLDIR path."
               (add-to-list 'load-path subdir)))
           ;; Add the main path
           (message "%S added to `load-path'" default-directory)
-          (add-to-list 'load-path default-directory))))))
+          (add-to-list 'load-path default-directory))
+	;; We get to this point iff we do not accept or there is no
+	;; system file.  Lets check the version of what we just
+	;; installed... just to be safe.
+	(let ((newver (inversion-find-version package)))
+	  (if (not newver)
+	      (error "Failed to find version for newly installed %s"
+		     package))
+	  (if (inversion-check-version (car newver) (cdr newver) minimum)
+	      (error "Outdated %s %s just installed" package (car newver)))
+	  )))))
 
 ;;; Inversion tests
 ;;
