@@ -77,7 +77,13 @@ EIEIO
   * In a clean Emacs
 
     M-x load-file RET eieio/eieio-tests.el RET
-    M-x load-file RET eieio/eieio-test-methodinvoke.el RET
+
+    If it loads, the tests pass.
+
+  * M-x eieio-browse RET
+
+    This will list the currently loaded class hierarcies.  After using
+    the test harness, and loading semantic, this should be a long list.
 
   * Running tests for semantic/semanticdb, and EDE both test
     other basic EIEIO features.
