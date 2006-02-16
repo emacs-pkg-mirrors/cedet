@@ -104,6 +104,10 @@ Semantic
       .js javascript file
       Makefile
 
+    Start with:
+      M-x toggle-debug-on-error RET - Enable debugging within the
+          parser and incremental parser.  (Usually hidden.)
+
     For each:
       M-x bovinate RET - verify tags are accurate.
       M-x speedbar RET - Open the file and verify tags.
