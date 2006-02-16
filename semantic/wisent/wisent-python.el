@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.49 2006/02/09 02:21:18 zappo Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.50 2006/02/16 01:06:15 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -312,8 +312,7 @@ To be implemented for python!  For now just return nil."
 				      (include  . "Imports")
 				      (package  . "Package")
 				      (code . "Code")))
-
-   ))
+   )
 
 ;;;###autoload
 (add-hook 'python-mode-hook 'wisent-python-default-setup)
