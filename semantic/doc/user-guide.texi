@@ -25,7 +25,7 @@
 @copying
 This is the Semantic User's Manual
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -101,6 +101,7 @@ from semantic.
 * Idle Scheduler::              The idle Scheduler and related modes
 * Minor Modes::                 Useful minor modes
 * semanticdb::                  Cache your parsed buffers between sessions.
+* Speed Debug::                 How to debug speed issues.
 * Customizing::                 
 * GNU Free Documentation License::  
 * Index::                       
@@ -1079,6 +1080,67 @@ The CLASS requested here is a bit of archana representing the class
 name for the language the entry is for.  Use completion @kbd{SPC} to
 see the ones available.  The name of the language should be part of
 the class name.
+
+@node Speed Debug
+@chapter Debugging Speed Problems
+
+If aspects of semantic cause your Emacs to slow down or block
+editing, there are several things that may be happening.  The most
+time consuming aspect of semantic is usually the parsing of files for
+tag information, and this action can be triggered from many possible
+sources.
+
+A simple way to determine where the problem lies is to use the command
+@kbd{M-x debug-on-quit RET} and then just hit @kbd{C-g} next time it
+gets 'stuck' somewhere.  It will give you a stack and one of the many
+semantic mode functions will likely show up in that stack trace.
+
+From a simple standpoint, your next action might be to use the the
+Senator menu under @kbd{Modes} and just toggle suspected modes on and
+off.
+
+@section Interruptibility
+
+  One of the goals with the semantic based minor modes and auto parse
+is that it should be interruptible.  Thus, a keyboard action should
+interrupt any active parsing or mode activity.  In practice, I've
+found this doesn't always work and I've been a bit stymied as to why.
+
+  You can test the interruptibility framework by running
+@kbd{M-x semantic-test-throw-on-input RET} and seeing that you can
+press any key to break out of the loop.
+
+@section Incremental parsing
+
+The incremental parser used by semantic will reparse only small
+sections of a file you have edited, which eliminates the need to
+reparse entire files.  This speeds up minor modes that need the local
+buffer to be up to date, such as speedbar or ECB.
+
+If the incremental parsing is not always working for you (meaning it
+will parse the whole file frequently while you edit) then perhaps you
+need to customize @code{semantic-edits-verbose-flag} to enable some
+friendly debug output.  Additionally using
+@code{semantic-load-enable-semantic-debugging-helpers} to help
+identify possible problem areas by enabling highlight edits mode and
+show parser state mode 
+@inforef{Incremental Parser Debugging, ,semantic-langdev.info}
+
+@section Symbol lookup
+
+There are many minor modes that have special behaviors tied into the
+current parser state, with the most complex modes being the summary
+and completion modes.  These modes can initiate parsing not only in
+the current buffer, but in other buffers that are referred to in the
+current source by some form of include statement.
+
+If they turn out not to be useful in the language mode you are
+operating in, then it may be best to disable them.
+
+Alternately, you can control how these major modes, and other modes
+like them parse alternate files by adjusting
+@code{semanticdb-find-default-throttle}. You can read more
+in @inforef{ DB Search Paths, , semantic-appdev.info}.
 
 @node Customizing
 @chapter Customizing
