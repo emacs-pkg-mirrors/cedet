@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.50 2006/02/08 04:25:04 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.51 2006/02/16 01:00:36 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -170,6 +170,11 @@ These modes include:
   (global-semantic-show-unmatched-syntax-mode 1)
 
   (global-semantic-show-parser-state-mode 1)
+
+  ;; This enables debug output from the incremental parser.
+  ;; Perhaps a mode for that dumps stuff in a `messages' like buffer
+  ;; would be better?
+  (setq semantic-edits-verbose-flag t)
 
   )
 
