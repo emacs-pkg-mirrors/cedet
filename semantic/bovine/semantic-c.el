@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.42 2006/01/03 13:10:34 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.43 2006/02/17 04:35:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,6 +41,40 @@
   (require 'cc-mode))
 
 ;;; Code:
+(defcustom semantic-lex-c-preprocessor-symbol-map nil
+  "Table of C Preprocessor keywords used by the Semantic C lexer."
+  :group 'c
+  :type '(repeat (cons (string :tag "Keyword")
+		       (symbol :tag "Replacement"))))
+
+(defvar semantic-lex-c-preprocessor-dynamic-symbol-map nil
+  "Table of C preprocessor keywords calculated by the Semantic lexer.
+Note: Not currently used.")
+(make-variable-buffer-local 'semantic-lex-c-preprocessor-dynamic-symbol-map)
+
+(defun semantic-lex-c-preprocessor-p (str)
+  "Return a lexical token symbol if STR is a preprocessor symbol.
+Return nil if it is not."
+  (assoc str semantic-lex-c-preprocessor-symbol-map))
+
+;; NOTE: Not in use at the moment.
+(define-lex-regex-analyzer semantic-lex-c-define
+  "A #define of a symbol with some value.
+Record the symbol in `semantic-lex-c-preprocessor-dynamic-symbol-map'
+but return the punctuation token for the # to allow the parser
+to turn this into a VARIABLE style declaration."
+  "^\\s-*\\(#\\)define\\s-+\\(\\(\\sw\\|\\s_\\)+\\)"
+  (let ((symbol (buffer-substring-no-properties
+		 (match-beginning 2) (match-end 2)))
+	(pstart (match-beginning 1))
+	(pend (match-end 1))
+	(pstr (match-string 1)))
+    (add-to-list 'semantic-lex-c-preprocessor-dynamic-symbol-map
+		 symbol)
+    (semantic-lex-push-token
+     (semantic-lex-token 'punctuation pstart pend))))
+
+
 (define-lex-regex-analyzer semantic-lex-c-if-0
   "Block out code matched in an #if 0 condition."
   "^\\s-*#if\\s-*0$"
@@ -113,10 +147,28 @@ Go to the next line."
 	(point))
       ))))
 
+(define-lex-regex-analyzer semantic-lex-c-preprocessor-replace-or-symbol-or-keyword
+  "Detect and create symbol and keyword tokens.
+This works as `semantic-lex-symbol-or-keyword'.  If the target
+keyword "
+  "\\(\\sw\\|\\s_\\)+"
+  (let ((str (match-string 0))
+	(beg (match-beginning 0))
+	(end (match-end 0)))
+    (if (semantic-lex-c-preprocessor-p str)
+	(setq semantic-lex-end-point end)
+      (semantic-lex-push-token
+       (semantic-lex-token (or (semantic-lex-keyword-p str) 'symbol)
+			   beg end)))))
+
+
 (define-lex semantic-c-lexer
   "Lexical Analyzer for C code."
   semantic-lex-ignore-whitespace
   semantic-lex-ignore-newline
+  ;; Use this when I have more time to solve dymamic
+  ;; symbols added to the preprocessor list.
+  ;; semantic-lex-c-define
   semantic-lex-c-if-0
   semantic-lex-c-if
   semantic-lex-c-include-system
@@ -124,7 +176,7 @@ Go to the next line."
   semantic-lex-number
   ;; Must detect C strings before symbols because of possible L prefix!
   semantic-lex-c-string
-  semantic-lex-symbol-or-keyword
+  semantic-lex-c-preprocessor-replace-or-symbol-or-keyword
   semantic-lex-charquote
   semantic-lex-paren-or-list
   semantic-lex-close-paren
