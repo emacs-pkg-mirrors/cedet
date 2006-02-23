@@ -1,12 +1,12 @@
 ;;; wisent-java.wy -- LALR grammar for Java
 ;;
-;; Copyright (C) 2002, 2003, 2004, 2005 David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2005, 2006 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.26 2006/01/09 11:18:42 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.27 2006/02/23 10:54:48 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -636,13 +636,9 @@ compilation_unit
   ;
 
 package_declaration
-  : modifiers PACKAGE name SEMICOLON
+  : modifiers_opt PACKAGE name SEMICOLON
     (EXPANDTAG
-     (PACKAGE-TAG $3 nil)
-     )
-  | PACKAGE name SEMICOLON
-    (EXPANDTAG
-     (PACKAGE-TAG $2 nil)
+     (PACKAGE-TAG $3 nil :typemodifiers $1)
      )
   ;
 
@@ -691,9 +687,9 @@ modifiers_opt
 
 modifiers
   : modifier
-    (list $1)
+    (and $1 (list $1))
   | modifiers modifier
-    (append $1 (list $2))
+    (append $1 (and $2 (list $2)))
   ;
 
 modifier
@@ -709,6 +705,7 @@ modifier
   | VOLATILE
   | STRICTFP
   | annotation
+    ()                          ;; Not in tag for now.
   ;
 
 ;;; 19.8) Classes
@@ -977,10 +974,10 @@ formal_parameter
     (EXPANDTAG
      (VARIABLE-TAG $2 $1 nil)
      )
-  | FINAL type variable_declarator_id
+  | modifiers type variable_declarator_id
     (EXPANDTAG
      (VARIABLE-TAG $3 $2 nil
-                   :typemodifiers (list $1))
+                   :typemodifiers $1)
      )
  ;; Productions below allow varargs in non-final positions.
   | type ELLIPSIS IDENTIFIER
@@ -988,10 +985,10 @@ formal_parameter
      (VARIABLE-TAG $3 $1 nil
                    :vararg-flag t)
      )
-  | FINAL type ELLIPSIS IDENTIFIER
+  | modifiers type ELLIPSIS IDENTIFIER
     (EXPANDTAG
      (VARIABLE-TAG $4 $2 nil
-                   :typemodifiers (list $1)
+                   :typemodifiers $1
                    :vararg-flag t)
      )
   ;
@@ -1232,12 +1229,12 @@ local_variable_declaration
        (VARIABLE-TAG decls $1 nil
                      :members anons)
        ))
-  | FINAL type variable_declarators
+  | modifiers type variable_declarators
     (let* ((decls (mapcar 'car $3))
            (anons (apply 'nconc (nreverse (mapcar 'cdr $3)))))
       (EXPANDTAG
        (VARIABLE-TAG decls $2 nil
-                     :typemodifiers (list $1)
+                     :typemodifiers $1
                      :members anons)
        ))
   ;
@@ -1362,22 +1359,36 @@ do_statement
   ;
 
 foreach_statement
-  : FOR LPAREN type variable_declarator_id COLON expression RPAREN
-    statement
+  : FOR LPAREN type variable_declarator_id
+    COLON expression RPAREN statement
+    () ;; TODO: local declaration
+  | FOR LPAREN modifiers type variable_declarator_id
+    COLON expression RPAREN statement
     () ;; TODO: local declaration
  ;; Must check that first IDENTIFIER is `each' and second one is `in'.
-  | FOR IDENTIFIER LPAREN type variable_declarator_id IDENTIFIER
-    expression RPAREN statement
+  | FOR IDENTIFIER LPAREN type variable_declarator_id
+    IDENTIFIER expression RPAREN statement
+    () ;; TODO: local declaration
+ ;; Must check that first IDENTIFIER is `each' and second one is `in'.
+  | FOR IDENTIFIER LPAREN modifiers type variable_declarator_id
+    IDENTIFIER expression RPAREN statement
     () ;; TODO: local declaration
   ;
 
 foreach_statement_no_short_if
-  : FOR LPAREN type variable_declarator_id COLON expression RPAREN
-    statement_no_short_if
+  : FOR LPAREN type variable_declarator_id
+    COLON expression RPAREN statement_no_short_if
+    () ;; TODO: local declaration
+  | FOR LPAREN modifiers type variable_declarator_id
+    COLON expression RPAREN statement_no_short_if
     () ;; TODO: local declaration
  ;; Must check that first IDENTIFIER is `each' and second one is `in'.
-  | FOR IDENTIFIER LPAREN type variable_declarator_id IDENTIFIER
-    expression RPAREN statement_no_short_if
+  | FOR IDENTIFIER LPAREN type variable_declarator_id
+    IDENTIFIER expression RPAREN statement_no_short_if
+    () ;; TODO: local declaration
+ ;; Must check that first IDENTIFIER is `each' and second one is `in'.
+  | FOR IDENTIFIER LPAREN modifiers type variable_declarator_id
+    IDENTIFIER expression RPAREN statement_no_short_if
     () ;; TODO: local declaration
   ;
 
