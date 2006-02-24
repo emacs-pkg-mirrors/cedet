@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.27 2006/02/23 10:54:48 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.28 2006/02/24 15:43:08 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -687,9 +687,9 @@ modifiers_opt
 
 modifiers
   : modifier
-    (and $1 (list $1))
+    (list $1)
   | modifiers modifier
-    (append $1 (and $2 (list $2)))
+    (append $1 (list $2))
   ;
 
 modifier
@@ -705,7 +705,6 @@ modifier
   | VOLATILE
   | STRICTFP
   | annotation
-    ()                          ;; Not in tag for now.
   ;
 
 ;;; 19.8) Classes
@@ -781,7 +780,7 @@ class_body_declaration
   | block
   | error
  ;; On error, skip token and try to continue.
-    (wisent-skip-token)
+    (SKIP-TOKEN)
   ;
 
 class_member_declaration
@@ -818,7 +817,7 @@ enum_body
     (nconc $2 $3)
   | LBRACE error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (SKIP-BLOCK)
   ;
 
 enum_constants_opt
@@ -852,7 +851,7 @@ enum_arguments_opt
   | LPAREN argument_list_opt RPAREN
   | LPAREN error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (SKIP-BLOCK)
   ;
 
 enum_body_declarations_opt
@@ -950,7 +949,9 @@ method_declarator
     (cons $1 $3)
   | IDENTIFIER LPAREN error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (prog1
+        (list $1)
+      (SKIP-BLOCK $region2))
   | method_declarator LBRACK RBRACK ;; deprecated
  ;; The above production also allows `void foo() []'.
     (cons (concat (car $1) $2 $3) (cdr $1))
@@ -1059,7 +1060,9 @@ constructor_declarator
     (cons $1 $3)
   | simple_name LPAREN error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (prog1
+        (list $1)
+      (SKIP-BLOCK $region2))
   ;
 
 constructor_body
@@ -1073,7 +1076,7 @@ constructor_body
     ()
   | LBRACE error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (SKIP-BLOCK)
   ;
 
 explicit_constructor_invocation
@@ -1143,7 +1146,7 @@ interface_member_declaration
     ()
   | error
  ;; On error, skip token and try to continue.
-    (wisent-skip-token)
+    (SKIP-TOKEN)
   ;
 
 ;; Must check that modifiers include only PUBLIC, STATIC, or FINAL.
@@ -1167,7 +1170,7 @@ array_initializer
   | LBRACE RBRACE
   | LBRACE error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (SKIP-BLOCK)
   ;
 
 variable_initializers
@@ -1182,7 +1185,7 @@ block
     (progn $2)
   | LBRACE error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (SKIP-BLOCK)
   ;
 
 block_statements_opt
@@ -1324,7 +1327,7 @@ switch_block
   | LBRACE RBRACE
   | LBRACE error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (SKIP-BLOCK)
   ;
 
 switch_block_statement_groups
@@ -1576,7 +1579,7 @@ dim_expr
   : LBRACK expression RBRACK
   | LBRACK error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (SKIP-BLOCK)
   ;
 
 dims_opt
@@ -2001,7 +2004,7 @@ annotation_type_body
   : LBRACE annotation_type_member_declarations_opt RBRACE
   | LBRACE error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (SKIP-BLOCK)
   ;
 
 annotation_type_member_declarations_opt
@@ -2058,12 +2061,17 @@ default_value
 ;;     @ TypeName ( MemberValue )
 annotation
   : AT name
+    (concat $1 $2)
   | AT name LPAREN member_value RPAREN
+    (concat $1 $2)
   | AT name LPAREN member_value_pairs RPAREN
+    (concat $1 $2)
   | AT name LPAREN RPAREN
+    (concat $1 $2)
   | AT name LPAREN error
- ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (prog1 (concat $1 $2)
+      ;; On error, skip current block and try to continue.
+      (SKIP-BLOCK $region3))
   ;
 
 ;; MemberValuePairs:
@@ -2099,7 +2107,7 @@ member_value_array_initializer
   | LBRACE RBRACE
   | LBRACE error
  ;; On error, skip current block and try to continue.
-    (wisent-skip-block)
+    (SKIP-BLOCK)
   ;
 
 ;; MemberValues:
