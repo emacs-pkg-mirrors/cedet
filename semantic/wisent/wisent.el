@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.34 2005/09/30 20:23:21 zappo Exp $
+;; X-RCS: $Id: wisent.el,v 1.35 2006/02/24 15:40:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -266,11 +266,16 @@ Must be used in error recovery semantic actions."
     (wisent-clearin)
     (wisent-errok)))
 
-(defun wisent-skip-block ()
+(defun wisent-skip-block (&optional bounds)
   "Safely skip a parenthesized block in order to resume parsing.
 Return nil.
-Must be used in error recovery semantic actions."
-  (let ((start (car $region))
+Must be used in error recovery semantic actions.
+Optional argument BOUNDS is a pair (START . END) which indicates where
+the parenthesized block starts.  Typically the value of a `$regionN'
+variable, where `N' is the the Nth element of the current rule
+components that match the block beginning.  It defaults to the value
+of the `$region' variable."
+  (let ((start (car (or bounds $region)))
         end input block)
     (if (not (number-or-marker-p start))
         ;; No nonterminal region available, skip the lookahead token.
@@ -301,8 +306,8 @@ Must be used in error recovery semantic actions."
             nil
           (wisent-clearin)
           (wisent-errok))
-        ;; Adjust $region to block bounds.
-        (wisent-set-region start (1+ end))
+        ;; Set end of $region to end of block.
+        (wisent-set-region (car $region) (1+ end))
         nil))))
 
 ;;; Core parser engine
