@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 02 Aug 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar-macros.el,v 1.4 2005/09/30 20:23:30 zappo Exp $
+;; X-RCS: $Id: wisent-grammar-macros.el,v 1.5 2006/02/24 15:41:50 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -180,6 +180,18 @@ Return the form to merge the abstract syntax trees AST1 and AST2.
 See also the function `semantic-ast-merge'."
   `(semantic-ast-merge ,ast1 ,ast2))
 
+(defun wisent-grammar-SKIP-BLOCK (&rest bounds)
+  "Expand call to SKIP-BLOCK grammar macro.
+Return the form to skip the parenthesized block at BOUNDS.
+See also the function `wisent-skip-block'."
+  `(wisent-skip-block ,@bounds))
+
+(defun wisent-grammar-SKIP-TOKEN ()
+  "Expand call to SKIP-TOKEN grammar macro.
+Return the form to skip the lookahead token.
+See also the function `wisent-skip-token'."
+  `(wisent-skip-token))
+
 (defvar-mode-local wisent-grammar-mode semantic-grammar-macros
   '(
     (ASSOC          . semantic-grammar-ASSOC)
@@ -200,6 +212,8 @@ See also the function `semantic-ast-merge'."
     (AST-GET1       . wisent-grammar-AST-GET1)
     (AST-GET-STRING . wisent-grammar-AST-GET-STRING)
     (AST-MERGE      . wisent-grammar-AST-MERGE)
+    (SKIP-BLOCK     . wisent-grammar-SKIP-BLOCK)
+    (SKIP-TOKEN     . wisent-grammar-SKIP-TOKEN)
     )
   "Semantic grammar macros used in wisent grammars.")
 
