@@ -1,12 +1,12 @@
 ;;; wisent.el --- GNU Bison for Emacs - Runtime
 
-;; Copyright (C) 2002, 2003, 2004 David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2005, 2006 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.35 2006/02/24 15:40:52 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.36 2006/03/27 09:05:04 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -132,7 +132,7 @@ POSITIONS are available."
 ;;; Reporting
 ;;;###autoload
 (defvar wisent-parse-verbose-flag nil
-  "*non-nil means to issue more messages while parsing.")
+  "*Non-nil means to issue more messages while parsing.")
 
 ;;;###autoload
 (defun wisent-parse-toggle-verbose-flag ()
@@ -209,7 +209,7 @@ This variable only has meaning in the scope of `wisent-parse'.")
 This variable only has meaning in the scope of `wisent-parse'.")
 
 (defvar wisent-recovering nil
-  "non-nil means that the parser is recovering.
+  "Non-nil means that the parser is recovering.
 This variable only has meaning in the scope of `wisent-parse'.")
 
 ;; Variables that only have meaning in the scope of a semantic action.
