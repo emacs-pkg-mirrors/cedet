@@ -1,10 +1,10 @@
 ;;; semantic-ctxt.el --- Context calculations for Semantic tools.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.41 2006/01/03 13:11:04 ponced Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.42 2006/04/06 22:29:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -172,14 +172,16 @@ to collect tags, such as local variables or prototypes."
   ;; anything in that case.
   (when (and semantic--parse-table (not (eq semantic--parse-table t)))
     (let ((vars nil)
+	  (vars2 nil)
 	  ;; We want nothing to do with funny syntaxing while doing this.
 	  (semantic-unmatched-syntax-hook nil))
       (while (not (semantic-up-context (point) 'function))
 	(save-excursion
 	  (forward-char 1)
 	  (setq vars
-		;; Note to self: This is specific to bovine parsers.
-		;; We need a better way to configure this generically.
+		;; Note to self: semantic-parse-region returns cooked
+		;; but unlinked tags.  File information is lost here
+		;; and is added next.
 		(append (semantic-parse-region
 			 (point)
 			 (save-excursion (semantic-end-of-context) (point))
@@ -187,6 +189,11 @@ to collect tags, such as local variables or prototypes."
 			 nil
 			 t)
 			vars))))
+      (setq vars2 vars)
+      ;; Modify the tags in place.
+      (while vars2
+	(semantic--tag-put-property (car vars2) :filename (buffer-file-name))
+	(setq vars2 (cdr vars2)))
       vars)))
 
 (define-overload semantic-get-local-arguments (&optional point)
@@ -210,9 +217,11 @@ tags."
                           ((semantic-tag-p arg)
                            ;; Return a copy of tag without overlay.
                            ;; The overlay is preserved.
-                           (semantic-tag-copy arg))
+                           (semantic-tag-copy arg nil t))
                           ((stringp arg)
-                           (semantic-tag-new-variable arg nil nil))
+                           (semantic--tag-put-property
+			    (semantic-tag-new-variable arg nil nil)
+			    :filename (buffer-file-name)))
                           (t
                            (error "Unknown parameter element %S" arg)))
                          tags)))
