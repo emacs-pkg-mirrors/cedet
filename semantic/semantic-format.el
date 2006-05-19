@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.20 2005/09/30 20:20:16 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.21 2006/05/19 10:21:20 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -204,7 +204,8 @@ FORMATTER is a function used to format a tag.
 COLOR specifies if color should be used."
   (let ((out nil))
     (while args
-      (semantic-format-tag-name-from-anything (car args) nil color 'variable)
+      (push (semantic-format-tag-name-from-anything
+             (car args) nil color 'variable) out)
       (setq args (cdr args)))
     (mapconcat 'identity (nreverse out) semantic-function-argument-separator)
     ))
