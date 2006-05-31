@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 02 Aug 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar-macros.el,v 1.5 2006/02/24 15:41:50 ponced Exp $
+;; X-RCS: $Id: wisent-grammar-macros.el,v 1.6 2006/05/31 12:46:17 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -180,11 +180,17 @@ Return the form to merge the abstract syntax trees AST1 and AST2.
 See also the function `semantic-ast-merge'."
   `(semantic-ast-merge ,ast1 ,ast2))
 
-(defun wisent-grammar-SKIP-BLOCK (&rest bounds)
+(defun wisent-grammar-SKIP-BLOCK (&optional symb)
   "Expand call to SKIP-BLOCK grammar macro.
-Return the form to skip the parenthesized block at BOUNDS.
+Return the form to skip a parenthesized block.
+Optional argument SYMB is a $I placeholder symbol that gives the
+bounds of the block to skip.  By default, skip the block at `$1'.
 See also the function `wisent-skip-block'."
-  `(wisent-skip-block ,@bounds))
+  (let ($ri)
+    (when symb
+      (unless (setq $ri (wisent-grammar-region-placeholder symb))
+        (error "Invalid form (SKIP-BLOCK %s)" symb)))
+    `(wisent-skip-block ,$ri)))
 
 (defun wisent-grammar-SKIP-TOKEN ()
   "Expand call to SKIP-TOKEN grammar macro.
