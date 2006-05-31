@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.28 2006/02/24 15:43:08 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.29 2006/05/31 12:49:05 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -508,36 +508,36 @@ type_arguments
 wildcard
   : QUESTION
   | QUESTION EXTENDS reference_type
-    (concat $1 $2 $3)
+    (concat $1 " " $2 " " $3)
   | QUESTION SUPER reference_type
-    (concat $1 $2 $3)
+    (concat $1 " " $2 " " $3)
   ;
 
 wildcard_1
   : QUESTION GT
     (concat $1 $2)
   | QUESTION EXTENDS reference_type_1
-    (concat $1 $2 $3)
+    (concat $1 " " $2 " " $3)
   | QUESTION SUPER reference_type_1
-    (concat $1 $2 $3)
+    (concat $1 " " $2 " " $3)
   ;
 
 wildcard_2
   : QUESTION RSHIFT
     (concat $1 $2)
   | QUESTION EXTENDS reference_type_2
-    (concat $1 $2 $3)
+    (concat $1 " " $2 " " $3)
   | QUESTION SUPER reference_type_2
-    (concat $1 $2 $3)
+    (concat $1 " " $2 " " $3)
   ;
 
 wildcard_3
   : QUESTION URSHIFT
     (concat $1 $2)
   | QUESTION EXTENDS reference_type_3
-    (concat $1 $2 $3)
+    (concat $1 " " $2 " " $3)
   | QUESTION SUPER reference_type_3
-    (concat $1 $2 $3)
+    (concat $1 " " $2 " " $3)
   ;
 
 reference_type_1
@@ -931,7 +931,7 @@ method_header
   | modifiers_opt LT type_parameter_list_1 type method_declarator throws_opt
     `(FUNCTION-TAG ',(car $5) ',$4 ',(cdr $5)
                    :typemodifiers ',$1
-                   :template-specifier ',$3
+                   :template-specifier ',(concat $2 $3)
                    :throws ',$6)
   | modifiers_opt VOID method_declarator throws_opt
     `(FUNCTION-TAG ',(car $3) ',$2 ',(cdr $3)
@@ -940,7 +940,7 @@ method_header
   | modifiers_opt LT type_parameter_list_1 VOID method_declarator throws_opt
     `(FUNCTION-TAG ',(car $5) ',$4 ',(cdr $5)
                    :typemodifiers ',$1
-                   :template-specifier ',$3
+                   :template-specifier ',(concat $2 $3)
                    :throws ',$6)
   ;
 
@@ -951,7 +951,7 @@ method_declarator
  ;; On error, skip current block and try to continue.
     (prog1
         (list $1)
-      (SKIP-BLOCK $region2))
+      (SKIP-BLOCK $2))
   | method_declarator LBRACK RBRACK ;; deprecated
  ;; The above production also allows `void foo() []'.
     (cons (concat (car $1) $2 $3) (cdr $1))
@@ -1045,7 +1045,7 @@ constructor_declaration
     (EXPANDTAG
      (FUNCTION-TAG (car $4) nil (cdr $4)
                    :typemodifiers $1
-                   :template-specifier $3
+                   :template-specifier (concat $2 $3)
                    :throws $5
                    :constructor-flag t
                    ;; Don't store the :body attribute in function tag
@@ -1062,7 +1062,7 @@ constructor_declarator
  ;; On error, skip current block and try to continue.
     (prog1
         (list $1)
-      (SKIP-BLOCK $region2))
+      (SKIP-BLOCK $2))
   ;
 
 constructor_body
@@ -1799,67 +1799,77 @@ type_parameters_opt
 
 type_parameters
   : LT type_parameter_list_1
-    (progn $2)
+    (concat $1 $2)
   ;
 
 type_parameter_list
   : type_parameter_list COMMA type_parameter
-    (cons $3 $1)
+    (concat $1 $2 $3)
   | type_parameter
-    (list $1)
   ;
 
 type_parameter_list_1
   : type_parameter_1
-    (list $1)
   | type_parameter_list COMMA type_parameter_1
-    (cons $3 $1)
+    (concat $1 $2 $3)
   ;
 
 type_parameter
   : type_variable type_bound_opt
+    (concat $1 $2)
   ;
 
 type_parameter_1
   : type_variable GT
+    (concat $1 $2)
   | type_variable type_bound_1
+    (concat $1 $2)
   ;
 
 type_bound_opt
   : type_bound
   | ;;EMPTY
+    (progn "")
   ;
 
 type_bound
   : EXTENDS reference_type additional_bound_list_opt
+    (concat $1 " " $2 " " $3)
   ;
 
 type_bound_1
   : EXTENDS reference_type_1
+    (concat $1 " " $2)
   | EXTENDS reference_type additional_bound_list_1
+    (concat $1 " " $2 " " $3)
   ;
 
 additional_bound_list_opt
   : additional_bound_list
   | ;;EMPTY
+    (progn "")
   ;
 
 additional_bound_list
   : additional_bound additional_bound_list
+    (concat $1 $2)
   | additional_bound
   ;
 
 additional_bound_list_1
   : additional_bound additional_bound_list_1
+    (concat $1 $2)
   | additional_bound_1
   ;
 
 additional_bound
   : AND interface_type
+    (concat $1 " " $2)
   ;
 
 additional_bound_1
   : AND reference_type_1
+    (concat $1 " " $2)
   ;
 
 ;; Duplicate `_no_name' rules to remove ambiguity between `(x)' as an
@@ -2071,7 +2081,7 @@ annotation
   | AT name LPAREN error
     (prog1 (concat $1 $2)
       ;; On error, skip current block and try to continue.
-      (SKIP-BLOCK $region3))
+      (SKIP-BLOCK $3))
   ;
 
 ;; MemberValuePairs:
