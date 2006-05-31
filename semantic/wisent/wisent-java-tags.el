@@ -1,12 +1,12 @@
 ;;; wisent-java-tags.el --- Java LALR parser for Emacs
 
-;; Copyright (C) 2001, 2002 David Ponce
+;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.31 2005/09/30 20:25:20 zappo Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.32 2006/05/31 12:47:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -96,7 +96,7 @@ Use the alternate LALR(1) parser."
    semantic-lex-number-expression semantic-java-number-regexp
    semantic-lex-analyzer 'wisent-java-tags-lexer
    ;; Parsing
-   semantic-tag-expand-function 'wisent-java-expand-tag
+   semantic-tag-expand-function 'semantic-java-expand-tag
    ;; Environment
    semantic-imenu-summary-function 'semantic-format-tag-prototype
    imenu-create-index-function 'semantic-create-imenu-index
@@ -122,32 +122,8 @@ Use the alternate LALR(1) parser."
   ;; Setup javadoc stuff
   (semantic-java-doc-setup))
 
-(defun wisent-java-expand-tag (tag)
-  "Expand TAG into a list of equivalent tags, or nil.
-Expand multiple variable declarations in the same statement, that is
-tags of class `variable' whose name is equal to a list of elements of
-the form (NAME START . END).  NAME is a variable name.  START and END
-are the bounds in the declaration, related to this variable NAME."
-  (let (elts elt clone start end xpand)
-    (when (and (eq 'variable (semantic-tag-class tag))
-               (consp (setq elts (semantic-tag-name tag))))
-      ;; There are multiple names in the same variable declaration.
-      (while elts
-        ;; For each name element, clone the initial tag and give it
-        ;; the name of the element.
-        (setq elt   (car elts)
-              elts  (cdr elts)
-              clone (semantic-tag-clone tag (car elt))
-              start (if elts  (cadr elt) (semantic-tag-start tag))
-              end   (if xpand (cddr elt) (semantic-tag-end   tag))
-              xpand (cons clone xpand))
-        ;; Set the bounds of the cloned tag with those of the name
-        ;; element.
-        (semantic-tag-set-bounds clone start end))
-      xpand)))
-
 ;;;###autoload
-(add-hook 'java-mode-hook #'wisent-java-default-setup)
+(add-hook 'java-mode-hook 'wisent-java-default-setup)
 
 (provide 'wisent-java-tags)
 
