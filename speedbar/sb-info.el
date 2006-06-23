@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.19 2005/06/30 01:48:56 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.20 2006/06/23 08:26:16 ponced Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -247,9 +247,9 @@ BUFFER is the buffer speedbar is requesting buttons for."
   (Info-speedbar-hierarchy-buttons nil 0)
   )
 
+(provide 'sb-info)
+
 ;;; Overriding preinstalled code.
 ;;;###autoload
 (eval-after-load "info" '(require 'sb-info))
-
-(provide 'sb-info)
 ;;; sb-info.el ends here
