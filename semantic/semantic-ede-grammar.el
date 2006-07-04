@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.9 2005/09/30 20:19:53 zappo Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.10 2006/07/04 13:56:10 ponced Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -191,15 +191,15 @@ Argument THIS is the target that should insert stuff."
 (autoload 'ede-proj-target-elisp "semantic-ede-proj-target-grammar"
   "Target class for Emacs/Semantic grammar files." nil nil)
 
+(ede-proj-register-target "semantic grammar"
+			  semantic-ede-proj-target-grammar)
+
+(provide 'semantic-ede-grammar)
+
 ;;;###autoload
 (eval-after-load "ede-proj"
     (quote
      (require 'semantic-ede-grammar)
      ))
-
-(ede-proj-register-target "semantic grammar"
-			  semantic-ede-proj-target-grammar)
-
-(provide 'semantic-ede-grammar)
 
 ;;; semantic-ede-grammar.el ends here
