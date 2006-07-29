@@ -1,10 +1,10 @@
 ;;; semanticdb-find.el --- Searching through semantic databases.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.28 2005/09/30 20:19:19 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.29 2006/07/29 15:01:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -226,7 +226,21 @@ Default action as described in `semanticdb-find-translate-path'."
     (apply
      #'append
      (mapcar
-      (lambda (db) (semanticdb-get-database-tables db))
+      (lambda (db)
+	(let ((tabs (semanticdb-get-database-tables db))
+	      (ret nil))
+	  ;; Only return tables of the same language (major-mode)
+	  ;; as the current search environment.
+	  (while tabs
+	    (if (eq (oref tabs major-mode)
+		    ;; I suspect that we may need to supply something
+		    ;; better for cases of a tool needing to reference
+		    ;; buffers of a mode that are not itself.
+		    (or mode-local-active-mode
+			major-mode))
+		(setq ret (cons (car tabs) ret)))
+	    (setq tabs (cdr tabs)))
+	  ret))
       ;; FIXME:
       ;; This should scan the current project directory list for all
       ;; semanticdb files, perhaps handling proxies for them.
