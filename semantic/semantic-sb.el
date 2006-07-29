@@ -1,10 +1,10 @@
 ;;; semantic-sb.el --- Semantic tag display for speedbar
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.56 2005/09/30 20:21:06 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.57 2006/07/29 15:06:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -295,15 +295,22 @@ TEXT TOKEN and INDENT are the details."
   "Jump to the location specified in token.
 TEXT TOKEN and INDENT are the details."
   (let ((file
-	 (cond ((fboundp 'speedbar-line-path)
-		(speedbar-line-path indent))
-	       ((fboundp 'speedbar-line-directory)
-		(speedbar-line-directory indent))))
+	 (or
+	  (cond ((fboundp 'speedbar-line-path)
+		 (speedbar-line-path indent))
+		((fboundp 'speedbar-line-directory)
+		 (speedbar-line-directory indent)))
+	  ;; If speedbar cannot figure this out, extract the filename from
+	  ;; the token.  True for Analysis mode.
+	  (semantic-tag-file-name token)))
 	(parent (semantic-sb-detail-parent)))
     (let ((f (selected-frame)))
       (dframe-select-attached-frame speedbar-frame)
       (run-hooks 'speedbar-before-visiting-tag-hook)
       (select-frame f))
+    ;; Sometimes FILE may be nil here.  If you are debugging a problem
+    ;; when this happens, go back and figure out why FILE is nil and try
+    ;; and fix the source.
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
     (semantic-go-to-tag token parent)
