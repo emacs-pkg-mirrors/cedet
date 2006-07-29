@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.31 2006/02/16 02:22:45 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.32 2006/07/29 15:03:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -115,7 +115,9 @@ When this happens, the buffer is marked as needing a full reprase.")
 
 (defcustom semantic-edits-verbose-flag nil
   "Non-nil means the incremental perser is verbose.
-If nil, errors are still displayed, but informative messages are not.")
+If nil, errors are still displayed, but informative messages are not."
+  :group 'semantic
+  :type 'boolean)
 
 ;;; Change State management
 ;;
