@@ -93,7 +93,7 @@ Different Modes for Speedbar
     for displaying class hierarchies, and context analysis.
 <li><a href="ede.shtml">EDE</a> uses the EIEIO classes to display
     project status.
-<li><a href="http://opensource.ee.ethz.ch/emacs/vhdl-mode.html">
+<li><a href="http://www.iis.ee.ethz.ch/~zimmi/emacs/vhdl-mode.html">
     VHDL mode</a> has a very fancy class browser for VHDL files.
 <li><a href="http://xslt-process.sourceforge.net/index.php">
     XSLT-process</a> for Emacs provides XSLT file browsing.
