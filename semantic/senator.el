@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.114 2006/02/08 02:31:35 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.115 2006/07/29 15:09:38 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -444,11 +444,18 @@ type context exists at point."
 (defun senator-find-tag-for-completion (prefix)
   "Find all tags with a name starting with PREFIX.
 Uses `semanticdb' when available."
-  (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-      ;; semanticdb version returns a list of (DB-TABLE . TAG-LIST)
-      (semanticdb-deep-find-tags-for-completion prefix)
-    ;; semantic version returns a TAG-LIST
-    (semantic-deep-find-tags-for-completion prefix (current-buffer))))
+  (let ((tagsa nil)
+	(tagsb nil))
+    (if (and (featurep 'semantic-analyze))
+	(setq tagsa (semantic-analyze-possible-completions
+		     (semantic-analyze-current-context))))
+    (setq tagsb
+	  (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+	      ;; semanticdb version returns a list of (DB-TABLE . TAG-LIST)
+	      (semanticdb-deep-find-tags-for-completion prefix)
+	    ;; semantic version returns a TAG-LIST
+	    (semantic-deep-find-tags-for-completion prefix (current-buffer))))
+    (append tagsa (semanticdb-strip-find-results tagsb))))
 
 ;;; Senator stream searching functions: no more supported.
 ;;
@@ -776,10 +783,7 @@ of completions once, doing nothing where there are no more matches."
             (setq complst (nthcdr 4 senator-last-completion-stats))
           
           (setq regex (regexp-quote (buffer-substring symstart (point)))
-                complst (let ((found (senator-find-tag-for-completion regex)))
-                          (if (and found (semantic-tag-p (car found)))
-                              found
-                            (apply #'append (mapcar #'cdr found))))
+                complst (senator-find-tag-for-completion regex)
                 senator-last-completion-stats (append (list (current-buffer)
                                                             symstart
                                                             0
@@ -854,15 +858,10 @@ choosen from the completion menu."
 That is a pair (MENU-ITEM-TEXT . TAG-ARRAY).  TAG-ARRAY is an
 array of one element containing TAG.  Can return nil to discard a
 menu item."
-  (if (semantic-tag-p tag)
-      (cons (funcall (if (fboundp senator-completion-menu-summary-function)
-                         senator-completion-menu-summary-function
-                       #'semantic-format-tag-prototype) tag)
-            (vector tag))
-    (cons (semanticdb-printable-name (car tag))
-          (delq nil
-                (mapcar #'senator-completion-menu-item
-                        (cdr tag))))))
+  (cons (funcall (if (fboundp senator-completion-menu-summary-function)
+		     senator-completion-menu-summary-function
+		   #'semantic-format-tag-prototype) tag)
+	(vector tag)))
 
 (defun senator-completion-menu-window-offsets (&optional window)
   "Return offsets of WINDOW relative to WINDOW's frame.
