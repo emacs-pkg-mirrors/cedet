@@ -67,7 +67,7 @@ CEDET & Common area
     - Start emacs this way:
 
       emacs -q
-      -or-
+      -or- 
       xemacs -q
 
       M-x load-file RET cedet/common/cedet.el RET
@@ -131,6 +131,9 @@ Semantic
        - Do this in different contexts in your language
          files.   Verify that reasonable results are returned
          such as identification of assignments, function arguments, etc.
+
+       - Optionally, use `semantic-speedbar-analysis' instead of
+         'semantic-analyze-current-context'.
 
        - At a location with incomplete syntax (a list of arguments
          with no close paren for instance: repeat previous step. 
