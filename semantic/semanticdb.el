@@ -1,10 +1,10 @@
 ;;; semanticdb.el --- Semantic tag database manager
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.75 2005/09/30 20:19:09 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.76 2006/07/29 15:00:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -202,7 +202,7 @@ If one isn't found, create one."
 (defmethod semanticdb-get-buffer ((obj semanticdb-table))
   "Return a buffer associated with OBJ.
 If the buffer is not in memory, load it with `find-file-noselect'."
-  (find-file-noselect (semanticdb-full-filename obj)))
+  (find-file-noselect (semanticdb-full-filename obj) t))
 
 (defmethod semanticdb-set-buffer ((obj semanticdb-table))
   "Set the current buffer to be a buffer owned by OBJ.
@@ -615,7 +615,7 @@ table object for it."
       (or (semanticdb-file-table db file)
 	  ;; We must load the file.
 	  (save-excursion
-	    (set-buffer (find-file-noselect file))
+	    (set-buffer (find-file-noselect file t))
 	    ;; Find file should automatically do this for us.
 	    ;; Sometimes the DB table doesn't contains tags and needs
 	    ;; a refresh.  For example, when the file is loaded for
