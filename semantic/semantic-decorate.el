@@ -1,10 +1,10 @@
 ;;; semantic-decorate.el --- Utilities for decorating/highlighting tokens.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.8 2005/09/30 20:19:45 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.9 2006/08/07 12:45:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -52,6 +52,33 @@ Optional FACE specifies the face to use."
     (semantic-overlay-put o 'old-face (cdr (semantic-overlay-get o 'old-face)))
     ))
 
+(defun semantic-momentary-highlight-one-tag-line (tag &optional face)
+  "Highlight the first line of TAG, unhighlighting before next command.
+Optional argument FACE specifies the face to do the highlighting."
+  (save-excursion
+    ;; Go to first line in tag
+    (semantic-go-to-tag tag)
+    (beginning-of-line)
+    (let ((o (speedbar-make-overlay (save-excursion (beginning-of-line) (point))
+				    (save-excursion (end-of-line)
+						    (forward-char 1)
+						    (point)))))
+      (semantic--tag-put-property tag 'line-highlight o)
+      (semantic-overlay-put o 'face (or face 'highlight))
+      (add-hook 'pre-command-hook
+		`(lambda () (semantic-momentary-unhighlight-one-tag-line ',tag))))
+    ))
+
+(defun semantic-momentary-unhighlight-one-tag-line (tag)
+  "Unhighlight TAG ."
+  (let ((o (semantic--tag-get-property tag 'line-highlight)))
+    (if o
+	(progn
+	  (semantic-overlay-delete o)
+	  (semantic--tag-put-property tag 'line-highlight nil))))
+  (remove-hook 'pre-command-hook
+	       `(lambda () (semantic-momentary-unhighlight-one-tag-line ',tag))))
+
 (defun semantic-momentary-unhighlight-tag (tag)
   "Unhighlight TAG, restoring it's previous face."
   (semantic-unhighlight-tag tag)
@@ -63,9 +90,14 @@ Optional FACE specifies the face to use."
   "Highlight TAG, removing highlighting when the user hits a key.
 Optional argument FACE is the face to use for highlighting.
 If FACE is not specified, then `highlight' will be used."
-  (semantic-highlight-tag tag face)
-  (add-hook 'pre-command-hook
-	    `(lambda () (semantic-momentary-unhighlight-tag ',tag))))
+  (when (semantic-tag-with-position-p tag)
+    (if (not (semantic-overlay-p (semantic-tag-overlay tag)))
+	;; No overlay, but a position.  Highlight the first line only.
+	(semantic-momentary-highlight-one-tag-line tag face)
+      ;; The tag has an overlay, highlight the whole thing
+      (semantic-highlight-tag tag face)
+      (add-hook 'pre-command-hook
+		`(lambda () (semantic-momentary-unhighlight-tag ',tag))))))
 
 ;;;###autoload
 (defun semantic-set-tag-face (tag face)
