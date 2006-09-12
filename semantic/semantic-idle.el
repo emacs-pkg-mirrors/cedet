@@ -1,10 +1,10 @@
 ;;; semantic-idle.el --- Schedule parsing tasks in idle time
 
-;;; Copyright (C) 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004, 2005, 2006 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.34 2005/09/30 20:20:43 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.35 2006/09/12 01:16:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -286,12 +286,9 @@ call additional functions registered with the timer calls."
   (when (zerop (recursion-depth))
     (unwind-protect
         (semantic-safe "idle error: %S"
-          ;; Disable the auto parse timer while re-parsing
-          (semantic-idle-scheduler-kill-timer)
           ;; Handle re-parsing and other scheduled services
           (save-match-data (semantic-idle-core-handler)))
-      ;; Enable again the auto parse timer
-      (semantic-idle-scheduler-setup-timer))))
+      )))
 
 ;;; REPARSING
 ;;
