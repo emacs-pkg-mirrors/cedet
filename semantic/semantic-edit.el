@@ -1,8 +1,8 @@
 ;;; semantic-edit.el --- Edit Management for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.32 2006/07/29 15:03:21 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.33 2007/01/09 16:48:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -434,6 +434,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 
 			  ;; We end when the start of the CDR is after the
 			  ;; end of our asked change.
+			  (cdr list-to-search)
 			  (< (semantic-tag-start (car (cdr list-to-search)))
 			     tokstart)
 			  (setq list-to-search (cdr list-to-search)))))
