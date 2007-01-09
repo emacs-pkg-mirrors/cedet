@@ -1,10 +1,10 @@
 ;;; semanticdb-el.el --- Semantic database extensions for Emacs Lisp
 
-;;; Copyright (C) 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.23 2005/09/30 20:19:13 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.24 2007/01/09 17:02:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +38,7 @@
   ;; For generic function searching.
   (require 'eieio)
   (require 'eieio-opt)
+  (require 'eieio-base)
   )
 ;;; Code:
 
@@ -215,7 +216,7 @@ Return a list of tags."
 	   (fun (semanticdb-elisp-sym->tag sym 'function))
 	   (var (semanticdb-elisp-sym->tag sym 'variable))
 	   (typ (semanticdb-elisp-sym->tag sym 'type))
-	   (taglst nil)a
+	   (taglst nil)
 	   )
       (when (or fun var typ)
 	;; If the symbol is any of these things, build the search table.
