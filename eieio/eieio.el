@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.146 2006/02/08 04:22:13 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.147 2007/01/09 16:44:53 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -2020,7 +2020,7 @@ sure to call `call-next-method' first and modify the returned object."
     (if (not passname)
 	(save-match-data
 	  (if (string-match "-\\([0-9]+\\)" nm)
-	      (setq num (1+ (string-to-int (match-string 1 nm)))
+	      (setq num (1+ (string-to-number (match-string 1 nm)))
 		    nm (substring nm 0 (match-beginning 0))))
 	  (aset nobj object-name (concat nm "-" (int-to-string num))))
       (aset nobj object-name (car params)))
