@@ -1,10 +1,10 @@
 ;;; semanticdb-ebrowse.el --- Semanticdb backend using ebrowse.
 
-;;; Copyright (C) 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.3 2007/01/08 02:56:37 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.4 2007/01/12 03:32:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -60,6 +60,7 @@
 (defvar semanticdb-ebrowse-default-file-name "BROWSE"
   "The EBROWSE file name used for system caches.")
 
+;;;###autoload
 (defun semanticdb-create-ebrowse-database (dir)
   "Create an EBROSE database for directory DIR.
 The database file is stored in ~/.semanticdb, or whichever directory
@@ -114,10 +115,13 @@ is specified by `semanticdb-default-system-save-directory'."
 		"semanticdb-project-database-ebrowse \""
 		dir
 		"\")\n")
-	(save-buffer)))
-    (message "Creating ebrowse file: %s ... done" savein)
-    ))
+	(save-buffer))
+      (message "Creating ebrowse file: %s ... done" savein)
+      ;; Reload that database
+      (load lf nil t)
+      )))
 
+;;;###autoload
 (defun semanticdb-load-ebrowse-caches ()
   "Load all semanticdb controlled EBROWSE caches."
   (interactive)
@@ -132,11 +136,6 @@ is specified by `semanticdb-default-system-save-directory'."
     ))
 
 ;;; SEMANTIC Database related Code
-(defvar semanticdb-ebrowse-database-list nil
-  "List of ebrowse databases.
-Debugging purposes.")
-
-
 ;;; Classes:
 (defclass semanticdb-table-ebrowse (semanticdb-table)
   ((major-mode :initform c++-mode)
@@ -149,11 +148,14 @@ Debugging purposes.")
 
 (defclass semanticdb-project-database-ebrowse
   (semanticdb-project-database)
-  ((tracking-symbol :initform semanticdb-ebrowse-database-list)
-   (new-table-class :initform semanticdb-table-ebrowse
+  ((new-table-class :initform semanticdb-table-ebrowse
 		    :type class
 		    :documentation
 		    "New tables created for this database are of this class.")
+   (system-include-p :initform nil
+		     :initarg :system-include
+		     :documentation
+		     "Flag indicating this database represents a system include directory.")
    (ebrowse-struct :initform nil
 		   :initarg :ebrowse-struct
 		   )
@@ -169,7 +171,7 @@ Debugging purposes.")
 ;; NOTE: Be sure to modify this to the best advantage of your
 ;;       language.
 (defvar-mode-local c++-mode semanticdb-find-default-throttle
-  '(omniscience)
+  '(project system recursive)
   "Search project files, then search this omniscience database.
 It is not necessary to do system or recursive searching because of
 the omniscience database.")
@@ -238,28 +240,42 @@ for instance: /home/<username>/.semanticdb/!usr!include!BROWSE"
 
 ;;; Methods for creating a database or tables
 ;;
-(defmethod semanticdb-create-database :STATIC ((dbe semanticdb-project-database-ebrowse)
+(defmethod semanticdb-create-database :STATIC ((dbeC semanticdb-project-database-ebrowse)
 					       directory)
   "Create a new semantic database for DIRECTORY based on ebrowse.
 If there is no database for DIRECTORY available, then
 {not implemented yet} create one.  Return nil if that is not possible."
-;STATIC means DBE cant be used as object!
-  (let* ((ebrowse-data (semanticdb-ebrowse-get-ebrowse-structure directory))
-	 (dat (car (cdr ebrowse-data)))
-	 (ebd (car dat))
-	 (db nil)
-	 )
-    (setq db (make-instance
-	      dbe
-	      directory
-	      :ebrowse-struct ebd
-	      ))
-    (oset db reference-directory directory)
-    (oset db tables nil)
-    (oset db tables (semanticdb-ebrowse-strip-tables db dat)) ;only possible after object creation, tables inited to nil.
-    db))
-;JAVE return db, instead of whatever oset returns, ("directory"), for debugging
-;
+  ;; MAKE SURE THAT THE FILE LOADED DOESN'T ALREADY EXIST.
+  (let ((dbs semanticdb-database-list)
+	(found nil))
+    (while (and (not found) dbs)
+      (when (semanticdb-project-database-ebrowse-p (car dbs))
+	(when (string= (oref (car dbs) reference-directory) directory)
+	  (setq found (car dbs))))
+      (setq dbs (cdr dbs)))
+    ;;STATIC means DBE cant be used as object, only as a class
+    (let* ((ebrowse-data (semanticdb-ebrowse-get-ebrowse-structure directory))
+	   (dat (car (cdr ebrowse-data)))
+	   (ebd (car dat))
+	   (db nil)
+	   )
+      (if found
+	  (setq db found)
+	(setq db (make-instance
+		  dbeC
+		  directory
+		  :ebrowse-struct ebd
+		  ))
+	(oset db reference-directory directory))
+      ;;(oset db tables nil)
+      (oset db tables (semanticdb-ebrowse-strip-tables db dat)) ;only possible after object creation, tables inited to nil.
+
+      ;; Once our database is loaded, if we are a system DB, we
+      ;; add ourselves to the include list for C++.
+      (semantic-add-system-include directory 'c++-mode)
+
+      db)))
+
 
 (defmethod semanticdb-ebrowse-strip-tables  ((dbe semanticdb-project-database-ebrowse)
 						    data)
@@ -313,7 +329,7 @@ a table belongs to a file, and can have many trees"
 (defmethod semanticdb-file-table ((dbe semanticdb-project-database-ebrowse) filename)
   "From OBJ, return FILENAME's associated table object."
   ;; NOTE: See note for `semanticdb-get-database-tables'.
-  (cdr (assoc filename (oref dbe mytables)))
+  (cdr (assoc (file-name-nondirectory filename) (oref dbe mytables)))
   )
 
 
