@@ -1,8 +1,8 @@
 ;;; semantic-lex-spp.el --- Semantic Lexical Pre-processor
 
-;;; Copyright (C) 2006 Eric M. Ludlam
+;;; Copyright (C) 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.2 2007/01/12 12:13:39 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.3 2007/01/12 12:26:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -159,7 +159,8 @@ If BUFFER is not provided, use the current buffer."
   (interactive)
   (let ((syms (save-excursion
 		(if buffer (set-buffer buffer))
-		(semantic-lex-spp-macros))))
+		(semantic-lex-spp-macros)))
+	(sym nil))
     (with-output-to-temp-buffer "*SPP MACROS*"
       (princ "Macro\tValue\n")
       (while syms
