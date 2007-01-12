@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.9 2006/08/07 12:45:41 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.10 2007/01/12 03:34:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -70,7 +70,7 @@ Optional argument FACE specifies the face to do the highlighting."
     ))
 
 (defun semantic-momentary-unhighlight-one-tag-line (tag)
-  "Unhighlight TAG ."
+  "Unhighlight a TAG that has only one line highlighted."
   (let ((o (semantic--tag-get-property tag 'line-highlight)))
     (if o
 	(progn
