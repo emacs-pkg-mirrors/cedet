@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.1 2006/02/24 05:48:46 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.2 2007/01/12 12:13:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -107,7 +107,10 @@ REPLACEMENT a string that would be substituted in for NAME."
       (setq spec  (car specs)
             specs (cdr specs))
       (semantic-lex-spp-symbol-set
-       (car spec) (semantic-lex-spp-string-to-macro-stream (cdr spec))
+       (car spec)
+       (semantic-lex-spp-string-to-macro-stream (cdr spec)
+						;; THIS IS WRONG!
+						1 1)
        semantic-lex-spp-macro-symbol-obarray))
     semantic-lex-spp-macro-symbol-obarray))
 
