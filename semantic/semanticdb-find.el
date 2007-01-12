@@ -1,10 +1,10 @@
 ;;; semanticdb-find.el --- Searching through semantic databases.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.29 2006/07/29 15:01:53 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.30 2007/01/12 03:35:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,7 +232,7 @@ Default action as described in `semanticdb-find-translate-path'."
 	  ;; Only return tables of the same language (major-mode)
 	  ;; as the current search environment.
 	  (while tabs
-	    (if (eq (oref tabs major-mode)
+	    (if (eq (oref (car tabs) major-mode)
 		    ;; I suspect that we may need to supply something
 		    ;; better for cases of a tool needing to reference
 		    ;; buffers of a mode that are not itself.
@@ -271,9 +271,14 @@ Default action as described in `semanticdb-find-translate-path'."
 	(push nexttable matchedtables)
 	;; Queue new includes to list
 	(if (semanticdb-find-throttle-active-p 'recursive)
-	    (setq includetags (append includetags
-				      (semantic-find-tags-included
-				       (semanticdb-get-tags nexttable))))))
+	    (let ((newtags
+		   (cond
+		    ((semanticdb-table-p nexttable)
+		     (semanticdb-find-tags-by-class 'include nexttable))
+		    (t
+		     (semantic-find-tags-included
+		      (semanticdb-get-tags nexttable))))))
+	      (setq includetags (append includetags newtags)))))
       (setq includetags (cdr includetags)))
     (nreverse matchedtables)))
 
@@ -377,7 +382,9 @@ for details on how this list is derived."
 	    (progn
 	      (princ (semanticdb-full-filename (car p)))
 	      (princ ": ")
-	      (prin1 (length (oref (car p) tags)))
+	      (prin1 (condition-case nil
+			 (length (oref (car p) tags))
+		       (error "--")))
 	      (princ " tags")
 	      (let ((parent (oref (car p) parent-db)))
 		(when parent
