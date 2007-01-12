@@ -1,10 +1,10 @@
 ;;; semantic-tag-file.el --- Routines that find files based on tags.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.12 2005/09/30 20:21:16 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.13 2007/01/12 03:33:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -148,22 +148,9 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 	      (semantic--tag-get-property tag 'dependency-file)
 	    (:override
 	     (save-excursion
-	       (let* ((name (semantic-tag-name tag))
-		      (result
-		       (cond ((file-exists-p name)
-			      (expand-file-name name))
-			     ((and (symbolp semantic-dependency-include-path)
-				   (fboundp semantic-dependency-include-path))
-			      (funcall semantic-dependency-include-path name))
-			     (t
-			      (let ((p semantic-dependency-include-path)
-				    (found nil))
-				(while (and p (not found))
-				  (if (file-exists-p (concat (car p) "/" name))
-				      (setq found (concat (car p) "/" name)))
-				  (setq p (cdr p)))
-				found)))))
-		 result)))
+	       (let* ((name (semantic-tag-name tag)))
+		 (semantic-dependency-find-file-on-path
+		  name (semantic-tag-include-system-p tag)))))
 	    )))
       (if (stringp result)
 	  (progn
