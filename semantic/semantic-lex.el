@@ -1,8 +1,8 @@
 ;;; semantic-lex.el --- Lexical Analyzer builder
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.40 2005/09/30 20:20:56 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.41 2007/01/12 12:24:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -81,8 +81,7 @@ These keywords are matched explicitly, and converted into special symbols.")
   `(signal 'wrong-type-argument '(semantic-lex-keyword-p ,name)))
 
 (defsubst semantic-lex-keyword-symbol (name)
-  "Return keyword symbol with NAME or nil if not found.
-Return nil otherwise."
+  "Return keyword symbol with NAME or nil if not found."
   (and (arrayp semantic-flex-keywords-obarray)
        (stringp name)
        (intern-soft name semantic-flex-keywords-obarray)))
@@ -479,10 +478,13 @@ when finding unterminated syntax.")
   "Test the semantic lexer in the current buffer.
 If universal argument ARG, then try the whole buffer."
   (interactive "P")
-  (let ((result (semantic-lex
-		 (if arg (point-min) (point))
-		 (point-max))))
-    (message "%s: %S" semantic-lex-analyzer result))
+  (let* ((start (current-time))
+	 (result (semantic-lex
+		  (if arg (point-min) (point))
+		  (point-max)))
+	 (end (current-time)))
+    (message "Elapsed Time: %.2f seconds."
+	     (semantic-elapsed-time start end)))
   )
 
 (defun semantic-lex-test-region (beg end)
@@ -682,11 +684,22 @@ The collapsed tokens are saved in `semantic-lex-block-streams'."
 
 ;;; Lexical token API
 ;;
-(defmacro semantic-lex-token (symbol start end)
+(defmacro semantic-lex-token (symbol start end &optional str)
   "Create a lexical token.
 SYMBOL is a symbol representing the class of syntax found.
-START and END define the bounds of the token in the current buffer."
-  `(cons ,symbol (cons ,start ,end)))
+START and END define the bounds of the token in the current buffer.
+Optional STR is the string for the token iff the the bounds
+in the buffer do not cover the string they represent.  (As from
+macro expansion.)"
+  ;; This if statement checks the existance of a STR argument at
+  ;; compile time, where STR is some symbol or constant.  If the
+  ;; variable STr (runtime) is nil, this will make an incorrect decision.
+  ;;
+  ;; It is like this to maintain the original speed of the compiled
+  ;; code.
+  (if str
+      `(cons ,symbol (cons ,str (cons ,start ,end)))
+    `(cons ,symbol (cons ,start ,end))))
 
 (defun semantic-lex-expand-block-specs (specs)
   "Expand block specifications SPECS into a Lisp form.
@@ -743,7 +756,9 @@ See also the function `semantic-lex-token'."
 (defsubst semantic-lex-token-bounds (token)
   "Fetch the start and end locations of the lexical token TOKEN.
 Return a pair (START . END)."
-  (cdr token))
+  (if (stringp (car (cdr token)))
+      (cdr (cdr token))
+    (cdr token)))
 
 (defsubst semantic-lex-token-start (token)
   "Fetch the start position of the lexical token TOKEN.
@@ -758,9 +773,11 @@ See also the function `semantic-lex-token'."
 (defsubst semantic-lex-token-text (token)
   "Fetch the text associated with the lexical token TOKEN.
 See also the function `semantic-lex-token'."
-  (buffer-substring-no-properties
-   (semantic-lex-token-start token)
-   (semantic-lex-token-end   token)))
+  (if (stringp (car (cdr token)))
+      (car (cdr token))
+    (buffer-substring-no-properties
+     (semantic-lex-token-start token)
+     (semantic-lex-token-end   token))))
 
 ;;;###autoload
 (defun semantic-lex-init ()
