@@ -1,8 +1,8 @@
 ;;; semantic-bovine.el --- LL Parser/Analyzer core.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.11 2005/09/30 20:22:08 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.12 2007/01/13 02:07:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -126,7 +126,7 @@ list of semantic tokens found."
         (while nt-loop
           (catch 'push-non-terminal
             (setq nt-popup nil
-                  end (cdr (cdr (car stream))))
+                  end (semantic-lex-token-end (car stream)))
             (while (or nt-loop nt-popup)
               (setq nt-loop nil
                     out     nil)
@@ -216,7 +216,7 @@ list of semantic tokens found."
                     )))
                 (if (not cvl)           ;lte=nil;  there was no match.
                     (setq matchlist (cdr matchlist)) ;Move to next matchlist entry
-                  (let ((start (car (cdr (car stream)))))
+                  (let ((start (semantic-lex-token-start (car stream))))
                     (setq out (cond
                                ((car lte)
                                 (funcall (car lte) ;call matchlist fn on values
