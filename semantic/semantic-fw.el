@@ -1,8 +1,8 @@
 ;;; semantic-fw.el --- Framework for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.52 2005/09/30 20:20:20 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.53 2007/01/13 02:08:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -388,6 +388,8 @@ calling this one."
 		 "define-lex-analyzer"
 		 "define-lex-block-analyzer"
 		 "define-lex-regex-analyzer"
+		 "define-lex-spp-macro-declaration-analyzer"
+		 "define-lex-spp-macro-undeclaration-analyzer"
 		 "define-lex-simple-regex-analyzer"
 		 "define-lex-keyword-type-analyzer"
 		 "define-lex-sexp-type-analyzer"
