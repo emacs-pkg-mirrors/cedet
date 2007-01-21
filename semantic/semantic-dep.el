@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.1 2007/01/12 03:33:11 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.2 2007/01/21 18:09:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -115,6 +115,7 @@ Modifies a mode-local version of
 ;;; PATH SEARCH
 ;;
 ;; methods for finding files on a provided path.
+;;;###autoload
 (defun semantic--dependency-find-file-on-path (file path)
   "Return an expanded file name for FILE on PATH."
   (let ((p path)
