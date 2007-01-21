@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.30 2007/01/12 03:35:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.31 2007/01/21 18:08:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -419,13 +419,21 @@ This makes it appear more like the results of a `semantic-find-' call.
 Optional FIND-FILE-MATCH loads all files associated with RESULTS
 into buffers.  This has the side effect of enabling `semantic-tag-buffer' to
 return a value."
-  (when find-file-match
-    ;; Load all files associated with RESULTS.
-    (let ((tmp results))
-      (while tmp
-	(semanticdb-get-buffer (car (car tmp)))
-	(setq tmp (cdr tmp)))))
-  (apply #'append (mapcar #'cdr results)))
+  (if find-file-match
+      ;; Load all files associated with RESULTS.
+      (let ((tmp results)
+	    (output nil))
+	(while tmp
+	  (semanticdb-get-buffer (car (car tmp)))
+	  (setq output (append output
+			       (mapcar (lambda (tag)
+					 (semanticdb-normalize-tag
+					  (car (car tmp))
+					  tag))
+				       (cdr (car tmp)))))
+	  (setq tmp (cdr tmp)))
+	output)
+    (apply #'append (mapcar #'cdr results))))
 
 (defun semanticdb-find-results-p (resultp)
   "Non-nil if RESULTP is in the form of a semanticdb search result.
