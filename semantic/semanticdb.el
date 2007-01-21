@@ -1,10 +1,10 @@
 ;;; semanticdb.el --- Semantic tag database manager
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.76 2006/07/29 15:00:56 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.77 2007/01/21 18:08:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -208,6 +208,14 @@ If the buffer is not in memory, load it with `find-file-noselect'."
   "Set the current buffer to be a buffer owned by OBJ.
 If OBJ's file is not loaded, read it in first."
   (set-buffer (semanticdb-get-buffer obj)))
+
+(defmethod semanticdb-normalize-tag ((obj semanticdb-table) tag)
+  "Convert a tag, originating from the table OBJ, into standardized form.
+The default is to return TAG.
+Some databases may default to searching and providing simplified tags
+based on whichever technique used.  This method provides a hook for
+them to convert TAG into a more complete form."
+  tag)
 
 (defmethod semanticdb-refresh-table ((obj semanticdb-table))
   "If the tag list associated with OBJ is loaded, refresh it.
