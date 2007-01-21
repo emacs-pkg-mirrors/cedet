@@ -1,10 +1,10 @@
 ;;; semantic-analyze.el --- Analyze semantic tags against local context
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.43 2005/09/30 20:18:43 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.44 2007/01/21 18:06:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -635,98 +635,106 @@ Returns an object based on symbol `semantic-analyze-context'."
 	 (bounds (nth 2 prefixandbounds))
 	 (prefixclass (semantic-ctxt-current-class-list))
 	 (prefixtypes nil)
-	 (scopetypes (semantic-analyze-scoped-types position))
-	 (scope (if scopetypes
-		    (semantic-analyze-scoped-tags scopetypes)))
-	 (localvar (semantic-get-local-variables))
-	 (function (semantic-ctxt-current-function))
+	 (scopetypes nil)
+	 (scope nil)
+	 (localvar nil)
+	 (function nil)
 	 (fntag nil)
 	 arg fntagend argtag
 	 )
 
-    (condition-case nil
-	;; If we are on lame stuff, it won't be found!
-	(setq prefix (semantic-analyze-find-tag-sequence
-		      prefix localvar scope 'prefixtypes))
-      (error nil))
+    (unless (not bounds)
 
-    (when function
-      ;; If we have a function, then we can get the argument
-      (setq arg (semantic-ctxt-current-argument))
+      ;; Don't do the work if there are no bounds.
+      (setq scopetypes (semantic-analyze-scoped-types position)
+	    scope (if scopetypes
+		      (semantic-analyze-scoped-tags scopetypes))
+	    localvar (semantic-get-local-variables)
+	    function (semantic-ctxt-current-function))
 
       (condition-case nil
-	  (setq fntag
-		(semantic-analyze-find-tag-sequence
-		 function localvar scope))
+	  ;; If we are on lame stuff, it won't be found!
+	  (setq prefix (semantic-analyze-find-tag-sequence
+			prefix localvar scope 'prefixtypes))
 	(error nil))
 
-      (when fntag
-	(setq fntagend (car (reverse fntag))
-	      argtag
-	      (when (semantic-tag-p fntagend)
-		(nth (1- arg) (semantic-tag-function-arguments fntagend)))
-	      )))
+      (when function
+	;; If we have a function, then we can get the argument
+	(setq arg (semantic-ctxt-current-argument))
 
-    (if fntag
-	;; If we found a tag for our function, we can go into
-	;; functional context analysis mode, meaning we have a type
-	;; for the argument.
-	(setq context-return
-	      (semantic-analyze-context-functionarg
-	       "functionargument"
-	       :buffer (current-buffer)
-	       :function fntag
-	       :index arg
-	       :argument (list argtag)
-	       :scope scope
-	       :scopetypes scopetypes
-	       :localvariables localvar
-	       :prefix prefix
-	       :prefixclass prefixclass
-	       :bounds bounds
-	       :prefixtypes prefixtypes))
+	(condition-case nil
+	    (setq fntag
+		  (semantic-analyze-find-tag-sequence
+		   function localvar scope))
+	  (error nil))
 
-      ;; No function, try assignment
-      (let ((assign (semantic-ctxt-current-assignment))
-	    (asstag nil))
-	(if assign
-	    ;; We have an assignment
-	    (condition-case nil
-		(setq asstag (semantic-analyze-find-tag-sequence
-			      assign localvar scope))
-	      (error nil)))
+	(when fntag
+	  (setq fntagend (car (reverse fntag))
+		argtag
+		(when (semantic-tag-p fntagend)
+		  (nth (1- arg) (semantic-tag-function-arguments fntagend)))
+		)))
+
+      (if fntag
+	  ;; If we found a tag for our function, we can go into
+	  ;; functional context analysis mode, meaning we have a type
+	  ;; for the argument.
+	  (setq context-return
+		(semantic-analyze-context-functionarg
+		 "functionargument"
+		 :buffer (current-buffer)
+		 :function fntag
+		 :index arg
+		 :argument (list argtag)
+		 :scope scope
+		 :scopetypes scopetypes
+		 :localvariables localvar
+		 :prefix prefix
+		 :prefixclass prefixclass
+		 :bounds bounds
+		 :prefixtypes prefixtypes))
+
+	;; No function, try assignment
+	(let ((assign (semantic-ctxt-current-assignment))
+	      (asstag nil))
+	  (if assign
+	      ;; We have an assignment
+	      (condition-case nil
+		  (setq asstag (semantic-analyze-find-tag-sequence
+				assign localvar scope))
+		(error nil)))
 	  
-	(if asstag
+	  (if asstag
+	      (setq context-return
+		    (semantic-analyze-context-assignment
+		     "assignment"
+		     :buffer (current-buffer)
+		     :assignee asstag
+		     :scope scope
+		     :scopetypes scopetypes
+		     :localvariables localvar
+		     :bounds bounds
+		     :prefix prefix
+		     :prefixclass prefixclass
+		     :prefixtypes prefixtypes))
+	  
+	    ;; TODO: Identify return value condition.
+
+	    ;; Nothing in particular
 	    (setq context-return
-		  (semantic-analyze-context-assignment
-		   "assignment"
+		  (semantic-analyze-context
+		   "context"
 		   :buffer (current-buffer)
-		   :assignee asstag
 		   :scope scope
 		   :scopetypes scopetypes
 		   :localvariables localvar
 		   :bounds bounds
 		   :prefix prefix
 		   :prefixclass prefixclass
-		   :prefixtypes prefixtypes))
-	  
-	  ;; TODO: Identify return value condition.
+		   :prefixtypes prefixtypes)))))
 
-	  ;; Nothing in particular
-	  (setq context-return
-		(semantic-analyze-context
-		 "context"
-		 :buffer (current-buffer)
-		 :scope scope
-		 :scopetypes scopetypes
-		 :localvariables localvar
-		 :bounds bounds
-		 :prefix prefix
-		 :prefixclass prefixclass
-		 :prefixtypes prefixtypes)))))
-
-    ;; Return our context.
-    context-return))
+      ;; Return our context.
+      context-return)))
 
 
 ;;; Context Analysis Completion
