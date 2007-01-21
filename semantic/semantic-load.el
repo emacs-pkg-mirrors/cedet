@@ -1,9 +1,9 @@
 ;;; semantic-load.el --- Autoload definitions for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.51 2006/02/16 01:00:36 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.52 2007/01/21 18:11:10 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -65,21 +65,33 @@ Prevent this load system from loading files in twice.")
 This includes:
  `semantic-idle-scheduler-mode' - Keeps a buffer's parse tree up to date.
  `semanticdb-minor-mode' - Stores tags when a buffer is not in memory.
- `semanticdb-load-system-caches' - Loads any systemdbs created earlier."
+ `semanticdb-load-system-caches' - Loads any systemdbs created earlier.
+ `semanticdb-load-ebrowse-caches' - Loads any ebrowse dbs earlier."
   (interactive)
 
   (global-semantic-idle-scheduler-mode 1)
 
   (global-semanticdb-minor-mode 1)
 
-  ;; This loads any created system databases which get linked into
-  ;; any searches performed.
-  (when (and (null semantic-load-system-cache-loaded)
-	     (boundp 'semanticdb-default-system-save-directory)
-	     (stringp semanticdb-default-system-save-directory)
-	     (file-exists-p semanticdb-default-system-save-directory))
+  ;; Don't do the loads from semantic-load twice.
+  (when (null semantic-load-system-cache-loaded)
+
+    ;; This loads any created system databases which get linked into
+    ;; any searches performed.
     (setq semantic-load-system-cache-loaded t)
-    (semanticdb-load-system-caches))
+    (when (and (boundp 'semanticdb-default-system-save-directory)
+	       (stringp semanticdb-default-system-save-directory)
+	       (file-exists-p semanticdb-default-system-save-directory))
+      (semanticdb-load-system-caches))
+
+    ;; This loads any created ebrowse databases which get linked into
+    ;; any searches performed.
+    (when (and (not (featurep 'xemacs))
+	       (boundp 'semanticdb-default-system-save-directory)
+	       (stringp semanticdb-default-system-save-directory)
+	       (file-exists-p semanticdb-default-system-save-directory))
+      (semanticdb-load-ebrowse-caches))
+    )
   )
 
 (defun semantic-load-enable-code-helpers ()
