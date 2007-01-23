@@ -1,10 +1,10 @@
 ;;; semantic-format.el --- Routines for formatting tags
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.21 2006/05/19 10:21:20 ponced Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.22 2007/01/23 02:14:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -263,7 +263,14 @@ of FACE-CLASS for which this is used."
   (cond ((stringp anything)
 	 (semantic--format-colorize-text anything colorhint))
 	((semantic-tag-p anything)
-	 (semantic-format-tag-name anything parent color))
+	 (let ((ans (semantic-format-tag-name anything parent color)))
+	   ;; If ANS is empty string or nil, then the name wasn't
+	   ;; supplied.  The implication is as in C where there is a data
+	   ;; type but no name for a prototype from an include file, or
+	   ;; an argument just wasn't used in the body of the fcn.
+	   (if (or (null ans) (string= ans ""))
+	       (setq ans (semantic-format-tag-type anything color)))
+	   ans))
 	((and (listp anything)
 	      (stringp (car anything)))
 	 (semantic--format-colorize-text (car anything) colorhint))))
