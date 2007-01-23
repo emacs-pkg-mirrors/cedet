@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.6 2007/01/22 13:53:24 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.7 2007/01/23 02:18:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -446,7 +446,7 @@ return that."
   ((table semanticdb-table-ebrowse) name &optional tags)
   "Find all tags named NAME in TABLE.
 Return a list of tags."
-  (message "semanticdb-find-tags-by-name-method name -- %s" name)
+  ;;(message "semanticdb-find-tags-by-name-method name -- %s" name)
   (if tags
       ;; If TAGS are passed in, then we don't need to do work here.
       (call-next-method)
@@ -475,6 +475,9 @@ MEMBERFUNCTION indicates a function to use to extract a table from the
 ebrowse structure."
   (let*
         ( ;(etrees (oref table ebrowse-tree))
+	 ;; EML - This captures global variables for sure.  I don't know
+	 ;; what is in the file specific version.  It looks kind of the same,
+	 ;; but not.. Hmmm.
           (etrees (list (oref table global-extract)))
           (result nil)
           (filename (oref table file))
