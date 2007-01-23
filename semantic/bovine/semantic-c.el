@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.43 2006/02/17 04:35:12 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.44 2007/01/23 03:44:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,6 +29,7 @@
 ;; 
 
 (require 'semantic)
+(require 'semantic-lex-spp)
 (require 'semantic-c-by)
 (require 'backquote)
 
@@ -40,48 +41,61 @@
   (require 'senator)
   (require 'cc-mode))
 
-;;; Code:
 (defcustom semantic-lex-c-preprocessor-symbol-map nil
   "Table of C Preprocessor keywords used by the Semantic C lexer."
   :group 'c
   :type '(repeat (cons (string :tag "Keyword")
-		       (symbol :tag "Replacement"))))
+		       (string :tag "Replacement")))
+  )
 
-(defvar semantic-lex-c-preprocessor-dynamic-symbol-map nil
-  "Table of C preprocessor keywords calculated by the Semantic lexer.
-Note: Not currently used.")
-(make-variable-buffer-local 'semantic-lex-c-preprocessor-dynamic-symbol-map)
-
-(defun semantic-lex-c-preprocessor-p (str)
-  "Return a lexical token symbol if STR is a preprocessor symbol.
-Return nil if it is not."
-  (assoc str semantic-lex-c-preprocessor-symbol-map))
-
-;; NOTE: Not in use at the moment.
-(define-lex-regex-analyzer semantic-lex-c-define
+;;; Code:
+(define-lex-spp-macro-declaration-analyzer semantic-lex-cpp-define
   "A #define of a symbol with some value.
-Record the symbol in `semantic-lex-c-preprocessor-dynamic-symbol-map'
-but return the punctuation token for the # to allow the parser
-to turn this into a VARIABLE style declaration."
-  "^\\s-*\\(#\\)define\\s-+\\(\\(\\sw\\|\\s_\\)+\\)"
-  (let ((symbol (buffer-substring-no-properties
-		 (match-beginning 2) (match-end 2)))
-	(pstart (match-beginning 1))
-	(pend (match-end 1))
-	(pstr (match-string 1)))
-    (add-to-list 'semantic-lex-c-preprocessor-dynamic-symbol-map
-		 symbol)
-    (semantic-lex-push-token
-     (semantic-lex-token 'punctuation pstart pend))))
+Record the symbol in the semantic preprocessor.
+Return the the defined symbol as a special spp lex token."
+  "^\\s-*#define\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1
+  (goto-char (match-end 0))
+  (skip-chars-forward " \t")
+  (if (eolp)
+      nil
+    (buffer-substring-no-properties (point)
+				    (progn
+				      ;; NOTE: THIS SHOULD BE
+				      ;; END OF MACRO!!!
+				      (forward-word 1)
+				      (point)))))
 
+(define-lex-spp-macro-undeclaration-analyzer semantic-lex-cpp-undef
+  "A #undef of a symbol.
+Remove the symbol from the semantic preprocessor.
+Return the the defined symbol as a special spp lex token."
+  "^\\s-*#undef\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1)
 
-(define-lex-regex-analyzer semantic-lex-c-if-0
-  "Block out code matched in an #if 0 condition."
-  "^\\s-*#if\\s-*0$"
-  (beginning-of-line)
-  (c-forward-conditional 1)
-  (setq semantic-lex-end-point (point))
-  nil)
+(define-lex-regex-analyzer semantic-lex-c-if
+  "Code blocks wrapped up in #if, or #ifdef.
+Uses known macro tables in SPP to determine what block to skip."
+  "^\\s-*#\\(if\\|ifndef\\|ifdef\\)\\s-+\\(\\(\\sw\\|\\s_\\)+\\)\\s-*$"
+  (let ((sym (buffer-substring-no-properties 
+	      (match-beginning 2) (match-end 2)))
+	(ift (buffer-substring-no-properties 
+	      (match-beginning 1) (match-end 1))))
+    (if (or (and (string= ift "if") (string= sym "0"))
+	    (and (string= ift "ifdef")
+		 (not (semantic-lex-spp-symbol-p sym)))
+	    (and (string= ift "ifndef")
+		 (semantic-lex-spp-symbol-p sym)))
+	;; The if indecates to skip this preprocessor section
+	(progn
+	  (message "%s %s yes" ift sym)
+	  (beginning-of-line)
+	  (c-forward-conditional 1)
+	  (setq semantic-lex-end-point (point))
+	  nil)
+      ;; Else, don't ignore it, but do handle the internals.
+      ;;(message "%s %s no" ift sym)
+      (end-of-line)
+      (setq semantic-lex-end-point (point))
+      nil)))
 
 ;;; Compatibility
 ;;
@@ -101,8 +115,9 @@ This function does not do any hidden buffer changes."
                (forward-char)
                t))))
   )
+;;-------
 
-(define-lex-regex-analyzer semantic-lex-c-if
+(define-lex-regex-analyzer semantic-lex-c-macrobits
   "Ignore various forms of #if/#else/#endif conditionals."
   "^#\\(if\\(def\\)?\\|el\\(if\\|se\\)\\|endif\\)"
   (semantic-c-end-of-macro)
@@ -147,36 +162,22 @@ Go to the next line."
 	(point))
       ))))
 
-(define-lex-regex-analyzer semantic-lex-c-preprocessor-replace-or-symbol-or-keyword
-  "Detect and create symbol and keyword tokens.
-This works as `semantic-lex-symbol-or-keyword'.  If the target
-keyword "
-  "\\(\\sw\\|\\s_\\)+"
-  (let ((str (match-string 0))
-	(beg (match-beginning 0))
-	(end (match-end 0)))
-    (if (semantic-lex-c-preprocessor-p str)
-	(setq semantic-lex-end-point end)
-      (semantic-lex-push-token
-       (semantic-lex-token (or (semantic-lex-keyword-p str) 'symbol)
-			   beg end)))))
-
-
 (define-lex semantic-c-lexer
   "Lexical Analyzer for C code."
   semantic-lex-ignore-whitespace
   semantic-lex-ignore-newline
-  ;; Use this when I have more time to solve dymamic
-  ;; symbols added to the preprocessor list.
-  ;; semantic-lex-c-define
-  semantic-lex-c-if-0
+  ;; C preprocessor features
+  semantic-lex-cpp-define
+  semantic-lex-cpp-undef
   semantic-lex-c-if
+  semantic-lex-c-macrobits
   semantic-lex-c-include-system
   semantic-lex-c-ignore-ending-backslash
+  ;; Non-preprocessor features
   semantic-lex-number
   ;; Must detect C strings before symbols because of possible L prefix!
   semantic-lex-c-string
-  semantic-lex-c-preprocessor-replace-or-symbol-or-keyword
+  semantic-lex-spp-replace-or-symbol-or-keyword
   semantic-lex-charquote
   semantic-lex-paren-or-list
   semantic-lex-close-paren
@@ -380,19 +381,22 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 
 ;;; Override methods & Variables
 ;;
-(defcustom semantic-default-c-path '("/usr/include" "/usr/dt/include"
-					 "/usr/X11R6/include")
+(defvar-mode-local c-mode semantic-dependency-system-include-path
+  '("/usr/include" "/usr/dt/include" "/usr/X11R6/include")
+  "System path to search for include files.")
+
+(defcustom semantic-default-c-path nil
   "Default set of include paths for C code.
-Used by `semantic-inc' to define an include path.  This should
-probably do some sort of search to see what is actually on the local
-machine."
+Used by `semantic-dep' to define an include path.
+NOTE: In process of obsoleting this."
   :group 'c
   :group 'semantic
   :type '(repeat (string :tag "Path")))
 
-(defvar-mode-local c-mode semantic-dependency-include-path 
+(defvar-mode-local c-mode semantic-dependency-include-path
   semantic-default-c-path
   "System path to search for include files.")
+
 
 (define-mode-local-override semantic-format-tag-name
   c-mode (tag &optional parent color)
@@ -651,7 +655,11 @@ DO NOT return the list of tags encompassing point."
                                             )
         )
   
-  (setq semantic-lex-analyzer #'semantic-c-lexer))
+  (setq semantic-lex-analyzer #'semantic-c-lexer)
+  (setq semantic-lex-spp-macro-symbol-obarray
+	(semantic-lex-make-spp-table semantic-lex-c-preprocessor-symbol-map))
+  (add-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook nil t)
+  )
 
 ;;;###autoload
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
