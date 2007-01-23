@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.4 2007/01/23 03:19:58 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.5 2007/01/23 03:36:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,6 +29,11 @@
 ;; A pre-processor identifies lexical syntax mixed in with another language
 ;; and replaces some keyword tokens with streams of alternate tokens.
 ;; 
+;; If you use SPP in your language, be sure to specify this in your
+;; semantic language setup function:
+;;
+;; (add-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook nil t)
+
 
 (require 'semantic-lex)
 
@@ -135,6 +140,14 @@ The value of each symbol is the replacement stream."
 This should be done before any new parsing step."
   (setq semantic-lex-spp-dynamic-macro-symbol-obarray nil))
 
+(defun semantic-lex-spp-reset-hook (start end)
+  "Reset anything needed by SPP for parsing.
+In this case, reset the dynamic macro symbol table if
+START recons the entire buffer.
+END is not used."
+  (if (= start (point-min))
+      (setq semantic-lex-spp-dynamic-macro-symbol-obarray nil)))
+
 ;;; MACRO EXPANSION PARSING
 ;;
 (defun semantic-lex-spp-string-to-macro-stream (val beg end)
@@ -167,12 +180,14 @@ If BUFFER is not provided, use the current buffer."
 		(semantic-lex-spp-macros)))
 	(sym nil))
     (with-output-to-temp-buffer "*SPP MACROS*"
-      (princ "Macro\tValue\n")
+      (princ "Macro\t\tValue\n")
       (while syms
 	(setq sym (car syms)
 	      syms (cdr syms))
 	(princ (symbol-name sym))
 	(princ "\t")
+	(if (< (length (symbol-name sym)) 8)
+	    (princ "\t"))
 	(prin1 (symbol-value sym))
 	(princ "\n")
 	))))
