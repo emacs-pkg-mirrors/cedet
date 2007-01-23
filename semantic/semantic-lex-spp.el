@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.3 2007/01/12 12:26:08 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.4 2007/01/23 03:19:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -129,6 +129,11 @@ The value of each symbol is the replacement stream."
 	   (setq macros (cons symbol macros)))
        semantic-lex-spp-dynamic-macro-symbol-obarray))
     macros))
+
+(defun semantic-lex-spp-reset-dynamic-table ()
+  "Reset the dynamic spp symbol table.
+This should be done before any new parsing step."
+  (setq semantic-lex-spp-dynamic-macro-symbol-obarray nil))
 
 ;;; MACRO EXPANSION PARSING
 ;;
