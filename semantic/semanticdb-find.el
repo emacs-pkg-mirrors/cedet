@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.31 2007/01/21 18:08:53 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.32 2007/01/23 01:57:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -274,7 +274,10 @@ Default action as described in `semanticdb-find-translate-path'."
 	    (let ((newtags
 		   (cond
 		    ((semanticdb-table-p nexttable)
-		     (semanticdb-find-tags-by-class 'include nexttable))
+		     ;; Use the method directly, or we will recurse
+		     ;; into ourselves here.
+		     (semanticdb-find-tags-by-class-method
+		      nexttable 'include))
 		    (t
 		     (semantic-find-tags-included
 		      (semanticdb-get-tags nexttable))))))
