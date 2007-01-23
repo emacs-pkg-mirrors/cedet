@@ -1,13 +1,13 @@
 ;;; c.by -- LL grammar for C/C++ language specification
 ;;
-;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 ;; Copyright (C) 2002, 2003 David Ponce
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.29 2005/10/23 01:29:29 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.30 2007/01/23 03:45:32 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -173,6 +173,8 @@
 %put FLOAT summary "Primitive floating-point type (single-precision 32-bit IEEE 754)"
 %token DOUBLE "double"
 %put DOUBLE summary "Primitive floating-point type (double-precision 64-bit IEEE 754)"
+%token BOOL "bool"
+%put BOOL summary "Primitive boolean type"
 
 %token UNDERP "_P"
 %token UNDERUNDERP "__P"
@@ -243,14 +245,14 @@ macro-def
   ;
 
 macro
-  : HASH macro-or-include
+  : spp-macro-def opt-define-arglist macro-def
+    (VARIABLE-TAG $1 nil $3 :constant-flag t )
+  | HASH macro-or-include
     ( ,$2 )
   ;
 
 macro-or-include
-  : DEFINE symbol opt-define-arglist macro-def
-    (VARIABLE-TAG $2 nil $4 :constant-flag t )
-  | INCLUDE system-include
+  : INCLUDE system-include
     (INCLUDE-TAG (substring $2 1 (1- (length $2))) t)
   | INCLUDE string
     (INCLUDE-TAG (read $2) nil )
@@ -264,9 +266,9 @@ opt-define-arglist
 
 ;; This is used in struct parts.
 define
-  : HASH DEFINE symbol opt-define-arglist macro-def
-    (VARIABLE-TAG $3 nil $4 :constant-flag t)
-  | HASH UNDEFINE symbol
+  : spp-macro-def opt-define-arglist macro-def
+    (VARIABLE-TAG $1 nil $2 :constant-flag t)
+  | spp-macro-undef
     ( nil )
   ;
 
@@ -693,6 +695,7 @@ builtintype-types
     ( (concat $1 " " $2) )
   | FLOAT
   | DOUBLE
+  | BOOL
   | LONG DOUBLE
     ( (concat $1 " " $2) )
  ;; TODO: Klaus Berndl: Is there a long long, i think so?!
