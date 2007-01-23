@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.41 2007/01/12 12:24:25 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.42 2007/01/23 03:37:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -559,6 +559,11 @@ This is an alist of (ANCHOR . STREAM) elements where ANCHOR is the
 start position of the block, and STREAM is the list of tokens in that
 block.")
 
+(defvar semantic-lex-reset-hooks nil
+  "List of hooks major-modes use to reset lexical analyzers.
+Hooks are called with START and END values for the current lexical pass.
+Should be set with `add-hook'specifying a LOCAL option.")
+
 ;; Stack of nested blocks.
 (defvar semantic-lex-block-stack nil)
 
@@ -577,7 +582,11 @@ example, it is good to put a numbe analyzer in front of a symbol
 analyzer which might mistake a number for as a symbol."
   `(defun ,name  (start end &optional depth length)
      ,(concat doc "\nSee `semantic-lex' for more information.")
+     ;; Make sure the state of block parsing starts over.
      (setq semantic-lex-block-streams nil)
+     ;; Allow specialty reset items.
+     (run-hook-with-args 'semantic-lex-reset-hooks start end)
+     ;; Lexing state.
      (let* ((starting-position (point))
             (semantic-lex-token-stream nil)
             (semantic-lex-block-stack nil)
