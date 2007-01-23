@@ -1,12 +1,12 @@
 ;;; semantic-wisent.el --- Wisent - Semantic gateway
 
-;; Copyright (C) 2001, 2002, 2004 David Ponce
+;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-wisent.el,v 1.3 2005/09/30 20:22:48 zappo Exp $
+;; X-RCS: $Id: semantic-wisent.el,v 1.4 2007/01/23 15:41:09 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -220,10 +220,21 @@ the standard function `semantic-parse-stream'."
     ;; Parse
     (setq wisent-lex-istream stream
           cache (semantic-safe "wisent-parse-stream: %s"
-                    (wisent-parse semantic--parse-table
-                                  wisent-lexer-function
-                                  wisent-error-function
-                                  goal)))
+                  (condition-case error-to-filter
+                      (wisent-parse semantic--parse-table
+                                    wisent-lexer-function
+                                    wisent-error-function
+                                    goal)
+                    (args-out-of-range
+                     (if (and (not debug-on-error)
+                              (= wisent-parse-max-stack-size
+                                 (nth 2 error-to-filter)))
+                         (progn
+                           (message "wisent-parse-stream: %s"
+                                    (error-message-string error-to-filter))
+                           (message "wisent-parse-max-stack-size \
+might need to be increased"))
+                       (apply 'signal error-to-filter))))))
     ;; Manage returned lookahead token
     (if wisent-lookahead
         (if (eq (caar la-elt) wisent-lookahead)
