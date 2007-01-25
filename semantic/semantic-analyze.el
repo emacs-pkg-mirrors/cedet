@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.45 2007/01/25 03:19:01 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.46 2007/01/25 19:48:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -384,8 +384,14 @@ it should strip out those not accessable by methods of TYPE."
 	(when oneparent
 	  ;; Get tags from this parent.
 	  (let* ((alltags (semantic-analyze-type-parts oneparent))
-		 (accessabletags (semantic-find-tags-by-scope-protection
-				  'public oneparent alltags)))
+		 (accessabletags (append
+				  ;; @todo: Is there a better way to ask
+				  ;;        this question than two full
+				  ;;        searches?
+				  (semantic-find-tags-by-scope-protection
+				   'public oneparent alltags)
+				  (semantic-find-tags-by-scope-protection
+				   'protected oneparent alltags))))
 	    (setq ret (append ret accessabletags)))
 	  ;; is this right?
 	  (setq ret (append ret (semantic-analyze-inherited-tags
