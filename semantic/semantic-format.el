@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.22 2007/01/23 02:14:23 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.23 2007/01/25 03:31:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -437,7 +437,9 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
                    (semantic--format-tag-arguments
                     (if (eq class 'function)
                         (semantic-tag-function-arguments tag)
-                      (semantic-tag-type-members tag))
+		      (list "")
+                      ;;(semantic-tag-type-members tag)
+		      )
                     #'semantic-format-tag-prototype
                     color)))
 	 (const (semantic-tag-get-attribute tag :constant-flag))
