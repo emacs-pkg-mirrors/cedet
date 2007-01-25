@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.44 2007/01/23 03:44:11 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.45 2007/01/25 03:19:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -586,6 +586,13 @@ These are constants which are of type TYPE."
   (if (and (eq (semantic-tag-class type) 'type)
 	   (string= (semantic-tag-type type) "enum"))
       (semantic-tag-type-members type)))
+
+(define-mode-local-override semantic-analyze-split-name c-mode (name)
+  "Split up tag names on color (:) boundaries."
+  (let ((ans (split-string name ":" t)))
+    (if (= (length ans) 1)
+	name
+      ans)))      
 
 (define-mode-local-override semantic-ctxt-scoped-types c-mode (&optional point)
   "Return a list of tags of CLASS type based on POINT.
