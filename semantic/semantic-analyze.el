@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.44 2007/01/21 18:06:21 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.45 2007/01/25 03:19:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,6 +111,17 @@ Almost all searches use the same arguments."
      (t nil))
     ))
 
+(define-overload semantic-analyze-split-name (name)
+  "Split a tag NAME into a sequence.
+Sometimes NAMES are gathered from the parser that are compounded,
+such as in C++ where foo::bar means:
+  \"The class BAR in the namespace FOO.\"
+Return the string NAME for no change, or a list if it needs to be split.")
+
+(defun semantic-analyze-split-name-default (name)
+  "Don't split up NAME by default."
+  name)
+
 (defun semantic-analyze-find-tag (name &optional tagclass scope)
   "Return the first tag found with NAME or nil if not found.
 Optional argument TAGCLASS specifies the class of tag to return, such
@@ -119,31 +130,47 @@ Optional argument SCOPE specifies additional type tags which are in
 SCOPE and do not need prefixing to find.
 This is a wrapper on top of semanticdb, and semantic search functions.
 Almost all searches use the same arguments."
-  (let ((retlist
-         (or (and scope (semantic-find-tags-by-name name scope))
-             (if (and (fboundp 'semanticdb-minor-mode-p)
-                      (semanticdb-minor-mode-p))
-                 ;; Search the database
-                 (semanticdb-strip-find-results
-                  (semanticdb-find-tags-by-name name)
-		  ;; This T means to find files for matching symbols
-		  t)
-               ;; Search just this file
-               (semantic-find-tags-by-name
-                name (current-buffer)))))
-	proto
-        ret)
-    (if tagclass
-        ;; Scan only for tags of a given class.
-        (while (and retlist (not ret))
-          (if (semantic-tag-of-class-p (car retlist) tagclass)
-	      (if (semantic-analyze-tag-prototype-p (car retlist))
-		  (setq proto (car retlist))
-		(setq ret (car retlist))))
-	  (setq retlist (cdr retlist)))
-      ;; Just get the first tag found.
-      (setq ret (car retlist)))
-    (or ret proto)))
+  (let ((namelst (semantic-analyze-split-name name)))
+    (cond
+     ;; If the splitter gives us a list, use the sequence finder
+     ;; to get the list.  Since this routine is expected to return
+     ;; only one tag, return the LAST tag found from the sequence
+     ;; which is supposedly the nexted reference.
+     ;;
+     ;; Of note, the SEQUENCE function below calls this function
+     ;; (recursively now) so the names that we get from the above
+     ;; fcn better not, in turn, be splittable.
+     ((listp namelst)
+      (let ((seq (semantic-analyze-find-tag-sequence
+		  namelst nil scope)))
+	(car (nreverse seq))))
+     ;; If NAME is solo, then do our searches for it here.
+     ((stringp namelst)
+      (let ((retlist
+	     (or (and scope (semantic-find-tags-by-name name scope))
+		 (if (and (fboundp 'semanticdb-minor-mode-p)
+			  (semanticdb-minor-mode-p))
+		     ;; Search the database
+		     (semanticdb-strip-find-results
+		      (semanticdb-find-tags-by-name name)
+		      ;; This T means to find files for matching symbols
+		      t)
+		   ;; Search just this file
+		   (semantic-find-tags-by-name
+		    name (current-buffer)))))
+	    proto
+	    ret)
+	(if tagclass
+	    ;; Scan only for tags of a given class.
+	    (while (and retlist (not ret))
+	      (if (semantic-tag-of-class-p (car retlist) tagclass)
+		  (if (semantic-analyze-tag-prototype-p (car retlist))
+		      (setq proto (car retlist))
+		    (setq ret (car retlist))))
+	      (setq retlist (cdr retlist)))
+	  ;; Just get the first tag found.
+	  (setq ret (car retlist)))
+	(or ret proto))))))
 
 ;;; Finding Datatypes
 ;;
@@ -288,7 +315,13 @@ will be stored.  If nil, that data is thrown away."
       ;; representing the full typeographic information of its
       ;; type, and use that to determine the search context for
       ;; (car s)
-      (let ((tmptype (semantic-analyze-tag-type tmp))
+      (let ((tmptype
+	     ;; In some cases the found TMP is a type,
+	     ;; and we can use it directly.
+	     (cond ((eq (semantic-tag-class tmp) 'type)
+		    tmp)
+		   (t
+		    (semantic-analyze-tag-type tmp))))
 	    (slots nil))
 	
 	;; Get the children
