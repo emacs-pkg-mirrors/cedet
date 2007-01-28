@@ -1,59 +1,27 @@
 /* Special test file for Semantic Analyzer and complex C++ inheritance.
  */
 
+#include <iostream>
 #include "testsubclass.hh"
-
-// The below should test inclusion of lexical macro symbols
-// but since it doesn't work, I've reversed it for purposes
-// of testing other things.
-
-#define TESTSUBCLASS_HH
-#ifndef TESTSUBCLASS_HH
-
-namespace animal {
-
-  class moose {
-  public:
-    moose() : fFeet(0)
-    { }
-
-    void setFeet(int);
-    int getFeet();
-
-  private:
-    int fFeet; // Usually 2 or 4.
-  };
-
-} // moose
-
-
-namespace deer {
-
-  class moose : public animal::moose {
-  public:
-    moose() : fAntlers(false)
-    { }
-
-    void setAntlers(bool);
-    bool getAntlers();
-
-  private:
-    bool fAntlers;
-
-  };
-
-} // dear
-
-#endif
 
 void animal::moose::setFeet(int numfeet)
 {
+  if (numfeet > 4) {
+    std::cerr << "Why would a moose have more than 4 feet?" << std::endl;
+    return;
+  }
+
   fFeet = numfeet;
 }
 
 int animal::moose::getFeet()
 {
   return fFeet;
+}
+
+void animal::moose::doNothing()
+{
+  fFeet = 3;
 }
 
 
@@ -67,7 +35,40 @@ bool deer::moose::getAntlers()
   return fAntlers;
 }
 
+void deer::moose::doSomething()
+{
+  // All these functions should be identified by semantic analyzer.
+  getAntlers();
+  setAntlers(true);
 
+  getFeet();
+  setFeet(true);
 
+  doNothing();
+
+  fSomeField = true;
+
+  fIsValid = true;
+}
+
+void deer::alces::setLatin(bool l) {
+  fLatin = l;
+}
+
+bool deer::alces::getLatin() {
+  return fLatin;
+}
+
+void deer::alces::doLatinStuff() {
+  // All these functions should be identified by semantic analyzer.
+  getFeet();
+  setFeet(true);
+
+  getLatin();
+  setLatin(true);
+
+  doNothing();
+
+}
 
 

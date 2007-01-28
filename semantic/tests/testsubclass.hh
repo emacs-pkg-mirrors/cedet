@@ -13,11 +13,18 @@ namespace animal {
 
   class moose {
   public:
-    moose() : fFeet(0)
+    moose() : fFeet(0),
+	      fIsValid(false)
     { }
 
     void setFeet(int);
     int getFeet();
+
+    void doNothing();
+
+  protected:
+
+    bool fIsValid;
 
   private:
     int fFeet; // Usually 2 or 4.
@@ -36,6 +43,12 @@ namespace deer {
     void setAntlers(bool);
     bool getAntlers();
 
+    void doSomething();
+
+  protected:
+
+    bool fSomeField;
+
   private:
     bool fAntlers;
 
@@ -43,4 +56,23 @@ namespace deer {
 
 } // deer
 
+// A second namespace of the same name will test the
+// namespace merging needed to resolve deer::alces
+namespace deer {
+
+  class alces : public animal::moose {
+  public:
+    alces() : fLatin(true)
+    { }
+
+    void setLatin(bool);
+    bool getLatin();
+
+    void doLatinStuff();
+
+  private:
+    bool fLatin;
+  };
+
+};
 #endif
