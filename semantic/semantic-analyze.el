@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.46 2007/01/25 19:48:05 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.47 2007/01/28 02:39:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -122,6 +122,31 @@ Return the string NAME for no change, or a list if it needs to be split.")
   "Don't split up NAME by default."
   name)
 
+(defun semantic-analyze-merge-namespaces (spaces)
+  "Merge all the namespaces SPACES into a single super-tag.
+TODO: consider some higher level fine routine to do this."
+  (if (not (string= (semantic-tag-type (car spaces))
+		    "namespace"))
+      (signal 'wrong-type-argument (list (car spaces) "namespace")))
+  (let ((first (car spaces))
+	(members nil))
+    (while spaces
+      (if (string= (semantic-tag-type (car spaces)) "namespace")
+	  (setq members (append members
+				(semantic-tag-type-members (car spaces))))
+	;; Else ... how did we get here?
+	(message "Non namespace?? : %s"
+		 (semantic-format-tag-summarize (car spaces))))
+      (setq spaces (cdr spaces)))
+
+    ;; Create the new tag.
+    (let ((nt (semantic-tag-new-type (semantic-tag-name first)
+				     (semantic-tag-type first)
+				     members
+				     nil)))
+      (semantic-tag-set-faux nt)
+      nt)))
+
 (defun semantic-analyze-find-tag (name &optional tagclass scope)
   "Return the first tag found with NAME or nil if not found.
 Optional argument TAGCLASS specifies the class of tag to return, such
@@ -159,18 +184,37 @@ Almost all searches use the same arguments."
 		   (semantic-find-tags-by-name
 		    name (current-buffer)))))
 	    proto
-	    ret)
+	    ret
+	    namespacecollector)
 	(if tagclass
 	    ;; Scan only for tags of a given class.
 	    (while (and retlist (not ret))
 	      (if (semantic-tag-of-class-p (car retlist) tagclass)
 		  (if (semantic-analyze-tag-prototype-p (car retlist))
 		      (setq proto (car retlist))
-		    (setq ret (car retlist))))
+		    (if (and (eq (semantic-tag-class (car retlist)) 'type)
+			     (string= (semantic-tag-type (car retlist))
+				      "namespace"))
+			;; Collect all namespaces together
+			(setq namespacecollector (cons (car retlist)
+						       namespacecollector))
+		      ;; Not a namespace... just that name is fine.
+		      (setq ret (car retlist)))))
 	      (setq retlist (cdr retlist)))
-	  ;; Just get the first tag found.
-	  (setq ret (car retlist)))
-	(or ret proto))))))
+	  ;; Check the first tag found, possibly returning just that.
+	  (if (and (eq (semantic-tag-class (car retlist)) 'type)
+		   (string= (semantic-tag-type (car retlist))
+			    "namespace"))
+	      (setq namespacecollector retlist)
+	    (setq ret (car retlist)))
+	  )
+	(cond
+	 (namespacecollector
+	  ;; We have a collection of namespaces.  Merge them.!
+	  (semantic-analyze-merge-namespaces namespacecollector)
+	  )
+	 (t
+	  (or ret proto))))))))
 
 ;;; Finding Datatypes
 ;;
@@ -302,7 +346,7 @@ will be stored.  If nil, that data is thrown away."
 	       ))
 
     (if (and (listp tmp) (semantic-tag-p (car tmp)))
-	;; We should be smarter... :(
+ 	;; We should be smarter... :(
 	(setq tmp (car tmp)))
     (if (not (semantic-tag-p tmp))
 	(error "Cannot find definition for \"%s\"" (car s)))
