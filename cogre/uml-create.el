@@ -1,10 +1,10 @@
  ;;; cogre-uml.el --- UML support for COGRE
 
-;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2004, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.11 2005/09/30 20:07:04 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.12 2007/02/03 02:48:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -150,16 +150,19 @@ Optional argument FIELDS are not used."
 (defmethod cogre-uml-stoken->uml ((class cogre-semantic-class) stoken &optional text)
   "For CLASS convert a Semantic token STOKEN into a uml definition.
 Optional TEXT property is passed down."
-  (call-next-method class stoken
-		    (save-excursion
-		      (let ((tb (or (semantic-tag-buffer stoken)
-				    (semantic-tag-buffer (oref class class)))))
-			(if tb (set-buffer tb))
-			(funcall cogre-token->uml-function
-				 stoken
-				 (oref class class)
-				 t))))
-  )
+  ;; We need to disable images because our diagram is still
+  ;; pretty unstable.
+  (let ((semantic-format-use-images-flag nil))
+    (call-next-method class stoken
+		      (save-excursion
+			(let ((tb (or (semantic-tag-buffer stoken)
+				      (semantic-tag-buffer (oref class class)))))
+			  (if tb (set-buffer tb))
+			  (funcall cogre-token->uml-function
+				   stoken
+				   (oref class class)
+				   t))))
+    ))
 
 (defmethod cogre-entered ((class cogre-semantic-class) start end)
   "Method called when the cursor enters CLASS.
