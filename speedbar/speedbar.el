@@ -1,10 +1,10 @@
 ;;; speedbar --- quick access to files and tags in a frame
 
-;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02, 03, 04, 05 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02, 03, 04, 05, 06, 07 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.251 2005/12/07 16:54:26 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.252 2007/02/03 02:21:09 zappo Exp $
 
 (defvar speedbar-version "1.0.1"
   "The current version of speedbar.")
@@ -3097,8 +3097,16 @@ directory, then it is the directory name."
 	(if f
 	    (let* ((depth (string-to-int (match-string 1)))
 		   (directory (speedbar-line-directory depth)))
-	      (if (file-exists-p (concat directory f))
-		  (concat directory f)
+	      (cond ((and (file-directory-p directory)
+			  (file-exists-p (concat directory f)))
+		     ;; if directory is a directory, and adding
+		     ;; f to it makes it a file.
+		     (concat directory f))
+		    ((and (not (file-directory-p directory))
+			  (file-exists-p directory))
+		     ;; if directory isn't a directory, but it
+		     ;; does exist, then it is our file.
+		     directory)
 		nil))
 	  nil)))))
 
