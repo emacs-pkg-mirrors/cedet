@@ -287,6 +287,20 @@ equivalent.
 @var{type} can be a string, or a tag of class @code{'type}.
 @end defun
 
+@defun semantic-tag-type-compound-p tag
+@anchor{semantic-tag-type-compound-p}
+Return non-@code{nil} the type of @var{tag} is compound.
+Compound implies a structure or similar data type.
+Returns the list of tag members if it is compound.
+@end defun
+
+@defun semantic-tag-faux-p tag
+@anchor{semantic-tag-faux-p}
+Return non-@code{nil} if @var{tag} is a @var{faux} tag.
+@var{faux} tags are created to represent a construct that is
+not known to exist in the code.
+@end defun
+
 @defun semantic-tag-include-filename tag
 Return a filename representation of @var{tag}.
 The default action is to return the @dfn{semantic-tag-name}.
