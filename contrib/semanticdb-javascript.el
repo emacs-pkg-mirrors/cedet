@@ -5,7 +5,7 @@
 
 ;; Author: Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-javascript.el,v 1.1 2007/02/03 13:07:56 zappo Exp $
+;; X-RCS: $Id: semanticdb-javascript.el,v 1.2 2007/02/03 13:11:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -26,9 +26,11 @@
 ;; 
 ;;; Commentary:
 ;;
-;; If you want to make an omniscient semanticdb database, start with
-;; this skeleton.  Replace `javascript' with your language.  Implement those
-;; areas described by comments.
+;; Semanticdb database for Javascript.
+;;
+;; This is an omniscient database with a hard-coded list of symbols for
+;; Javascript.  See the doc at the end of this file for adding or modifying
+;; the list of tags.
 ;;
 
 (require 'semanticdb-search)
