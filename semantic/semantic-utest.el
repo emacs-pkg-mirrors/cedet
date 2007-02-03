@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.1 2007/01/24 03:32:37 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.2 2007/02/03 03:05:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -151,7 +151,7 @@ int calc_sv(int);
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Data for Python tests
 
-(setq semantic-utest-Python-buffer-contents
+(defvar semantic-utest-Python-buffer-contents
 "
 def fun1(a,b,c):
   return a
