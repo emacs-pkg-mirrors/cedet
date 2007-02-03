@@ -3,16 +3,19 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.20 2005/09/30 20:52:37 zappo Exp $
+ * $Id: test.cpp,v 1.21 2007/02/03 03:07:20 zappo Exp $
  *
  */
 
 /* An include test */
+#include <cmath>
+
 #include "c++-test.hh"
 
 #include <c++-test.hh>
 
 #include <stdio.h>
+
 double var1 = 1.2;
 
 int simple1(int a) {
@@ -108,15 +111,18 @@ int class3::method_for_class3(int a, char b)
 int class3::method1_for_class3( int a, int &b)
 {
   int cvariablename;
-  class3 fooy;
+  class3 fooy[];
 
   // Complktion testing line should find external members.
-  a = fooy.me
-  b = c
+  a = fooy[1].me ;
+  b = cv ;
 
   if (fooy.emb) {
-    simple1(c)
+    simple1(c);
   }
+
+  cos(10);
+  abs(10);
 
   return 1;
 }
@@ -194,7 +200,7 @@ namespace namespace1 {
   /* This shouldn't parse due to missing semicolon. */
   class _n_class2 : public n_class1 {
     void n_c2_method1(int a, int b) { }
-  }
+  };
 
   // Macros in the namespace
 #define NSMACRO 1
@@ -219,10 +225,17 @@ void tinitializers1(): inita1(False),
 }
 
 /* How about Extern C type things. */
+int funny_prototype(int ,int b,float c)
+{
+
+}
 
 extern "C"
 int extern_c_1(int a, int b)
 {
+
+  funny_prototype(1,2,3.4);
+
   return 1;
 }
 
