@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.77 2007/01/21 18:08:08 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.78 2007/02/05 21:28:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -209,7 +209,7 @@ If the buffer is not in memory, load it with `find-file-noselect'."
 If OBJ's file is not loaded, read it in first."
   (set-buffer (semanticdb-get-buffer obj)))
 
-(defmethod semanticdb-normalize-tag ((obj semanticdb-table) tag)
+(defmethod semanticdb-normalize-tag ((obj semanticdb-abstract-table) tag)
   "Convert a tag, originating from the table OBJ, into standardized form.
 The default is to return TAG.
 Some databases may default to searching and providing simplified tags
