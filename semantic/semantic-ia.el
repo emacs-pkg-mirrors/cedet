@@ -1,10 +1,10 @@
 ;;; semantic-ia.el --- Interactive Analysis functions
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.12 2006/02/08 02:32:38 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.13 2007/02/06 01:22:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -67,6 +67,11 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	 (syms (semantic-ia-get-completions a point))
 	 (pre (car (reverse (oref a prefix))))
 	 )
+    ;; If PRE was actually an already completed symbol, it doesn't
+    ;; come in as a string, but as a tag instead.
+    (if (semantic-tag-p pre)
+	;; We will try completions on it anyway.
+	(setq pre (semantic-tag-name pre)))
     ;; Complete this symbol.
     (if (null syms)
 	(progn
