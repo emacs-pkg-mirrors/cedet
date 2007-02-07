@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.252 2007/02/03 02:21:09 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.253 2007/02/07 18:05:48 zappo Exp $
 
 (defvar speedbar-version "1.0.1"
   "The current version of speedbar.")
@@ -3107,7 +3107,7 @@ directory, then it is the directory name."
 		     ;; if directory isn't a directory, but it
 		     ;; does exist, then it is our file.
 		     directory)
-		nil))
+		    (t nil)))
 	  nil)))))
 
 (defun speedbar-goto-this-file (file)
