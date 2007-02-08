@@ -1,11 +1,11 @@
 ;;; project-am.el --- A project management scheme based on automake files.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2003, 2005  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2003, 2005, 2007  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.26 2005/09/30 20:17:34 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.27 2007/02/08 02:37:59 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -407,9 +407,10 @@ It does not check for existing project objects.  Use `project-am-load'."
 	      (let ((ampf (project-am-makefile (project-am-last-dir fn)
 					       :name (project-am-last-dir fn)
 					       :file fn)))
-		(project-rescan ampf)
 		(make-local-variable 'ede-object)
 		(setq ede-object ampf)
+		;; Move the rescan after we set ede-object to prevent recursion
+		(project-rescan ampf)
 		ampf))
 	  ;; If the buffer was not already loaded, kill it.
 	  (if (not kb) (kill-buffer (current-buffer))))))))
