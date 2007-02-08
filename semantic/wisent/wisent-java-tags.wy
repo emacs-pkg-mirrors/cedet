@@ -1,12 +1,13 @@
 ;;; wisent-java-tags.wy -- Semantic LALR grammar for Java
 ;;
-;; Copyright (C) 2002 David Ponce
+;; Copyright (C) 2002, 2007 David Ponce
+;; Copyright (C) 2007 Eric Ludlam
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.wy,v 1.17 2006/01/12 14:36:06 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.wy,v 1.18 2007/02/08 01:35:13 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -119,6 +120,9 @@
 
 %type  <number>      ;;syntax semantic-lex-number-expression
 %token <number>      NUMBER_LITERAL
+
+%type <unicode> "\\u[0-9a-f][0-9a-f][0-9a-f][0-9a-f]"
+%token <unicode> unicodecharacter
 
 ;; -----------------
 ;; Keyword terminals
@@ -725,6 +729,9 @@ dims
   ;
 
 %%
+(define-lex-simple-regex-analyzer wisent-java-tags-unicode-analyzer
+  "Detect and create a dynamic argument properties."
+  "\\\\u[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" 'unicodecharacter 0)
 
 ;; Define the lexer for this grammar
 (define-lex wisent-java-tags-lexer
@@ -741,6 +748,10 @@ It ignores whitespaces, newlines and comments."
   wisent-java-tags-wy--<symbol>-regexp-analyzer
   wisent-java-tags-wy--<punctuation>-string-analyzer
   wisent-java-tags-wy--<block>-block-analyzer
+  ;; In theory, unicode chars should be turned into normal chars
+  ;; and then combined into regular ascii keywords and text.  This
+  ;; analyzer just keeps these things from making the lexer go boom.
+  wisent-java-tags-unicode-analyzer
   ;;;;
   semantic-lex-default-action)
 
