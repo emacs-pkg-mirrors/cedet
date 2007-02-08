@@ -1,12 +1,12 @@
 ;;; semantic-grammar.el --- Major mode framework for Semantic grammars
 ;;
-;; Copyright (C) 2002, 2003, 2004, 2005 David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2005, 2007 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.70 2005/09/30 20:20:23 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.71 2007/02/08 17:55:32 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -973,6 +973,7 @@ See also the variable `semantic-grammar-file-regexp'."
         ;; Remove vc from find-file-hooks.  It causes bad stuff to
         ;; happen in Emacs 20.
         (find-file-hooks (delete 'vc-find-file-hook find-file-hooks)))
+    (message "Compiling Grammars from: %s" (locate-library "semantic-grammar"))
     (dolist (arg command-line-args-left)
       (unless (and arg (file-exists-p arg))
         (error "Argument %s is not a valid file name" arg))
