@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.7 2007/01/23 02:18:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.8 2007/02/15 19:42:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -74,7 +74,7 @@ is specified by `semanticdb-default-system-save-directory'."
   (interactive "DDirectory: ")
   (let* ((savein (semanticdb-ebrowse-file-for-directory dir))
 	 (filebuff (get-buffer-create "*SEMANTICDB EBROWSE TMP*"))
-	 (files (directory-files dir))
+	 (files (directory-files (expand-file-name dir)))
 	 (mma auto-mode-alist)
 	 (regexp nil)
 	 )
@@ -95,11 +95,11 @@ is specified by `semanticdb-default-system-save-directory'."
     ;; Create the input to the ebrowse command
     (save-excursion
       (set-buffer filebuff)
-      (setq default-directory dir)
+      (setq default-directory (expand-file-name dir))
       (mapcar (lambda (f)
 		(when (string-match regexp f)
 		  (insert f)
-		  (insert " ")))
+		  (insert "\n")))
 	      files)
       ;; Cleanup the ebrowse output buffer.
       (save-excursion
@@ -120,7 +120,7 @@ is specified by `semanticdb-default-system-save-directory'."
 	(erase-buffer)
 	(insert "(semanticdb-create-database "
 		"semanticdb-project-database-ebrowse \""
-		dir
+		(expand-file-name dir)
 		"\")\n")
 	(save-buffer))
       (message "Creating ebrowse file: %s ... done" savein)
@@ -221,7 +221,8 @@ This file should reside in `semanticdb-default-system-save-directory'."
 	  semanticdb-default-system-save-directory)
 	 (B (semanticdb-file-name-directory
 	     'semanticdb-project-database-file
-	     (concat dir semanticdb-ebrowse-default-file-name)))
+	     (concat (expand-file-name dir)
+		     semanticdb-ebrowse-default-file-name)))
 	 )
     B))
 
@@ -335,15 +336,12 @@ If there is no database for DIRECTORY available, then
 						  tree filename)
   "Add the partial ebrowse TREE to the table pertaining to FILENAME in database DBE.
 If there is no table object for FILENAME, create it. Otherwise append it."
-  (let*
-      ((existingtable (semanticdb-file-table dbe filename)))
+  (let* ((existingtable (semanticdb-file-table dbe filename)))
     (if existingtable
         (semanticdb-file-table-add existingtable tree) ;we have a table already so add this etree to it 
-     (let*
-          ((newtable (semanticdb-create-table dbe filename) ))
+     (let* ((newtable (semanticdb-create-table dbe filename) ))
        (semanticdb-file-table-add newtable tree) ;we didnt have a table so we made one and added this etree to it
-       )
-     )))
+       ) )))
 
 (defmethod semanticdb-file-table-add ((table semanticdb-table-ebrowse) tree)
   "Add TREE to TABLE.
