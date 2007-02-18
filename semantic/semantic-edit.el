@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.33 2007/01/09 16:48:13 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.34 2007/02/18 22:38:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -113,6 +113,7 @@ incremental reparse.")
   "Hooks run after the incremental parser fails.
 When this happens, the buffer is marked as needing a full reprase.")
 
+;;;###autoload
 (defcustom semantic-edits-verbose-flag nil
   "Non-nil means the incremental perser is verbose.
 If nil, errors are still displayed, but informative messages are not."
