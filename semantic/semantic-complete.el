@@ -1,10 +1,10 @@
 ;;; semantic-complete.el --- Routines for performing tag completion
 
-;;; Copyright (C) 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.39 2005/09/30 20:18:56 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.40 2007/02/18 22:37:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -83,7 +83,7 @@
 ;; window.  It may even choose to show short names when there are
 ;; many to choose from, or long names when there are fewer.
 ;;
-;; A complex displayor could opt to help the user 'foucs' on some
+;; A complex displayor could opt to help the user 'focus' on some
 ;; range.  For example, if 4 tags all have the same name, subsequent
 ;; calls to the displayor may opt to show each tag one at a time in
 ;; the buffer.  When the user likes one, selection would cause the
@@ -116,7 +116,9 @@
 (require 'semantic-format)
 (require 'semantic-ctxt)
 ;; Keep semanticdb optional.
-(eval-when-compile (require 'semanticdb))
+(eval-when-compile
+  (require 'semanticdb)
+  (require 'semanticdb-find))
 
 (eval-when-compile
   (condition-case nil
@@ -130,11 +132,11 @@
 ;;; Compatibility
 ;;
 (if (fboundp 'minibuffer-contents)
-    (defalias 'semantic-minibuffer-contents 'minibuffer-contents)
-  (defalias 'semantic-minibuffer-contents 'buffer-string))
+    (eval-and-compile (defalias 'semantic-minibuffer-contents 'minibuffer-contents))
+  (eval-and-compile (defalias 'semantic-minibuffer-contents 'buffer-string)))
 (if (fboundp 'delete-minibuffer-contents)
-    (defalias 'semantic-delete-minibuffer-contents 'delete-minibuffer-contents)
-  (defalias 'semantic-delete-minibuffer-contents 'erase-buffer))
+    (eval-and-compile (defalias 'semantic-delete-minibuffer-contents 'delete-minibuffer-contents))
+  (eval-and-compile (defalias 'semantic-delete-minibuffer-contents 'erase-buffer)))
 
 (defvar semantic-complete-inline-overlay nil
   "The overlay currently active while completing inline.")
