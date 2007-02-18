@@ -1,9 +1,9 @@
 ;;; eieio-custom.el -- eieio object customization
 
-;;; Copyright (C) 1999, 2000, 2001, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2005, 2007 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.21 2005/09/30 20:17:52 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.22 2007/02/18 18:11:06 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -64,7 +64,8 @@ of these.")
 
 (defcustom eieio-widget-test (eieio-widget-test-class "Foo")
   "Test variable for editing an object."
-  :type 'object)
+  :type 'object
+  :group 'eieio)
 
 (defface eieio-custom-slot-tag-face '((((class color)
 					(background dark))
