@@ -2,10 +2,10 @@
 ;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06 Eric M. Ludlam
+;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.147 2007/01/09 16:44:53 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.148 2007/02/18 18:12:07 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -46,6 +46,8 @@
   "Display the current version of EIEIO."
   (interactive)
   (message eieio-version))
+
+(require 'inversion)
 
 (defun eieio-require-version (major minor &optional beta)
   "Non-nil if this version of EIEIO does not satisfy a specific version.
