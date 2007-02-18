@@ -1,10 +1,10 @@
 ;;; semantic-decorate.el --- Utilities for decorating/highlighting tokens.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.10 2007/01/12 03:34:16 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.11 2007/02/18 22:37:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -59,7 +59,7 @@ Optional argument FACE specifies the face to do the highlighting."
     ;; Go to first line in tag
     (semantic-go-to-tag tag)
     (beginning-of-line)
-    (let ((o (speedbar-make-overlay (save-excursion (beginning-of-line) (point))
+    (let ((o (semantic-make-overlay (save-excursion (beginning-of-line) (point))
 				    (save-excursion (end-of-line)
 						    (forward-char 1)
 						    (point)))))
