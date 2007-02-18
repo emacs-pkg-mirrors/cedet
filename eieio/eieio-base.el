@@ -1,10 +1,10 @@
 ;;; eieio-base.el --- Base classes for EIEIO.
 
 ;;;
-;; Copyright (C) 2000, 2001, 2002, 2004, 2005 Eric M. Ludlam
+;; Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.20 2005/09/30 20:17:44 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.21 2007/02/18 18:10:10 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -73,7 +73,7 @@ All slots are unbound, except those initialized with PARAMS."
     (if (not passname)
 	(save-match-data
 	  (if (string-match "-\\([0-9]+\\)" nm)
-	      (setq num (1+ (string-to-int (match-string 1 nm)))
+	      (setq num (1+ (string-to-number (match-string 1 nm)))
 		    nm (substring nm 0 (match-beginning 0))))
 	  (aset nobj object-name (concat nm "-" (int-to-string num))))
       (aset nobj object-name (car params)))
@@ -209,8 +209,7 @@ a file.  Optional argument NAME specifies a default file name."
       (set-buffer (get-buffer-create " *tmp eieio read*"))
       (unwind-protect
 	  (progn
-	    (erase-buffer)
-	    (insert-file filename)
+	    (insert-file-contents filename nil nil nil t)
 	    (goto-char (point-min))
 	    (setq ret (read (current-buffer)))
 	    (if (not (child-of-class-p (car ret) 'eieio-persistent))
