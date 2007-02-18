@@ -1,8 +1,8 @@
 ;;; semantic-fw.el --- Framework for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.53 2007/01/13 02:08:27 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.54 2007/02/18 22:40:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -238,10 +238,14 @@ will throw a warning when it encounters this symbol."
              (not (overload-obsoleted-by newfn))
              ;; Only throw this warning when byte compiling things.
              (boundp 'byte-compile-current-file)
-             byte-compile-current-file)
+             byte-compile-current-file
+	     (not (string-match "cedet" byte-compile-current-file))
+	     )
     (make-obsolete-overload oldfnalias newfn)
     (semantic-compile-warn
-     "`%s' obsoletes overload `%s'" newfn
+     "%s: `%s' obsoletes overload `%s'"
+     byte-compile-current-file
+     newfn
      (semantic-overload-symbol-from-function oldfnalias))
     ))
 
