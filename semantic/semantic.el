@@ -1,10 +1,10 @@
 ;;; semantic.el --- Semantic buffer evaluator.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.198 2006/02/08 04:23:58 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.199 2007/02/18 22:39:31 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -64,7 +64,7 @@ introduced."
 
 (defgroup semantic nil
   "Parser Generator/Parser."
-  )
+  :group 'lisp)
 
 (require 'semantic-fw)
 
