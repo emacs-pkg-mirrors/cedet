@@ -1,10 +1,10 @@
 ;;; eieio-speedbar.el -- Classes for managing speedbar displays.
 
 ;;;
-;; Copyright (C) 1999, 2000, 2001, 2002, 2005 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2005, 2007 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.17 2005/09/30 20:18:14 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.18 2007/02/18 18:12:49 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -382,7 +382,7 @@ Optional argument DEPTH is the current depth of the search."
 	(progn
 	  (beginning-of-line)
 	  (when (looking-at "^\\([0-9]+\\):")
-	    (setq depth (string-to-int (match-string 1))))))
+	    (setq depth (string-to-number (match-string 1))))))
     (when depth
       (while (and (not (object-p (speedbar-line-token)))
 		  (> depth 0))
@@ -398,7 +398,7 @@ Optional DEPTH is the depth we start at."
 	(progn
 	  (beginning-of-line)
 	  (looking-at "^\\([0-9]+\\):")
-	  (setq depth (string-to-int (match-string 1)))))
+	  (setq depth (string-to-number (match-string 1)))))
     ;; This whole function is presently bogus.  Make it better later.
     (let ((tok (eieio-speedbar-find-nearest-object depth)))
       (if (object-p tok)
