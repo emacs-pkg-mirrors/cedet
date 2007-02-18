@@ -1,10 +1,10 @@
 ;;; ede.el --- Emacs Development Environment gloss
 
-;;;  Copyright (C) 1998-2006  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.73 2006/02/08 04:21:20 zappo Exp $
+;; RCS: $Id: ede.el,v 1.74 2007/02/18 17:56:00 zappo Exp $
 (defconst ede-version "1.0"
   "Current version of the Emacs EDE.")
 
@@ -1203,7 +1203,8 @@ doesn't exist."
 	    (concat path "include/" filename))
 	   (t
 	    (while (and (not found) proj)
-	      (setq found (ede-expand-filename (car proj) filename)
+	      (setq found (when (car proj)
+			    (ede-expand-filename (car proj) filename))
 		    proj (cdr proj)))
 	    found))
      (and force (concat path filename)))))
@@ -1399,10 +1400,13 @@ nil is returned if the current directory is not a part ofa project."
 	(setq tocheck (list o))
 	(setq file (ede-dir-to-projectfile pfc (expand-file-name path)))
 	(while (and tocheck (not found))
-	  (if (string= file (oref (car tocheck) file))
-	      (setq found (car tocheck)))
-	  (setq tocheck
-		(append (cdr tocheck) (oref (car tocheck) subproj))))
+	  (let ((newbits nil))
+	    (when (car tocheck)
+	      (if (string= file (oref (car tocheck) file))
+		  (setq found (car tocheck)))
+	      (setq newbits (oref (car tocheck) subproj)))
+	    (setq tocheck
+		  (append (cdr tocheck) newbits))))
 	(if (not found)
 	    (error "No project for %s, but passes project-p test" file))
 	;; Now that the file has been reset inside the project object, do
