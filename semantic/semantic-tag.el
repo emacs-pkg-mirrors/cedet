@@ -1,8 +1,8 @@
 ;;; semantic-tag.el --- tag creation and access
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.39 2006/02/08 02:30:23 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.40 2007/02/18 22:41:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -959,6 +959,7 @@ This function is for internal use only."
     
     ;; Compatibility code to be removed in future versions.
     (unless semantic-tag-expand-function
+      ;; This line throws a byte compiler warning.
       (setq semantic-tag-expand-function semantic-expand-nonterminal)
       )
     
