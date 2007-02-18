@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.29 2005/09/30 20:18:35 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.30 2007/02/18 22:36:09 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -41,9 +41,11 @@
 (require 'document-vars)
 
 ;; XEmacs change: needed to define macros at compile time.
-(eval-when-compile
-  (require 'semantic)
-  (require 'semantic-util))
+(condition-case nil
+    (require 'ede)
+  (error nil))
+(require 'semantic)
+(require 'semantic-util)
 
 ;;; Code:
 
@@ -518,7 +520,7 @@ Argument FORM is the format string to use."
 	   " \\([0-9]*\\)$")
            date))
 	 (wkdy (substring date (match-beginning 1) (match-end 1)))
-	 (hour (string-to-int
+	 (hour (string-to-number
 		(substring date (match-beginning 4) (match-end 4))))
 	 (min (substring date (match-beginning 5) (match-end 5)))
 	 (sec (substring date (match-beginning 6) (match-end 6)))
