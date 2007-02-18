@@ -1,10 +1,10 @@
 ;;; chart.el --- Draw charts (bar charts, etc)
 
-;;; Copyright (C) 1996, 1998, 1999, 2001, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2001, 2004, 2005, 2007 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.2
-;; RCS: $Id: chart.el,v 1.16 2005/09/30 20:17:40 zappo Exp $
+;; RCS: $Id: chart.el,v 1.17 2007/02/18 17:57:07 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -670,7 +670,7 @@ SORT-PRED if desired."
 	     (num (buffer-substring (match-beginning 1) (match-end 1))))
 	(setq nmlst (cons nam nmlst)
 	      ;; * 1000 to put it into bytes
-	      cntlst (cons (* (string-to-int num) 1000) cntlst))))
+	      cntlst (cons (* (string-to-number num) 1000) cntlst))))
     (if (not nmlst)
 	(error "No files found!"))
     (chart-bar-quickie 'vertical (format "Largest files in %s" d)
