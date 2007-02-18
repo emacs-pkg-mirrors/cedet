@@ -1,6 +1,6 @@
 ;;; wisent-csharp.el --- LALR grammar for C#
 ;;
-;; Copyright (C) 2003 David Shilvock
+;; Copyright (C) 2003, 2007 David Shilvock
 ;; Some Changes Copyright (C) 2006 Eric M. Ludlam
 
 ;; Time-stamp: <2003-12-08 19:11:48 dave>
@@ -36,6 +36,8 @@
 ;;; Code:
 
 (require 'semantic-wisent)
+(require 'semantic-format)
+(require 'semantic-ctxt)
 (require 'wisent-csharp-wy)
 
 
