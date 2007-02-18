@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.71 2007/02/08 17:55:32 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.72 2007/02/18 22:40:58 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -39,9 +39,11 @@
 (require 'pp)
 
 (eval-when-compile
+  (require 'senator)
   (require 'semantic-edit)
   (require 'semantic-find)
-  (require 'semantic-format))
+  (require 'semantic-format)
+  (require 'semantic-idle))
 
 ;;;;
 ;;;; Set up lexer
@@ -140,7 +142,7 @@ ARGS are ASSOC's key value list."
 ;;;;
 
 (defvar-mode-local semantic-grammar-mode
-  senator-add-log-tokens '(nonterminal put token keyword)
+  senator-add-log-tags '(nonterminal put token keyword)
   "List of nonterminal tags used with add-log.")
 
 (define-mode-local-override semantic-tag-components
