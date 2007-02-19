@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.32 2007/01/23 01:57:37 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.33 2007/02/19 13:54:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -118,6 +118,8 @@
 ;;  current project.
 
 (require 'semanticdb)
+(eval-when-compile
+  (require 'eieio))
 
 ;;; Code:
 (defvar semanticdb-find-throttle-custom-list
@@ -130,6 +132,7 @@
   "Customization values for semanticdb find throttle.
 See `semanticdb-find-throttle' for details.")
 
+;;;###autoload
 (defcustom semanticdb-find-default-throttle '(project system recursive)
   "The default throttle for `semanticdb-find' routines.
 The throttle controls how detailed the list of database
@@ -202,6 +205,7 @@ This routine uses `semanticdb-find-table-for-include' to translate
 specific include tags into a semanticdb table."
   )
 
+;;;###autoload
 (defun semanticdb-find-translate-path-default (path brutish)
   "Translate PATH into a list of semantic tables.
 If BRUTISH is non nil, return all tables associated with PATH.
@@ -232,20 +236,18 @@ Default action as described in `semanticdb-find-translate-path'."
 	  ;; Only return tables of the same language (major-mode)
 	  ;; as the current search environment.
 	  (while tabs
-	    (if (eq (oref (car tabs) major-mode)
-		    ;; I suspect that we may need to supply something
-		    ;; better for cases of a tool needing to reference
-		    ;; buffers of a mode that are not itself.
-		    (or mode-local-active-mode
-			major-mode))
+	    (if (semanticdb-equivalent-mode-for-search (car tabs)
+						       (current-buffer))
 		(setq ret (cons (car tabs) ret)))
 	    (setq tabs (cdr tabs)))
 	  ret))
       ;; FIXME:
       ;; This should scan the current project directory list for all
       ;; semanticdb files, perhaps handling proxies for them.
-      (semanticdb-current-database-list (oref basedb reference-directory)))))
-  )
+      (semanticdb-current-database-list
+       (if basedb (oref basedb reference-directory)
+	 default-directory))))
+    ))
 
 (defun semanticdb-find-translate-path-includes-default (path)
   "Translate PATH into a list of semantic tables.
@@ -265,7 +267,8 @@ Default action as described in `semanticdb-find-translate-path'."
       ;; (message "Scanning %s" (semantic-tag-name (car includetags)))
       (when (and nexttable
 		 (not (memq nexttable matchedtables))
-		 (semanticdb-equivalent-mode nexttable (current-buffer))
+		 (semanticdb-equivalent-mode-for-search nexttable
+							(current-buffer))
 		 )
 	;; Add to list of tables
 	(push nexttable matchedtables)
@@ -312,11 +315,34 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
      ;; Relative path name
      ((and (file-exists-p (expand-file-name name))
 	   (semanticdb-find-throttle-active-p 'local))
-      (setq ans (semanticdb-file-table-object name)))
+      ;; For local files, cascade through several options.
 
+      ;; 1) pre-existing semantic database
+      (setq ans (semanticdb-file-table-object name t))
+
+      ;; 2) pre-existing project DBs from some alternate tool.
+      (when (not ans)
+
+	;; TODO -
+	;; The trick w/ fancy project DBs is that there will be more than
+	;; on DB for a given directory.  We need to ask each one, and we
+	;; need some sort of priority to sort them.
+	;;
+	;; For now, pick the first one, see how it goes.
+	(let ((db (semanticdb-directory-loaded-p
+		   (file-name-directory (expand-file-name name)))))
+	  (when db
+	    (setq ans (semanticdb-file-table
+		       db (expand-file-name name)))
+	    ))
+
+	;; 3) Load in the text the usual way.
+	(when (and (not ans) (semanticdb-find-throttle-active-p 'unloaded))
+	  (setq ans (semanticdb-file-table-object name))
+	  )))
      ;; On the path somewhere
-;;;; NOTES: Separate system includes from local includes.
-;;;;        Use only system databases for system includes.
+     ;; NOTES: Separate system includes from local includes.
+     ;;        Use only system databases for system includes.
      ((and (setq tmp (semantic-dependency-tag-file includetag))
 	   (semanticdb-find-throttle-active-p 'system))
       (let ((db (semanticdb-directory-loaded-p (file-name-directory tmp))))
@@ -329,7 +355,7 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 	(if ans
 	    ;; We are A-ok!
 	    nil
-	  ;; The file is not i memory!
+	  ;; The file is not in memory!
 	  ;; Should we force it to be loaded in?
 	  (if (semanticdb-find-throttle-active-p 'unloaded)
 	      (progn
@@ -338,10 +364,11 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 	    ;; We are not allowed to return the discovered
 	    ;; answer if the throttle is set low.
 	    (setq ans nil)))))
+
+     ;; Somewhere in our project hierarchy
+     ;; Remember: Roots includes system databases which can create
+     ;; specialized tables we can search.
      ((semanticdb-find-throttle-active-p 'project)
-      ;; Somewhere in our project hierarchy
-      ;; Remember: Roots includes system databases which can create
-      ;; specialized tables we can search.
       (while (and (not ans) roots)
 	(let* ((ref (if (slot-boundp (car roots) 'reference-directory)
 			(oref (car roots) reference-directory)))
@@ -427,13 +454,11 @@ return a value."
       (let ((tmp results)
 	    (output nil))
 	(while tmp
-	  (semanticdb-get-buffer (car (car tmp)))
-	  (setq output (append output
-			       (mapcar (lambda (tag)
-					 (semanticdb-normalize-tag
-					  (car (car tmp))
-					  tag))
-				       (cdr (car tmp)))))
+	  (let ((tab (car (car tmp)))
+		(tags (cdr (car tmp))))
+	    (semanticdb-get-buffer tab)
+	    (setq output (append output
+				 (semanticdb-normalize-tags tab tags))))
 	  (setq tmp (cdr tmp)))
 	output)
     (apply #'append (mapcar #'cdr results))))
