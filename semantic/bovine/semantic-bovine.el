@@ -1,8 +1,8 @@
 ;;; semantic-bovine.el --- LL Parser/Analyzer core.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.12 2007/01/13 02:07:28 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.13 2007/02/19 13:35:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,9 +33,11 @@
 
 ;;; Code:
 (require 'semantic)
+(require 'bovine-debug)
 
-;;; VAriables
+;;; Variables
 ;;
+;;;###autoload
 (defvar semantic-bovinate-nonterminal-check-obarray nil
   "Obarray of streams already parsed for nonterminal symbols.
 Use this to detect infinite recursion during a parse.")
