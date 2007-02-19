@@ -1,9 +1,9 @@
 ;;; semantic-el.el --- Semantic details for Emacs Lisp
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.37 2005/09/30 20:22:15 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.38 2007/02/19 13:37:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -458,7 +458,8 @@ Optional argument NOSNARF is ignored."
 	       (cond ((eq (semantic-tag-class tag) 'function)
 		      (setq d (documentation sym)))
 		     (t
-		      (setq d (documentation-property sym)))))
+		      (setq d (documentation-property 
+			       sym 'variable-documentation)))))
 	     ;; Label it as system doc.. perhaps just for debugging
 	     ;; purposes.
 	     (if d (setq d (concat "Sytem Doc: \n" d)))
