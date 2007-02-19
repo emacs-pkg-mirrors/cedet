@@ -1,10 +1,10 @@
 ;;; cogre.el --- COnnected GRaph Editor for Emacs
 
-;;; Copyright (C) 2001, 2002, 2003, 2005 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.18 2005/09/30 20:06:49 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.19 2007/02/19 02:14:47 zappo Exp $
 
 (defvar cogre-version "0.5"
   "Current version of Cogre.")
@@ -34,17 +34,20 @@
 ;; source code.
 ;;
 
+(require 'cogre-load)
 (require 'eieio)
 (require 'eieio-opt)
 (require 'eieio-base)
 (require 'semantic)
+(eval-when-compile
+  (require 'picture-hack))
 
 ;;; Code:
 
 ;;; Display Faces
 (defgroup cogre nil
   "COnnected GRaph Editor."
-  )
+  :group 'tools)
 
 (defcustom cogre-horizontal-margins 10
   "*Horizontal margins between nodes when they are being layed out."
