@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.54 2007/02/18 22:40:10 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.55 2007/02/19 02:50:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -138,6 +138,9 @@ Unless optional argument INPLACE is non-nil, return a new string."
     (if (fboundp 'byte-compile-warn)
 	'byte-compile-warn
       'message)))
+
+(if (not (fboundp 'string-to-number))
+    (defalias 'string-to-number 'string-to-int))
 
 ;;; Positional Data Cache
 ;;
