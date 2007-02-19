@@ -1,10 +1,10 @@
 ;;; ede-pmake.el --- EDE Generic Project Makefile code generator.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.46 2005/09/30 20:16:33 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.47 2007/02/19 13:46:24 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ MFILENAME is the makefile to generate."
     ;; Add in the header part of the Makefile*
     (save-excursion
       (set-buffer (find-file-noselect mfilename))
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (if (not (looking-at "# Automatically Generated \\w+ by EDE."))
 	  (if (not (y-or-n-p (format "Really replace %s?" mfilename)))
 	      (error "Not replacing Makefile."))
