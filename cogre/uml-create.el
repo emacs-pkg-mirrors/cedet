@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.12 2007/02/03 02:48:41 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.13 2007/02/19 02:16:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,6 +31,7 @@
 (require 'cogre-uml)
 (require 'semantic)
 (require 'semanticdb)
+(require 'semanticdb-find)
 
 ;;; Code:
 (defclass cogre-semantic-uml-graph (cogre-graph)
@@ -62,17 +63,19 @@ Optional argument FIELDS are not used."
       ;; In this case, we have a default class object-name, so try and query
       ;; for the real class (from sources) which we want to use.
       (let* ((class (or (oref this class) (cogre-read-class-name)))
-	     (tok (if (semantic-tag-p class)
+	     (tag (if (semantic-tag-p class)
 		      class
-		    (cdr (car (semanticdb-find-nonterminal-by-name
-			       class nil nil nil t)))))
+		    (car
+		     (semanticdb-strip-find-results
+		      (semanticdb-brute-deep-find-tags-by-name class)
+		      t))))
 	     )
 	(if (semantic-tag-p class) (setq class (semantic-tag-name class)))
-	(if (and tok (eq (semantic-tag-class tok) 'type)
-		 (or (string= (semantic-tag-type tok) "class")
-		     (string= (semantic-tag-type tok) "struct")))
-	    (let ((slots (semantic-tag-type-members tok))
-		  (extmeth (semantic-tag-external-member-children tok t))
+	(if (and tag (eq (semantic-tag-class tag) 'type)
+		 (or (string= (semantic-tag-type tag) "class")
+		     (string= (semantic-tag-type tag) "struct")))
+	    (let ((slots (semantic-tag-type-members tag))
+		  (extmeth (semantic-tag-external-member-children tag t))
 		  attrib method)
 	      ;; Bin them up
 	      (while slots
@@ -100,12 +103,12 @@ Optional argument FIELDS are not used."
 		(setq extmeth (cdr extmeth)))
 	      ;; Put them into the class.
 	      (oset this object-name class)
-	      (oset this class tok)
+	      (oset this class tag)
 	      (oset this attributes (nreverse attrib))
 	      (oset this methods (nreverse method))
 	      ;; Tada!
 	      )
-	  ;; We couldn't find a semantic token for this class, so just
+	  ;; We couldn't find a semantic tag for this class, so just
 	  ;; put the name in there.
 	  (cond ((stringp class)
 		 (oset this object-name class))
@@ -322,11 +325,11 @@ customizing the object, or performing some complex task."
     ;; Create a prompt
     (setq prompt (if class (concat "Class (default " class "): ") "Class: "))
     ;; Get the stream used for completion.
-    (setq stream
-	  (apply #'append
-		 (mapcar #'cdr
-			 (semanticdb-find-nonterminal-by-type
-			  "class" nil nil nil t))))
+    (let ((types (semanticdb-strip-find-results
+		  (semanticdb-brute-find-tags-by-class 'type)
+		  ;; Don't find-file-match.  Just need names.
+		  )))
+      (setq stream (semantic-find-tags-by-type "class" types)))
     ;; Do the query
     (completing-read prompt stream
 		     nil nil nil 'cogre-class-history
@@ -338,8 +341,8 @@ customizing the object, or performing some complex task."
   "Create a new UML diagram based on CLASS showing only immediate lineage.
 The parent to CLASS, CLASS, and all of CLASSes children will be shown."
   (interactive (list (cogre-read-class-name)))
-  (let* ((class-tok (cdr (car (semanticdb-find-nonterminal-by-name
-			       class nil nil nil t t))))
+  (let* ((class-tok (car (semanticdb-strip-find-results
+			  (semanticdb-brute-deep-find-tags-by-name class) t)))
 	 (class-node nil)
 	 (parent (semantic-tag-type-superclasses class-tok))
 	 (parent-nodes nil)
@@ -348,7 +351,7 @@ The parent to CLASS, CLASS, and all of CLASSes children will be shown."
 		      (semantic-brute-find-tag-by-function
 		       (lambda (tok)
 			 (and (eq (semantic-tag-class tok) 'type)
-			      (or (member class 
+			      (or (member class
 					  (semantic-tag-type-superclasses tok))
 				  (member class
 					  (semantic-tag-type-interfaces tok)))))
@@ -441,9 +444,10 @@ The parent to CLASS, CLASS, and all of CLASSes children will be shown."
   "Create a new UML diagram, with CLASS as the root node.
 CLASS must be a type in the current project."
   (interactive (list (cogre-read-class-name)))
-  (let ((root (cdr (car (semanticdb-find-nonterminal-by-name class))))
+  (let ((root (semanticdb-strip-find-results
+	       (semanticdb-find-tags-by-name class) t))
 	)
-    
+    ;; Implement this some day.
     ))
 
 (provide 'uml-create)
