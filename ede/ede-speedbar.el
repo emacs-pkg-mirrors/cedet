@@ -1,10 +1,10 @@
 ;;; ede-speedbar.el --- Speedbar viewing of EDE projects
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2003, 2005  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2003, 2005, 2007  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.27 2005/09/30 20:17:22 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.28 2007/02/19 13:47:12 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -180,7 +180,7 @@ Argument DIR is the directory from which to derive the list of objects."
   (save-excursion
     (beginning-of-line)
     (looking-at "^\\([0-9]+\\):")
-    (let ((depth (string-to-int (match-string 1))))
+    (let ((depth (string-to-number (match-string 1))))
       (while (not (re-search-forward "[]] [^ ]"
 				     (save-excursion (end-of-line)
 						     (point))
