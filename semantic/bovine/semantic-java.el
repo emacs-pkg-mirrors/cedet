@@ -1,10 +1,10 @@
 ;;; semantic-java.el --- Semantic functions for Java
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
 ;;;   David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.13 2006/05/31 12:44:51 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.14 2007/02/19 13:37:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,7 @@
 ;;; Code:
 (require 'semantic)
 (require 'semantic-ctxt)
+(require 'semantic-doc)
 
 ;;; Lexical analysis
 ;;
@@ -114,7 +115,7 @@ compound variable name, and START/END are the bounds of the
 corresponding compound declaration."
   (let* ((class (semantic-tag-class tag))
          (elts (semantic-tag-name tag))
-         dim dim0 elt clone start end xpand)
+         dim type dim0 elt clone start end xpand)
     (cond
      ((and (eq class 'function)
            (> (cdr (setq dim (semantic-java-dim elts))) 0))
