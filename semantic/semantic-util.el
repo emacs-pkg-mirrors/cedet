@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic tag tables
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.130 2005/09/30 20:21:25 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.131 2007/02/19 02:54:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -323,7 +323,7 @@ Argument P is the point to search from in the current buffer."
 	    (if (and (semantic-overlay-p o)
 		     (not (semantic-overlay-live-p o)))
 		(let ((debug-on-error t))
-		  (error "Tag %s is invalid!"))
+		  (error "Tag %s is invalid!" (semantic-tag-name tok)))
 	      ;; else, tag is OK.
 	      ))
 	;; Positionless tags are also ok.
