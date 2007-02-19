@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.42 2007/01/23 03:37:06 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.43 2007/02/19 02:52:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1629,7 +1629,7 @@ end of the return token will be larger than END.  To truly restrict
 scanning, use `narrow-to-region'.
 The last argument, LENGTH specifies that `semantic-flex' should only
 return LENGTH tokens."
-  ;;(message "Flexing muscles...")
+  (message "`semantic-flex' is an obsolete function.  Use `define-lex' to create lexers.")
   (if (not semantic-flex-keywords-obarray)
       (setq semantic-flex-keywords-obarray [ nil ]))
   (let ((ts nil)
