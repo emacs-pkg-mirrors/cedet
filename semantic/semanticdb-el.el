@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.24 2007/01/09 17:02:51 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.25 2007/02/19 13:51:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -132,6 +132,14 @@ database (if available.)"
 
 ;;; Conversion
 ;;
+(defmethod semanticdb-normalize-tags ((obj semanticdb-table-emacs-lisp) tags)
+  "Convert a tag, originating from Emacs OBJ, into standardized form.
+If Emacs cannot resolve this symbol to a particular file, then just
+return the tag."
+  ;; @TODO - Lets do this.  We could find the tag's source file
+  ;;         using the help system, for example.
+  tags)
+
 (defun semanticdb-elisp-sym-function-arglist (sym)
   "Get the argument list for SYM.
 Deal with all different forms of function.
