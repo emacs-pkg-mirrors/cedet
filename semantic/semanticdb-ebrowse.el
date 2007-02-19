@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.8 2007/02/15 19:42:47 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.9 2007/02/19 14:04:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,11 +56,12 @@
   (require 'eieio-opt)
   )
 
-;; Hopefully, this will allow semanticdb-ebrowse to compile under
-;; XEmacs, it just won't run if a user attempts to use it.
-(condition-case nil
-    (require 'ebrowse)
-  (error nil))
+(eval-and-compile
+  ;; Hopefully, this will allow semanticdb-ebrowse to compile under
+  ;; XEmacs, it just won't run if a user attempts to use it.
+  (condition-case nil
+      (require 'ebrowse)
+    (error nil)))
 
 ;;; Code:
 (defvar semanticdb-ebrowse-default-file-name "BROWSE"
@@ -156,7 +157,6 @@ is specified by `semanticdb-default-system-save-directory'."
 		   :documentation
 		   "Table of ebrowse tags specific to this file.
 This table is compisited from the ebrowse *Globals* section.")
-
    )
   "A table for returning search results from ebrowse.")
 
@@ -173,9 +173,6 @@ This table is compisited from the ebrowse *Globals* section.")
    (ebrowse-struct :initform nil
 		   :initarg :ebrowse-struct
 		   )
-   (globals :initform nil
-	    :initarg :globals)
-
    )
   "Database representing ebrowse.")
 
@@ -270,6 +267,7 @@ If there is no database for DIRECTORY available, then
 	   (dat (car (cdr ebrowse-data)))
 	   (ebd (car dat))
 	   (db nil)
+	   (default-directory directory)
 	   )
       (if found
 	  (setq db found)
@@ -284,14 +282,7 @@ If there is no database for DIRECTORY available, then
       ;; contents from the BROWSE file.
       (oset db tables nil)
       ;; only possible after object creation, tables inited to nil.
-      (semanticdb-ebrowse-strip-tables db dat)
-      ;; Get the globals out for our files too.
-      (let ((tabs (oref db tables)))
-	(while tabs
-
-	  (semanticdb-ebrowse-extract-globals db (car tabs))
-
-	  (setq tabs (cdr tabs))))
+      (semanticdb-ebrowse-strip-trees db dat)
 
       ;; Once our database is loaded, if we are a system DB, we
       ;; add ourselves to the include list for C++.
@@ -299,7 +290,7 @@ If there is no database for DIRECTORY available, then
       
       db)))
 
-(defmethod semanticdb-ebrowse-strip-tables  ((dbe semanticdb-project-database-ebrowse)
+(defmethod semanticdb-ebrowse-strip-trees  ((dbe semanticdb-project-database-ebrowse)
 						    data)
   "For the ebrowse database DBE, strip all tables from DATA."
 ;JAVE what it actually seems to do is split the original tree in "tables" associated with files
@@ -313,127 +304,195 @@ If there is no database for DIRECTORY available, then
 
       (let* ((tree (car T))
 	     (class (ebrowse-ts-class tree)); root class of tree
-             (filename (ebrowse-cs-source-file class))) ;the file that defines the root class
+	     ;; Something funny going on with this file thing...
+             (filename (or (ebrowse-cs-source-file class)
+			   (ebrowse-cs-file class)))
+	     )
 	(cond 
 	 ((ebrowse-globals-tree-p tree)
 	  ;; We have the globals tree.. save this special.
-	  (oset dbe globals tree)
+	  (semanticdb-ebrowse-add-globals-to-table dbe tree)
 	  )
-	 (filename
-	  ;;filename gets to be nil sometimes. hmm.
-	  ;; just ignore this case for now 
-	  ;; this happens if ebrowse doesnt now were definition is
-	  (semanticdb-ebrowse-add-etree-to-table dbe tree filename)
-          )
-	 ))
-      (setq T (cdr T)))
+	 (t
+	  ;; ebrowse will collect all the info from multiple files
+	  ;; into one tree.  Semantic wants all the bits to be tied
+	  ;; into different files.  We need to do a full dissociation
+	  ;; into semantic parsable tables.
+	  (semanticdb-ebrowse-add-tree-to-table dbe tree)
+	  ))
+      (setq T (cdr T))))
     ))
 
 ;;; Filename based methods
 ;;
+(defun semanticdb-ebrowse-add-globals-to-table (dbe tree)
+  "For database DBE, add the ebrowse TREE into the table."
+  (if (or (not (ebrowse-ts-p tree))
+	  (not (ebrowse-globals-tree-p tree)))
+      (signal 'wrong-type-argument (list 'ebrowse-ts-p tree)))
 
-(defmethod semanticdb-ebrowse-add-etree-to-table ((dbe semanticdb-project-database-ebrowse)
-						  tree filename)
-  "Add the partial ebrowse TREE to the table pertaining to FILENAME in database DBE.
-If there is no table object for FILENAME, create it. Otherwise append it."
-  (let* ((existingtable (semanticdb-file-table dbe filename)))
-    (if existingtable
-        (semanticdb-file-table-add existingtable tree) ;we have a table already so add this etree to it 
-     (let* ((newtable (semanticdb-create-table dbe filename) ))
-       (semanticdb-file-table-add newtable tree) ;we didnt have a table so we made one and added this etree to it
-       ) )))
-
-(defmethod semanticdb-file-table-add ((table semanticdb-table-ebrowse) tree)
-  "Add TREE to TABLE.
-a table belongs to a file, and can have many trees"
-  (oset table ebrowse-tree  (cons tree (oref table ebrowse-tree))
-   ))
-
-(defmethod semanticdb-ebrowse-extract-globals ((dbe semanticdb-project-database-ebrowse)
-					       table)
-  "Extract global symbol information from DBE for TABLE.
-TABLE is a `semanticdb-table-ebrowse' object used to determine the file
-from which to extract the globals.  Globals are saved into the TABLE object."
-  (let* ((glob (oref dbe globals))
-	 (results ; REFAB an ebrowse-ts struct for just this file.
-	  (vector 
-	   'ebrowse-ts (ebrowse-ts-class glob) ()
-	   (semanticdb-ebrowse-extract-globals-from-sublist 
-	    dbe table #' ebrowse-ts-member-variables)
-	   (semanticdb-ebrowse-extract-globals-from-sublist 
-	    dbe table #' ebrowse-ts-member-functions)
-	   (semanticdb-ebrowse-extract-globals-from-sublist 
-	    dbe table #' ebrowse-ts-static-variables)
-	   (semanticdb-ebrowse-extract-globals-from-sublist 
-	    dbe table #' ebrowse-ts-static-functions)
-	   () () () ()))
+  (let* ((class (ebrowse-ts-class tree))
+	 (fname (or (ebrowse-cs-source-file class)
+		    (ebrowse-cs-file class)
+		    ;; Not def'd here, assume our current
+		    ;; file
+		    "unknown-proxy.hh"))
+	 (vars (ebrowse-ts-member-functions tree))
+	 (fns (ebrowse-ts-member-variables tree))
+	 (toks nil)
 	 )
-    (oset table global-extract results )
-    results))
+    (while vars
+      (let ((nt (semantic-tag (ebrowse-ms-name (car vars))
+			      'variable))
+	    (defpoint (ebrowse-bs-point class)))
+	(when defpoint
+	  (semantic--tag-set-overlay nt
+				     (vector defpoint defpoint)))
+	(setq toks (cons nt toks)))
+      (setq vars (cdr vars)))
+    (while fns
+      (let ((nt (semantic-tag (ebrowse-ms-name (car fns))
+			      'function))
+	    (defpoint (ebrowse-bs-point class)))
+	(when defpoint
+	  (semantic--tag-set-overlay nt
+				     (vector defpoint defpoint)))
+	(setq toks (cons nt toks)))
+      (setq fns (cdr fns)))
+    
+    ))
 
-(defmethod semanticdb-ebrowse-extract-globals-from-sublist ((dbe semanticdb-project-database-ebrowse)
-							    table
-							    ebrowse-fcn)
-  "Return a list of symbols from the global table in DBE for TABLE.
-Use the EBROSE-FCN to get at the sub-list of entries."
-  (let* ((fname (oref table file))
-	 (glob (oref dbe globals))
-	 (syms (funcall ebrowse-fcn glob))
-	 (results nil)
+(defun semanticdb-ebrowse-add-tree-to-table (dbe tree &optional fname baseclasses)
+  "For database DBE, add the ebrowse TREE into the table for FNAME.
+Optional argument BASECLASSES specifyies a baseclass to the tree being provided."
+  (if (not (ebrowse-ts-p tree))
+      (signal 'wrong-type-argument (list 'ebrowse-ts-p tree)))
+
+  ;; Strategy overview:
+  ;; 1) Calculate the filename for this tree.
+  ;; 2) Find a matching namespace in TAB, or create a new one.
+  ;; 3) Fabricate a tag proxy for CLASS
+  ;; 4) Add it to the namespace
+  ;; 5) Add subclasses
+    
+  ;; 1 - Find the filename
+  (if (not fname)
+      (setq fname (or (ebrowse-cs-source-file (ebrowse-ts-class tree))
+		      (ebrowse-cs-file (ebrowse-ts-class tree))
+		      ;; Not def'd here, assume our current
+		      ;; file
+		      "unknown-proxy.hh")))
+
+  (let* ((tab (or (semanticdb-file-table dbe fname)
+		  (semanticdb-create-table dbe fname)))
+	 (class (ebrowse-ts-class tree))
+	 (ns (split-string (ebrowse-cs-scope class) ":" t))
+	 (nst nil)
+	 (cls nil)
 	 )
-    (while syms
-      (if (string= fname (ebrowse-ms-file (car syms)))
-	  ;; We have something that belongs to this file!  Convert to
-	  ;; a semantic tag.
-	  (setq results (cons (car syms) results))
-	)
-      (setq syms (cdr syms)))
-    (nreverse results)))
+
+    ;; 2 - Get the namespace tag
+    (when ns
+      (let ((taglst (if (slot-boundp tab 'tags) (oref tab tags) nil)))
+	(setq nst (semantic-find-first-tag-by-name (car ns) taglst))
+	(when (not nst)
+	  (setq nst (semantic-tag (car ns) 'type :type "namespace"))
+	  (oset tab tags (cons nst taglst))
+	  )))
+
+    ;; 3 - Create a proxy tg.
+    (setq cls (semantic-tag (ebrowse-cs-name class)
+			    'type
+			    :type "class"
+			    :superclasses baseclasses
+			    :faux t
+			    :filename fname
+			    ))
+    (let ((defpoint (ebrowse-bs-point class)))
+      (when defpoint
+	(semantic--tag-set-overlay cls
+				   (vector defpoint defpoint))))
+
+    ;; 4 - add to namespace
+    (if nst
+	(semantic-tag-put-attribute
+	 nst :members (cons cls (semantic-tag-get-attribute nst :members)))
+      (oset tab tags (cons cls (oref tab tags))))
+
+    ;; 5 - Subclasses
+    (let* ((subclass (ebrowse-ts-subclasses tree))
+	   (pname (ebrowse-cs-name class)))
+      (when (ebrowse-cs-scope class)
+	(setq pname (concat (mapconcat (lambda (a) a) (cdr ns) "::") "::" pname)))
+
+      (while subclass
+	(let* ((scc (ebrowse-ts-class (car subclass)))
+	       (fname (or (ebrowse-cs-source-file scc)
+			  (ebrowse-cs-file scc)
+			  ;; Not def'd here, assume our current
+			  ;; file
+			  fname
+			  )))
+	  (when fname
+	    (semanticdb-ebrowse-add-tree-to-table
+	     dbe (car subclass) fname pname)))
+	(setq subclass (cdr subclass))))
+    ))
 
 ;;;
 ;; Overload for converting the simple faux tag into something better.
 ;;
-(defmethod semanticdb-normalize-tag ((obj semanticdb-table-ebrowse) tag)
+(defmethod semanticdb-normalize-tags ((obj semanticdb-table-ebrowse) tags)
   "Convert in Ebrowse database OBJ one TAG into a complete tag.
 The default tag provided by searches exclude many features of a
 semantic parsed tag.  Look up the file for OBJ, and match TAG
 against a semantic parsed tag that has all the info needed, and
 return that."
-  ;; SemanticDB will automatically create a regular database
-  ;; on top of the file just loaded by ebrowse during the set
-  ;; buffer.  Fetch that table, and use it's tag list to look
-  ;; up the tag we just got, and thus turn it into a full semantic
-  ;; tag.
-  (save-excursion
-    (semanticdb-set-buffer obj)
-    ;; Gee, it would be nice to do this, but ebrowse LIES.  Oi.
-    (goto-char (semantic-tag-start tag))
-    (let ((foundtag (semantic-current-tag)))
-      ;; Make sure the discovered tag is the same as what we started with.
-      (if (string= (semantic-tag-name tag)
-		   (semantic-tag-name foundtag))
-	  ;; We have a winner!
-	  foundtag
-	;; Sometimes ebrowse lies.  Do a generic search
-	;; to find it within this file.
-	(let ((tags (semantic-deep-find-tags-by-name
-		     (semantic-tag-name tag)
-		     (semantic-fetch-tags)))
-	      )
-	  ;; We might find multiple hits for this tag, and we have no way
-	  ;; of knowing which one the user wanted.  Return the first one.
-	  (car tags)))
-      )))
+  (let ((tagret nil))
+    ;; SemanticDB will automatically create a regular database
+    ;; on top of the file just loaded by ebrowse during the set
+    ;; buffer.  Fetch that table, and use it's tag list to look
+    ;; up the tag we just got, and thus turn it into a full semantic
+    ;; tag.
+    (while tags
+      (let ((tag (car tags)))
+	(save-excursion
+	  (semanticdb-set-buffer obj)
+	  (let ((ans nil))
+	    ;; Gee, it would be nice to do this, but ebrowse LIES.  Oi.
+	    (if (semantic-tag-with-position-p tag)
+		(progn
+		  (goto-char (semantic-tag-start tag))
+		  (let ((foundtag (semantic-current-tag)))
+		    ;; Make sure the discovered tag is the same as what we started with.
+		    (if (string= (semantic-tag-name tag)
+				 (semantic-tag-name foundtag))
+			;; We have a winner!
+			(setq ans foundtag)))))
+	    ;; Sometimes ebrowse lies.  Do a generic search
+	    ;; to find it within this file.
+	    (when (not ans)
+	      ;; We might find multiple hits for this tag, and we have no way
+	      ;; of knowing which one the user wanted.  Return the first one.
+	      (setq ans (semantic-deep-find-tags-by-name
+			 (semantic-tag-name tag)
+			 (semantic-fetch-tags))))
+	    (if (semantic-tag-p ans)
+		(setq tagret (cons ans tagret))
+	      (setq tagret (append ans tagret)))
+	    ))
+	(setq tags (cdr tags))))
+    tagret))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defmethod semanticdb-get-tags ((table semanticdb-table-ebrowse ))
-  "Return the list of tags belonging to TABLE."
-  ;; NOTE: Omniscient databases probably don't want to keep large tabes
-  ;;       lolly-gagging about.  Keep internal Emacs tables empty and
-  ;;       refer to alternate databases when you need something.
-  nil)
+;;(defmethod semanticdb-get-tags ((table semanticdb-table-ebrowse ))
+;;  "Return the list of tags belonging to TABLE."
+;;  ;; NOTE: Omniscient databases probably don't want to keep large tabes
+;;  ;;       lolly-gagging about.  Keep internal Emacs tables empty and
+;;  ;;       refer to alternate databases when you need something.
+;;  nil)
 
 ;;; Search Overrides
 ;;
@@ -455,7 +514,7 @@ Return a list of tags."
     ;   ebrowse-for-all-trees ? ebrowse-position ?
 
     ; - convert all found structures to semantic format and return them
-    (jvebrowse-find table name nil)
+    (call-next-method) ;(jvebrowse-find table name nil)
     )
   )
 
@@ -554,7 +613,7 @@ Optional argument TAGS is a list of tags to search.
 Return a list of tags."
   (if tags (call-next-method)
     ;; YOUR IMPLEMENTATION HERE
-    (jvebrowse-find table regex t)
+    (call-next-method) ;(jvebrowse-find table regex t)
     ))
 
 (defmethod semanticdb-find-tags-for-completion-method
@@ -564,7 +623,7 @@ Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
   (if tags (call-next-method)
     ;; YOUR IMPLEMENTATION HERE
-    (jvebrowse-find table (concat "^" prefix ".*") t)
+    (call-next-method) ;(jvebrowse-find table (concat "^" prefix ".*") t)
     ))
 
 (defmethod semanticdb-find-tags-by-class-method
@@ -573,25 +632,27 @@ Returns a table of all matching tags."
 Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
   (if tags (call-next-method)
-    ;; YOUR IMPLEMENTATION HERE
-    ;;
-    ;; Note: This search method could be considered optional in an
-    ;;       omniscient database.  It may be unwise to return all tags
-    ;;       that exist for a language that are a variable or function.
-    ;;
-    ;; If it is optional, you can just delete this method.
+    (call-next-method)))
 
-    ;JAVE hack, will currently return all functions in the table
-    ; i think class can be 'function 'variable or 'type
-    (cond
-     ((eq class 'function)
-      (jvebrowse-find2 table ".*" t #'ebrowse-ts-member-functions))
-     ((eq class 'variable)
-      (jvebrowse-find2 table ".*" t #'ebrowse-ts-member-variables))
-     )
-    ;
-
-    ))
+;;    ;; YOUR IMPLEMENTATION HERE
+;;    ;;
+;;    ;; Note: This search method could be considered optional in an
+;;    ;;       omniscient database.  It may be unwise to return all tags
+;;    ;;       that exist for a language that are a variable or function.
+;;    ;;
+;;    ;; If it is optional, you can just delete this method.
+;;
+;;    ;JAVE hack, will currently return all functions in the table
+;;    ; i think class can be 'function 'variable or 'type
+;;    (cond
+;;     ((eq class 'function)
+;;      (jvebrowse-find2 table ".*" t #'ebrowse-ts-member-functions))
+;;     ((eq class 'variable)
+;;      (jvebrowse-find2 table ".*" t #'ebrowse-ts-member-variables))
+;;     )
+;;    ;
+;;
+;;    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -603,28 +664,29 @@ Returns a table of all matching tags."
 ;; above.
 ;;
 
-
-
 (defmethod semanticdb-deep-find-tags-by-name-method
   ((table semanticdb-table-ebrowse) name &optional tags)
   "Find all tags name NAME in TABLE.
 Optional argument TAGS is a list of tags t
 Like `semanticdb-find-tags-by-name-method' for ebrowse."
-  (semanticdb-find-tags-by-name-method table name tags))
+  ;;(semanticdb-find-tags-by-name-method table name tags)
+  (call-next-method))
 
 (defmethod semanticdb-deep-find-tags-by-name-regexp-method
   ((table semanticdb-table-ebrowse) regex &optional tags)
   "Find all tags with name matching REGEX in TABLE.
 Optional argument TAGS is a list of tags to search.
 Like `semanticdb-find-tags-by-name-method' for ebrowse."
-  (semanticdb-find-tags-by-name-regexp-method table regex tags))
+  ;;(semanticdb-find-tags-by-name-regexp-method table regex tags)
+  (call-next-method))
 
 (defmethod semanticdb-deep-find-tags-for-completion-method
   ((table semanticdb-table-ebrowse) prefix &optional tags)
   "In TABLE, find all occurances of tags matching PREFIX.
 Optional argument TAGS is a list of tags to search.
 Like `semanticdb-find-tags-for-completion-method' for ebrowse."
-  (semanticdb-find-tags-for-completion-method table prefix tags))
+  ;;(semanticdb-find-tags-for-completion-method table prefix tags)
+  (call-next-method))
 
 ;;; Advanced Searches
 ;;
@@ -634,13 +696,9 @@ Like `semanticdb-find-tags-for-completion-method' for ebrowse."
 Optional argument TAGS is a list of tags to search.
 Return a list of tags."
   (if tags (call-next-method)
-    ;; YOUR IMPLEMENTATION HERE
-    ;;
-    ;; OPTIONAL: This could be considered an optional function.  It is
-    ;;       used for `semantic-adopt-external-members' and may not
-    ;;       be possible to do in your language.
-    ;;
-    ;; If it is optional, you can just delete this method.
+    ;; The nature of the ebrowse struct, and that we throw away the
+    ;; details indicates that this function can't be written
+    nil
     ))
 
 ;;; TESTING
@@ -669,7 +727,21 @@ run the test again..")
     )
   
   )
-  
+
+(defun semanticdb-ebrowse-dump ()
+  "Find the first loaded ebrowse table, and dump out the contents."
+  (interactive)
+  (let ((db semanticdb-database-list))
+    (while db
+      (when (semanticdb-project-database-ebrowse-p (car db))
+	(pop-to-buffer "*semanticdb ebrowse dump*")
+	(require 'pp)
+	(erase-buffer)
+	(insert (pp-to-string (car db)))
+	(goto-char (point-min))
+	(setq db nil)
+	)
+      (setq db (cdr db)))))
 
 (provide 'semanticdb-ebrowse)
 
