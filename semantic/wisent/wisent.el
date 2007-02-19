@@ -1,12 +1,12 @@
 ;;; wisent.el --- GNU Bison for Emacs - Runtime
 
-;; Copyright (C) 2002, 2003, 2004, 2005, 2006 David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.36 2006/03/27 09:05:04 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.37 2007/02/19 13:39:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -62,8 +62,8 @@
 
 ;;; Compatibility
 (if (fboundp 'char-valid-p)
-    (defalias 'wisent-char-p 'char-valid-p)
-  (defalias 'wisent-char-p 'char-or-char-int-p))
+    (eval-and-compile (defalias 'wisent-char-p 'char-valid-p))
+  (eval-and-compile (defalias 'wisent-char-p 'char-or-char-int-p)))
 
 ;;; Printed representation of terminals and nonterminals
 (defconst wisent-escape-sequence-strings
