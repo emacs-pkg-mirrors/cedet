@@ -1,6 +1,6 @@
 ;;; wisent-comp.el --- GNU Bison for Emacs - Grammar compiler
 
-;; Copyright (C) 2002, 2003, 2004, 2005, 2006 David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 David Ponce
 ;; Copyright (C) 1984, 1986, 1989, 1992, 1995, 2000, 2001
 ;; Free Software Foundation, Inc. (Bison)
 
@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.25 2006/03/27 09:04:23 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.26 2007/02/19 13:38:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2885,7 +2885,7 @@ Also warn if X is a $N or $regionN symbol with N < 1 or N > M."
   (when (symbolp x)
     (let* ((n (symbol-name x))
            (i (and (string-match "\\`\\$\\(region\\)?\\([0-9]+\\)\\'" n)
-                   (string-to-int (match-string 2 n)))))
+                   (string-to-number (match-string 2 n)))))
       (when i
         (if (and (>= i 1) (<= i m))
             t
