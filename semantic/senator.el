@@ -1,12 +1,12 @@
 ;;; senator.el --- SEmantic NAvigaTOR
 
-;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006 by David Ponce
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.115 2006/07/29 15:09:38 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.116 2007/02/19 02:55:09 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -96,6 +96,7 @@
 (require 'semantic-imenu)
 (eval-when-compile
   (require 'semanticdb)
+  (require 'semanticdb-find)
   (require 'cl)
   )
 
