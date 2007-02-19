@@ -1,12 +1,12 @@
 ;;; bovine-grammar.el --- Bovine's input grammar mode
 ;;
-;; Copyright (C) 2002, 2003, 2004 David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2007 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.19 2005/09/30 20:21:43 zappo Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.20 2007/02/19 13:34:13 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -126,7 +126,7 @@ expanded from elsewhere."
                     (insert ")")
                     (setq inlist nil)))
                   (insert "\n(nth " (int-to-string
-                                     (1- (string-to-int
+                                     (1- (string-to-number
                                           (substring n 1))))
                           " vals)")
                   (and (not x) (not inplace)
@@ -305,7 +305,7 @@ manual."
                   (insert (semantic-grammar-item-text item)))
                  ))))
           (if prec
-              (message "%prec %S ignored" prec))
+              (message "%%prec %S ignored" prec))
           (if actn
               (bovine-grammar-expand-action actn quotemode))
           (insert ")"))
