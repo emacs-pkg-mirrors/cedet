@@ -1,10 +1,10 @@
 ;;; semantic-sb.el --- Semantic tag display for speedbar
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.57 2006/07/29 15:06:19 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.58 2007/02/19 02:52:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -257,7 +257,7 @@ Optional MODIFIERS is additional text needed for variables."
   (save-excursion
     (beginning-of-line)
     (let ((dep (if (looking-at "[0-9]+:")
-		   (1- (string-to-int (match-string 0)))
+		   (1- (string-to-number (match-string 0)))
 		 0)))
       (re-search-backward (concat "^"
 				  (int-to-string dep)
