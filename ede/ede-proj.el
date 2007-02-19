@@ -1,10 +1,10 @@
 ;;; ede-proj.el --- EDE Generic Project file driver
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2007  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.46 2005/09/30 20:16:49 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.47 2007/02/19 13:46:45 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -257,8 +257,8 @@ making a tar file.")
       (set-buffer (get-buffer-create " *tmp proj read*"))
       (unwind-protect
 	  (progn
-	    (erase-buffer)
-	    (insert-file (concat project "Project.ede"))
+	    (insert-file-contents (concat project "Project.ede")
+				  nil nil nil t)
 	    (goto-char (point-min))
 	    (setq ret (read (current-buffer)))
 	    (if (not (eq (car ret) 'ede-proj-project))
