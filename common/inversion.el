@@ -1,9 +1,9 @@
 ;;; inversion.el --- When you need something in version XX.XX
 
-;;; Copyright (C) 2002, 2003, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.29 2006/02/09 01:40:39 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.30 2007/02/19 13:41:45 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.3"
@@ -110,7 +110,7 @@ where RELEASE is a symbol such as `full', or `beta'."
 	    (while (<= count num-left)
 	      (setq ver (cons
 			 (if (match-beginning count)
-			     (string-to-int
+			     (string-to-number
 			      (substring version-string
 					 (match-beginning count)
 					 (match-end count)))
@@ -328,6 +328,7 @@ Optional argument RESERVED is saved for later use."
   '("(def\\(var\\|const\\)\\s-+%s-%s\\s-+\"\\([^\"]+\\)" 2)
   "Regexp template and match data index of a version string.")
 
+;;;###autoload
 (defun inversion-find-version (package)
   "Search for the version and incompatible version of PACKAGE.
 Does not load PACKAGE nor requires that it has been previously loaded.
@@ -358,6 +359,7 @@ Return nil when VERSION-STRING was not found."
 	    (setcdr version (match-string idx))))))
     version))
 
+;;;###autoload
 (defun inversion-add-to-load-path (package minimum
 					   &optional installdir
 					   &rest subdirs)
