@@ -1,12 +1,12 @@
 ;;; cedet.el --- Setup CEDET environment
 
-;; Copyright (C) 2002, 2003, 2004, 2005, 2006 by David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.19 2006/02/08 04:19:07 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.20 2007/02/19 13:40:54 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -76,7 +76,8 @@
 
 ;;; Code:
 (eval-when-compile
-  (require 'cl))
+  (require 'cl)
+  )
 
 (defconst cedet-version "1.0"
   "Current version of CEDET.")
@@ -93,6 +94,46 @@
     (cedet-contrib "1.0"          "contrib" )
     )
   "Table of CEDET packages to install.")
+
+;; This file must be in "<INSTALL-DIR>/cedet/common"!
+(let ((default-directory
+        (file-name-directory
+         (or load-file-name (buffer-file-name)))))
+  
+  ;; Add "<INSTALL-DIR>/cedet/common" to `load-path'.
+  (add-to-list 'load-path default-directory)
+  (message "%S added to `load-path'" default-directory)
+  ;; Require the inversion library.
+  (require 'inversion)
+  
+  ;; Go up to the parent "<INSTALL-DIR>/cedet" directory.
+  (let ((default-directory (expand-file-name ".."))
+        package min-version installdir)
+
+    ;; Add the CEDET packages subdirectories to the `load-path' if
+    ;; necessary.
+    (dolist (package-spec cedet-packages)
+      (setq package     (nth 0 package-spec)
+            min-version (nth 1 package-spec)
+            installdir  (nth 2 package-spec))
+      (when installdir
+        (setq installdir (expand-file-name installdir)))
+      (inversion-add-to-load-path package min-version installdir))
+
+    ;; Then run every package setup.
+    (dolist (package-spec cedet-packages)
+      (setq package (nth 0 package-spec))
+      (message "Setting up %s..." package)
+      (condition-case err
+          (progn
+            (require (intern (format "%s-load" package)))
+            (message "Setting up %s...done" package))
+        (error
+         (message "%s" (error-message-string err)))))
+    ))
+
+(eval-when-compile
+  (require 'inversion))
 
 (defun cedet-version ()
   "Display all active versions of CEDET and Dependant packages.
@@ -146,43 +187,6 @@ if the package has not been loaded."
 	    ))
 	(setq p (cdr p))))
     (princ "\n\n\nC-h f cedet-version RET\n  for details on output format.")
-    ))
-
-;; This file must be in "<INSTALL-DIR>/cedet/common"!
-(let ((default-directory
-        (file-name-directory
-         (or load-file-name (buffer-file-name)))))
-  
-  ;; Add "<INSTALL-DIR>/cedet/common" to `load-path'.
-  (add-to-list 'load-path default-directory)
-  (message "%S added to `load-path'" default-directory)
-  ;; Require the inversion library.
-  (require 'inversion)
-  
-  ;; Go up to the parent "<INSTALL-DIR>/cedet" directory.
-  (let ((default-directory (expand-file-name ".."))
-        package min-version installdir)
-
-    ;; Add the CEDET packages subdirectories to the `load-path' if
-    ;; necessary.
-    (dolist (package-spec cedet-packages)
-      (setq package     (nth 0 package-spec)
-            min-version (nth 1 package-spec)
-            installdir  (nth 2 package-spec))
-      (when installdir
-        (setq installdir (expand-file-name installdir)))
-      (inversion-add-to-load-path package min-version installdir))
-
-    ;; Then run every package setup.
-    (dolist (package-spec cedet-packages)
-      (setq package (nth 0 package-spec))
-      (message "Setting up %s..." package)
-      (condition-case err
-          (progn
-            (require (intern (format "%s-load" package)))
-            (message "Setting up %s...done" package))
-        (error
-         (message "%s" (error-message-string err)))))
     ))
 
 (provide 'cedet)
