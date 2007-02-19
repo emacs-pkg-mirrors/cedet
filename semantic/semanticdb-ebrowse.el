@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.9 2007/02/19 14:04:22 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.10 2007/02/19 14:20:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -484,16 +484,6 @@ return that."
 	(setq tags (cdr tags))))
     tagret))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-;;(defmethod semanticdb-get-tags ((table semanticdb-table-ebrowse ))
-;;  "Return the list of tags belonging to TABLE."
-;;  ;; NOTE: Omniscient databases probably don't want to keep large tabes
-;;  ;;       lolly-gagging about.  Keep internal Emacs tables empty and
-;;  ;;       refer to alternate databases when you need something.
-;;  nil)
-
 ;;; Search Overrides
 ;;
 ;; NOTE WHEN IMPLEMENTING: Be sure to add doc-string updates explaining
@@ -507,104 +497,12 @@ Return a list of tags."
   (if tags
       ;; If TAGS are passed in, then we don't need to do work here.
       (call-next-method)
-    ;;JAVE currently a "table" is a list of ebrowse trees, slot ebrowse-tree, associated with a file
-    ;TODO here:
-    ; - search until name is found(no apropriate ebrowse utils where found)
-    ;   ebrowse-view/find-file-and-search-pattern (only works on buffers)?
-    ;   ebrowse-for-all-trees ? ebrowse-position ?
-
-    ; - convert all found structures to semantic format and return them
-    (call-next-method) ;(jvebrowse-find table name nil)
+    ;; If we ever need to do something special, add here.
+    ;; Since ebrowse tags are converted into semantic tags, we can
+    ;; get away with this sort of thing.
+    (call-next-method)
     )
   )
-
-(defun jvebrowse-find (table name doregex)
-  "Search routine that looks through EBROWSE tables."
-  (append (jvebrowse-find2 table name doregex   #'ebrowse-ts-member-functions )
-          (jvebrowse-find2 table name doregex   #'ebrowse-ts-member-variables ))
-  )
-
-(defun jvebrowse-find2 (table name doregex memberfunction)
-  "Search through the ebrowse table TABLE.
-NAME is the name to find.
-DOREGEX indicates if NAME is a regular expression to find.
-MEMBERFUNCTION indicates a function to use to extract a table from the
-ebrowse structure."
-  (let*
-        ( ;(etrees (oref table ebrowse-tree))
-	 ;; EML - This captures global variables for sure.  I don't know
-	 ;; what is in the file specific version.  It looks kind of the same,
-	 ;; but not.. Hmmm.
-          (etrees (list (oref table global-extract)))
-          (result nil)
-          (filename (oref table file))
-          )
-      (while etrees ;this style of imperative iteration is imho lame and i should find a better functional counterpart JAVE
-        (setq result (append
-                      (jvebrowse-find-name name (funcall memberfunction  (car etrees)) doregex);only search member functions, for now...
-                      result))
-        (setq etrees (cdr etrees))
-        )
-      ;;result is a list of ebrowse-ms structures, and should now be
-      ;;converted to semantic tags:
-      ;;for each result:
-      ; (semantic-tag-new-function name return_type :filename where_tag_is_defined )
-      ; the definition-point need probably be propagated through the tag-overlay part
-      (mapcar (lambda (x)
-                (let*
-                    ((tag (semantic-tag-new-function
-                           (ebrowse-ms-name x) nil nil))
-                     (defpoint (ebrowse-ms-definition-point x))
-                     )
-		  (semantic--tag-put-property tag :filename filename)
-		  (semantic-tag-set-faux tag)
-                  (semantic--tag-set-overlay
-		   tag
-		   (vector defpoint defpoint)) ;... and im unsure of this
-                tag)
-                )
-              result)
-    )
-  )
-
-;;; easy to understand recursive version
-;; crashes
-;; (defun jvebrowse-find-name (name  members doregex)
-;;   "find all NAME on MEMBERS
-;; MEMBERS is of the type returned by ebrowse-ts-member-* on a ebrowse tree struct
-;; "
-;;   (cond
-;;    ((null (car members)) nil)
-;;    ( (if doregex
-;;          (string-match name (aref (car members) 1))
-;;          (string-equal name (aref (car members) 1)))
-;;      (cons (car members)   (jvebrowse-find-name  name (cdr members) doregex) )
-;;      )
-;;    (t (jvebrowse-find-name  name (cdr members) doregex))
-;;    )
-;;   )
-
-
-;iterative redefine version
-(defun jvebrowse-find-name (name  members doregex)
-  "Find all NAME on MEMBERS.
-Optional DOREGEX specifies if a regex search should be done.
-MEMBERS is of the type returned by ebrowse-ts-member-* on a ebrowse tree struct"
-  (let*
-      ((result nil))
-    (while members
-      (if (if doregex
-              (string-match name (aref (car members) 1))
-            (string-equal name (aref (car members) 1)))
-          (setq result (cons (car members) result))
-        )
-      (setq members (cdr members))
-      )
-    result)
-  )
-
-
-
 
 (defmethod semanticdb-find-tags-by-name-regexp-method
   ((table semanticdb-table-ebrowse) regex &optional tags)
@@ -613,7 +511,7 @@ Optional argument TAGS is a list of tags to search.
 Return a list of tags."
   (if tags (call-next-method)
     ;; YOUR IMPLEMENTATION HERE
-    (call-next-method) ;(jvebrowse-find table regex t)
+    (call-next-method)
     ))
 
 (defmethod semanticdb-find-tags-for-completion-method
@@ -623,7 +521,7 @@ Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
   (if tags (call-next-method)
     ;; YOUR IMPLEMENTATION HERE
-    (call-next-method) ;(jvebrowse-find table (concat "^" prefix ".*") t)
+    (call-next-method)
     ))
 
 (defmethod semanticdb-find-tags-by-class-method
@@ -634,28 +532,7 @@ Returns a table of all matching tags."
   (if tags (call-next-method)
     (call-next-method)))
 
-;;    ;; YOUR IMPLEMENTATION HERE
-;;    ;;
-;;    ;; Note: This search method could be considered optional in an
-;;    ;;       omniscient database.  It may be unwise to return all tags
-;;    ;;       that exist for a language that are a variable or function.
-;;    ;;
-;;    ;; If it is optional, you can just delete this method.
-;;
-;;    ;JAVE hack, will currently return all functions in the table
-;;    ; i think class can be 'function 'variable or 'type
-;;    (cond
-;;     ((eq class 'function)
-;;      (jvebrowse-find2 table ".*" t #'ebrowse-ts-member-functions))
-;;     ((eq class 'variable)
-;;      (jvebrowse-find2 table ".*" t #'ebrowse-ts-member-variables))
-;;     )
-;;    ;
-;;
-;;    ))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 ;;; Deep Searches
 ;;
@@ -696,8 +573,8 @@ Like `semanticdb-find-tags-for-completion-method' for ebrowse."
 Optional argument TAGS is a list of tags to search.
 Return a list of tags."
   (if tags (call-next-method)
-    ;; The nature of the ebrowse struct, and that we throw away the
-    ;; details indicates that this function can't be written
+    ;; Ebrowse collects all this type of stuff together for us.
+    ;; but we can't use it.... yet.
     nil
     ))
 
