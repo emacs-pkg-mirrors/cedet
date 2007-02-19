@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.46 2007/01/25 18:24:30 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.47 2007/02/19 13:36:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -86,7 +86,7 @@ Uses known macro tables in SPP to determine what block to skip."
 		 (semantic-lex-spp-symbol-p sym)))
 	;; The if indecates to skip this preprocessor section
 	(progn
-	  (message "%s %s yes" ift sym)
+	  ;; (message "%s %s yes" ift sym)
 	  (beginning-of-line)
 	  (c-forward-conditional 1)
 	  (setq semantic-lex-end-point (point))
@@ -100,7 +100,8 @@ Uses known macro tables in SPP to determine what block to skip."
 ;;; Compatibility
 ;;
 (if (fboundp 'c-end-of-macro)
-    (defalias 'semantic-c-end-of-macro 'c-end-of-macro)
+    (eval-and-compile
+      (defalias 'semantic-c-end-of-macro 'c-end-of-macro))
   ;; From cc-mode 5.30
   (defun semantic-c-end-of-macro ()
     "Go to the end of a preprocessor directive.
