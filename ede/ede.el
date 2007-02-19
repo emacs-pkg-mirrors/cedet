@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.74 2007/02/18 17:56:00 zappo Exp $
+;; RCS: $Id: ede.el,v 1.75 2007/02/19 13:45:27 zappo Exp $
 (defconst ede-version "1.0"
   "Current version of the Emacs EDE.")
 
@@ -461,6 +461,7 @@ Argument LIST-O-O is the list of objects to choose from."
 
 ;;; Menu and Keymap
 ;;
+;;;###autoload
 (defvar ede-minor-mode nil
   "Non-nil in EDE controlled buffers.")
 (make-variable-buffer-local 'ede-minor-mode)
@@ -1242,6 +1243,7 @@ Do a quick check to see if there is a Header tag in this buffer."
 		src (cdr src)))
 	found))))
 
+;;;###autoload
 (defun ede-documentation-files ()
   "Return the documentation files for the current buffer.
 Not all buffers need documentations, so return nil if no applicable.
