@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.40 2007/02/18 22:37:17 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.41 2007/02/19 13:47:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -661,6 +661,7 @@ a reasonable distance."
     ;; If something goes terribly wrong, clean up after ourselves.
     (error (semantic-complete-inline-exit))))
 
+;;;###autoload
 (defun semantic-complete-inline-force-display ()
   "Force the display of whatever the current completions are.
 DO NOT CALL THIS IF THE INLINE COMPLETION ENGINE IS NOT ACTIVE."
