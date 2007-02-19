@@ -1,10 +1,10 @@
 ;;; semantic-ctxt.el --- Context calculations for Semantic tools.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.42 2006/04/06 22:29:11 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.43 2007/02/19 13:48:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,6 +37,7 @@
 
 ;;; Code:
 ;;
+;;;###autoload
 (defvar semantic-command-separation-character
  ";"
   "String which indicates the end of a command.
