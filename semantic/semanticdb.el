@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.79 2007/02/15 19:39:39 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.80 2007/02/19 13:49:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -69,6 +69,7 @@ on or off."
 Tools wanting to specify the file names of the semantic database
 use this.")
 
+;;;###autoload
 (defvar semanticdb-current-database nil
   "For a given buffer, this is the currently active database.")
 (make-variable-buffer-local 'semanticdb-current-database)
@@ -209,13 +210,13 @@ If the buffer is not in memory, load it with `find-file-noselect'."
 If OBJ's file is not loaded, read it in first."
   (set-buffer (semanticdb-get-buffer obj)))
 
-(defmethod semanticdb-normalize-tag ((obj semanticdb-abstract-table) tag)
-  "Convert a tag, originating from the table OBJ, into standardized form.
-The default is to return TAG.
+(defmethod semanticdb-normalize-tags ((obj semanticdb-abstract-table) tags)
+  "For the table OBJ, convert a list of TAGS, into standardized form.
+The default is to return TAGS.
 Some databases may default to searching and providing simplified tags
 based on whichever technique used.  This method provides a hook for
 them to convert TAG into a more complete form."
-  tag)
+  tags)
 
 (defmethod semanticdb-refresh-table ((obj semanticdb-table))
   "If the tag list associated with OBJ is loaded, refresh it.
@@ -292,6 +293,7 @@ Uses `semanticdb-persistent-path' to determine the return value."
 ;;
 ;; What is the current database, are two tables of an equivalent mode,
 ;; and what databases are a part of the same project.
+;;;###autoload
 (defun semanticdb-current-database ()
   "Return the currently active database."
   (or semanticdb-current-database
@@ -300,6 +302,16 @@ Uses `semanticdb-persistent-path' to determine the return value."
 				       default-directory)
 	   )
       nil))
+
+(defmethod semanticdb-equivalent-mode-for-search (table &optional buffer)
+  "Return non-nil if TABLE's mode is equivalent to BUFFER.
+See `semanticdb-equivalent-mode' for details.
+This version is used during searches.  Major-modes that opt
+to set the `semantic-match-any-mode' property will be able to search
+all files of any type."
+  (or (get major-mode 'semantic-match-any-mode)
+      (semanticdb-equivalent-mode table buffer))
+  )
 
 (defmethod semanticdb-equivalent-mode ((table semanticdb-abstract-table) &optional buffer)
   "Return non-nil if TABLE's mode is equivalent to BUFFER.
@@ -318,7 +330,8 @@ local variable."
      (and (not semantic-equivalent-major-modes)
 	  (eq major-mode (oref table major-mode)))
      (and semantic-equivalent-major-modes
-	  (member (oref table major-mode) semantic-equivalent-major-modes)))
+	  (member (oref table major-mode) semantic-equivalent-major-modes))
+     )
     ))
 
 (defvar semanticdb-dir-sep-char (if (boundp 'directory-sep-char)
