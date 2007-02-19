@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.14 2007/02/18 22:43:48 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.15 2007/02/19 02:53:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,9 +29,6 @@
 ;; These routines will find those files.
 
 (require 'semantic-tag)
-
-(eval-when-compile
-  (require 'ede))
 
 ;;; Code:
 
