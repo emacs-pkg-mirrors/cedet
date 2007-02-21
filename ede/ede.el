@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.75 2007/02/19 13:45:27 zappo Exp $
+;; RCS: $Id: ede.el,v 1.76 2007/02/21 00:33:37 zappo Exp $
 (defconst ede-version "1.0"
   "Current version of the Emacs EDE.")
 
@@ -900,6 +900,10 @@ ARGS are additional arguments to pass to method sym."
   (project-add-file target (buffer-file-name))
   (setq ede-object nil)
   (setq ede-object (ede-buffer-object (current-buffer)))
+  (when (not ede-object)
+    (error "Can't add %s to target %s: Wrong file type"
+	   (file-name-nondirectory (buffer-file-name))
+	   (object-name target)))
   (ede-apply-object-keymap))
 
 ;;;###autoload
