@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.10 2007/02/19 14:20:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.11 2007/02/21 22:57:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,12 +41,16 @@
 ;; COMMANDS:
 ;; `semanticdb-create-ebrowse-database' - Call EBROWSE to create a
 ;;       system database for some directory.  In general, use this for
-;;       system libraries, such as /usr/include, or the like.
+;;       system libraries, such as /usr/include, or include directories
+;;       large software projects.
+;;       Customize `semanticdb-ebrowse-file-match' to make sure the correct
+;;       file extensions are matched.
 ;;
 ;; `semanticdb-load-ebrowse-caches' - Load all the EBROWSE caches from
 ;;       your semanticdb system database directory.  Once they are
 ;;       loaded, they become searchable as omnipotent databases for
-;;       all C++ files.
+;;       all C++ files.  This is called automatically by semantic-load.
+;;       Call it a second time to refresh the Emacs DB with the file.
 ;;
 
 (require 'semanticdb-search)
@@ -67,6 +71,29 @@
 (defvar semanticdb-ebrowse-default-file-name "BROWSE"
   "The EBROWSE file name used for system caches.")
 
+(defcustom semanticdb-ebrowse-file-match "\\.\\(hh?\\|HH?\\|hpp\\)"
+  "Regular expression matching file names for ebrowse to parse.
+This expression should exclude C++ headers that have no extension.
+By default, include only headers since the semantic use of EBrowse
+is only for searching via semanticdb, and thus only headers would
+be searched."
+  :group 'semanticdb
+  :type 'string)
+
+(defun semanticdb-ebrowse-C-file-p (file)
+  "Is FILE a C or C++ file?"
+  (or (string-match semanticdb-ebrowse-file-match file)
+      (and (string-match "/\\w+$" file)
+	   (not (file-directory-p file))
+	   (let ((tmp (get-buffer-create "*semanticdb-ebrowse-tmp*")))
+	     (save-excursion
+	       (set-buffer tmp)
+	       (insert-file-contents file nil 0 100 t)
+	       (goto-char (point-min))
+	       (looking-at "\\s-*/\\(\\*\\|/\\)")
+	       ))
+	   )))
+
 ;;;###autoload
 (defun semanticdb-create-ebrowse-database (dir)
   "Create an EBROSE database for directory DIR.
@@ -75,30 +102,16 @@ is specified by `semanticdb-default-system-save-directory'."
   (interactive "DDirectory: ")
   (let* ((savein (semanticdb-ebrowse-file-for-directory dir))
 	 (filebuff (get-buffer-create "*SEMANTICDB EBROWSE TMP*"))
-	 (files (directory-files (expand-file-name dir)))
+	 (files (directory-files (expand-file-name dir) t))
 	 (mma auto-mode-alist)
 	 (regexp nil)
 	 )
-    ;; Calculate the regular expression for matching files
-    (while mma
-      (when (or (eq (cdr (car mma)) 'c++-mode)
-		(eq (cdr (car mma)) 'c-mode))
-	;; (setq regexps (cons (car (car mma)) regexps))
-	(if (stringp regexp)
-	    (setq regexp (concat regexp "\\|"))
-	  (setq regexp ""))
-	(setq regexp (concat regexp "\\(" (car (car mma)) "\\)"))
-	)
-      (setq mma (cdr mma)))
-    ;; some C++ headers have no extension.  How annoying.
-    ;; This regexp assumes
-    (setq regexp (concat regexp "\\|\\(\\(^\\|/\\)\\w+$\\)"))
     ;; Create the input to the ebrowse command
     (save-excursion
       (set-buffer filebuff)
       (setq default-directory (expand-file-name dir))
       (mapcar (lambda (f)
-		(when (string-match regexp f)
+		(when (semanticdb-ebrowse-C-file-p f)
 		  (insert f)
 		  (insert "\n")))
 	      files)
