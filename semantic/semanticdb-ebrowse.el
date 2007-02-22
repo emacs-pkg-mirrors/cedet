@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.11 2007/02/21 22:57:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.12 2007/02/22 01:50:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -399,7 +399,8 @@ Optional argument BASECLASSES specifyies a baseclass to the tree being provided.
   (let* ((tab (or (semanticdb-file-table dbe fname)
 		  (semanticdb-create-table dbe fname)))
 	 (class (ebrowse-ts-class tree))
-	 (ns (split-string (ebrowse-cs-scope class) ":" t))
+	 (scope (ebrowse-cs-scope class))
+	 (ns (when scope (split-string scope ":" t)))
 	 (nst nil)
 	 (cls nil)
 	 )
@@ -430,7 +431,8 @@ Optional argument BASECLASSES specifyies a baseclass to the tree being provided.
     (if nst
 	(semantic-tag-put-attribute
 	 nst :members (cons cls (semantic-tag-get-attribute nst :members)))
-      (oset tab tags (cons cls (oref tab tags))))
+      (oset tab tags (cons cls (when (slot-boundp tab 'tags)
+				 (oref tab tags)))))
 
     ;; 5 - Subclasses
     (let* ((subclass (ebrowse-ts-subclasses tree))
