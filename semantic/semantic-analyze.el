@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.47 2007/01/28 02:39:25 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.48 2007/02/22 03:28:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -231,7 +231,7 @@ or a string, or a non-positional tag."
 	   (car tt))
 	  (t nil))))
 
-(define-overload semantic-analyze-dereference-metatype (type)
+(define-overload semantic-analyze-dereference-metatype (type scope)
   "Return a concrete type tag based on input TYPE tag.
 A concrete type is an actual declaration of a memory description,
 such as a structure, or class.  A meta type is an alias,
@@ -240,7 +240,8 @@ is returned.  If it is a meta type, it will return the concrete
 type defined by TYPE.
 The default behavior always returns TYPE.
 Override functions need not return a real semantic tag.
-Just a name, or short tag will be ok.  It will be expanded here."
+Just a name, or short tag will be ok.  It will be expanded here.
+SCOPE is the additional scope in which to search for names."
   (catch 'default-behavior
     (let ((ans (:override
                 ;; Nothing fancy, just return type be default.
@@ -248,7 +249,7 @@ Just a name, or short tag will be ok.  It will be expanded here."
       ;; If ANS is a string, or if ANS is a short tag, we
       ;; need to do some more work to look it up.
       (cond ((stringp ans)
-             (semantic-analyze-find-tag ans))
+             (semantic-analyze-find-tag ans nil scope))
             ((and (semantic-tag-p ans)
                   (eq (semantic-tag-class ans) 'type)
                   (semantic-tag-type-members ans))
@@ -257,15 +258,16 @@ Just a name, or short tag will be ok.  It will be expanded here."
                   (eq (semantic-tag-class ans) 'type)
                   (not (semantic-tag-type-members ans)))
              (semantic-analyze-find-tag
-              (semantic-tag-name ans)))
+              (semantic-tag-name ans) nil scope))
             (t nil)))))
 
-(defun semantic-analyze-tag-type (tag)
+(defun semantic-analyze-tag-type (tag scope)
   "Return the semantic tag for a type within the type of TAG.
 TAG can be a variable, function or other type of tag.
 The type of tag (such as a class or struct) is a name.
 Lookup this name in database, and return all slots/fields
-within that types field.  Also handles anonymous types."
+within that types field.  Also handles anonymous types.
+SCOPE represents a calculated scope in which the types might be found."
   (let ((ttype (semantic-tag-type tag))
 	(name nil)
 	(typetag nil)
@@ -280,13 +282,13 @@ within that types field.  Also handles anonymous types."
 	     )
 	;; We have an anonymous type for TAG with children.
 	;; Use this type directly.
-	(semantic-analyze-dereference-metatype ttype)
+	(semantic-analyze-dereference-metatype ttype scope)
 
       ;; Not an anonymous type.  Look up the name of this type
       ;; elsewhere, and report back.
       (setq name (semantic-analyze-tag-type-to-name tag))
       (if (and name (not (string= name "")))
-	  (setq typetag (semantic-analyze-find-tag name))
+	  (setq typetag (semantic-analyze-find-tag name nil scope))
 	;; No name to look stuff up with.
 	(error "Semantic tag %S has no type information"
 	       (semantic-tag-name ttype)))
@@ -309,11 +311,12 @@ within that types field.  Also handles anonymous types."
 	      (setq taglist (cdr taglist)))))
 
       ;; We now have a tag associated with the type.
-      (semantic-analyze-dereference-metatype typetag))))
+      (semantic-analyze-dereference-metatype typetag scope))))
 
 ;;; Tag Sequences
 ;;
-(defun semantic-analyze-find-tag-sequence (sequence &optional localvar scope typereturn)
+(defun semantic-analyze-find-tag-sequence (sequence &optional localvar
+						    scope typereturn)
   "Attempt to find all tags in SEQUENCE.
 Optional argument LOCALVAR is the list of local variables to use when
 finding the details on the first element of SEQUENCE in case
@@ -321,7 +324,7 @@ it is not found in the global set of tables.
 Optional argument SCOPE are additional terminals to search which are currently
 scoped.  These are not local variables, but symbols available in a structure
 which doesn't need to be dereferneced.
-Optional argument TYPERETURN is a symbol ini which the types of all found
+Optional argument TYPERETURN is a symbol in which the types of all found
 will be stored.  If nil, that data is thrown away."
   (let ((s sequence)			;copy of the sequence
 	(tmp nil)			;tmp find variable
@@ -365,7 +368,7 @@ will be stored.  If nil, that data is thrown away."
 	     (cond ((eq (semantic-tag-class tmp) 'type)
 		    tmp)
 		   (t
-		    (semantic-analyze-tag-type tmp))))
+		    (semantic-analyze-tag-type tmp scope))))
 	    (slots nil))
 	
 	;; Get the children
@@ -469,16 +472,30 @@ Tags returned are not in the global name space, but are instead
 scoped inside a class or namespace.  Such items can be referenced
 without use of \"object.function()\" style syntax due to an
 implicit \"object\"."
-  (let ((currentscope nil))
+  (let ((typelist2 nil)
+	(currentscope nil))
+    ;; Loop over typelist, and find and merge all namespaces matching
+    ;; the names in typelist.
+    (while typelist
+      (if (string= (semantic-tag-type (car typelist)) "namespace")
+	  (setq typelist2 (cons (semantic-analyze-find-tag
+				 (semantic-tag-name (car typelist))
+				 'type
+				 typelist2)
+				typelist2))
+	;; No namespace, just append...
+	(setq typelist2 (cons (car typelist) typelist2)))
+      (setq typelist (cdr typelist)))
+
     ;; Loop over the types (which should be sorted by postion
     ;; adding to the scopelist as we go, and using the scopelist
     ;; for additional searching!
-    (while typelist
+    (while typelist2
       (setq currentscope (append
 			  currentscope
-			  (semantic-analyze-type-parts (car typelist)
+			  (semantic-analyze-type-parts (car typelist2)
 						       currentscope)))
-      (setq typelist (cdr typelist)))
+      (setq typelist2 (cdr typelist2)))
     currentscope))
 
 (defun semantic-analyze-scope-nested-tags (&optional position scopetypes)
