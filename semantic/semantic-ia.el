@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.13 2007/02/06 01:22:56 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.14 2007/02/22 03:32:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -115,27 +115,30 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	 )
     ;; Complete this symbol.
     (if (not syms)
-	(error "No completions available"))
-    (let* ((menu
-            (mapcar
-             (lambda (tag)
-               (cons
-                (funcall semantic-ia-completion-menu-format-tag-function tag)
-                (vector tag)))
-             syms))
-           (ans
-            (imenu--mouse-menu
-             ;; XEmacs needs that the menu has at least 2 items.  So,
-             ;; include a nil item that will be ignored by imenu.
-             (cons nil menu)
-             (senator-completion-menu-point-as-event)
-             "Completions")))
-      (when ans
-	(if (not (semantic-tag-p ans))
-	    (setq ans (aref (cdr ans) 0)))
-	(delete-region (car (oref a bounds)) (cdr (oref a bounds)))
-	(semantic-ia-insert-tag ans))
-      )))
+	(progn
+	  (message "No smart completions found.  Trying Senator.")
+	  (if (semantic-analyze-context-p a)
+	      (senator-completion-menu-popup)))
+      (let* ((menu
+	      (mapcar
+	       (lambda (tag)
+		 (cons
+		  (funcall semantic-ia-completion-menu-format-tag-function tag)
+		  (vector tag)))
+	       syms))
+	     (ans
+	      (imenu--mouse-menu
+	       ;; XEmacs needs that the menu has at least 2 items.  So,
+	       ;; include a nil item that will be ignored by imenu.
+	       (cons nil menu)
+	       (senator-completion-menu-point-as-event)
+	       "Completions")))
+	(when ans
+	  (if (not (semantic-tag-p ans))
+	      (setq ans (aref (cdr ans) 0)))
+	  (delete-region (car (oref a bounds)) (cdr (oref a bounds)))
+	  (semantic-ia-insert-tag ans))
+	))))
 
 (defun semantic-ia-insert-tag (tag)
   "Insert TAG into the current buffer based on completion."
