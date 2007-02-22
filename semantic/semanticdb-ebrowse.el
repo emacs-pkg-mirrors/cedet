@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.12 2007/02/22 01:50:11 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.13 2007/02/22 22:46:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -132,11 +132,11 @@ is specified by `semanticdb-default-system-save-directory'."
       (save-excursion
 	(set-buffer lf)
 	(erase-buffer)
-	(insert "(semanticdb-create-database "
-		"semanticdb-project-database-ebrowse \""
+	(insert "(semanticdb-ebrowse-load-helper \""
 		(expand-file-name dir)
 		"\")\n")
-	(save-buffer))
+	(save-buffer)
+	(kill-buffer (current-buffer)))
       (message "Creating ebrowse file: %s ... done" savein)
       ;; Reload that database
       (load lfn nil t)
@@ -149,12 +149,40 @@ is specified by `semanticdb-default-system-save-directory'."
   (let ((f (directory-files semanticdb-default-system-save-directory
 			    t (concat semanticdb-ebrowse-default-file-name "-load.el$") t)))
     (while f
-	;;(semanticdb-load-database (car f)))
       (load (car f) nil t)
-      ;; NOTE FOR THE FUTURE: Verify the system was not expanded for
-      ;; each.  This may be slow.
       (setq f (cdr f)))
     ))
+
+;;;###autoload
+(defun semanticdb-ebrowse-load-helper (directory)
+  "Create the semanticdb database via ebrowse for directory.
+If DIRECTORY is found to be defunct, it won't load the DB, and will
+warn instead."
+  (if (file-directory-p directory)
+      (semanticdb-create-database semanticdb-project-database-ebrowse
+				  directory)
+    (let* ((BF (semanticdb-ebrowse-file-for-directory directory))
+	   (BFL (concat BF "-load.el"))
+	   (BFLB (concat BF "-load.el~")))
+      (save-window-excursion
+	(with-output-to-temp-buffer "*FILES TO DELETE*"
+	  (princ "The following BROWSE files are obsolete.\n\n")
+	  (princ BF)
+	  (princ "\n")
+	  (princ BFL)
+	  (princ "\n")
+	  (when (file-exists-p BFLB)
+	    (princ BFLB)
+	    (princ "\n"))
+	  )
+	(when (y-or-n-p (format
+			 "Warning: Obsolete BROWSE file for: %s\nDelete? "
+			 directory))
+	  (delete-file BF)
+	  (delete-file BFL)
+	  (when (file-exists-p BFLB)
+	    (delete-file BFLB))
+	  )))))
 
 ;;; SEMANTIC Database related Code
 ;;; Classes:
