@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.41 2007/02/19 13:47:48 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.42 2007/02/22 02:12:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1698,6 +1698,18 @@ will perform the completion."
 	   (not (semantic-completion-inline-active-p)))
       (message "Inline completion not needed."))
   )
+
+;;;###autoload
+(defun semantic-complete-self-insert (arg)
+  "Like `self-insert-command', but does completion afterwards.
+ARG is passed to `self-insert-command'.  If ARG is nil,
+use `semantic-complete-analyze-inline' to complete."
+  (interactive "p")
+  (self-insert-command arg)
+  (when (and (= arg 1)
+	     (semantic-analyze-current-context))
+    (semantic-complete-analyze-inline)
+    ))
 
 ;; End
 (provide 'semantic-complete)
