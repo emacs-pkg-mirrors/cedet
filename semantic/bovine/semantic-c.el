@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.47 2007/02/19 13:36:27 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.48 2007/02/22 03:26:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -573,7 +573,7 @@ handled.  A class is abstract iff it's destructor is virtual."
    (t (semantic-tag-abstract-p-default tag parent))))
 
 (define-mode-local-override semantic-analyze-dereference-metatype
-  c-mode (type)
+  c-mode (type scope)
   "Dereference TYPE as described in `semantic-analyze-dereference-metatype'.
 If TYPE is a typedef, get TYPE's type by name or tag, and return."
   (if (and (eq (semantic-tag-class type) 'type)
@@ -680,3 +680,4 @@ DO NOT return the list of tags encompassing point."
 (provide 'semantic-c)
 
 ;;; semantic-c.el ends here
+
