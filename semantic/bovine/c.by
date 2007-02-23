@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.30 2007/01/23 03:45:32 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.31 2007/02/23 20:42:33 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -414,6 +414,7 @@ typesimple
     opt-class-parents
     (TYPE-TAG (car $3) (car $1) nil $5
               :template-specifier $4
+	      :prototype t
               :parent (car ,$2))
   | UNION opt-class opt-name unionparts
     (TYPE-TAG (car $3) $1 $4 nil
