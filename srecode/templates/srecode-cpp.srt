@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-cpp.srt,v 1.1 2007/02/21 01:55:21 zappo Exp $
+;; X-RCS: $Id: srecode-cpp.srt,v 1.2 2007/02/24 03:14:49 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -56,14 +56,15 @@ template doxygen-function-group-start
  * {{?GROUPNAME}}
  * @{
  */
+
 ----
 
 template doxygen-function-group-end
 ----
 /**
- * {{?GROUPNAME}}
- * @{
+ * @}
  */
+
 ----
 
 ;; end
