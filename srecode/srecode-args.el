@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-args.el,v 1.1 2007/02/21 01:55:44 zappo Exp $
+;; X-RCS: $Id: srecode-args.el,v 1.2 2007/02/24 03:10:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,6 +30,16 @@
 (require 'srecode-insert)
 
 ;;; Code:
+
+;;; :indent ARGUMENT HANDLING
+;;
+;; When a :indent argument is required, the default is to indent
+;; for the current major mode.
+;;;###autoload
+(defun srecode-semantic-handle-:indent (dict)
+  "Add macros into the dictionary DICT based on the current :user."
+  (srecode-dictionary-set-value dict "INDENT" t)
+  )
 
 ;;; :user ARGUMENT HANDLING
 ;;
