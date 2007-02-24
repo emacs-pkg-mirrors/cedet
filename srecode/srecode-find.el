@@ -61,41 +61,45 @@
   :type 'file)
 
 ;;;###autoload
-(defun srecode-load-tables-for-mode (mmode)
+(defun srecode-load-tables-for-mode (mmode &optional alist)
   "Load all the template files for MMODE.
 Templates are found on the Emacs Lisp path as follows:
   <load-path>/templates/*.srt
-  ~/.srecode/*.srt"
-  ;; Don't recurse if we are already the 'default state.
-  (when (not (eq mmode 'default))
-    ;; Are we a derived mode?  If so, get the parent mode's
-    ;; templates loaded too.
-    (if (get-mode-local-parent mmode)
-	(srecode-load-tables-for-mode (get-mode-local-parent mmode))
-      ;; No parent mode, all templates depend on the defaults being
-      ;; loaded in, so get that in instead.
-      (srecode-load-tables-for-mode 'default)))
+  ~/.srecode/*.srt
+If ALIST is provided, then use ALIST instead of
+`srecode-template-file-alist'."
+  (let ((search-list (or alist srecode-template-file-alist)))
+    ;; Don't recurse if we are already the 'default state.
+    (when (not (eq mmode 'default))
+      ;; Are we a derived mode?  If so, get the parent mode's
+      ;; templates loaded too.
+      (if (get-mode-local-parent mmode)
+	  (srecode-load-tables-for-mode (get-mode-local-parent mmode)
+					search-list)
+	;; No parent mode, all templates depend on the defaults being
+	;; loaded in, so get that in instead.
+	(srecode-load-tables-for-mode 'default search-list)))
 
-  ;; Load in templates for our major mode.
-  ;; @todo More than one template file??  User files??
-  (let* ((mma (assoc mmode srecode-template-file-alist))
-	 (fname (cdr-safe mma))
-	 (mt (srecode-get-mode-table mmode))
-	 )
-    (when fname
-      ;; Don't reload tables.
-      (let ((actualfname
-	     (or (locate-library fname t)
-		 (locate-library (concat "templates/" fname))
-		 )))
-	(when (and actualfname
-		   (or (not mt)
-		       (not (srecode-mode-table-find mt actualfname))))
-	  (srecode-compile-file (locate-library actualfname t)))))
-    )
+    ;; Load in templates for our major mode.
+    ;; @todo More than one template file??  User files??
+    (let* ((mma (assoc mmode search-list))
+	   (fname (cdr-safe mma))
+	   (mt (srecode-get-mode-table mmode))
+	   )
+      (when fname
+	;; Don't reload tables.
+	(let ((actualfname
+	       (or (locate-library fname t)
+		   (locate-library (concat "templates/" fname))
+		   )))
+	  (when (and actualfname
+		     (or (not mt)
+			 (not (srecode-mode-table-find mt actualfname))))
+	    (srecode-compile-file (locate-library actualfname t)))))
+      )
     
-  ;; @todo Once we've loaded in the shipped files, load in user files.
-  )
+    ;; @todo Once we've loaded in the shipped files, load in user files.
+    ))
 
 ;;; SEARCH
 ;;
