@@ -241,64 +241,85 @@ macro names.
 Optional argument END-NAME specifies the name of a token upon which
 parsing should stop.
 If END-NAME is specified, and the input string"
-  (let ((what str)
-	(end-token nil)
-	(comp nil))
+  (let* ((what str)
+	 (end-token nil)
+	 (comp nil)
+	 (regex (concat "\n\\|" escape_start))
+	 (tmp nil)
+	 )
     (while (and what (not end-token))
-      (cond ((string-match escape_start what)
-	     (let* ((prefix (substring what 0 (match-beginning 0)))
-		    (namestart (match-end 0))
-		    (junk (string-match escape_end what namestart))
-		    (end (if junk
-			     (match-beginning 0)
-			   (error "Could not find end escape for %s"
-				  (semantic-tag-name tag))))
-		    (tail (match-end 0))
-		    name key)
-	       (cond ((not end)
-		      (error "No matching escape end for %s"
-			     (semantic-tag-name tag)))
-		     ((<= end namestart)
-		      (error "Stray end escape for %s"
-			     (semantic-tag-name tag)))
-		     )
-	       ;; Add string to compiled output
-	       (setq comp (cons prefix comp)
-		     key (aref what namestart))
-	       (if (and (or (< key ?A) (> key ?Z))
-			(or (< key ?a) (> key ?z)) )
-		   (setq name (substring what (1+ namestart) end))
-		 (setq name (substring what namestart end)
-		       key nil))
-	       ;; Trim WHAT back.
-	       (setq what (substring what tail))
-	       ;; Add new inserted to compiled output
-	       (let* ((junk (string-match ":" name))
-		      (namepart (if junk
-				    (substring name 0 (match-beginning 0))
-				  name))
-		      (secondname (if junk
-				      (substring name (match-end 0))
-				    nil)))
-		 (let ((new-inserter (srecode-compile-inserter
-				      namepart key
-				      :secondname secondname
-				      )))
-		   (if (srecode-match-end new-inserter end-name)
-		       (setq end-token new-inserter))
-		   ;; Add the inserter to our compilation stream.
-		   (setq comp (cons new-inserter comp))
-		   ;; Allow the inserter an opportunity to modify
-		   ;; the input stream.
-		   (setq what (srecode-parse-input
-			       new-inserter tag what escape_start escape_end))
-		   ))
-	       ))
-	    (t
-	     (if end-name
-		 (error "Unmatched section end %s" end-name))
-	     (setq comp (cons what comp)
-		   what nil))))
+      (cond
+       ((string-match regex what)
+	(let* ((prefix (substring what 0 (match-beginning 0)))
+	       (match (substring what
+				 (match-beginning 0)
+				 (match-end 0)))
+	       (namestart (match-end 0))
+	       (junk (string-match escape_end what namestart))
+	       end tail name key)
+	  ;; Add string to compiled output
+	  (setq comp (cons prefix comp))
+	  (if (string= match "\n")
+	      ;; Do newline thingy.
+	      (let ((new-inserter (srecode-compile-inserter
+				   "INDENT"
+				   "\n"
+				   :secondname nil)))
+		;; Trim WHAT back.
+		(setq what (substring what namestart))
+		(when (> (length what) 0)
+		  ;; make the new inserter, but only if we aren't last.
+		  (setq comp (cons new-inserter comp))
+		  ))
+	    ;; Regular inserter thingy.
+	    (setq end (if junk
+			  (match-beginning 0)
+			(error "Could not find end escape for %s"
+			       (semantic-tag-name tag)))
+		  tail (match-end 0))
+	    (cond ((not end)
+		   (error "No matching escape end for %s"
+			  (semantic-tag-name tag)))
+		  ((<= end namestart)
+		   (error "Stray end escape for %s"
+			  (semantic-tag-name tag)))
+		  )
+	    ;; Add string to compiled output
+	    (setq key (aref what namestart))
+	    (if (and (or (< key ?A) (> key ?Z))
+		     (or (< key ?a) (> key ?z)) )
+		(setq name (substring what (1+ namestart) end))
+	      (setq name (substring what namestart end)
+		    key nil))
+	    ;; Trim WHAT back.
+	    (setq what (substring what tail))
+	    ;; Add new inserted to compiled output
+	    (let* ((junk (string-match ":" name))
+		   (namepart (if junk
+				 (substring name 0 (match-beginning 0))
+			       name))
+		   (secondname (if junk
+				   (substring name (match-end 0))
+				 nil)))
+	      (let ((new-inserter (srecode-compile-inserter
+				   namepart key
+				   :secondname secondname
+				   )))
+		(if (srecode-match-end new-inserter end-name)
+		    (setq end-token new-inserter))
+		;; Add the inserter to our compilation stream.
+		(setq comp (cons new-inserter comp))
+		;; Allow the inserter an opportunity to modify
+		;; the input stream.
+		(setq what (srecode-parse-input
+			    new-inserter tag what escape_start escape_end))
+		))
+	    )))
+       (t
+	(if end-name
+	    (error "Unmatched section end %s" end-name))
+	(setq comp (cons what comp)
+	      what nil))))
     (cons what (nreverse comp))))
 
 (defun srecode-compile-inserter (name key &rest props)
@@ -307,6 +328,7 @@ KEY indicates a single character key representing a type
 of inserter to create.
 PROPS are additional properties that might need to be passed
 to the inserter constructor."
+  ;;(message "Compile: %s %S" name props)
   (if (not key)
       (apply 'srecode-template-inserter-variable name props)
     (let ((classes (class-children srecode-template-inserter))
