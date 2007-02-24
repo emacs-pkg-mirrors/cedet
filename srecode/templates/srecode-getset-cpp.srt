@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-getset-cpp.srt,v 1.1 2007/02/21 01:55:21 zappo Exp $
+;; X-RCS: $Id: srecode-getset-cpp.srt,v 1.2 2007/02/24 03:15:16 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -23,16 +23,20 @@
 set mode "c++-mode"
 set application "getset"
 
-template getset-in-class :tag
+context declaration
+
+template getset-in-class :tag :indent
 ----
-{{>doxygen-group-start}}
-{{TYPE}} get{{NAME}}() const {
-   return f{{NAME}};
+
+{{>A:doxygen-function-group-start}}
+{{TYPE}} get{{NICENAME}}() const {
+   return {{NAME}};
 }
-void set{{NAME}}({{TYPE}} {{NAME}}) const {
-   f{{NAME}} = {{NAME}};
+void set{{NICENAME}}({{TYPE}} {{NICENAME}}) const {
+   {{NAME}} = {{NICENAME}};
 }
-{{>doxygen-group-end}}
+{{>A:doxygen-function-group-end}}
+
 ----
 
 template getset-field :tag
