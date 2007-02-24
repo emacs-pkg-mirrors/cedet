@@ -119,6 +119,32 @@ ST can be a class, or an object."
 ;; The `code' slot specifies a character used to identify which
 ;; inserter is to be created.
 ;;
+(defclass srecode-template-inserter-newline (srecode-template-inserter)
+  ((key :initform "\n"
+	:allocation :class
+	:documentation
+	"The character code used to identify inserters of this style."))
+  "Insert a newline, and possibly do indenting.")
+
+(defmethod srecode-insert-method ((sti srecode-template-inserter-newline)
+				  dictionary)
+  "Insert the STI inserter."
+  ;; To be safe, indent the previous line since the template will
+  ;; change what is there to indent
+  (let ((i (srecode-dictionary-lookup-name dictionary "INDENT"))
+	(pm (point-marker)))
+    (when (eq i t)
+      (indent-according-to-mode)
+      (goto-char pm))
+    (insert "\n")
+    ;; Indent after the newline, particularly for numeric indents.
+    (cond ((eq i t)
+	   (indent-according-to-mode))
+	  ((numberp i)
+	   (insert (make-string i " ")))
+	  ((stringp i)
+	   (insert i)))))
+
 (defclass srecode-template-inserter-variable (srecode-template-inserter)
   ((key :initform nil
 	:allocation :class
@@ -311,7 +337,7 @@ are treated specially.")
   "Insert the STI inserter."
   )
 
-(defmethod srecode-match-end ((ins srecode-template-inserter) name)
+(defmethod srecode-match-end ((ins srecode-template-inserter-section-end) name)
 			      
   "For the template inserter INS, do I end a section called NAME?"
   (string= name (oref ins :object-name)))
