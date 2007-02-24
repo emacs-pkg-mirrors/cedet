@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.1 2007/02/21 01:59:24 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.2 2007/02/24 03:14:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -49,6 +49,10 @@
   "Wrap up a collection of semantic tag information.
 This class will be used to derive dictionary values.")
 
+(defvar srecode-semantic-selected-tag nil
+  "The tag selected by a :tag template argument.
+If this is nil, then `senator-tag-ring' is used.")
+
 (defun srecode-semantic-tag-from-kill-ring ()
   "Create an `srecode-semantic-tag' from the senator kill ring."
   (if (ring-empty-p senator-tag-ring)
@@ -67,8 +71,13 @@ This class will be used to derive dictionary values.")
 (defun srecode-semantic-handle-:tag (dict)
   "Add macroes into the dictionary DICT based on the current :tag."
   ;; We have a tag, start adding "stuff" into the dictionary.
-  (srecode-semantic-apply-tag-to-dict (srecode-semantic-tag-from-kill-ring)
-				      dict))
+  (srecode-semantic-apply-tag-to-dict
+   (or
+    (when srecode-semantic-selected-tag
+      (srecode-semantic-tag (semantic-tag-name srecode-semantic-selected-tag)
+			    :prime srecode-semantic-selected-tag))
+    (srecode-semantic-tag-from-kill-ring))
+   dict))
 
 (defun srecode-semantic-apply-tag-to-dict (tagobj dict)
   "Insert features of TAGOBJ into dictionary DICT."
