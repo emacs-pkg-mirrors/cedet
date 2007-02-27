@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.76 2007/02/21 00:33:37 zappo Exp $
+;; RCS: $Id: ede.el,v 1.77 2007/02/27 20:36:34 zappo Exp $
 (defconst ede-version "1.0"
   "Current version of the Emacs EDE.")
 
@@ -1343,7 +1343,7 @@ This depends on an up to day `ede-project-class-files' variable."
 (defun ede-up-directory (dir)
   "Return a path that is up one directory.
 Argument DIR is the directory to trim upwards."
-  (if (string-match "^[A-Z]:[\\/]$" dir)
+  (if (string-match "^[a-zA-Z]:[\\/]$" dir)
       nil
     (let ((parent (expand-file-name ".." dir)))
       (if (and (> (length parent) 1) (string= ".." (substring parent -2)))
