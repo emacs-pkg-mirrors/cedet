@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.43 2007/02/19 02:52:25 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.44 2007/03/08 03:33:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -598,6 +598,10 @@ analyzer which might mistake a number for as a symbol."
 	     (or depth semantic-lex-depth))
 	    ;; Bounds needed for unterminated syntax
 	    (semantic-lex-analysis-bounds (cons start end))
+	    ;; This entry prevents text properties from
+	    ;; confusing our lexical analysis.  See Emacs 22 (CVS)
+	    ;; version of C++ mode with template hack text properties.
+	    (parse-sexp-lookup-properties nil)
 	    )
        ;; Maybe REMOVE THIS LATER.
        ;; Trying to find incremental parser bug.
