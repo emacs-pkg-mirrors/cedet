@@ -1,12 +1,12 @@
 ;;; wisent-python.wy -- LALR grammar for Python
 ;;
-;; Copyright (C) 2002, 2003, 2004 Richard Kim
+;; Copyright (C) 2002, 2003, 2004, 2007 Richard Kim
 ;;
 ;; Author: Richard Kim <ryk@dspwiz.com>
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.34 2005/09/30 20:25:33 zappo Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.35 2007/03/08 02:12:07 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -712,7 +712,8 @@ funcdef
 
 function_parameter_list
   : PAREN_BLOCK
-    (EXPANDFULL $1 function_parameters)
+    (let ((wisent-python-EXPANDING-block t))
+      (EXPANDFULL $1 function_parameters))
   ;
 
 ;; parameters: '(' [varargslist] ')'
@@ -756,7 +757,8 @@ paren_class_list_opt
 
 paren_class_list
   : PAREN_BLOCK
-    (mapcar 'semantic-tag-name (EXPANDFULL $1 paren_classes))
+    (let ((wisent-python-EXPANDING-block t))
+      (mapcar 'semantic-tag-name (EXPANDFULL $1 paren_classes)))
   ;
 
 ;; parameters: '(' [varargslist] ')'
