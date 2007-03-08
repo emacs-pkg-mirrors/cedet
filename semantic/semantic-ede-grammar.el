@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.10 2006/07/04 13:56:10 ponced Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.11 2007/03/08 04:09:56 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -155,7 +155,7 @@ Lays claim to all -by.el, and -wy.el files."
 		       " "))
     )
   (ede-pmake-insert-variable-shared
-      (concat (ede-pmake-varname this) "_SAMENATIC_GRAMMAR_EL")
+      (concat (ede-pmake-varname this) "_SEMANTIC_GRAMMAR_EL")
     (insert
      (mapconcat (lambda (src)
 		  (save-excursion
@@ -184,7 +184,7 @@ This makes sure that all grammar lisp files are created before the dist
 runs, so they are always up to date.
 Argument THIS is the target that should insert stuff."
   (call-next-method)
-  (insert " $(" (ede-pmake-varname this) "_SAMENATIC_GRAMMAR_EL)")
+  (insert " $(" (ede-pmake-varname this) "_SEMANTIC_GRAMMAR_EL)")
   )
 
 ;;;###autoload
