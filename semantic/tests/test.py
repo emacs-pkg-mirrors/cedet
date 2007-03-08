@@ -1,6 +1,6 @@
 # Test file for Python language.
 #
-# $Id: test.py,v 1.3 2006/02/16 01:11:17 zappo Exp $
+# $Id: test.py,v 1.4 2007/03/08 02:16:33 zappo Exp $
 
 # Simle class compount statement with blank lines sprinkled.
 class Foo(Bar):
@@ -47,6 +47,36 @@ a + b
 x
 s = "a" "b" "c"
 1
+
+# implicit continuation lines, see
+# http://docs.python.org/ref/implicit-joining.html
+
+a_list = [ 1, 2, 3,
+           4, 5,
+                 6 ]
+
+a_tuple = (1, 2, 3,
+
+           4, 5, 6)
+
+a_hash = { 'a':1, "b":2,
+           'c' : 3,
+           "d" : 4 }
+
+
+def longarglist(a,
+                b,
+                c,
+                d):
+    a=1;
+    b=1;
+    c=1;
+    d=1;
+
+class longclasslist(xx.yyy,
+                    zz.aa):
+    foo=1
+                    
 
 # wisent-python.wy chokes on this! -ryk 6/17/02
 
