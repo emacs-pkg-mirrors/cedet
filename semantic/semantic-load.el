@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.53 2007/02/08 16:44:59 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.54 2007/03/08 01:41:49 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -197,9 +197,7 @@ These modes include:
     (semantic-load-enable-excessive-code-helpers))
    (semantic-load-turn-useful-things-on
     (semantic-load-enable-code-helpers))
-   (t
-    (semantic-load-enable-minimum-features)
-    )))
+   ))
 
 (provide 'semantic-load)
 
