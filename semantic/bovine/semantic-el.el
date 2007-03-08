@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.38 2007/02/19 13:37:05 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.39 2007/03/08 04:11:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -132,8 +132,8 @@ syntax as specified by the syntax table."
 (defun semantic-elisp-form-to-doc-string (form)
   "After reading a form FORM, covert it to a doc string.
 For Emacs Lisp, sometimes that string is non-existant.
-Recently discovered, sometimes it is a form which is evaluated
-at compile time, permitting compound strings."
+Sometimes it is a form which is evaluated at compile time, permitting
+compound strings."
   (cond ((stringp form) form)
 	((and (listp form) (eq (car form) 'concat)
 	      (stringp (nth 1 form)))
@@ -818,6 +818,15 @@ See `semantic-format-tag-prototype' for Emacs Lisp for more details."
 
 ;;;###autoload
 (add-hook 'emacs-lisp-mode-hook 'semantic-default-elisp-setup)
+
+;;; LISP MODE
+;;
+;; @TODO: Lisp supports syntaxes that Emacs Lisp does not.
+;;        Write a Lisp only parser someday.
+;;
+;; See this syntax:
+;; (defun foo () /#A)
+;;
 ;;;###autoload
 (add-hook 'lisp-mode-hook 'semantic-default-elisp-setup)
 
