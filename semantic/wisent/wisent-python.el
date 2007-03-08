@@ -1,12 +1,12 @@
 ;;; wisent-python.el --- Semantic support for Python
 ;;
-;; Copyright (C) 2002, 2004, 2006 Richard Kim
+;; Copyright (C) 2002, 2004, 2006, 2007 Richard Kim
 ;;
 ;; Author: Richard Kim <ryk@dspwiz.com>
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.50 2006/02/16 01:06:15 zappo Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.51 2007/03/08 02:11:07 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -57,13 +57,14 @@
           "?['\"]")
   "Regexp matching beginning of a python string.")
 
-(defsubst wisent-python-implicit-line-joining-p ()
+(defvar wisent-python-EXPANDING-block nil
+  "Non-nil when expanding a paren block for Python lexical analyzer.")
+
+(defun wisent-python-implicit-line-joining-p ()
   "Return non-nil if implicit line joining is active.
 That is, if inside an expressions in parentheses, square brackets or
 curly braces."
-  (condition-case nil
-      (progn (scan-lists (point) -1 1) t)
-    (error nil)))
+  wisent-python-EXPANDING-block)
 
 (defsubst wisent-python-forward-string ()
   "Move point at the end of the python string at point."
@@ -122,7 +123,7 @@ identation of the current line."
                        (> (current-indentation) indent))))))
 
 (defun wisent-python-end-of-block ()
-  "Move point to the end of the current block"
+  "Move point to the end of the current block."
   (let ((indent (current-indentation)))
     (while (and (not (eobp)) (>= (current-indentation) indent))
       (wisent-python-forward-line-skip-indented))
