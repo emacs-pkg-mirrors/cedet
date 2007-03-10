@@ -82,15 +82,49 @@ Plain text strings are not handled via this baseclass."
   :abstract t)
 
 (defmethod srecode-parse-input ((ins srecode-template-inserter) 
-				tag input escape_start escape_end)
+				tag input STATE)
   "For the template inserter INS, parse INPUT.
 Shorten input only by the amount needed.
-Return the remains of INPUT."
+Return the remains of INPUT.
+STATE is the current compilation state."
   input)
 
 (defmethod srecode-match-end ((ins srecode-template-inserter) name)
   "For the template inserter INS, do I end a section called NAME?"
   nil)
+
+(defmethod srecode-inserter-apply-state ((ins srecode-template-inserter) STATE)
+  "For the template inserter INS, apply information from STATE."
+  nil)
+
+;;; Compile State
+(defclass srecode-compile-state ()
+  ((context :initform "declarations"
+	    :documentation "The active context.")
+   (prompts :initform nil
+	    :documentation "The active prompts.")
+   (escape_start :initform "{{"
+		 :documentation "The starting escape sequence.")
+   (escape_end :initform "}}"
+	       :documentation "The ending escape sequence.")
+   )
+  "Current state of the compile.")
+
+(defmethod srecode-compile-add-prompt ((state srecode-compile-state) 
+				       prompttag)
+  "Add PROMPTTAG to the current list of prompts."
+  (with-slots (prompts) state
+      (let ((match (assoc (semantic-tag-name prompttag) prompts)))
+	(when match
+	  (let ((newprompts nil))
+	    (while prompts
+	      (when (not (string= (car (car prompts))
+				  (car prompttag)))
+		(setq newprompts (cons (car prompts)
+				       newprompts)))
+	      (setq prompts (cdr prompts)))))
+	(setq prompts (cons prompttag prompts)))
+      ))
 
 ;;;  TEMPLATE COMPILER
 ;;
@@ -121,12 +155,11 @@ Return the remains of INPUT."
 	(tag nil)
 	(class nil)
 	(table nil)
-	(escape_start "{{")
-	(escape_end "}}")
+	(STATE (srecode-compile-state (file-name-nondirectory
+				       (buffer-file-name))))
 	(mode nil)
 	(application nil)
 	(priority nil)
-	(context "declaration")
 	(vars nil)
 	)
 
@@ -141,7 +174,14 @@ Return the remains of INPUT."
        ;; CONTEXT tags specify the context all future tags
        ;; belong to.
        ((eq class 'context)
-	(setq context (semantic-tag-name tag)))
+	(oset STATE context (semantic-tag-name tag))
+	)
+
+       ;; PROMPT tags specify prompts for dictionary ? inserters
+       ;; which appear in the following templates
+       ((eq class 'prompt)
+	(srecode-compile-add-prompt STATE tag)
+	)
 	    
        ;; VARIABLE tags can specify operational control
        ((eq class 'variable)
@@ -150,9 +190,11 @@ Return the remains of INPUT."
 	  (cond ((string= name "mode")
 		 (setq mode (intern value)))
 		((string= name "escape_start")
-		 (setq escape_start value))
+		 (oset STATE escape_start value)
+		 )
 		((string= name "escape_end")
-		 (setq escape_end value))
+		 (oset STATE escape_end value)
+		 )
 		((string= name "application")
 		 (setq application (read value)))
 		((string= name "priority")
@@ -165,8 +207,7 @@ Return the remains of INPUT."
 
        ;; FUNCTION tags are really templates.
        ((eq class 'function)
-	(setq table (cons (srecode-compile-one-template-tag
-			   tag context escape_start escape_end)
+	(setq table (cons (srecode-compile-one-template-tag tag STATE)
 			  table))
 	)
 
@@ -208,20 +249,23 @@ Return the remains of INPUT."
     )
 )
 
-(defun srecode-compile-one-template-tag (tag context escape_start escape_end)
+(defun srecode-compile-one-template-tag (tag STATE)
   "Compile a template tag TAG into an srecode template class.
-CONTEXT specifies the current named context this template
-can be applied to.
-ESCAPE_START and ESCAPE_END specify regexp's that are used to identify
-template macros."
-  (let ((code  (srecode-compile-split-code
-		tag (semantic-tag-get-attribute tag :code)
-		escape_start escape_end))
-	(args (semantic-tag-function-arguments tag))
-	(addargs nil))
-    (message "Compiled %s to %d codes."
+STATE is the current compile state as an `srecode-compile-state' object."
+  (let* ((context (oref STATE context))
+	 (prompts (oref STATE prompts))
+	 (escape_start (oref STATE escape_start))
+	 (escape_end (oref STATE escape_end))
+	 (code  (srecode-compile-split-code
+		 tag (semantic-tag-get-attribute tag :code)
+		 STATE))
+	 (args (semantic-tag-function-arguments tag))
+	 (addargs nil))
+    (message "Compiled %s to %d codes with %d args and %d prompts."
 	     (semantic-tag-name tag)
-	     (length code))
+	     (length code)
+	     (length args)
+	     (length prompts))
     (while args
       (setq addargs (cons (intern (car args)) addargs))
       (setq args (cdr args)))
@@ -231,10 +275,11 @@ template macros."
 		      :code (cdr code))
     ))
 
-(defun srecode-compile-split-code (tag str escape_start escape_end
+(defun srecode-compile-split-code (tag str STATE
 				       &optional end-name)
   "Split the code for TAG into something templatable.
 STR is the string of code from TAG to split.
+STATE is the current compile state.
 ESCAPE_START and ESCAPE_END are regexps that indicate the beginning
 escape character, and end escape character pattern for expandable
 macro names.
@@ -244,7 +289,7 @@ If END-NAME is specified, and the input string"
   (let* ((what str)
 	 (end-token nil)
 	 (comp nil)
-	 (regex (concat "\n\\|" escape_start))
+	 (regex (concat "\n\\|" (oref STATE escape_start)))
 	 (tmp nil)
 	 )
     (while (and what (not end-token))
@@ -255,7 +300,7 @@ If END-NAME is specified, and the input string"
 				 (match-beginning 0)
 				 (match-end 0)))
 	       (namestart (match-end 0))
-	       (junk (string-match escape_end what namestart))
+	       (junk (string-match (oref STATE escape_end) what namestart))
 	       end tail name key)
 	  ;; Add string to compiled output
 	  (setq comp (cons prefix comp))
@@ -264,6 +309,7 @@ If END-NAME is specified, and the input string"
 	      (let ((new-inserter (srecode-compile-inserter
 				   "INDENT"
 				   "\n"
+				   STATE
 				   :secondname nil)))
 		;; Trim WHAT back.
 		(setq what (substring what namestart))
@@ -302,7 +348,7 @@ If END-NAME is specified, and the input string"
 				   (substring name (match-end 0))
 				 nil)))
 	      (let ((new-inserter (srecode-compile-inserter
-				   namepart key
+				   namepart key STATE
 				   :secondname secondname
 				   )))
 		(if (srecode-match-end new-inserter end-name)
@@ -311,8 +357,8 @@ If END-NAME is specified, and the input string"
 		(setq comp (cons new-inserter comp))
 		;; Allow the inserter an opportunity to modify
 		;; the input stream.
-		(setq what (srecode-parse-input
-			    new-inserter tag what escape_start escape_end))
+		(setq what (srecode-parse-input new-inserter tag what
+						STATE))
 		))
 	    )))
        (t
@@ -322,10 +368,11 @@ If END-NAME is specified, and the input string"
 	      what nil))))
     (cons what (nreverse comp))))
 
-(defun srecode-compile-inserter (name key &rest props)
+(defun srecode-compile-inserter (name key STATE &rest props)
   "Create an srecode inserter object for some macro NAME.
 KEY indicates a single character key representing a type
 of inserter to create.
+STATE is the current compile state.
 PROPS are additional properties that might need to be passed
 to the inserter constructor."
   ;;(message "Compile: %s %S" name props)
@@ -337,9 +384,13 @@ to the inserter constructor."
       ;; create the correct inserter.
       (while (and (not new) classes)
 	(setq classes (append classes (class-children (car classes))))
-	(if (and (not (class-abstract-p (car classes)))
-		 (equal (oref (car classes) key) key))
-	    (setq new (apply (car classes) name props)))
+	;; Do we have a match?
+	(when (and (not (class-abstract-p (car classes)))
+		   (equal (oref (car classes) key) key))
+	  ;; Create the new class, and apply state.
+	  (setq new (apply (car classes) name props))
+	  (srecode-inserter-apply-state new STATE)
+	  )
 	(setq classes (cdr classes)))
       (if (not new) (error "SRECODE: Unknown macro code %S" key))
       new)))
