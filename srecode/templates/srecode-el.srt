@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-el.srt,v 1.1 2007/02/21 01:55:21 zappo Exp $
+;; X-RCS: $Id: srecode-el.srt,v 1.2 2007/03/10 03:33:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -46,6 +46,70 @@ $>:filecomment$
 
 ;;; $FILENAME$ ends here
 
+----
+
+template major-mode :file
+"Insert the framework needed for a major mode."
+----
+(defgroup $?MODESYM$ nil
+  "$MODESYM$ group."
+  :group 'langauges)
+
+(defvar $MODESYM$-mode-syntax-table
+  (let ((table (make-syntax-table (standard-syntax-table))))
+    (modify-syntax-entry ?\; ". 12"  table) ;; SEMI, Comment start ;;
+    (modify-syntax-entry ?\n ">"     table) ;; Comment end
+    (modify-syntax-entry ?\" "\""    table) ;; String
+    (modify-syntax-entry ?\- "_"     table) ;; Symbol
+    (modify-syntax-entry ?\\ "\\"    table) ;; Quote
+    (modify-syntax-entry ?\` "'"     table) ;; Prefix ` (backquote)
+    (modify-syntax-entry ?\' "'"     table) ;; Prefix ' (quote)
+    (modify-syntax-entry ?\, "'"     table) ;; Prefix , (comma)
+    
+    table)
+  "Syntax table used in $MODESYM$ macro buffers.")
+
+(defvar $MODESYM$-font-lock-keywords
+  '(
+    )
+  "Keywords for use with srecode macros and font-lock.")
+
+(defvar $MODESYM$-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km "\C-c\C-c" '$MODESYM$-do-something)
+    km)
+  "Keymap used in $MODESYM$.")
+
+(defcustom $MODESYM$-mode-hook nil
+  "*Hook run when $MODESYM$ starts."
+  :group '$MODESYM$
+  :type 'hook)
+
+;;;###autoload
+(defun $MODESYM$-mode ()
+  "Major-mode for writing srecode macros."
+  (interactive)
+  (kill-all-local-variables)
+  (setq major-mode '$MODESYM$-mode
+        mode-name "$?MODENAME$"
+	comment-start ";;"
+	comment-end "")
+  (set (make-local-variable 'comment-start-skip)
+       "\\(\\(^\\|[^\\\\\n]\\)\\(\\\\\\\\\\)*\\);+ *")
+  (set-syntax-table $MODESYM$-mode-syntax-table)
+  (use-local-map $MODESYM$-map)
+  (set (make-local-variable 'font-lock-defaults)
+       '($MODESYM$-font-lock-keywords
+         nil  ;; perform string/comment fontification
+         nil  ;; keywords are case sensitive.
+         ;; This puts _ & - as a word constituant,
+         ;; simplifying our keywords significantly
+         ((?_ . "w") (?- . "w"))))
+  (run-hooks '$MODESYM$-hook)
+  )
+
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.$?MODEEXTENSION$$DOLLAR$" . $MODESYM$-mode))
 ----
 
 context declaration
