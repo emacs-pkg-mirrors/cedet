@@ -38,6 +38,8 @@ along with this program; see the file COPYING.  If not, write to
 the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 Boston, MA 02110-1301, USA."
 
+set DOLLAR "$"
+
 context file
 
 template copyright
@@ -52,7 +54,7 @@ template filecomment :file :user :time
 {{comment_prefix}} Copyright (C) {{YEAR}} {{?AUTHOR}}
 
 {{comment_prefix}} Author: {{AUTHOR}} <{{EMAIL}}>{{#RCS}}
-{{comment_prefix}} X-RCS: $Id: default.srt,v 1.1 2007/02/21 01:55:21 zappo Exp ${{/RCS}}
+{{comment_prefix}} X-RCS: {{DOLLAR}}Id{{DOLLAR}}{{/RCS}}
 
 {{>:copyright}}
 {{comment_end}}
