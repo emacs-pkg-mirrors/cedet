@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.25 2007/02/19 13:51:03 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.26 2007/03/10 01:57:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -77,7 +77,7 @@ Create one of our special tables that can act as an intermediary."
   ;; We need to return something since there is always the "master table"
   ;; The table can then answer file name type questions.
   (when (not (slot-boundp obj 'tables))
-    (let ((newtable (semanticdb-table-emacs-lisp "tmp")))
+    (let ((newtable (semanticdb-table-emacs-lisp "Emacs System Table")))
       (oset obj tables (list newtable))
       (oset newtable parent-db obj)
       (oset newtable tags nil)
@@ -103,39 +103,12 @@ local variable."
     (set-buffer buffer)
     (eq (or mode-local-active-mode major-mode) 'emacs-lisp-mode)))
 
-;;; Usage
-;;
-;; Unlike other languages, Emacs Lisp always has the system database there
-;; even when there isn't a usage for it.
-(define-mode-local-override semanticdb-find-translate-path emacs-lisp-mode
-  (path brutish)
-  "Return a list of semanticdb tables asociated with PATH.
-If brutish, do the default action.
-If not brutish, do the default action, and append the system
-database (if available.)"
-  (let ((default
-	  ;; When we recurse, disable searching of system databases
-	  ;; so that our ELisp database only shows up once when
-	  ;; we append it in this iteration.
-	  (let ((semanticdb-search-system-databases nil)
-		)
-	    (semanticdb-find-translate-path-default path brutish))))
-    ;; Don't add anything if BRUTISH is on (it will be added in that fcn)
-    ;; or if we aren't supposed to search the system.
-    (if (or brutish (not semanticdb-search-system-databases))
-	default
-      (let ((tables (apply #'append
-			   (mapcar
-			    (lambda (db) (semanticdb-get-database-tables db))
-			    semanticdb-project-system-databases))))
-	(append default tables)))))
-
 ;;; Conversion
 ;;
 (defmethod semanticdb-normalize-tags ((obj semanticdb-table-emacs-lisp) tags)
-  "Convert a tag, originating from Emacs OBJ, into standardized form.
+  "Convert tags, originating from Emacs OBJ, into standardized form.
 If Emacs cannot resolve this symbol to a particular file, then just
-return the tag."
+return the TAGS."
   ;; @TODO - Lets do this.  We could find the tag's source file
   ;;         using the help system, for example.
   tags)
