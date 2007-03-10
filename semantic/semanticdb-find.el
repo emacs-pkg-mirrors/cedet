@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.33 2007/02/19 13:54:31 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.34 2007/03/10 01:43:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -286,7 +286,39 @@ Default action as described in `semanticdb-find-translate-path'."
 		      (semanticdb-get-tags nexttable))))))
 	      (setq includetags (append includetags newtags)))))
       (setq includetags (cdr includetags)))
+    ;; Find all the omniscient databases for this major mode, and
+    ;; add them if needed
+    (when (and (semanticdb-find-throttle-active-p 'omniscience)
+	       semanticdb-search-system-databases)
+      ;; We can append any mode-specific omniscience databases into
+      ;; our search list here.
+      (let ((systemdb semanticdb-project-system-databases)
+	    (ans nil))
+	(while systemdb
+	  (setq ans (semanticdb-file-table
+		     (car systemdb)
+		     ;; I would expect most omniscient to return the same
+		     ;; thing reguardless of filename, but we may have
+		     ;; one that can return a table of all things the
+		     ;; current file needs.
+		     (buffer-file-name (current-buffer))))
+	  (when (not (memq ans matchedtables))
+	    (setq matchedtables (cons ans matchedtables)))
+	  (setq systemdb (cdr systemdb))))
+      )
     (nreverse matchedtables)))
+
+(define-overload semanticdb-find-load-unloaded (filename)
+  "Create a database table for FILENAME if it hasn't been parsed yet.
+Assumes that FILENAME exists as a source file.
+Assumes that a preexisting table does not exist, even if it
+isn't in memory yet."
+  (when (semanticdb-find-throttle-active-p 'unloaded)
+    (:override)))
+
+(defun semanticdb-find-load-unloaded-default (filename)
+  "Load an unloaded file in FILENAME using the default semanticdb loader."
+  (semanticdb-file-table-object name))
 
 ;;;###autoload
 (define-overload semanticdb-find-table-for-include (includetag &optional table)
@@ -325,7 +357,7 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 
 	;; TODO -
 	;; The trick w/ fancy project DBs is that there will be more than
-	;; on DB for a given directory.  We need to ask each one, and we
+	;; one DB for a given directory.  We need to ask each one, and we
 	;; need some sort of priority to sort them.
 	;;
 	;; For now, pick the first one, see how it goes.
@@ -337,8 +369,8 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 	    ))
 
 	;; 3) Load in the text the usual way.
-	(when (and (not ans) (semanticdb-find-throttle-active-p 'unloaded))
-	  (setq ans (semanticdb-file-table-object name))
+	(when (not ans)
+	  (setq ans (semanticdb-find-load-unloaded (expand-file-name name)))
 	  )))
      ;; On the path somewhere
      ;; NOTES: Separate system includes from local includes.
@@ -357,18 +389,19 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 	    nil
 	  ;; The file is not in memory!
 	  ;; Should we force it to be loaded in?
-	  (if (semanticdb-find-throttle-active-p 'unloaded)
-	      (progn
-		(setq ans (semanticdb-file-table-object tmp))
-		)
-	    ;; We are not allowed to return the discovered
-	    ;; answer if the throttle is set low.
-	    (setq ans nil)))))
+	  (setq ans (semanticdb-find-load-unloaded tmp))
+	  )))
 
      ;; Somewhere in our project hierarchy
      ;; Remember: Roots includes system databases which can create
      ;; specialized tables we can search.
      ((semanticdb-find-throttle-active-p 'project)
+
+      ;; @TODO - This needs the same treatment as 'local'
+      ;;         above with the various phases.  We should also
+      ;;         not use the existing DBs, but instead recurse
+      ;;         through our current project.
+
       (while (and (not ans) roots)
 	(let* ((ref (if (slot-boundp (car roots) 'reference-directory)
 			(oref (car roots) reference-directory)))
