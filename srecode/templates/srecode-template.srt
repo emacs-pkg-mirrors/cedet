@@ -3,7 +3,7 @@
 ;; Copyright (C) 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-template.srt,v 1.2 2007/03/10 03:34:36 zappo Exp $
+;; X-RCS: $Id: srecode-template.srt,v 1.3 2007/03/10 04:58:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -35,17 +35,21 @@ set DOLLAR "$"
 
 context file
 
+prompt NEWMODE "Major Mode for templates: "
+
 template empty :file :user :time
 "Insert a skeleton for a template file."
 ----
 $>:filecomment$
 
-set mode "$?MODE$"
+set mode "$?NEWMODE$"
 
 ;; end
 ----
 
 context declaration
+
+prompt NAME "Name of new template: "
 
 template function
 "Insert a template block for Srecoder templates."
@@ -55,6 +59,8 @@ $SEPARATOR$
 $^$
 $SEPARATOR$
 ----
+
+prompt NAME "Name of new variable: "
 
 template variable
 "Inert a variable."
