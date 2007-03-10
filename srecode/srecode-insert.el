@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.3 2007/03/10 03:30:37 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.4 2007/03/10 04:55:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -224,9 +224,31 @@ If this object isn't in the dictionary, ask the user what it should be.")
 	:allocation :class
 	:documentation
 	"The character code used to identify inserters of this style.")
+   (prompt :initarg :prompt
+	   :documentation
+	   "The prompt used to query for this dictionary value.")
+   (defaultfcn :initarg :defaultfcn
+	       :documentation
+	       "The function which can calculate a default value.")
    )
   "Insert the value of some variable with :object-name.
 If this object isn't in the dictionary, ask the user what it should be.")
+
+(defmethod srecode-inserter-apply-state ((ins srecode-template-inserter-ask) STATE)
+  "For the template inserter INS, apply information from STATE.
+Loop over the prompts to see if we have a match."
+  (let ((prompts (oref STATE prompts))
+	(ans nil))
+    (while prompts
+      (when (string= (semantic-tag-name (car prompts))
+		     (oref ins :object-name))
+	(oset ins :prompt (semantic-tag-get-attribute (car prompts)
+						      :text))
+	(oset ins :defaultfcn (semantic-tag-get-attribute (car prompts)
+							  :default))
+	)
+      (setq prompts (cdr prompts)))
+    ))
 
 (defmethod srecode-insert-method ((sti srecode-template-inserter-ask)
 				  dictionary)
@@ -236,14 +258,25 @@ If this object isn't in the dictionary, ask the user what it should be.")
     (if val
 	;; Does some extra work.  Oh well.
 	(call-next-method)
-      (setq val (read-string (format "Specify %s: "
+      (let ((prompt (or (oref sti prompt)
+			(format "Specify %s: "
 				     (oref sti :object-name))))
+	    ;; Add default value fcn here
+	    )
+	(setq val (read-string prompt)))
       ;; After asking, save in the dictionary so that
       ;; the user can use the same name again later.
       (srecode-dictionary-set-value 
        dictionary (oref sti :object-name) val)
       (call-next-method))))
 
+(defmethod srecode-dump ((ins srecode-template-inserter-ask) indent)
+  "Dump the state of the SRecode template inserter INS."
+  (call-next-method)
+  (princ " : \"")
+  (princ (oref ins prompt))
+  (princ "\"")
+  )
 
 (defclass srecode-template-inserter-point (srecode-template-inserter)
   ((key :initform ?^
@@ -307,12 +340,14 @@ Loops over the embedded CODE which was saved here during compilation."
 are treated specially.")
 
 (defmethod srecode-parse-input ((ins srecode-template-inserter-section-start)
-				tag input escape_start escape_end)
+				tag input STATE)
   "For the section inserter INS, parse INPUT.
 Shorten input until the END token is found.
 Return the remains of INPUT."
-  (let ((out (srecode-compile-split-code tag input escape_start escape_end
-					 (oref ins :object-name))))
+  (let* ((escape_start (oref STATE escape_start))
+	 (escape_end (oref STATE escape_end))
+	 (out (srecode-compile-split-code tag input STATE
+					  (oref ins :object-name))))
     (oset ins template (srecode-template 
 			(object-name-string ins)
 			:context nil
