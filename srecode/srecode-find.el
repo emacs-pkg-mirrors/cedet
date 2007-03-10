@@ -47,6 +47,7 @@
      ( srecode-template-mode . "srecode-template.srt" )
      ( c++-mode . "srecode-cpp.srt" )
      ( emacs-lisp-mode . "srecode-el.srt" )
+     ( wisent-grammar-mode . "srecode-wisent.srt" )
     )
   ;; @todo - Make this variable auto-generated from the Makefile.
   "List of template files and location associated with a given major mode."
