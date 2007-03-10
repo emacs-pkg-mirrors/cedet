@@ -51,10 +51,17 @@
     ("^\\(set\\)\\s-+\\(\\w+\\)\\s-+\""
      (1 font-lock-keyword-face)
      (2 font-lock-variable-name-face))
-    ;; Variable type setting
+    ;; Context type setting
     ("^\\(context\\)\\s-+\\(\\w+\\)"
      (1 font-lock-keyword-face)
      (2 font-lock-builtin-face))
+    ;; Prompting setting
+    ("^\\(prompt\\)\\s-+\\(\\w+\\)"
+     (1 font-lock-keyword-face)
+     (2 font-lock-variable-name-face))
+    ("\\(default\\)\\s-+\\(\\w+\\)"
+     (1 font-lock-keyword-face)
+     (2 font-lock-type-face))
     ;; Macro separators
     ("^----$" 0 'bold)
     )
