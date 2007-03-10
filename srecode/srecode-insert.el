@@ -1,5 +1,10 @@
 ;;; srecode-insert --- Insert srecode templates to an output stream.
 
+;;; Copyright (C) 2005, 2007 Eric M. Ludlam
+
+;; Author: Eric M. Ludlam <zappo@gnu.org>
+;; X-RCS: $Id: srecode-insert.el,v 1.3 2007/03/10 03:30:37 zappo Exp $
+
 ;; This file is not part of GNU Emacs.
 
 ;; This is free software; you can redistribute it and/or modify
