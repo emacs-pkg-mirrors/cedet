@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.1 2007/02/21 02:02:11 zappo Exp $
+@c $Id: srecode.texi,v 1.2 2007/03/11 15:14:28 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -40,8 +40,9 @@ template to insert.
 Warning: Very little in this manual has been written.
 
 @menu
-* Parts of SRecode::         Parts of the system
-* Template Writing::            How to write a template
+* Parts of SRecode::		Parts of the system
+* SRecode Minor Mode::		A minor mode for using templates
+* Template Writing::		How to write a template
 * Dictionaries::                How dictionaries work
 * Getting Started::             How to use the system.
 * Developing Template Functions:: How to write your own template insert functions.
@@ -111,6 +112,31 @@ Not written or implemented
 Commands that do a particular task which involves writing code sits at
 the top level.  These little applications have their own template
 files and logic needed to fill in dictionaries or position a cursor.
+
+@node SRecode Minor Mode
+@chapter SRecode Minor Mode
+
+The Semantic Recode minor mode enables a keymap and menu that provides
+simple access to different templates or tamplate applications.
+
+The key prefix is @key{C-c /}.
+
+The most important key is bound to @code{srecode-insert} which is
+@key{C-c / /}.  @ref{Getting Started}.
+
+NOTE: At this time there isn't much in srecode-minor-mode.  The plan
+is the following:
+
+@table @key
+@item C-c / <lower case letter>
+Reserved for direct binding of simple templates to keys using a
+keybinding command in the template file.
+@item C-c / <upper case letter>
+Reserved for template applications (Such as get/set inserter.)
+@item C-c / <symbol>
+Srecode template management keys.
+@end table
+
 
 @node Template Writing
 @chapter Template Writing
