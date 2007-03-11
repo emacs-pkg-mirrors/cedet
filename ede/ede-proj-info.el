@@ -1,10 +1,10 @@
 ;;; ede-proj-info.el --- EDE Generic Project texinfo support
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2004  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2004, 2007  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.16 2005/09/30 20:16:56 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.17 2007/03/11 15:14:07 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -107,7 +107,8 @@ when working in Automake mode."
 (defun ede-makeinfo-find-info-filename (source)
   "Find the info filename produced by SOURCE texinfo file."
   (let ((opened (get-file-buffer source))
-	(buffer (find-file-noselect source nil t))
+	(buffer (or (get-file-buffer source)
+		    (find-file-noselect source nil t)))
 	info)
     (with-current-buffer buffer
       (save-excursion
