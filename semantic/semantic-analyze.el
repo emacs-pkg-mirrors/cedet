@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.49 2007/02/23 20:47:09 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.50 2007/03/11 01:30:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -148,7 +148,7 @@ SCOPE is the additional scope in which to search for names."
 
 (defun semantic-analyze-merge-namespaces (spaces)
   "Merge all the namespaces SPACES into a single super-tag.
-TODO: consider some higher level fine routine to do this."
+TODO: consider some higher level find routine to do this."
   (if (not (string= (semantic-tag-type (car spaces))
 		    "namespace"))
       (signal 'wrong-type-argument (list (car spaces) "namespace")))
@@ -302,7 +302,8 @@ SCOPE represents a calculated scope in which the types might be found."
       ;; elsewhere, and report back.
       (setq name (semantic-analyze-tag-type-to-name tag))
       (if (and name (not (string= name "")))
-	  (setq typetag (semantic-analyze-find-tag name nil scope))
+	  ;; Find a type of that name in scope.
+	  (setq typetag (semantic-analyze-find-tag name 'type scope))
 	;; No name to look stuff up with.
 	(error "Semantic tag %S has no type information"
 	       (semantic-tag-name ttype)))
@@ -1039,17 +1040,37 @@ Argument CONTEXT is an object specifying the locally derived context."
 
     (when desired-type
 
-      (let ((origc c))
-	;; Ok, we now have a completion list based on the text we found
-	;; we want to complete on.  Now filter that stream against the
-	;; type we want to search for.
-	(setq c (semantic-find-tags-by-type (semantic-tag-name desired-type)
-					    origc))
-
-	;; Now anything that is a compound type which could contain
-	;; additional things which are of the desired type
-	(setq c (append c (semantic-find-tags-of-compound-type origc)))
+      (let ((origc c)
+	    (scope (oref a scope))
+	    (dtname (semantic-tag-name desired-type)))
 	
+	;; Reset c.
+	(setq c nil)
+
+	;; Loop over all the found matches, and catagorize them
+	;; as being possible features.
+	(while origc
+
+	  ;; Ok, we now have a completion list based on the text we found
+	  ;; we want to complete on.  Now filter that stream against the
+	  ;; type we want to search for.
+	  (if (string= dtname (semantic-analyze-tag-type-to-name (car origc)))
+	      (setq c (cons (car origc) c))
+
+	    ;; else
+
+	    (when (semantic-tag-type (car origc))
+	      ;; Now anything that is a compound type which could contain
+	      ;; additional things which are of the desired type
+	      (let ((att (semantic-analyze-tag-type (car origc) scope))
+		    )
+		(if (and att (semantic-tag-type-members att))
+		    (setq c (cons (car origc) c))))
+	      ) ;when
+	    ) ; if
+
+	  (setq origc (cdr origc)))
+
 	;; Some types, like the enum in C, have special constant values that
 	;; we could complete with.  Thus, if the target is an enum, we can
 	;; find possible symbol values to fill in that value.
