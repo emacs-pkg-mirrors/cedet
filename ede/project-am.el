@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.27 2007/02/08 02:37:59 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.28 2007/03/12 03:43:18 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -650,8 +650,17 @@ Argument FILE is the file to extract the end directory name from."
   "Return a list of files that provides documentation.
 Documentation is not for object THIS, but is provided by THIS for other
 files in the project."
-  (append (oref this source)
-	  (oref this include)))
+  (let ((src (append (oref this source)
+		     (oref this include)))
+	(out nil))
+    ;; Loop over all entries and expand
+    (while src
+      (setq out (cons
+		 (ede-expand-filename this (car src))
+		 out))
+      (setq src (cdr src)))
+    ;; return it
+    out))
 
 
 ;;; Makefile editing and scanning commands
