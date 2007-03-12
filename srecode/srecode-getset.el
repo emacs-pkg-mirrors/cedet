@@ -39,7 +39,7 @@
 		       (sexp :tag "Filename"))
 		 ))
 
-
+;;;###autoload
 (defun srecode-insert-getset ()
   "Insert get/set methods for the current class."
   (interactive)
@@ -50,7 +50,7 @@
   (if (not (srecode-table))
       (error "No template table found for mode %s" major-mode))
 
-  ;; Step 1: Try to derive the tag we will use
+  ;; Step 1: Try to derive the tag for the class we will use
   (let* ((class (srecode-auto-choose-class (point)))
 	 (inclass (eq (semantic-current-tag-of-class 'type) class))
 	 (field nil)
@@ -67,6 +67,10 @@
 
     ;; Step 3: Insert a new field if needed
     (when (stringp field)
+
+      ;; Ack.. auto-create is hard.  Do it later.
+      (error "You must select a pre-existing field")
+
       (srecode-position-new-field class inclass)
 
       ;; Step 3.5: Insert an initializer if needed.
@@ -142,6 +146,13 @@ INCLASS specifies if the cursor is already in CLASS or not."
 	(setq aftertag (car-safe
 			(semantic--find-tags-by-macro
 			 (semantic-tag-get-attribute (car tags) :destructor-flag)
+			 (semantic-tag-type-members class))))
+      )
+
+    (if (not aftertag)
+	(setq aftertag (car-safe
+			(semantic--find-tags-by-macro
+			 (semantic-tag-get-attribute (car tags) :constructor-flag)
 			 (semantic-tag-type-members class))))
       )
 
