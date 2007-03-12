@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.48 2007/02/22 03:26:09 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.49 2007/03/12 03:31:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -421,6 +421,35 @@ tree to make the name accurate."
   (semantic-format-tag-canonical-name-default tag parent color)
   )
 
+(define-mode-local-override semantic-format-tag-type c-mode (tag color)
+  "Convert the data type of TAG to a string usable in tag formatting.
+Adds pointer and reference symbols to the default.
+Argument COLOR adds color to the text."
+  (let* ((type (semantic-tag-type tag))
+	 (defaulttype nil)
+	 (point (semantic-tag-get-attribute tag :pointer))
+	 (ref (semantic-tag-get-attribute tag :reference))
+	 )
+    (if (semantic-tag-p type)
+	(let ((typetype (semantic-tag-type type))
+	      (typename (semantic-tag-name type)))
+	  ;; Create the string that expresses the type
+	  (if (string= typetype "class")
+	      (setq defaulttype typename)
+	    (setq defaulttype (concat typetype " " typename))))
+      (setq defaulttype (semantic-format-tag-type-default tag color)))
+      
+    ;; Colorize
+    (when color 
+      (setq defaulttype (semantic--format-colorize-text defaulttype 'type)))
+
+    ;; Add refs, ptrs, etc
+    (if ref (setq ref "&"))
+    (if point (setq point (make-string point ?*)) "")
+    (when type
+      (concat defaulttype ref point))
+    ))
+
 (define-mode-local-override semantic-tag-protection
   c-mode (token &optional parent)
   "Return the protection of TOKEN in PARENT.
@@ -473,20 +502,6 @@ Override function for `semantic-tag-protection'."
       ;; to make sure we can apply overlays properly.
       (semantic-tag-components (semantic-tag-type-superclasses tag))
     (semantic-tag-components-default tag)))
-
-(define-mode-local-override semantic-format-tag-type c-mode (tag color)
-  "Convert the data type of TAG to a string usable in tag formatting.
-Adds pointer and reference symbols to the default.
-Argument COLOR adds color to the text."
-  (let* ((type (semantic-format-tag-type-default tag color))
-	 (point (semantic-tag-get-attribute tag :pointer))
-	 (ref (semantic-tag-get-attribute tag :reference))
-	 )
-    (if ref (setq ref "&"))
-    (if point (setq point (make-string point ?*)) "")
-    (when type
-      (concat type ref point))
-    ))
 
 (defun semantic-c-tag-template (tag)
   "Return the template specification for TAG, or nil."
