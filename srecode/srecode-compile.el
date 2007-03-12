@@ -99,7 +99,7 @@ STATE is the current compilation state."
 
 ;;; Compile State
 (defclass srecode-compile-state ()
-  ((context :initform "declarations"
+  ((context :initform "declaration"
 	    :documentation "The active context.")
    (prompts :initform nil
 	    :documentation "The active prompts.")
