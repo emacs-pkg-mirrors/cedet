@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.80 2007/02/19 13:49:42 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.81 2007/03/12 02:34:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -303,6 +303,19 @@ Uses `semanticdb-persistent-path' to determine the return value."
 	   )
       nil))
 
+(defvar semanticdb-match-any-mode nil
+  "Non-nil to temporarilly search any major mode for a tag.
+If a particular major mode wants to search any mode, put the
+`semantic-match-any-mode' symbol onto the symbol of that major mode.
+Do not set the value of this variable permanently.")
+
+(defmacro semanticdb-with-match-any-mode (&rest body)
+  "A Semanticdb search occuring withing BODY will search tags in all modes.
+This temporarilly sets `semanticdb-match-any-mode' while executing BODY."
+  `(let ((semanticdb-match-any-mode t))
+     ,@body))
+(put 'semanticdb-with-match-any-mode 'lisp-indent-function 0)
+
 (defmethod semanticdb-equivalent-mode-for-search (table &optional buffer)
   "Return non-nil if TABLE's mode is equivalent to BUFFER.
 See `semanticdb-equivalent-mode' for details.
@@ -310,6 +323,7 @@ This version is used during searches.  Major-modes that opt
 to set the `semantic-match-any-mode' property will be able to search
 all files of any type."
   (or (get major-mode 'semantic-match-any-mode)
+      semanticdb-match-any-mode
       (semanticdb-equivalent-mode table buffer))
   )
 
