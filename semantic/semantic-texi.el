@@ -1,9 +1,9 @@
 ;;; semantic-texi.el --- Semantic details for Texinfo files
 
-;;; Copyright (C) 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.33 2005/09/30 20:21:23 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.34 2007/03/12 02:36:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -429,9 +429,8 @@ If TAG is nil, determine a tag based on the current position."
     (error "Only deffns (or defun or defvar) can be updated"))
   (let* ((name (semantic-tag-name tag))
 	 (tags (semanticdb-strip-find-results
-		;; `semanticdb-find-first-tag-by-name' returns a
-		;; list ((DB-TABLE . TOKEN) ...)
-		(semanticdb-brute-deep-find-tags-by-name name)
+		(semanticdb-with-match-any-mode
+		  (semanticdb-brute-deep-find-tags-by-name name))
 		t))
 	 (docstring nil)
 	 (docstringproto nil)
@@ -502,8 +501,8 @@ The current buffer must include TAG."
 	 (docbuff nil))
     (while (and texi (not doctag))
       (set-buffer (find-file-noselect (car texi)))
-      (setq doctag (semantic-find-first-tag-by-name
-		    name (semantic-fetch-tags))
+      (setq doctag (car (semantic-deep-find-tags-by-name
+			 name (semantic-fetch-tags)))
 	    docbuff (if doctag (current-buffer) nil))
       (setq texi (cdr texi)))
     (unless doctag
@@ -546,11 +545,10 @@ If TAG is nil, it is derived from the deffn under POINT."
   (unless (semantic-tag-of-class-p tag 'def)
     (error "Only deffns (or defun or defvar) can be updated"))
   (let* ((name (semantic-tag-name tag))
-	 (tags (mapcar
-                #'cdr
-                ;; `semanticdb-find-nonterminal-by-name' returns a
-                ;; list ((DB-TABLE . TOKEN) ...)
-                (semanticdb-deep-find-tags-by-name name nil t)))
+	 (tags (semanticdb-strip-find-results
+		(semanticdb-with-match-any-mode
+		  (semanticdb-brute-deep-find-tags-by-name name nil t))
+		))
 	 (done nil)
 	 )
     (save-excursion
@@ -560,7 +558,10 @@ If TAG is nil, it is derived from the deffn under POINT."
 	  (switch-to-buffer (semantic-tag-buffer (car tags)))
 	  (goto-char (semantic-tag-start (car tags)))
 	  (setq done t))
-	(setq tags (cdr tags))))))
+	(setq tags (cdr tags)))
+      (if (not done)
+	  (error "Could not find tag for %s" (semantic-tag-name tag)))
+      )))
 
 (provide 'semantic-texi)
 
