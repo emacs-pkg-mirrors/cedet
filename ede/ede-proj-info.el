@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.17 2007/03/11 15:14:07 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.18 2007/03/12 03:39:55 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -167,7 +167,17 @@ Argument THIS is the target which needs to insert an info file."
   "Return a list of files that provides documentation.
 Documentation is not for object THIS, but is provided by THIS for other
 files in the project."
-  (oref this source))
+  (let ((src (oref this source))
+	(out nil)
+	)
+    ;; convert src to full file names.
+    (while src
+      (setq out (cons
+		 (ede-expand-filename this (car src))
+		 out))
+      (setq src (cdr src)))
+    ;; Return it
+    out))
 
 (provide 'ede-proj-info)
 
