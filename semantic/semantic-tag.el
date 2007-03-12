@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.41 2007/03/12 01:32:44 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.42 2007/03/12 03:27:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,12 +85,36 @@ In this case, we must flush the old tags and start over.")
 ;;
 
 (defsubst semantic-tag-name (tag)
-  "Return the name of TAG."
+  "Return the name of TAG.
+For functions, variables, classes, typedefs, etc., this is the identifier
+that is being defined.  For tags without an obvious associated name, this
+may be the statement type, e.g., this may return @code{print} for python's
+print statement."
   (car tag))
 
 (defsubst semantic-tag-class (tag)
   "Return the class of TAG.
-That is, the symbol 'variable, 'function, 'type, or other."
+That is, the symbol 'variable, 'function, 'type, or other.
+There is no limit to the symbols that may represent the class of a tag.
+Each parser generates tags with classes defined by it.
+
+For functional languages, typical tag classes are:
+
+@table @code
+@item type
+Data types, named map for a memory block.
+@item function
+A function or method, or named execution location.
+@item variable
+A variable, or named storage for data.
+@item include
+Statement that represents a file from which more tags can be found.
+@item package
+Statement that declairs this file's package name.
+@item code
+Code that has not name or binding to any other symbol, such as in a script.
+@end table
+"
   (nth 1 tag))
 
 (defsubst semantic-tag-attributes (tag)
@@ -105,7 +129,9 @@ That is a property list: (PROPERTY-1 VALUE-1 PROPERTY-2 VALUE-2...)."
 
 (defsubst semantic-tag-overlay (tag)
   "Return the OVERLAY part of TAG.
-That is, an overlay or an unloaded buffer representation."
+That is, an overlay or an unloaded buffer representation.
+This function can also return an array of the form [ START END ].
+This occurs for tags that are not currently linked into a buffer."
   (nth 4 tag))
 
 (defsubst semantic--tag-overlay-cdr (tag)
@@ -303,7 +329,7 @@ If TAG is unlinked, but has a :filename property, then that is used."
 
 (defun semantic-equivalent-tag-p (tag1 tag2)
   "Compare TAG1 and TAG2 and return non-nil if they are equivalent.
-Use `eq' to test of two tags are the same.  Use this function if tags
+Use `eq' to test if two tags are the same.  Use this function if tags
 are being copied and regrouped to test for if two tags represent the
 same thing, but may be constructed of different cons cells."
   (and (equal (semantic-tag-name tag1) (semantic-tag-name tag2))
@@ -317,7 +343,7 @@ same thing, but may be constructed of different cons cells."
 
 (defun semantic-tag-of-type-p (tag type)
   "Compare TAG's type against TYPE.  Non nil if equivalent.
-TYPE can be a string, or a token of class 'type."
+TYPE can be a string, or a tag of class 'type."
   (let* ((tagtype (semantic-tag-type tag))
 	 (tagtypestring (cond ((stringp tagtype)
 			       tagtype)
@@ -401,7 +427,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
   (list name class (semantic-tag-make-plist attributes) nil nil))
 
 (defsubst semantic-tag-new-variable (name type default-value &rest attributes)
-  "Create a semantic tag of class variable.
+  "Create a semantic tag of class 'variable.
 NAME is the name of this variable.
 TYPE is a string or semantic tag representing the type of this variable.
 DEFAULT-VALUE is a string representing the default value of this variable.
@@ -412,7 +438,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
          attributes))
 
 (defsubst semantic-tag-new-function (name type arg-list &rest attributes)
-  "Create a semantic tag of class function.
+  "Create a semantic tag of class 'function.
 NAME is the name of this function.
 TYPE is a string or semantic tag representing the type of this function.
 ARG-LIST is a list of strings or semantic tags representing the
@@ -424,7 +450,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
          attributes))
 
 (defsubst semantic-tag-new-type (name type members parents &rest attributes)
-  "Create a semantic tag of class type.
+  "Create a semantic tag of class 'type.
 NAME is the name of this type.
 TYPE is a string or semantic tag representing the type of this type.
 MEMBERS is a list of strings or semantic tags representing the
@@ -449,7 +475,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
          attributes))
 
 (defsubst semantic-tag-new-include (name system-flag &rest attributes)
-  "Create a semantic tag of class include.
+  "Create a semantic tag of class 'include.
 NAME is the name of this include.
 SYSTEM-FLAG represents that we were able to identify this include as belonging
 to the system, as opposed to belonging to the local project.
@@ -459,7 +485,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
          attributes))
 
 (defsubst semantic-tag-new-package (name detail &rest attributes)
-  "Create a semantic tag of class package.
+  "Create a semantic tag of class 'package.
 NAME is the name of this package.
 DETAIL is extra information about this package, such as a location where
 it can be found.
@@ -469,7 +495,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
          attributes))
 
 (defsubst semantic-tag-new-code (name detail &rest attributes)
-  "Create a semantic tag of class code.
+  "Create a semantic tag of class 'code.
 NAME is a name for this code.
 DETAIL is extra information about the code.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
@@ -533,7 +559,7 @@ This function is for internal use only."
   (semantic-tag-get-attribute tag :type))
 
 (defsubst semantic-tag-modifiers (tag)
-  "Return the value of the `:modifiers' attribute of TAG."
+  "Return the value of the `:typemodifiers' attribute of TAG."
   (semantic-tag-get-attribute tag :typemodifiers))
 
 (defun semantic-tag-docstring (tag &optional buffer)
@@ -628,7 +654,10 @@ That is the value of the attribute `:system-flag'."
 The default action is to return the `semantic-tag-name'.
 Some languages do not use full filenames in their include statements.
 Override this method to translate the code represenation
-into a filename.  (A relative filename if necessary.)")
+into a filename.  (A relative filename if necessary.)
+
+See `semantic-dependency-tag-file' to expand an include
+tag to a full file name.")
 
 (defun semantic-tag-include-filename-default (tag)
   "Return a filename representation of TAG.
@@ -676,8 +705,9 @@ Return nil if TAG is not of class 'alias."
 (define-overload semantic-tag-components (tag)
   "Return a list of components for TAG.
 A Component is a part of TAG which itself may be a TAG.
-Examples include the elements of a structure in a `type tag,
-or the list of arguments to a 'function tag."
+Examples include the elements of a structure in a 
+tag of class `type, or the list of arguments to a
+tag of class 'function."
   )
 
 (defun semantic-tag-components-default (tag)
@@ -744,7 +774,8 @@ DO NOT use this fcn in new code.  Use one of the above instead."
 ;; A Tag represents a region in a buffer.  You can narrow to that tag.
 ;;
 (defun semantic-narrow-to-tag (&optional tag)
-  "Narrow to the region specified by TAG."
+  "Narrow to the region specified by the bounds of TAG.
+See `semantic-tag-bounds'."
   (interactive)
   (if (not tag) (setq tag (semantic-current-tag)))
   (narrow-to-region (semantic-tag-start tag)
