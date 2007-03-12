@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.40 2007/02/18 22:41:30 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.41 2007/03/12 01:32:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -268,7 +268,9 @@ That function is for internal use only."
 
 (defun semantic-tag-file-name (tag)
   "Return the name of the file from which TAG originated.
-Return nil if that information can't be obtained."
+Return nil if that information can't be obtained.
+If TAG is from a loaded buffer, then that buffer's filename is used.
+If TAG is unlinked, but has a :filename property, then that is used."
   (let ((buffer (semantic-tag-buffer tag)))
     (if buffer
         (buffer-file-name buffer)
