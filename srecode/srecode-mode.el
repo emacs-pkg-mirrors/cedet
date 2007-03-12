@@ -52,7 +52,11 @@
 
 (defvar srecode-prefix-map
   (let ((km (make-sparse-keymap)))
+    ;; Basic template codes
     (define-key km "/" 'srecode-insert)
+    ;; Template direct binding
+    ;; Template applications
+    (define-key km "G" 'srecode-insert-getset)
     km)
   "Keymap used behind the srecode prefix key in in srecode minor mode.")
 
