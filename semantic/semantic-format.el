@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.24 2007/02/03 02:48:04 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.25 2007/03/12 03:29:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -93,10 +93,11 @@ Images can be used as icons instead of some types of text strings."
   "Text used to separate names when between namespaces/classes and functions.")
 (make-variable-buffer-local 'semantic-format-parent-separator)
 
-(defun semantic-test-all-format-tag-functions ()
+(defun semantic-test-all-format-tag-functions (&optional arg)
   "Test all outputs from `semantic-format-tag-functions'.
-Output is generated from the function under `point'."
-  (interactive)
+Output is generated from the function under `point'.
+Optional argument ARG specifies not to use color."
+  (interactive "P")
   (semantic-fetch-tags)
   (let* ((tag (semantic-current-tag))
 	 (par (or (semantic-current-tag-parent)
@@ -112,7 +113,7 @@ Output is generated from the function under `point'."
 	(princ "\n")
 	(princ (car fns))
 	(princ ":\n ")
-	(let ((s (funcall (car fns) tag par t)))
+	(let ((s (funcall (car fns) tag par (not arg))))
 	  (save-excursion
 	    (set-buffer "*format-tag*")
 	    (goto-char (point-max))
@@ -222,13 +223,16 @@ It is presumed that TYPE is a string or semantic tag.")
 Argument COLOR specifies to colorize the text."
   (let* ((type (semantic-tag-type tag))
 	 (out (cond ((semantic-tag-p type)
-		     (let ((typetype (semantic-tag-type type))
-			   (name (semantic-tag-name type)))
-		       (semantic--format-colorize-text
-			(if typetype
-			    (concat typetype " " name)
-			  name)
-			'type)))
+		     (let* ((typetype (semantic-tag-type type))
+			    (name (semantic-tag-name type))
+			    (str (if typetype
+				     (concat typetype " " name)
+				   name)))
+		       (if color
+			   (semantic--format-colorize-text
+			    str
+			    'type)
+			 str)))
 		    ((and (listp type)
 			  (stringp (car type)))
 		     (car type))
