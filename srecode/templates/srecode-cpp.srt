@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-cpp.srt,v 1.2 2007/02/24 03:14:49 zappo Exp $
+;; X-RCS: $Id: srecode-cpp.srt,v 1.3 2007/03/12 03:34:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -25,6 +25,8 @@ set mode "c++-mode"
 set comment_start  "/**"
 set comment_end    " *"
 set comment_prefix " */"
+
+context declaration
 
 template empty :time :user
 ----
@@ -49,6 +51,8 @@ template doxygen-function :tag
  * @return {{TYPE}}
  */
 ----
+
+prompt GROUPNAME "Name of declaration group: "
 
 template doxygen-function-group-start
 ----
