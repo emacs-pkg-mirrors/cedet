@@ -1,10 +1,10 @@
 ;;; document.el --- Use the semantic parser to generate documentation.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.30 2007/02/18 22:36:09 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.31 2007/03/12 03:37:22 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -786,14 +786,18 @@ This is to take advantage of TeXinfo's markup symbols."
       (while (string-match
               "\\(^\\|[^{]\\)\\<\\([A-Z0-9_-]+\\)\\>\\($\\|[^}]\\)"
               string start)
-        (setq string (concat (substring string 0 (match-beginning 2))
-                             "@var{"
-                             (if (eq mode 'emacs-lisp-mode)
-                                 (downcase (match-string 2 string))
-                               (match-string 2 string))
-                             "}"
-                             (substring string (match-end 2)))
-              start (match-end 2)))
+	(let ((ms (if (eq mode 'emacs-lisp-mode)
+		      (downcase (match-string 2 string))
+		    ms)))
+	  (if (not (or (string= ms "A")
+		       (string= ms "a")
+		       ))
+	      (setq string (concat (substring string 0 (match-beginning 2))
+				   "@var{"
+				   ms
+				   "}"
+				   (substring string (match-end 2))))))
+	(setq start (match-end 2)))
       )
     string))
 
@@ -813,7 +817,8 @@ that class.
  t          => @code{t}
  :tag       => @code{:tag}
  [ stuff ]  => @code{[ stuff ]}
- Key        => @kbd{Key}     (key is C\\-h, M\\-h, SPC, RET, TAB and the like)"
+ Key        => @kbd{Key}     (key is C\\-h, M\\-h, SPC, RET, TAB and the like)
+ ...        => @dots"
   (while (string-match "`\\([-a-zA-Z0-9<>.]+\\)'" string)
     (let* ((vs (substring string (match-beginning 1) (match-end 1)))
 	   (v (intern-soft vs)))
@@ -834,6 +839,8 @@ that class.
     (setq string (replace-match "@kbd{\\2}" t nil string 2)))
   (while (string-match "\"\\(.+\\)\"" string)
     (setq string (replace-match "``\\1''" t nil string 0)))
+  (while (string-match "\\.\\.\\." string)
+    (setq string (replace-match "@dots" t nil string 0)))
   string)
 
 ;;; Buffer finding and managing
