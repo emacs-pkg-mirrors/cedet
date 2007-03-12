@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.31 2007/03/12 03:37:22 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.32 2007/03/12 03:39:25 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -786,17 +786,18 @@ This is to take advantage of TeXinfo's markup symbols."
       (while (string-match
               "\\(^\\|[^{]\\)\\<\\([A-Z0-9_-]+\\)\\>\\($\\|[^}]\\)"
               string start)
-	(let ((ms (if (eq mode 'emacs-lisp-mode)
-		      (downcase (match-string 2 string))
-		    ms)))
-	  (if (not (or (string= ms "A")
-		       (string= ms "a")
-		       ))
-	      (setq string (concat (substring string 0 (match-beginning 2))
-				   "@var{"
-				   ms
-				   "}"
-				   (substring string (match-end 2))))))
+	(let ((ms (match-string 2 string)))
+	  (when (eq mode 'emacs-lisp-mode)
+	    (setq ms (downcase ms)))
+	
+	  (when (not (or (string= ms "A")
+			 (string= ms "a")
+			 ))
+	    (setq string (concat (substring string 0 (match-beginning 2))
+				 "@var{"
+				 ms
+				 "}"
+				 (substring string (match-end 2))))))
 	(setq start (match-end 2)))
       )
     string))
