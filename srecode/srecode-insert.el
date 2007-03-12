@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.4 2007/03/10 04:55:08 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.5 2007/03/12 03:34:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -225,9 +225,11 @@ If this object isn't in the dictionary, ask the user what it should be.")
 	:documentation
 	"The character code used to identify inserters of this style.")
    (prompt :initarg :prompt
+	   :initform nil
 	   :documentation
 	   "The prompt used to query for this dictionary value.")
    (defaultfcn :initarg :defaultfcn
+	       :initform nil
 	       :documentation
 	       "The function which can calculate a default value.")
    )
