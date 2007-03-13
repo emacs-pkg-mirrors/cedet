@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.49 2007/03/12 03:31:32 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.50 2007/03/13 03:35:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -345,12 +345,19 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 		  (cond ((car (nth 3 tokenpart) )
 			 "void")	; Destructors have no return?
 			(constructor
-			 ;; Constructors return an object.			  ;; in our
-			 (list (or (car semantic-c-classname)
-				   (car (nth 2 tokenpart)))
-			       'type
-			       (or (cdr semantic-c-classname)
-				   "class")))
+			 ;; Constructors return an object.
+			 (semantic-tag-new-type
+			  ;; name
+			  (or (car semantic-c-classname)
+			      (car (nth 2 tokenpart)))
+			  ;; type
+			  (or (cdr semantic-c-classname)
+			      "class")
+			  ;; members
+			  nil
+			  ;; parents
+			  nil
+			  ))
 			(t "int")))
 	      (nth 4 tokenpart)		;arglist
 	      :constant-flag (if (member "const" declmods) t nil)
