@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.32 2007/03/12 03:39:25 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.33 2007/03/17 21:21:01 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -819,7 +819,7 @@ that class.
  :tag       => @code{:tag}
  [ stuff ]  => @code{[ stuff ]}
  Key        => @kbd{Key}     (key is C\\-h, M\\-h, SPC, RET, TAB and the like)
- ...        => @dots"
+ ...        => @dots{}"
   (while (string-match "`\\([-a-zA-Z0-9<>.]+\\)'" string)
     (let* ((vs (substring string (match-beginning 1) (match-end 1)))
 	   (v (intern-soft vs)))
@@ -841,7 +841,7 @@ that class.
   (while (string-match "\"\\(.+\\)\"" string)
     (setq string (replace-match "``\\1''" t nil string 0)))
   (while (string-match "\\.\\.\\." string)
-    (setq string (replace-match "@dots" t nil string 0)))
+    (setq string (replace-match "@dots{}" t nil string 0)))
   string)
 
 ;;; Buffer finding and managing
