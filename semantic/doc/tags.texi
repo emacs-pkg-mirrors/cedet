@@ -605,7 +605,7 @@ semantic-tag-type                  | :type
 @defun semantic-tag-attributes tag
 @anchor{semantic-tag-attributes}
 Return the list of public attributes of @var{tag}.
-That is a property list: (@var{attribute-1} @var{value-1} @var{attribute-2} @var{value-2}@dots).
+That is a property list: (@var{attribute-1} @var{value-1} @var{attribute-2} @var{value-2}@dots{}).
 @obsolete{semantic-token-extra-specs,semantic-tag-attributes}
 @obsolete{semantic-token-function-extra-specs,semantic-tag-attributes}
 @obsolete{semantic-token-variable-extra-specs,semantic-tag-attributes}
@@ -644,15 +644,6 @@ new @var{attribute} @var{value} pair is added.
 Return @var{tag}.
 @end defun
 
-@defun semantic-tag-get-attribute tag attribute
-@anchor{semantic-tag-get-attribute}
-From @var{tag}, return the value of @var{attribute}.
-@var{attribute} is a symbol whose specification value to get.
-Return the value found, or @code{nil} if @var{attribute} is not one of the
-attributes of @var{tag}.
-@obsolete{semantic-token-extra-spec,semantic-tag-get-attribute}
-@end defun
-
 @node Tag Properties Internals
 @subsection Tag Properties Internals
 
@@ -672,7 +663,7 @@ Related functions not yet documented:
 @defun semantic-tag-properties tag
 @anchor{semantic-tag-properties}
 Return the list of private properties of @var{tag}.
-That is a property list: (@var{property-1} @var{value-1} @var{property-2} @var{value-2}@dots).
+That is a property list: (@var{property-1} @var{value-1} @var{property-2} @var{value-2}@dots{}).
 @obsolete{semantic-token-properties,semantic-tag-properties}
 @end defun
 
@@ -695,16 +686,6 @@ That function is for internal use only.
 @obsolete{semantic-token-get,semantic--tag-get-property}
 @end defun
 
-@defun semantic--tag-put-property tag property value
-@anchor{semantic--tag-put-property}
-Change value in @var{tag} of @var{property} to @var{value}.
-If @var{property} already exists, its value is set to @var{value}, otherwise the
-new @var{property} @var{value} pair is added.
-Return @var{tag}.
-That function is for internal use only.
-@obsolete{semantic-token-put,semantic--tag-put-property}
-@end defun
-
 @defun semantic--tag-put-property-no-side-effect tag property value
 @anchor{semantic--tag-put-property-no-side-effect}
 Change value in @var{tag} of @var{property} to @var{value} without side effects.
@@ -717,19 +698,10 @@ That function is for internal use only.
 @obsolete{semantic-token-put-no-side-effect,semantic--tag-put-property-no-side-effect}
 @end defun
 
-@defun semantic--tag-get-property tag property
-@anchor{semantic--tag-get-property}
-From @var{tag}, extract the value of @var{property}.
-Return the value found, or @code{nil} if @var{property} is not one of the
-properties of @var{tag}.
-That function is for internal use only.
-@obsolete{semantic-token-get,semantic--tag-get-property}
-@end defun
-
 @defun semantic-tag-make-plist args
 @anchor{semantic-tag-make-plist}
 Create a property list with @var{args}.
-Args is a property list of the form (@var{key1} @var{value1} @dots @var{keyn} @var{valuen}).
+Args is a property list of the form (@var{key1} @var{value1} @dots{} @var{keyn} @var{valuen}).
 Where @var{key} is a symbol, and @var{value} is the value for that symbol.
 The return value will be a new property list, with these @var{key}/@var{value}
 pairs eliminated:
