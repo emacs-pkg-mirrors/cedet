@@ -1,10 +1,10 @@
 ;;; ede-ede-grammar.el --- EDE support for Semantic Grammar Files
 
-;;;  Copyright (C) 2003, 2004  Eric M. Ludlam
+;;;  Copyright (C) 2003, 2004, 2007  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.11 2007/03/08 04:09:56 zappo Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.12 2007/03/18 16:43:17 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -148,12 +148,9 @@ Lays claim to all -by.el, and -wy.el files."
 
 (defmethod ede-proj-makefile-insert-variables :AFTER ((this semantic-ede-proj-target-grammar))
   "Insert variables needed by target THIS."
-  (ede-pmake-insert-variable-shared "LOADPATH"
-    (insert (mapconcat 'identity
-		       (ede-proj-elisp-packages-to-loadpath
-			(list "eieio" "semantic" "inversion"))
-		       " "))
-    )
+  (ede-proj-makefile-insert-loadpath-items
+   (ede-proj-elisp-packages-to-loadpath
+    (list "eieio" "semantic" "inversion")))
   (ede-pmake-insert-variable-shared
       (concat (ede-pmake-varname this) "_SEMANTIC_GRAMMAR_EL")
     (insert
