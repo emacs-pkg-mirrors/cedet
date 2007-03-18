@@ -7,7 +7,7 @@
    (ede-proj-target-makefile-miscelaneous "templates"
     :name "templates"
     :path ""
-    :source '("default.srt" "srecode-el.srt" "srecode-getset-cpp.srt" "srecode-template.srt" "srecode-cpp.srt" "srecode-wisent.srt")
+    :source '("default.srt" "srecode-el.srt" "srecode-getset-cpp.srt" "srecode-template.srt" "srecode-cpp.srt" "srecode-wisent.srt" "srecode-expandproto-cpp.srt")
     )
    )
   )
