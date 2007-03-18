@@ -1,10 +1,10 @@
 ;;; ede-proj-comp.el --- EDE Generic Project compiler/rule driver
 
-;;;  Copyright (C) 1999, 2000, 2001, 2004, 2005  Eric M. Ludlam
+;;;  Copyright (C) 1999, 2000, 2001, 2004, 2005, 2007  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-comp.el,v 1.9 2005/09/30 20:16:42 zappo Exp $
+;; RCS: $Id: ede-proj-comp.el,v 1.10 2007/03/18 16:40:36 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -214,6 +214,7 @@ This will prevent rules from creating duplicate variables or rules."
 	    (def-edebug-spec ede-compiler-only-once (form def-body))
 	    (def-edebug-spec ede-linker-begin-unique def-body)
 	    (def-edebug-spec ede-linker-only-once (form def-body))
+	    (def-edebug-spec ede-pmake-insert-variable-shared (form def-body))
 	    ))
 
 ;;; Querys
