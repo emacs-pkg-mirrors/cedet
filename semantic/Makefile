@@ -10,9 +10,8 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH=../common/ ../common/ ./ ../eieio/\
-   ../eieio/ ../ede/ wisent/ bovine/ ../common/ ../speedbar/ ../ede/ ../eieio/\
-   
+LOADPATH= ../common/  ./ ../eieio/  ../ede/\
+    wisent/ bovine/  ../speedbar/
 LOADDEFS=semantic-loaddefs.el
 LOADDIRS=. bovine wisent
 metagrammar_SEMANTIC_GRAMMAR=semantic-grammar.wy
