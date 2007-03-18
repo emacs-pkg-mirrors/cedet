@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.148 2007/02/18 18:12:07 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.149 2007/03/18 17:20:41 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -2085,8 +2085,7 @@ this object."
 	      (princ (make-string (* eieio-print-depth 2) ? ))
 	      (princ (symbol-name i))
 	      (princ " ")
-	      (let ((o (eieio-oref this (car publa))))
-		(eieio-override-prin1 o))
+	      (eieio-override-prin1 v)
 	      (princ "\n"))))
 	(setq publa (cdr publa) publd (cdr publd)))
       (princ (make-string (* eieio-print-depth 2) ? )))
