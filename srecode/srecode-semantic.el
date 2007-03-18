@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.2 2007/02/24 03:14:17 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.3 2007/03/18 16:47:42 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -78,6 +78,23 @@ If this is nil, then `senator-tag-ring' is used.")
 			    :prime srecode-semantic-selected-tag))
     (srecode-semantic-tag-from-kill-ring))
    dict))
+
+;;; :tagtype ARGUMENT HANDLING
+;;
+;; When a :tagtype argument is required, identify the current tag, of
+;; cf class 'type.  Apply those parameters to the dictionary.
+
+;;;###autoload
+(defun srecode-semantic-handle-:tagtype (dict)
+  "Add macroes into the dictionary DICT based on a tag of class type at point.
+Assumes the cursor is in a tag of class type.  If not, throw an error."
+  (let ((typetag (or srecode-semantic-selected-tag
+		     (semantic-current-tag-of-class 'type))))
+    (when (not typetag)
+      (error "Cursor is not in a TAG of class 'type"))
+    (srecode-semantic-apply-tag-to-dict
+     typetag
+     dict)))
 
 (defun srecode-semantic-apply-tag-to-dict (tagobj dict)
   "Insert features of TAGOBJ into dictionary DICT."
