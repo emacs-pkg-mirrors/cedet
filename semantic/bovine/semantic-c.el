@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.50 2007/03/13 03:35:40 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.51 2007/03/18 15:43:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -328,7 +328,11 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 		(fcnpointer (string-match "^\\*" (car tokenpart)))
 		(fnname (if fcnpointer
 			    (substring (car tokenpart) 1)
-			  (car tokenpart))))
+			  (car tokenpart)))
+		(operator (if (string-match "[a-zA-Z]" fnname)
+			      nil
+			    t))
+		)
 	   (if fcnpointer
 	       ;; Function pointers are really variables.
 	       (semantic-tag-new-variable
@@ -366,6 +370,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 	      :destructor-flag (if (car (nth 3 tokenpart) ) t)
 	      :constructor-flag (if constructor t)
 	      :pointer (nth 7 tokenpart)
+	      :operator-flag operator
 	      ;; Even though it is "throw" in C++, we use
 	      ;; `throws' as a common name for things that toss
 	      ;; exceptions about.
