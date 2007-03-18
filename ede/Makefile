@@ -10,8 +10,7 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH=../common/ ../speedbar/ ../eieio/\
-   
+LOADPATH= ../common/  ../speedbar/ ../eieio/
 LOADDEFS=ede-loaddefs.el
 LOADDIRS=.
 init_LISP=ede-load.el
