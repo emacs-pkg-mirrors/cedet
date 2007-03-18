@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-cpp.srt,v 1.3 2007/03/12 03:34:57 zappo Exp $
+;; X-RCS: $Id: srecode-cpp.srt,v 1.4 2007/03/18 17:05:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -26,24 +26,67 @@ set comment_start  "/**"
 set comment_end    " *"
 set comment_prefix " */"
 
-context declaration
+context file
 
-template empty :time :user
+template empty :time :user :cpp
 ----
 /**
  * Copyright (C) {{YEAR}} {{AUTHOR}}
  */
+{{#NOTHEADER}}
+#include ...
+{{/NOTHEADER}}
+
+{{#HEADER}}
+{{>:header_guard}}
+{{/HEADER}}
 ----
 
-template function-tag :tag
+template header_guard :file
+----
+#ifndef {{FILENAME_SYMBOL}}
+#define {{FILENAME_SYMBOL}} 1
+
+{{^}}
+
+#endf // {{FILENAME_SYMBOL}}
+----
+
+context declaration
+
+template function-tag :tag :indent
 ----
 {{TYPE}} {{NAME}}({{#ARGS}}{{TYPE}} {{NAME}}{{#NOTLAST}},{{/NOTLAST}}{{/ARGS}})
 {
-    {{^}}
+{{^}}
 }
 ----
 
-template doxygen-function :tag
+template constructor-tag :tagtype :indent
+----
+{{NAME}}() {{>:initializers}} {
+{{^}}
+}
+----
+
+;; This one really sucks.  How can I finish it?
+template initializers :typetag :indent
+----
+{{#FIRST}}:
+{{/FIRST}}{{INITNAME}}(){{#NOTLAST}},{{/NOTLAST}}
+----
+
+template destructor-tag :tagtype :indent
+----
+~{{NAME}}() {
+{{^}}
+}
+----
+
+;;; DOXYGEN FEATURES
+;; 
+;;
+template doxygen-function :tag :indent
 ----
 /**
  * @name - {{NAME}} - $^${{#ARGS}}
@@ -54,7 +97,7 @@ template doxygen-function :tag
 
 prompt GROUPNAME "Name of declaration group: "
 
-template doxygen-function-group-start
+template doxygen-function-group-start :indent
 ----
 /**
  * {{?GROUPNAME}}
@@ -63,7 +106,7 @@ template doxygen-function-group-start
 
 ----
 
-template doxygen-function-group-end
+template doxygen-function-group-end :indent
 ----
 /**
  * @}
