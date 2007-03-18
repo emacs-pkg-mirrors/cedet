@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.1 2007/03/18 01:37:15 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.2 2007/03/18 15:40:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -202,7 +202,6 @@ PARENT is the tag that represents the parent of all the tags."
 (defun semantic-adebug-insert-find-results-from-point (point)
   "Insert the find results found at the find results button at POINT."
   (let ((findres (get-text-property point 'adebug))
-	(parent (get-text-property point 'adebug-parent))
 	(indent (get-text-property point 'adebug-indent))
 	start end
 	)
@@ -212,7 +211,7 @@ PARENT is the tag that represents the parent of all the tags."
     (semantic-adebug-insert-find-results findres
 					 (concat (make-string indent ? )
 						 "!* ")
-					 parent)
+					 )
     (setq end (point))
     (goto-char start)
   ))
