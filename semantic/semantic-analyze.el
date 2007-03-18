@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.51 2007/03/18 15:41:34 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.52 2007/03/18 15:44:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1051,7 +1051,7 @@ Argument CONTEXT is an object specifying the locally derived context."
 
 	(cond
 	 ;; Strip operators
-	 ((semantic-tag-get-attribute (car origc) :operator)
+	 ((semantic-tag-get-attribute (car origc) :operator-flag)
 	  nil
 	  )
 	 
