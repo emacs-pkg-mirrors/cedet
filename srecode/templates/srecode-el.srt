@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-el.srt,v 1.2 2007/03/10 03:33:57 zappo Exp $
+;; X-RCS: $Id: srecode-el.srt,v 1.3 2007/03/18 17:07:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -87,7 +87,7 @@ template major-mode :file
 
 ;;;###autoload
 (defun $MODESYM$-mode ()
-  "Major-mode for writing srecode macros."
+  "Major-mode for $MODESYM$ buffers."
   (interactive)
   (kill-all-local-variables)
   (setq major-mode '$MODESYM$-mode
