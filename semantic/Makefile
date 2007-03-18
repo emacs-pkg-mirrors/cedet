@@ -17,7 +17,7 @@ LOADDEFS=semantic-loaddefs.el
 LOADDIRS=. bovine wisent
 metagrammar_SEMANTIC_GRAMMAR=semantic-grammar.wy
 EMACS=emacs
-metagrammar_SAMENATIC_GRAMMAR_EL=semantic-grammar-wy.el
+metagrammar_SEMANTIC_GRAMMAR_EL=semantic-grammar-wy.el
 maintenance_LISP=semantic-ede-grammar.el
 EMACS=emacs
 scripts_MISC=semanticdb.sh
@@ -25,7 +25,7 @@ example_MISC=semantic-example.el semanticdb-skel.el
 init_LISP=semantic-load.el
 semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el semantic-tag.el semantic-find.el semantic-format.el semantic-complete.el semantic-sort.el semantic-decorate.el semantic-tag-file.el semantic-doc.el semantic-tag-ls.el semantic-ast.el semantic-lex-spp.el semantic-dep.el
 Languages_LISP=semantic-texi.el semantic-html.el
-tools_LISP=semantic-imenu.el semantic-sb.el semanticdb.el document.el document-vars.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el semantic-idle.el semantic-decorate-mode.el semanticdb-ebrowse.el semantic-utest.el
+tools_LISP=semantic-imenu.el semantic-sb.el semanticdb.el document.el document-vars.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el semantic-idle.el semantic-decorate-mode.el semanticdb-ebrowse.el semantic-utest.el semantic-adebug.el semantic-adebug-eieio.el
 senator_LISP=senator.el
 misc_AUX=INSTALL NEWS ChangeLog AUTHORS ONEWS renamelist.txt
 VERSION=2.0
@@ -142,9 +142,9 @@ clean:
 
 .PHONY: dist
 
-dist: autoloads $(metagrammar_SAMENATIC_GRAMMAR_EL)
+dist: autoloads $(metagrammar_SEMANTIC_GRAMMAR_EL)
 	mkdir $(DISTDIR)
-	cp semantic-loaddefs.el $(metagrammar_SEMANTIC_GRAMMAR) $(metagrammar_SAMENATIC_GRAMMAR_EL) $(maintenance_LISP) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
+	cp semantic-loaddefs.el $(metagrammar_SEMANTIC_GRAMMAR) $(metagrammar_SEMANTIC_GRAMMAR_EL) $(maintenance_LISP) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/wisent dist
 	cd tests; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/tests dist
 	cd doc; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/doc dist
