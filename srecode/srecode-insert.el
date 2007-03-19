@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.5 2007/03/12 03:34:27 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.6 2007/03/19 02:37:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -407,12 +407,17 @@ with the dictionaries found in the dictinary."
 	    (not (oref sti template)))
 	(let ((tmpl (srecode-template-get-table (srecode-table)
 						templatenamepart))
+	      (active (oref srecode-template active))
 	      ctxt)
-	  (when (not tmpl)
-	    (setq ctxt (oref (srecode-peek srecode-template) context))
+	  ;; If it isn't just available, scan back through
+	  ;; the active tempalte stack, searching for a matching
+	  ;; context.
+	  (while (and (not tmpl) active)
+	    (setq ctxt (oref (car active) context))
 	    (setq tmpl (srecode-template-get-table (srecode-table)
 						   templatenamepart
-						   ctxt)))
+						   ctxt))
+	    (setq active (cdr active)))
 	  (oset sti :template tmpl)))
 
     (if (not (oref sti template))
