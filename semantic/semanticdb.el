@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.81 2007/03/12 02:34:40 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.82 2007/03/19 01:01:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -631,6 +631,10 @@ Update the environment of Semantic enabled buffers accordingly."
 	(setq db (cdr db))))
     ))
 
+;;; Generic Accessor Routines
+;;
+;; These routines can be used to get at tags in files w/out
+;; having to know a lot about semanticDB.
 
 ;;;###autoload
 (defun semanticdb-file-table-object (file &optional dontload)
