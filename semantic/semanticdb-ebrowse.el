@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.13 2007/02/22 22:46:23 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.14 2007/03/19 01:01:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -215,7 +215,8 @@ This table is compisited from the ebrowse *Globals* section.")
 		   :initarg :ebrowse-struct
 		   )
    )
-  "Database representing ebrowse.")
+  "Semantic Database deriving tags using the EBROWSE tool.
+EBROWSE is a C/C++ parser for use with `ebrowse' Emacs program.")
 
 ;; NOTE: Be sure to modify this to the best advantage of your
 ;;       language.
