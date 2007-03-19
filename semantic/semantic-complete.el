@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.42 2007/02/22 02:12:48 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.43 2007/03/19 00:10:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -820,7 +820,10 @@ characters.  This is the last calculated version.")
 			:documentation "The list of matched tags.
 When tokens are matched, they are added to this list.")
    )
-  "Root class for completion engines."
+  "Root class for completion engines.
+The baseclass provides basic functionality for interacting with
+a completion displayor object, and tracking the current progress
+of a completion."
   :abstract t)
 
 (defmethod semantic-collector-next-action
@@ -1023,7 +1026,7 @@ with that name."
 (defclass semantic-collector-buffer-abstract (semantic-collector-abstract)
   ()
   "Root class for per-buffer completion engines.
-These collectors track themselves on a per-buffer basis "
+These collectors track themselves on a per-buffer basis."
   :abstract t)
 
 (defmethod constructor :STATIC ((this semantic-collector-buffer-abstract)
@@ -1063,7 +1066,8 @@ NEWCACHE is the new tag table, but we ignore it."
   (semantic-collector-buffer-abstract)
   ()
   "Completion engine for tags in the current buffer.
-Provides deep searches through types.")
+When searching for a tag, uses semantic  deep searche functions.
+Basics search only in the current buffer.")
 
 (defmethod semantic-collector-calculate-cache
   ((obj semantic-collector-buffer-deep))
@@ -1085,7 +1089,8 @@ Uses `semantic-flatten-tags-table'"
 At creation time, it can be anything accepted by
 `semanticdb-find-translate-path' as a PATH argument.")
    )
-  "Root class for project wide completion engines."
+  "Root class for project wide completion engines.
+Uses semanticdb for searching all tags in the current project."
   :abstract t)
 
 ;;; Project Search
@@ -1171,7 +1176,9 @@ inserted into the current context.")
 		:protection :protected
 		:documentation "Prefix associated with slot `table'")
    )
-  "Manages the display of some number of tags."
+  "Manages the display of some number of tags.
+Provides the basics for a displayor, including interacting with
+a collector, and tracking tables of completion to display."
   :abstract t)
 
 (defmethod semantic-displayor-next-action ((obj semantic-displayor-abstract))
@@ -1214,7 +1221,9 @@ This object type doesn't do focus, so will never have a focus object."
 
 (defclass semantic-displayor-traditional (semantic-displayor-abstract)
   ()
-  "Traditional display mechanism for a list of possible completions.")
+  "Traditional display mechanism for a list of possible completions.
+Completions are showin in a new buffer and listed with the ability
+to click on the items to aid in completion.")
 
 (defmethod semantic-displayor-show-request ((obj semantic-displayor-abstract))
   "A request to show the current tags table."
@@ -1293,7 +1302,10 @@ which have the same name."
 (defclass semantic-displayor-traditional-with-focus-highlight
   (semantic-displayor-traditional semantic-displayor-focus-abstract)
   ((find-file-focus :initform t))
-  "A traditional displayor which can focus on a tag by showing it.")
+  "A traditional displayor which can focus on a tag by showing it.
+Same as `semantic-displayor-traditional', but with selection between
+multiple tags with the same name done by 'focusing' on the source
+location of the different tags to differentiate them.")
 
 (defmethod semantic-displayor-focus-request
   ((obj semantic-displayor-traditional-with-focus-highlight))
@@ -1557,7 +1569,10 @@ HISTORY is a symbol representing a variable to store the history in."
 						   context
 						   history)
   "Ask for a tag by name based on the current context.
-PROMPT is the first part of the prompt.  additional prompt
+The function `semantic-analyze-current-context' is used to
+calculate the context.  `semantic-analyze-possible-completions' is used 
+to generate the list of possible completions.
+PROMPT is the first part of the prompt.  Additional prompt
 is added based on the contexts full prefix.
 CONTEXT is the semantic analyzer context to start with.
 HISTORY is a symbol representing a variable to stor the history in.
@@ -1586,6 +1601,9 @@ prompts.  these are calculated from the CONTEXT variable passed in."
 ;;;###autoload
 (defun semantic-complete-inline-analyzer (context)
   "Complete a symbol name by name based on the current context.
+This is similar to `semantic-complete-read-tag-analyze', except
+that the completion interaction is in the buffer where the context
+was calculated from.
 CONTEXT is the semantic analyzer context to start with.
 See `semantic-complete-inline-tag-engine' for details on how
 completion works."
