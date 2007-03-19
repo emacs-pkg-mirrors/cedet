@@ -25,7 +25,7 @@
 @copying
 This is the Semantic User's Manual
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -478,8 +478,9 @@ in a buffer.
 @end deffn
 
 @menu
-* Smart Completion::            
-* Speedbar Analysis::           
+* Smart Completion::       Functions you can bind to keys for completion
+* Smart Idle Completion::  Automatic completion popups
+* Speedbar Analysis::      Speedbar provided completion
 @end menu
 
 @node Smart Completion
@@ -492,19 +493,46 @@ mechanism.  These functions just provide commands that can be bound
 to key bindings.
 
 @deffn Command semantic-ia-complete-symbol point
-Complete the current symbol at @var{POINT}.
+@anchor{semantic-ia-complete-symbol}
+Complete the current symbol at @var{point}.
 Completion options are calculated with @dfn{semantic-analyze-possible-completions}.
 @end deffn
 
 @deffn Command semantic-ia-complete-symbol-menu point
-Complete the current symbol via a menu based at @var{POINT}.
+@anchor{semantic-ia-complete-symbol-menu}
+Complete the current symbol via a menu based at @var{point}.
 Completion options are calculated with @dfn{semantic-analyze-possible-completions}.
+@end deffn
+
+@deffn Command semantic-ia-complete-tip point
+@anchor{semantic-ia-complete-tip}
+Pop up a tooltip for completion at @var{point}.
+@end deffn
+
+@deffn Command semantic-ia-show-summary point
+@anchor{semantic-ia-show-summary}
+Display a summary for the symbol under @var{point}.
 @end deffn
 
 @deffn Command semantic-ia-show-doc point
 @anchor{semantic-ia-show-doc}
 Display the code-level documentation for the symbol at @var{point}.
 @end deffn
+
+@node Smart Idle Completion
+@section Smart Idle Completion
+
+You can get smart completions or summary information to automatically
+popup without explicity pressing a key or running a function.
+
+This is accomplished through the Idle Scheduler and related features.
+See @ref{Idle Scheduler} for more on the Scheduler.
+
+Summaries are provided with @code{semantic-idle-summary-mode}.  See
+@ref{Idle Summary Mode}.
+
+Completions are provided with @code{semantic-idle-completions-mode}.
+See @ref{Idle Completions Mode}.
 
 @node Speedbar Analysis
 @section Speedbar Analysis
