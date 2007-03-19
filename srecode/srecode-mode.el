@@ -69,6 +69,13 @@
       :active t
       :help "Insert a template by name."
       ])
+   "---"
+   (senator-menu-item
+    ["Dump Tables"
+      srecode-dump-templates
+      :active t
+      :help "Dump the current template table."
+      ])
    )
   "Menu for srecode minor mode.")
 
