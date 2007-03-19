@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-cpp.el,v 1.1 2007/03/18 16:48:12 zappo Exp $
+;; X-RCS: $Id: srecode-cpp.el,v 1.2 2007/03/19 02:38:11 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -39,8 +39,8 @@
 Adds the following:
 FILENAME_SYMBOL - filename converted into a C compat symbol.
 HEADER - Shown section if in a header file."
-  ;; A symbol representing 
-  (let ((fsym (file-name-nondirectory bfn))
+  ;; A symbol representing
+  (let ((fsym (file-name-nondirectory (buffer-file-name)))
 	(case-fold-search t))
 
     ;; Are we in a header file?
