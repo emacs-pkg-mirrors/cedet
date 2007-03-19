@@ -90,10 +90,24 @@
    graphs, such as UML class diagrams.</p>  It can display simple
    graphs, and UML class diagrams.  It can generate simple class diagrams
    from sources using Semantic.   
+</p>
 
 <?php
   include ("download.php")
 ?>
+</p>
+
+<table width=100% class=BAR><tr><td>
+<h3>Tools In Progress:</h3>
+</td></tr></table>
+
+<P><a href="srecode.shtml"><b>The Semantic Recoder</b></a><br>
+  SReocde is a Template manager and code writing system.
+  It takes managing large sets of complex templates to a new level of
+  sophistication.  With templates based loosely on Google ctemplate, and
+  the power of the Semantic tag system to provide values for the macros,
+  SRecode can write complex code for any language.
+</p>
 
 <table width=100% class=BAR><tr><td>
 <h3>Tools hosted elsewhere:</h3>
