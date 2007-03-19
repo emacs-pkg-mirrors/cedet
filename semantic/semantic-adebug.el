@@ -1,9 +1,9 @@
-;;; semantic-adebug.el --- 
+;;; semantic-adebug.el --- Semantic Application Debugger
 
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.2 2007/03/18 15:40:00 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.3 2007/03/19 01:01:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -22,7 +22,7 @@
 
 ;;; Commentary:
 ;;
-;; Debugger for semantic analysis.
+;; Semantic datastructure debugger for semantic applications.
 ;;
 ;; Goals:
 ;;
@@ -648,7 +648,7 @@ Do nothing if already expanded."
 ;; Various commands to output aspects of the current semantic environment.
 ;;;###autoload
 (defun semantic-adebug-bovinate ()
-  "Output the current buffer's tag list."
+  "The same as `bovinate'. Display the results in a debug buffer."
   (interactive)
   (let* ((start (current-time))
 	 (out (semantic-fetch-tags))
