@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.34 2007/03/10 01:43:17 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.35 2007/03/23 15:58:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -122,6 +122,7 @@
   (require 'eieio))
 
 ;;; Code:
+;;;###autoload
 (defvar semanticdb-find-throttle-custom-list
   '(repeat (radio (const 'local)
 		  (const 'project)
@@ -507,7 +508,7 @@ but should be good enough for debugging assertions."
 	   (null (car (cdr (car resultp)))))))
 
 (defun semanticdb-find-result-prin1-to-string (result)
-  "Presuming RESULT satisfies `semanticdb-find-results-p', provide a shirt PRIN1 output."
+  "Presuming RESULT satisfies `semanticdb-find-results-p', provide a short PRIN1 output."
   (concat "#<FIND RESULT "
 	  (mapconcat (lambda (a)
 		       (concat "(" (object-name (car a) ) " . "
