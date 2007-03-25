@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.36 2007/03/25 14:24:20 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.37 2007/03/25 15:02:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -119,7 +119,9 @@
 
 (require 'semanticdb)
 (eval-when-compile
-  (require 'eieio))
+  (require 'eieio)
+  (require 'semantic-adebug)
+  )
 
 ;;; Code:
 ;;;###autoload
@@ -346,33 +348,14 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 	(ans nil))
     (cond
      ;; Relative path name
+     ;;
      ((and (file-exists-p (expand-file-name name))
 	   (semanticdb-find-throttle-active-p 'local))
-      ;; For local files, cascade through several options.
 
-      ;; 1) pre-existing semantic database
-      (setq ans (semanticdb-file-table-object name t))
-
-      ;; 2) pre-existing project DBs from some alternate tool.
-      (when (not ans)
-
-	;; TODO -
-	;; The trick w/ fancy project DBs is that there will be more than
-	;; one DB for a given directory.  We need to ask each one, and we
-	;; need some sort of priority to sort them.
-	;;
-	;; For now, pick the first one, see how it goes.
-	(let ((db (semanticdb-directory-loaded-p
-		   (file-name-directory (expand-file-name name)))))
-	  (when db
-	    (setq ans (semanticdb-file-table
-		       db (expand-file-name name)))
-	    ))
-
-	;; 3) Load in the text the usual way.
-	(when (not ans)
-	  (setq ans (semanticdb-find-load-unloaded (expand-file-name name)))
-	  )))
+      (setq ans (semanticdb-file-table-object
+		 name
+		 (not (semanticdb-find-throttle-active-p 'unloaded))))
+      )
      ;; On the path somewhere
      ;; NOTES: Separate system includes from local includes.
      ;;        Use only system databases for system includes.
@@ -411,18 +394,19 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 			     (expand-file-name name ref))
 			    ((file-exists-p (expand-file-name (file-name-nondirectory name) ref))
 			     (expand-file-name (file-name-nondirectory name) ref)))))
-	  (if ref
-	      (when fname
-		;; There is an actual file.  Grab it.
-		(setq ans (semanticdb-file-table-object fname)))
-	    ;; No reference directory  Probably a system database
-	    ;; NOTE: Systemdb will need to override `semanticdb-file-table'.
-	    (if (semanticdb-find-throttle-active-p 'omniscience)
-		(setq ans (semanticdb-file-table
-			   (car roots)
-			   ;; Use name direct from tag.  System DB will expect it
-			   ;; in the original form.
-			   (semantic-tag-name includetag))))))
+	  (when (and ref fname)
+	    ;; There is an actual file.  Grab it.
+	    (setq ans (semanticdb-file-table-object fname)))
+
+	  ;; ELSE
+	  ;;
+	  ;; NOTE: We used to look up omniscient databases here, but that
+	  ;; is now handled one layer up.
+	  ;;
+	  ;; Missing: a database that knows where missing files are.  Hmm.
+	  ;; perhaps I need an override function for that?
+
+	  )
 
 	(setq roots (cdr roots))))
      )
@@ -437,30 +421,41 @@ With ARG non-nil, specify a BRUTISH translation.
 See `semanticdb-find-default-throttle' and `semanticdb-project-roots'
 for details on how this list is derived."
   (interactive "P")
-  (let ((p (semanticdb-find-translate-path nil arg)))
-    ;; Output the result
-    (message "%d paths found." (length p))
-    (with-output-to-temp-buffer "*Translated Path*"
-      (while p
-	(condition-case nil
-	    (progn
-	      (princ (semanticdb-full-filename (car p)))
-	      (princ ": ")
-	      (prin1 (condition-case nil
-			 (length (oref (car p) tags))
-		       (error "--")))
-	      (princ " tags")
-	      (let ((parent (oref (car p) parent-db)))
-		(when parent
-		  (princ " : ")
-		  (princ (object-name parent))))
-	      )
-	  (no-method-definition
-	   (princ (semanticdb-printable-name (car p)))))
-	(princ "\n")
-	(setq p (cdr p)))
-      )
-    ))
+  (require 'semantic-adebug)
+  (let ((start (current-time))
+	(p (semanticdb-find-translate-path nil arg))
+	(end (current-time))
+	(ab (semantic-adebug-new-buffer "*SEMANTICDB FTP ADEBUG*"))
+	)
+    (message "Search of tags took %.2f seconds."
+	     (semantic-elapsed-time start end))
+    
+    (semantic-adebug-insert-stuff-list p "*")))
+
+;;    ;; Output the result
+;;    (message "%d paths found." (length p))
+;;    (with-output-to-temp-buffer "*Translated Path*"
+;;      (while p
+;;	(condition-case nil
+;;	    (progn
+;;	      (princ (semanticdb-full-filename (car p)))
+;;	      (princ ": ")
+;;	      (prin1 (condition-case nil
+;;			 (length (oref (car p) tags))
+;;		       (error "--")))
+;;	      (princ " tags")
+;;	      (let ((parent (oref (car p) parent-db)))
+;;		(when parent
+;;		  (princ " : ")
+;;		  (princ (object-name parent))))
+;;	      )
+;;	  (no-method-definition
+;;	   (princ (semanticdb-printable-name (car p)))))
+;;	(princ "\n")
+;;	(setq p (cdr p)))
+;;      )
+;;    ))
+
 
 ;;; FIND results and edebug
 ;;
