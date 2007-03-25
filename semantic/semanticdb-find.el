@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.35 2007/03/23 15:58:26 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.36 2007/03/25 14:24:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -477,6 +477,8 @@ for details on how this list is derived."
 ;;
 ;; Once you have a search result, use these routines to operate
 ;; on the search results at a higher level
+
+;;;###autoload
 (defun semanticdb-strip-find-results (results &optional find-file-match)
   "Strip a semanticdb search RESULTS to exclude objects.
 This makes it appear more like the results of a `semantic-find-' call.
@@ -497,6 +499,7 @@ return a value."
 	output)
     (apply #'append (mapcar #'cdr results))))
 
+;;;###autoload
 (defun semanticdb-find-results-p (resultp)
   "Non-nil if RESULTP is in the form of a semanticdb search result.
 This query only really tests the first entry in the list that is RESULTP,
@@ -517,6 +520,7 @@ but should be good enough for debugging assertions."
 		     " ")
 	  ">"))
 
+;;;###autoload
 (defun semanticdb-find-result-with-nil-p (resultp)
   "Non-nil of RESULTP is in the form of a semanticdb search result.
 nil is a valid value where a TABLE usually is, but only if the TAG
@@ -542,6 +546,7 @@ but should be good enough for debugging assertions."
 	  result)
     count))
 
+;;;###autoload
 (defun semanticdb-find-result-nth (result n)
   "In RESULT, return the Nth search result.
 This is a 0 based search result, with the first match being element 0.
@@ -578,6 +583,7 @@ the TAG was found.  Sometimes TABLE can be nil."
 	    (error "%d entry is not a tag" i)))
       (setq i (1+ i)))))
 
+;;;###autoload
 (defun semanticdb-find-result-nth-in-buffer (result n)
   "In RESULT, return the Nth search result.
 Like `semanticdb-find-result-nth', except that only the TAG
