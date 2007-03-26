@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.37 2007/03/25 15:02:48 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.38 2007/03/26 00:36:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -120,7 +120,6 @@
 (require 'semanticdb)
 (eval-when-compile
   (require 'eieio)
-  (require 'semantic-adebug)
   )
 
 ;;; Code:
