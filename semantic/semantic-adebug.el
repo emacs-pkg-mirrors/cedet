@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.3 2007/03/19 01:01:25 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.4 2007/03/26 00:36:30 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -534,6 +534,7 @@ If PARENT is non-nil, it is somehow related as a parent to thing."
   (run-hooks 'semantic-adebug-hook)
   )
 
+;;;###autoload
 (defun semantic-adebug-new-buffer (name)
   "Create a new adebug buffer with NAME."
   (let ((b (get-buffer-create name)))
