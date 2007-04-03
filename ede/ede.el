@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.77 2007/02/27 20:36:34 zappo Exp $
+;; RCS: $Id: ede.el,v 1.78 2007/04/03 20:19:54 zappo Exp $
 (defconst ede-version "1.0"
   "Current version of the Emacs EDE.")
 
@@ -406,13 +406,20 @@ Do not set this to non-nil globally.  It is used internally.")
 	(set-buffer (find-file-noselect ede-project-placeholder-cache-file t))
 	(goto-char (point-min))
 	(let ((c (read (current-buffer)))
+	      (new nil)
 	      (p ede-projects))
 	  ;; Remove loaded projects from the cache.
 	  (while p
 	    (setq c (delete (oref (car p) file) c))
 	    (setq p (cdr p)))
+	  ;; Remove projects that aren't on the filesystem
+	  ;; anymore.
+	  (while c
+	    (when (file-exists-p (car c))
+	      (setq new (cons (car c) new)))
+	    (setq c (cdr c)))
 	  ;; Save it
-	  (setq ede-project-cache-files c)))
+	  (setq ede-project-cache-files (nreverse new))))
     (error nil))
   (if (get-file-buffer ede-project-placeholder-cache-file)
       (kill-buffer (get-file-buffer ede-project-placeholder-cache-file)))
