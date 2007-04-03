@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.15 2007/02/19 02:53:30 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.16 2007/04/03 20:21:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -127,38 +127,39 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
   (or tag (setq tag (car (semantic-find-tag-by-overlay nil))))
   (unless (semantic-tag-of-class-p tag 'include)
     (signal 'wrong-type-argument (list tag 'include)))
-  (cond ((semantic-tag-buffer tag)
-	 ;; If the tag has an overlay and buffer associated with it,
-	 ;; switch to that buffer so that we get the right override metohds.
-	 (set-buffer (semantic-tag-buffer tag)))
-	((semantic-tag-file-name tag)
-	 ;; If it didn't have a buffer, but does have a file
-	 ;; name, then we need to get to that file so the tag
-	 ;; location is made accurate.
-	 (set-buffer (find-file-noselect (semantic-tag-file-name tag)))))
-  ;; First, see if this file exists in the current EDE project
-  (if (and (fboundp 'ede-expand-filename) ede-minor-mode
-	   (ede-expand-filename (ede-toplevel)
-				(semantic-tag-name tag)))
-      (ede-expand-filename (ede-toplevel)
-			   (semantic-tag-name tag))
-    (let
-	((result
-	  (if (semantic--tag-get-property tag 'dependency-file)
-	      (semantic--tag-get-property tag 'dependency-file)
-	    (:override
-	     (save-excursion
-	       (let* ((name (semantic-tag-name tag)))
-		 (semantic-dependency-find-file-on-path
-		  name (semantic-tag-include-system-p tag)))))
-	    )))
-      (if (stringp result)
-	  (progn
-	    (semantic--tag-put-property tag 'dependency-file result)
-	    result)
-	(semantic--tag-put-property tag 'dependency-file 'none)
-	nil)
-      )))
+  (save-excursion
+    (cond ((semantic-tag-buffer tag)
+	   ;; If the tag has an overlay and buffer associated with it,
+	   ;; switch to that buffer so that we get the right override metohds.
+	   (set-buffer (semantic-tag-buffer tag)))
+	  ((semantic-tag-file-name tag)
+	   ;; If it didn't have a buffer, but does have a file
+	   ;; name, then we need to get to that file so the tag
+	   ;; location is made accurate.
+	   (set-buffer (find-file-noselect (semantic-tag-file-name tag)))))
+    ;; First, see if this file exists in the current EDE project
+    (if (and (fboundp 'ede-expand-filename) ede-minor-mode
+	     (ede-expand-filename (ede-toplevel)
+				  (semantic-tag-name tag)))
+	(ede-expand-filename (ede-toplevel)
+			     (semantic-tag-name tag))
+      (let
+	  ((result
+	    (if (semantic--tag-get-property tag 'dependency-file)
+		(semantic--tag-get-property tag 'dependency-file)
+	      (:override
+	       (save-excursion
+		 (let* ((name (semantic-tag-name tag)))
+		   (semantic-dependency-find-file-on-path
+		    name (semantic-tag-include-system-p tag)))))
+	      )))
+	(if (stringp result)
+	    (progn
+	      (semantic--tag-put-property tag 'dependency-file result)
+	      result)
+	  (semantic--tag-put-property tag 'dependency-file 'none)
+	  nil)
+	))))
 
 (make-obsolete-overload 'semantic-find-dependency
                         'semantic-dependency-tag-file)
