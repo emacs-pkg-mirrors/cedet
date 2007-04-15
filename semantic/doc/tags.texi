@@ -544,6 +544,11 @@ unlinked from the current buffer before the save.
 This hook is run whenever a tag is unlinked from a buffer.  This
 ocucrs during a database save, or when a tag is modified by the
 incremental parser.
+@item unlink-copy-hook
+This hook is run whenever a tag is copied.  This occurs in the
+function @code{semantic-tag-copy}.  Use this hook to remove properties
+from the tag that link it to a buffer, as this tag should no longer
+have direct buffer links.
 @end table
 
 @node Misc Tag Functions
@@ -829,6 +834,7 @@ copied tag.
 If optional argument @var{keep-file} is non-@code{nil}, and @var{tag} was linked to a
 buffer, the originating buffer file name is kept in the `:filename'
 property of the copied tag.
+This runs the tag hook `unlink-copy-hook`.
 @end defun
 
 @node Misc Tag Internals
