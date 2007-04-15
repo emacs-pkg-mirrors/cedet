@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.19 2007/02/19 02:14:47 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.20 2007/04/15 00:52:11 zappo Exp $
 
 (defvar cogre-version "0.5"
   "Current version of Cogre.")
@@ -818,9 +818,7 @@ This can change the current file assocaited with the current graph."
   (interactive "fFile: ")
   (let ((graph nil)
 	(cogre-loading-from-file t))
-    (let ((cogre-graph (cogre-graph "temp" :name "temp")))
-      (save-excursion
-	(setq graph (eieio-persistent-read file))))
+    (setq graph (eieio-persistent-read file))
     (oset graph file file)
     (cogre (oref graph name))
     (setq cogre-graph graph)
