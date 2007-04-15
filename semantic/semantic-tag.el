@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.42 2007/03/12 03:27:40 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.43 2007/04/15 15:00:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -532,12 +532,34 @@ property of the copied tag."
   ;; Right now, TAG is a list.
   (let ((copy (semantic-tag-clone tag name)))
     (when (semantic-tag-with-position-p tag)
+      ;; Keep the filename if needed.
       (when keep-file
 	(semantic--tag-put-property
 	 copy :filename (semantic-tag-file-name copy)))
+      ;; Convert the overlay to a vector, effectively 'unlinking' the tag.
       (semantic--tag-set-overlay
-       copy (vector (semantic-tag-start copy) (semantic-tag-end copy))))
+       copy (vector (semantic-tag-start copy) (semantic-tag-end copy)))
+
+      ;; Force the children to be copied also.
+      ;;et ((chil (semantic--tag-copy-list
+      ;;	   (semantic-tag-components-with-overlays tag)
+      ;;	   keep-file)))
+      ;;;; Put the list into TAG.
+      ;;)
+
+      ;; Call the unlink-copy hook.  This should tell tools that
+      ;; this tag is not part of any buffer.
+      (semantic--tag-run-hooks copy 'unlink-copy-hook)
+      )
     copy))
+
+;;(defun semantic--tag-copy-list (tags &optional keep-file)
+;;  "Make copies of TAGS and return the list of TAGS."
+;;  (let ((out nil))
+;;    (dolist (tag tags out)
+;;      (setq out (cons (semantic-tag-copy tag nil keep-file)
+;;		      out))
+;;      )))
 
 (defun semantic--tag-copy-properties (tag1 tag2)
   "Copy private properties from TAG1 to TAG2.
