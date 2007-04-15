@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.11 2007/02/18 22:37:59 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.12 2007/04/15 15:01:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -237,6 +237,7 @@ generated secondary overlay."
       (semantic-overlay-put o 'semantic-link-hook link-hook)
       (semantic-tag-add-hook tag 'link-hook 'semantic--tag-link-secondary-overlays)
       (semantic-tag-add-hook tag 'unlink-hook 'semantic--tag-unlink-secondary-overlays)
+      (semantic-tag-add-hook tag 'unlink-copy-hook 'semantic--tag-unlink-copy-secondary-overlays)
       (run-hook-with-args link-hook tag o)
       o)))
 
@@ -270,6 +271,23 @@ If OVERLAY-OR-PROPERTY is a symbol, find the overlay with that property."
       (semantic-overlay-delete (car o))
       (setq o (cdr o)))))
 
+(defun semantic--tag-unlink-copy-secondary-overlays (tag)
+  "Unlink secondary overlays from TAG which is a copy.
+This means we don't destroy the overlays, only remove reference
+from them in TAG."
+  (let ((ol (semantic-tag-secondary-overlays tag)))
+    (while ol
+      ;; Else, remove all  traces of ourself from the tag
+      ;; Note to self: Does this prevent multiple types of secondary
+      ;; overlays per tag?
+      (semantic-tag-remove-hook tag 'link-hook 'semantic--tag-link-secondary-overlays)
+      (semantic-tag-remove-hook tag 'unlink-hook 'semantic--tag-unlink-secondary-overlays)
+      (semantic-tag-remove-hook tag 'unlink-copy-hook 'semantic--tag-unlink-copy-secondary-overlays)
+      ;; Next!
+      (setq ol (cdr ol)))
+    (semantic--tag-put-property tag 'secondary-overlays nil)
+    ))
+
 (defun semantic--tag-unlink-secondary-overlays (tag)
   "Unlink secondary overlays from TAG."
   (let ((ol (semantic-tag-secondary-overlays tag))
@@ -285,6 +303,7 @@ If OVERLAY-OR-PROPERTY is a symbol, find the overlay with that property."
 	;; overlays per tag?
 	(semantic-tag-remove-hook tag 'link-hook 'semantic--tag-link-secondary-overlays)
 	(semantic-tag-remove-hook tag 'unlink-hook 'semantic--tag-unlink-secondary-overlays)
+	(semantic-tag-remove-hook tag 'unlink-copy-hook 'semantic--tag-unlink-copy-secondary-overlays)
 	)
       (semantic-overlay-delete (car ol))
       (setq ol (cdr ol)))
