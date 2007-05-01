@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.43 2007/03/19 00:10:08 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.44 2007/05/01 18:01:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -515,10 +515,13 @@ if INLINE, then completion is happing inline in a buffer."
 	)
        ;; We need to display the completions.
        ;; Set the completions into the display engine
-       ((eq na 'display)
+       ((or (eq na 'display) (eq na 'displayend))
 	(semantic-displayor-set-completions
 	 displayor
-	 (semantic-collector-all-completions collector contents)
+	 (or
+	  (and (not (eq na 'displayend))
+	       (semantic-collector-current-exact-match collector))
+	  (semantic-collector-all-completions collector contents))
 	 contents)
 	;; Ask the displayor to display them.
 	(semantic-displayor-show-request displayor)
@@ -753,15 +756,27 @@ Expected return values are:
   scroll -> The completions have been shown, and the user keeps hitting
             the complete button.  If possible, scroll the completions
   focus -> The displayor knows how to shift focus among possible completions.
-           Let it do that."
-  (let ((ans nil))
-    (setq ans (semantic-collector-next-action
-	       semantic-completion-collector-engine
-	       partial))
-    (unless ans
-      (setq ans (semantic-displayor-next-action
-		 semantic-completion-display-engine)))
-    ans))
+           Let it do that.
+  displayend -> Whatever options the displayor had for repeating options, there
+           are none left.  Try something new."
+  (let ((ans1 (semantic-collector-next-action
+		semantic-completion-collector-engine
+		partial))
+	(ans2 (semantic-displayor-next-action
+		semantic-completion-display-engine))
+	)
+    (cond
+     ;; No collector answer, use displayor answer.
+     ((not ans1)
+      ans2)
+     ;; Displayor selection of 'scroll, 'display, or 'focus trumps
+     ;; 'done
+     ((and (eq ans1 'done) ans2)
+      ans2)
+     ;; Use ans1 when we have it.
+     (t
+      ans1))))
+	  
 
 
 ;;; ------------------------------------------------------------
@@ -833,12 +848,18 @@ PARTIAL indicates if we are doing a partial completion."
   (if (and (slot-boundp obj 'last-completion)
 	   (string= (semantic-completion-text) (oref obj last-completion)))
       (let* ((cem (semantic-collector-current-exact-match obj))
-	     (cemlen (semanticdb-find-result-length cem)))
-	(cond ((and cem (= cemlen 1))
+	     (cemlen (semanticdb-find-result-length cem))
+	     (cac (semantic-collector-all-completions
+		   obj (semantic-completion-text)))
+	     (caclen (semanticdb-find-result-length cac)))
+	(cond ((and cem (= cemlen 1)
+		    cac (> caclen 1)
+		    (eq last-command this-command))
+	       ;; Defer to the displayor...
+	       nil)
+	      ((and cem (= cemlen 1))
 	       'done)
-	      ((and (not cem)
-		    (not (semantic-collector-all-completions
-			  obj (semantic-completion-text))))
+	      ((and (not cem) (not cac))
 	       'empty)
 	      ((and partial (semantic-collector-try-completion-whitespace
 			     obj (semantic-completion-text)))
@@ -1260,7 +1281,15 @@ which have the same name."
   (if (and (slot-boundp obj 'last-prefix)
 	   (string= (oref obj last-prefix) (semantic-completion-text))
 	   (eq last-command this-command))
-      'focus
+      (if (and 
+	   (slot-boundp obj 'focus)
+	   (slot-boundp obj 'table)
+	   (<= (semanticdb-find-result-length (oref obj table))
+	       (1+ (oref obj focus))))
+	  ;; We are at the end of the focus road.
+	  'displayend
+	;; Focus on some item.
+	'focus)
     'display))
 
 (defmethod semantic-displayor-set-completions ((obj semantic-displayor-focus-abstract)
