@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.4 2007/03/26 00:36:30 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.5 2007/05/10 15:53:41 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -67,10 +67,13 @@ PARENT specifires any parent tag."
   (when (semantic-tag-with-position-p tag)
     (let ((ol (semantic-tag-overlay tag))
 	  (file (semantic-tag-file-name tag))
+	  (start (semantic-tag-start tag))
+	  (end (semantic-tag-end tag))
 	  )
       (insert prefix "Position: "
-	      (format "%d -> %d in "(semantic-tag-start tag)
-		      (semantic-tag-end tag))
+	      (if (and (numberp start) (numberp end))
+		  (format "%d -> %d in " start end)
+		"")
 	      (if file (file-name-nondirectory file) "unknown-file")
 	      (if (semantic-overlay-p ol)
 		  " <live tag>"
@@ -335,6 +338,70 @@ PREBUTTONTEXT is some text between prefix and the overlay list button."
     )
   )
 
+;;; Rings
+;;
+;; A ring (like kill-ring, or whatever.)
+(defun semantic-adebug-insert-ring-contents (ring prefix)
+  "Insert all the parts of RING.
+PREFIX specifies what to insert at the start of each line."
+  (let ((elts (ring-elements ring))
+	)
+    (while elts
+      (semantic-adebug-insert-thing (car elts) prefix "")
+      (setq elts (cdr elts)))))
+
+(defun semantic-adebug-insert-ring-items-from-point (point)
+  "Insert the ring found at the ring button at POINT."
+  (let ((ring (get-text-property point 'adebug))
+	(indent (get-text-property point 'adebug-indent))
+	start end
+	)
+    (end-of-line)
+    (setq start (point))
+    (forward-char 1)
+    (semantic-adebug-insert-ring-contents ring
+					  (concat (make-string indent ? )
+						  "} "))
+    (setq end (point))
+    (goto-char start)
+    ))
+
+(defun semantic-adebug-insert-ring-button (ring
+					   prefix
+					   prebuttontext)
+  "Insert a button representing RING.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the stuff list button."
+  (let* ((start (point))
+	 (end nil)
+	 (str (format "#<RING: %d>" (ring-size ring)))
+	 (ringthing (ring-ref ring 0))
+	 (tip (format "Ring max-size %d, length %d.  Full of: %S"
+		      (ring-size ring)
+		      (ring-length ring)
+		      (cond ((stringp ringthing)
+			     "strings")
+			    ((semantic-tag-p ringthing)
+			     "tags")
+			    ((object-p ringthing)
+			     "eieio objects")
+			    ((listp ringthing)
+			     "List of somethin'")
+			    (t "stuff"))))
+	 )
+    (insert prefix prebuttontext str)
+    (setq end (point))
+    (put-text-property (- end (length str)) end 'face 'font-lock-type-face)
+    (put-text-property start end 'adebug ring)
+    (put-text-property start end 'adebug-indent(length prefix))
+    (put-text-property start end 'adebug-prefix prefix)
+    (put-text-property start end 'help-echo tip)
+    (put-text-property start end 'adebug-function
+		       'semantic-adebug-insert-ring-items-from-point)
+    (insert "\n")
+    )
+  )
+
 ;;; list of stuff
 ;;
 ;; just a list.  random stuff inside.
@@ -467,6 +534,10 @@ If PARENT is non-nil, it is somehow related as a parent to thing."
 	    nil)
 	   )
 	  ))
+
+   ;; Ring
+   ((ring-p thing)
+    (semantic-adebug-insert-ring-button thing prefix prebuttontext))
 
    ;; List of stuff
    ((listp thing)
@@ -693,10 +764,22 @@ Display the results as a debug list."
 	     (semantic-elapsed-time start end))
     (if ctxt
 	(progn
-	  (setq ab (semantic-adebug-new-buffer (concat "*Analyzer ADEBUG*")))
+	  (setq ab (semantic-adebug-new-buffer "*Analyzer ADEBUG*"))
 	  (semantic-adebug-insert-object-fields ctxt "]"))
       (message "No Context to analyze here."))))
 
+;;;###autoload
+(defun semantic-adebug-edebug-expr (expr)
+  "Dump out the contets of some expression EXPR in edebug with adebug."
+  (interactive "sExpression: ")
+  (let ((v (eval (read expr)))
+	(ab nil))
+    (if (not v)
+	(message "Expression %s is nil." expr)
+      (setq ab (semantic-adebug-new-buffer "*expression ADEBUG*"))
+      (semantic-adebug-insert-thing v "?" "")
+      )))
+  
 
 (provide 'semantic-adebug)
 
