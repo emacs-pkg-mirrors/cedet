@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug-eieio.el,v 1.1 2007/03/18 01:37:45 zappo Exp $
+;; X-RCS: $Id: semantic-adebug-eieio.el,v 1.2 2007/05/10 15:50:59 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -25,6 +25,7 @@
 ;; Extensions to semantic Adebug for EIEIO objects.
 ;;
 
+;;;###autoload
 (defun semantic-adebug-insert-object-fields (object prefix)
   "Insert all the fields of OBJECT.
 PREFIX specifies what to insert at the start of each line."
