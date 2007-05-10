@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.1 2007/05/10 15:58:50 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.2 2007/05/10 16:53:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -313,8 +313,7 @@ minor mode is enabled."
   "Do a `completing-read' on elements from the mru bookmark ring.
 Argument PROMPT is the promot to use when reading."
   (if (ring-empty-p (oref semantic-mru-bookmark-ring ring))
-      (error "Semantic Boo
-kmark ring is currently empty"))
+      (error "Semantic Bookmark ring is currently empty"))
   (let* ((elts (ring-elements (oref semantic-mru-bookmark-ring ring)))
 	 (first (car elts))
 	 (ans nil)
@@ -333,12 +332,14 @@ kmark ring is currently empty"))
       (setq elts (cdr elts)))
     (setq semantic-mrub-read-history (nreverse semantic-mrub-read-history))
     ;; Do the read/prompt
-    (setq ans
-	  (completing-read (format "%s (%s): " prompt
-				   (semantic-format-tag-name
-				    (oref first tag) t)
-				   )
-			   alist nil nil nil 'semantic-mrub-read-history))
+    (let ((prompt (if first (format "%s (%s): " prompt
+				    (semantic-format-tag-name
+				     (oref first tag) t)
+				    )
+		    (concat prompt ": ")))
+	  )
+      (setq ans
+	    (completing-read prompt alist nil nil nil 'semantic-mrub-read-history)))
     ;; Calculate the return tag.
     (if (string= ans "")
 	(setq ans first)
@@ -367,9 +368,9 @@ Jumps to the tag and highlights it briefly."
 ;;; ADVICE
 ;;
 ;; Advise some commands to help set tag marks.
-(defadvice set-mark (around semantic-mru-bookmark activate)
+(defadvice set-mark-command (around semantic-mru-bookmark activate)
   "Set this buffer's mark to POS.
-If semantic-mru-bookmark-mode is active, also push a tag onto
+If `semantic-mru-bookmark-mode' is active, also push a tag onto
 the mru bookmark stack."
   (when (and semantic-mru-bookmark-mode (interactive-p))
     (semantic-mrub-push semantic-mru-bookmark-ring
