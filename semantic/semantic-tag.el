@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.43 2007/04/15 15:00:13 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.44 2007/05/10 15:54:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -528,7 +528,8 @@ If optional argument NAME is non-nil it specifies a new name for the
 copied tag.
 If optional argument KEEP-FILE is non-nil, and TAG was linked to a
 buffer, the originating buffer file name is kept in the `:filename'
-property of the copied tag."
+property of the copied tag.
+This runs the tag hook `unlink-copy-hook`."
   ;; Right now, TAG is a list.
   (let ((copy (semantic-tag-clone tag name)))
     (when (semantic-tag-with-position-p tag)
