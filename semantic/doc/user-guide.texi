@@ -904,11 +904,9 @@ These databases are what are generally used in semantic to store
 information to disk.
 @item Custom Backends
 These databases and tables are interfaces to some other source of
-tagging informatin, such as the symbols loaded in Emacs Lisp, or
+tagging information, such as the symbols loaded in Emacs Lisp, or
 perhaps symbols in a Java @file{.class} file.
 @end table
-
-@section Semanticdb Configuration
 
 You can execute hooks when semanticdb is activated using its mode hook.
 
@@ -919,7 +917,17 @@ Use @dfn{semanticdb-minor-mode-p} to determine if the mode has been turned
 on or off.
 @end deffn
 
-@subsection Semanticdb Tag Storage
+@menu
+* Semanticdb Tag Storage::
+* Semanticdb Search Configuration::
+* Semanticdb System Backends::
+* Changing Backends::
+* Script Generated Cache Files::
+* Create System Databases::
+@end menu
+
+@node Semanticdb Tag Storage
+@section Semanticdb Tag Storage
 
 Once you have tables of tags parsed from your files, the default
 action is to save them when Emacs exits.  You can control the file
@@ -970,7 +978,71 @@ Each function is called with one argument, the object representing
 the database recently written.
 @end deffn
 
-@subsection Semanticdb Search Configuration
+@node Semanticdb Search Configuration
+@section Semanticdb Search Configuration
+
+  When different tools such as smart completion or tag jumping needs
+to find a tag, those routines call semanticdb search routines.  Some
+time usually needs to be spent making sure semanticdb can find the
+files your tags are in.
+
+The search path should include:
+
+@enumerate
+@item
+The current file
+@item
+a table for each #include file
+@item
+if 'recursive is in the throttle, then all include files included in
+include files.
+@end enumerate
+
+Include files or equivalent are found in:
+
+@enumerate
+@item
+current directory
+@item
+directories specified by your project.  (such as EDE, or the
+@code{semanticdb-project-roots} variable.)
+@item
+system directories
+@end enumerate
+
+In C code, semantic tries to distinguish between project and system
+headers based on @code{""} or @code{<>} delimiters.  Each language can
+distinguish using it's own rules.
+
+The system directory is set up via the variable
+@code{semantic-dependency-system-include-path}.  The path is also
+modified by some system database create routines, such as
+@code{semanticdb-create-ebrowse-database}.
+
+You can use the command:
+
+@example
+M-x semantic-add-system-include RET /some/path
+@end example
+
+  to add more paths interactively into the current mode's path.  This
+will allow semantic to find more files w/out using system databases.
+
+@menu
+* Semanticdb Roots::    Specifying the root of different projects
+* Include paths::       Add/Remove directories to include search paths
+* Search Throttle::     Controlling how semanticdb searches occur
+* Semanticdb search debugging commands::
+@end menu
+
+@node Semanticdb Roots
+@subsection SemanticDB project roots
+
+Project roots specify where different code projects start.  Searching
+for files usually stops within a single project, so specifying these
+roots is important if you want semantic to find tags in other related
+directories.
+
 
 @deffn Option semanticdb-project-roots
 @anchor{semanticdb-project-roots}
@@ -989,6 +1061,29 @@ must return a string, (the root directory) or a list of strings (multiple
 root directories in a more complex system).  This variable should be used
 by project management programs like @var{ede} or @var{jde}.
 @end defvar
+
+@node Include paths
+@subsection Include Paths
+
+You can add and remove system include paths based on major mode using
+the following commands:
+
+@deffn Command semantic-add-system-include dir &optional mode
+@anchor{semantic-add-system-include}
+Add a system include @var{dir} to path for @var{mode}.
+Modifies a mode-local version of
+@code{semantic-dependency-system-include-path}.
+@end deffn
+
+@deffn Command semantic-remove-system-include dir &optional mode
+@anchor{semantic-remove-system-include}
+Add a system include @var{dir} to path for @var{mode}.
+Modifies a mode-local version of
+@code{semantic-dependency-system-include-path}.
+@end deffn
+
+@node Search Throttle
+@subsection SemanticDB Search Throttle
 
 The semanticdb find throttle is a configuration variable that may
 often be configured by a language support author.  If you need to
@@ -1031,7 +1126,19 @@ everything.  Omniscience databases are found in
 
 @end defvar
 
-To test the throttle varuable, use this command.
+@node Semanticdb search debugging commands
+@subsection Semanticdb search debugging commands
+
+You can use @kbd{M-x semanticdb-dump-all-table-summary RET} to see the
+list of databases that will be searched from a given buffer.  It
+should include DBs for the directories you expect.  You can follow up
+with @kbd{M-x semanticdb-find-test-translate-path RET} to then make
+sure specific tables from the path are discovered correctly. 
+
+@deffn Command semanticdb-dump-all-table-summary
+@anchor{semanticdb-dump-all-table-summary}
+Dump a list of all databases in Emacs memory.
+@end deffn
 
 @deffn Command semanticdb-find-test-translate-path &optional arg
 @anchor{semanticdb-find-test-translate-path}
@@ -1039,7 +1146,16 @@ Call and output results of @dfn{semanticdb-find-translate-path}
 With @var{arg} non-@code{nil}, specify a @var{brutish} translation.
 @end deffn
 
-@subsection Semanticdb System Backends
+Lastly, you can test an explicit search term using this command:
+
+@deffn Command semantic-adebug-searchdb regex
+@anchor{semantic-adebug-searchdb}
+Search the semanticdb for @var{regex} for the current buffer.
+Display the results as a debug list.
+@end deffn
+
+@node Semanticdb System Backends
+@section Semanticdb System Backends
 
 @defvar semanticdb-project-system-databases
 @anchor{semanticdb-project-system-databases}
@@ -1062,7 +1178,8 @@ Non @code{nil} if search routines are to include a system database.
 @end defvar
 
 
-@subsection Changing Backends
+@node Changing Backends
+@section Changing Backends
 
 If you want to use some other form of backend, you can use this
 variable to choose which back end class to use for your general tag
@@ -1076,7 +1193,8 @@ are saved using one mechanism, and some directories via a different
 mechanism.
 @end defvar
 
-@subsection Script Generated Cache Files
+@node Script Generated Cache Files
+@section Script Generated Cache Files
 
 You can create new semantic databases with the @file{semanticdb.sh}
 script file.  Give this script the directory you want parsed, and it
@@ -1086,7 +1204,8 @@ will create a cache file for you.
 $ semanticdb.sh *.el
 @end example
 
-@subsection Create System Databases
+@node Create System Databases
+@section Create System Databases
 
 If your supported langauge stores the system libraries in readilly
 available parsable source code, you can pre-generate database files
@@ -1102,6 +1221,14 @@ Create a system database starting at @var{path}.
 declarations for @var{system} files.  In @var{c}, this would be header filaes.
 @var{class} is the class for the database to create.  Only child classes
 of symbol @dfn{semanticdb-project-database-system} are accepted.
+@end deffn
+
+
+@deffn Command semanticdb-create-ebrowse-database dir
+@anchor{semanticdb-create-ebrowse-database}
+Create an @var{ebrose} database for directory @var{dir}.
+The database file is stored in ~/.semanticdb, or whichever directory
+is specified by @code{semanticdb-default-system-save-directory}.
 @end deffn
 
 The CLASS requested here is a bit of archana representing the class
