@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.14 2007/03/19 01:01:39 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.15 2007/05/17 01:34:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -88,7 +88,9 @@ be searched."
 	   (let ((tmp (get-buffer-create "*semanticdb-ebrowse-tmp*")))
 	     (save-excursion
 	       (set-buffer tmp)
-	       (insert-file-contents file nil 0 100 t)
+	       (condition-case nil
+		   (insert-file-contents file nil 0 100 t)
+		 (error (insert-file-contents file nil nil nil t)))
 	       (goto-char (point-min))
 	       (looking-at "\\s-*/\\(\\*\\|/\\)")
 	       ))
@@ -100,6 +102,7 @@ be searched."
 The database file is stored in ~/.semanticdb, or whichever directory
 is specified by `semanticdb-default-system-save-directory'."
   (interactive "DDirectory: ")
+  (setq dir (file-name-as-directory dir)) ;; for / on end
   (let* ((savein (semanticdb-ebrowse-file-for-directory dir))
 	 (filebuff (get-buffer-create "*SEMANTICDB EBROWSE TMP*"))
 	 (files (directory-files (expand-file-name dir) t))
@@ -109,7 +112,13 @@ is specified by `semanticdb-default-system-save-directory'."
     ;; Create the input to the ebrowse command
     (save-excursion
       (set-buffer filebuff)
+      (buffer-disable-undo filebuff)
       (setq default-directory (expand-file-name dir))
+
+      ;;; @TODO - convert to use semanticdb-collect-matching-filenames
+      ;; to get the file names.
+
+
       (mapcar (lambda (f)
 		(when (semanticdb-ebrowse-C-file-p f)
 		  (insert f)
@@ -276,6 +285,7 @@ for instance: /home/<username>/.semanticdb/!usr!include!BROWSE"
     (message "semanticdb-ebrowse %s" B)
     (when (file-exists-p B)
       (set-buffer buf)
+      (buffer-disable-undo buf)
       (erase-buffer)
       (insert-file-contents B)
       (let ((ans nil)
