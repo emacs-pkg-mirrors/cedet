@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.82 2007/03/19 01:01:57 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.83 2007/05/17 01:35:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -619,17 +619,22 @@ Update the environment of Semantic enabled buffers accordingly."
 (defun semanticdb-dump-all-table-summary ()
   "Dump a list of all databases in Emacs memory."
   (interactive)
-  (let ((db semanticdb-database-list))
-    (with-output-to-temp-buffer "*SEMANTICDB*"
-      (while db
-	(princ (object-name (car db)))
-	(princ ": ")
-	(if (slot-boundp (car db) 'reference-directory)
-	    (princ (oref (car db) reference-directory))
-	  (princ "System DB"))
-	(princ "\n")
-	(setq db (cdr db))))
-    ))
+  (require 'semantic-adebug)
+  (let ((ab (semantic-adebug-new-buffer "*SEMANTICDB*"))
+	(db semanticdb-database-list))
+    (semantic-adebug-insert-stuff-list db "*")))
+
+
+;;    (with-output-to-temp-buffer "*SEMANTICDB*"
+;;      (while db
+;;	(princ (object-name (car db)))
+;;	(princ ": ")
+;;	(if (slot-boundp (car db) 'reference-directory)
+;;	    (princ (oref (car db) reference-directory))
+;;	  (princ "System DB"))
+;;	(princ "\n")
+;;	(setq db (cdr db))))
+;;    ))
 
 ;;; Generic Accessor Routines
 ;;
