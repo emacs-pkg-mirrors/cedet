@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.3 2007/02/18 22:38:29 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.4 2007/05/17 01:41:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -84,10 +84,11 @@ Modifies a mode-local version of
 `semantic-dependency-system-include-path'."
   (interactive "DDirectory: ")
   (if (not mode) (setq mode major-mode))
-  (let ((value
+  (let ((dirtmp (file-name-as-directory dir))
+	(value
 	 (mode-local-value mode 'semantic-dependency-system-include-path))
 	)
-    (add-to-list 'value dir t)
+    (add-to-list 'value dirtmp t)
     (eval `(setq-mode-local ,mode
 			    semantic-dependency-system-include-path value))
     ))
@@ -103,13 +104,25 @@ Modifies a mode-local version of
 		  semantic-dependency-system-include-path))
 	       )
   (if (not mode) (setq mode major-mode))
-  (let ((value
+  (let ((dirtmp (file-name-as-directory dir))
+	(value
 	 (mode-local-value mode 'semantic-dependency-system-include-path))
 	)
-    (setq value (delete dir value))
+    (setq value (delete dirtmp value))
     (eval `(setq-mode-local ,mode semantic-dependency-system-include-path
 			    value))
     ))
+
+;;;###autoload
+(defun semantic-reset-system-include (&optional mode)
+  "Reset the system include list to empty for MODE.
+Modifies a mode-local version of
+`semantic-dependency-system-include-path'."
+  (interactive)
+  (if (not mode) (setq mode major-mode))
+  (eval `(setq-mode-local ,mode semantic-dependency-system-include-path
+			  nil))
+  )
 
 
 ;;; PATH SEARCH
