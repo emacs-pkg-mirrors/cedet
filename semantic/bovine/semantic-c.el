@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.52 2007/05/17 01:42:27 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.53 2007/05/17 15:31:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -74,16 +74,23 @@ Return the the defined symbol as a special spp lex token."
 (define-lex-regex-analyzer semantic-lex-c-if
   "Code blocks wrapped up in #if, or #ifdef.
 Uses known macro tables in SPP to determine what block to skip."
-  "^\\s-*#\\(if\\|ifndef\\|ifdef\\)\\s-+\\(\\(\\sw\\|\\s_\\)+\\)\\s-*$"
-  (let ((sym (buffer-substring-no-properties 
-	      (match-beginning 2) (match-end 2)))
-	(ift (buffer-substring-no-properties 
-	      (match-beginning 1) (match-end 1))))
+  "^\\s-*#\\(if\\|ifndef\\|ifdef\\)\\s-+\\(!?defined(\\|\\)\\(\\(\\sw\\|\\s_\\)+\\))?\\s-*$"
+  (let* ((sym (buffer-substring-no-properties 
+	       (match-beginning 3) (match-end 3)))
+	 (defstr (buffer-substring-no-properties 
+		  (match-beginning 2) (match-end 2)))
+	 (defined (string= defstr "defined("))
+	 (notdefined (string= defstr "!defined("))
+	 (ift (buffer-substring-no-properties 
+	       (match-beginning 1) (match-end 1)))
+	 (ifdef (or (string= ift "ifdef")
+		    (and (string= ift "if") defined)))
+	 (ifndef (or (string= ift "ifndef")
+		     (and (string= ift "if") notdefined)))
+	 )
     (if (or (and (string= ift "if") (string= sym "0"))
-	    (and (string= ift "ifdef")
-		 (not (semantic-lex-spp-symbol-p sym)))
-	    (and (string= ift "ifndef")
-		 (semantic-lex-spp-symbol-p sym)))
+	    (and ifdef (not (semantic-lex-spp-symbol-p sym)))
+	    (and ifndef (semantic-lex-spp-symbol-p sym)))
 	;; The if indecates to skip this preprocessor section
 	(progn
 	  ;; (message "%s %s yes" ift sym)
