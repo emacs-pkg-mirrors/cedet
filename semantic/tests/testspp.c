@@ -19,6 +19,18 @@ int pre_dont_show_moose()
 }
 #endif
 
+#if !defined(MOOSE)
+int pre_show_moose_if()
+{
+}
+#endif
+
+#if defined(MOOSE)
+int pre_dont_show_moose_if()
+{
+}
+#endif
+
 #define MOOSE
 
 #if 0
@@ -36,6 +48,17 @@ int moose_function()
 #ifndef MOOSE
 int dont_show_moose()
 {
+}
+#endif
+
+#if defined(MOOSE)
+int moose_function_if()
+{
+}
+#endif
+
+#if !defined(MOOSE)
+int dont_show_moose_if() {
 }
 #endif
 
