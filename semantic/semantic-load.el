@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.54 2007/03/08 01:41:49 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.55 2007/05/17 01:41:45 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ This includes:
  `semantic-idle-scheduler-mode' - Keeps a buffer's parse tree up to date.
  `semanticdb-minor-mode' - Stores tags when a buffer is not in memory.
  `semanticdb-load-system-caches' - Loads any systemdbs created earlier.
- `semanticdb-load-ebrowse-caches' - Loads any ebrowse dbs earlier."
+ `semanticdb-load-ebrowse-caches' - Loads any ebrowse dbs created earlier."
   (interactive)
 
   (global-semantic-idle-scheduler-mode 1)
