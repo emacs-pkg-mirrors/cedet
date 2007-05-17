@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.52 2007/03/18 15:44:10 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.53 2007/05/17 15:46:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -175,6 +175,7 @@ TODO: consider some higher level find routine to do this."
   "For a SEQUENCE of tags, pick the best one.
 If SEQUENCE is made up of namespaces, merge the namespaces together.
 If SEQUENCE has several prototypes, find the non-prototype.
+If SEQUENCE has some items w/ no type information, find the one with a type.
 If SEQUENCE is all prototypes, or has no prototypes, get the first one.
 Optional TAGCLASS indicates to restrict the return to only
 tags of TAGCLASS."
@@ -186,20 +187,26 @@ tags of TAGCLASS."
     ;; 2) Loop over them, select a non-prototype.
     (let ((best nil)
 	  (proto nil)
+	  (notypeinfo nil)
 	  )
       (while (and (not best) sequence)
 	
 	(when (or (not tagclass)
 		  (semantic-tag-of-class-p (car sequence) tagclass))
+	  ;; Prototypes are second class tags
 	  (if (semantic-analyze-tag-prototype-p (car sequence))
 	      (setq proto (car sequence))
-	    (setq best (car sequence)))
+	    ;; Typeless symbols are third class tags
+	    (if (not (semantic-tag-type (car sequence)))
+		(setq notypeinfo (car sequence))
+
+	      (setq best (car sequence))))
 	  )
 	
 	(setq sequence (cdr sequence)))
       
       ;; Select the best, or at least the prototype.
-      (or best proto))))
+      (or best proto notypeinfo))))
 
 ;;; Tag Finding
 ;;
