@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.51 2007/03/18 15:43:46 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.52 2007/05/17 01:42:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -695,6 +695,17 @@ DO NOT return the list of tags encompassing point."
 	(semantic-lex-make-spp-table semantic-lex-c-preprocessor-symbol-map))
   (add-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook nil t)
   )
+
+;;;###autoload
+(defun semantic-c-add-preprocessor-symbol (sym replacement)
+  "Add a preprocessor symbol SYM with a REPLACEMENT value."
+  (interactive "sSymbol: \nsReplacement: ")
+  (add-to-list 'semantic-lex-c-preprocessor-symbol-map
+	       (list sym replacement))
+  (setq-mode-local c-mode
+		   semantic-lex-spp-macro-symbol-obarray
+		   (semantic-lex-make-spp-table
+		    semantic-lex-c-preprocessor-symbol-map)))
 
 ;;;###autoload
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
