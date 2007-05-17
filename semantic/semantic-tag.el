@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.44 2007/05/10 15:54:22 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.45 2007/05/17 14:42:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -324,7 +324,8 @@ If TAG is unlinked, but has a :filename property, then that is used."
   "Return non-nil if TAG has positional information."
   (and (semantic-tag-p tag)
        (let ((o (semantic-tag-overlay tag)))
-	 (or (semantic-overlay-p o)
+	 (or (and (semantic-overlay-p o)
+		  (semantic-overlay-live-p o))
              (arrayp o)))))
 
 (defun semantic-equivalent-tag-p (tag1 tag2)
