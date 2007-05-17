@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.38 2007/03/26 00:36:54 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.39 2007/05/17 01:39:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -169,7 +169,7 @@ the following keys:
       (and (eq access-type 'local)
 	   (memq 'project semanticdb-find-default-throttle))
       ))
-	
+
 ;;; Path Translations
 ;;
 ;;; OVERLOAD Functions
@@ -320,7 +320,7 @@ isn't in memory yet."
 
 (defun semanticdb-find-load-unloaded-default (filename)
   "Load an unloaded file in FILENAME using the default semanticdb loader."
-  (semanticdb-file-table-object name))
+  (semanticdb-file-table-object filename))
 
 ;;;###autoload
 (define-overload semanticdb-find-table-for-include (includetag &optional table)
@@ -414,6 +414,7 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 
 ;;; Perform interactive tests on the path/search mechanisms.
 ;;
+;;;###autoload
 (defun semanticdb-find-test-translate-path (&optional arg)
   "Call and output results of `semanticdb-find-translate-path'.
 With ARG non-nil, specify a BRUTISH translation.
@@ -808,6 +809,7 @@ associated wit that tag should be loaded into a buffer."
      (semanticdb-deep-find-tags-by-name-method table name tags))
    path find-file-match t))
 
+;;;###autoload
 (defun semanticdb-brute-deep-find-tags-for-completion (prefix &optional path find-file-match)
   "Search for all tags matching PREFIX on PATH.
 See `semanticdb-find-translate-path' for details on PATH.
