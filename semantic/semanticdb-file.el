@@ -1,10 +1,10 @@
 ;;; semanticdb-file.el --- Save a semanticdb to a cache file.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.17 2005/09/30 20:19:15 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.18 2007/05/17 01:38:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -180,11 +180,19 @@ If DB is not specified, then use the current database."
 	(file-error ; System error saving?  Ignore it.
 	 (message "Error saving %s" objname))
 	(error
-	 (if (and (listp foo)
-		  (stringp (nth 1 foo))
-		  (string-match "write-protected" (nth 1 foo)))
-	     (message (nth 1 foo))
-	   (error "%S" foo))))
+	 (cond
+	  ((and (listp foo)
+		(stringp (nth 1 foo))
+		(string-match "write[- ]protected" (nth 1 foo)))
+	   (message (nth 1 foo)))
+	  ((and (listp foo)
+		(stringp (nth 1 foo))
+		(string-match "no such directory" (nth 1 foo)))
+	   (message (nth 1 foo)))
+	  (t
+	   (if (y-or-n-p (format "Skip Error: %S ?" (car (cdr foo))))
+	       nil
+	     (error "%S" (car (cdr foo))))))))
       (run-hook-with-args 'semanticdb-save-database-hooks
 			  (or DB semanticdb-current-database))
       (message "Saving tag summary for %s...done" objname))
