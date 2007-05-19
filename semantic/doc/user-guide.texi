@@ -1017,7 +1017,7 @@ distinguish using it's own rules.
 The system directory is set up via the variable
 @code{semantic-dependency-system-include-path}.  The path is also
 modified by some system database create routines, such as
-@code{semanticdb-create-ebrowse-database}.
+@code{semanticdb-create-ebrowse-database}. @xref{Include paths}.
 
 You can use the command:
 
@@ -1125,6 +1125,16 @@ everything.  Omniscience databases are found in
 @end table
 
 @end defvar
+
+To set the throttle, use a command like this:
+
+@example
+(setq-mode-local c-mode
+		 semanticdb-find-default-throttle
+		 '(project unloaded system recursive))
+@end example
+
+
 
 @node Semanticdb search debugging commands
 @subsection Semanticdb search debugging commands
