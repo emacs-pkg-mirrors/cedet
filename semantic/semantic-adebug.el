@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.5 2007/05/10 15:53:41 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.6 2007/05/19 00:48:04 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -41,6 +41,7 @@
 
 ;;; GENERIC STUFF
 ;;
+;;;###autoload
 (defun semantic-adebug-insert-property-list (proplist prefix &optional parent)
   "Insert the property list PROPLIST.
 Each line starts with PREFIX.
@@ -405,6 +406,7 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
 ;;; list of stuff
 ;;
 ;; just a list.  random stuff inside.
+;;;###autoload
 (defun semantic-adebug-insert-stuff-list (stufflist prefix)
   "Insert all the parts of STUFFLIST.
 PREFIX specifies what to insert at the start of each line."
