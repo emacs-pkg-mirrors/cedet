@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.12 2007/04/15 15:01:07 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.13 2007/05/19 03:14:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,109 @@
 (require 'semantic)
 
 ;;; Code:
+(defface semantic-tag-highlight-start-face
+  '((((class color) (background dark))
+     (:background "#AAAA33"))
+    (((class color) (background light))
+     (:background "#FFFFAA")))
+  "*Face used to show long tags in.
+Face used for temporary highlighting of tags for effect."
+  :group 'semantic-faces)
+
+(defface semantic-tag-highlight-face
+  '((((class color) (background dark))
+     (:background "#AAAA33"))
+    (((class color) (background light))
+     (:background "#FFFFAA")))
+  "*Face used to show long tags in.
+Face used for temporary highlighting of tags for effect.
+This face will have it's color changed for special effects."
+  :group 'semantic-faces)
+
+;;; Pulsing Code
+;;
+(defun semantic-decorate-int-to-hex (int &optional nb-digits)
+  "Convert integer argument INT to a #XXXXXXXXXXXX format hex string.
+Each X in the output string is a hexadecimal digit.
+NB-DIGITS is the number of hex digits.  If INT is too large to be
+represented with NB-DIGITS, then the result is truncated from the
+left.  So, for example, INT=256 and NB-DIGITS=2 returns \"00\", since
+the hex equivalent of 256 decimal is 100, which is more than 2 digits.
+
+This function was blindly copied from hexrgb.el by Drew Adams.
+http://www.emacswiki.org/cgi-bin/wiki/hexrgb.el"
+  (setq nb-digits (or nb-digits 4))
+  (substring (format (concat "%0" (int-to-string nb-digits) "X") int) (- nb-digits)))
+
+(defun semantic-color-values-to-hex (values)
+  "Convert list of rgb color VALUES to a hex string, #XXXXXXXXXXXX.
+Each X in the string is a hexadecimal digit.
+Input VALUES is as for the output of `x-color-values'.
+
+This function was blindly copied from hexrgb.el by Drew Adams.
+http://www.emacswiki.org/cgi-bin/wiki/hexrgb.el"
+  (concat "#"
+          (semantic-decorate-int-to-hex (nth 0 values) 4) ; red
+          (semantic-decorate-int-to-hex (nth 1 values) 4) ; green
+          (semantic-decorate-int-to-hex (nth 2 values) 4))) ; blue
+
+(defcustom semantic-pulse-iterations 30
+  "Number of iterations in a puls operation."
+  :group 'semantic
+  :type 'number)
+
+(defun semantic-lighten-highlight ()
+  "Lighten the lighlight face by 1/10 toward the background color.
+Return t if there is more drift to do, nil if completed."
+  (if (>= (get 'semantic-tag-highlight-face :iteration) semantic-pulse-iterations)
+      nil
+    (let* ((frame (color-values (face-background 'default)))
+	   (start (color-values (face-background 'semantic-tag-highlight-start-face)))
+	   (frac  (list (/ (- (nth 0 frame) (nth 0 start)) semantic-pulse-iterations)
+			(/ (- (nth 1 frame) (nth 1 start)) semantic-pulse-iterations)
+			(/ (- (nth 2 frame) (nth 2 start)) semantic-pulse-iterations)))
+	   (it (get 'semantic-tag-highlight-face :iteration))
+	   )
+      (set-face-background 'semantic-tag-highlight-face
+			   (semantic-color-values-to-hex
+			    (list
+			     (+ (nth 0 start) (* (nth 0 frac) it))
+			     (+ (nth 1 start) (* (nth 1 frac) it))
+			     (+ (nth 2 start) (* (nth 2 frac) it)))))
+      (put 'semantic-tag-highlight-face :iteration (1+ it))
+      (if (>= (1+ it) semantic-pulse-iterations)
+	  nil
+	t))))
+
+(defun semantic-highlight-reset-face ()
+  "Reset the semantic highlighting face."
+  (set-face-background 'semantic-tag-highlight-face
+		       (face-background 'semantic-tag-highlight-start-face))
+  (put 'semantic-tag-highlight-face :iteration 0))
+
+(defun semantic-decorate-pulse ()
+  "Pulse the colors on our highlight face."
+  (unwind-protect
+      (progn
+	(semantic-highlight-reset-face)
+	(while (and (semantic-lighten-highlight)
+		    (sit-for .01))
+	  nil))
+    (semantic-highlight-reset-face)))
+
+(defun semantic-decorate-test-pulse ()
+  "Test the lightening function for semantic decorator."
+  (interactive)
+  (let ((tag (semantic-current-tag)))
+    (unwind-protect
+	(progn
+	  (semantic-highlight-tag tag)
+	  (semantic-decorate-pulse)
+	  )
+      (semantic-unhighlight-tag tag))))
+
+;;; Highlighting Basics
+;;
 ;;;###autoload
 (defun semantic-highlight-tag (tag &optional face)
   "Specify that TAG should be highlighted.
@@ -41,7 +144,7 @@ Optional FACE specifies the face to use."
     (semantic-overlay-put o 'old-face
 			  (cons (semantic-overlay-get o 'face)
 				(semantic-overlay-get o 'old-face)))
-    (semantic-overlay-put o 'face (or face 'highlight))
+    (semantic-overlay-put o 'face (or face 'semantic-tag-highlight-face))
     ))
 
 ;;;###autoload
@@ -64,10 +167,19 @@ Optional argument FACE specifies the face to do the highlighting."
 						    (forward-char 1)
 						    (point)))))
       (semantic--tag-put-property tag 'line-highlight o)
-      (semantic-overlay-put o 'face (or face 'highlight))
-      (add-hook 'pre-command-hook
-		`(lambda () (semantic-momentary-unhighlight-one-tag-line ',tag))))
-    ))
+      (if face
+	  ;; Provide a face... clear on next command
+	  (progn
+	    (semantic-overlay-put o 'face face)
+	    (add-hook 'pre-command-hook
+		      `(lambda () (semantic-momentary-unhighlight-one-tag-line ',tag))))
+	;; pulse it.
+	(unwind-protect
+	    (progn
+	      (semantic-overlay-put o 'face 'semantic-tag-highlight-face)
+	      (semantic-decorate-pulse))
+	  (semantic-momentary-unhighlight-one-tag-line tag))
+	) )))
 
 (defun semantic-momentary-unhighlight-one-tag-line (tag)
   "Unhighlight a TAG that has only one line highlighted."
@@ -95,9 +207,19 @@ If FACE is not specified, then `highlight' will be used."
 	;; No overlay, but a position.  Highlight the first line only.
 	(semantic-momentary-highlight-one-tag-line tag face)
       ;; The tag has an overlay, highlight the whole thing
-      (semantic-highlight-tag tag face)
-      (add-hook 'pre-command-hook
-		`(lambda () (semantic-momentary-unhighlight-tag ',tag))))))
+      (if face
+	  ;; Provide a face -- delete face on next command
+	  (progn
+	    (semantic-highlight-tag tag face)
+	    (add-hook 'pre-command-hook
+		      `(lambda () (semantic-momentary-unhighlight-tag ',tag))))
+	;; Default face.. pulse it!
+	(unwind-protect
+	    (progn
+	      (semantic-highlight-tag tag)
+	      (semantic-decorate-pulse))
+	  (semantic-unhighlight-tag tag))
+	))))
 
 ;;;###autoload
 (defun semantic-set-tag-face (tag face)
