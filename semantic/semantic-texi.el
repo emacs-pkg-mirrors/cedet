@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.34 2007/03/12 02:36:10 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.35 2007/05/20 16:06:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,7 +39,6 @@
   (require 'semantic-ctxt)
   (require 'semantic-imenu)
   (require 'semantic-doc)
-  (require 'document)
   (require 'senator))
 
 (defvar semantic-texi-super-regex
