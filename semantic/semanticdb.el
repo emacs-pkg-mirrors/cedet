@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.83 2007/05/17 01:35:21 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.84 2007/05/20 15:56:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -348,18 +348,6 @@ local variable."
      )
     ))
 
-(defvar semanticdb-dir-sep-char (if (boundp 'directory-sep-char)
-				    (symbol-value 'directory-sep-char)
-				  ?/)
-  "Character used for directory separation.
-Obsoleted in some versions of Emacs.  Needed in others.")
-
-(defun semanticdb-fix-pathname (path)
-  "If PATH is broken, fix it.
-Force PATH to end with a /."
-  (if (not (= semanticdb-dir-sep-char (aref path (1- (length path)))))
-      (concat path (list semanticdb-dir-sep-char))
-    path))
 
 (defmethod semanticdb-printable-name ((table semanticdb-table))
   "Return a string which is a short and logical printable name for TABLE.
