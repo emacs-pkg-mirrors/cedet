@@ -11,13 +11,13 @@ ede_FILES=Project.ede Makefile
 
 misc_AUX=ChangeLog
 EMACS=emacs
-LOADPATH=./ 
+LOADPATH= ./
 LOADDEFS=cedet-loaddefs.el
 LOADDIRS=.
 init_LISP=cedet-load.el
 EMACS=emacs
 setup_LISP=cedet.el
-common_LISP=cedet-autogen.el cedet-compat.el ezimage.el inversion.el pprint.el sformat.el fame.el working.el cedet-edebug.el mode-local.el
+common_LISP=cedet-autogen.el cedet-compat.el ezimage.el inversion.el pprint.el sformat.el fame.el working.el cedet-edebug.el mode-local.el cedet-files.el
 VERSION=1.0
 DISTDIR=$(top)common-$(VERSION)
 
