@@ -1,11 +1,11 @@
 ;;; cedet-compat.el --- Compatibility across (X)Emacs versions
 
-;; Copyright (C) 2003 David Ponce
+;; Copyright (C) 2003, 2007 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Keywords: compatibility
-;; X-RCS: $Id: cedet-compat.el,v 1.2 2005/09/30 20:07:17 zappo Exp $
+;; X-RCS: $Id: cedet-compat.el,v 1.3 2007/05/20 15:53:01 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -29,10 +29,9 @@
 ;; This library provides functions to allow running CEDET packages on
 ;; a variety of [X]Emacs versions.
 
-;;; History:
-;;
-
 ;;; Code:
+
+(when (not (fboundp 'compare-strings))
 
 ;; XEmacs does not have the `compare-strings' function.  Here is an
 ;; implementation in Emacs Lisp, derived from the C implementation
@@ -77,6 +76,28 @@ If string STR1 is greater, the value is a positive number N;
               ((< i2 end2) (1- (- start1 i1)))
               (t)))
     ))
+
+)
+
+;; subst-char-in-string is not found on the XEmacs <= 21.4.  Provide
+;; here for compatibility.
+(if (not (fboundp 'subst-char-in-string))
+
+;;;###autoload    
+(defun subst-char-in-string (fromchar tochar string &optional inplace)
+  ;; From Emacs 21.3/lisp/subr.el
+  "Replace FROMCHAR with TOCHAR in STRING each time it occurs.
+Unless optional argument INPLACE is non-nil, return a new string."
+  (let ((i (length string))
+	(newstr (if inplace string (copy-sequence string))))
+    (while (> i 0)
+      (setq i (1- i))
+      (if (eq (aref newstr i) fromchar)
+	  (aset newstr i tochar)))
+    newstr))
+
+)
+
 
 (provide 'cedet-compat)
 
