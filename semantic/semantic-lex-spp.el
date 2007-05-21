@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.5 2007/01/23 03:36:32 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.6 2007/05/21 00:55:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -80,6 +80,7 @@ if the symbol is in the table."
   "Set value of spp symbol with NAME to VALUE and return VALUE.
 If optional OBARRAY is non-nil, then use that obarray instead of
 the dynamic map."
+  (if (string= value "") (setq value nil))
   (set (intern name (or obarray
 			(semantic-lex-spp-dynamic-map)))
        value))
@@ -112,10 +113,8 @@ REPLACEMENT a string that would be substituted in for NAME."
       (setq spec  (car specs)
             specs (cdr specs))
       (semantic-lex-spp-symbol-set
-       (car spec)
-       (semantic-lex-spp-string-to-macro-stream (cdr spec)
-						;; THIS IS WRONG!
-						1 1)
+       (car spec) 
+       (cdr spec)
        semantic-lex-spp-macro-symbol-obarray))
     semantic-lex-spp-macro-symbol-obarray))
 
