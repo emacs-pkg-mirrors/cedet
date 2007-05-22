@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.54 2007/05/21 00:55:36 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.55 2007/05/22 01:41:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,68 +41,6 @@
   (require 'senator)
   (require 'cc-mode))
 
-(defcustom semantic-lex-c-preprocessor-symbol-map nil
-  "Table of C Preprocessor keywords used by the Semantic C lexer."
-  :group 'c
-  :type '(repeat (cons (string :tag "Keyword")
-		       (string :tag "Replacement")))
-  )
-
-;;; Code:
-(define-lex-spp-macro-declaration-analyzer semantic-lex-cpp-define
-  "A #define of a symbol with some value.
-Record the symbol in the semantic preprocessor.
-Return the the defined symbol as a special spp lex token."
-  "^\\s-*#define\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1
-  (goto-char (match-end 0))
-  (skip-chars-forward " \t")
-  (if (eolp)
-      nil
-    (buffer-substring-no-properties (point)
-				    (progn
-				      ;; NOTE: THIS SHOULD BE
-				      ;; END OF MACRO!!!
-				      (forward-word 1)
-				      (point)))))
-
-(define-lex-spp-macro-undeclaration-analyzer semantic-lex-cpp-undef
-  "A #undef of a symbol.
-Remove the symbol from the semantic preprocessor.
-Return the the defined symbol as a special spp lex token."
-  "^\\s-*#undef\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1)
-
-(define-lex-regex-analyzer semantic-lex-c-if
-  "Code blocks wrapped up in #if, or #ifdef.
-Uses known macro tables in SPP to determine what block to skip."
-  "^\\s-*#\\(if\\|ifndef\\|ifdef\\)\\s-+\\(!?defined(\\|\\)\\(\\(\\sw\\|\\s_\\)+\\))?\\s-*$"
-  (let* ((sym (buffer-substring-no-properties 
-	       (match-beginning 3) (match-end 3)))
-	 (defstr (buffer-substring-no-properties 
-		  (match-beginning 2) (match-end 2)))
-	 (defined (string= defstr "defined("))
-	 (notdefined (string= defstr "!defined("))
-	 (ift (buffer-substring-no-properties 
-	       (match-beginning 1) (match-end 1)))
-	 (ifdef (or (string= ift "ifdef")
-		    (and (string= ift "if") defined)))
-	 (ifndef (or (string= ift "ifndef")
-		     (and (string= ift "if") notdefined)))
-	 )
-    (if (or (and (string= ift "if") (string= sym "0"))
-	    (and ifdef (not (semantic-lex-spp-symbol-p sym)))
-	    (and ifndef (semantic-lex-spp-symbol-p sym)))
-	;; The if indecates to skip this preprocessor section
-	(progn
-	  ;; (message "%s %s yes" ift sym)
-	  (beginning-of-line)
-	  (c-forward-conditional 1)
-	  (setq semantic-lex-end-point (point))
-	  nil)
-      ;; Else, don't ignore it, but do handle the internals.
-      ;;(message "%s %s no" ift sym)
-      (end-of-line)
-      (setq semantic-lex-end-point (point))
-      nil)))
 
 ;;; Compatibility
 ;;
@@ -125,9 +63,135 @@ This function does not do any hidden buffer changes."
   )
 ;;-------
 
+;;; Lexical analysis
+(defcustom semantic-lex-c-preprocessor-symbol-map nil
+  "Table of C Preprocessor keywords used by the Semantic C lexer."
+  :group 'c
+  :type '(repeat (cons (string :tag "Keyword")
+		       (string :tag "Replacement")))
+  )
+
+;;; Code:
+(define-lex-spp-macro-declaration-analyzer semantic-lex-cpp-define
+  "A #define of a symbol with some value.
+Record the symbol in the semantic preprocessor.
+Return the the defined symbol as a special spp lex token."
+  "^\\s-*#define\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1
+  (goto-char (match-end 0))
+  (skip-chars-forward " \t")
+  (if (eolp)
+      nil
+    (prog1
+	(buffer-substring-no-properties (point)
+					(progn
+					  ;; NOTE: THIS SHOULD BE
+					  ;; END OF MACRO!!!
+					  (forward-word 1)
+					  (point)))
+      ;; Move the lexical end after the value.
+      (semantic-c-end-of-macro)
+      ;; Magical spp variable for end point.
+      (setq semantic-lex-end-point (point))
+      )))
+
+(define-lex-spp-macro-undeclaration-analyzer semantic-lex-cpp-undef
+  "A #undef of a symbol.
+Remove the symbol from the semantic preprocessor.
+Return the the defined symbol as a special spp lex token."
+  "^\\s-*#undef\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1)
+
+(defun semantic-c-skip-conditional-section ()
+  "Skip one section of a conditional.
+Moves forward to a matching #elif, #else, or #endif.
+Movers completely over balanced #if blocks."
+  (let ((done nil))
+    ;; (if (looking-at "^\\s-*#if")
+    ;; (semantic-lex-spp-push-if (point))
+    (end-of-line)
+    (while (and (not done)
+		(re-search-forward "^\\s-*#\\(if\\(n?def\\)?\\|el\\(if\\|se\\)\\|endif\\)\\>" nil t))
+      (goto-char (match-beginning 0))
+      (cond
+       ((looking-at "^\\s-*#if")
+	;; We found a nested if.  Skip it.
+	(c-forward-conditional 1))
+       ((looking-at "^\\s-*#\\(endif\\|else\\)\\>")
+	;; We are at the end.  Pop our state.
+	;; (semantic-lex-spp-pop-if)
+	;; Note: We include ELSE and ENDIF the same. If skip some previous
+	;; section, then we should do the else by default, making it much
+	;; like the endif.
+	(end-of-line)
+	(forward-char 1)
+	(setq done t))
+       (t
+	;; We found an elif.  Stop here.
+	(setq done t))))))
+
+(define-lex-regex-analyzer semantic-lex-c-if
+  "Code blocks wrapped up in #if, or #ifdef.
+Uses known macro tables in SPP to determine what block to skip."
+  "^\\s-*#\\(if\\|ifndef\\|ifdef\\|elif\\)\\s-+\\(!?defined(\\|\\)\\(\\(\\sw\\|\\s_\\)+\\))?\\s-*$"
+  (let* ((sym (buffer-substring-no-properties 
+	       (match-beginning 3) (match-end 3)))
+	 (defstr (buffer-substring-no-properties 
+		  (match-beginning 2) (match-end 2)))
+	 (defined (string= defstr "defined("))
+	 (notdefined (string= defstr "!defined("))
+	 (ift (buffer-substring-no-properties 
+	       (match-beginning 1) (match-end 1)))
+	 (ifdef (or (string= ift "ifdef")
+		    (and (string= ift "if") defined)
+		    (and (string= ift "elif") defined)
+		    ))
+	 (ifndef (or (string= ift "ifndef")
+		     (and (string= ift "if") notdefined)
+		     (and (string= ift "elif") notdefined)
+		     ))
+	 )
+    (if (or (and (or (string= ift "if") (string= ift "elif"))
+		 (string= sym "0"))
+	    (and ifdef (not (semantic-lex-spp-symbol-p sym)))
+	    (and ifndef (semantic-lex-spp-symbol-p sym)))
+	;; The if indecates to skip this preprocessor section
+	(let ((pt nil))
+	  ;; (message "%s %s yes" ift sym)
+	  (beginning-of-line)
+	  (setq pt (point))
+	  ;;(c-forward-conditional 1)
+	  ;; This skips only a section of a conditional.  Once that section
+	  ;; is opened, encountering any new #else or related conditional
+	  ;; should be skipped.
+	  (semantic-c-skip-conditional-section)
+	  (setq semantic-lex-end-point (point))
+	  (semantic-push-parser-warning (format "Skip #%s %s" ift sym)
+					pt (point))
+;;	  (semantic-lex-push-token
+;;	   (semantic-lex-token 'c-preprocessor-skip pt (point)))
+	  nil)
+      ;; Else, don't ignore it, but do handle the internals.
+      ;;(message "%s %s no" ift sym)
+      (end-of-line)
+      (setq semantic-lex-end-point (point))
+      nil)))
+
+(define-lex-regex-analyzer semantic-lex-c-macro-else
+  "Ignore an #else block.
+We won't see the #else due to the macro skip section block
+unless we are actively parsing an open #if statement.  In that
+case, we must skip it since it is the ELSE part."
+  "^#\\(else\\)"
+  (let ((pt (point)))
+    (semantic-c-skip-conditional-section)
+    (setq semantic-lex-end-point (point))
+    (semantic-push-parser-warning "Skip #else" pt (point))
+;;    (semantic-lex-push-token
+;;     (semantic-lex-token 'c-preprocessor-skip pt (point)))
+    nil))
+
 (define-lex-regex-analyzer semantic-lex-c-macrobits
   "Ignore various forms of #if/#else/#endif conditionals."
-  "^#\\(if\\(def\\)?\\|el\\(if\\|se\\)\\|endif\\)"
+  "^#\\(if\\(def\\)?\\|endif\\)"
   (semantic-c-end-of-macro)
   (setq semantic-lex-end-point (point))
   nil)
@@ -178,6 +242,7 @@ Go to the next line."
   semantic-lex-cpp-define
   semantic-lex-cpp-undef
   semantic-lex-c-if
+  semantic-lex-c-macro-else
   semantic-lex-c-macrobits
   semantic-lex-c-include-system
   semantic-lex-c-ignore-ending-backslash
