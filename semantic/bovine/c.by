@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.33 2007/05/21 00:06:57 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.34 2007/05/22 01:41:58 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,8 +32,6 @@
 %scopestart    codeblock
 
 %token INCLUDE "include"
-%token DEFINE  "define"
-%token UNDEFINE  "undef"
 
 %token <punctuation>   HASH       "\\`[#]\\'"
 %token <punctuation>   PERIOD     "\\`[.]\\'"
@@ -272,7 +270,7 @@ opt-define-arglist
 ;; This is used in struct parts.
 define
   : spp-macro-def opt-define-arglist macro-def
-    (VARIABLE-TAG $1 nil $2 :constant-flag t)
+    (VARIABLE-TAG $1 nil $3 :constant-flag t)
   | spp-macro-undef
     ( nil )
   ;
