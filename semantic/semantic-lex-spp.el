@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.6 2007/05/21 00:55:13 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.7 2007/05/22 01:38:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -226,19 +226,27 @@ Optional VALFORM are forms that return the value to be saved for
 this macro, or nil."
   (let ((start (make-symbol "start"))
 	(end (make-symbol "end"))
-	(val (make-symbol "val")))
+	(val (make-symbol "val"))
+	(startpnt (make-symbol "startpnt"))
+	(endpnt (make-symbol "endpnt")))
     `(define-lex-regex-analyzer ,name
        ,doc
        ,regexp
        (let ((,start (match-beginning ,tokidx))
 	     (,end (match-end ,tokidx))
-	     (,val (save-match-data ,@valform)))
+	     (,startpnt semantic-lex-end-point)
+	     (,val (save-match-data ,@valform))
+	     (,endpnt semantic-lex-end-point))
 	 (semantic-lex-spp-symbol-set
 	  (buffer-substring-no-properties ,start ,end)
 	  ,val)
 	 (semantic-lex-push-token
 	  (semantic-lex-token 'spp-macro-def
 			      ,start ,end))
+	 ;; Preserve setting of the end point from the calling macro.
+	 (when (and (/= ,startpnt ,endpnt)
+		    (/= ,endpnt semantic-lex-end-point))
+	   (setq semantic-lex-end-point ,endpnt))
 	 ))))
 
 (defmacro define-lex-spp-macro-undeclaration-analyzer (name doc regexp tokidx)
@@ -262,6 +270,20 @@ of type `spp-macro-undef' is to be created."
 	  (semantic-lex-token 'spp-macro-undef
 			      ,start ,end))
 	 ))))
+
+(add-hook
+ 'edebug-setup-hook
+ #'(lambda ()
+     
+     (def-edebug-spec define-lex-spp-macro-declaration-analyzer
+       (&define name stringp stringp form def-body)
+       )
+
+     (def-edebug-spec define-lex-spp-macro-undeclaration-analyzer
+       (&define name stringp stringp form def-body)
+       )
+     ))
+
   
 (provide 'semantic-lex-spp)
 
