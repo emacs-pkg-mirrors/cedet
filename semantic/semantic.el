@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.199 2007/02/18 22:39:31 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.200 2007/05/22 01:37:18 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -464,6 +464,7 @@ is requested."
   (run-hooks 'semantic-before-toplevel-cache-flush-hook)
   (setq semantic--buffer-cache nil)
   (semantic-clear-unmatched-syntax-cache)
+  (semantic-clear-parser-warnings)
   ;; Nuke all semantic overlays.  This is faster than deleting based
   ;; on our data structure.
   (let ((l (semantic-overlay-lists)))
@@ -572,9 +573,10 @@ was marked unparseable, then do nothing, and return the cache."
         (setq res (semantic-parse-region (point-min) (point-max)))
         (working-status t))
       ;; Clear the caches when we see there were no errors.
-      ;; But preserve the unmatched syntax cache!
+      ;; But preserve the unmatched syntax cache and warnings!
       (let (semantic-unmatched-syntax-cache
-            semantic-unmatched-syntax-cache-check)
+            semantic-unmatched-syntax-cache-check
+	    semantic-parser-warnings)
         (semantic-clear-toplevel-cache))
       ;; Set up the new overlays
       (semantic--tag-link-list-to-buffer res)
@@ -708,6 +710,41 @@ This function returns semantic tags without overlays."
                   (point-max)))
             (working-dynamic-status))))
     result))
+
+;;; Parsing Warnings:
+;;
+;; Parsing a buffer may result in non-critical things that we should
+;; alert the user to without interrupting the normal flow.
+;;
+;; Any parser can use this API to provide a list of warnings during a
+;; parse which a user may want to investigate.
+(defvar semantic-parser-warnings nil
+  "A list of parser warnings since the last full reparse.")
+(make-variable-buffer-local 'semantic-parser-warnings)
+
+(defun semantic-clear-parser-warnings ()
+  "Clear the current list of parser warnings for this buffer."
+  (setq semantic-parser-warnings nil))
+
+(defun semantic-push-parser-warning (warning start end)
+  "Add a parser WARNING that covers text from START to END."
+  (setq semantic-parser-warnings
+	(cons (cons warning (cons start end))
+	      semantic-parser-warnings)))
+
+(defun semantic-dump-parser-warnings ()
+  "Dump any parser warnings."
+  (interactive)
+  (if semantic-parser-warnings
+      (let ((pw semantic-parser-warnings))
+	(pop-to-buffer "*Parser Warnings*")
+	(require 'pp)
+	(erase-buffer)
+	(insert (pp-to-string pw))
+	(goto-char (point-min)))
+    (message "No parser warnings.")))
+
+
 
 ;;; Compatibility:
 ;;
