@@ -12,7 +12,7 @@ that indicates that the Makefiles are out of date.
 Thus, the first compilation step is:
 
 -----
-touch `find . -name "Makefile`
+touch `find . -name Makefile`
 -----
 
 To compile and install the rest of the released versions of CEDET,
@@ -43,7 +43,7 @@ cedet/srecode
 
 The SRecode tools stands for "Semantic Recoder".
 SRecode is a template library manager for auto-generating code for any
-language.  Complex code generation is managed throug Semantic
+language.  Complex code generation is managed through Semantic
 compatible tags.
 
 SRecode has a reasonable manual that will assist you in understanding
