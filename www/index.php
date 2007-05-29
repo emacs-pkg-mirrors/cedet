@@ -144,7 +144,7 @@
    Newer versions of this X package are in CVS, and can be downloaded
    from the very nifty XWEM project (Window manager written in Emacs Lisp).
    You can download that from 
-   <a href="www.xwem.org">XWEM home page.</a>
+   <a href="http://www.xwem.org">XWEM home page.</a>
 </p>
 
 <P><A HREF="ftp/hangman.el-0.1.gz"><b>Hangman</b></A> game for
