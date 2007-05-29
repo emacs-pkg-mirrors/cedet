@@ -29,22 +29,6 @@ cedet-1.0pre2.tar.gz</a>.
 <a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=322793">
 cedet-1.0pre1.tar.gz</a>.
 
-<h3>BETAS</h3>
-
-The betas each helped debug new features.  The most recent bundles are
-the pre-releases.
-
-<p>Download
-<a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=254753">
-cedet-1.0beta3b.tar.gz</a>.
-
-<p>Download
-<a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=227377">
-cedet-1.0beta2b.tar.gz</a>.
-
-<p>Download
-<a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=192965">
-cedet-1.0beta1c.tar.gz</a>.
 
 
 
