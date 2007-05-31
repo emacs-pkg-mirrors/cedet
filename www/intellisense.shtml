@@ -8,7 +8,7 @@
 </table>
 
 <p>
-Intellisense is a term coined for (I think) Microsoft Visual Studio.
+Intellisense is a term coined from (I think) Microsoft Visual Studio.
 It represents a set of behaviors that aids a developer write code by
 providing reminders of what possible classes and variables are
 available.  Another way to describe this is simply "Smart Completion".
@@ -63,61 +63,6 @@ the "-sense" part where the editor thinks it knows you are stuck.
 <p>Here is the quick-and-dirty setup for <a href="semantic.shtml">Semantic</a>.
 </p>
 
-<b>Semantic Version 1.4x</b><br>
-<pre>
-   (setq semantic-load-turn-useful-things-on t)
-   (require 'semantic-load)
-</pre>
-
-<b>Cedet Version 1.0 beta1 and later</b><br>
-<pre>
-   (setq semantic-load-turn-useful-things-on t)
-   ;; Replace the path below with the install location.
-   (load-file "~/cedet-VERSION/common/cedet.el")
-</pre>
-
-<p>These two lines set up two important aspects of smart completion.
-
-<ol>
-<li> semanticdb is enabled.  This allows symbol lookup between files.
-<li> summary mode enabled.  This shows prototypes in the mode line.
-</ol>
-
-<p>Summary mode (or eldoc) is a good solution for Functional
-languages, and local definitions.  Not always for a complete
-structured or object oriented program.
-
-<p>To be more complete, you need to specify a project directory for
-semanticdb.
-
-<pre>
-   (setq semanticdb-project-roots
-         (list "/path/to/project/one"
-               "/path/to/project/two"))
-</pre>
-
-<p>This tells semanticdb which databases to references when looking up
-symbols from a given file.  Only the root of a given project need be
-specified.  
-<a href="ede.shtml">EDE</a> will set these up for you automatically.
-
-<p>The next step is to force Emacs to parse all your files into
-databases.  Unfortunately, this is currently best done by just
-visiting all the files you care about, and letting semantic parse
-them.  Once you have visited all such files, execute:
-
-<pre>
-    M-x semanticdb-save-all-db
-</pre>
-
-<p>which will write out the databases for use in future sessions.
-The database will be saved when you exit too, but I like saving my DB
-occasionally so information isn't lost in a crash or other problem.
-
-<table width=100% class=BAR><tr><td>
-<h3>In version 2.0 beta2 or later</h3>
-</td></tr></table>
-
 <table align=right>
 <td>
 <a href=inlinecompletion.png>
@@ -132,10 +77,7 @@ Smart Completion
 </td>
 </table>
 
-<p>In Semantic 2.0 starting with beta2, there are two new ways for
-smart completion to be accessed.  Please read the Info manual on
-these topics.
-</p>
+<h3>Start inline completion</h3>
 
 <pre>
    M-x semantic-complete-analyze-inline
@@ -146,42 +88,48 @@ target symbol) and allows TAB to be used for completion purposes.
 It uses the semantic analyzer to provide the list of completions.
 </p>
 
+<h3>Automatic starting for inline completion in idle time</h3>
+
 <pre>
-   M-x semantic-idle-completions-mode
+   M-x global-semantic-idle-completions-mode
 </pre>
 
-This is a minor mode which  starts
+<p>This is a minor mode which  starts
 <tt>semantic-complete-analyze-inline</tt>
 during idle time.  This has the additional effect of showing a list
 of completions in a tooltip if you leave Emacs alone for too long.
 </p>
 
-<p>In addition to these two methods, the mechanism from Semantic 1.4x
-still work, and have been enhanced.  You will need to follow the
-directions form version 1.4x in setting up the database for semantic
-2.0 as well.
+<p>This is started automatically if you choose the excessive canned
+  starup option for semantic.</p>
+
+<h3>Keypress automatic starting for inline completion</h3>
+
+<pre>
+  (define-key <your-mode-map-here> "." 'semantic-complete-self-insert)
+</pre>
+
+<p>Binding <tt>semantic-complete-self-insert</tt> to a key will insert
+  that key, as per <tt>self-insert-command</tt>, and then fire up the
+  inline completion engine if there is appropriate context nearby.</p>
+
+<p>You will need to bind this individually per-mode to keys of your
+  choice.
 </p>
 
-<br clear="both">
-<table width=100% class=BAR><tr><td>
-<h3>In Version 1.4x</h3>
-</td></tr></table>
-
-<p>In Semantic 1.4 there were a limited number of ways to access the
-smart completion system.  One interesting way was through the
-<a href="speedbar.shtml">Speedbar</a> gui.
-</p>
+<h3>Speedbar completion mode</h3>
 
 <pre>
    M-x semantic-speedbar-analysis
 </pre>
 
-<p>which will now be able to analyze the cursor location, and provide
-intelligent references.  Sometimes you need to press <tt>g</tt> to
-force an update.
+<p>This will start speedbar in a special mode.  In this mode it will
+analyze the cursor location, and provide intelligent references.
+Unlike inline completion, a raw list of options is provided and you
+just need to click on the one you want.  Sometimes you need to
+press <tt>g</tt> to force an update.
 
-<p>If speedbar is not your thing and you want more manual access to
-  smart completion, add these lines to your .emacs file:
+<h3>Command based completion</h3>
 
 <pre>
   (require 'semantic-ia)
@@ -207,17 +155,10 @@ Q) When I type the name of a struct or class and press "." nothing
    happens:
 
 A1) Nothing is supposed to happen when you press ".".  you need to
-    explicitly use the command `semantic-analyze-possible-completions'
-   or (better) `semantic-ia-complete-symbol'.
+    explicitly bind semantic-complete-self-insert to a key.
 
-A2) The context analyzer has a bug that requires at least on symbol
-   character to appear after the "." and before the end of the
-   function context.  It could be a part of the symbol completing, or
-   just some other command on another line.
-
-A3) In your favorite language, rebind "." to a new command that both
-   inserts the ".", and starts your favorite intelligent completion
-   mechanism.
+A2) If you enable global-semantic-idle-completions-mode, then
+    you need to wait for the timeout period before options appear.
 
 Q) I've typed in a new function, and the analyzer does nothing or
    throws an error.
@@ -227,7 +168,7 @@ A) The new code must be parsed by Semantic at least once to identify
    the command "M-x bovinate RET".
 
    All syntax surrounding the types you are attempting to complete in
-   must also be syntactically correct.
+   must also be syntactically correct for the parse to work.
 
 Q) How does semantic choose the available completions?
 
