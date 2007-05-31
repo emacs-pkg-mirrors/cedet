@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.2 2007/05/10 16:53:24 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.3 2007/05/31 02:22:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -276,7 +276,9 @@ minor mode is enabled."
 (defun semantic-mru-bookmark-mode (&optional arg)
   "Minor mode for tracking tag-based bookmarks automatically.
 Tag based bookmarks a tracked based on editing and viewing habits
-and can then be navigated via the MRU bookmark keymap and menu.
+and can then be navigated via the MRU bookmark keymap.
+
+\\{semantic-mru-bookmark-mode-map}
 
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
