@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.13 2007/05/19 03:14:25 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.14 2007/05/31 00:33:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -155,6 +155,15 @@ Optional FACE specifies the face to use."
     (semantic-overlay-put o 'old-face (cdr (semantic-overlay-get o 'old-face)))
     ))
 
+(defcustom semantic-momentary-highlight-pulse-flag 
+  (let ((v (color-values (face-background 'default))))
+    (numberp (car-safe v)))
+  "*Non-nil means to pulse the overlay face for momentary tag highlighting.
+Pulsing involves a bright highlight that slowly shifts to the background
+color."
+  :group 'semantic
+  :type 'boolean)
+
 (defun semantic-momentary-highlight-one-tag-line (tag &optional face)
   "Highlight the first line of TAG, unhighlighting before next command.
 Optional argument FACE specifies the face to do the highlighting."
@@ -167,7 +176,7 @@ Optional argument FACE specifies the face to do the highlighting."
 						    (forward-char 1)
 						    (point)))))
       (semantic--tag-put-property tag 'line-highlight o)
-      (if face
+      (if (or face (not semantic-momentary-highlight-pulse-flag))
 	  ;; Provide a face... clear on next command
 	  (progn
 	    (semantic-overlay-put o 'face face)
@@ -207,7 +216,7 @@ If FACE is not specified, then `highlight' will be used."
 	;; No overlay, but a position.  Highlight the first line only.
 	(semantic-momentary-highlight-one-tag-line tag face)
       ;; The tag has an overlay, highlight the whole thing
-      (if face
+      (if (or face (not semantic-momentary-highlight-pulse-flag))
 	  ;; Provide a face -- delete face on next command
 	  (progn
 	    (semantic-highlight-tag tag face)
