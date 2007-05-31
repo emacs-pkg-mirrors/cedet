@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.15 2007/05/17 01:34:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.16 2007/05/31 02:25:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -279,7 +279,7 @@ This file should reside in `semanticdb-default-system-save-directory'."
 This assumes semantic manages the BROWSE files, so they are assumed to live
 where semantic cache files live, depending on your settings.
 
-for instance: /home/<username>/.semanticdb/!usr!include!BROWSE"
+For instance: /home/<username>/.semanticdb/!usr!include!BROWSE"
   (let* ((B (semanticdb-ebrowse-file-for-directory dir))
 	 (buf (get-buffer-create "*semanticdb ebrowse*")))
     (message "semanticdb-ebrowse %s" B)
@@ -339,6 +339,7 @@ If there is no database for DIRECTORY available, then
       ;; Once our database is loaded, if we are a system DB, we
       ;; add ourselves to the include list for C++.
       (semantic-add-system-include directory 'c++-mode)
+      (semantic-add-system-include directory 'c-mode)
       
       db)))
 
@@ -662,14 +663,12 @@ run the test again..")
 (defun semanticdb-ebrowse-dump ()
   "Find the first loaded ebrowse table, and dump out the contents."
   (interactive)
-  (let ((db semanticdb-database-list))
+  (let ((db semanticdb-database-list)
+	(ab nil))
     (while db
       (when (semanticdb-project-database-ebrowse-p (car db))
-	(pop-to-buffer "*semanticdb ebrowse dump*")
-	(require 'pp)
-	(erase-buffer)
-	(insert (pp-to-string (car db)))
-	(goto-char (point-min))
+	(setq ab (semantic-adebug-new-buffer "*EBROWSE Database*"))
+	(semantic-adebug-insert-thing (car db) "*" "")
 	(setq db nil)
 	)
       (setq db (cdr db)))))
