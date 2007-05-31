@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.55 2007/05/17 01:41:45 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.56 2007/05/31 02:25:55 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -101,7 +101,9 @@ This includes `semantic-load-enable-minimum-features' plus:
   `semantic-idle-summary-mode' - Show a summary for the tag indicated by
                                  code under point.  (intellisense)
   `senator-minor-mode' - Semantic Navigator, and global menu for all
-                         features semantic."
+                         features semantic.
+  `semantic-mru-bookmark-mode' - Provides a `switch-to-buffer' like
+                       keybinding for tag names."
   (interactive)
 
   (semantic-load-enable-minimum-features)
