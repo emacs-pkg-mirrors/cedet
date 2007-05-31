@@ -106,7 +106,7 @@ of completions in a tooltip if you leave Emacs alone for too long.
 <h3>Keypress automatic starting for inline completion</h3>
 
 <pre>
-  (define-key <your-mode-map-here> "." 'semantic-complete-self-insert)
+  (define-key your-mode-map-here "." 'semantic-complete-self-insert)
 </pre>
 
 <p>Binding <tt>semantic-complete-self-insert</tt> to a key will insert
