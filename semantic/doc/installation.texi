@@ -57,6 +57,9 @@ code under point.  (intellisense)
 @item senator-minor-mode
 Semantic Navigator, and global menu for all features semantic.
 (@pxref{(semantic-user)senator}.)
+@item semantic-mru-bookmark-mode
+Provides a `switch-to-buffer' like keybinding for tag names.
+(@pxref{(semantic-user)MRU Bookmarks Mode}.)
 @end table
 @end deffn
 
