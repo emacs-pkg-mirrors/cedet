@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.78 2007/04/03 20:19:54 zappo Exp $
+;; RCS: $Id: ede.el,v 1.79 2007/06/02 19:39:48 zappo Exp $
 (defconst ede-version "1.0"
   "Current version of the Emacs EDE.")
 
@@ -1327,14 +1327,20 @@ This functions is meant for use with ECB."
 (defmethod ede-dir-to-projectfile ((this ede-project-autoload) dir)
   "Return a full file name of project THIS found in DIR.
 Return nil if the project file does not exist."
-  (let ((f (concat dir (oref this proj-file))))
+  (let* ((d (file-name-as-directory dir))
+	 (pf (oref this proj-file))
+	 (f (cond ((stringp pf)
+		   (concat d pf))
+		  ((and (symbolp pf) (fboundp pf))
+		   (funcall pf dir))))
+	 )
     (and (file-exists-p f) f)))
 
 ;;; EDE basic functions
 ;;
 (defun ede-directory-project-p (dir)
   "Return a project description object if DIR has a project.
-This depends on an up to day `ede-project-class-files' variable."
+This depends on an up to date `ede-project-class-files' variable."
   (let ((types ede-project-class-files)
 	(ret nil))
     ;; Loop over all types, loading in the first type that we find.
