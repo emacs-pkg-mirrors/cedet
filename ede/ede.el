@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.79 2007/06/02 19:39:48 zappo Exp $
+;; RCS: $Id: ede.el,v 1.80 2007/06/04 00:35:53 zappo Exp $
 (defconst ede-version "1.0"
   "Current version of the Emacs EDE.")
 
@@ -813,13 +813,20 @@ Argument FILE is the file or directory to load a project from."
 			   )
 			  nil t)))
   (let* ((obj (object-assoc type 'name ede-project-class-files))
-	 (nobj (progn
+	 (nobj (let ((f (oref obj file))
+		     (pf (oref obj proj-file)))
 		 ;; Make sure this class gets loaded!
-		 (require (oref obj file))
+		 (require f)
 		 (make-instance (oref obj class-sym)
 				:name (read-string "Name: ")
-				:file
-				(expand-file-name (oref obj proj-file))
+				:file (cond ((stringp pf)
+					     (expand-file-name pf))
+					    ((fboundp pf)
+					     (funcall pf))
+					    (t
+					     (error
+					      "Unknown file name specifier %S"
+					      pf)))
 				:targets nil)))
 	 (inits (oref obj initializers)))
     (while inits
