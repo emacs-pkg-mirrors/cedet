@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.21 2007/02/18 18:10:10 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.22 2007/06/04 00:39:27 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -226,7 +226,6 @@ Optional argument COMMENT is a header line comment."
 
 (defmethod eieio-persistent-path-relative ((this eieio-persistent) file)
   "For object THIS, make absolute file name FILE relative."
-  ;; Woah!  Look at `file-relative-name' as a solution.
   (file-relative-name (expand-file-name file)
 		      (file-name-directory (oref this file))))
 
