@@ -57,6 +57,9 @@
 	   "During template insertion, this is the stack of active templates.
 The top-most template is the 'active' template.  Use the accessor methods
 for push, pop, and peek for the active template.")
+   (table :initarg :table
+	  :documentation
+	  "The table this template lives in.")
    )
   "Class defines storage for semantic recoder templates.")
 
@@ -430,15 +433,21 @@ A list of defined variables VARS provides a variable table."
 
 	(setq lp (cdr lp))))
 
-    (srecode-mode-table-new mode (buffer-file-name)
-			    :templates (nreverse templates)
-			    :namehash namehash
-			    :contexthash contexthash
-			    :variables vars
-			    :major-mode mode
-			    :priority priority
-			    :application application)
+    (let* ((table (srecode-mode-table-new mode (buffer-file-name)
+		   :templates (nreverse templates)
+		   :namehash namehash
+		   :contexthash contexthash
+		   :variables vars
+		   :major-mode mode
+		   :priority priority
+		   :application application))
+	   (tmpl (oref table templates)))
+      ;; Loop over all the templates, and xref.
+      (while tmpl
+	(oset (car tmpl) :table table)
+	(setq tmpl (cdr tmpl))))
     ))
+    
 
 
 ;;; DEBUG
