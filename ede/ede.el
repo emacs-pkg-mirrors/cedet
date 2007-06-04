@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.80 2007/06/04 00:35:53 zappo Exp $
+;; RCS: $Id: ede.el,v 1.81 2007/06/04 00:46:22 zappo Exp $
 (defconst ede-version "1.0"
   "Current version of the Emacs EDE.")
 
@@ -41,7 +41,6 @@
 ;;
 ;;  (global-ede-mode t)
 
-(require 'ede-load)
 (require 'ede-source)
 
 ;;; Code:
@@ -101,6 +100,7 @@ target willing to take the file.  'never means never perform the check."
 
 ;;; Top level classes for projects and targets
 ;;
+;;;###autoload
 (defclass ede-project-autoload ()
   ((name :initarg :name
 	 :documentation "Name of this project type")
@@ -148,6 +148,12 @@ type is required and the load function used.")
 			 :new-p nil)
    )
   "List of vectos defining how to determine what type of projects exist.")
+
+;;; AUTOLOADS
+;;
+;; These autoloads must appear here to avoid recursive loading.
+;;
+(require 'ede-load)
 
 ;;; Generic project information manager objects
 ;;
