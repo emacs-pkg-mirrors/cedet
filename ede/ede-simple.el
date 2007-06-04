@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-simple.el,v 1.1 2007/06/04 00:38:32 zappo Exp $
+;; X-RCS: $Id: ede-simple.el,v 1.2 2007/06/04 00:46:38 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -35,6 +35,7 @@
 ;; configuration.
 
 (require 'ede)
+(require 'cedet-files)
 
 ;;; Code:
 ;;;###autoload
