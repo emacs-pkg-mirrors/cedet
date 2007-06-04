@@ -54,6 +54,7 @@
   (let ((km (make-sparse-keymap)))
     ;; Basic template codes
     (define-key km "/" 'srecode-insert)
+    (define-key km "e" 'srecode-edit)
     ;; Template direct binding
     ;; Template applications
     (define-key km "G" 'srecode-insert-getset)
@@ -69,6 +70,12 @@
       :active t
       :help "Insert a template by name."
       ])
+   (senator-menu-item
+    ["Edit Template"
+     srecode-edit
+     :active t
+     :help "Edit a template for this language by name."
+     ])
    "---"
    (senator-menu-item
     ["Dump Tables"
@@ -125,6 +132,49 @@ If ARG is nil, then toggle."
 (semantic-add-minor-mode 'srecode-minor-mode
 			 ""
 			 srecode-mode-map)
+
+
+;;; Minor Mode commands
+;;
+(defun srecode-edit (template-name)
+  "Switch to the template buffer for TEMPLATE-NAME.
+Template is chosen based on the mode of the starting buffer."
+  (interactive (list (srecode-read-template-name "Template Name: ")))
+  (if (not (srecode-table))
+      (error "No template table found for mode %s" major-mode))
+    (let ((newdict (srecode-create-dictionary))
+	  (temp (srecode-template-get-table (srecode-table) template-name)))
+      (if (not temp)
+	  (error "No Template named %s" template-name))
+      ;; We need a template specific table, since tables chain.
+      (let ((tab (oref temp :table))
+	    (names nil)
+	    (ctxt nil))
+	(find-file (oref tab :file))
+	(setq names (semantic-find-tags-by-name (oref temp :object-name)
+						(current-buffer)))
+	(cond ((= (length names) 1)
+	       (semantic-go-to-tag (car names))
+	       (semantic-momentary-highlight-tag (car names)))
+	      ((> (length names) 1)
+	       (let* ((ctxt (semantic-find-tags-by-name (oref temp :context)
+							(current-buffer)))
+		      (cls (semantic-find-tags-by-class 'context ctxt))
+		      )
+		 (while (and names
+			     (< (semantic-tag-start (car names))
+				(semantic-tag-start (car cls))))
+		   (setq names (cdr names)))
+		 (if names
+		     (progn
+		       (semantic-go-to-tag (car names))
+		       (semantic-momentary-highlight-tag (car names)))
+		   (error "Can't find template %s" template-name))
+		 ))
+	      (t (error "Can't find template %s" template-name)))
+	)))
+
+  
 
 (provide 'srecode-mode)
 
