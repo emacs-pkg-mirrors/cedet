@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.39 2007/05/17 01:39:46 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.40 2007/06/04 00:54:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -135,7 +135,7 @@
 See `semanticdb-find-throttle' for details.")
 
 ;;;###autoload
-(defcustom semanticdb-find-default-throttle '(project system recursive)
+(defcustom semanticdb-find-default-throttle '(project unloaded system recursive)
   "The default throttle for `semanticdb-find' routines.
 The throttle controls how detailed the list of database
 tables is for a symbol lookup.  The value is a list with
