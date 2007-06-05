@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.44 2007/05/01 18:01:33 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.45 2007/06/05 01:23:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -593,8 +593,12 @@ Similar to `minibuffer-contents' when completing in the minibuffer."
   (condition-case nil
       (progn
 	(when semantic-complete-inline-overlay
-	  (semantic-overlay-delete semantic-complete-inline-overlay)
-	  (setq semantic-complete-inline-overlay nil))
+	  (let ((wc (semantic-overlay-get semantic-complete-inline-overlay
+					  'window-config-start)))
+	    (semantic-overlay-delete semantic-complete-inline-overlay)
+	    (setq semantic-complete-inline-overlay nil)
+	    (set-window-configuration wc)
+	    ))
 	(setq semantic-completion-collector-engine nil
 	      semantic-completion-display-engine nil))
     (error nil))
@@ -708,6 +712,9 @@ END is at the end of the current symbol being completed."
   (semantic-overlay-put semantic-complete-inline-overlay
 			'face
 			'semantic-complete-inline-face)
+  (semantic-overlay-put semantic-complete-inline-overlay
+			'window-config-start
+			(current-window-configuration))
   ;; Install our command hooks
   (add-hook 'pre-command-hook 'semantic-complete-pre-command-hook)
   (add-hook 'post-command-hook 'semantic-complete-post-command-hook)
@@ -1628,6 +1635,20 @@ prompts.  these are calculated from the CONTEXT variable passed in."
      history)))
 
 ;;;###autoload
+(defcustom semantic-complete-inline-analyzer-displayor-class
+  'semantic-displayor-tooltip
+  "*Class for displayor to use with inline completion.
+Good values are:
+  'semantic-displayor-tooltip - show options in a tooltip.
+  'semantic-displayor-traditional - In a buffer."
+  :group 'semantic
+  :type '(radio (const :tag "Tooltip" semantic-displayor-tooltip)
+		(const :tag "Traditional" semantic-displayor-traditional)
+		(const :tag "Traditional with Focus"
+		       semantic-displayor-traditional-with-focus-highlight))
+  )
+
+;;;###autoload
 (defun semantic-complete-inline-analyzer (context)
   "Complete a symbol name by name based on the current context.
 This is similar to `semantic-complete-read-tag-analyze', except
@@ -1665,7 +1686,9 @@ completion works."
 	  ;; There are several options.  Do the completion.
 	  (semantic-complete-inline-tag-engine
 	   collector
-	   (semantic-displayor-tooltip "simple")
+	   (funcall semantic-complete-inline-analyzer-displayor-class
+		    "inline displayor")
+	   ;;(semantic-displayor-tooltip "simple")
 	   (oref context buffer)
 	   (car (oref context bounds))
 	   (cdr (oref context bounds))
