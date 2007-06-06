@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.14 2007/05/31 00:33:36 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.15 2007/06/06 01:45:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -155,9 +155,11 @@ Optional FACE specifies the face to use."
     (semantic-overlay-put o 'old-face (cdr (semantic-overlay-get o 'old-face)))
     ))
 
-(defcustom semantic-momentary-highlight-pulse-flag 
-  (let ((v (color-values (face-background 'default))))
-    (numberp (car-safe v)))
+(defcustom semantic-momentary-highlight-pulse-flag
+  (condition-case nil
+      (let ((v (color-values (face-background 'default))))
+	(numberp (car-safe v)))
+    (error nil))
   "*Non-nil means to pulse the overlay face for momentary tag highlighting.
 Pulsing involves a bright highlight that slowly shifts to the background
 color."
