@@ -21,6 +21,10 @@ int animal::moose::getFeet()
 
 void animal::moose::doNothing()
 {
+  animal::moose foo();
+
+  foo
+
   fFeet = 3;
 }
 
@@ -59,7 +63,7 @@ bool deer::alces::getLatin() {
   return fLatin;
 }
 
-void deer::alces::doLatinStuff() {
+void deer::alces::doLatinStuff(moose moosein) {
   // All these functions should be identified by semantic analyzer.
   getFeet();
   setFeet(true);
@@ -69,6 +73,20 @@ void deer::alces::doLatinStuff() {
 
   doNothing();
 
+  deer::moose foo();
+
+
 }
 
+moose deer::alces::createMoose()
+{
+  moose MooseVariableName;
 
+  MooseVariableName = createMoose();
+
+  doLatinStuff(MooseVariableName);
+  
+  fIsValid = createMoose().
+
+  return MooseVariableName;
+}
