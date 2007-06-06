@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.7 2007/05/22 01:38:21 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.8 2007/06/06 01:05:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,7 +33,11 @@
 ;; semantic language setup function:
 ;;
 ;; (add-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook nil t)
-
+;;
+;;; TODO:
+;;
+;; Use `semantic-push-parser-warning' for situations where there are likely
+;; macros that are undefined unexpectedly, or other problem.
 
 (require 'semantic-lex)
 
