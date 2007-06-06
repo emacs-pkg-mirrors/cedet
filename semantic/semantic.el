@@ -4,12 +4,12 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.200 2007/05/22 01:37:18 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.201 2007/06/06 01:04:30 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
 
-  (defvar semantic-version "2.0"
+  (defvar semantic-version "2.0pre4"
     "Current version of Semantic.")
 
   )
@@ -33,8 +33,7 @@
 
 ;;; Commentary:
 ;;
-;; API for determining semantic content of a buffer.  The mode using
-;; semantic must be a deterministic programming language.
+;; API for providing the semantic content of a buffer.
 ;;
 ;; The semantic API provides an interface to a series of different parser
 ;; implementations.  Each parser outputs a parse tree in a similar format
