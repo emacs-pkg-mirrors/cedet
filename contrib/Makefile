@@ -22,7 +22,7 @@ wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-javascript-jv.wy
 EMACS=emacs
 wy_SEMANTIC_GRAMMAR_EL=wisent-csharp-wy.el wisent-javascript-jv-wy.el
 lisp_LISP=wisent-csharp.el wisent-javascript.el semantic-tag-folding.el semanticdb-javascript.el
-VERSION=1.0
+VERSION=1.0pre4
 DISTDIR=$(top)Contrib-$(VERSION)
 
 
