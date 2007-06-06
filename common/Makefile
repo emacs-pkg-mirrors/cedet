@@ -18,7 +18,7 @@ init_LISP=cedet-load.el
 EMACS=emacs
 setup_LISP=cedet.el
 common_LISP=cedet-autogen.el cedet-compat.el ezimage.el inversion.el pprint.el sformat.el fame.el working.el cedet-edebug.el mode-local.el cedet-files.el
-VERSION=1.0
+VERSION=1.0pre4
 DISTDIR=$(top)common-$(VERSION)
 
 
