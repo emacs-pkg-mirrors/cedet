@@ -18,7 +18,7 @@ bovinator_LISP=semantic-bovine.el bovine-grammar.el bovine-debug.el bovine-gramm
 EMACS=emacs
 examples_MISC=semantic-skel.el skeleton.by
 languages_LISP=semantic-c.el semantic-el.el semantic-make.el semantic-scm.el semantic-java.el erlang-edoc.el semantic-erlang.el
-VERSION=2.0
+VERSION=2.0pre4
 DISTDIR=$(top)semantic-$(VERSION)/bovine
 
 
