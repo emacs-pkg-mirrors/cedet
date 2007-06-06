@@ -2,6 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "common"
   :name "common"
+  :version "1.0pre4"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-aux "misc"
