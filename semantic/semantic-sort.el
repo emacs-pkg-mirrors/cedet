@@ -1,10 +1,10 @@
 ;;; semantic-sort.el --- Utilities for sorting and re-arranging tag tables.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.22 2005/09/30 20:21:09 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.23 2007/06/06 01:05:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -454,7 +454,7 @@ include the default behavior, and merely extend your own."
   )
 
 (defun semantic-tag-external-member-parent-default (tag)
-  "Return the name of TAGs parent iff TAG is not defined in it's parent."
+  "Return the name of TAGs parent only if TAG is not defined in it's parent."
   ;; Use only the extra spec because a type has a parent which
   ;; means something completely different.
   (let ((tp (semantic-tag-get-attribute tag :parent)))
