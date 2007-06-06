@@ -68,7 +68,9 @@ namespace deer {
     void setLatin(bool);
     bool getLatin();
 
-    void doLatinStuff();
+    void doLatinStuff(moose moosein); // for completion testing
+
+    moose createMoose(); // for completion testing.
 
   private:
     bool fLatin;
