@@ -5,6 +5,11 @@
   :version "1.0pre4"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-makefile-info "Doc"
+    :name "Doc"
+    :path ""
+    :source '("cedet.texi")
+    )
    (ede-proj-target-aux "misc"
     :name "misc"
     :path ""
