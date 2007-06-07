@@ -9,6 +9,8 @@
 top=
 ede_FILES=Project.ede Makefile
 
+Doc_TEXINFOS=cedet.texi
+MAKEINFO=makeinfo
 misc_AUX=ChangeLog
 EMACS=emacs
 LOADPATH= ./
@@ -23,7 +25,10 @@ DISTDIR=$(top)common-$(VERSION)
 
 
 
-all: autoloads init setup common icons
+all: cedet.info autoloads init setup common icons
+
+cedet.info: $(Doc_TEXINFOS)
+	$(MAKEINFO) $<
 
 .PHONY: autoloads
 autoloads: 
@@ -70,13 +75,13 @@ tags:
 
 
 clean:
-	rm -f *.elc
+	rm -f *.elc *.html *.info*
 
 .PHONY: dist
 
-dist: autoloads
+dist: cedet.info autoloads
 	mkdir $(DISTDIR)
-	cp $(misc_AUX) cedet-loaddefs.el $(init_LISP) $(setup_LISP) $(common_LISP) $(ede_FILES) $(DISTDIR)
+	cp $(Doc_TEXINFOS) cedet.info* $(misc_AUX) cedet-loaddefs.el $(init_LISP) $(setup_LISP) $(common_LISP) $(ede_FILES) $(DISTDIR)
 	cd icons; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/icons dist
 
 Makefile: Project.ede
