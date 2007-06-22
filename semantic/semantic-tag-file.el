@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.17 2007/05/17 01:42:04 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.18 2007/06/22 19:01:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -137,22 +137,27 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 	   ;; name, then we need to get to that file so the tag
 	   ;; location is made accurate.
 	   (set-buffer (find-file-noselect (semantic-tag-file-name tag)))))
-    ;; First, see if this file exists in the current EDE project
-    (if (and (fboundp 'ede-expand-filename) ede-minor-mode
-	     (ede-expand-filename (ede-toplevel)
-				  (semantic-tag-name tag)))
-	(ede-expand-filename (ede-toplevel)
-			     (semantic-tag-name tag))
-      (let
-	  ((result
-	    (if (semantic--tag-get-property tag 'dependency-file)
-		(semantic--tag-get-property tag 'dependency-file)
-	      (:override
-	       (save-excursion
-		 (let* ((name (semantic-tag-name tag)))
-		   (semantic-dependency-find-file-on-path
-		    name (semantic-tag-include-system-p tag)))))
-	      )))
+    (let ((result nil))
+      ;; First, see if this file exists in the current EDE project
+      ;; @ToDo : Move EDE piece into semantic-dep
+      (if (and (not (semantic-tag-include-system-p tag))
+	       (fboundp 'ede-expand-filename) ede-minor-mode
+	       (ede-expand-filename (ede-toplevel)
+				    (semantic-tag-name tag)))
+	  (setq result 
+		(ede-expand-filename (ede-toplevel)
+				     (semantic-tag-name tag)))
+	)
+      (if (not result)
+	  (setq result
+		(if (semantic--tag-get-property tag 'dependency-file)
+		    (semantic--tag-get-property tag 'dependency-file)
+		  (:override
+		   (save-excursion
+		     (let* ((name (semantic-tag-name tag)))
+		       (semantic-dependency-find-file-on-path
+			name (semantic-tag-include-system-p tag)))))
+		  )))
 	(if (stringp result)
 	    (progn
 	      (semantic--tag-put-property tag 'dependency-file result)
@@ -161,7 +166,7 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 	  ;;        when the path is changed.
 	  (semantic--tag-put-property tag 'dependency-file 'none)
 	  nil)
-	))))
+	)))
 
 (make-obsolete-overload 'semantic-find-dependency
                         'semantic-dependency-tag-file)
