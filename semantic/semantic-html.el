@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-html.el,v 1.9 2007/02/19 02:51:37 zappo Exp $
+;; X-RCS: $Id: semantic-html.el,v 1.10 2007/07/06 11:35:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,7 +34,12 @@
 
 (require 'semantic)
 (require 'semantic-format)
-(require 'sgml-mode) ;; html-mode is in here.
+(condition-case nil
+    ;; This is not installed in all versions of Emacs.
+    (require 'sgml-mode) ;; html-mode is in here.
+  (error
+   (require 'psgml-mode) ;; XEmacs uses psgml, and html-mode is in here.
+   ))
 
 ;;; Code:
 (eval-when-compile
