@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.82 2007/06/06 01:01:50 zappo Exp $
+;; RCS: $Id: ede.el,v 1.83 2007/07/19 01:34:59 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -401,7 +401,11 @@ Do not set this to non-nil globally.  It is used internally.")
       (insert "\n \"" (car c) "\"")
       (setq c (cdr c)))
     (insert "\n)\n")
-    (save-buffer 0)
+    (condition-case nil
+	(save-buffer 0)
+      (error
+       (message "File %s could not be saved."
+		ede-project-placeholder-cache-file)))
     (kill-buffer (current-buffer))
     ))
 
