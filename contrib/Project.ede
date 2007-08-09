@@ -34,7 +34,7 @@
    (ede-proj-target-elisp "lisp"
     :name "lisp"
     :path ""
-    :source '("wisent-csharp.el" "wisent-javascript.el" "semantic-tag-folding.el" "semanticdb-javascript.el")
+    :source '("wisent-csharp.el" "wisent-javascript.el" "semantic-tag-folding.el" "semanticdb-javascript.el" "eassist.el")
     :aux-packages '("semantic-grammar" "wisent" "inversion" "speedbar" "semantic-el")
     )
    )
