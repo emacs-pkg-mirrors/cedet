@@ -11,7 +11,7 @@ ede_FILES=Project.ede Makefile
 
 misc_AUX=ChangeLog
 EMACS=emacs
-LOADPATH= ../common/  ../semantic/ ../eieio/\
+LOADPATH= ../common/ ../common/ ../semantic/ ../eieio/\
     ../semantic/bovine/ ../speedbar/ ../semantic/wisent/
 LOADDEFS=contrib-loaddefs.el
 LOADDIRS=.
@@ -21,7 +21,7 @@ setup_LISP=cedet-contrib.el
 wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-javascript-jv.wy
 EMACS=emacs
 wy_SEMANTIC_GRAMMAR_EL=wisent-csharp-wy.el wisent-javascript-jv-wy.el
-lisp_LISP=wisent-csharp.el wisent-javascript.el semantic-tag-folding.el semanticdb-javascript.el
+lisp_LISP=wisent-csharp.el wisent-javascript.el semantic-tag-folding.el semanticdb-javascript.el eassist.el
 VERSION=1.0pre4
 DISTDIR=$(top)Contrib-$(VERSION)
 
