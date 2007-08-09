@@ -21,16 +21,16 @@
 ;; MA 02111-1307 USA
 
 ;; Version: 0.6
-;; CEDET CVS Version: $Id: eassist.el,v 1.1 2007/08/09 15:58:31 zappo Exp $
+;; CEDET CVS Version: $Id: eassist.el,v 1.2 2007/08/09 16:07:14 zappo Exp $
 
 ;; Compatibility: Emacs 22 or 23, CEDET 1.0pre4.
 
 ;;; Commentary:
 
 ;; Contains some useful functions features for C/C++ developers similar to
-;; those from VisualAssist.  Remember that convinient M-o, M-g and M-m?
+;; those from VisualAssist.  Remember that convenient M-o, M-g and M-m?
 
-;; 1) Method navigaton.
+;; 1) Method navigation.
 ;;    When eassist-list-methods called when c/c++ body file buffer is active
 ;;    a new buffer is shown, containing list of methods and functions in the
 ;;    format: return type, class, method name.  You can select the method
@@ -42,12 +42,12 @@
 ;; 2) Header <-> Body file switch.
 ;;    You can easily switch between body (c, cpp, cc...) and its corresponding
 ;;    header file (h, hpp...) using eassist-switch-h-cpp.  The file is searched
-;;    in the same directory.  You can adjust body to header correspondance
+;;    in the same directory.  You can adjust body to header correspondence
 ;;    customizing eassist-header-switches variable.
 ;;    This function is recommended to be bound to M-o in c-mode.
 
 ;; EmacsAssist uses Semantic (http://cedet.sourceforge.net/semantic.shtml)
-;; EmacsAssist is defeloped for Semantics from CEDET 1.0pre3 package.
+;; EmacsAssist is developed for Semantics from CEDET 1.0pre3 package.
 ;; EmacsAssist works with current development (22) version of Emacs and
 ;; does not work with version 21.
 
@@ -56,13 +56,13 @@
 
 ;; Usage:
 
-;; 1) Install CEDET package for Emacs (if you dont have CEDET already).
-;; 2) Add convinient keymaps for fast EmacsAssist calls in c-mode:
+;; 1) Install CEDET package for Emacs (if you don't have CEDET already).
+;; 2) Add convenient keymaps for fast EmacsAssist calls in c-mode:
 ;;    (defun my-c-mode-common-hook ()
 ;;      (define-key c-mode-base-map (kbd "M-o") 'eassist-switch-h-cpp)
 ;;      (define-key c-mode-base-map (kbd "M-m") 'eassist-list-methods))
 ;;    (add-hook 'c-mode-common-hook 'my-c-mode-common-hook)
-;; 3) Open any C++ file with class definithion, press M-m.  Try to type
+;; 3) Open any C++ file with class definition, press M-m.  Try to type
 ;;    any method name.
 ;; 4) Open any .cpp file.  Press M-o.  If there is .h or .hpp file in the
 ;;    same folder, it will be opened.
@@ -70,7 +70,7 @@
 ;;; Changelog:
 
 ;; 27 mar 2006 -- v0.1 Initial version created.
-;; 29 mar 2006 -- v0.2 Code is more readable now. 
+;; 29 mar 2006 -- v0.2 Code is more readable now.
 ;;                     Thanks to Thien-Thi Nguyen for code review!
 ;; 17 apr 2006 -- v0.3 Added Java and Python support. Coloring based on faces.
 ;;                     Multiple string matching.
@@ -138,6 +138,19 @@ for example *.hpp <--> *.cpp."
 ;; ================================== CPP-H switch end =========================
 
 ;; ================================== Method navigator =========================
+(defvar eassist-buffer nil
+  "Buffer used to selecting tags in EAssist.")
+(defvar eassist-names-column nil
+  "Column used when selecting tags in EAssist.")
+(defvar eassist-methods nil
+  "Collection of methods used when searching for current selection.")
+(defvar eassist-actual-methods nil
+  "Collection of actual methods used when searching for current selection.")
+(defvar eassist-search-string nil
+  "The current search string during a search.")
+(defvar eassist-overlays nil
+  "List of active overlays.")
+
 (defun eassist-function-tags ()
   "Return all function tags from the current buffer using Semantic API.
 The function first gets all toplevel function tags from the current buffer.
