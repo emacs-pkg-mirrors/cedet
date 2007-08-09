@@ -8,7 +8,25 @@ methods which will set up most aspects of these contributed files
 automatically.
 
 --------------------
+eassist.el:
+   Written by Anton V. Belyaev
+   Provides a fancy way to navigate to tags similar to VisualAssist.
 
+   To use, add something like this to your .emacs file:
+     (defun my-semantic-init-hook ()
+       (define-key c-mode-base-map (kbd "M-o") 'eassist-switch-h-cpp)
+       (define-key c-mode-base-map (kbd "M-m") 'eassist-list-methods))
+
+     (add-hook 'semantic-init-hooks 'my-c-mode-common-hook)
+
+   To check out how it works, do the following:
+
+   1) Open any C++ file with class definithion, press M-m. Try to type
+      any method name.
+
+   2) Open any .cpp file. Press M-o. If there is .h or .hpp file in the
+      same folder, it will be opened.
+      
 semantic-tag-folding.el:
    Written by Suraj Acharya
    Provides a fancy folding mode that takes advantage of the latest
