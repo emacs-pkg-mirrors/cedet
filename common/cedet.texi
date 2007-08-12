@@ -290,6 +290,11 @@ and XEmacs.
 Using ezimage allows you to write a text based UI, and then enhance it
 with images afterwards, allowing your UI to work well in a text
 frame, in addition to looking pretty spiff in a graphical frame.
+@item pulse.el
+Simple way to briefly highlight a region or line.  For Emacs 22, it
+will pulse the line, with the color drifting from one shade to
+another.  For older versions Emacs, it will just highlight the line
+briefly.
 @item fame.el
 Support for @code{message} channels, allowing a program to provide a
 wide range of messages, and allowing a user to configure which set
