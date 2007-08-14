@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.21 2007/06/06 00:50:33 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.22 2007/08/14 04:08:07 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -84,14 +84,14 @@
 
 (defconst cedet-packages
   `(
-    ;;PACKAGE   MIN-VERSION      INSTALLDIR
-    (cedet         ,cedet-version  "common" )
-    (cogre         "0.5"                    )
-    (ede           "1.0pre4"                )
-    (eieio         "1.0"                    )
-    (semantic      "2.0pre4"                )
-    (speedbar      "1.0.1"                  )
-    (cedet-contrib "1.0pre4"      "contrib" )
+    ;;PACKAGE   MIN-VERSION      INSTALLDIR DOCDIR
+    (cedet         ,cedet-version "common"  "common" 	   )
+    (cogre         "0.5"           nil      "cogre"  	   )
+    (ede           "1.0pre4"       nil      "ede"    	   )    
+    (eieio         "1.0"           nil      "eieio"        )
+    (semantic      "2.0pre4"       nil      "semantic/doc" )
+    (speedbar      "1.0.1"         nil      "speedbar"     )
+    (cedet-contrib "1.0pre4"      "contrib"  nil           )
     )
   "Table of CEDET packages to install.")
 
@@ -115,10 +115,22 @@
     (dolist (package-spec cedet-packages)
       (setq package     (nth 0 package-spec)
             min-version (nth 1 package-spec)
-            installdir  (nth 2 package-spec))
+            installdir  (nth 2 package-spec)
+	    docdir      (nth 3 package-spec)
+	    )
+      ;; Add package to load path
       (when installdir
         (setq installdir (expand-file-name installdir)))
-      (inversion-add-to-load-path package min-version installdir))
+      (inversion-add-to-load-path package min-version installdir)
+      ;; Add doc to Info path
+      (when docdir
+	(let ((fulldocpath (expand-file-name docdir default-directory)))
+	  ;; Set up one of the info paths depending on if info is
+	  ;; loaded yet.	  
+	  (if (featurep 'info)
+	      (add-to-list 'Info-directory-list fulldocpath)
+	    (add-to-list 'Info-default-directory-list fulldocpath))
+	  )))
 
     ;; Then run every package setup.
     (dolist (package-spec cedet-packages)
