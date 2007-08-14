@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.253 2007/02/07 18:05:48 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.254 2007/08/14 02:29:04 zappo Exp $
 
 (defvar speedbar-version "1.0.1"
   "The current version of speedbar.")
@@ -3972,10 +3972,21 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 
 ;;; Useful hook values and such.
 ;;
+(defun speedbar-highlight-one-tag-line ()
+  "Highlight the current line, unhighlighting a previously jumped to line.
+When available, use `pulse' package."
+  ;; Try to load pulse.  If we can't find it, that's ok.
+  (condition-case nil (require 'pulse) (error nil))
+  (if (featurep 'pulse)
+      (pulse-momentary-highlight-one-line (point)
+					  'speedbar-highlight-face)
+    (speedbar-highlight-on-tag-line-internal))
+  )
+
 (defvar speedbar-highlight-one-tag-line nil
   "Overlay used for highlighting the most recently jumped to tag line.")
 
-(defun speedbar-highlight-one-tag-line ()
+(defun speedbar-highlight-one-tag-line-internal ()
   "Highlight the current line, unhighlighting a previously jumped to line."
   (speedbar-unhighlight-one-tag-line)
   (setq speedbar-highlight-one-tag-line
