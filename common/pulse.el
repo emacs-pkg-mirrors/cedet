@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.2 2007/08/14 02:01:21 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.3 2007/08/14 02:38:37 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -315,7 +315,18 @@ To active pulse advice, use `pulse-enable-integration-advice'.")
 (defun pulse-enable-integration-advice (arg)
   "Toggle activation of advised functions that will now pulse.
 With a negative ARG, disable pulse advice.
-With a positive ARG, enable pulse advice."
+With a positive ARG, enable pulse advice.
+Currently adviced functions include:
+  `goto-line'
+  `exchange-point-and-mark'
+  `find-tag'
+  `tags-search'
+  `tags-loop-continue'
+  `pop-tag-mark'
+  `imenu-default-goto-function'
+Pulsing via `pulse-line-hook-function' has also been added to
+the following hook:
+  `next-error-hook'"
   (interactive "p")
   (if (numberp arg)
       (if (< arg 0)
