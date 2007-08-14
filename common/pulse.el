@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.3 2007/08/14 02:38:37 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.4 2007/08/14 10:35:44 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -312,11 +312,11 @@ Optional argument FACE specifies the fact to do the highlighting."
 To active pulse advice, use `pulse-enable-integration-advice'.")
 
 ;;;###autoload
-(defun pulse-enable-integration-advice (arg)
+(defun pulse-toggle-integration-advice (arg)
   "Toggle activation of advised functions that will now pulse.
 With a negative ARG, disable pulse advice.
 With a positive ARG, enable pulse advice.
-Currently adviced functions include:
+Currently advised functions include:
   `goto-line'
   `exchange-point-and-mark'
   `find-tag'
@@ -344,33 +344,33 @@ the following hook:
 
 (defadvice goto-line (after pulse-advice activate)
   "Cause the line that is `goto'd to pulse when the cursor gets there."
-  (when pulse-command-advice-flag
+  (when (and pulse-command-advice-flag (interactive-p))
     (pulse-momentary-highlight-one-line (point))))
 
 (defadvice exchange-point-and-mark (after pulse-advice activate)
   "Cause the line that is `goto'd to pulse when the cursor gets there."
-  (when (and pulse-command-advice-flag
+  (when (and pulse-command-advice-flag (interactive-p)
 	     (> (abs (- (point) (mark))) 400))
     (pulse-momentary-highlight-one-line (point))))
 
 (defadvice find-tag (after pulse-advice activate)
   "After going to a tag, pulse the line the cursor lands on."
-  (when pulse-command-advice-flag
+  (when (and pulse-command-advice-flag (interactive-p))
     (pulse-momentary-highlight-one-line (point))))
 
 (defadvice tags-search (after pulse-advice activate)
   "After going to a hit, pulse the line the cursor lands on."
-  (when pulse-command-advice-flag
+  (when (and pulse-command-advice-flag (interactive-p))
     (pulse-momentary-highlight-one-line (point))))
 
 (defadvice tags-loop-continue (after pulse-advice activate)
   "After going to a hit, pulse the line the cursor lands on."
-  (when pulse-command-advice-flag
+  (when (and pulse-command-advice-flag (interactive-p))
     (pulse-momentary-highlight-one-line (point))))
 
 (defadvice pop-tag-mark (after pulse-advice activate)
   "After going to a hit, pulse the line the cursor lands on."
-  (when pulse-command-advice-flag
+  (when (and pulse-command-advice-flag (interactive-p))
     (pulse-momentary-highlight-one-line (point))))
 
 (defadvice imenu-default-goto-function (after pulse-advice activate)
