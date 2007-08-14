@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.30 2007/02/19 13:41:45 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.31 2007/08/14 18:14:56 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.3"
@@ -80,7 +80,9 @@
     (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*beta\\([0-9]+\\)?$" 3)
     (prerelease "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*pre\\([0-9]+\\)?$" 3)
     (full   "^\\([0-9]+\\)\\.\\([0-9]+\\)$" 2)
+    (patch  "^\\([0-9]+\\)\\.\\([0-9]+\\) (patch \\([0-9]+\\))" 3)
     (point  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\.\\([0-9]+\\)$" 3)
+    (build  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\.\\([0-9]+\\).\\([0-9]+\\)$" 4)
     )
   "List of decoders for version strings.
 Each decoder is of the form:
@@ -180,12 +182,21 @@ not an indication of new features or bug fixes."
 	(v1-1 (nth 1 ver1))
 	(v1-2 (nth 2 ver1))
 	(v1-3 (nth 3 ver1))
+	(v1-4 (nth 4 ver1))
 	;; v2
 	(v2-0 (inversion-release-to-number (nth 0 ver2)))
 	(v2-1 (nth 1 ver2))
 	(v2-2 (nth 2 ver2))
-	(v2-3 (nth 3 ver2)))
+	(v2-3 (nth 3 ver2))
+	(v2-4 (nth 4 ver2))
+	)
     (or (and (= v1-0 v2-0)
+	     (= v1-1 v2-1)
+	     (= v1-2 v2-2)
+	     (= v1-3 v2-3)
+	     v1-4 v2-4		; all or nothin if elt - is =
+	     (< v1-4 v2-4))
+	(and (= v1-0 v2-0)
 	     (= v1-1 v2-1)
 	     (= v1-2 v2-2)
 	     v1-3 v2-3		; all or nothin if elt - is =
@@ -322,8 +333,22 @@ Optional argument RESERVED is saved for later use."
     (when err
       (if directory
 	  (inversion-download-package-ask err package directory version)
-	(error err)))))
-  
+	(error err)))
+    ;; Return the package symbol that was required.
+    package))
+
+;;;###autoload
+(defun inversion-require-emacs (emacs-ver xemacs-ver)
+  "Declare that you need either EMACS-VER, or XEMACS-VER.
+Only checks one based on which kind of Emacs is being run."
+  (let ((err (inversion-test 'emacs
+			     (if (featurep 'xemacs)
+				 xemacs-ver
+			       emacs-ver))))
+    (if err (error err)
+      ;; Something nice...
+      t)))
+
 (defconst inversion-find-data
   '("(def\\(var\\|const\\)\\s-+%s-%s\\s-+\"\\([^\"]+\\)" 2)
   "Regexp template and match data index of a version string.")
@@ -411,13 +436,18 @@ INSTALLDIR path."
   (interactive)
   (let ((c1 (inversion-package-version 'inversion))
 	(c1i (inversion-package-incompatibility-version 'inversion))
-	(c2 (inversion-decode-version "1.3alpha2"))
-	(c3 (inversion-decode-version "1.3beta4"))
-	(c4 (inversion-decode-version "1.3 beta5"))
-	(c5 (inversion-decode-version "1.3.4"))
-	(c6 (inversion-decode-version "2.3alpha"))
-	(c7 (inversion-decode-version "1.3"))
-	(c8 (inversion-decode-version "1.3pre1")))
+	(c2 (inversion-decode-version  "1.3alpha2"))
+	(c3 (inversion-decode-version  "1.3beta4"))
+	(c4 (inversion-decode-version  "1.3 beta5"))
+	(c5 (inversion-decode-version  "1.3.4"))
+	(c6 (inversion-decode-version  "2.3alpha"))
+	(c7 (inversion-decode-version  "1.3"))
+	(c8 (inversion-decode-version  "1.3pre1"))
+	(c9 (inversion-decode-version  "2.4 (patch 2)"))
+	(c10 (inversion-decode-version "2.4 (patch 3)"))
+	(c11 (inversion-decode-version "2.4.2.1"))
+	(c12 (inversion-decode-version "2.4.2.2"))
+	)
     (if (not (and
 	      (inversion-= c1 c1)
 	      (inversion-< c1i c1)
@@ -437,6 +467,9 @@ INSTALLDIR path."
 	      (inversion-< c8 c7)
 	      (inversion-< c4 c8)
 	      (inversion-< c2 c8)
+	      (inversion-< c9 c10)
+	      (inversion-< c10 c11)
+	      (inversion-< c11 c12)
 	      ;; Negatives
 	      (not (inversion-< c3 c2))
 	      (not (inversion-< c4 c3))
@@ -444,6 +477,7 @@ INSTALLDIR path."
 	      (not (inversion-< c6 c5))
 	      (not (inversion-< c7 c2))
 	      (not (inversion-< c7 c8))
+	      (not (inversion-< c12 c11))
 	      ;; Test the tester on inversion
 	      (not (inversion-test 'inversion inversion-version))
 	      ;; Test that we throw an error
