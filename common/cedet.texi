@@ -188,26 +188,25 @@ completion, tag decoration, and support for a wide range of Emacs
 tools such as Imenu, wich-func, hippie-expand, isearch, and
 cut/copy/paste.
 
-For more details, please read the
-@inforef{top, Semantic Manual, semantic} for high level overviews,
-configuration advice, etc.
+For high level overviews, configuration advice, etc, please read
+@inforef{Top, Semantic Manual, semantic}.
 
 If you are an application developer and need to know the functions and
 concepts, 
-@inforef{top, the Application Development Manual, semantic-appdev}.
+@inforef{Top, the Application Development Manual, semantic-appdev}.
 
 To support a new language,
-@inforef{top, the Language Support Developer's Guide, semantic-langdev}.
+@inforef{Top, the Language Support Developer's Guide, semantic-langdev}.
 
 To use the grammar writing environment, and write in the rule based
 language, 
-@inforef{top, the Grammar Framework Manual, grammar-fw}.
+@inforef{Top, the Grammar Framework Manual, grammar-fw}.
 
 For details on the original @semantic{} @acronym{LL} parser,
-@inforef{top, the Bovine Parser Manual, bovine}.
+@inforef{Top, the Bovine Parser Manual, bovine}.
  
 For details on the Bison-like @acronym{LALR} parser,
-@inforef{top, the Wisent Parser Manual, wisent}.
+@inforef{Top, the Wisent Parser Manual, wisent}.
 
 @node Speedbar
 @section Speedbar
@@ -229,8 +228,8 @@ code browser which embeds Speebar.
 version of speedbar (as of this writing, Jun 07) is identical to the
 version in Emacs 22.
 
-Read the
-@inforef{top, Speedbar Manual, speedbar} for more details.
+For more details, read the 
+@inforef{top, Speedbar Manual, speedbar}.
 
 @node EDE
 @section EDE
@@ -433,7 +432,7 @@ or the fancier
 @end example
 
 See the
-@inforef{Canned Configuration, Semantic Configuration, semantic}
+@inforef{Canned Configuration, Semantic Configuration, semantic}.
 section of the semantic manual for more details about these features.
 
 @node ECB Target
@@ -459,7 +458,7 @@ or the fancier
 @end example
 
 See the
-@inforef{Canned Configuration, Semantic Configuration, semantic}
+@inforef{Canned Configuration, Semantic Configuration, semantic}.
 section of the semantic manual for more details about these features.
 
 @node Project Management
@@ -482,7 +481,7 @@ or the fancier
 @end example
 
 See the
-@inforef{Canned Configuration, Semantic Configuration, semantic}
+@inforef{Canned Configuration, Semantic Configuration, semantic}.
 section of the semantic manual for more details about these features.
 
 
@@ -500,9 +499,8 @@ underlying build technology to use for compilation.
 Use the menu to add targets.  You can then use either Speedbar or
 dired to populate your targets with files.
 
-See the
-@inforef{Top, EDE reference manual, ede}
-for more details.
+For more details, seee the 
+@inforef{Top, EDE reference manual, ede}.
 
 @node Code Completion
 @chapter Code Completion
@@ -523,7 +521,7 @@ or the fancier
 @end example
 
 See the
-@inforef{Canned Configuration, Semantic Configuration, semantic}
+@inforef{Canned Configuration, Semantic Configuration, semantic}.
 section of the semantic manual for more details about these features.
 
 This gets the basics working.  Semantic would now be able to parse
@@ -534,13 +532,12 @@ To improve the things Semantic can find, and complete with, you then
 need to perform more configurations.  This is done mainly by providing
 details on where Semantic can find the source code where your tag
 definitions are.  Please read the
-@inforef{Semanticdb Search Configuration, Semantic search configuration, semantic-user}
-node for details on these techniques.
+@inforef{Semanticdb Search Configuration, Semantic search configuration, semantic-user}.
+
 
 Once you've optimized this step, there are several code completion
 options.  Please see the
-@inforef{Analyzer, semantic analyzer, semantic-user}
-section for more details on different completion techniques.
+@inforef{Analyzer, semantic analyzer, semantic-user}.
 
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
