@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.1 2007/08/12 14:17:23 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.2 2007/08/14 02:01:21 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -41,9 +41,10 @@
 ;;
 ;; `pulse-momentary-highlight-one-line' - Pulse a single line at POINT.
 ;; `pulse-momentary-highlight-region' - Pulse a region.
-;;      These two functions will just blink the line if the version
-;;      of Emacs you are using doesn't support pulsing.
-;;
+;; `pulse-momentary-highlight-overlay' - Pulse an overlay
+;;      These three functions will just blink the specified area if
+;;      the version of Emacs you are using doesn't support pulsing.
+;;    
 ;; `pulse-line-hook-function' - A simple function that can be used in a
 ;;      hook that will pulse whatever line the cursor is on.
 ;;
@@ -87,12 +88,20 @@ Face used for temporary highlighting of tags for effect."
 ;;
 (if (featurep 'xemacs)
     (progn
+      (defalias 'pulse-overlay-live-p
+        (lambda (o)
+          (and (extent-live-p o)
+               (not (extent-detached-p o))
+               (bufferp (extent-buffer o)))))
       (defalias 'pulse-overlay-put 'set-extent-property)
+      (defalias 'pulse-overlay-get 'get-extent-property)
       (defalias 'pulse-overlay-delete 'delete-extent)
       (defalias 'pulse-make-overlay 'make-extent)
       )
   ;; Regular Emacs
+  (defalias 'pulse-overlay-live-p 'overlay-buffer)
   (defalias 'pulse-overlay-put 'overlay-put)
+  (defalias 'pulse-overlay-get 'overlay-get)
   (defalias 'pulse-overlay-delete 'delete-overlay)
   (defalias 'pulse-make-overlay 'make-overlay)
   )
@@ -173,19 +182,21 @@ Return t if there is more drift to do, nil if completed."
 (defun pulse (&optional face)
   "Pulse the colors on our highlight face.
 If optional FACE is provide, reset the face to FACE color,
-instead of `pulse-highlight-start-face'."
+instead of `pulse-highlight-start-face'.
+Be sure to call `pulse-reset-face' after calling pulse."
   (unwind-protect
       (progn
 	(pulse-reset-face face)
 	(while (and (pulse-lighten-highlight)
 		    (sit-for pulse-delay))
 	  nil))
-    ;; Reset after the pulse to our regular face.
-    (pulse-reset-face)))
+    ))
 
 (defun pulse-test ()
   "Test the lightening function for pulsing a line."
   (interactive)
+  (if (not pulse-flag)
+      (error "Pulse test only works on versions of Emacs that support pulsing"))
   (message "<Press a key> Pulse one line.")
   (read-char)
   (pulse-momentary-highlight-one-line (point))
@@ -200,6 +211,21 @@ instead of `pulse-highlight-start-face'."
   (message "<Press a key> Pulse line a specific color.")
   (read-char)
   (pulse-momentary-highlight-one-line (point) 'modeline)
+  (message "<Press a key> Pulse a pre-existing overlay.")
+  (read-char)
+  (let* ((start (point-at-bol))
+	 (end (save-excursion
+		(end-of-line)
+		(when (not (eobp))
+		  (forward-char 1))
+		(point)))
+	 (o (pulse-make-overlay start end))
+	 )
+    (pulse-momentary-highlight-overlay o)
+    (if (pulse-overlay-live-p o)
+	(pulse-overlay-delete o)
+      (error "Non-temporary overlay was deleted!"))
+    )
   (message "Done!"))
 
 
@@ -207,6 +233,55 @@ instead of `pulse-highlight-start-face'."
 ;;
 (defvar pulse-momentary-overlay nil
   "The current pulsing overlay.")
+
+;;;###autoload
+(defun pulse-momentary-highlight-overlay (o &optional face)
+  "Pulse the overlay O, unhighlighting before next command.
+Optional argument FACE specifies the fact to do the highlighting."
+  (pulse-overlay-put o 'original-face (pulse-overlay-get o 'face))
+  (setq pulse-momentary-overlay o)
+  (if (not pulse-flag)
+      ;; Provide a face... clear on next command
+      (progn
+	(pulse-overlay-put o 'face (or face 'pulse-highlight-start-face))
+	(add-hook 'pre-command-hook
+		  'pulse-momentary-unhighlight)
+	)
+    ;; pulse it.
+    (unwind-protect
+	(progn
+	  (pulse-overlay-put o 'face 'pulse-highlight-face)
+	  ;; The pulse function puts FACE onto 'pulse-highlight-face.
+	  ;; Thus above we put our face on the overlay, but pulse
+	  ;; with a reference face needed for the color.
+	  (pulse face))
+      (pulse-momentary-unhighlight))
+    )
+  )
+
+(defun pulse-momentary-unhighlight ()
+  "Unhighlight a line recently highlighted."
+  ;; If someone passes in an overlay, then pulse-momentary-overlay
+  ;; will still be nil, and won't need modifying.
+  (when pulse-momentary-overlay
+    ;; clear the starting face
+    (pulse-overlay-put pulse-momentary-overlay 'face
+		       (pulse-overlay-get pulse-momentary-overlay
+					  'original-face))
+    (pulse-overlay-put pulse-momentary-overlay 'original-face nil)
+    ;; Clear the overlay if it needs deleting.
+    (if (pulse-overlay-get pulse-momentary-overlay 'pulse-delete)
+	(pulse-overlay-delete pulse-momentary-overlay))
+    ;; Clear the variable.
+    (setq pulse-momentary-overlay nil))
+
+  ;; Reset the pulsing face.
+  (pulse-reset-face)
+
+  ;; Remove this hook.
+  (remove-hook 'pre-command-hook
+	       'pulse-momentary-unhighlight)
+  )
 
 ;;;###autoload
 (defun pulse-momentary-highlight-one-line (point &optional face)
@@ -225,33 +300,10 @@ Optional argument FACE specifies the face to do the highlighting."
 (defun pulse-momentary-highlight-region (start end &optional face)
   "Highlight between START and END, unhighlighting before next command.
 Optional argument FACE specifies the fact to do the highlighting."
-  (setq pulse-momentary-overlay (pulse-make-overlay start end))
-  (if (not pulse-flag)
-      ;; Provide a face... clear on next command
-      (progn
-	(pulse-overlay-put pulse-momentary-overlay 'face
-			   (or face 'pulse-highlight-start-face))
-	(add-hook 'pre-command-hook
-		  'pulse-momentary-unhighlight-one-line)
-	)
-    ;; pulse it.
-    (unwind-protect
-	(progn
-	  (pulse-overlay-put pulse-momentary-overlay
-			     'face 'pulse-highlight-face)
-	  (pulse face))
-      (pulse-momentary-unhighlight-one-line))
-    )
-  )
-
-(defun pulse-momentary-unhighlight-one-line ()
-  "Unhighlight a line recently highlighted."
-  (when pulse-momentary-overlay
-    (pulse-overlay-delete pulse-momentary-overlay)
-    (setq pulse-momentary-overlay nil))
-  (remove-hook 'pre-command-hook
-	       'pulse-momentary-unhighlight-one-line)
-  )
+  (let ((o (pulse-make-overlay start end)))
+    ;; Mark it for deletion
+    (pulse-overlay-put o 'pulse-delete t)
+    (pulse-momentary-highlight-overlay o face)))
 
 ;;; Random integration with other tools
 ;;
