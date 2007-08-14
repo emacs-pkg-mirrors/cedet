@@ -87,14 +87,22 @@ install scripts:
   installation.  Read contrib/INSTALL for specifics on those extra
   packages.
 
-4) Configuration:
+4) CONFIGURE:
 
    You can configure how the individual packages load in the above example
    by adding settings in the comment section.  Please read individual
    INSTALL files for each package for details on configuring them.
    See the texinfo manuals for details on more specific configurations.
 
-5) To send bug reports, or participate in discussions on these
+   To dive right into configuring CEDET for a particular purpose, many
+   common purposes are enumerated in the CEDET installation info file.
+
+   C-u C-h i common/cedet.info
+
+
+5) BUGS/COMMENTS
+
+   To send bug reports, or participate in discussions on these
    packages, choose a mailing list:
 
    For Semantic use the mailing list cedet-semantic@sourceforge.net
