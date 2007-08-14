@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.22 2007/08/14 04:08:07 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.23 2007/08/14 18:15:58 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -82,6 +82,11 @@
 (defconst cedet-version "1.0pre4"
   "Current version of CEDET.")
 
+(defconst cedet-emacs-min-version "21.1"
+  "Minimum version of GNU Emacs supported by CEDET.")
+(defconst cedet-xemacs-min-version "21.4"
+  "Minimum version of XEmacs supported by CEDET.")
+
 (defconst cedet-packages
   `(
     ;;PACKAGE   MIN-VERSION      INSTALLDIR DOCDIR
@@ -106,6 +111,10 @@
   ;; Require the inversion library.
   (require 'inversion)
   
+  ;; Require specific Emacs versions
+  (inversion-require-emacs cedet-emacs-min-version
+			   cedet-xemacs-min-version)
+
   ;; Go up to the parent "<INSTALL-DIR>/cedet" directory.
   (let ((default-directory (expand-file-name ".."))
         package min-version installdir)
