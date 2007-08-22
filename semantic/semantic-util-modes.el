@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.59 2007/02/19 02:54:37 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.60 2007/08/22 14:04:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -863,8 +863,17 @@ when it lands in the sticky line."
   "Value of the header line when entering sticky func mode.")
 
 (defconst semantic-stickyfunc-header-line-format
-  '(:eval (list semantic-stickyfunc-indent-string
-                (semantic-stickyfunc-fetch-stickyline)))
+  (cond ((featurep 'xemacs)
+	 nil)
+	((>= emacs-major-version 22)
+	 '(:eval (list
+		  ;; Magic bit I found on emacswiki.
+		  (propertize " " 'display '((space :align-to 0)))
+		  (semantic-stickyfunc-fetch-stickyline))))
+	((= emacs-major-version 21)
+	 '(:eval (list semantic-stickyfunc-indent-string
+		       (semantic-stickyfunc-fetch-stickyline))))
+	(t nil))
   "The header line format used by sticky func mode.")
 
 (defun semantic-stickyfunc-mode-setup ()
