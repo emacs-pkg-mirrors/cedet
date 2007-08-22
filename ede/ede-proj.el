@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.47 2007/02/19 13:46:45 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.48 2007/08/22 13:58:33 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -516,7 +516,9 @@ Converts all symbols into the objects to be used."
       (if link
 	  ;; Now that we have a pre-set linkers to use, convert type symbols
 	  ;; into objects for ease of use
-	  (setq link (mapcar 'symbol-value link))
+	  (if (symbolp link)
+	      (setq link (symbol-value link))
+	    (error ":linker is not a symbol.  Howd you do that?"))
 	(let ((avail (mapcar 'symbol-value (oref obj availablelinkers)))
 	      (st (oref obj sourcetype))
 	      (sources (oref obj source)))
