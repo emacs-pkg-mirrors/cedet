@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.15 2007/08/22 14:06:21 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.16 2007/08/22 22:23:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -205,7 +205,8 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
     (if (semantic-tag-p first)
 	(progn
 	  (push-mark)
-	  (semantic-go-to-tag first))
+	  (semantic-go-to-tag first)
+	  (switch-to-buffer (current-buffer)))
       (if (semantic-tag-p second)
 	  (let ((secondclass (car (reverse (oref ctxt prefixtypes)))))
 	    (cond
@@ -213,12 +214,14 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 		   (y-or-n-p (format "Cound not find `%s'.  Jump to %s? "
 				     first (semantic-tag-name secondclass))))
 	      (push-mark)
-	      (semantic-go-to-tag secondclass))
+	      (semantic-go-to-tag secondclass)
+	      (switch-to-buffer (current-buffer)))
 	     ((and (semantic-tag-p second)
 		   (y-or-n-p (format "Cound not find `%s'.  Jump to %s? "
 				     first (semantic-tag-name second))))
 	      (push-mark)
-	      (semantic-go-to-tag second))))
+	      (semantic-go-to-tag second)
+	      (switch-to-buffer (current-buffer)))))
 	(error "Could not find suitable jump point for %s"
 	       first)
 	))))
@@ -261,6 +264,8 @@ Uses a few internal bits of the semantic analyzer."
   (interactive "sType Name: ")
   ;; Get a hold of this class.
   (let ((class (semantic-analyze-find-tag typename)))
+    (when (not (semantic-tag-p class))
+      (error "Cannot find class %s" class))
     (with-output-to-temp-buffer "*TAG DOCUMENTATION*"
       (princ (semantic-format-tag-summarize class))
       (princ "\n")
