@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.53 2007/05/17 15:46:42 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.54 2007/08/22 17:17:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -457,7 +457,11 @@ it should strip out those not accessable by methods of TYPE."
 		    ((and (listp p) (stringp (car p)))
 		     (car p)))
 	      'type scope)))
-	(when oneparent
+	;;
+	;; The below only works on oneparent is a tag.  If it is a string
+	;; then the parent wasn't found in our searches.  Where might it be?
+	;;
+	(when (and oneparent (semantic-tag-p oneparent))
 	  ;; Get tags from this parent.
 	  (let* ((alltags (semantic-analyze-type-parts oneparent))
 		 (accessabletags (append
