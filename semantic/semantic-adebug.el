@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.6 2007/05/19 00:48:04 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.7 2007/08/22 13:59:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -449,7 +449,10 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
 	 (condition-case nil
 	     (format "#<list o' stuff: %d entries>" (length stufflist))
 	   (error "#<list o' stuff>")))
-	(tip (format "%s" stufflist)))
+	(tip (if (or (listp (car stufflist))
+		     (vectorp (car stufflist)))
+		 ""
+	       (format "%s" stufflist))))
     (insert prefix prebuttontext str)
     (setq end (point))
     (put-text-property (- end (length str)) end 'face 'font-lock-variable-name-face)
