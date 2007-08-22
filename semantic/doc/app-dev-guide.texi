@@ -88,7 +88,7 @@ Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
 A @semantic{} application takes the semantic tags generated
 by semantic parsers then provides useful services to the user.
 For a list of such applications,
-@inforef{the Semantic User's Guide, , semantic-user}.
+@inforef{top, the Semantic User's Guide , semantic-user}.
 
 An application developer needs to know
 @itemize @bullet
