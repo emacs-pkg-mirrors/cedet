@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.14 2007/02/22 03:32:03 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.15 2007/08/22 14:06:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -194,11 +194,42 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
     ))
 
 ;;;###autoload
+(defun semantic-ia-fast-jump (point)
+  "Jump the the tag the analyzer thinks is under POINT."
+  (interactive "P")
+  (let* ((ctxt (semantic-analyze-current-context point))
+	 (pf (reverse (oref ctxt prefix)))
+	 (first (car pf))
+	 (second (nth 1 pf))
+	 )
+    (if (semantic-tag-p first)
+	(progn
+	  (push-mark)
+	  (semantic-go-to-tag first))
+      (if (semantic-tag-p second)
+	  (let ((secondclass (car (reverse (oref ctxt prefixtypes)))))
+	    (cond
+	     ((and (semantic-tag-with-position-p secondclass)
+		   (y-or-n-p (format "Cound not find `%s'.  Jump to %s? "
+				     first (semantic-tag-name secondclass))))
+	      (push-mark)
+	      (semantic-go-to-tag secondclass))
+	     ((and (semantic-tag-p second)
+		   (y-or-n-p (format "Cound not find `%s'.  Jump to %s? "
+				     first (semantic-tag-name second))))
+	      (push-mark)
+	      (semantic-go-to-tag second))))
+	(error "Could not find suitable jump point for %s"
+	       first)
+	))))
+
+;;;###autoload
 (defun semantic-ia-show-doc (point)
   "Display the code-level documentation for the symbol at POINT."
   (interactive "P")
   (let* ((ctxt (semantic-analyze-current-context point))
-	 (pf (reverse (oref ctxt prefix))))
+	 (pf (reverse (oref ctxt prefix)))
+	 )
     ;; If PF, the prefix is non-nil, then the last element is either
     ;; a string (incomplete type), or a semantic TAG.  If it is a TAG
     ;; then we should be able to find DOC for it.
@@ -221,6 +252,27 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	  (t
 	   (message "Unknown tag.")))
     ))
+
+;;;###autoload
+(defun semantic-ia-describe-class (typename)
+  "Display as all known parts for the datatype TYPENAME.
+Uses a few internal bits of the semantic analyzer."
+  ;; @todo - use a fancy completing reader.
+  (interactive "sType Name: ")
+  ;; Get a hold of this class.
+  (let ((class (semantic-analyze-find-tag typename)))
+    (with-output-to-temp-buffer "*TAG DOCUMENTATION*"
+      (princ (semantic-format-tag-summarize class))
+      (princ "\n")
+      (princ "  Type Members:\n")
+      (let ((parts (semantic-analyze-type-parts class)))
+	(while parts
+	  (princ "    ")
+	  (princ (semantic-format-tag-summarize (car parts)))
+	  (princ "\n")
+	  (setq parts (cdr parts)))
+	)
+      )))
 
 (provide 'semantic-ia)
 
