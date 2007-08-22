@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.43 2007/02/19 13:48:19 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.44 2007/08/22 15:32:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -251,8 +251,8 @@ That is a cons (LOCAL-ARGUMENTS . LOCAL-VARIABLES) where:
   (save-excursion
     (if point (goto-char point))
     (let ((case-fold-search semantic-case-fold))
-      (cons (semantic-get-local-arguments)
-	    (semantic-get-local-variables)))))
+      (append (semantic-get-local-arguments)
+	      (semantic-get-local-variables)))))
 
 ;;; Local context parsing
 ;;
