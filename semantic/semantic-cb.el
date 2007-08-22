@@ -1,10 +1,10 @@
 ;;; semantic-cb.el --- Manage and maintain a Class Browser database
 
-;;; Copyright (C) 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.18 2005/09/30 20:18:50 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.19 2007/08/22 13:59:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,6 +41,7 @@
 (require 'semantic-sort)
 (require 'eieio-speedbar)
 (require 'eieio-base)
+(require 'semantic-adebug)
 
 ;;; Code:
 (defclass semantic-cb-project ()
@@ -314,6 +315,23 @@ PARENTOBJ is the CB tag which hosts CHILDLIST."
       this
     (semantic-cb-find-node-in-list (oref this subclasses) name))
   )
+
+;;; ADEBUG the class browser.
+;;
+;;; ###autoload
+(defun semantic-cb-adebug (clear)
+  "Debug the output of the semantic Class Browser.
+With universla argument CLEAR, reset the current browser project."
+  (interactive "P")
+  (if clear (semantic-cb-clear-current-project))
+  (let* ((start  (current-time))
+	 (cb (semantic-cb-new-class-browser))
+	 (end  (current-time)))
+    (message "Retrieving CLASS BROWSER data took %.2f seconds."
+	     (semantic-elapsed-time start end))
+    (setq ab (semantic-adebug-new-buffer "*CLASS BROWSER ADEBUG*"))
+    (semantic-adebug-insert-thing cb "@" "")
+    ))
 
 
 ;;; Dot Output File Generation for UML
