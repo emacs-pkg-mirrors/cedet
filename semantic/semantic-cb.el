@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.19 2007/08/22 13:59:54 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.20 2007/08/22 14:04:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -326,6 +326,7 @@ With universla argument CLEAR, reset the current browser project."
   (if clear (semantic-cb-clear-current-project))
   (let* ((start  (current-time))
 	 (cb (semantic-cb-new-class-browser))
+	 (ab nil)
 	 (end  (current-time)))
     (message "Retrieving CLASS BROWSER data took %.2f seconds."
 	     (semantic-elapsed-time start end))
