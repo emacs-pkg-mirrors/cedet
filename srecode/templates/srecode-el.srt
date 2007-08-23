@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-el.srt,v 1.3 2007/03/18 17:07:25 zappo Exp $
+;; X-RCS: $Id: srecode-el.srt,v 1.4 2007/08/23 00:09:44 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -39,6 +39,7 @@ template empty :user :time :file
 $>:filecomment$
 ;;; Commentary:
 ;;
+;; $^$
 
 ;;; Code:
 
@@ -117,16 +118,21 @@ context declaration
 template section-comment
 "Insert a comment that separates sections of an Emacs Lisp file."
 ----
+
 ;;; $^$
 ;;
 ----
+
+prompt INTERACTIVE "Is this an interactive function? " default "(interactive)" read y-or-n-p
 
 template function
 "Insert a defun outline."
 ----
 (defun $?NAME$ ()
   ""
-  $^$)
+  $?INTERACTIVE$
+  $^$
+  )
 ----
 
 template variable
@@ -146,6 +152,14 @@ template type
    )
    "Class $NAME$ ")
 ----
+
+template method
+"Insert a new method."
+----
+(defmethod $?NAME$ ((this $?CLASS$))
+  ""
+  $^$
+  )
 
 ;; end
 
