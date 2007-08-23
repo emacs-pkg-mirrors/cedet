@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.83 2007/07/19 01:34:59 zappo Exp $
+;; RCS: $Id: ede.el,v 1.84 2007/08/23 02:39:08 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -108,6 +108,12 @@ target willing to take the file.  'never means never perform the check."
 	 :documentation "The lisp file belonging to this class.")
    (proj-file :initarg :proj-file
 	      :documentation "Name of a project file of this type.")
+   (proj-root :initarg :proj-root
+	      :type function
+	      :documentation "A function symbol to call for the project root.
+This function takes no arguments, and returns the current directories
+root, if available.  Leave blank to use the EDE directory walking
+routine instead.")
    (initializers :initarg :initializers
 		 :initform nil
 		 :documentation
@@ -395,7 +401,10 @@ Do not set this to non-nil globally.  It is used internally.")
     (insert ";; EDE project cache file.
 ;; This contains a list of projects you have visited.\n(")
     (while p
-      (insert "\n  \"" (oref (car p) file) "\"")
+      (when (car p)
+	(let ((f (oref (car p) file)))
+	  (when (file-exists-p f)
+	    (insert "\n  \"" f "\""))))
       (setq p (cdr p)))
     (while c
       (insert "\n \"" (car c) "\"")
@@ -1060,6 +1069,19 @@ Return the new object created in its place."
   this
   )
 
+(defmethod ede-project-root ((this ede-project-placeholder))
+  "If a project knows it's root, return it here.
+Allows for one-project-object-for-a-tree type systems."
+  nil)
+
+(defmethod ede-project-root ((this ede-project-autoload))
+  "If a project knows it's root, return it here.
+Allows for one-project-object-for-a-tree type systems."
+  (when (slot-boundp this :proj-root)
+    (let ((rootfcn (oref this proj-root)))
+      (when rootfcn
+	(funcall rootfcn)))))
+
 
 ;;; EDE project target baseline methods.
 ;;
@@ -1351,7 +1373,8 @@ Return nil if the project file does not exist."
 		  ((and (symbolp pf) (fboundp pf))
 		   (funcall pf dir))))
 	 )
-    (and (file-exists-p f) f)))
+    (when (and f (file-exists-p f))
+      f)))
 
 ;;; EDE basic functions
 ;;
@@ -1389,14 +1412,16 @@ nil is returned if the current directory is not a part ofa project."
 
 (defun ede-toplevel-project (path)
   "Starting with PATH, find the toplevel project directory."
-  (let ((toppath nil) (newpath nil))
+  (let ((toppath nil) (newpath nil) (ans nil) (proj nil))
     ;; Loop up to the topmost project, and then load that single
     ;; project, and it's sub projects.  When we are done, identify the
     ;; sub-project object belonging to file.
     (setq toppath (expand-file-name path) newpath (expand-file-name path))
-    (while (ede-directory-project-p newpath)
+    (while (and (not ans)
+		(setq proj (ede-directory-project-p newpath)))
+      (setq ans (ede-project-root proj))
       (setq toppath newpath newpath (ede-up-directory toppath)))
-    toppath))
+    (or ans toppath)))
 
 ;;;###autoload
 (defun ede-load-project-file (file)
