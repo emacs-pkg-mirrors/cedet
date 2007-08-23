@@ -49,7 +49,7 @@ template copyright
 
 template filecomment :file :user :time
 ----
-{{comment_start}} {{FILENAME}} --- 
+{{comment_start}} {{FILENAME}} --- $^$
 
 {{comment_prefix}} Copyright (C) {{YEAR}} {{?AUTHOR}}
 
