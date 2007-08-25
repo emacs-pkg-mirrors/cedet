@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.84 2007/08/23 02:39:08 zappo Exp $
+;; RCS: $Id: ede.el,v 1.85 2007/08/25 14:45:42 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -1412,15 +1412,20 @@ nil is returned if the current directory is not a part ofa project."
 
 (defun ede-toplevel-project (path)
   "Starting with PATH, find the toplevel project directory."
-  (let ((toppath nil) (newpath nil) (ans nil) (proj nil))
+  (let* ((toppath (expand-file-name path))
+	 (newpath toppath)
+	 (proj (ede-directory-project-p path))
+	 (ans nil))
     ;; Loop up to the topmost project, and then load that single
     ;; project, and it's sub projects.  When we are done, identify the
     ;; sub-project object belonging to file.
-    (setq toppath (expand-file-name path) newpath (expand-file-name path))
-    (while (and (not ans)
-		(setq proj (ede-directory-project-p newpath)))
-      (setq ans (ede-project-root proj))
-      (setq toppath newpath newpath (ede-up-directory toppath)))
+    (while (and (not ans) proj)
+      (setq toppath newpath
+	    newpath (ede-up-directory toppath))
+      (setq proj (ede-directory-project-p newpath))
+      (when proj
+	(setq ans (ede-project-root proj)))
+      )
     (or ans toppath)))
 
 ;;;###autoload
@@ -1490,11 +1495,14 @@ instead of the current project."
   "Return the project belonging to the parent directory.
 nil if there is no previous directory.
 Optional argument OBJ is an object to find the parent of."
-  (ede-load-project-file
-   (concat (ede-up-directory
-	    (if obj (file-name-directory (oref obj file))
-	      default-directory))
-	   "/")))
+  (let ((r (ede-project-root obj)))
+    (if (eq r (file-name-directory (oref obj file)))
+	nil ;; we are at the root.
+      (ede-load-project-file
+       (concat (ede-up-directory
+		(if obj (file-name-directory (oref obj file))
+		  default-directory))
+	       "/")))))
 
 (defun ede-current-project ()
   "Return the current project file."
@@ -1512,7 +1520,7 @@ Optional argument OBJ is an object to find the parent of."
 (defmethod ede-target-in-project-p ((proj ede-project) target)
   "Is PROJ the parent of TARGET?
 If TARGET belongs to a subproject, return that project file."
-  (if (member target (oref proj targets))
+  (if (memq target (oref proj targets))
       proj
     (let ((s (oref proj subproj))
 	  (ans nil))
