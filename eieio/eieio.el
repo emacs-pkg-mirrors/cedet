@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.150 2007/08/25 15:21:59 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.151 2007/08/25 17:11:03 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -822,35 +822,34 @@ if default value is nil."
 	      (eieio-perform-slot-validation-for-default a tp value skipnil)
 	      (setcar dp value))
 
-;	    ;; PLN Tue Jun 26 11:57:06 2007 : The protection is
-;	    ;; checked and SHOULD match the superclass
-;	    ;; protection. Otherwise an error is thrown. However
-;	    ;; I wonder if a more flexible schedule might be
-;	    ;; implemented.
-;	    (when prot
-;	      (let ((super-prot
-;		     (car (nthcdr num (aref newc class-protection)))))
-;		(if (not (eq prot super-prot))
-;		    (error "Child slot protection `%s' does not match inherited protection `%s' for `%s'"
-;			   prot super-prot a))))
-;	    ;; We do a non redundant combination of ancient
-;	    ;; custom groups and new ones using the common lisp
-;	    ;; `union' method.
-;	    (when custg
-;	      (let ((where-groups
-;		     (nthcdr num (aref newc class-public-custom-group))))
-;		(setcar where-groups
-;			(union (car where-groups)
-;			       (if (listp custg) custg (list custg))))))
-;	    ;;  End PLN
-;
-;	    ;; PLN Sat Jun 30 17:24:42 2007 : when a new
-;	    ;; doc is specified, simply replaces the old one.
-;	    (when doc
-;	      ;;(message "Documentation redefined to %s" doc)
-;	      (setcar (nthcdr num (aref newc class-public-doc))
-;		      doc))
-;	    ;; End PLN
+	    ;; PLN Tue Jun 26 11:57:06 2007 : The protection is
+	    ;; checked and SHOULD match the superclass
+	    ;; protection. Otherwise an error is thrown. However
+	    ;; I wonder if a more flexible schedule might be
+	    ;; implemented.
+	    (let ((super-prot
+		   (car (nthcdr num (aref newc class-class-allocation-protection)))))
+	      (if (not (eq prot super-prot))
+		  (error "Child slot protection `%s' does not match inherited protection `%s' for `%s'"
+			 prot super-prot a)))
+	    ;; We do a non redundant combination of ancient
+	    ;; custom groups and new ones using the common lisp
+	    ;; `union' method.
+	    (when custg
+	      (let ((where-groups
+		     (nthcdr num (aref newc class-class-allocation-custom-group))))
+		(setcar where-groups
+			(union (car where-groups)
+			       (if (listp custg) custg (list custg))))))
+	    ;;  End PLN
+
+	    ;; PLN Sat Jun 30 17:24:42 2007 : when a new
+	    ;; doc is specified, simply replaces the old one.
+	    (when doc
+	      ;;(message "Documentation redefined to %s" doc)
+	      (setcar (nthcdr num (aref newc class-class-allocation-doc))
+		      doc))
+	    ;; End PLN
 
 
 	    ))
