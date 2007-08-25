@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.39 2007/03/08 04:11:20 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.40 2007/08/25 17:13:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -807,6 +807,11 @@ See `semantic-format-tag-prototype' for Emacs Lisp for more details."
 
 (defvar-mode-local emacs-lisp-mode imenu-create-index-function
   'semantic-create-imenu-index)
+
+(defvar-mode-local emacs-lisp-mode semantic-stickyfunc-sticky-classes
+  '(function type variable)
+  "Add variables.
+ELisp variables can be pretty long, so track this one too.")
 
 (define-child-mode lisp-mode emacs-lisp-mode
   "Make `lisp-mode' inherits mode local behavior from `emacs-lisp-mode'.")
