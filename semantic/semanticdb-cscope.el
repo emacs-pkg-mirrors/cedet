@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-cscope.el,v 1.1 2007/08/25 01:25:55 zappo Exp $
+;; X-RCS: $Id: semanticdb-cscope.el,v 1.2 2007/08/25 01:39:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -257,6 +257,7 @@ This file should reside in `semanticdb-default-system-save-directory'."
       (oset db tables nil)
       ;; Create one table that knows about all files in some dir or project?
       ;; @TODO
+      (oset db tables (list (semanticdb-table-cscope "Base Table")))
 
       ;; Once our database is loaded, if we are a system DB, we
       ;; add ourselves to the include list for C.
