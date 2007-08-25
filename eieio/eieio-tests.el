@@ -1,10 +1,10 @@
 ;;; eieio-tests.el -- eieio tests routines
 
 ;;;
-;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.37 2006/02/09 02:23:09 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.38 2007/08/25 15:22:37 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -708,6 +708,94 @@ Do not override for `prot-2'."
       ((not (eq (oref II3 slot3) 'penguin))
        (error "Instance inheritor: Level zero inheritance failed."))
       (t t))
+
+;;; Test slot attribute override patterns
+;;
+(defclass slotattr-base ()
+  ((initform :initform init)
+   (type :type list)
+   (initarg :initarg :initarg)
+   (protection :protection :private)
+   (custom :custom (repeat string)
+	   :label "Custom Strings"
+	   :group moose)
+   (docstring :documentation
+	      "Replace the doc-string for this property.")
+   )
+  "Baseclass we will attempt to subclass.
+Subclasses to override slot attributes.")
+
+(let ((good-fail t))
+  (condition-case nil
+      (progn
+	(defclass slotattr-fail (slotattr-base)
+	  ((protection :protection :public)
+	   )
+	  "This class should throw an error.")
+	(setq good-fail nil))
+    (error nil))
+  (if (not good-fail)
+      (error "Subclass overrode :protection slot attribute.")))
+
+(let ((good-fail t))
+  (condition-case nil
+      (progn
+	(defclass slotattr-fail (slotattr-base)
+	  ((type :type string)
+	   )
+	  "This class should throw an error.")
+	(setq good-fail nil))
+    (error nil))
+  (if (not good-fail)
+      (error "Subclass overrode :type slot attribute.")))
+
+
+(defclass slotattr-ok (slotattr-base)
+  ((initform :initform no-init)   
+   (initarg :initarg :initblarg)
+   (custom :custom string
+	   :label "One String"
+	   :group cow)
+   (docstring :documentation
+	      "A better doc string for this class.")
+   )
+  "This class should allow overriding of various slot attributes.")
+
+(let ((obj (slotattr-ok "moose")))
+  (if (not (eq (oref obj initform) 'no-init))
+      (error "Initform did not override in instance allocation."))
+)
+
+(let* ((cv (class-v 'slotattr-ok))
+       (docs   (aref cv class-public-doc))
+       (names  (aref cv class-public-a))
+       (cust   (aref cv class-public-custom))
+       (label  (aref cv class-public-custom-label))
+       (group  (aref cv class-public-custom-group))
+       (types  (aref cv class-public-type))
+       (args   (aref cv class-initarg-tuples))
+       (i 0)
+       )
+  
+  (if (not (assoc :initblarg args))
+      (error ":initarg did not override for subclass."))
+
+  (while (< i (length names))
+
+    (cond
+     ((eq (nth i names) 'custom)
+      (if (not (eq (nth i cust) 'string))
+	  (error "Custom slot attribute did not override."))
+      (if (not (string= (nth i label) "One String"))
+	  (error "Custom Label slot attribute did not override."))
+      (let ((grp (nth i group)))
+	(if (not (and (memq 'moose grp) (memq 'cow grp)))
+	    (error "Custom Group slot attribute did not combine."))
+	))
+
+     (t nil))
+
+    (setq i (1+ i))))
 
 ;;; Test clone on boring objects too!
 ;;
