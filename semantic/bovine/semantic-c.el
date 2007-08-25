@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.55 2007/05/22 01:41:10 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.56 2007/08/25 01:51:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -710,6 +710,20 @@ DO NOT return the list of tags encompassing point."
 
     ;; Return the stuff
     tagreturn
+    ))
+
+(define-mode-local-override semantic-get-local-variables c++-mode ()
+  "Do whhat `semantic-get-local-variables' does, plus add `this' if needed."
+  (let* ((origvar (semantic-get-local-variables-default))
+	 (ct (semantic-current-tag))
+	 (p (semantic-tag-function-parent ct)))
+    ;; If we have a function parent, then that implies we can
+    (if (and p (semantic-tag-of-class-p ct 'function))
+	;; Append a new tag THIS into our space.
+	(cons (semantic-tag-new-variable "this" p nil)
+	      origvar)
+      ;; No parent, just return the usual
+      origvar)
     ))
 
 (defvar-mode-local c-mode semantic-orphaned-member-metaparent-type "struct"
