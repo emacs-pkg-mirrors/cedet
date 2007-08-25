@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.149 2007/03/18 17:20:41 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.150 2007/08/25 15:21:59 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -134,13 +134,16 @@ execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
 (defconst class-parent 2 "Class parent field.")
 (defconst class-children 3 "Class children class field.")
 (defconst class-symbol-obarray 4 "Obarray permitting fast access to variable position indexes.")
-(defconst class-public-a 5 "Class public attribute index.")
-(defconst class-public-d 6 "Class public attribute defaults index.")
-(defconst class-public-doc 7 "Class public documentation strings for attributes.")
-(defconst class-public-type 8 "Class public type for a slot.")
-(defconst class-public-custom 9 "Class public custom type for a slot.")
-(defconst class-public-custom-label 10 "Class public custom group for a slot.")
-(defconst class-public-custom-group 11 "Class public custom group for a slot.")
+;; @todo
+;; the word "public" here is leftovers from the very first version.
+;; Get rid of it!
+(defconst class-public-a 5 "Class attribute index.")
+(defconst class-public-d 6 "Class attribute defaults index.")
+(defconst class-public-doc 7 "Class documentation strings for attributes.")
+(defconst class-public-type 8 "Class type for a slot.")
+(defconst class-public-custom 9 "Class custom type for a slot.")
+(defconst class-public-custom-label 10 "Class custom group for a slot.")
+(defconst class-public-custom-group 11 "Class custom group for a slot.")
 (defconst class-protection 12 "Class protection for a slot.")
 (defconst class-initarg-tuples 13 "Class initarg tuples list.")
 (defconst class-class-allocation-a 14 "Class allocated attributes.")
@@ -678,58 +681,107 @@ if default value is nil."
 
   (if (or (not alloc) (and (symbolp alloc) (eq alloc ':instance)))
       ;; In this case, we modify the INSTANCE version of a given slot.
-      ;; Only add this element if it is so-far unique
-      (if (not (member a (aref newc class-public-a)))
-	  (progn
-	    (eieio-perform-slot-validation-for-default a type d skipnil)
-	    (aset newc class-public-a (cons a (aref newc class-public-a)))
-	    (aset newc class-public-d (cons d (aref newc class-public-d)))
-	    (aset newc class-public-doc (cons doc (aref newc class-public-doc)))
-	    (aset newc class-public-type (cons type (aref newc class-public-type)))
-	    (aset newc class-public-custom (cons cust (aref newc class-public-custom)))
-	    (aset newc class-public-custom-label (cons label (aref newc class-public-custom-label)))
-	    (aset newc class-public-custom-group (cons custg (aref newc class-public-custom-group)))
-	    (aset newc class-protection (cons prot (aref newc class-protection)))
-	    (aset newc class-initarg-tuples (cons (cons init a) (aref newc class-initarg-tuples)))
-	    )
-	;; When defaultoverride is true, we are usually adding new local
-	;; attributes which must override the default value of any field
-	;; passed in by one of the parent classes.
-	(if defaultoverride
+
+      (progn
+
+	;; Only add this element if it is so-far unique
+	(if (not (member a (aref newc class-public-a)))
 	    (progn
-	      ;; There is a match, and we must override the old value.
-	      (let* ((ca (aref newc class-public-a))
-		     (np (member a ca))
-		     (num (- (length ca) (length np)))
-		     (dp (if np (nthcdr num (aref newc class-public-d))
-			   nil))
-		     (tp (if np (nth num (aref newc class-public-type))))
-		     )
-		(if (not np)
-		    (error "Eieio internal error overriding default value for %s"
-			   a)
-		  ;; If type is passed in, is it the same?
-		  (if (not (eq type t))
-		      (if (not (equal type tp))
-			  (error
-			   "Child slot type `%s' does not match inherited type `%s' for `%s'"
-			   type tp a)))
-		  ;; If we have a repeat, only update the initarg...
-		  (eieio-perform-slot-validation-for-default a tp d skipnil)
-		  (setcar dp d)
-		  ;; If we have a new initarg, check for it.
-		  (when init
-		    (let* ((inits (aref newc class-initarg-tuples))
-			   (inita (rassq a inits)))
-		      ;; Replace the CAR of the associate INITA.
-		      ;;(message "Initarg: %S replace %s" inita init)
-		      (setcar inita init)
-		      ))
-		  ;; TODO:
-		  ;;  For other slots (protection, etc) we should get the
-		  ;;  original value, and make sure each is equal to the
-		  ;;  last value and throw an error, or accept it.
-		  )))))
+	      (eieio-perform-slot-validation-for-default a type d skipnil)
+	      (aset newc class-public-a (cons a (aref newc class-public-a)))
+	      (aset newc class-public-d (cons d (aref newc class-public-d)))
+	      (aset newc class-public-doc (cons doc (aref newc class-public-doc)))
+	      (aset newc class-public-type (cons type (aref newc class-public-type)))
+	      (aset newc class-public-custom (cons cust (aref newc class-public-custom)))
+	      (aset newc class-public-custom-label (cons label (aref newc class-public-custom-label)))
+	      (aset newc class-public-custom-group (cons custg (aref newc class-public-custom-group)))
+	      (aset newc class-protection (cons prot (aref newc class-protection)))
+	      (aset newc class-initarg-tuples (cons (cons init a) (aref newc class-initarg-tuples)))
+	      )
+	  ;; When defaultoverride is true, we are usually adding new local
+	  ;; attributes which must override the default value of any field
+	  ;; passed in by one of the parent classes.
+	  (when defaultoverride
+	    ;; There is a match, and we must override the old value.
+	    (let* ((ca (aref newc class-public-a))
+		   (np (member a ca))
+		   (num (- (length ca) (length np)))
+		   (dp (if np (nthcdr num (aref newc class-public-d))
+			 nil))
+		   (tp (if np (nth num (aref newc class-public-type))))
+		   )
+	      (if (not np)
+		  (error "Eieio internal error overriding default value for %s"
+			 a)
+		;; If type is passed in, is it the same?
+		(if (not (eq type t))
+		    (if (not (equal type tp))
+			(error
+			 "Child slot type `%s' does not match inherited type `%s' for `%s'"
+			 type tp a)))
+		;; If we have a repeat, only update the initarg...
+		(eieio-perform-slot-validation-for-default a tp d skipnil)
+		(setcar dp d)
+		;; If we have a new initarg, check for it.
+		(when init
+		  (let* ((inits (aref newc class-initarg-tuples))
+			 (inita (rassq a inits)))
+		    ;; Replace the CAR of the associate INITA.
+		    ;;(message "Initarg: %S replace %s" inita init)
+		    (setcar inita init)
+		    ))
+
+		;; PLN Tue Jun 26 11:57:06 2007 : The protection is
+		;; checked and SHOULD match the superclass
+		;; protection. Otherwise an error is thrown. However
+		;; I wonder if a more flexible schedule might be
+		;; implemented.
+		;;
+		;; EML - We used to have (if prot... here,
+		;;       but a prot of 'nil means public.
+		(let ((super-prot (nth num (aref newc class-protection)))
+		      )
+		  (if (not (eq prot super-prot))
+		      (error "Child slot protection `%s' does not match inherited protection `%s' for `%s'"
+			     prot super-prot a)))
+		;; End original PLN
+
+		;; PLN Tue Jun 26 11:57:06 2007 :
+		;; We do a non redundant combination of ancient
+		;; custom groups and new ones using the common lisp
+		;; `union' method.
+		(when custg
+		  (let ((where-groups
+			 (nthcdr num (aref newc class-public-custom-group))))
+		    (setcar where-groups
+			    (union (car where-groups)
+				   (if (listp custg) custg (list custg))))))
+		;;  End PLN
+		  
+		;;  PLN Mon Jun 25 22:44:34 2007 : If a new cust is
+		;;  set, simply replaces the old one.
+		(when cust
+		  ;; (message "Custom type redefined to %s" cust)
+		  (setcar (nthcdr num (aref newc class-public-custom)) cust))
+
+		;; If a new label is specified, it simply replaces
+		;; the old one.
+		(when label
+		  ;; (message "Custom label redefined to %s" label)
+		  (setcar (nthcdr num (aref newc class-public-custom-label)) label))
+		;;  End PLN
+
+		;; PLN Sat Jun 30 17:24:42 2007 : when a new
+		;; doc is specified, simply replaces the old one.
+		(when doc
+		  ;;(message "Documentation redefined to %s" doc)
+		  (setcar (nthcdr num (aref newc class-public-doc))
+			  doc))
+		;; End PLN
+		)))
+	  ))
+
+    ;; CLASS ALLOCATED SLOTS
     (let ((value (eieio-default-eval-maybe d)))
       (if (not (member a (aref newc class-class-allocation-a)))
 	  (progn
@@ -743,34 +795,66 @@ if default value is nil."
 	    (aset newc class-class-allocation-custom-label (cons label (aref newc class-class-allocation-custom-label)))
 	    (aset newc class-class-allocation-custom-group (cons custg (aref newc class-class-allocation-custom-group)))
 	    (aset newc class-class-allocation-protection (cons prot (aref newc class-class-allocation-protection)))
-  ;; Default value is stored in the 'values section, since new objects
+	    ;; Default value is stored in the 'values section, since new objects
 	    ;; can't initialize from this element.
 	    (aset newc class-class-allocation-values (cons value (aref newc class-class-allocation-values))))
-	(if defaultoverride
-	    (progn
-	      ;; There is a match, and we must override the old value.
-	      (let* ((ca (aref newc class-class-allocation-a))
-		     (np (member a ca))
-		     (num (- (length ca) (length np)))
-		     (dp (if np
-			     (nthcdr num
-				     (aref newc class-class-allocation-values))
-			   nil))
-		     (tp (if np (nth num (aref newc class-class-allocation-type))
-			   nil)))
-		(if (not np)
-		    (error "Eieio internal error overriding default value for %s"
-			   a)
-		  ;; If type is passed in, is it the same?
-		  (if (not (eq type t))
-		      (if (not (equal type tp))
-			  (error
-			   "Child slot type `%s' does not match inherited type `%s' for `%s'"
-			   type tp a)))
-		  ;; If we have a repeat, only update the vlaue...
-		  (eieio-perform-slot-validation-for-default a tp value skipnil)
-		  (setcar dp value))
-		)))))
+	(when defaultoverride
+	  ;; There is a match, and we must override the old value.
+	  (let* ((ca (aref newc class-class-allocation-a))
+		 (np (member a ca))
+		 (num (- (length ca) (length np)))
+		 (dp (if np
+			 (nthcdr num
+				 (aref newc class-class-allocation-values))
+		       nil))
+		 (tp (if np (nth num (aref newc class-class-allocation-type))
+		       nil)))
+	    (if (not np)
+		(error "Eieio internal error overriding default value for %s"
+		       a)
+	      ;; If type is passed in, is it the same?
+	      (if (not (eq type t))
+		  (if (not (equal type tp))
+		      (error
+		       "Child slot type `%s' does not match inherited type `%s' for `%s'"
+		       type tp a)))
+	      ;; If we have a repeat, only update the vlaue...
+	      (eieio-perform-slot-validation-for-default a tp value skipnil)
+	      (setcar dp value))
+
+;	    ;; PLN Tue Jun 26 11:57:06 2007 : The protection is
+;	    ;; checked and SHOULD match the superclass
+;	    ;; protection. Otherwise an error is thrown. However
+;	    ;; I wonder if a more flexible schedule might be
+;	    ;; implemented.
+;	    (when prot
+;	      (let ((super-prot
+;		     (car (nthcdr num (aref newc class-protection)))))
+;		(if (not (eq prot super-prot))
+;		    (error "Child slot protection `%s' does not match inherited protection `%s' for `%s'"
+;			   prot super-prot a))))
+;	    ;; We do a non redundant combination of ancient
+;	    ;; custom groups and new ones using the common lisp
+;	    ;; `union' method.
+;	    (when custg
+;	      (let ((where-groups
+;		     (nthcdr num (aref newc class-public-custom-group))))
+;		(setcar where-groups
+;			(union (car where-groups)
+;			       (if (listp custg) custg (list custg))))))
+;	    ;;  End PLN
+;
+;	    ;; PLN Sat Jun 30 17:24:42 2007 : when a new
+;	    ;; doc is specified, simply replaces the old one.
+;	    (when doc
+;	      ;;(message "Documentation redefined to %s" doc)
+;	      (setcar (nthcdr num (aref newc class-public-doc))
+;		      doc))
+;	    ;; End PLN
+
+
+	    ))
+	))
     ))
 
 (defun eieio-copy-parents-into-subclass (newc parents)
