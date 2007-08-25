@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.38 2007/08/25 15:22:37 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.39 2007/08/25 17:11:37 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -765,6 +765,68 @@ Subclasses to override slot attributes.")
   (if (not (eq (oref obj initform) 'no-init))
       (error "Initform did not override in instance allocation."))
 )
+
+;;; Test slot attribute override patterns for CLASS allocated slots
+;;
+(defclass slotattr-class-base ()
+  ((initform :allocation :class
+	     :initform init)
+   (type :allocation :class
+	 :type list)
+   (initarg :allocation :class
+	    :initarg :initarg)
+   (protection :allocation :class
+	       :protection :private)
+   (custom :allocation :class
+	   :custom (repeat string)
+	   :label "Custom Strings"
+	   :group moose)
+   (docstring :allocation :class
+	      :documentation
+	      "Replace the doc-string for this property.")
+   )
+  "Baseclass we will attempt to subclass.
+Subclasses to override slot attributes.")
+
+(let ((good-fail t))
+  (condition-case nil
+      (progn
+	(defclass slotattr-fail (slotattr-class-base)
+	  ((protection :protection :public)
+	   )
+	  "This class should throw an error.")
+	(setq good-fail nil))
+    (error nil))
+  (if (not good-fail)
+      (error "Subclass overrode :protection slot attribute.")))
+
+(let ((good-fail t))
+  (condition-case nil
+      (progn
+	(defclass slotattr-fail (slotattr-class-base)
+	  ((type :type string)
+	   )
+	  "This class should throw an error.")
+	(setq good-fail nil))
+    (error nil))
+  (if (not good-fail)
+      (error "Subclass overrode :type slot attribute.")))
+
+
+(defclass slotattr-class-ok (slotattr-class-base)
+  ((initform :initform no-init)   
+   (initarg :initarg :initblarg)
+   (custom :custom string
+	   :label "One String"
+	   :group cow)
+   (docstring :documentation
+	      "A better doc string for this class.")
+   )
+  "This class should allow overriding of various slot attributes.")
+
+(if (not (eq (oref-default slotattr-class-ok initform) 'no-init))
+    (error "Initform did not override in instance allocation."))
+
 
 (let* ((cv (class-v 'slotattr-ok))
        (docs   (aref cv class-public-doc))
