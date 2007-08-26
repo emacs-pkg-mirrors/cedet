@@ -1,10 +1,10 @@
 ;;; semantic-decorate-mode.el --- Minor mode for decorating tags
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.13 2005/09/30 20:19:48 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.14 2007/08/26 22:04:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -523,6 +523,35 @@ Used by the decoration style: `semantic-decoration-on-protected-members'."
 Use a primary decoration."
   (semantic-set-tag-face
    tag 'semantic-decoration-on-protected-members-face))
+
+;;; Unknown Includes!
+;;
+(defface semantic-decoration-on-unknown-includes
+  '((((class color) (background dark))
+     (:background "#900000"))
+    (((class color) (background light))
+     (:background "#ff9090")))
+  "*Face used to show includes that cannot be found.
+Used by the decoration style: `semantic-decoration-on-unknown-includes'."
+  :group 'semantic-faces)
+
+(define-semantic-decoration-style semantic-decoration-on-unknown-includes
+  "Highlight class members that are includes that can't be found.
+This highlighting indicates a problem with the configuration of Semantic.
+Updating that modes include path, or setting up an EDE project to help
+find the file will resolve the issue."
+  :enabled t)
+
+(defun semantic-decoration-on-unknown-includes-p-default (tag)
+  "Return non-nil if TAG has is an includes that can't be found."
+  (and (semantic-tag-of-class-p tag 'include)
+       (not (semanticdb-find-table-for-include tag))))
+
+(defun semantic-decoration-on-unknown-includes-highlight-default (tag)
+  "Highlight the include TAG to show that semantic can't find it."
+  (semantic-set-tag-face
+   tag 'semantic-decoration-on-unknown-includes))
+
 
 (provide 'semantic-decorate-mode)
 
