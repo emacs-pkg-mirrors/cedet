@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.84 2007/05/20 15:56:43 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.85 2007/08/26 01:03:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,7 +85,14 @@ are saved using one mechanism, and some directories via a different
 mechanism.")
 (make-variable-buffer-local 'semanticdb-new-database-class)
 
-;;; Classes:
+(defvar semanticdb-default-find-index-class 'semanticdb-find-search-index
+  "The default type of search index to use for a `semanticdb-table's.
+This can be changed to try out new types of search indicies.")
+(make-variable-buffer-local 'semanticdb-default-find=index-class)
+
+
+;;; ABSTRACT CLASSES
+;;
 (defclass semanticdb-abstract-table ()
   ((parent-db ;; :initarg :parent-db
     ;; Do not set an initarg, or you get circular writes to disk.
@@ -98,6 +105,21 @@ same major mode as the current buffer.")
    (tags :initarg :tags
 	 :accessor semanticdb-get-tags
 	 :documentation "The tags belonging to this table.")
+   (file-refs ;; :initarg :file-refs ; - I don't think we want to save this
+	      :initform nil
+	      :documentation "List of files that refer to this one.
+Refereneces come in the form of an include tag.")
+   (db-refs :initform nil
+	    :documentation
+	    "List of `semanticdb-table' objects refering to this one.
+These aren't saved, but are instead saved by referring file-name in
+the :file-refs slot.")
+   (index :type semanticdb-abstract-search-index
+	  :documentation "The search index.
+Used by semanticdb-find to store additional information about
+this table for searching purposes.
+
+Note: This index will not be saved in a persistent file.")
    )
   "A simple table for semantic tags.
 This table is the root of tables, and contains the minimum needed
@@ -109,6 +131,32 @@ for a new table not associated with a buffer."
 If the buffer is not in memory, load it with `find-file-noselect'."
   nil)
 
+(defclass semanticdb-abstract-search-index ()
+  ((table :initarg :table
+	  :type semanticdb-abstract-table
+	  :documentation "XRef to the table this belongs to.")
+   )
+  "A place where semanticdb-find can store search index information.
+The search index will store data about which other tables might be
+needed, or perhaps create hash or index tables for the current buffer."
+  :abstract t)
+
+(defmethod semanticdb-get-table-index ((obj semanticdb-abstract-table))
+  "Return the search index for the table OBJ.
+If one doesn't exist, create it."
+  (if (slot-boundp obj 'index)
+      (oref obj index)
+    (let ((idx nil))
+      (setq idx (funcall semanticdb-default-find-index-class
+			 (concat (object-name obj) " index")
+			 ;; Fill in the defaults
+		         :table obj
+			 ))
+      (oset obj index idx)
+      idx)))
+
+;;; CONCRETE CLASSES
+;;
 (defclass semanticdb-table (semanticdb-abstract-table)
   ((file :initarg :file
 	 :documentation "File name relative to the parent database.
@@ -272,6 +320,24 @@ form."
   (message "Saving tag summaries...")
   (mapcar 'semanticdb-save-db semanticdb-database-list)
   (message "Saving tag summaries...done"))
+
+;;; Table Index Support
+;;
+;; The table index needs a few methods.  They come in two groups:
+;;   Queries - Ask it to cough up data
+;;   Update - Methods for updating from various parts of semanticdb.
+(defmethod semanticdb-synchronize ((idx semanticdb-abstract-search-index)
+				   new-tags)
+  "Synchronize the search index IDX with some NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
+
+(defmethod semanticdb-partial-synchronize ((idx semanticdb-abstract-search-index)
+					   new-tags)
+  "Synchronize the search index IDX with some changed NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
+
 
 ;;; Directory Project support
 ;;
@@ -489,11 +555,37 @@ Sets up the semanticdb environment."
       )
     ))
 
+(defmethod semanticdb-synchronize ((table semanticdb-abstract-table)
+				   new-tags)
+  "Synchronize the table TABLE with some NEW-TAGS."
+  (oset table tags new-tags)
+  ;; Synchronize the index
+  (when (slot-boundp table 'index)
+    (let ((idx (oref table index)))
+      (when idx (semanticdb-synchronize idx new-tags)))))
+
+(defmethod semanticdb-partial-synchronize ((table semanticdb-abstract-table)
+					   new-tags)
+  "Synchronize the table TABLE where some NEW-TAGS changed."
+  ;; You might think we need to reset the tags, but since the partial
+  ;; parser splices the lists, we don't need to do anything
+  ;;(oset table tags new-tags)
+  ;; Synchronize the index
+  (when (slot-boundp table 'index)
+    (let ((idx (oref table index)))
+      (when idx (semanticdb-partial-synchronize idx new-tags)))))
+
 (defun semanticdb-synchronize-table (new-table)
   "Function run after parsing.
 Argument NEW-TABLE is the new table of tags."
-  (if semanticdb-current-table
-      (oset semanticdb-current-table tags new-table)))
+  (when semanticdb-current-table
+    (semanticdb-synchronize semanticdb-current-table new-table)))
+
+(defun semanticdb-partial-synchronize-table (new-table)
+  "Function run after parsing.
+Argument NEW-TABLE is the new table of tags."
+  (when semanticdb-current-table
+    (semanticdb-partial-synchronize semanticdb-current-table new-table)))
 
 (defun semanticdb-kill-hook ()
   "Function run when a buffer is killed.
@@ -523,6 +615,7 @@ Save all the databases."
 (defvar semanticdb-hooks
   '((semanticdb-semantic-init-hook-fcn semantic-init-db-hooks)
     (semanticdb-synchronize-table semantic-after-toplevel-cache-change-hook)
+    (semanticdb-partial-synchronize-table semantic-after-partial-cache-change-hook)
     (semanticdb-kill-hook kill-buffer-hook)
     (semanticdb-kill-emacs-hook kill-emacs-hook)
     )
@@ -656,7 +749,9 @@ DONTLOAD does not affect the creation of new database objects."
 		;; the first time, and the idle scheduler didn't get a
 		;; chance to trigger a parse before the file buffer is
 		;; killed.
-		(when (semanticdb-needs-refresh-p semanticdb-current-table)
+		(when (and 
+		       semanticdb-current-table
+		       (semanticdb-needs-refresh-p semanticdb-current-table))
 		  (semanticdb-refresh-table semanticdb-current-table))
 		(prog1
 		    semanticdb-current-table
