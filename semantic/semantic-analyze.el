@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.54 2007/08/22 17:17:12 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.55 2007/08/26 20:13:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1015,11 +1015,17 @@ Argument CONTEXT is an object specifying the locally derived context."
     ;; the prefix since the type is never looked up for the last
     ;; item when calculating a sequence.
     (setq completetexttype (car (reverse prefixtypes)))
-    (if (or (not completetexttype)
-	    (not (and (semantic-tag-p completetexttype)
-		      (eq (semantic-tag-class completetexttype) 'type))))
-	;; What should I do here?  I think this is an error condition.
-	(setq completetexttype nil))
+    (when (or (not completetexttype)
+	      (not (and (semantic-tag-p completetexttype)
+			(eq (semantic-tag-class completetexttype) 'type))))
+      ;; What should I do here?  I think this is an error condition.
+      (setq completetexttype nil)
+      ;; If we had something that was a completetexttype but it wasn't
+      ;; valid, then express our dismay!
+      (when (> (length prefix) 1)
+	(let* ((errprefix (car (cdr (reverse prefix)))))
+	  (error "Cannot find types for %s" errprefix))
+	))
 
     ;; There are many places to get our completion stream for.
     ;; Here we go.
