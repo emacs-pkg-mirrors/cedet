@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.40 2007/06/04 00:54:25 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.41 2007/08/26 01:05:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -135,7 +135,8 @@
 See `semanticdb-find-throttle' for details.")
 
 ;;;###autoload
-(defcustom semanticdb-find-default-throttle '(project unloaded system recursive)
+(defcustom semanticdb-find-default-throttle 
+  '(local project unloaded system recursive)
   "The default throttle for `semanticdb-find' routines.
 The throttle controls how detailed the list of database
 tables is for a symbol lookup.  The value is a list with
@@ -169,6 +170,35 @@ the following keys:
       (and (eq access-type 'local)
 	   (memq 'project semanticdb-find-default-throttle))
       ))
+
+;;; Index Class
+;;
+;; The find routines spend a lot of time looking stuff up.
+;; Use this handy search index to cache data between searches.
+;; This should allow searches to start running faster.
+(defclass semanticdb-find-search-index (semanticdb-abstract-search-index)
+  ((include-path :initform nil
+		 :documentation 
+		 "List of semanticdb tables from the include path.")
+   )
+  "Concrete search index for `semanticdb-find'.
+This class will cache data derived during various searches.")
+
+(defmethod semanticdb-synchronize ((idx semanticdb-find-search-index)
+				   new-tags)
+  "Synchronize the search index IDX with some NEW-TAGS."
+  ;; Clear the include path.
+  (oset idx include-path nil)
+  )
+
+(defmethod semanticdb-partial-synchronize ((idx semanticdb-find-search-index)
+					   new-tags)
+  "Synchronize the search index IDX with some changed NEW-TAGS."
+  ;; Only reset if include statements changed.
+  (when (semantic-find-tags-by-class 'include new-tags)
+    (oset idx include-path nil))
+  )
+
 
 ;;; Path Translations
 ;;
@@ -254,6 +284,30 @@ Default action as described in `semanticdb-find-translate-path'."
 (defun semanticdb-find-translate-path-includes-default (path)
   "Translate PATH into a list of semantic tables.
 Default action as described in `semanticdb-find-translate-path'."
+  (let ((table (cond ((null path)
+		      semanticdb-current-table)
+		     ((semanticdb-abstract-table-child-p path)
+		      path)
+		     (t nil))))
+    (if table
+	;; If we were passed in something related to a TABLE,
+	;; do a caching lookup.
+	(let* ((index (semanticdb-get-table-index table))
+	       (cache (when index
+			(oref index include-path))))
+	  (if cache
+	      cache
+	    (let ((ans (semanticdb-find-translate-path-includes--internal path)))
+	      (oset index include-path ans)
+	      ans)))
+      ;; If we were passed in something like a tag list, or other boring
+      ;; searchable item, then instead do the regular thing without caching.
+      (semanticdb-find-translate-path-includes--internal path))))
+
+(defun semanticdb-find-translate-path-includes--internal (path)
+  "Internal implementation of `semanticdb-find-translate-path-includes-default'.
+This routine does not depend on the cache, but will always derive
+a new path from the provided PATH."
   (let ((includetags
 	 (cond ((null path)
 		(semantic-find-tags-included (current-buffer)))
@@ -342,7 +396,7 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
   ;; Note, some languages (like Emacs or Java) use include tag names
   ;; that don't represent files!  We want to have file names.
   (let ((name (semantic-tag-include-filename includetag))
-	(roots (semanticdb-current-database-list))
+	(roots nil)
 	(tmp nil)
 	(ans nil))
     (cond
@@ -384,6 +438,8 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
       ;;         above with the various phases.  We should also
       ;;         not use the existing DBs, but instead recurse
       ;;         through our current project.
+
+      (setq roots (semanticdb-current-database-list))
 
       (while (and (not ans) roots)
 	(let* ((ref (if (slot-boundp (car roots) 'reference-directory)
