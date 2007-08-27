@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.55 2007/08/26 20:13:27 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.56 2007/08/27 20:26:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -451,12 +451,17 @@ it should strip out those not accessable by methods of TYPE."
       (setq p (car parents))
       ;; Get this parent
       (let ((oneparent
-	     (semantic-analyze-find-tag
-	      (cond ((stringp p) p)
-		    ((semantic-tag-p p) (semantic-tag-name p))
-		    ((and (listp p) (stringp (car p)))
-		     (car p)))
-	      'type scope)))
+	     (condition-case nil
+		 ;; This routine can throw justified errors if the text
+		 ;; is bad, or the DBs aren't set up right.  Don't let that
+		 ;; befuddle a simpler routine.
+		 (semantic-analyze-find-tag
+		  (cond ((stringp p) p)
+			((semantic-tag-p p) (semantic-tag-name p))
+			((and (listp p) (stringp (car p)))
+			 (car p)))
+		  'type scope)
+	       (error nil))))
 	;;
 	;; The below only works on oneparent is a tag.  If it is a string
 	;; then the parent wasn't found in our searches.  Where might it be?
@@ -772,7 +777,7 @@ Returns an object based on symbol `semantic-analyze-context'."
       (setq scopetypes (semantic-analyze-scoped-types position)
 	    scope (if scopetypes
 		      (semantic-analyze-scoped-tags scopetypes))
-	    localvar (semantic-get-local-variables)
+	    localvar (semantic-get-all-local-variables)
 	    function (semantic-ctxt-current-function))
 
       (condition-case nil
