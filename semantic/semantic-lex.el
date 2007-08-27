@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.44 2007/03/08 03:33:11 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.45 2007/08/27 00:45:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1494,7 +1494,10 @@ If there is no error, then the last value of FORMS is returned."
        ;; will prevent future calls from parsing, but will allow
        ;; then to still return the cache.
        (when ,ret
-         (message "Buffer not currently parsable (%S)." ,ret)
+	 ;; Leave this message off.  If an APP using this fcn wants
+	 ;; a message, they can do it themselves.  This cleans up
+	 ;; problems with the idle scheduler obscuring useful data.
+         ;;(message "Buffer not currently parsable (%S)." ,ret)
          (semantic-parse-tree-unparseable))
        ,ret)))
 (put 'semantic-lex-catch-errors 'lisp-indent-function 1)
