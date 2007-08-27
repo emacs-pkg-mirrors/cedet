@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.85 2007/08/25 14:45:42 zappo Exp $
+;; RCS: $Id: ede.el,v 1.86 2007/08/27 10:05:18 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -1495,14 +1495,14 @@ instead of the current project."
   "Return the project belonging to the parent directory.
 nil if there is no previous directory.
 Optional argument OBJ is an object to find the parent of."
-  (let ((r (ede-project-root obj)))
-    (if (eq r (file-name-directory (oref obj file)))
-	nil ;; we are at the root.
-      (ede-load-project-file
-       (concat (ede-up-directory
-		(if obj (file-name-directory (oref obj file))
-		  default-directory))
-	       "/")))))
+  (if (and obj (eq (ede-project-root obj)
+		   (file-name-directory (oref obj file))))
+      nil ;; we are at the root.
+    (ede-load-project-file
+     (concat (ede-up-directory
+	      (if obj (file-name-directory (oref obj file))
+		default-directory))
+	     "/"))))
 
 (defun ede-current-project ()
   "Return the current project file."
@@ -1600,7 +1600,7 @@ This includes buffers controlled by a specific target of PROJECT."
       (save-excursion
 	(set-buffer (car bl))
 	(if (if (listp ede-object)
-		(member target ede-object)
+		(memq target ede-object)
 	      (eq ede-object target))
 	    (setq pl (cons (car bl) pl))))
       (setq bl (cdr bl)))
