@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.17 2007/08/22 22:34:08 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.18 2007/08/27 11:48:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -198,7 +198,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
   "Jump to the tag referred to by the code at POINT.
 Uses `semantic-analyze-current-context' output to identify an accurate
 origin of the code at point."
-  (interactive "P")
+  (interactive "d")
   (let* ((ctxt (semantic-analyze-current-context point))
 	 (pf (reverse (oref ctxt prefix)))
 	 (first (car pf))
@@ -231,7 +231,7 @@ origin of the code at point."
 ;;;###autoload
 (defun semantic-ia-show-doc (point)
   "Display the code-level documentation for the symbol at POINT."
-  (interactive "P")
+  (interactive "d")
   (let* ((ctxt (semantic-analyze-current-context point))
 	 (pf (reverse (oref ctxt prefix)))
 	 )
