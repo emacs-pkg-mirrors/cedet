@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.41 2007/08/26 01:05:37 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.42 2007/08/27 00:44:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -118,6 +118,7 @@
 ;;  current project.
 
 (require 'semanticdb)
+(require 'semanticdb-ref)
 (eval-when-compile
   (require 'eieio)
   )
@@ -189,6 +190,12 @@ This class will cache data derived during various searches.")
   "Synchronize the search index IDX with some NEW-TAGS."
   ;; Clear the include path.
   (oset idx include-path nil)
+  ;; Notify dependants by clearning their indicies.
+  (semanticdb-notify-references
+   (oref idx table) 
+   (lambda (tab me)
+     (let ((tab-idx (semanticdb-get-table-index tab)))
+       (oset idx include-path nil))))
   )
 
 (defmethod semanticdb-partial-synchronize ((idx semanticdb-find-search-index)
@@ -196,8 +203,15 @@ This class will cache data derived during various searches.")
   "Synchronize the search index IDX with some changed NEW-TAGS."
   ;; Only reset if include statements changed.
   (when (semantic-find-tags-by-class 'include new-tags)
-    (oset idx include-path nil))
-  )
+    ;; Reset our index
+    (oset idx include-path nil)
+    ;; Notify dependants by clearning their indicies.
+    (semanticdb-notify-references
+     (oref idx table) 
+     (lambda (tab me)
+       (let ((tab-idx (semanticdb-get-table-index tab)))
+	 (oset idx include-path nil))))
+    ))
 
 
 ;;; Path Translations
@@ -297,8 +311,13 @@ Default action as described in `semanticdb-find-translate-path'."
 			(oref index include-path))))
 	  (if cache
 	      cache
+	    ;; Lets go look up our indicies
 	    (let ((ans (semanticdb-find-translate-path-includes--internal path)))
 	      (oset index include-path ans)
+	      ;; Once we have our new indicies set up, notify those
+	      ;; who depend on us if we found something for them to
+	      ;; depend on.
+	      (when ans (semanticdb-refresh-references table))
 	      ans)))
       ;; If we were passed in something like a tag list, or other boring
       ;; searchable item, then instead do the regular thing without caching.
