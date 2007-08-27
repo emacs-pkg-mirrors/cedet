@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.14 2007/08/26 22:04:40 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.15 2007/08/27 00:45:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -545,7 +545,11 @@ find the file will resolve the issue."
 (defun semantic-decoration-on-unknown-includes-p-default (tag)
   "Return non-nil if TAG has is an includes that can't be found."
   (and (semantic-tag-of-class-p tag 'include)
-       (not (semanticdb-find-table-for-include tag))))
+       (not (semantic-dependency-tag-file tag))))
+;; This does a little too much.  If we find the file, then
+;; we are ok.  If we find the table, but the user set the db find
+;; throttle too low, then they have asked not to do the below work.
+;;       (not (semanticdb-find-table-for-include tag))))
 
 (defun semantic-decoration-on-unknown-includes-highlight-default (tag)
   "Highlight the include TAG to show that semantic can't find it."
