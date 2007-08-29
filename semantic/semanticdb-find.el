@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.43 2007/08/29 11:41:43 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.44 2007/08/29 17:39:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -209,27 +209,31 @@ This class will cache data derived during various searches.")
 					   new-tags)
   "Synchronize the search index IDX with some changed NEW-TAGS."
   ;; Only reset if include statements changed.
-  (when (semantic-find-tags-by-class 'include new-tags)
-    ;; Reset our index
-    (oset idx include-path nil)
-    ;; Notify dependants by clearning their indicies.
-    (semanticdb-notify-references
-     (oref idx table) 
-     (lambda (tab me)
-       (let ((tab-idx (semanticdb-get-table-index tab)))
-	 (oset idx include-path nil))))
-    )
-  (when (semantic-find-tags-by-class 'type new-tags)
-    ;; Reset our index
-    (oset idx type-cache nil)
-    ;; Notify dependants by clearning their indicies.
-    (semanticdb-notify-references
-     (oref idx table)
-     (lambda (tab me)
-       (let ((tab-idx (semanticdb-get-table-index tab)))
-	 (oset idx type-cache nil))))
-    )
-  )
+  (if (semantic-find-tags-by-class 'include new-tags)
+      (progn
+	;; Reset our index
+	(oset idx include-path nil)
+	(oset idx type-cache nil)
+	;; Notify dependants by clearning their indicies.
+	(semanticdb-notify-references
+	 (oref idx table) 
+	 (lambda (tab me)
+	   (let ((tab-idx (semanticdb-get-table-index tab)))
+	     (oset idx include-path nil)
+	     (oset idx type-cache nil))))
+	)
+    ;; Else, not an include, by just a type.
+    (when (semantic-find-tags-by-class 'type new-tags)
+      ;; Reset our index
+      (oset idx type-cache nil)
+      ;; Notify dependants by clearning their indicies.
+      (semanticdb-notify-references
+       (oref idx table)
+       (lambda (tab me)
+	 (let ((tab-idx (semanticdb-get-table-index tab)))
+	   (oset idx type-cache nil))))
+      )
+  ))
 
 
 ;;; Path Translations
@@ -514,6 +518,7 @@ With ARG non-nil, specify a BRUTISH translation.
 See `semanticdb-find-default-throttle' and `semanticdb-project-roots'
 for details on how this list is derived."
   (interactive "P")
+  (semantic-fetch-tags)
   (require 'semantic-adebug)
   (let ((start (current-time))
 	(p (semanticdb-find-translate-path nil arg))
