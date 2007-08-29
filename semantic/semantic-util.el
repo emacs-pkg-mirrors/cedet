@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.131 2007/02/19 02:54:03 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.132 2007/08/29 12:58:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,8 +116,8 @@ buffer, or a filename.  If SOMETHING is nil return nil."
    ;; A Semanticdb table
    ((and (featurep 'semanticdb)
 	 (semanticdb-minor-mode-p)
-	 (semanticdb-abstract-table-p something))
-    (semanticdb-get-tags something something))
+	 (semanticdb-abstract-table-child-p something))
+    (semanticdb-get-tags something))
    ;; Use the current buffer for nil
 ;;   ((null something)
 ;;    (semantic-fetch-tags))
