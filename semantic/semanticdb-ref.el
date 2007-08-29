@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-ref.el,v 1.2 2007/08/29 13:03:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-ref.el,v 1.3 2007/08/29 17:40:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -97,6 +97,12 @@ refers to DBT will be removed."
 	  (object-remove-from-list dbt 'db-refs db)
 	  ))
       (setq refs (cdr refs)))))
+
+(defmethod semanticdb-refresh-references ((dbt semanticdb-abstract-table))
+  "Refresh references to DBT in other files."
+  ;; alternate tables can't be edited, so can't be changed.
+  nil
+  )
 
 (defmethod semanticdb-refresh-references ((dbt semanticdb-table))
   "Refresh references to DBT in other files."
