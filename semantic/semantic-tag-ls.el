@@ -1,8 +1,8 @@
 ;;; semantic-tag-ls.el --- Language Specific override functions for tags
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.11 2006/07/29 15:06:51 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.12 2007/08/29 13:01:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -198,6 +198,27 @@ See `semantic-tag-static-p'."
 	  (setq static (string= (car mods) "static")))
       (setq mods (cdr mods)))
     static))
+
+;;;###autoload
+(define-overload semantic-tag-prototype-p (tag)
+  "Return non nil if TAG is a prototype.
+For some laguages, such as C, a prototype is a declaration of
+something without an implementation."
+  )
+
+(defun semantic-tag-prototype-p-default (tag)
+  "Non-nil if TAG is a prototype."
+  (let ((p (semantic-tag-get-attribute tag :prototype-flag)))
+    (cond
+     ;; Trust the parser author.
+     (p p)
+     ;; Empty types might be a prototype.
+     ;; @todo - make this better.
+     ((eq (semantic-tag-class tag) 'type)
+      (not (semantic-tag-type-members tag)))
+     ;; No other heuristics.
+     (t nil))
+    ))
 
 ;;; FULL NAMES
 ;;
