@@ -21,7 +21,7 @@
 ;; MA 02111-1307 USA
 
 ;; Version: 0.6
-;; CEDET CVS Version: $Id: eassist.el,v 1.2 2007/08/09 16:07:14 zappo Exp $
+;; CEDET CVS Version: $Id: eassist.el,v 1.3 2007/08/29 10:37:10 kpoxman Exp $
 
 ;; Compatibility: Emacs 22 or 23, CEDET 1.0pre4.
 
@@ -48,7 +48,9 @@
 
 ;; EmacsAssist uses Semantic (http://cedet.sourceforge.net/semantic.shtml)
 ;; EmacsAssist is developed for Semantics from CEDET 1.0pre3 package.
-;; EmacsAssist works with current development (22) version of Emacs and
+;; EmacsAssist is a part of CEDET project (current CVS version of CEDET contains
+;; EmacsAssist)
+;; EmacsAssist works with current (22) and development (23) versions of Emacs and
 ;; does not work with version 21.
 
 ;; EmacsAssist has a page at Emacs Wiki, where you can always find the latest
