@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-ref.el,v 1.1 2007/08/27 00:42:38 zappo Exp $
+;; X-RCS: $Id: semanticdb-ref.el,v 1.2 2007/08/29 13:03:32 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -135,7 +135,7 @@ DBT, the second argument is DBT."
   "Dump out the list of references for the current buffer.
 If REFRESH is non-nil, cause the current table to have it's references
 refreshed before dumping the result."
-  (interactive "P")
+  (interactive "p")
   ;; If we need to refresh... then do so.
   (when refresh
     (semanticdb-refresh-references semanticdb-current-table))
@@ -147,7 +147,7 @@ refreshed before dumping the result."
 				      :i-depend-on myrefs
 				      :local-table tab
 				      :i-include myinc))
-	 (ab (semantic-adebug-new-buffer "*expression ADEBUG*"))
+	 (ab (semantic-adebug-new-buffer "*References ADEBUG*"))
 	 )
     (semantic-adebug-insert-object-fields adbc "!"))
   )
