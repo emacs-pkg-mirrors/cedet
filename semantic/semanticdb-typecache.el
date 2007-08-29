@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.2 2007/08/29 17:44:44 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.3 2007/08/29 19:50:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -84,23 +84,24 @@ If there is no table, create one."
 	(if (equal type (semantic-tag-type prev))
 	    ;; Same Class, we can do a merge.
 	    (cond
-	     ((string= type "namespace")
+	     ((and (semantic-tag-of-class-p next 'type)
+		   (string= type "namespace"))
 	      ;; Namespaces - merge the children together.
 	      (setcar ans
 		      (semantic-tag-new-type
 		       (semantic-tag-name prev) ; - they are the same
-		       "namespace" ; - we know this as fact
+		       "namespace"	; - we know this as fact
 		       (semanticdb-typecache-merge-streams
 			(semantic-tag-type-members prev)
 			(semantic-tag-type-members next))
-		       nil ; - no attributes
+		       nil		; - no attributes
 		       ))
 	      ;; Make sure we mark this as a fake tag.
 	      (semantic-tag-set-faux (car ans))
 	      )
 	     ((semantic-tag-prototype-p next)
 	      ;; NEXT is a prototype... so keep previous.
-	      nil ; - keep prev, do nothing
+	      nil			; - keep prev, do nothing
 	      )
 	     ((semantic-tag-prototype-p prev)
 	      ;; PREV is a prototype, but not next.. so keep NEXT.
@@ -111,11 +112,11 @@ If there is no table, create one."
 	      ;; @todo - comment out this debug statement.
 	      (message "Don't know how to merge %s.  Keeping first entry." (semantic-tag-name next)))
 	     )
-	  ;; Not same class... but same type
-	  (message "Same name, different type: %s, %s!=%s"
-		   (semantic-tag-name next)
-		   (semantic-tag-type next)
-		   (semantic-tag-type prev))))
+	    ;; Not same class... but same type
+	    (message "Same name, different type: %s, %s!=%s"
+		     (semantic-tag-name next)
+		     (semantic-tag-type next)
+		     (semantic-tag-type prev))))
       (setq S (cdr S)))
     (nreverse ans)))
 
@@ -141,8 +142,8 @@ STREAM is the list of tags."
 
 (defmethod semanticdb-typecache-update ((table semanticdb-abstract-table))
   "Update the typecache for TABLE."
-  (message "Typecache (Abst) Update for: %s"
-	   (object-name table))
+;  (message "Typecache (Abst) Update for: %s"
+;	   (object-name table))
   (let ((idx (semanticdb-get-table-index table))
 	(cache (semanticdb-typecache "empty-cache")))
     ;; The object won't change as we fill it with stuff.
