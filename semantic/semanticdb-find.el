@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.42 2007/08/27 00:44:36 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.43 2007/08/29 11:41:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -181,6 +181,11 @@ the following keys:
   ((include-path :initform nil
 		 :documentation 
 		 "List of semanticdb tables from the include path.")
+   (type-cache :initform nil
+	       :documentation
+	       "Cache of all the data types accessible from this file.
+Includes all types from all included files, merged namespaces, and 
+expunge duplicates.")
    )
   "Concrete search index for `semanticdb-find'.
 This class will cache data derived during various searches.")
@@ -190,12 +195,14 @@ This class will cache data derived during various searches.")
   "Synchronize the search index IDX with some NEW-TAGS."
   ;; Clear the include path.
   (oset idx include-path nil)
+  (oset idx type-cache nil)
   ;; Notify dependants by clearning their indicies.
   (semanticdb-notify-references
    (oref idx table) 
    (lambda (tab me)
      (let ((tab-idx (semanticdb-get-table-index tab)))
-       (oset idx include-path nil))))
+       (oset idx include-path nil)
+       (oset idx type-cache nil))))
   )
 
 (defmethod semanticdb-partial-synchronize ((idx semanticdb-find-search-index)
@@ -211,7 +218,18 @@ This class will cache data derived during various searches.")
      (lambda (tab me)
        (let ((tab-idx (semanticdb-get-table-index tab)))
 	 (oset idx include-path nil))))
-    ))
+    )
+  (when (semantic-find-tags-by-class 'type new-tags)
+    ;; Reset our index
+    (oset idx type-cache nil)
+    ;; Notify dependants by clearning their indicies.
+    (semanticdb-notify-references
+     (oref idx table)
+     (lambda (tab me)
+       (let ((tab-idx (semanticdb-get-table-index tab)))
+	 (oset idx type-cache nil))))
+    )
+  )
 
 
 ;;; Path Translations
