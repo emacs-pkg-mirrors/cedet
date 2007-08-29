@@ -21,7 +21,7 @@
 ;; MA 02111-1307 USA
 
 ;; Version: 0.6
-;; CEDET CVS Version: $Id: eassist.el,v 1.3 2007/08/29 10:37:10 kpoxman Exp $
+;; CEDET CVS Version: $Id: eassist.el,v 1.4 2007/08/29 12:29:58 kpoxman Exp $
 
 ;; Compatibility: Emacs 22 or 23, CEDET 1.0pre4.
 
@@ -41,8 +41,9 @@
 
 ;; 2) Header <-> Body file switch.
 ;;    You can easily switch between body (c, cpp, cc...) and its corresponding
-;;    header file (h, hpp...) using eassist-switch-h-cpp.  The file is searched
-;;    in the same directory.  You can adjust body to header correspondence
+;;    header file (h, hpp...) using eassist-switch-h-cpp.  The counterpart file
+;;    is first searched in opened buffers and if there is no match the file is
+;;    searched in the same directory.  You can adjust body to header correspondence
 ;;    customizing eassist-header-switches variable.
 ;;    This function is recommended to be bound to M-o in c-mode.
 
@@ -83,6 +84,10 @@
 ;;                     Thanks to Eric Ludlam for CHECKDOC tool suggestion.
 ;; 23 jun 2007 -- v0.7 EAssist is now a part of CEDET project.
 ;;                     Added autoload cookies for some vars and funs.
+;; 29 aug 2007 -- v0.8 "M-o" function now tries first to use already opened buffers
+;;                     and if there are no counterparts, tries to search them in the
+;;                     current directory.
+;;                     Thanks to Alekseenko Dimitry for great feature suggestion.
 
 ;;; Code:
 
@@ -101,7 +106,7 @@
 ;; ================================== CPP-H switch ===========================
 ;;;###autoload
 (defvar eassist-header-switches '(("h" . ("cpp" "cc" "c"))
-			     ("hpp" . ("cpp"))
+			     ("hpp" . ("cpp" "cc"))
 			     ("cpp" . ("h" "hpp"))
 			     ("c" . ("h"))
 			     ("C" . ("H"))
@@ -118,25 +123,21 @@ The current buffer's file name extention is searched in
 `eassist-header-switches' variable to find out extention for file's counterpart,
 for example *.hpp <--> *.cpp."
   (interactive)
-  (let ((ext (file-name-extension (buffer-file-name))))
-    (when (null (find-if
-                 (lambda (i)
-                   (when (string= (car i) ext)
-                     (if (find-if 'eassist-try-h-cpp (cdr i))
-                         t
-                       (message "There is no corresponding pair (header or body) file."))))
-                 eassist-header-switches))
-      (message "It is not a header or body file! See eassist-header-switches variable."))))
-
-(defun eassist-try-h-cpp (ext)
-  "Open file with name of the current buffer and extention changed to EXT."
-  (eassist-find-if-exist
-   (concat (eassist-string-without-last (buffer-file-name) (length (file-name-extension (buffer-file-name)))) ext)))
-
-(defun eassist-find-if-exist (file)
-  "Opend the FILE if it exists."
-  (when (file-exists-p file)
-      (find-file file) file))
+  (let* ((ext (file-name-extension (buffer-file-name)))
+         (base-name (eassist-string-without-last (buffer-name) (length ext)))
+         (base-path (eassist-string-without-last (buffer-file-name) (length ext)))
+         (count-ext (cdr (find-if (lambda (i) (string= (car i) ext)) eassist-header-switches))))
+    (cond
+     (count-ext
+      (unless
+          (or
+           (loop for b in (mapcar (lambda (i) (concat base-name i)) count-ext)
+                 when (bufferp (get-buffer b)) return (switch-to-buffer b))
+           (loop for c in (mapcar (lambda (count-ext) (concat base-path count-ext)) count-ext)
+                 when (file-exists-p c) return (find-file c)))
+        (message "There is no corresponding pair (header or body) file.")))
+     (t
+      (message "It is not a header or body file! See eassist-header-switches variable.")))))
 ;; ================================== CPP-H switch end =========================
 
 ;; ================================== Method navigator =========================
