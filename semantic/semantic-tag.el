@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.45 2007/05/17 14:42:55 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.46 2007/08/30 03:13:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -530,28 +530,34 @@ copied tag.
 If optional argument KEEP-FILE is non-nil, and TAG was linked to a
 buffer, the originating buffer file name is kept in the `:filename'
 property of the copied tag.
+If KEEP-FILE is a string, and the orginating buffer is NOT available,
+then KEEP-FILE is stored on the `:filename' property.
 This runs the tag hook `unlink-copy-hook`."
   ;; Right now, TAG is a list.
   (let ((copy (semantic-tag-clone tag name)))
     (when (semantic-tag-with-position-p tag)
       ;; Keep the filename if needed.
       (when keep-file
-	(semantic--tag-put-property
-	 copy :filename (semantic-tag-file-name copy)))
+	(semantic--tag-put-property-no-side-effect
+	 copy :filename (or (semantic-tag-file-name copy)
+			    (and (stringp keep-file)
+				 keep-file)
+			    )))
       ;; Convert the overlay to a vector, effectively 'unlinking' the tag.
       (semantic--tag-set-overlay
        copy (vector (semantic-tag-start copy) (semantic-tag-end copy)))
 
       ;; Force the children to be copied also.
-      ;;et ((chil (semantic--tag-copy-list
-      ;;	   (semantic-tag-components-with-overlays tag)
-      ;;	   keep-file)))
+      ;;(let ((chil (semantic--tag-copy-list
+      ;;	     (semantic-tag-components-with-overlays tag)
+      ;;	     keep-file)))
       ;;;; Put the list into TAG.
       ;;)
 
       ;; Call the unlink-copy hook.  This should tell tools that
       ;; this tag is not part of any buffer.
-      (semantic--tag-run-hooks copy 'unlink-copy-hook)
+      (when (semantic-overlay-p (semantic-tag-overlay tag))
+	(semantic--tag-run-hooks copy 'unlink-copy-hook))
       )
     copy))
 
