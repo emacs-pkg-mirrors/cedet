@@ -48,6 +48,8 @@ Some useful context values used by the provided srecode templates are:
      \"package\" - In or near provide statements
      \"function\" - In or near function statements
          \"NAME\" - Near functions within NAME namespace or class
+     \"method\"   - In or near methods within NAME namespace
+         \"NAME\" - The name of the parent we are near
      \"variable\" - In or near variable statements.
   \"classdecl\" - Declarations within a class/struct/etc.
      \"public\", \"protected\", \"private\" -
@@ -66,12 +68,33 @@ Some useful context values used by the provided srecode templates are:
 Assume that what we want to insert next is based on what is just
 before point.  If there is nothing, then assume it is whatever is
 after point."
-  (let ((near (semantic-find-tag-by-overlay-prev)))
+  (let ((near (semantic-find-tag-by-overlay-prev))
+	(ans nil))
     (if (not near)
 	(setq near (semantic-find-tag-by-overlay-next)))
-    (if near
-	(symbol-name (semantic-tag-class near)))
-    ))
+    (when near
+      (if (not (semantic-tag-of-class-p near 'function))
+	  (setq ans (cons (symbol-name (semantic-tag-class near)) ans))
+	;; if the symbol NEAR has a parent,
+	(let ((p (semantic-tag-function-parent near)))
+	  (if (not p)
+	      (setq ans (cons (symbol-name (semantic-tag-class near)) ans))
+	    ;; Else, it is a method.
+	    (setq ans (cons "method" ans)))
+	  (cond ((semantic-tag-p p)
+		 (setq ans (cons (semantic-tag-name p) ans)))
+		((stringp p)
+		 (setq ans (cons p ans)))
+		(t nil)))
+	;; Was it virtual?
+	(when (semantic-tag-get-attribute near :virtual)
+	  (setq ans (cons "virtual" ans)))
+	;; Was it pure?
+	(when (semantic-tag-get-attribute near :pure-virtual-flag)
+	  (setq ans (cons "pure" ans)))
+
+      ))
+    (nreverse ans)))
 
 (defun srecode-calculate-context-default ()
   "Generic method for calculating a context for srecode.
@@ -86,14 +109,14 @@ for most languages."
 		 ;; Ok, below is a bit C specific.
 		 (and (eq (semantic-tag-class (car ct)) 'type)
 		      (string= (semantic-tag-type (car ct)) "namespace")))
-	     (list "declaration"
+	     (cons "declaration"
 		   (srecode-calculate-nearby-things))
 	     )
 	    ((eq (semantic-tag-class (car ct)) 'function)
 	     (list "code")
 	     )
 	    ((eq (semantic-tag-class (car ct)) 'type) ; We know not namespace
-	     (list "classdecl"
+	     (cons "classdecl"
 		   (srecode-calculate-nearby-things))
 	     )
 	    ((and (car (cdr ct))
