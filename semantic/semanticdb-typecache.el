@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.4 2007/08/30 01:04:11 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.5 2007/08/30 03:16:51 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -58,14 +58,24 @@ If there is no table, create one."
 
 ;;; CREATE
 ;;
+(defun semanticdb-typecache-apply-filename (file stream)
+  "Apply the filename FILE to all tags in STREAM."
+  (let ((new nil))
+    (while stream
+      (setq new (cons (semantic-tag-copy (car stream) nil file)
+		      new))
+      ;;(semantic--tag-put-property (car stream) :filename file)
+      (setq stream (cdr stream)))
+    (nreverse new)))
+
+
 (defsubst semanticdb-typecache-safe-tag-members (tag)
-  "Return a list of members for TAG that are safe to permute.
-Assume that any tag which is marked as 'faux was created by
-the typecaching system."
-  (let ((mem (semantic-tag-type-members tag)))
-    (if (semantic-tag-faux-p tag)
-	(copy-sequence mem)
-      mem)))
+  "Return a list of members for TAG that are safe to permute."
+  (let ((mem (semantic-tag-type-members tag))
+	(fname (semantic-tag-file-name tag)))
+    (if fname
+	(setq mem (semanticdb-typecache-apply-filename fname mem))
+      (copy-sequence mem))))
 
 (defun semanticdb-typecache-merge-streams (cache1 cache2)
   "Merge into CACHE1 and CACHE2 together."
@@ -135,7 +145,7 @@ the typecaching system."
   "Add into the cache DEST all entries from ADD.
 If ADD is a tag stream, add them.
 If ADD is another typecache object, Merge it in."
-  (let* ((stream1 (oref dest stream))
+  (let* ((stream1 (oref dest stream)) ; our stream is ok to permute
 	 (stream2 (if (semanticdb-typecache-child-p add)
 		      ;; We need to leave ADD pristine.
 		      (copy-sequence (oref add stream))
@@ -144,13 +154,18 @@ If ADD is another typecache object, Merge it in."
 	  (semanticdb-typecache-merge-streams stream1 stream2))))
 
 (defun semanticdb-stream-to-typecache (file stream)
-  "For FILE, convert a tag stream STREAM into a typecache.
+  "For FILE, convert a tag STREAM into a typecache.
 Argument FILE is the name of the created typecache.
-STREAM is the list of tags."
-  (let ((tc (semanticdb-typecache file)))
-    (semanticdb-typecache-merge tc
-				(semantic-find-tags-by-class
-				 'type stream)) ; permutable safe list
+STREAM is the list of tags.
+
+This function makes copies of the tags in STREAM."
+  (let ((tc (semanticdb-typecache file))
+	)
+    ;; Force a "filename" property onto the tags.
+    (setq stream (semanticdb-typecache-apply-filename file stream))
+
+    ;; Perform a merge
+    (semanticdb-typecache-merge tc stream)
 
     tc))
 
@@ -178,7 +193,7 @@ combine the caches of all files included within itself."
 	 (local-list (semantic-find-tags-by-class 'type table))
 	 (local-inc (semantic-find-tags-by-class 'include table))
 	 (cache (semanticdb-stream-to-typecache 
-		 (file-name-nondirectory (semanticdb-full-filename table))
+		 (semanticdb-full-filename table)
 		 local-list))
 	 (incpath (reverse (semanticdb-find-translate-path table nil)))
 	 (top (not semanticdb-typecache-recursion-flag))
@@ -220,10 +235,30 @@ combine the caches of all files included within itself."
 
 ;;; Search Routines
 ;;
-(defmethod semanticdb-typecache-find ((table semanticdb-abstract-table) type)
+(define-overload semanticdb-typecache-find (type &optional path)
+  "Search the typecache for TYPE in PATH.
+If type is a string, split the string, and search for the parts.
+If type is a list, treat the type as a pre-split string.
+PATH can be nil for the current buffer, or a semanticdb table.")
+
+(defun semanticdb-typecache-find-default (type &optional path find-file-match)
+  "Default implementation of `semanticdb-typecache-find'.
+TYPE is the datatype to find.
+PATH is the search path.. which should be one table object.
+If FIND-FILE-MATCH is non-nil, then force the file belonging to the
+found tag to be loaded.  NOTE: Not Impl'd yet
+Call directly to `semanticdb-typecache-find-method'."
+  (semanticdb-typecache-find-method (or path semanticdb-current-table)
+				    type find-file-match))
+    
+
+(defmethod semanticdb-typecache-find-method ((table semanticdb-abstract-table)
+					     type find-file-match)
   "Search the typecache in TABLE for the datatype TYPE.
 If type is a string, split the string, and search for the parts.
-If type is a list, treat the type as a pre-split string."
+If type is a list, treat the type as a pre-split string.
+If FIND-FILE-MATCH is non-nil, then force the file belonging to the
+found tag to be loaded."
   ;; convert string to a list.
   (when (stringp type) (setq type (semantic-analyze-split-name type)))
 
@@ -232,11 +267,17 @@ If type is a list, treat the type as a pre-split string."
 	 (stream (oref cache stream))
 	 (ans nil)
 	 (notdone t)
+	 (lastfile nil)
+	 (thisfile nil)
 	 )
     (while (and type notdone)
 
       ;; We stripped duplicates, so this will be super-fast!
       (setq ans (semantic-find-first-tag-by-name (car type) stream))
+
+      ;; Track most recent file.
+      (setq thisfile (semantic-tag-file-name ans))
+      (when thisfile (setq lastfile thisfile))
 
       ;; If we have a miss, exit, otherwise, update the stream to
       ;; the next set of members.
@@ -245,6 +286,12 @@ If type is a list, treat the type as a pre-split string."
 	(setq stream (semantic-tag-type-members ans)))
 
       (setq type (cdr type)))
+
+    (when (and find-file-match lastfile)
+      ;; This won't liven up the tag since we have a copy, but
+      ;; we ought to be able to get there and go to the right line.
+      (find-file-noselect lastfile))
+    
     ans))
 
 ;;; DEBUG
