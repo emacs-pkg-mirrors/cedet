@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.132 2007/08/29 12:58:38 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.133 2007/08/30 01:01:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -118,6 +118,13 @@ buffer, or a filename.  If SOMETHING is nil return nil."
 	 (semanticdb-minor-mode-p)
 	 (semanticdb-abstract-table-child-p something))
     (semanticdb-get-tags something))
+   ;; Semanticdb find-results
+   ((and (featurep 'semanticdb)
+	 (semanticdb-minor-mode-p)
+	 (semanticdb-find-results-p something))
+    (semanticdb-strip-find-results something))
+   ;; NOTE: This commented out since if a search result returns
+   ;;       empty, that empty would turn into everything on the next search.
    ;; Use the current buffer for nil
 ;;   ((null something)
 ;;    (semantic-fetch-tags))
