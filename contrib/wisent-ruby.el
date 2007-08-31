@@ -80,7 +80,7 @@
 
 (define-lex-regex-analyzer semantic-lex-ruby-hashes
   "Handle literal hashes"
-  "{\\(\s*[^[:space:]]+\s*=>\s*[^[:space:]]+,\\)*\s*[^[:space:]]+\s*=>\s*[^[:space:]]+\s*}"
+  "{\\(\\s*[^[:space:]]+\\s*=>\\s*[^[:space:]]+,\\)*\\s*[^[:space:]]+\\s*=>\\s*[^[:space:]]+\\s*}"
   (lex-token-at-pt 'HASH_LITERAL 'ruby-forward-sexp 1))
 
 (define-lex-regex-analyzer semantic-lex-ruby-symbols
@@ -255,6 +255,9 @@
   semantic-lex-punctuation-type
   semantic-lex-default-action)
 
+(defvar semantic-lex-ruby-assigned-vars nil
+  "List of variables assigned by ruby.")
+(make-variable-buffer-local 'semantic-lex-ruby-assigned-vars)
 
 (defun wisent-ruby-default-setup ()
   (wisent-ruby-wy--install-parser)
@@ -275,7 +278,7 @@
   (cond ((semantic-tag-of-class-p tag 'include)
 	 (let* ((tag-name (semantic-tag-name tag))
 		(dep-file (substring tag-name 1 (1- (length tag-name))))
-		(dep-file-with-ext (if (not (string-match ".*\.rb$" dep-file))
+		(dep-file-with-ext (if (not (string-match ".*\\.rb$" dep-file))
 				       (concat dep-file ".rb")
 				     dep-file)))
 	   (list (semantic-tag-new-include dep-file-with-ext nil))))
