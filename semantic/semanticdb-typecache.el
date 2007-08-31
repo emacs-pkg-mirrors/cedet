@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.5 2007/08/30 03:16:51 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.6 2007/08/31 11:12:36 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -36,9 +36,17 @@
   ((stream :initform nil
 	   :documentation
 	   "The searchable tag stream for this cache.")
+   (discard-log :documentation
+		"Track things discarded for debugging purposes")
    ;; @todo - add some sort of fast-hash.
    )
   "Structure for maintaining a typecache.")
+
+(defclass semanticdb-debug-log (eieio-named)
+  ((discard :initform :discard)
+   (comparedto :initform :comparedto)
+   )
+  "Structure for capturing discard debugging information.")
 
 ;;;###autoload
 (defmethod semanticdb-get-typecache ((table semanticdb-abstract-table))
@@ -91,7 +99,7 @@ If there is no table, create one."
     ;; two have the same name, we can either throw one away, or construct
     ;; a fresh new tag merging the items together.
     (while S
-      (setq prev next)
+      (setq prev (car ans))
       (setq next (car S))
       (if (or
 	   ;; CASE 1 - First item
@@ -102,7 +110,7 @@ If there is no table, create one."
 	  (setq ans (cons next ans))
 	;; ELSE - We have a NAME match.
 	(setq type (semantic-tag-type next))
-	(if (equal type (semantic-tag-type prev))
+	(if (semantic-tag-of-type-p prev next) ; Are they the same datatype
 	    ;; Same Class, we can do a merge.
 	    (cond
 	     ((and (semantic-tag-of-class-p next 'type)
@@ -133,11 +141,13 @@ If there is no table, create one."
 	      ;; @todo - comment out this debug statement.
 	      ;(message "Don't know how to merge %s.  Keeping first entry." (semantic-tag-name next))
 	     ))
-	  ;; Not same class... but same type
-	  (message "Same name, different type: %s, %s!=%s"
-		   (semantic-tag-name next)
-		   (semantic-tag-type next)
-		   (semantic-tag-type prev))))
+	  ;; Not same class... but same name
+	  ;(message "Same name, different type: %s, %s!=%s"
+	  ;	   (semantic-tag-name next)
+	  ;	   (semantic-tag-type next)
+	  ;        (semantic-tag-type prev))
+	  (setq ans (cons next ans))
+	  ))
       (setq S (cdr S)))
     (nreverse ans)))
 
