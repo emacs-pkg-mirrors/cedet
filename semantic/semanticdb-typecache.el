@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.6 2007/08/31 11:12:36 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.7 2007/09/01 00:42:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -42,11 +42,19 @@
    )
   "Structure for maintaining a typecache.")
 
-(defclass semanticdb-debug-log (eieio-named)
-  ((discard :initform :discard)
-   (comparedto :initform :comparedto)
-   )
-  "Structure for capturing discard debugging information.")
+(defun semanticdb-typecache-length(thing)
+  "How long is THING?
+Debugging function."
+  (cond ((semanticdb-typecache-child-p thing)
+	 (length (oref thing stream)))
+	((semantic-tag-p thing)
+	 (length (semantic-tag-type-members thing)))
+	((and (listp thing) (semantic-tag-p (car thing)))
+	 (length thing))
+	((null thing)
+	 0)
+	(t -1)	))
+
 
 ;;;###autoload
 (defmethod semanticdb-get-typecache ((table semanticdb-abstract-table))
@@ -110,7 +118,7 @@ If there is no table, create one."
 	  (setq ans (cons next ans))
 	;; ELSE - We have a NAME match.
 	(setq type (semantic-tag-type next))
-	(if (semantic-tag-of-type-p prev next) ; Are they the same datatype
+	(if (semantic-tag-of-type-p prev type) ; Are they the same datatype
 	    ;; Same Class, we can do a merge.
 	    (cond
 	     ((and (semantic-tag-of-class-p next 'type)
@@ -159,9 +167,11 @@ If ADD is another typecache object, Merge it in."
 	 (stream2 (if (semanticdb-typecache-child-p add)
 		      ;; We need to leave ADD pristine.
 		      (copy-sequence (oref add stream))
-		    add)))
+		    add))
+	 )
     (oset dest stream
-	  (semanticdb-typecache-merge-streams stream1 stream2))))
+	  (semanticdb-typecache-merge-streams stream1 stream2))
+    ))
 
 (defun semanticdb-stream-to-typecache (file stream)
   "For FILE, convert a tag STREAM into a typecache.
