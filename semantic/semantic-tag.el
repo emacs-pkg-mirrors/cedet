@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.46 2007/08/30 03:13:47 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.47 2007/09/01 01:51:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -351,13 +351,13 @@ TYPE can be a string, or a tag of class 'type."
 			      ((and (semantic-tag-p tagtype)
 				    (semantic-tag-of-class-p tagtype 'type))
 			       (semantic-tag-name tagtype))
-			      (t nil)))
+			      (t "")))
 	 (typestring (cond ((stringp type)
 			    type)
 			   ((and (semantic-tag-p type)
 				 (semantic-tag-of-class-p type 'type))
 			    (semantic-tag-name type))
-			   (t (error "Type's type is unknown"))))
+			   (t "")))
 	 )
     (and
      tagtypestring
