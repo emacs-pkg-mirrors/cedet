@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.8 2007/09/01 03:21:34 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.9 2007/09/02 16:23:56 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -96,10 +96,7 @@ If there is no table, create one."
 
 (defun semanticdb-typecache-merge-streams (cache1 cache2)
   "Merge into CACHE1 and CACHE2 together."
-  (let ((S (sort (append cache1 cache2)
-		 (lambda (a b)
-		   (string< (semantic-tag-name a)
-			    (semantic-tag-name b)))))
+  (let ((S (sort (append cache1 cache2) #'semantic-tag<))
 	(ans nil)
 	(next nil)
 	(prev nil)
