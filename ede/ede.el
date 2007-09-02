@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.86 2007/08/27 10:05:18 zappo Exp $
+;; RCS: $Id: ede.el,v 1.87 2007/09/02 14:30:43 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -246,7 +246,12 @@ which files this object is interested in."
    (file :initarg :file
 	 :type string
 	 ;; No initarg.  We don't want this saved in a file.
-	 :documentation "File name where this project is stored."))
+	 :documentation "File name where this project is stored.")
+   (rootproject ; :initarg - no initarg, don't save this slot!
+    :initform nil
+    :type (or null ede-project-placeholder-child)
+    :documentation "Pointer to our root project.")
+   )
   "Placeholder object for projects not loaded into memory.
 Projects placeholders will be stored in a user specific location
 and querying them will cause the actual project to get loaded.")
@@ -1072,9 +1077,20 @@ Return the new object created in its place."
 (defmethod ede-project-root ((this ede-project-placeholder))
   "If a project knows it's root, return it here.
 Allows for one-project-object-for-a-tree type systems."
-  nil)
+  (oref this rootproject))
+
+(defmethod ede-project-root-directory ((this ede-project-placeholder))
+  "If a project knows it's root, return it here.
+Allows for one-project-object-for-a-tree type systems."
+  (file-name-directory (oref this file)))
+
 
 (defmethod ede-project-root ((this ede-project-autoload))
+  "If a project knows it's root, return it here.
+Allows for one-project-object-for-a-tree type systems."
+  nil)
+
+(defmethod ede-project-root-directory ((this ede-project-autoload))
   "If a project knows it's root, return it here.
 Allows for one-project-object-for-a-tree type systems."
   (when (slot-boundp this :proj-root)
@@ -1396,12 +1412,12 @@ This depends on an up to date `ede-project-class-files' variable."
 (defun ede-up-directory (dir)
   "Return a path that is up one directory.
 Argument DIR is the directory to trim upwards."
-  (if (string-match "^[a-zA-Z]:[\\/]$" dir)
-      nil
-    (let ((parent (expand-file-name ".." dir)))
-      (if (and (> (length parent) 1) (string= ".." (substring parent -2)))
-	  nil
-	(file-name-as-directory parent)))))
+  (let* ((fad (directory-file-name dir))
+	 (fnd (file-name-directory fad)))
+    (if (string= dir fnd) ; This will catch the old string-match against
+			  ; c:/ for DOS like systems.
+	nil
+      fnd)))
   
 (defun ede-toplevel-project-or-nil (path)
   "Starting with PATH, find the toplevel project directory, or return nil.
@@ -1416,6 +1432,12 @@ nil is returned if the current directory is not a part ofa project."
 	 (newpath toppath)
 	 (proj (ede-directory-project-p path))
 	 (ans nil))
+    (if proj
+	;; If we already have a project, ask it what the root is.
+	(setq ans (ede-project-root-directory proj)))
+
+    ;; If PROJ didn't know, or there is no PROJ, then
+
     ;; Loop up to the topmost project, and then load that single
     ;; project, and it's sub projects.  When we are done, identify the
     ;; sub-project object belonging to file.
@@ -1423,8 +1445,10 @@ nil is returned if the current directory is not a part ofa project."
       (setq toppath newpath
 	    newpath (ede-up-directory toppath))
       (setq proj (ede-directory-project-p newpath))
+
       (when proj
-	(setq ans (ede-project-root proj)))
+	;; We can home someone in the middle knows too.
+	(setq ans (ede-project-root-directory proj)))
       )
     (or ans toppath)))
 
@@ -1437,7 +1461,8 @@ nil is returned if the current directory is not a part ofa project."
 	 (o nil))
     (cond
      ((not pfc)
-      ;; Scan upward for a the next project file.
+      ;; @TODO - Do we really need to scan?  Is this a waste of time?
+      ;; Scan upward for a the next project file style.
       (let ((p path))
 	(while (and p (not (ede-directory-project-p p)))
 	  (setq p (ede-up-directory p)))
@@ -1446,8 +1471,10 @@ nil is returned if the current directory is not a part ofa project."
 	;; recomment as we go
 	;nil
 	))
+     ;; Do nothing if we are buiding an EDE project already
      (ede-constructing
       nil)
+     ;; Load in the project in question.
      (t
       (setq toppath (ede-toplevel-project path))
       ;; We found the top-most directory.  Check to see if we already
@@ -1485,10 +1512,13 @@ nil is returned if the current directory is not a part ofa project."
   "Return the ede project which is the root of the current project.
 Optional argument SUBPROJ indicates a subproject to start from
 instead of the current project."
-  (let ((cp (or subproj (ede-current-project))))
-    (while (ede-parent-project cp)
-      (setq cp (ede-parent-project cp)))
-    cp))
+  (let* ((cp (or subproj (ede-current-project)))
+	 )
+    (or (ede-project-root cp)
+	(progn
+	  (while (ede-parent-project cp)
+	    (setq cp (ede-parent-project cp)))
+	  cp))))
 
 ;;;###autoload
 (defun ede-parent-project (&optional obj)
@@ -1496,7 +1526,7 @@ instead of the current project."
 nil if there is no previous directory.
 Optional argument OBJ is an object to find the parent of."
   (if (and obj (eq (ede-project-root obj)
-		   (file-name-directory (oref obj file))))
+		   (oref obj file)))
       nil ;; we are at the root.
     (ede-load-project-file
      (concat (ede-up-directory
