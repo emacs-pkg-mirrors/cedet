@@ -236,6 +236,13 @@ Compound implies a structure or similar data type.
 Returns the list of tag members if it is compound.
 @end defun
 
+@defun semantic-tag< A B
+@anchor{semantic-tag<}
+Return @code{t} if tag A is < tag @var{b} alphanumerically.
+Use with @dfn{sort} to sort a list of tags by some criteria.
+This function can be overloaded (see @dfn{define-mode-local-override} for details).
+@end defun
+
 @subsection Documentation
 
 @defun semantic-tag-docstring tag &optional buffer
