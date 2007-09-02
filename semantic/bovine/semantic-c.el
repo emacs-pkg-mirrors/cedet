@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.56 2007/08/25 01:51:39 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57 2007/09/02 17:16:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -76,7 +76,7 @@ This function does not do any hidden buffer changes."
   "A #define of a symbol with some value.
 Record the symbol in the semantic preprocessor.
 Return the the defined symbol as a special spp lex token."
-  "^\\s-*#define\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1
+  "^\\s-*#\\s-*define\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1
   (goto-char (match-end 0))
   (skip-chars-forward " \t")
   (if (eolp)
@@ -98,7 +98,7 @@ Return the the defined symbol as a special spp lex token."
   "A #undef of a symbol.
 Remove the symbol from the semantic preprocessor.
 Return the the defined symbol as a special spp lex token."
-  "^\\s-*#undef\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1)
+  "^\\s-*#\\s-*undef\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1)
 
 (defun semantic-c-skip-conditional-section ()
   "Skip one section of a conditional.
@@ -131,7 +131,7 @@ Movers completely over balanced #if blocks."
 (define-lex-regex-analyzer semantic-lex-c-if
   "Code blocks wrapped up in #if, or #ifdef.
 Uses known macro tables in SPP to determine what block to skip."
-  "^\\s-*#\\(if\\|ifndef\\|ifdef\\|elif\\)\\s-+\\(!?defined(\\|\\)\\(\\(\\sw\\|\\s_\\)+\\))?\\s-*$"
+  "^\\s-*#\\s-*\\(if\\|ifndef\\|ifdef\\|elif\\)\\s-+\\(!?defined(\\|\\)\\(\\(\\sw\\|\\s_\\)+\\))?\\s-*$"
   (let* ((sym (buffer-substring-no-properties 
 	       (match-beginning 3) (match-end 3)))
 	 (defstr (buffer-substring-no-properties 
@@ -180,7 +180,7 @@ Uses known macro tables in SPP to determine what block to skip."
 We won't see the #else due to the macro skip section block
 unless we are actively parsing an open #if statement.  In that
 case, we must skip it since it is the ELSE part."
-  "^#\\(else\\)"
+  "^\\s-*#\\s-*\\(else\\)"
   (let ((pt (point)))
     (semantic-c-skip-conditional-section)
     (setq semantic-lex-end-point (point))
@@ -191,12 +191,12 @@ case, we must skip it since it is the ELSE part."
 
 (define-lex-regex-analyzer semantic-lex-c-macrobits
   "Ignore various forms of #if/#else/#endif conditionals."
-  "^#\\(if\\(def\\)?\\|endif\\)"
+  "^#\\s-*\\(if\\(def\\)?\\|endif\\)"
   (semantic-c-end-of-macro)
   (setq semantic-lex-end-point (point))
   nil)
 
-(define-lex-analyzer semantic-lex-c-include-system
+(define-lex-analyzer semantic-lex-c-include-system-old
   "Identify system include strings, and return special tokens."
   (and (looking-at "<[^\n>]+>")
        (save-excursion
@@ -212,6 +212,28 @@ case, we must skip it since it is the ELSE part."
      (semantic-lex-token 'system-include start (point)))
     )
   )
+
+
+(define-lex-spp-include-analyzer semantic-lex-c-include-system
+  "Identify include strings, and return special tokens."
+    "^\\s-*#\\s-*include\\s-+<\\([^ \t\n>]+\\)>" 0
+    ;; Hit 1 is the name of the include.
+    (goto-char (match-end 0))
+    (setq semantic-lex-end-point (point))
+    (cons (buffer-substring-no-properties (match-beginning 1)
+					  (match-end 1))
+	  'system))
+
+(define-lex-spp-include-analyzer semantic-lex-c-include
+  "Identify include strings, and return special tokens."
+    "^\\s-*#\\s-*include\\s-+\"\\([^ \t\n>]+\\)\"" 0
+    ;; Hit 1 is the name of the include.
+    (goto-char (match-end 0))
+    (setq semantic-lex-end-point (point))
+    (cons (buffer-substring-no-properties (match-beginning 1)
+					  (match-end 1))
+	  nil))
+  
 
 (define-lex-regex-analyzer semantic-lex-c-ignore-ending-backslash
   "Skip backslash ending a line.
@@ -244,6 +266,7 @@ Go to the next line."
   semantic-lex-c-if
   semantic-lex-c-macro-else
   semantic-lex-c-macrobits
+  semantic-lex-c-include
   semantic-lex-c-include-system
   semantic-lex-c-ignore-ending-backslash
   ;; Non-preprocessor features
@@ -397,7 +420,8 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 			       (string= (car (nth 2 tokenpart)) (car tokenpart)))
 			  )
 		      (not (car (nth 3 tokenpart)))))
-		(fcnpointer (string-match "^\\*" (car tokenpart)))
+		(fcnpointer (and (string-match "^\\*" (car tokenpart))
+				 (string-match "[a-z][A-Z]" (car tokenpart))))
 		(fnname (if fcnpointer
 			    (substring (car tokenpart) 1)
 			  (car tokenpart)))
@@ -481,6 +505,10 @@ NOTE: In process of obsoleting this."
 (defvar-mode-local c-mode semantic-dependency-include-path
   semantic-default-c-path
   "System path to search for include files.")
+
+(define-mode-local-override semantic-tag< c-mode (A B)
+  "We need to sort based on datatypes too."
+  (semantic-tag<-with-type A B))
 
 
 (define-mode-local-override semantic-format-tag-name
@@ -704,16 +732,22 @@ DO NOT return the list of tags encompassing point."
     ;; locally and add them to the list.
     (setq tmp (semantic-find-tags-by-class 'type (current-buffer)))
     (setq tmp (semantic-find-tags-by-type "namespace" tmp))
+    (setq tmp (semantic-find-tags-by-name "unnamed" tmp))
     (setq tagreturn tmp)
     ;; We should also find all "using" type statements and
     ;; accept those entities in as well.
+    (setq tmp (semantic-find-tags-by-class 'using (current-buffer)))
+    (while tmp
+      (setq tagreturn (cons (semantic-tag-type (car tmp))
+			    tagreturn))
+      (setq tmp (cdr tmp)))
 
     ;; Return the stuff
     tagreturn
     ))
 
 (define-mode-local-override semantic-get-local-variables c++-mode ()
-  "Do whhat `semantic-get-local-variables' does, plus add `this' if needed."
+  "Do what `semantic-get-local-variables' does, plus add `this' if needed."
   (let* ((origvar (semantic-get-local-variables-default))
 	 (ct (semantic-current-tag))
 	 (p (semantic-tag-function-parent ct)))
