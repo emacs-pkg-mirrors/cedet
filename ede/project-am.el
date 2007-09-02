@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.28 2007/03/12 03:43:18 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.29 2007/09/02 14:27:26 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -346,12 +346,14 @@ Argument COMMAND is the command to use for compiling the target."
 
 ;;; Project loading and saving
 ;;
-(defun project-am-load (project)
+(defun project-am-load (project &optional rootproj)
   "Read an automakefile PROJECT into our data structure.
 Make sure that the tree down to our makefile is complete so that there
 is cohesion in the project.  Return the project file (or sub-project).
 If a given set of projects has already been loaded, then do nothing
-but return the project for the directory given."
+but return the project for the directory given.
+Optional ROOTPROJ is the root EDE project."
+  ;; @TODO - rationalize this to the newer EDE way of doing things.
   (setq project (expand-file-name project))
   (let* ((ede-constructing t)
 	 (fn (project-am-find-topmost-level
