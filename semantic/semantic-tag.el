@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.47 2007/09/01 01:51:43 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.48 2007/09/02 16:23:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -370,8 +370,8 @@ TYPE can be a string, or a tag of class 'type."
 	   (string= tagtype typestring))
       ;; Matching tokens, and the type of the type is the same.
       (and (string= tagtypestring typestring)
-	   (if (and (semantic-tag-type tag) (semantic-tag-type type))
-	       (equal (semantic-tag-type tag) (semantic-tag-type type))
+	   (if (and (semantic-tag-type tagtype) (semantic-tag-type type))
+	       (equal (semantic-tag-type tagtype) (semantic-tag-type type))
 	     t))
       ))
     ))
@@ -393,6 +393,46 @@ Returns the list of tag members if it is compound."
 FAUX tags are created to represent a construct that is
 not known to exist in the code."
   (semantic--tag-get-property tag :faux-flag))
+
+(define-overload semantic-tag< (A B)
+  "Return t if tag A is < tag B alphanumerically.
+Use with `sort' to sort a list of tags by some criteria.")
+
+(defun semantic-tag<-default (A B)
+  "Return t if tag A name is < tag B's name alphanumerically."
+  (string< (semantic-tag-name A) (semantic-tag-name B)))
+
+(defun semantic-tag<-with-type (A B)
+  "Return t if tag A is < tag B.
+First sorts on name, then sorts on the name of the :type of
+each tag.
+NOTE: This function can be used for a language that needs to override
+`semantic-tag<', and applications should not use it directly, but fix
+langauges that don't do compares correctly."
+  (let* ((na (semantic-tag-name A))
+	 (nb (semantic-tag-name B))
+	 (ans (string< na nb)))
+    (if ans
+	ans ; a sure thing.
+      (if (string= na nb)
+	  ;; If equal, test the :type which might be different.
+	  (let* ((ta (semantic-tag-type A))
+		 (tb (semantic-tag-type B))
+		 (tas (cond ((stringp ta)
+			     ta)
+			    ((semantic-tag-p ta)
+			     (semantic-tag-name ta))
+			    (t nil)))
+		 (tbs (cond ((stringp tb)
+			     tb)
+			    ((semantic-tag-p tb)
+			     (semantic-tag-name tb))
+			    (t nil))))
+	    (if (and (stringp tas) (stringp tbs))
+		(string< tas tbs)
+	      nil))
+	;; This nil is if A > B, but not =
+	nil))))
 
 ;;; Tag creation
 ;;
