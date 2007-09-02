@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.48 2007/08/22 13:58:33 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.49 2007/09/02 14:31:47 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -249,8 +249,11 @@ making a tar file.")
   "The EDE-PROJ project definition class.")
 
 ;;; Code:
-(defun ede-proj-load (project)
-  "Load a project file PROJECT."
+(defun ede-proj-load (project &optional rootproj)
+  "Load a project file PROJECT.
+If optional ROOTPROJ is provided then ROOTPROJ is the root project
+for the tree being read in.  If ROOTPROJ is nil, then assume that
+the PROJECT being read in is the root project."
   (save-excursion
     (let ((ret nil)
 	  (subdirs (directory-files project nil "[^.].*" nil)))
@@ -264,14 +267,18 @@ making a tar file.")
 	    (if (not (eq (car ret) 'ede-proj-project))
 		(error "Corrupt project file"))
 	    (setq ret (eval ret))
-	    (oset ret file (concat project "Project.ede")))
+	    (oset ret file (concat project "Project.ede"))
+	    (oset ret rootproject rootproj)
+	    )
 	(kill-buffer " *tmp proj read*"))
       (while subdirs
-	(let ((sd (concat project (car subdirs))))
+	(let ((sd (file-name-as-directory
+		   (expand-file-name (car subdirs) project))))
 	  (if (and (file-directory-p sd)
-		   (ede-directory-project-p (concat sd "/")))
-	      (oset ret subproj (cons (ede-proj-load (concat sd "/"))
-				      (oref ret subproj))))
+		   (ede-directory-project-p sd))
+	      (oset ret subproj
+		    (cons (ede-proj-load sd (or rootproj ret))
+			  (oref ret subproj))))
 	  (setq subdirs (cdr subdirs))))
       ret)))
 
@@ -609,7 +616,7 @@ Optional argument FORCE will force items to be regenerated."
     (require 'ede-pmake)
     (ede-proj-makefile-create this (ede-proj-dist-makefile this)))
   (if (ede-proj-automake-p this)
-      (progn
+      (progn 
 	(require 'ede-pconf)
 	;; If the user wants to force this, do it some other way?
 	(ede-proj-configure-synchronize this)
