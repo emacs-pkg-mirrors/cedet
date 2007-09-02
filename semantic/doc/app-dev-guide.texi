@@ -1646,6 +1646,7 @@ searched using a set of special routines.
 * Semanticdb in Programs::      Basic usage.
 * Semanticdb Tag Queries::      Searching for tokens in the databases.
 * System Databases::            Special kinds of databases for system tags.
+* Semanticdb references::       Tables can refer to eachother.
 @end menu
 
 @node Semanticdb in Programs
@@ -1721,6 +1722,7 @@ worked on.
 * DB Results::                  Accessing the results of a search.
 * DB Search Paths::             The list of tables to search.
 * DB Basic Name Search::        Searches based on name.
+* DB Data Type Search::         Searches for datatypes.
 * DB Basic Brute Search::       Searches on common tag attributes.
 * DB Advanced Search::          Complex searches on associations
 * DB Generic Brute Search::     Do It Yourself search criteria
@@ -1881,6 +1883,11 @@ is returned unchanged.
 
 This routine uses @dfn{semanticdb-find-table-for-include} to translate
 specific include tags into a semanticdb table.
+
+Note: When searching using a non-brutish method, the list of
+included files will be cached between runs.  Database-references
+are used to track which files need to have their include lists
+refreshed when things change.  See @dfn{semanticdb-ref-test}.
 This function can be overloaded (see @dfn{define-mode-local-override} for details).
 @end defun
 
@@ -1964,6 +1971,48 @@ See @dfn{semanticdb-find-translate-path} for details on @var{path}.
 @var{find-file-match} indicates that any time a match is found, the file
 associated with that tag should be loaded into a buffer.
 @end defun
+
+@node DB Data Type Search
+@subsection DB Data Type Search
+
+In typed languages, datatypes are looked up frequently in order to
+provide smart completions.  Semantic has a specialized datatype search
+that builds a cache of all datatypes on the include path.  Once this
+is built the first time, datatype lookups become very fast.
+
+Since it takes a long time to make a typecache the first time, you can
+have your tool decide if it wants to do work based on the existance of
+a typecache.
+
+@defun semanticdb-have-typecache-p table
+@anchor{semanticdb-have-typecache-p}
+Return non-@code{nil} (the typecache) if @var{table} has a pre-calculated typecache.
+@end defun
+
+@defun semanticdb-get-typecache table
+@anchor{semanticdb-get-typecache}
+Retrieve the typecache from the semanticdb @var{table}.
+If there is no table, create one, and fill it in.
+@end defun
+
+Searching doesn't require a typecache.  You can just pass in a
+database table, or path, much the way most semantic database searches work.
+
+@defun semanticdb-typecache-find type &optional path
+@anchor{semanticdb-typecache-find}
+Search the typecache for @var{type} in @var{path}.
+If type is a string, split the string, and search for the parts.
+If type is a list, treat the type as a pre-split string.
+@var{path} can be @code{nil} for the current buffer, or a semanticdb table.
+This function can be overloaded (see @dfn{define-mode-local-override} for details).
+@end defun
+
+You can debug the typecache with this routine:
+
+@deffn Command semanticdb-typecache-dump
+@anchor{semanticdb-typecache-dump}
+Dump the typecache for the current buffer.
+@end deffn
 
 @node DB Basic Brute Search
 @subsection DB Basic Brute Search
@@ -2076,6 +2125,60 @@ declarations for @var{system} files.  In @var{c}, this would be header filaes.
 @var{class} is the class for the database to create.  Only child classes
 of symbol @dfn{semanticdb-project-database-system} are accepted.
 @end deffn
+
+@node Semanticdb references
+@section Semanticdb References
+
+Semantic database can keep references to eachother.  The semanticdb
+search routine @code{semanticdb-find-translate-path} will keep the
+references up-to date whenever you do a semanticdb search.  Whenever a
+buffer is reparsed, all caches are synchronized through the reference
+tables.
+
+The reference mechanism will let you identify references in either
+direction.
+
+This routine will return a list of TAGS that refer to some database.
+Use the routine @code{semanticdb-find-table-for-include} to conver
+these include tags into tables.
+
+@defun semanticdb-includes-in-table dbt
+@anchor{semanticdb-includes-in-table}
+Return a list of direct includes in table @var{dbt}.
+@end defun
+
+To run a function against all @semantic{} tables that refer to the
+current table, use this routine:
+
+@defun semanticdb-notify-references dbt method
+@anchor{semanticdb-notify-references}
+Notify all references of the table @var{dbt} using method.
+@var{method} takes two arguments.
+  (@var{method} @var{table-to-notify} @var{dbt})
+@var{table-to-notify} is a semanticdb-table which is being notified.
+@var{dbt}, the second argument is @var{dbt}.
+@end defun
+
+
+The following routines will help keep things up-to-date:
+
+@defun semanticdb-check-references dbt
+@anchor{semanticdb-check-references}
+Check and cleanup references in the database @var{dbt}.
+Any reference to a file that cannot be found, or whos file no longer
+refers to @var{dbt} will be removed.
+@end defun
+
+To debug references, use this routine:
+
+@deffn Command semanticdb-ref-test refresh
+@anchor{semanticdb-ref-test}
+Dump out the list of references for the current buffer.
+If @var{refresh} is non-@code{nil}, cause the current table to have it's references
+refreshed before dumping the result.
+@end deffn
+
+
 
 @node Idle Scheduling
 @chapter Idle Scheduling
