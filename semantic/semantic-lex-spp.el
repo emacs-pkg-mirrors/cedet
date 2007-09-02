@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.8 2007/06/06 01:05:05 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.9 2007/09/02 17:10:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,12 +54,6 @@ step.")
 
 ;;; MACRO TABLE UTILS
 ;;
-(defun semantic-lex-spp-symbol-replacement (name)
-  "Return an SPP replacement stream for NAME.
-nil is a valid return.  Use `semantic-lex-spp-symbol-l\p' to determine
-if the symbol is in the table."
-  )
-
 (defsubst semantic-lex-spp-symbol (name)
   "Return spp symbol with NAME or nil if not found."
   (and
@@ -226,8 +220,7 @@ REGEXP is a regular expression for the analyzer to match.
 See `define-lex-regex-analyzer' for more on regexp.
 TOKIDX is an index into REGEXP for which a new lexical token
 of type `spp-macro-def' is to be created.
-Optional VALFORM are forms that return the value to be saved for
-this macro, or nil."
+VALFORM are forms that return the value to be saved for this macro, or nil."
   (let ((start (make-symbol "start"))
 	(end (make-symbol "end"))
 	(val (make-symbol "val"))
@@ -267,7 +260,8 @@ of type `spp-macro-undef' is to be created."
        ,doc
        ,regexp
        (let ((,start (match-beginning ,tokidx))
-	     (,end (match-end ,tokidx)))
+	     (,end (match-end ,tokidx))
+	     )
 	 (semantic-lex-spp-symbol-remove
 	  (buffer-substring-no-properties ,start ,end))
 	 (semantic-lex-push-token
@@ -275,6 +269,71 @@ of type `spp-macro-undef' is to be created."
 			      ,start ,end))
 	 ))))
 
+;;; INCLUDEs
+;;
+;; Bringing pre-processor macros in from included headers.
+(defcustom semantic-lex-spp-use-headers-flag nil
+  "*Non-nil means to pre-parse headers as we go.
+For languages that use the Semantic pre-processor, this can
+improve the accuracy of parsed files where include files
+can change the state of what's parsed in the current file."
+  :group 'semantic
+  :type 'boolean)
+
+(defun semantic-lex-spp-merge-header (name)
+  "Extract and merge any macros from the header with NAME.
+Finds the header file belonging to NAME, gets the macros
+from that file, and then merge the macros with our current
+symbol table."
+  (when semantic-lex-spp-use-headers-flag
+    
+    ))
+
+(defmacro define-lex-spp-include-analyzer (name doc regexp tokidx
+						&rest valform)
+  "Define a lexical analyzer for defining a new INCLUDE lexical token.
+Macros defined in the found include will be added to our running table
+at the time the include statement is found.
+NAME is the name of the analyzer.
+DOC is the documentation for the analyzer.
+REGEXP is a regular expression for the analyzer to match.
+See `define-lex-regex-analyzer' for more on regexp.
+TOKIDX is an index into REGEXP for which a new lexical token
+of type `spp-macro-include' is to be created.
+VALFORM are forms that return the name of the thing being included, and the
+type of include.  The return value should be of the form:
+  (NAME . TYPE)
+where NAME is the name of the include, and TYPE is the type of the include,
+where a valid symbol is 'system, or nil."
+  (let ((start (make-symbol "start"))
+	(end (make-symbol "end"))
+	(val (make-symbol "val"))
+	(startpnt (make-symbol "startpnt"))
+	(endpnt (make-symbol "endpnt")))
+    `(define-lex-regex-analyzer ,name
+       ,doc
+       ,regexp
+       (let ((,start (match-beginning ,tokidx))
+	     (,end (match-end ,tokidx))
+	     (,startpnt semantic-lex-end-point)
+	     (,val (save-match-data ,@valform))
+	     (,endpnt semantic-lex-end-point))
+	 (message "(car ,val) -> %S" (car ,val))
+	 (semantic-lex-spp-merge-header (car ,val))
+	 (semantic-lex-push-token
+	  (semantic-lex-token (if (eq (cdr ,val) 'system)
+				  'spp-system-include
+				'spp-include)
+			      ,start ,end
+			      (car ,val)))
+	 ;; Preserve setting of the end point from the calling macro.
+	 (when (and (/= ,startpnt ,endpnt)
+		    (/= ,endpnt semantic-lex-end-point))
+	   (setq semantic-lex-end-point ,endpnt))
+	 ))))
+
+;;; EDEBUG Handlers
+;;
 (add-hook
  'edebug-setup-hook
  #'(lambda ()
@@ -284,6 +343,10 @@ of type `spp-macro-undef' is to be created."
        )
 
      (def-edebug-spec define-lex-spp-macro-undeclaration-analyzer
+       (&define name stringp stringp form)
+       )
+
+     (def-edebug-spec define-lex-spp-include-analyzer
        (&define name stringp stringp form def-body)
        )
      ))
