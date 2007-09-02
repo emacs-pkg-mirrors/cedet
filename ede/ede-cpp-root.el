@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.1 2007/08/23 02:37:08 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.2 2007/09/02 14:33:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -112,7 +112,7 @@ DIR is the directory to search from."
   (let ((projs ede-cpp-root-project-list)
 	(ans nil))
     (while (and projs (not ans))
-      (let ((root (ede-project-root (car projs))))
+      (let ((root (ede-project-root-directory (car projs))))
 	(when (string-match (concat "^" (regexp-quote root)) dir)
 	  (setq ans (car projs))))
       (setq projs (cdr projs)))
@@ -133,10 +133,11 @@ DIR is the directory to search from."
       (file-name-directory projfile))))
 
 ;;;###autoload
-(defun ede-cpp-root-load (dir)
+(defun ede-cpp-root-load (dir &optional rootproj)
   "Return a CPP root object if you created one.
 Return nil if there isn't one.
-Argument DIR is the directory it is created for."
+Argument DIR is the directory it is created for.
+ROOTPROJ is nil, since there is only one project."
   ;; Snoop through our master list.
   (ede-cpp-root-file-existing dir))
 
@@ -237,6 +238,10 @@ This knows details about or source tree."
     ans))
 
 (defmethod ede-project-root ((this ede-cpp-root-project))
+  "Return my root."
+  this)
+
+(defmethod ede-project-root-directory ((this ede-cpp-root-project))
   "Return my root."
   (file-name-directory (oref this file)))
 
