@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.34 2007/05/22 01:41:58 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.35 2007/09/02 17:12:43 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -30,8 +30,6 @@
 %languagemode  c-mode c++-mode
 %start         declaration
 %scopestart    codeblock
-
-%token INCLUDE "include"
 
 %token <punctuation>   HASH       "\\`[#]\\'"
 %token <punctuation>   PERIOD     "\\`[.]\\'"
@@ -196,6 +194,7 @@ declaration
   | extern-c
   | template
   | using
+    (TAG (car (car $1)) 'using :type (car $1))
   ;
 
 codeblock
@@ -250,15 +249,10 @@ macro-def
 macro
   : spp-macro-def opt-define-arglist macro-def
     (VARIABLE-TAG $1 nil $3 :constant-flag t )
-  | HASH macro-or-include
-    ( ,$2 )
-  ;
-
-macro-or-include
-  : INCLUDE system-include
-    (INCLUDE-TAG (substring $2 1 (1- (length $2))) t)
-  | INCLUDE string
-    (INCLUDE-TAG (read $2) nil )
+  | spp-system-include
+    (INCLUDE-TAG $1 t)
+  | spp-include
+    (INCLUDE-TAG $1 nil)
   ;
 
 opt-define-arglist
@@ -373,6 +367,7 @@ namespacesubparts
  ;; PUBLIC or PRIVATE bits.  Ignore them for now.
   | template
   | using
+    (TAG (car (car $1)) 'using :type (car $1))
   | ;;EMPTY
   ;
 
@@ -476,9 +471,9 @@ opt-attribute
 ;; of the code.  We should probably specify a new token type for this.
 using
   : USING typeformbase SEMICOLON
-    ( nil )
+    ( TYPE-TAG ,$2 "class" nil nil :prototype t)
   | USING NAMESPACE typeformbase SEMICOLON
-    ( nil )
+    ( TYPE-TAG ,$3 "class" nil nil :prototype t)
   ;
 
 template
