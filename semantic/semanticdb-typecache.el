@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.9 2007/09/02 16:23:56 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.10 2007/09/04 01:11:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -36,8 +36,6 @@
   ((stream :initform nil
 	   :documentation
 	   "The searchable tag stream for this cache.")
-   (discard-log :documentation
-		"Track things discarded for debugging purposes")
    ;; @todo - add some sort of fast-hash.
    )
   "Structure for maintaining a typecache.")
@@ -59,7 +57,7 @@ Debugging function."
 ;;;###autoload
 (defmethod semanticdb-get-typecache ((table semanticdb-abstract-table))
   "Retrieve the typecache from the semanticdb TABLE.
-If there is no table, create one."
+If there is no table, create one, and fill it in."
   (semanticdb-refresh-table table)
   (let* ((idx (semanticdb-get-table-index table))
 	 (cache (oref idx type-cache)))
