@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.56 2007/05/20 16:00:11 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.57 2007/09/04 01:11:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -381,6 +381,7 @@ calling this one."
 		 "define-lex-regex-analyzer"
 		 "define-lex-spp-macro-declaration-analyzer"
 		 "define-lex-spp-macro-undeclaration-analyzer"
+		 "define-lex-spp-include-analyzer"
 		 "define-lex-simple-regex-analyzer"
 		 "define-lex-keyword-type-analyzer"
 		 "define-lex-sexp-type-analyzer"
