@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.44 2007/08/29 17:39:58 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.45 2007/09/04 01:09:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -270,7 +270,12 @@ it's children.  In the case of passing in a find result, the result
 is returned unchanged.
 
 This routine uses `semanticdb-find-table-for-include' to translate
-specific include tags into a semanticdb table."
+specific include tags into a semanticdb table.
+
+Note: When searching using a non-brutish method, the list of
+included files will be cached between runs.  Database-references
+are used to track which files need to have their include lists
+refreshed when things change.  See `semanticdb-ref-test'."
   )
 
 ;;;###autoload
