@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.85 2007/08/26 01:03:34 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.86 2007/09/04 01:36:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,7 +33,7 @@
 
 (require 'inversion)
 (eval-and-compile
-  (inversion-require 'eieio "0.18beta1"))
+  (inversion-require 'eieio "1.0"))
 (require 'eieio-base)
 (require 'semantic)
 
@@ -105,10 +105,6 @@ same major mode as the current buffer.")
    (tags :initarg :tags
 	 :accessor semanticdb-get-tags
 	 :documentation "The tags belonging to this table.")
-   (file-refs ;; :initarg :file-refs ; - I don't think we want to save this
-	      :initform nil
-	      :documentation "List of files that refer to this one.
-Refereneces come in the form of an include tag.")
    (db-refs :initform nil
 	    :documentation
 	    "List of `semanticdb-table' objects refering to this one.
@@ -118,6 +114,17 @@ the :file-refs slot.")
 	  :documentation "The search index.
 Used by semanticdb-find to store additional information about
 this table for searching purposes.
+
+Note: This index will not be saved in a persistent file.")
+   (cache :type list
+	  :initform nil
+	  :documentation "List of cache information for tools.
+Any particular tool can cache data to a database at runtime
+with `semanticdb-cache-get'.
+
+Using a semanticdb cache does not save any information to a file,
+so your cache will need to be recalculated at runtime.  Caches can be
+referenced even when the file is not in a buffer.
 
 Note: This index will not be saved in a persistent file.")
    )
@@ -131,6 +138,8 @@ for a new table not associated with a buffer."
 If the buffer is not in memory, load it with `find-file-noselect'."
   nil)
 
+;;; Index Cache
+;;
 (defclass semanticdb-abstract-search-index ()
   ((table :initarg :table
 	  :type semanticdb-abstract-table
@@ -154,6 +163,64 @@ If one doesn't exist, create it."
 			 ))
       (oset obj index idx)
       idx)))
+
+(defmethod semanticdb-synchronize ((idx semanticdb-abstract-search-index)
+				   new-tags)
+  "Synchronize the search index IDX with some NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
+
+(defmethod semanticdb-partial-synchronize ((idx semanticdb-abstract-search-index)
+					   new-tags)
+  "Synchronize the search index IDX with some changed NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
+
+
+;;; Cache Cache.
+;;
+(defclass semanticdb-abstract-cache ()
+  ((table :initarg :table
+	  :type semanticdb-abstract-table
+	  :documentation
+	  "Cross reference to the table this belongs to.")
+   )
+  "Abstract baseclass for tools to use to cache information in semanticdb.
+Tools needing a per-file cache must subclass this, and then get one as
+needed.  Cache objects are identified in semanticdb by subclass.
+In order to keep your cache up to date, be sure to implement
+`semanticdb-synchronize', and `semanticdb-partial-synchronize'."
+  :abstract t)
+
+(defmethod semanticdb-cache-get ((table semanticdb-abstract-table)
+				 desired-class)
+  "Get a cache object on TABLE of class DESIRED-CLASS.
+This method will create one if none exists with no init arguments
+other than :table."
+  (assert (semanticdb-abstract-cache-child-p desired-class))
+  (let ((cache (oref table cache))
+	(obj nil))
+    (while (and (not obj) cache)
+      (if (eq (object-class-fast (car cache)) desired-class)
+	  (setq obj (car cache)))
+      (setq cache (cdr cache)))
+    (if obj
+	obj ;; Just return it.
+      ;; No object, lets create a new one and return that.
+      (setq obj (funcall desired-class "Cache" :table table))
+      (object-add-to-list table cache obj))))
+
+(defmethod semanticdb-synchronize ((cache semanticdb-abstract-cache)
+				   new-tags)
+  "Synchronize a CACHE with some NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
+
+(defmethod semanticdb-partial-synchronize ((cache semanticdb-abstract-cache)
+					   new-tags)
+  "Synchronize a CACHE with some changed NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
 
 ;;; CONCRETE CLASSES
 ;;
@@ -320,23 +387,6 @@ form."
   (message "Saving tag summaries...")
   (mapcar 'semanticdb-save-db semanticdb-database-list)
   (message "Saving tag summaries...done"))
-
-;;; Table Index Support
-;;
-;; The table index needs a few methods.  They come in two groups:
-;;   Queries - Ask it to cough up data
-;;   Update - Methods for updating from various parts of semanticdb.
-(defmethod semanticdb-synchronize ((idx semanticdb-abstract-search-index)
-				   new-tags)
-  "Synchronize the search index IDX with some NEW-TAGS."
-  ;; The abstract class will do... NOTHING!
-  )
-
-(defmethod semanticdb-partial-synchronize ((idx semanticdb-abstract-search-index)
-					   new-tags)
-  "Synchronize the search index IDX with some changed NEW-TAGS."
-  ;; The abstract class will do... NOTHING!
-  )
 
 
 ;;; Directory Project support
@@ -559,10 +609,21 @@ Sets up the semanticdb environment."
 				   new-tags)
   "Synchronize the table TABLE with some NEW-TAGS."
   (oset table tags new-tags)
+
   ;; Synchronize the index
   (when (slot-boundp table 'index)
     (let ((idx (oref table index)))
-      (when idx (semanticdb-synchronize idx new-tags)))))
+      (when idx (semanticdb-synchronize idx new-tags))))
+
+  ;; Synchronize application caches.
+  (let ((caches (oref table cache)))
+    (while caches
+      (semanticdb-synchronize (car caches) new-tags)
+      (setq caches (cdr caches))))
+
+  ;; Update cross references
+  ;; (semanticdb-refresh-references table)
+  )
 
 (defmethod semanticdb-partial-synchronize ((table semanticdb-abstract-table)
 					   new-tags)
@@ -570,10 +631,22 @@ Sets up the semanticdb environment."
   ;; You might think we need to reset the tags, but since the partial
   ;; parser splices the lists, we don't need to do anything
   ;;(oset table tags new-tags)
+
   ;; Synchronize the index
   (when (slot-boundp table 'index)
     (let ((idx (oref table index)))
-      (when idx (semanticdb-partial-synchronize idx new-tags)))))
+      (when idx (semanticdb-partial-synchronize idx new-tags))))
+
+  ;; Synchronize application caches.
+  (let ((caches (oref table cache)))
+    (while caches
+      (semanticdb-synchronize (car caches) new-tags)
+      (setq caches (cdr caches))))
+
+  ;; Update cross references
+  ;;(when (semantic-find-tags-by-class 'include new-tags)
+  ;;  (semanticdb-refresh-references table))
+  )
 
 (defun semanticdb-synchronize-table (new-table)
   "Function run after parsing.
