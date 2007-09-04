@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-ref.el,v 1.3 2007/08/29 17:40:47 zappo Exp $
+;; X-RCS: $Id: semanticdb-ref.el,v 1.4 2007/09/04 01:10:53 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -109,12 +109,13 @@ refers to DBT will be removed."
   (let ((refs (semanticdb-includes-in-table dbt))
 	)
     (while refs
-      (if (not (semanticdb-add-reference dbt (car refs)))
-	  ;; If we succeeded, then do... nothing?
+      (if (semanticdb-add-reference dbt (car refs))
+	  ;; If we fail, perhaps we can colorize the include tag in
+	  ;; some pleasant way.
+	  ;; NOTE: I added a new mode to semantic-decorate-mode.el
 	  nil
-	;; If we fail, perhaps we can colorize the include tag in
-	;; some pleasant way.
-	;; NOTE: I added a new mode to semantic-decorate-mode.el
+	;; If we succeeded, then do... nothing?
+	nil
 	)
       (setq refs (cdr refs)))
     ))
