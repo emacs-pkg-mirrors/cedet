@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.6 2007/03/19 02:37:47 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.7 2007/09/07 20:34:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -150,6 +150,21 @@ ST can be a class, or an object."
 	  ((stringp i)
 	   (insert i)))))
 
+(defclass srecode-template-inserter-comment (srecode-template-inserter)
+  ((key :initform ?!
+	:allocation :class
+	:documentation
+	"The character code used to identify inserters of this style.")
+   )
+  "Insert the value of some variable with :object-name.
+If this object isn't in the dictionary, ask the user what it should be.")
+
+(defmethod srecode-insert-method ((sti srecode-template-inserter-comment)
+				  dictionary)
+  "Don't insert anything for comment macros in STI."
+  nil)
+
+
 (defclass srecode-template-inserter-variable (srecode-template-inserter)
   ((key :initform nil
 	:allocation :class
@@ -204,21 +219,6 @@ ST can be a class, or an object."
     ;; Output the dumb thing
     (princ val)))
 
-(defclass srecode-template-inserter-comment (srecode-template-inserter-variable)
-  ((key :initform ?!
-	:allocation :class
-	:documentation
-	"The character code used to identify inserters of this style.")
-   )
-  "Insert the value of some variable with :object-name.
-If this object isn't in the dictionary, ask the user what it should be.")
-
-(defmethod srecode-insert-method ((sti srecode-template-inserter-comment)
-				  dictionary)
-  "Don't insert anything for comment macros in STI."
-  nil)
-
-
 (defclass srecode-template-inserter-ask (srecode-template-inserter-variable)
   ((key :initform ??
 	:allocation :class
@@ -232,6 +232,10 @@ If this object isn't in the dictionary, ask the user what it should be.")
 	       :initform nil
 	       :documentation
 	       "The function which can calculate a default value.")
+   (read-fcn :initarg :read-fcn
+	     :initform 'read-string
+	     :documentation
+	     "The function used to read in the text for this prompt.")
    )
   "Insert the value of some variable with :object-name.
 If this object isn't in the dictionary, ask the user what it should be.")
@@ -244,10 +248,12 @@ Loop over the prompts to see if we have a match."
     (while prompts
       (when (string= (semantic-tag-name (car prompts))
 		     (oref ins :object-name))
-	(oset ins :prompt (semantic-tag-get-attribute (car prompts)
-						      :text))
-	(oset ins :defaultfcn (semantic-tag-get-attribute (car prompts)
-							  :default))
+	(oset ins :prompt 
+	      (semantic-tag-get-attribute (car prompts) :text))
+	(oset ins :defaultfcn
+	      (semantic-tag-get-attribute (car prompts) :default))
+	(oset ins :read-fcn
+	      (semantic-tag-get-attribute (car prompts) :read))
 	)
       (setq prompts (cdr prompts)))
     ))
@@ -260,12 +266,32 @@ Loop over the prompts to see if we have a match."
     (if val
 	;; Does some extra work.  Oh well.
 	(call-next-method)
-      (let ((prompt (or (oref sti prompt)
-			(format "Specify %s: "
-				     (oref sti :object-name))))
-	    ;; Add default value fcn here
-	    )
-	(setq val (read-string prompt)))
+      (let* ((prompt (oref sti prompt))
+	     (defaultfcn (oref sti :defaultfcn))
+	     (default (cond ((stringp defaultfcn)
+			     defaultfcn)
+			    ((functionp defaultfcn)
+			     (funcall defaultfcn))
+			    ((null defaultfcn)
+			     "")
+			    (t
+			     (error "Unknown default for prompt: %S"
+				    defaultfcn))))
+	     (reader (oref sti :read-fcn))
+	     )
+	(cond ((eq reader 'y-or-n-p)
+	       (when (y-or-n-p (or prompt
+				   (format "%s? "
+					   (oref sti :object-name))))
+		 (setq val default)))
+	      (t
+	       
+	       (setq val (funcall reader
+				  (or prompt
+				      (format "Specify %s: "
+					      (oref sti :object-name)))
+				  ))))
+	)
       ;; After asking, save in the dictionary so that
       ;; the user can use the same name again later.
       (srecode-dictionary-set-value 
