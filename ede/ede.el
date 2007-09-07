@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.87 2007/09/02 14:30:43 zappo Exp $
+;; RCS: $Id: ede.el,v 1.88 2007/09/07 19:36:34 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -425,33 +425,39 @@ Do not set this to non-nil globally.  It is used internally.")
 
 (defun ede-load-cache ()
   "Load the cache of EDE projects."
-  (condition-case nil
-      (progn
-	(set-buffer (find-file-noselect ede-project-placeholder-cache-file t))
-	(goto-char (point-min))
-	(let ((c (read (current-buffer)))
-	      (new nil)
-	      (p ede-projects))
-	  ;; Remove loaded projects from the cache.
-	  (while p
-	    (setq c (delete (oref (car p) file) c))
-	    (setq p (cdr p)))
-	  ;; Remove projects that aren't on the filesystem
-	  ;; anymore.
-	  (while c
-	    (when (file-exists-p (car c))
-	      (setq new (cons (car c) new)))
-	    (setq c (cdr c)))
-	  ;; Save it
-	  (setq ede-project-cache-files (nreverse new))))
-    (error nil))
-  (if (get-file-buffer ede-project-placeholder-cache-file)
-      (kill-buffer (get-file-buffer ede-project-placeholder-cache-file)))
-  )
+  (save-excursion
+    (let ((cachebuffer nil))
+      (condition-case nil
+	  (progn
+	    (setq cachebuffer
+		  (find-file-noselect ede-project-placeholder-cache-file t))
+	    (set-buffer cachebuffer)
+	    (goto-char (point-min))
+	    (let ((c (read (current-buffer)))
+		  (new nil)
+		  (p ede-projects))
+	      ;; Remove loaded projects from the cache.
+	      (while p
+		(setq c (delete (oref (car p) file) c))
+		(setq p (cdr p)))
+	      ;; Remove projects that aren't on the filesystem
+	      ;; anymore.
+	      (while c
+		(when (file-exists-p (car c))
+		  (setq new (cons (car c) new)))
+		(setq c (cdr c)))
+	      ;; Save it
+	      (setq ede-project-cache-files (nreverse new))))
+	(error nil))
+      (when cachebuffer (kill-buffer cachebuffer))
+      )))
 
 ;;; Get the cache usable.
 (add-hook 'kill-emacs-hook 'ede-save-cache)
-(ede-load-cache)
+(when (not noninteractive)
+  ;; No need to load the EDE cache if we aren't interactive.
+  ;; This occurs during batch byte-compiling of other tools.
+  (ede-load-cache))
 
 
 ;;; Important macros for doing commands.
