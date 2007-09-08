@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.45 2007/09/04 01:09:27 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.46 2007/09/08 03:32:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -190,19 +190,22 @@ expunge duplicates.")
   "Concrete search index for `semanticdb-find'.
 This class will cache data derived during various searches.")
 
-(defmethod semanticdb-synchronize ((idx semanticdb-find-search-index)
-				   new-tags)
-  "Synchronize the search index IDX with some NEW-TAGS."
+(defmethod semantic-reset ((idx semanticdb-find-search-index))
+  "Reset the object IDX."
   ;; Clear the include path.
   (oset idx include-path nil)
   (oset idx type-cache nil)
+  )
+
+(defmethod semanticdb-synchronize ((idx semanticdb-find-search-index)
+				   new-tags)
+  "Synchronize the search index IDX with some NEW-TAGS."
+  (semantic-reset idx)
   ;; Notify dependants by clearning their indicies.
   (semanticdb-notify-references
    (oref idx table) 
    (lambda (tab me)
-     (let ((tab-idx (semanticdb-get-table-index tab)))
-       (oset idx include-path nil)
-       (oset idx type-cache nil))))
+     (semantic-reset (semanticdb-get-table-index tab))))
   )
 
 (defmethod semanticdb-partial-synchronize ((idx semanticdb-find-search-index)
@@ -211,16 +214,12 @@ This class will cache data derived during various searches.")
   ;; Only reset if include statements changed.
   (if (semantic-find-tags-by-class 'include new-tags)
       (progn
-	;; Reset our index
-	(oset idx include-path nil)
-	(oset idx type-cache nil)
+	(semantic-reset idx)
 	;; Notify dependants by clearning their indicies.
 	(semanticdb-notify-references
 	 (oref idx table) 
 	 (lambda (tab me)
-	   (let ((tab-idx (semanticdb-get-table-index tab)))
-	     (oset idx include-path nil)
-	     (oset idx type-cache nil))))
+	   (semantic-reset (semanticdb-get-table-index tab))))
 	)
     ;; Else, not an include, by just a type.
     (when (semantic-find-tags-by-class 'type new-tags)
@@ -231,7 +230,8 @@ This class will cache data derived during various searches.")
        (oref idx table)
        (lambda (tab me)
 	 (let ((tab-idx (semanticdb-get-table-index tab)))
-	   (oset idx type-cache nil))))
+	   ;; Not a full reset?
+	   (oset tab-idx type-cache nil))))
       )
   ))
 
