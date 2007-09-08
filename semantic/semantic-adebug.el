@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.7 2007/08/22 13:59:17 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.8 2007/09/08 03:27:15 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -757,12 +757,13 @@ Display the results as a debug list."
     (semantic-adebug-insert-find-results fr "*")))
 
 ;;;###autoload
-(defun semantic-adebug-analyze ()
+(defun semantic-adebug-analyze (&optional ctxt)
   "Perform `semantic-analyze-current-context'.
-Display the results as a debug list."
+Display the results as a debug list.
+Optional argument CTXT is the context to show."
   (interactive)
   (let ((start (current-time))
-	(ctxt (semantic-analyze-current-context))
+	(ctxt (or ctxt (semantic-analyze-current-context)))
 	(end (current-time))
 	(ab nil))
     (message "Analysis  took %.2f seconds."
