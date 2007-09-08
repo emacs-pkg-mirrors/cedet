@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.44 2007/08/22 15:32:30 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.45 2007/09/08 03:28:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -396,6 +396,39 @@ Depends on `semantic-type-relation-separator-character'."
 	      )
 	  (error nil)))
       symlist)))
+
+(define-overload semantic-ctxt-current-symbol-and-bounds (&optional point)
+  "Return the current symbol and bounds the cursor is on at POINT.
+The symbol should be the same as returned by `semantic-ctxt-current-symbol'.
+Return (PREFIX ENDSYM BOUNDS).")
+
+(defun semantic-ctxt-current-symbol-and-bounds-default (&optional point)
+  "Return the current symbol and bounds the cursor is on at POINT.
+Uses `semantic-ctxt-current-symbol' to calculate the symbol.
+Return (PREFIX ENDSYM BOUNDS)."
+  (save-excursion
+    (when point (goto-char (point)))
+    (let* ((prefix (semantic-ctxt-current-symbol))
+	   (endsym (car (reverse prefix)))
+	   ;; @todo - Can we get this data direct from ctxt-current-symbol?
+	   (bounds (save-excursion
+		     (cond ((string= endsym "")
+			    (cons (point) (point))
+			    )
+			   ((and prefix (looking-at endsym))
+			    (cons (point) (progn
+					    (condition-case nil
+						(forward-sexp 1)
+					      (error nil))
+					    (point))))
+			   (prefix
+			    (condition-case nil
+				(cons (progn (forward-sexp -1) (point))
+				      (progn (forward-sexp 1) (point)))
+			      (error nil)))
+			   (t nil))))
+	   )
+      (list prefix endsym bounds))))
 
 (define-overload semantic-ctxt-current-assignment (&optional point)
   "Return the current assignment near the cursor at POINT.
