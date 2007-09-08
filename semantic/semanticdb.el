@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.86 2007/09/04 01:36:35 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.87 2007/09/08 03:31:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -197,7 +197,7 @@ In order to keep your cache up to date, be sure to implement
   "Get a cache object on TABLE of class DESIRED-CLASS.
 This method will create one if none exists with no init arguments
 other than :table."
-  (assert (semanticdb-abstract-cache-child-p desired-class))
+  (assert (child-of-class-p desired-class 'semanticdb-abstract-cache))
   (let ((cache (oref table cache))
 	(obj nil))
     (while (and (not obj) cache)
@@ -208,7 +208,8 @@ other than :table."
 	obj ;; Just return it.
       ;; No object, lets create a new one and return that.
       (setq obj (funcall desired-class "Cache" :table table))
-      (object-add-to-list table cache obj))))
+      (object-add-to-list table 'cache obj)
+      obj)))
 
 (defmethod semanticdb-synchronize ((cache semanticdb-abstract-cache)
 				   new-tags)
