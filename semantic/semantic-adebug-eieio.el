@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug-eieio.el,v 1.2 2007/05/10 15:50:59 zappo Exp $
+;; X-RCS: $Id: semantic-adebug-eieio.el,v 1.3 2007/09/08 03:26:46 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -117,6 +117,18 @@ PREBUTTONTEXT is some text between PREFIX and the object button."
 	  )
 	(setq publa (cdr publa) publd (cdr publd)))
       )))
+
+;;; DEBUG METHODS
+;;
+;; A generic function to run ADEBUG on an object and popup a new buffer.
+;;
+;;;###autoload
+(defmethod semantic-adebug-show ((obj eieio-default-superclass))
+  "Run adebug against any EIEIO object OBJ"
+  (let ((ab (semantic-adebug-new-buffer 
+	     (format "*%s ADEBUG*" (object-name obj)))))
+    (semantic-adebug-insert-object-fields obj "]"))
+  )
 
 ;;; Code:
 
