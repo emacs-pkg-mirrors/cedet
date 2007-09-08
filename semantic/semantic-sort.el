@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.23 2007/06/06 01:05:25 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.24 2007/09/08 03:33:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -63,6 +63,36 @@ Argument S1 and S2 are the strings to compare."
 	  ((listp ty)
 	   (or (car ty) ""))
 	  (t ""))))
+
+(defun semantic-tag-lessp-name-then-type (A B)
+  "Return t if tag A is < tag B.
+First sorts on name, then sorts on the name of the :type of
+each tag."
+  (let* ((na (semantic-tag-name A))
+	 (nb (semantic-tag-name B))
+	 (ans (string-lessp na nb)))
+    (if ans
+	ans ; a sure thing.
+      (if (string= na nb)
+	  ;; If equal, test the :type which might be different.
+	  (let* ((ta (semantic-tag-type A))
+		 (tb (semantic-tag-type B))
+		 (tas (cond ((stringp ta)
+			     ta)
+			    ((semantic-tag-p ta)
+			     (semantic-tag-name ta))
+			    (t nil)))
+		 (tbs (cond ((stringp tb)
+			     tb)
+			    ((semantic-tag-p tb)
+			     (semantic-tag-name tb))
+			    (t nil))))
+	    (if (and (stringp tas) (stringp tbs))
+		(string< tas tbs)
+	      ;; This is if A == B, and no types in A or B
+	      nil))
+	;; This nil is if A > B, but not =
+	nil))))
 
 ;;;###autoload
 (defun semantic-sort-tags-by-name-increasing (tags)
@@ -128,6 +158,19 @@ Return the sorted list."
 	       (semantic-string-lessp-ci (semantic-sort-tag-type b)
 					 (semantic-sort-tag-type a)))))
 
+;;;###autoload
+(defun semantic-sort-tags-by-name-then-type-increasing (tags)
+  "Sort TAGS by name, then type in increasing order with side effects.
+Return the sorted list."
+  (sort tags (lambda (a b) (semantic-tag-lessp-name-then-type a b))))
+
+;;;###autoload
+(defun semantic-sort-tags-by-name-then-type-decreasing (tags)
+  "Sort TAGS by name, then type in increasing order with side effects.
+Return the sorted list."
+  (sort tags (lambda (a b) (semantic-tag-lessp-name-then-type b a))))
+
+
 (semantic-alias-obsolete 'semantic-sort-tokens-by-name-increasing
 			 'semantic-sort-tags-by-name-increasing)
 (semantic-alias-obsolete 'semantic-sort-tokens-by-name-decreasing
@@ -157,7 +200,9 @@ Return the sorted list."
 ;;;###autoload
 (defun semantic-unique-tag-table-by-name (tags)
   "Scan a list of TAGS, removing duplicate names.
-This must first sort the tags by name alphabetically ascending."
+This must first sort the tags by name alphabetically ascending.
+For more complex uniqueness testing used by the semanticdb
+typecaching system, see `semanticdb-typecache-merge-streams'."
   (let ((copy (copy-sequence tags))
 	(sorted (semantic-sort-tags-by-name-increasing
 		 (copy-sequence tags)))
@@ -176,7 +221,9 @@ This must first sort the tags by name alphabetically ascending."
   "Scan a list of TAGS, removing duplicates.
 This must first sort the tags by position ascending.
 TAGS are removed only if they are equivalent, as can happen when
-multiple tag sources are scanned."
+multiple tag sources are scanned.
+For more complex uniqueness testing used by the semanticdb
+typecaching system, see `semanticdb-typecache-merge-streams'."
   (let ((copy (copy-sequence tags))
 	(sorted (sort (copy-sequence tags)
 		      (lambda (a b)
