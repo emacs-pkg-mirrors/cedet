@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57 2007/09/02 17:16:32 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.58 2007/09/08 03:37:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -505,11 +505,6 @@ NOTE: In process of obsoleting this."
 (defvar-mode-local c-mode semantic-dependency-include-path
   semantic-default-c-path
   "System path to search for include files.")
-
-(define-mode-local-override semantic-tag< c-mode (A B)
-  "We need to sort based on datatypes too."
-  (semantic-tag<-with-type A B))
-
 
 (define-mode-local-override semantic-format-tag-name
   c-mode (tag &optional parent color)
