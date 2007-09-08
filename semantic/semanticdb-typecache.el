@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.10 2007/09/04 01:11:25 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.11 2007/09/08 03:35:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -92,9 +92,13 @@ If there is no table, create one, and fill it in."
 	(setq mem (semanticdb-typecache-apply-filename fname mem))
       (copy-sequence mem))))
 
+;; @todo - This should go into semantic-sort.el
 (defun semanticdb-typecache-merge-streams (cache1 cache2)
   "Merge into CACHE1 and CACHE2 together."
-  (let ((S (sort (append cache1 cache2) #'semantic-tag<))
+  ;; Assume we always have datatypes, as this typecache isn'nt really
+  ;; useful without a typed language.
+  (let ((S (semantic-sort-tags-by-name-then-type-increasing
+	    (append cache1 cache2)))
 	(ans nil)
 	(next nil)
 	(prev nil)
@@ -251,7 +255,8 @@ combine the caches of all files included within itself."
 
 ;;; Search Routines
 ;;
-(define-overload semanticdb-typecache-find (type &optional path)
+;;;###autoload
+(define-overload semanticdb-typecache-find (type &optional path find-file-match)
   "Search the typecache for TYPE in PATH.
 If type is a string, split the string, and search for the parts.
 If type is a list, treat the type as a pre-split string.
@@ -277,6 +282,7 @@ If FIND-FILE-MATCH is non-nil, then force the file belonging to the
 found tag to be loaded."
   ;; convert string to a list.
   (when (stringp type) (setq type (semantic-analyze-split-name type)))
+  (when (stringp type) (setq type (list type)))
 
   ;; Search for the list in our typecache.
   (let* ((cache (semanticdb-get-typecache table))
