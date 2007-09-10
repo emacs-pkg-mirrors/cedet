@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.11 2007/09/08 03:35:05 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.12 2007/09/10 18:05:42 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -93,6 +93,7 @@ If there is no table, create one, and fill it in."
       (copy-sequence mem))))
 
 ;; @todo - This should go into semantic-sort.el
+;;;###autoload
 (defun semanticdb-typecache-merge-streams (cache1 cache2)
   "Merge into CACHE1 and CACHE2 together."
   ;; Assume we always have datatypes, as this typecache isn'nt really
