@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.39 2007/08/25 17:11:37 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.40 2007/09/10 20:14:38 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -721,6 +721,7 @@ Do not override for `prot-2'."
 	   :group moose)
    (docstring :documentation
 	      "Replace the doc-string for this property.")
+   (printer :printer printer1)
    )
   "Baseclass we will attempt to subclass.
 Subclasses to override slot attributes.")
@@ -758,6 +759,7 @@ Subclasses to override slot attributes.")
 	   :group cow)
    (docstring :documentation
 	      "A better doc string for this class.")
+   (printer :printer printer2)
    )
   "This class should allow overriding of various slot attributes.")
 
@@ -876,18 +878,40 @@ Subclasses to override slot attributes.")
 ;;
 (defclass PO (eieio-persistent)
   ((slot1 :initarg :slot1
-	  :initform 2)
+	  :initform 'moose
+	  :printer PO-slot1-printer)
    (slot2 :initarg :slot2
 	  :initform "foo"))
   "A Persistent object with two initializable slots.")
 
+(defun PO-slot1-printer (slotvalue)
+  "Print the slot value SLOTVALUE to stdout.
+Assume SLOTVALUE is a symbol of some sort."
+  (princ "(make-symbol \"")
+  (princ (symbol-name slotvalue))
+  (princ "\")")
+  nil)
+;;(PO-slot1-printer 'moose)
+
 (defvar PO1 nil)
-(setq PO1 (PO "persist" :slot1 4 :slot2 "testing"
+(setq PO1 (PO "persist" :slot1 'goose :slot2 "testing"
 	      :file (concat default-directory "test-p.el")))
 
 (eieio-persistent-save PO1)
 
 (eieio-persistent-read "test-p.el")
+
+(let* ((find-file-hooks nil)
+       (tbuff (find-file-noselect "test-p.el"))
+       )
+  (condition-case nil
+      (unwind-protect
+	  (save-excursion
+	    (set-buffer tbuff)
+	    (goto-char (point-min))
+	    (re-search-forward ":slot1 (make-symbol"))
+	(kill-buffer tbuff))
+    (error "PO's Slot1 printer function didn't work.")))
 
 
 ;;; Test the instance tracker
