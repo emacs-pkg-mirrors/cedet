@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.151 2007/08/25 17:11:03 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.152 2007/09/10 20:13:43 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -144,26 +144,28 @@ execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
 (defconst class-public-custom 9 "Class custom type for a slot.")
 (defconst class-public-custom-label 10 "Class custom group for a slot.")
 (defconst class-public-custom-group 11 "Class custom group for a slot.")
-(defconst class-protection 12 "Class protection for a slot.")
-(defconst class-initarg-tuples 13 "Class initarg tuples list.")
-(defconst class-class-allocation-a 14 "Class allocated attributes.")
-(defconst class-class-allocation-doc 15 "Class allocated documentation.")
-(defconst class-class-allocation-type 16 "Class allocated value type.")
-(defconst class-class-allocation-custom 17 "Class allocated custom descriptor.")
-(defconst class-class-allocation-custom-label 18 "Class allocated custom descriptor.")
-(defconst class-class-allocation-custom-group 19 "Class allocated custom group.")
-(defconst class-class-allocation-protection 20 "Class allocated protection list.")
-(defconst class-class-allocation-values 21 "Class allocated value vector.")
-(defconst class-default-object-cache 22
+(defconst class-public-printer 12 "Printer for a slot.")
+(defconst class-protection 13 "Class protection for a slot.")
+(defconst class-initarg-tuples 14 "Class initarg tuples list.")
+(defconst class-class-allocation-a 15 "Class allocated attributes.")
+(defconst class-class-allocation-doc 16 "Class allocated documentation.")
+(defconst class-class-allocation-type 17 "Class allocated value type.")
+(defconst class-class-allocation-custom 18 "Class allocated custom descriptor.")
+(defconst class-class-allocation-custom-label 19 "Class allocated custom descriptor.")
+(defconst class-class-allocation-custom-group 20 "Class allocated custom group.")
+(defconst class-class-allocation-printer 21 "Class allocated printer for a slot.")
+(defconst class-class-allocation-protection 22 "Class allocated protection list.")
+(defconst class-class-allocation-values 23 "Class allocated value vector.")
+(defconst class-default-object-cache 24
   "Cache index of what a newly created object would look like.
 This will speed up instantiation time as only a `copy-sequence' will
 be needed, instead of looping over all the values and setting them
 from the default.")
-(defconst class-options 23
+(defconst class-options 25
   "Storage location of tagged class options.
 Stored outright without modifications or stripping.")
 
-(defconst class-num-fields 24
+(defconst class-num-fields 26
   "Number of fields in the class definition object.")
 
 (defconst object-class 1 "Index in an object vector where the class is stored.")
@@ -263,6 +265,8 @@ The following are extensions on CLOS:
   :custom     - When customizing an object, the custom :type.  Public only.
   :label      - A text string label used for a slot when customizing.
   :group      - Name of a customization group this slot belongs in.
+  :printer    - A function to call to print the value of a slot.
+                See `eieio-override-prin1' as an example.
 
 A class can also have optional options.  These options happen in place
 of documentation, (including a :documentation tag) in addition to
@@ -440,7 +444,8 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	     (custom  (plist-get field ':custom))
 	     (label   (plist-get field ':label))
 	     (customg (plist-get field ':group))
-	     
+	     (printer (plist-get field ':printer))
+
 	     (skip-nil (class-option-assoc options :allow-nil-initform))
 	     )
 
@@ -459,6 +464,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 					     :custom
 					     :label
 					     :group
+					     :printer
 					     :allow-nil-initform
 					     :custom-groups)))
 		    (signal 'invalid-slot-type (list (car tmp))))
@@ -501,7 +507,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		customg)
 
 	;; First up, add this field into our new class.
-	(eieio-add-new-field newc name init docstr type custom label customg
+	(eieio-add-new-field newc name init docstr type custom label customg printer
 			     prot initarg alloc 'defaultoverride skip-nil)
 
 	;; We need to id the group, and store them in a group list attribute.
@@ -559,6 +565,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     (aset newc class-public-custom (nreverse (aref newc class-public-custom)))
     (aset newc class-public-custom-label (nreverse (aref newc class-public-custom-label)))
     (aset newc class-public-custom-group (nreverse (aref newc class-public-custom-group)))
+    (aset newc class-public-printer (nreverse (aref newc class-public-printer)))
     (aset newc class-protection (nreverse (aref newc class-protection)))
     (aset newc class-initarg-tuples (nreverse (aref newc class-initarg-tuples)))
 
@@ -659,11 +666,11 @@ If SKIPNIL is non-nil, then if VALUE is nil, return t."
 	     (not (eieio-perform-slot-validation spec val)))
 	(signal 'invalid-slot-type (list field spec val)))))
 
-(defun eieio-add-new-field (newc a d doc type cust label custg prot init alloc
+(defun eieio-add-new-field (newc a d doc type cust label custg print prot init alloc
 				 &optional defaultoverride skipnil)
   "Add into NEWC attribute A.
 If A already exists in NEWC, then do nothing.  If it doesn't exist,
-then also add in D (defualt), DOC, TYPE, CUST, LABEL, CUSTG, PROT, and INIT arg.
+then also add in D (defualt), DOC, TYPE, CUST, LABEL, CUSTG, PRINT, PROT, and INIT arg.
 Argument ALLOC specifies if the field is allocated per instance, or per class.
 If optional DEFAULTOVERRIDE is non-nil, then if A exists in NEWC,
 we must override it's value for a default.
@@ -695,6 +702,7 @@ if default value is nil."
 	      (aset newc class-public-custom (cons cust (aref newc class-public-custom)))
 	      (aset newc class-public-custom-label (cons label (aref newc class-public-custom-label)))
 	      (aset newc class-public-custom-group (cons custg (aref newc class-public-custom-group)))
+	      (aset newc class-public-printer (cons print (aref newc class-public-printer)))
 	      (aset newc class-protection (cons prot (aref newc class-protection)))
 	      (aset newc class-initarg-tuples (cons (cons init a) (aref newc class-initarg-tuples)))
 	      )
@@ -778,6 +786,13 @@ if default value is nil."
 		  (setcar (nthcdr num (aref newc class-public-doc))
 			  doc))
 		;; End PLN
+
+		;; If a new printer is specified, it simply replaces
+		;; the old one.
+		(when print
+		  ;; (message "printer redefined to %s" print)
+		  (setcar (nthcdr num (aref newc class-public-printer)) print))
+
 		)))
 	  ))
 
@@ -851,6 +866,11 @@ if default value is nil."
 		      doc))
 	    ;; End PLN
 
+	    ;; If a new printer is specified, it simply replaces
+	    ;; the old one.
+	    (when print
+	      ;; (message "printer redefined to %s" print)
+	      (setcar (nthcdr num (aref newc class-class-allocation-printer)) print))
 
 	    ))
 	))
@@ -873,6 +893,7 @@ the new child class."
 	      (pcust (aref pcv class-public-custom))
 	      (plabel (aref pcv class-public-custom-label))
 	      (pcustg (aref pcv class-public-custom-group))
+	      (printer (aref pcv class-public-printer))
 	      (pprot (aref pcv class-protection))
 	      (pinit (aref pcv class-initarg-tuples))
 	      (i 0))
@@ -880,6 +901,7 @@ the new child class."
 	    (eieio-add-new-field newc
 				 (car pa) (car pd) (car pdoc) (aref ptype i)
 				 (car pcust) (car plabel) (car pcustg)
+				 (car printer)
 				 (car pprot) (car-safe (car pinit)) nil nil sn)
 	    ;; Increment each value.
 	    (setq pa (cdr pa)
@@ -899,6 +921,7 @@ the new child class."
 	      (pcust (aref pcv class-class-allocation-custom))
 	      (plabel (aref pcv class-class-allocation-custom-label))
 	      (pcustg (aref pcv class-class-allocation-custom-group))
+	      (printer (aref pcv class-class-allocation-printer))
 	      (pprot (aref pcv class-class-allocation-protection))
 	      (pval (aref pcv class-class-allocation-values))
 	      (i 0))
@@ -906,6 +929,7 @@ the new child class."
 	    (eieio-add-new-field newc
 				 (car pa) (aref pval i) (car pdoc) (aref ptype i)
 				 (car pcust) (car plabel) (car pcustg)
+				 (car printer)
 				 (car pprot) nil ':class sn)
 	    ;; Increment each value.
 	    (setq pa (cdr pa)
@@ -2159,18 +2183,25 @@ this object."
     ;; Loop over all the public slots
     (let ((publa (aref cv class-public-a))
 	  (publd (aref cv class-public-d))
+	  (publp (aref cv class-public-printer))
 	  (eieio-print-depth (1+ eieio-print-depth)))
       (while publa
 	(when (slot-boundp this (car publa))
 	  (let ((i (class-slot-initarg cl (car publa)))
-		(v (eieio-oref this (car publa))))
+		(v (eieio-oref this (car publa)))
+		)
 	    (unless (or (not i) (equal v (car publd)))
 	      (princ (make-string (* eieio-print-depth 2) ? ))
 	      (princ (symbol-name i))
 	      (princ " ")
-	      (eieio-override-prin1 v)
+	      (if (car publp)
+		  ;; Use our public printer
+		  (funcall (car publp) v)
+		;; Use our generic override prin1 function.
+		(eieio-override-prin1 v))
 	      (princ "\n"))))
-	(setq publa (cdr publa) publd (cdr publd)))
+	(setq publa (cdr publa) publd (cdr publd)
+	      publp (cdr publp)))
       (princ (make-string (* eieio-print-depth 2) ? )))
     (princ ")\n")))
 
