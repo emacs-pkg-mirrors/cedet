@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.35 2007/09/02 17:12:43 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.36 2007/09/17 04:28:57 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -102,6 +102,9 @@
 %put NAMESPACE summary "Namespace Declaration: namespace <name> { ... };"
 %token USING "using"
 %put USING summary "using <namespace>;"
+
+%token NEW "new"
+%put NEW summary "new <classname>();"
 
 ;; Despite this, this parser can find templates by ignoring the TEMPLATE
 ;; keyword, and finding the class/method being templateized.
@@ -1118,6 +1121,8 @@ expression
   : number
     ( (identity start) (identity end) )
   | function-call
+    ( (identity start) (identity end) )
+  | NEW function-call
     ( (identity start) (identity end) )
  ;; Klaus Berndl: symbol -> namespace-symbol!
   | namespace-symbol
