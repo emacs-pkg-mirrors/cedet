@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-complete.el,v 1.1 2007/09/08 03:40:46 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-complete.el,v 1.2 2007/09/20 01:51:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -107,15 +107,14 @@ in a buffer."
   "Default method for producing smart completions.
 Argument CONTEXT is an object specifying the locally derived context."
   (let* ((a context)
-	 (fnargs (save-excursion
-		   (semantic-get-local-arguments
-		    (car (oref a bounds)))))
 	 (desired-type (semantic-analyze-type-constraint a))
 	 (desired-class (oref a prefixclass))
 	 (prefix (oref a prefix))
 	 (prefixtypes (oref a prefixtypes))
 	 (completetext nil)
 	 (completetexttype nil)
+	 (scope (oref a scope))
+	 (localvar (oref scope localvar))
 	 (c nil))
 
     ;; Calculate what our prefix string is so that we can
@@ -165,13 +164,10 @@ Argument CONTEXT is an object specifying the locally derived context."
 	;; var or function.  We need to expand our search beyond this
 	;; scope into semanticdb, etc.
 	(setq c (append
-		 ;; Argument list
-		 (semantic-find-tags-by-name-regexp expr fnargs)
-		 ;; Local variables
-		 (semantic-find-tags-by-name-regexp expr
-						    (oref a localvariables))
+		 ;; Argument list and local variables
+		 (semantic-find-tags-by-name-regexp expr localvar)
 		 ;; The current scope
-		 (semantic-find-tags-by-name-regexp expr (oref a scope))
+		 (semantic-find-tags-by-name-regexp expr (oref scope fullscope))
 		 ;; The world
 		 (semantic-analyze-find-tags-by-prefix
 		  completetext))
@@ -179,7 +175,6 @@ Argument CONTEXT is an object specifying the locally derived context."
 	))
 
     (let ((origc c)
-	  (scope (oref a scope))
 	  (dtname (semantic-tag-name desired-type)))
 	
       ;; Reset c.
