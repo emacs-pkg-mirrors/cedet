@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.57 2007/09/08 03:45:57 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.58 2007/09/20 01:51:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -255,7 +255,7 @@ Use LOCALVAR, SCOPE, and TYPERETURN to help identify parts of the sequence."
     (setq tmp (or
 	       ;; Is this tag within our scope.  Scopes can sometimes
 	       ;; shadow other things, so it goes first.
-	       (semantic-scope-find (car s) nil scope)
+	       (and scope (semantic-scope-find (car s) nil scope))
 	       ;; Find the tag out there... somewhere, but not in scope
 	       (semantic-analyze-find-tag (car s))
 	       ))
@@ -336,7 +336,7 @@ searches use the same arguments."
 	(car (nreverse seq))))
      ;; If NAME is solo, then do our searches for it here.
      ((stringp namelst)
-      (let ((retlist (semantic-scope-find name tagclass scope)))
+      (let ((retlist (and scope (semantic-scope-find name tagclass scope))))
 	(if retlist
 	    retlist
 	  (cond
