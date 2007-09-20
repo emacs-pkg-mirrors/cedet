@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.1 2007/09/08 03:39:41 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.2 2007/09/20 01:50:38 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -179,7 +179,7 @@ SCOPE represents a calculated scope in which the types might be found."
       (if (and name (not (string= name "")))
 	  (progn
 	    ;; Find a type of that name in scope.
-	    (setq typetag (semantic-scope-find name 'type scope))
+	    (setq typetag (and scope (semantic-scope-find name 'type scope)))
 	    ;; If no typetag, try the typecache
 	    (when (not typetag)
 	      (setq typetag (semanticdb-typecache-find name))))
@@ -216,14 +216,16 @@ SCOPE is the scope object with additional items in which to search for names."
       ;; need to do some more work to look it up.
       (if (stringp ans)
 	  ;; The metatype is just a string... look it up.
-	  (or (semantic-scope-find ans 'type scope)
+	  (or (and scope (semantic-scope-find ans 'type scope))
 	      (semanticdb-typecache-find ans))
 	(when (and (semantic-tag-p ans)
 		   (eq (semantic-tag-class ans) 'type))
 	  ;; We have a tag.
 	  (if (semantic-analyze-tag-prototype-p ans)
 	      ;; It is a prototype.. find the real one.
-	      (or (semantic-scope-find (semantic-tag-name ans) 'type scope)
+	      (or (and scope 
+		       (semantic-scope-find (semantic-tag-name ans)
+					    'type scope))
 		  (semanticdb-typecache-find (semantic-tag-name ans)))
 	    ;; We have a tag, and it is not a prototype.
 	    ans))
