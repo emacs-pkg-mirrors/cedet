@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.58 2007/09/08 03:37:39 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.59 2007/09/27 11:14:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -216,7 +216,7 @@ case, we must skip it since it is the ELSE part."
 
 (define-lex-spp-include-analyzer semantic-lex-c-include-system
   "Identify include strings, and return special tokens."
-    "^\\s-*#\\s-*include\\s-+<\\([^ \t\n>]+\\)>" 0
+    "^\\s-*#\\s-*include\\s-*<\\([^ \t\n>]+\\)>" 0
     ;; Hit 1 is the name of the include.
     (goto-char (match-end 0))
     (setq semantic-lex-end-point (point))
@@ -226,7 +226,7 @@ case, we must skip it since it is the ELSE part."
 
 (define-lex-spp-include-analyzer semantic-lex-c-include
   "Identify include strings, and return special tokens."
-    "^\\s-*#\\s-*include\\s-+\"\\([^ \t\n>]+\\)\"" 0
+    "^\\s-*#\\s-*include\\s-*\"\\([^ \t\n>]+\\)\"" 0
     ;; Hit 1 is the name of the include.
     (goto-char (match-end 0))
     (setq semantic-lex-end-point (point))
@@ -779,7 +779,7 @@ DO NOT return the list of tags encompassing point."
 
 (defvar-mode-local c-mode semantic-type-relation-separator-character 
   '("." "->")
-  "Separator characters between something of a give type, and a field.")
+  "Separator characters between something of a given type, and a field.")
 
 (defvar-mode-local c-mode semantic-command-separation-character ";"
   "Commen separation character for C")
