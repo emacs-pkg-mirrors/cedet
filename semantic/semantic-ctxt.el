@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.45 2007/09/08 03:28:49 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.46 2007/10/16 01:59:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -171,7 +171,8 @@ Uses the bovinator with the special top-symbol `bovine-inner-scope'
 to collect tags, such as local variables or prototypes."
   ;; This assumes a bovine parser.  Make sure we don't do
   ;; anything in that case.
-  (when (and semantic--parse-table (not (eq semantic--parse-table t)))
+  (when (and semantic--parse-table (not (eq semantic--parse-table t))
+	     (not (semantic-parse-tree-unparseable-p)))
     (let ((vars nil)
 	  (vars2 nil)
 	  ;; We want nothing to do with funny syntaxing while doing this.
