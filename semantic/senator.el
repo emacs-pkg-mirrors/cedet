@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.116 2007/02/19 02:55:09 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.117 2007/11/07 14:52:12 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -2804,16 +2804,36 @@ Use a senator search function when semantic isearch mode is enabled."
   [(control ?,)]
   'senator-isearch-toggle-semantic-mode)
 
+(defvar senator-old-isearch-search-fun nil
+  "Hold previous value of `isearch-search-fun-function'.")
+
 (defun senator-isearch-mode-hook ()
   "Isearch mode hook to setup semantic searching."
   (or senator-minor-mode
       (setq senator-isearch-semantic-mode nil))
   (when (boundp 'isearch-search-fun-function)
     (if (and isearch-mode senator-isearch-semantic-mode)
-        (set (make-local-variable 'isearch-search-fun-function)
-             'senator-isearch-search-fun)
-      (kill-local-variable 'isearch-search-fun-function)))
+        (progn
+          ;; When `senator-isearch-semantic-mode' is on save the
+          ;; previous `isearch-search-fun-function' and install the
+          ;; senator one.
+          (when (and (local-variable-p 'isearch-search-fun-function)
+                     (not (local-variable-p 'senator-old-isearch-search-fun)))
+            (set (make-local-variable 'senator-old-isearch-search-fun)
+                 isearch-search-fun-function))
+          (set (make-local-variable 'isearch-search-fun-function)
+               'senator-isearch-search-fun))
+      ;; When `senator-isearch-semantic-mode' is off restore the
+      ;; previous `isearch-search-fun-function'.
+      (when (eq isearch-search-fun-function 'senator-isearch-search-fun)
+        (if (local-variable-p 'senator-old-isearch-search-fun)
+            (progn
+              (set (make-local-variable 'isearch-search-fun-function)
+                   senator-old-isearch-search-fun)
+              (kill-local-variable 'senator-old-isearch-search-fun))
+          (kill-local-variable 'isearch-search-fun-function)))))
   (senator-mode-line-update))
+
 
 (add-hook 'isearch-mode-hook     'senator-isearch-mode-hook)
 (add-hook 'isearch-mode-end-hook 'senator-isearch-mode-hook)
