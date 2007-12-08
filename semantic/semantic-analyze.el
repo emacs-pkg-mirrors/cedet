@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.58 2007/09/20 01:51:18 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.59 2007/12/08 13:43:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -196,7 +196,7 @@ Optional argument DESIRED-TYPE may be a non-type tag to analyze."
 (defmethod semantic-analyze-interesting-tag
   ((context semantic-analyze-context))
   "Return a tag from CONTEXT that would be most interesting to a user."
-  (let ((prefix (oref context :prefix)))
+  (let ((prefix (reverse (oref context :prefix))))
     (cond ((semantic-tag-p (car prefix))
 	   ;; If the prefix is a tag, that is interesting.
 	   (car prefix))
