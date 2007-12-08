@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.18 2007/08/27 11:48:18 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.19 2007/12/08 13:55:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -183,15 +183,11 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
   "Display a summary for the symbol under POINT."
   (interactive "P")
   (let* ((ctxt (semantic-analyze-current-context point))
-	 (pf (reverse (oref ctxt prefix)))
-	 (sum nil)
+	 (pf (when ctxt
+	       (semantic-analyze-interesting-tag ctxt)))
 	)
-    (while (and pf (not sum))
-      (if (semantic-tag-p (car pf))
-	  (setq sum (semantic-format-tag-summarize (car pf) nil t)))
-      (setq pf (cdr pf)))
-    (message "%s" sum)
-    ))
+    (when pf
+      (message "%s" (semantic-format-tag-summarize pf nil t)))))
 
 ;;;###autoload
 (defun semantic-ia-fast-jump (point)
