@@ -4,13 +4,13 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.59 2007/12/08 13:43:14 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.60 2007/12/08 13:54:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This software is distributed in the hope that it will be useful,
@@ -197,18 +197,11 @@ Optional argument DESIRED-TYPE may be a non-type tag to analyze."
   ((context semantic-analyze-context))
   "Return a tag from CONTEXT that would be most interesting to a user."
   (let ((prefix (reverse (oref context :prefix))))
-    (cond ((semantic-tag-p (car prefix))
-	   ;; If the prefix is a tag, that is interesting.
-	   (car prefix))
-	  ((and (stringp (car prefix))
-		(semantic-tag-p (car (cdr prefix))))
-	   ;; Well, if it is a string, the predecessor might be
-	   ;; interesting.
-	   (car (cdr prefix)))
-	  (t
-	   ;; Nope, nothing good.
-	   nil))
-    ))
+    ;; Go back through the prefix until we find a tag we can return.
+    (while (and prefix (not (semantic-tag-p (car prefix))))
+      (setq prefix (cdr prefix)))
+    ;; Return the found tag, or nil.
+    (car prefix)))
 
 (defmethod semantic-analyze-interesting-tag
   ((context semantic-analyze-context-functionarg))
