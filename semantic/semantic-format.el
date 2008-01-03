@@ -1,10 +1,10 @@
 ;;; semantic-format.el --- Routines for formatting tags
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.26 2007/08/29 13:02:52 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.27 2008/01/03 02:19:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -205,8 +205,14 @@ FORMATTER is a function used to format a tag.
 COLOR specifies if color should be used."
   (let ((out nil))
     (while args
-      (push (semantic-format-tag-name-from-anything
-             (car args) nil color 'variable) out)
+      (push (if (and formatter
+		     (semantic-tag-p (car args))
+		     (not (string= (semantic-tag-name (car args)) ""))
+		     )
+		(funcall formatter (car args) nil color)
+	      (semantic-format-tag-name-from-anything
+	       (car args) nil color 'variable))
+	    out)
       (setq args (cdr args)))
     (mapconcat 'identity (nreverse out) semantic-function-argument-separator)
     ))
