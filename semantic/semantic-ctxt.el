@@ -1,10 +1,10 @@
 ;;; semantic-ctxt.el --- Context calculations for Semantic tools.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.46 2007/10/16 01:59:15 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.47 2008/01/03 04:24:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -346,13 +346,16 @@ Depends on `semantic-type-relation-separator-character'."
   (let* ((fieldsep1 (mapconcat (lambda (a) (regexp-quote a))
 			       semantic-type-relation-separator-character
 			       "\\|"))
-	 (fieldsep (concat "\\(" fieldsep1 "\\)\\(\\w\\|\\s_\\)"))
+	 ;; NOTE: The [ \n] expression below should used \\s-, but that
+	 ;; doesn't work in C since \n means end-of-comment, and isn't
+	 ;; really whitespace.
+	 (fieldsep (concat "[ \t\n\r]*\\(" fieldsep1 "\\)[ \t\n\r]*\\(\\w\\|\\s_\\)"))
 	 (case-fold-search semantic-case-fold)
 	 (symlist nil)
 	 end)
     (with-syntax-table semantic-lex-syntax-table
       (save-excursion
-	(if (looking-at "\\w\\|\\s_")
+	(if (looking-at "[ \t\n\r]*\\w\\|\\s_")
 	    (forward-sexp 1)
 	  ;; Not on a sym, are we at a separator char with no field
 	  ;; specified yet?
