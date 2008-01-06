@@ -1,10 +1,10 @@
 ;;; semantic-analyze.el --- Analyze semantic tags against local context
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.60 2007/12/08 13:54:06 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.61 2008/01/06 02:13:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -235,7 +235,9 @@ will be stored.  If nil, that data is thrown away.")
 (defun semantic-analyze-find-tag-sequence-default (sequence &optional
 							    scope typereturn)
   "Attempt to find all tags in SEQUENCE.
-Use LOCALVAR, SCOPE, and TYPERETURN to help identify parts of the sequence."
+SCOPE are extra tags which are in scope.
+TYPERETURN is a symbol in which to place a list of tag classes that
+are found in SEQUENCE."
   (let ((s sequence)			; copy of the sequence
 	(tmp nil)			; tmp find variable
 	(nexttype nil)			; a tag for the type next in sequence
@@ -459,11 +461,31 @@ Returns an object based on symbol `semantic-analyze-context'."
 	  (error nil))
 
 	(when fntag
-	  (setq fntagend (car (reverse fntag))
-		argtag
-		(when (semantic-tag-p fntagend)
-		  (nth (1- arg) (semantic-tag-function-arguments fntagend)))
-		)))
+	  (let ((fcn (semantic-find-tags-by-class 'function fntag)))
+	    (when (not fcn)
+	      (let ((ty (semantic-find-tags-by-class 'type fntag)))
+		(when ty
+		  ;; We might have a constructor with the same name as
+		  ;; the found datatype.
+		  (setq fcn (semantic-find-tags-by-name
+			     (semantic-tag-name (car ty))
+			     (semantic-tag-type-members (car ty))))
+		  (if fcn
+		    (let ((con nil)
+			  (lp fcn))
+		      (while lp
+			(when (semantic-tag-get-attribute (car lp)
+							  :constructor)
+			  (setq fcn (cons (car lp) fcn)))
+			(setq lp (cdr lp))))
+		    ;; Give up, go old school
+		    (setq fcn fntag))
+		  )))
+	    (setq fntagend (car (reverse fcn))
+		  argtag
+		  (when (semantic-tag-p fntagend)
+		    (nth (1- arg) (semantic-tag-function-arguments fntagend)))
+		  fntag fcn))))
 
       ;; Step 3:
 
