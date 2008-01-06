@@ -1,10 +1,10 @@
 ;;; semanticdb.el --- Semantic tag database manager
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.87 2007/09/08 03:31:00 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.88 2008/01/06 02:37:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -108,8 +108,8 @@ same major mode as the current buffer.")
    (db-refs :initform nil
 	    :documentation
 	    "List of `semanticdb-table' objects refering to this one.
-These aren't saved, but are instead saved by referring file-name in
-the :file-refs slot.")
+These aren't saved, but are instead recalculated after load.
+See the file semanticdb-ref.el for how this slot is used.")
    (index :type semanticdb-abstract-search-index
 	  :documentation "The search index.
 Used by semanticdb-find to store additional information about
@@ -189,7 +189,8 @@ If one doesn't exist, create it."
 Tools needing a per-file cache must subclass this, and then get one as
 needed.  Cache objects are identified in semanticdb by subclass.
 In order to keep your cache up to date, be sure to implement
-`semanticdb-synchronize', and `semanticdb-partial-synchronize'."
+`semanticdb-synchronize', and `semanticdb-partial-synchronize'.
+See the file semantic-scope.el for an example."
   :abstract t)
 
 (defmethod semanticdb-cache-get ((table semanticdb-abstract-table)
@@ -233,6 +234,8 @@ This is for the file whose tags are stored in this TABLE object.")
 	     :initform nil
 	     :documentation "Size of buffer when written to disk.
 Checked on retrieval to make sure the file is the same.")
+   ;; @TODO - ADD A FILE LAST MODIFIED DATE ALSO.  See suggestion from
+   ;; "John Yates" on mailing list (June 18, 2007)
    (unmatched-syntax :initarg :unmatched-syntax
 		     :documentation
 		     "List of vectors specifying unmatched syntax.")
@@ -273,7 +276,7 @@ If DIRECTORY doesn't exist, create a new one."
   (let ((db (semanticdb-directory-loaded-p directory)))
     (unless db
       (setq db (semanticdb-project-database
-		(file-name-nondirectory filename)
+		(file-name-nondirectory directory)
 		:tables nil))
       ;; Set this up here.   We can't put it in the constructor because it
       ;; would be saved, and we want DB files to be portable.
