@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.47 2008/01/03 04:24:13 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.48 2008/01/06 02:11:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -355,7 +355,7 @@ Depends on `semantic-type-relation-separator-character'."
 	 end)
     (with-syntax-table semantic-lex-syntax-table
       (save-excursion
-	(if (looking-at "[ \t\n\r]*\\w\\|\\s_")
+	(if (looking-at "\\w\\|\\s_")
 	    (forward-sexp 1)
 	  ;; Not on a sym, are we at a separator char with no field
 	  ;; specified yet?
