@@ -1,10 +1,10 @@
 ;;; semanticdb-file.el --- Save a semanticdb to a cache file.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.19 2007/05/20 15:59:18 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.20 2008/01/06 02:39:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,7 +46,7 @@
   :type 'string)
 
 ;;;###autoload
-(defcustom semanticdb-default-save-directory nil
+(defcustom semanticdb-default-save-directory (expand-file-name "~/.semanticdb")
   "*Directory name where semantic cache files are stored.
 If this value is nil, files are saved in the current directory.  If the value
 is a valid directory, then it overrides `semanticdb-default-file-name' and
@@ -139,7 +139,7 @@ If DIRECTORY doesn't exist, create a new one."
 		dbc  ; Create the database requested.  Perhaps
 		(concat (file-name-nondirectory
 			 (directory-file-name
-			  (file-name-directory fn)))
+			  directory))
 			"/")
 		:file fn :tables nil
 		:semantic-tag-version semantic-version
