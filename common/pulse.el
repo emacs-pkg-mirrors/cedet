@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.4 2007/08/14 10:35:44 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.5 2008/01/09 13:53:54 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,7 +28,7 @@
 ;; highlighted briefly.  This adds a gentle pulsing style to the text
 ;; decorated this way.
 ;;
-;; Useful user function:
+;; Useful user functions:
 ;;
 ;; `pulse-enable-integration-advice' - Turn on advice to make various
 ;;      Emacs commands pulse, such as `goto-line', or `find-tag'.
@@ -335,7 +335,7 @@ the following hook:
 	    (message "Pulse advice disabled")
 	    )
 	(setq pulse-command-advice-flag t)
-	(message "Pulse advice disabled")
+	(message "Pulse advice enabled")
 	)
     (if pulse-command-advice-flag
 	(pulse-enable-integration-advice -1)
