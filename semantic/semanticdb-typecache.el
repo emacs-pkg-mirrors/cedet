@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.12 2007/09/10 18:05:42 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.13 2008/01/09 14:03:09 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -234,7 +234,7 @@ combine the caches of all files included within itself."
 	(setq incpath (cdr incpath)))
       )
 
-    ;; Now loop over our local include path, and perge those caches with
+    ;; Now loop over our local include path, and merge those caches with
     ;; our own.
     (while local-inc
       (let ((inc-tab (semanticdb-find-table-for-include (car local-inc)))
