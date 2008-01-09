@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.15 2007/08/27 00:45:15 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.16 2008/01/09 14:04:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -553,8 +553,10 @@ find the file will resolve the issue."
 
 (defun semantic-decoration-on-unknown-includes-highlight-default (tag)
   "Highlight the include TAG to show that semantic can't find it."
-  (semantic-set-tag-face
-   tag 'semantic-decoration-on-unknown-includes))
+  (semantic-decorate-tag tag (semantic-tag-start tag) (semantic-tag-end tag)
+			 'semantic-decoration-on-unknown-includes)
+  ;;(semantic-set-tag-face tag 'semantic-decoration-on-unknown-includes)
+  )
 
 
 (provide 'semantic-decorate-mode)
