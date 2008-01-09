@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.40 2007/09/10 20:14:38 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.41 2008/01/09 14:01:39 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -899,7 +899,10 @@ Assume SLOTVALUE is a symbol of some sort."
 
 (eieio-persistent-save PO1)
 
-(eieio-persistent-read "test-p.el")
+(let ((obj (eieio-persistent-read "test-p.el")))
+  (message "%S" obj)
+  )
+
 
 (let* ((find-file-hooks nil)
        (tbuff (find-file-noselect "test-p.el"))
