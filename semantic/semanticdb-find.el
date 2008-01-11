@@ -1,10 +1,10 @@
 ;;; semanticdb-find.el --- Searching through semantic databases.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.46 2007/09/08 03:32:17 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.47 2008/01/11 16:58:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -354,18 +354,30 @@ Default action as described in `semanticdb-find-translate-path'."
   "Internal implementation of `semanticdb-find-translate-path-includes-default'.
 This routine does not depend on the cache, but will always derive
 a new path from the provided PATH."
-  (let ((includetags
-	 (cond ((null path)
-		(semantic-find-tags-included (current-buffer)))
-	       ((semanticdb-table-p path)
-		(semantic-find-tags-included (semanticdb-get-tags path)))
-	       (t (semantic-find-tags-included path))))
+  (let ((includetags nil)
+	(curtable nil)
 	(matchedtables (list semanticdb-current-table))
 	nexttable)
+    (cond ((null path)
+	   (setq includetags (semantic-find-tags-included (current-buffer))
+		 curtable semanticdb-current-table))
+	  ((semanticdb-table-p path)
+	   (setq includetags (semantic-find-tags-included (semanticdb-get-tags path))
+		 curtable path))
+	  (t
+	   (setq includetags (semantic-find-tags-included path))
+	   (when includetags
+	     ;; If we have some tags, derive a table from them.
+	     ;; else we will do nothing, so the table is useless.
+	     
+	     ;; @todo - derive some tables
+	     (message "Need to derive tables in `semanticdb-find-translate-path-includes--default'.")
+	   )))
+
     ;; Loop over all include tags adding to matchedtables
     (while includetags
       (semantic-throw-on-input 'semantic-find-translate-path-includes-default)
-      (setq nexttable (semanticdb-find-table-for-include (car includetags)))
+      (setq nexttable (semanticdb-find-table-for-include (car includetags) curtable))
       ;; (message "Scanning %s" (semantic-tag-name (car includetags)))
       (when (and nexttable
 		 (not (memq nexttable matchedtables))
@@ -427,7 +439,7 @@ isn't in memory yet."
   "For a single INCLUDETAG found in TABLE, find a `semanticdb-table' object
 INCLUDETAG is a semantic TAG of class 'include.
 TABLE as defined by `semantic-something-to-tag-table' to identify
-where the tag came from.  TABLE is optional if INCLUDETAG has an
+where the include tag came from.  TABLE is optional if INCLUDETAG has an
 overlay of :filename attribute."
   )
 
@@ -439,27 +451,72 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
   (if (not (eq (semantic-tag-class includetag) 'include))
       (signal 'wrong-type-argument (list includetag 'include)))
 
-  ;; Note, some languages (like Emacs or Java) use include tag names
-  ;; that don't represent files!  We want to have file names.
-  (let ((name (semantic-tag-include-filename includetag))
+  (let ((name
+	 ;; Note, some languages (like Emacs or Java) use include tag names
+	 ;; that don't represent files!  We want to have file names.
+	 (semantic-tag-include-filename includetag))
+	(originfiledir nil)
 	(roots nil)
 	(tmp nil)
 	(ans nil))
+
+    ;; INCLUDETAG should have some way to reference where it came
+    ;; from!  If not, TABLE should provide the way.  Each time we
+    ;; look up a tag, we may need to find it in some relative way
+    ;; and must set our current buffer eto the origin of includetag
+    ;; or nothing may work.
+    (setq originfiledir
+	  (cond ((semantic-tag-buffer includetag)
+		 ;; If the tag has an overlay and buffer associated with it,
+		 ;; switch to that buffer so that we get the right override metohds.
+		 (file-name-directory (buffer-file-name (semantic-tag-buffer includetag))))
+		((semantic-tag-file-name includetag)
+		 ;; If it didn't have a buffer, but does have a file
+		 ;; name, then we need to get to that file so the tag
+		 ;; location is made accurate.
+		 (file-name-directory (semantic-tag-file-name includetag)))
+		(table
+		 (file-name-directory (semanticdb-full-filename table)))
+		(t
+		 ;; @todo - what to do here?  Throw an error maybe
+		 ;; and fix usage bugs?
+		 default-directory)))
+
     (cond
-     ;; Relative path name
+     ;; Step 1: Relative path name
      ;;
-     ((and (file-exists-p (expand-file-name name))
-	   (semanticdb-find-throttle-active-p 'local))
+     ;; If the name is relative, then it should be findable as relative
+     ;; to the source file that this tag originated in, and be fast.
+     ;; 
+     ((and (semanticdb-find-throttle-active-p 'local)
+	   (file-exists-p (expand-file-name name originfiledir)))
 
       (setq ans (semanticdb-file-table-object
-		 name
+		 (expand-file-name name originfiledir)
 		 (not (semanticdb-find-throttle-active-p 'unloaded))))
       )
-     ;; On the path somewhere
-     ;; NOTES: Separate system includes from local includes.
-     ;;        Use only system databases for system includes.
-     ((and (setq tmp (semantic-dependency-tag-file includetag))
-	   (semanticdb-find-throttle-active-p 'system))
+     ;; Step 2: System or Project level includes
+     ;;
+     ((or
+       ;; First, if it a system include, we can investigate that tags
+       ;; dependency file
+       (and (semanticdb-find-throttle-active-p 'system)
+
+	    ;; Sadly, not all languages make this distinction.
+	    ;;(semantic-tag-include-system-p includetag)
+
+	    ;; Here, we get local and system files.
+	    (setq tmp (semantic-dependency-tag-file includetag))
+	    )
+       ;; Second, project files are active, we and we have EDE,
+       ;; we can find it using the same tool.
+       (and (semanticdb-find-throttle-active-p 'project)
+	    ;; Make sure EDE is available, and we have a project
+	    (featurep 'ede) (ede-current-project originfiledir)
+	    ;; The EDE query is hidden in this call.
+	    (setq tmp (semantic-dependency-tag-file includetag))
+	    )
+       )
       (let ((db (semanticdb-directory-loaded-p (file-name-directory tmp))))
 	(if db
 	    ;; We have a database, but perhaps not a table?
@@ -476,14 +533,14 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 	  )))
 
      ;; Somewhere in our project hierarchy
+     ;;
      ;; Remember: Roots includes system databases which can create
      ;; specialized tables we can search.
-     ((semanticdb-find-throttle-active-p 'project)
-
-      ;; @TODO - This needs the same treatment as 'local'
-      ;;         above with the various phases.  We should also
-      ;;         not use the existing DBs, but instead recurse
-      ;;         through our current project.
+     ;;
+     ;; NOTE: Not used if EDE is active!
+     ((and (semanticdb-find-throttle-active-p 'project)
+	   ;; Don't do this if we have an EDE project.
+	   (not (and (featurep 'ede) (ede-current-project originfiledir))))
 
       (setq roots (semanticdb-current-database-list))
 
