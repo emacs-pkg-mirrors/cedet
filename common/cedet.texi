@@ -12,7 +12,7 @@
 @copying
 This manual documents CEDET, a collection of other tools.
 
-Copyright @copyright{} 2007 Eric M. Ludlam
+Copyright @copyright{} 2007, 2008 Eric M. Ludlam
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -162,7 +162,7 @@ creation of dialog box style UIs.  A series of bases classes allows
 the creation of Emacs centric tools, wrapping up the details of
 persistence, instance tracking, or instance inheritance.
 
-@i{EIEOI} also includes several stray tools, such as @file{tree.el}
+@i{EIEIO} also includes several stray tools, such as @file{tree.el}
 for drawing tree diagrams, @file{chart.el} for drawing charts,
 @file{linemark.el} for managing visible bookmarks programatically, and
 @file{lmcompile.el}, which is a linemark tool that puts out bookmarks
@@ -507,7 +507,7 @@ For more details, seee the
 
 Code Completion, or perhaps ``Intellisense'' is a difficult problem to
 get working in Emacs.  To use the @cedet{} suite to do it, you will
-need to start by autmenting the basic @cedet{} install in your .emacs
+need to start by augmenting the basic @cedet{} install in your .emacs
 file with:
 
 @example
@@ -524,16 +524,15 @@ See the
 @inforef{Canned Configuration, Semantic Configuration, semantic}.
 section of the semantic manual for more details about these features.
 
-This gets the basics working.  Semantic would now be able to parse
-your code, and provide some level of support for help text, and smart
-completion.
+The basic idea is the Semantic will need to parse your source code and
+build lookup tables.  The tables are then searched to provide the
+completion you might be looking for.
 
-To improve the things Semantic can find, and complete with, you then
-need to perform more configurations.  This is done mainly by providing
+To improve the things Semantic can find and complete with, you then
+need to configure a few more things.  This is done mainly by providing
 details on where Semantic can find the source code where your tag
 definitions are.  Please read the
 @inforef{Semanticdb Search Configuration, Semantic search configuration, semantic-user}.
-
 
 Once you've optimized this step, there are several code completion
 options.  Please see the
