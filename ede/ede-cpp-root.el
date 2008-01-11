@@ -1,9 +1,9 @@
 ;;; ede-cpp-root.el --- A simple way to wrap a C++ project with a single root
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.2 2007/09/02 14:33:31 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.3 2008/01/11 14:27:37 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -44,12 +44,30 @@
 ;;
 ;; (ede-cpp-root-project "SOMENAME" :file "/dir/to/some/file")
 ;;
-;; obvious, replace SOMENAME with whatever you want, and the filename
-;; to an actual file at the root of your project.  It might be a
+;; Replace SOMENAME with whatever name you want, and the filename to
+;; an actual file at the root of your project.  It might be a
 ;; Makefile, a README file.  Whatever.  It doesn't matter.  It's just
 ;; a key to hang the rest of EDE off of.
 ;;
-;; If you want to override the file-finding tool you can do this:
+;; The most likely reason to create this project, is to help make
+;; finding files within the project faster.  In conjunction with
+;; Semantic completion, having a short include path is key.  You can
+;; override the include path like this:
+;;
+;; (ede-cpp-root-project "NAME" :file "FILENAME" :include-path
+;;     '( "/include" "../include" "/c/include" ))
+;;
+;;  In this case each item in the include path list is searched.  If
+;;  the directory starts with "/", then that expands to the project
+;;  root directory.  If a directory does not start with "/", then it
+;;  is relative to the default-directory of the current buffer when
+;;  the file name is expanded.
+;;
+;;  The include path only affects C/C++ header files.  Use the slot
+;;  :header-match-regexp to change it.
+;;
+;; If you want to override the file-finding tool with your own
+;; function you can do this:
 ;;
 ;; (ede-cpp-root-project "NAME" :file "FILENAME" :locate-fcn 'MYFCN)
 ;;
@@ -162,6 +180,25 @@ All directories need at least one target.")
 ;;;###autoload
 (defclass ede-cpp-root-project (eieio-instance-tracker ede-project)
   ((tracking-symbol :initform 'ede-cpp-root-project-list)
+   (include-path :initarg :include-path
+		 :initform '( "/include" "../include/" )
+		 :type list
+		 :documentation
+		 "The default locate function expands filenames within a project.
+If a header file (.h, .hh, etc) name is expanded, and
+the :locate-fcn slot is nil, then the include path is checked
+first, and other directories are ignored.  For very large
+projects, this optimization can save a lot of time.
+
+Directory names in the path can be relative to the current
+buffer's `default-directory' (not starting with a /).  Directories
+that are relative to the project's root should start with a /.")
+   (header-match-regexp :initarg :header-match-regexp
+			:initform
+			"\\.\\(h\\(h\\|xx\\|pp\\|\\+\\+\\)?\\|H\\)$\\|\\<\\w+$"
+			:type string
+			:documentation
+			"Regexp used to identify C/C++ header files.")
    (locate-fcn :initarg :locate-fcn
 	       :initform nil
 	       :type (or null function)
@@ -207,17 +244,10 @@ If one doesn't exist, create a new one for this directory."
       )
     ans))
 
-(defun ede-cpp-root-default-expand-fcn (name root)
-  "Find the file with NAME in relation to the current directory.
-ROOT is the root of the project, so we don't look around too much."
-  ;; These use default-directory and relative path names
-  (cond ((file-exists-p name)
-	 (expand-file-name name))
-	((file-exists-p (concat "../include/" name))
-	 (expand-file-name (concat "../include/" name)))
-	(t
-	 nil)))
-
+(defmethod ede-cpp-root-header-file-p ((proj ede-cpp-root-project) name)
+  "Non nil if in PROJ the filename NAME is a header."
+  (save-match-data
+    (string-match (oref proj header-match-regexp) name)))
 
 (defmethod ede-expand-filename ((proj ede-cpp-root-project) name)
   "Within this project PROJ, find the file NAME.
@@ -232,8 +262,22 @@ This knows details about or source tree."
 	     (dir (file-name-directory file)))
 	(if lf
 	    (setq ans (funcall lf name dir))
-	  ;; Else, use our little hack.
-	  (setq ans (ede-cpp-root-default-expand-fcn name dir))
+	  (if (ede-cpp-root-header-file-p proj name)
+	      ;; Else, use our little hack.
+	      (let ((ip (oref proj include-path))
+		    (tmp nil))
+		(while ip
+		  (setq tmp (car ip))
+		  (if (and (not (string= tmp "")) (= (aref tmp 0) ?/))
+		      ;; Check relative to root
+		      (setq tmp (expand-file-name (substring tmp 1)
+						  (ede-project-root-directory proj)))
+		    (setq tmp (expand-file-name tmp)))
+		  (if (file-exists-p tmp)
+		      (setq ans tmp))
+		  (setq ip (cdr ip)) ))
+	    ;; Else, do the usual.
+	    (setq ans (call-next-method)))
 	  )))
     ans))
 
