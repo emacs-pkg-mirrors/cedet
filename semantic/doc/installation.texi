@@ -135,8 +135,22 @@ you might add code like this for C mode.
 @end example
 
 Finding unloaded databases requires knowing the search path.  You can
-find headers on a system or project level search path.
+find headers at a system level by configuring an include path.
 @xref{(semantic-user)Include paths}.
+
+Finding files within a project path is more complex.  One way is to
+teach semantic about your project, and add an entry to
+@code{semanticdb-project-roots}.  See
+@xref{(semantic-user)Semanticdb Search Configuration}, or 
+@xref{(semantic-user)SemanticDB project roots}.
+@refill
+
+Alternately, setup an EDE project.  Using @inforef{top, EDE project
+system, ede} to allows finer grained control on how Semantic will find
+header files for C/C++ systems.  Creating a simple project that allows
+configuration of just this piece is covered in @xref{(ede)Simple
+projects}.
+@refill
 
 If using the above tactic doesn't work for your language (something
 other than C/C++), it may be that your language isn't configured
