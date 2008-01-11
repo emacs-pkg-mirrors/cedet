@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.89 2008/01/11 14:25:16 zappo Exp $
+;; RCS: $Id: ede.el,v 1.90 2008/01/11 16:54:16 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -1522,9 +1522,12 @@ Optional argument OBJ is an object to find the parent of."
 		default-directory))
 	     "/"))))
 
-(defun ede-current-project ()
-  "Return the current project file."
-  (ede-load-project-file default-directory))
+(defun ede-current-project (&optional dir)
+  "Return the current project file.
+If optional DIR is provided, get the project for DIR instead."
+  (if dir
+      (ede-load-project-file dir)
+    (ede-load-project-file default-directory)))
 
 (defun ede-buffer-object (&optional buffer)
   "Return the target object for BUFFER."
