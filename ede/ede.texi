@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.12 2005/05/20 01:45:38 zappo Exp $
+@c $Id: ede.texi,v 1.13 2008/01/11 14:38:57 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{ede}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1998, 1999, 2000, 2001, 2004, 2005 Eric M. Ludlam
+Copyright @copyright{} 1998, 1999, 2000, 2001, 2004, 2005, 2008 Eric M. Ludlam
 @end titlepage
 
 @contents
@@ -30,7 +30,7 @@ EDE is a collection of definitions called the
 simplifies the learning curve for all the very useful functionality of
 building and debugging under emacs.  In doing so it attempts to emulate
 a typical IDE (Integrated Development Environment).  What this means is
-that EDE will manage or create your makefiles and other building
+that EDE can manage or create your makefiles and other building
 environment duties so the developer can concentrate on code, and not
 support files.  In doing so, it will be much easier for new programmers
 to learn and adopt the GNU ways of doing things.
@@ -374,7 +374,7 @@ You can activate speedbar in this mode with the command
 @node Project types, Extending EDE, Miscellaneous commands, top
 @chapter Project types
 
-There are two types of project modes currently.  One is
+There are currently three types of project modes.  One is
 @samp{ede-project}, and shows up as @samp{Make} and @samp{Automake}
 when creating new projects.
 
@@ -385,9 +385,16 @@ the user will do it themselves.  Use @samp{ede-project} in
 @file{configure.in} file.
 @refill
 
+The third project style are ``Simple'' projects.  If you already have
+project infrastructure for building and debugging, you can instead
+create a simple project that identifies a project root and can look up
+files.  The simple project styles are useful for working with tools
+that use EDE to look up files.
+
 @menu
 * Make and Automake projects::  Project types of @samp{ede-project}
 * Automake direct projects::    Project interface on hand-written automake files.
+* Simple projects::             Projects EDE doesn't manage.
 @end menu
 
 @node Make and Automake projects, Automake direct projects, Project types, Project types
@@ -402,7 +409,7 @@ in @samp{Makefile} mode, then this project will autogenerate a
 routines will also improt and maintain a configure.am script and a
 host of other files required by Automake.
 
-@node Automake direct projects,  , Make and Automake projects, Project types
+@node Automake direct projects, Simple projects , Make and Automake projects, Project types
 @section Automake direct projects
 
 The project type that reads @file{Makefile.am} directly is derived
@@ -411,6 +418,142 @@ distributed independently.  This mode eventually became EDE.  The
 @samp{project-am} project will read existing automake files, but will
 not generate them automatically, or create new ones.  As such, it is
 useful as a browsing tool, or as maintenance in managing file lists.
+
+@node Simple projects, , Automake direct projects, Project types
+@section Simple Projects
+
+There can be a wide array of Simple projects.  The root for simple
+projects is the class @code{ede-simple-project}.  This handles the
+infrastructure of storing a .ede file if needed.
+
+The class @code{ede-simple-project} is designed to be subclassed.
+Then key EDE methods can be overridden to provide a quick wrapper over
+any project.
+
+A second project type is @code{ede-cpp-root}.  This project type is
+designed to be created for a directory hierarchy full of C/C++ code.
+It can be configured with minimal lisp knowledge to do header file
+lookup for Semantic, improving code completion performance.
+
+@menu
+* ede-cpp-root::
+* ede-simple subclassing::
+@end menu
+
+@node ede-cpp-root
+@subsection ede-cpp-root
+
+The cpp-root project type will allow you to create a single object
+with no save-file in your @file{.emacs} file.  It will allow EDE to provide
+Semantic with the ability to find header files quickly.
+
+The cpp-root class knows a few things about C++ projects, such as
+the prevalence of "include" directories, and typical file-layout
+stuff.  If this isn't sufficient, you can subclass
+`ede-cpp-root-project' and add your own tweaks in just a few lines.
+See the end of this file for an example.
+
+In the most basic case, add this to your @file{.emacs} file, modifying
+apropriate bits as needed.
+
+@example
+(ede-cpp-root-project "SOMENAME" :file "/dir/to/some/file")
+@end example
+
+Replace @var{SOMENAME} with whatever name you want, and the filename
+to an actual file at the root of your project.  It might be a
+Makefile, a README file.  Whatever.  It doesn't matter.  It's just a
+key to hang the rest of EDE off of.
+
+The most likely reason to create this project, is to speed up
+searching for includes files, or to simplify bootstrapping Semantic's
+ability to find files without much user interaction.  In conjunction
+with Semantic completion, having a short include path is key.  You can
+override the default include path like this:
+
+@example
+(ede-cpp-root-project "NAME" :file "FILENAME" :include-path
+    '( "/include" "../include" "/c/include" ))
+@end example
+
+ In this case each item in the include path list is searched.  If the
+directory starts with "/", then that expands to the project root
+directory.  If a directory does not start with "/", then it is
+relative to the default-directory of the current buffer when the file
+name is expanded.
+
+ The include path only affects C/C++ header files.  Use the slot
+@code{ :header-match-regexp} to change it.
+
+If you want to override the file-finding tool with your own
+function you can do this:
+
+@example
+(ede-cpp-root-project "NAME" :file "FILENAME" :locate-fcn 'MYFCN)
+@end example
+
+Where @var{MYFCN} is a symbol for a function.  The locate function can
+be used in place of @code{ede-expand-filename} so you can quickly
+customize your custom target to use specialized local routines instead
+of the default EDE routines.  The function symbol must take two
+arguments: 
+
+@table @var
+@item NAME
+The name of the file to find.
+@item DIR
+The directory root for this cpp-root project.
+@end table
+
+
+If the cpp-root project style is right for you, but you want a dynamic
+loader, instead of hard-coding path name values in your @file{.emacs}, you
+can do that too, but you will need to write some lisp code.
+
+To do that, you need to add an entry to the
+@code{ede-project-class-files} list, and also provide two functions to
+teach EDE how to load your project pattern
+
+It would oook like this:
+
+@example
+(defun MY-FILE-FOR-DIR (&optional dir)
+  "Return a full file name to the project file stored in DIR."
+  <write your code here, or return nil>
+  )
+
+(defun MY-ROOT-FCN ()
+  "Return the root fcn for `default-directory'"
+  ;; You might be able to use `ede-cpp-root-project-root'
+  ;; and not write this at all.
+  )
+
+(defun MY-LOAD (dir)
+  "Load a project of type `cpp-root' for the directory DIR.
+Return nil if there isn't one."
+  ;; Use your preferred constructin method here.
+  (ede-cpp-root-project "NAME" :file (expand-file-name "FILE" dir)
+                               :locate-fcn 'MYFCN)
+  )
+
+(add-to-list 'ede-project-class-files
+	     (ede-project-autoload "cpp-root"
+	      :name "CPP ROOT"
+	      :file 'ede-cpp-root
+	      :proj-file 'MY-FILE-FOR-DIR
+              :proj-root 'MY-ROOT-FCN
+	      :load-type 'MY-LOAD
+	      :class-sym 'ede-cpp-root)
+	     t)
+@end example
+
+This example only creates an auto-loader, and does create a new kind
+of project.
+
+@node ede-simple subclassing
+@subsection ede-simple Subclassing
+
+todo - Write some doc.  In the meantime look in the commentary of ede-simple.el
 
 @node Extending EDE, Project, Project types, top
 @chapter Extending EDE
