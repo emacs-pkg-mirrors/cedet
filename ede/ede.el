@@ -1,10 +1,10 @@
 ;;; ede.el --- Emacs Development Environment gloss
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.88 2007/09/07 19:36:34 zappo Exp $
+;; RCS: $Id: ede.el,v 1.89 2008/01/11 14:25:16 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -48,25 +48,7 @@
   "Display the current running version of EDE."
   (interactive) (message "EDE %s" ede-version))
 
-;; From custom web page for compatibility between versions of custom
-(eval-and-compile
-  (condition-case ()
-      (require 'custom)
-    (error nil))
-  (if (and (featurep 'custom) (fboundp 'custom-declare-variable)
-	   ;; Some XEmacsen w/ custom don't have :set keyword.
-	   ;; This protects them against custom.
-	   (fboundp 'custom-initialize-set))
-      nil ;; We've got what we needed
-    ;; We have the old custom-library, hack around it!
-    (if (boundp 'defgroup)
-	nil
-      (defmacro defgroup (&rest args)
-	nil))
-    (if (boundp 'defcustom)
-	nil
-      (defmacro defcustom (var value doc &rest args)
-	(` (defvar (, var) (, value) (, doc)))))))
+(require 'custom)
 
 (defgroup ede nil
   "Emacs Development Environment gloss."
@@ -1270,10 +1252,10 @@ doesn't exist."
 	(proj (oref this subproj))
 	(found nil))
     (or
-     (cond ((file-exists-p (concat path filename))
-	    (concat path filename))
-	   ((file-exists-p (concat path "include/" filename))
-	    (concat path "include/" filename))
+     (cond ((file-exists-p (expand-file-name filename path))
+	    (expand-file-name filename path))
+	   ((file-exists-p (expand-file-name  (concat "include/" filename) path))
+	    (expand-file-name (concat "include/" filename) path))
 	   (t
 	    (while (and (not found) proj)
 	      (setq found (when (car proj)
