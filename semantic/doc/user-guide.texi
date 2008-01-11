@@ -368,8 +368,10 @@ senator-previous-tag
 @item C-c , i
 senator-isearch-toggle-semantic-mode
 @item C-c , j
+(Lower case j)
 semantic-complete-jump-local
 @item C-c , J
+(Upper case J)
 semantic-complete-jump
 @item C-c , TAB
 senator-complete-symbol
@@ -1117,6 +1119,9 @@ Add a system include @var{dir} to path for @var{mode}.
 Modifies a mode-local version of
 @code{semantic-dependency-system-include-path}.
 @end deffn
+
+For a bit more on include paths, see the
+@inforef{Search Optimization, Search Optimization section, semantic}.
 
 @node Search Throttle
 @subsection SemanticDB Search Throttle
