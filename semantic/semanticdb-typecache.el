@@ -1,9 +1,9 @@
 ;;; semanticdb-typecache.el --- Manage Datatypes
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.13 2008/01/09 14:03:09 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.14 2008/01/11 16:56:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -237,7 +237,7 @@ combine the caches of all files included within itself."
     ;; Now loop over our local include path, and merge those caches with
     ;; our own.
     (while local-inc
-      (let ((inc-tab (semanticdb-find-table-for-include (car local-inc)))
+      (let ((inc-tab (semanticdb-find-table-for-include (car local-inc) table))
 	    )
 	(when inc-tab
 	  (semanticdb-typecache-merge 
