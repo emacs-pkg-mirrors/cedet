@@ -1,9 +1,9 @@
 ;;; semantic-scope.el --- Analyzer Scope Calculations
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.1 2007/09/08 03:36:51 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.2 2008/01/13 20:03:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -189,42 +189,62 @@ are from nesting data types."
     (let* ((stack (reverse (semantic-find-tag-by-overlay (point))))
 	   (tag (car stack))
 	   (pparent (car (cdr stack)))
+	   (returnlist nil)
 	   )
       ;; Only do this level of analysis for functions.
       (when (eq (semantic-tag-class tag) 'function)
-	(if (and pparent (eq (semantic-tag-class pparent) 'type))
-	    ;; We have a parent in our stack, so analyze this stack
-	    ;; We are done.
-	    nil
-	  ;; No parent, we need to seek one out.
-	  (let ((p (semantic-tag-function-parent tag)))
-	    (when p
-	      ;; We have a parent, search for it.
-	      (let* ((searchname (cond ((stringp p) p)
-				       ((semantic-tag-p p)
-					(semantic-tag-name p))
-				       ((and (listp p) (stringp (car p)))
-					(car p))))
-		     (scope (apply 'append
-				   (mapcar 'semantic-tag-type-members scopetypes)))
-		     (ptag (or (semanticdb-typecache-find searchname)
-			       ;; @todo - v Use something else here for scope
-			       (semantic-analyze-find-tag searchname
-							  'type))))
-		(setq pparent ptag)))
-	    ))
+	;; Step 1:
+	;;    Analyze the stack of tags we are nested in as parents.
+	;;
+
 	;; If we have a pparent tag, lets go there
 	;; an analyze that stack of tags.
 	(when (and pparent (semantic-tag-with-position-p pparent))
 	  (semantic-go-to-tag pparent)
 	  (setq stack (reverse (semantic-find-tag-by-overlay (point))))
-	  (let ((returnlist nil))
-	    ;; Add things to STACK until we cease finding tags of class type.
-	    (while (and stack (eq (semantic-tag-class (car stack)) 'type))
-	      (setq returnlist (cons (car stack) returnlist)
-		    stack (cdr stack)))
-	    (reverse returnlist))
-	  )))))
+	  ;; Add things to STACK until we cease finding tags of class type.
+	  (while (and stack (eq (semantic-tag-class (car stack)) 'type))
+	    (setq returnlist (cons (car stack) returnlist)
+		  stack (cdr stack))
+	    ))
+	(setq returnlist (nreverse returnlist))
+	;; Step 2:
+	;;   If the function tag itself has a "parent" by name, then that
+	;;   parent will exist in the scope we just calculated, so look it
+	;;   up now.
+	;;
+	(let ((p (semantic-tag-function-parent tag)))
+	  (when p
+	    ;; We have a parent, search for it.
+	    (let* ((searchname (cond ((stringp p) p)
+				     ((semantic-tag-p p)
+				      (semantic-tag-name p))
+				     ((and (listp p) (stringp (car p)))
+				      (car p))))
+		   (fullsearchname
+		    (append (nreverse (mapcar 'semantic-tag-name returnlist))
+			    (list searchname)))
+		   (rawscope (apply 'append
+				    (mapcar 'semantic-tag-type-members
+					    (cons (car returnlist) scopetypes)
+					    )))
+		   (ptag
+		    (or
+		     ;; fullsearchname contains all containing
+		     ;; type or namespace patterns.  This allows us
+		     ;; to use the typecache.
+		     (semanticdb-typecache-find fullsearchname)
+		     (semantic-analyze-find-tag searchname 'type
+						rawscope)
+		     )))
+	      (when ptag
+		(when (and (not (semantic-tag-p ptag))
+			   (semantic-tag-p (car ptag)))
+		  (setq ptag (car ptag)))
+		(setq returnlist (cons ptag returnlist)))
+	      )))
+	
+	(nreverse returnlist)))))
 
 ;;------------------------------------------------------------
 
@@ -285,7 +305,8 @@ implicit \"object\"."
 (defun semantic-calculate-scope (&optional point)
   "Calculate the scope at POINT.
 If POINT is not provided, then use the current location of `point'.
-The class returned from the scope calculation is `semantic-scope-cache'."
+The class returned from the scope calculation is variable
+`semantic-scope-cache'."
   (interactive)
   (if (not point) (setq point (point)))
   (save-excursion
@@ -326,20 +347,30 @@ The class returned from the scope calculation is `semantic-scope-cache'."
   "Find the tag with NAME, and optinal CLASS in the current SCOPE-IN.
 Searches various elements of the scope for NAME.  Return ALL the
 hits in order, with the first tag being in the closest scope."
-  (let* ((scope (or scope-in (semantic-calculate-scope)))
-	 (lv
-	  ;; This should be first, but bugs in the
-	  ;; C parser will turn function calls into
-	  ;; assumed int return function prototypes.  Yuck!
-	  (semantic-find-tags-by-name name  (oref scope localvar)))
-	 (sc
-	  (semantic-find-tags-by-name name (oref scope fullscope)))
-	 )
-    (if class
-	;; Scan out things not of the right class.
-	(semantic-find-tags-by-class class (append lv sc))
-      (append lv sc))
-    ))
+  (let ((scope (or scope-in (semantic-calculate-scope))))
+    ;; Is the passed in scope really a scope?  if so, look through
+    ;; the options in that scope.
+    (if (semantic-scope-cache-p scope)
+	(let* ((lv
+		;; This should be first, but bugs in the
+		;; C parser will turn function calls into
+		;; assumed int return function prototypes.  Yuck!
+		(semantic-find-tags-by-name name  (oref scope localvar)))
+	       (sc
+		(semantic-find-tags-by-name name (oref scope fullscope)))
+	       )
+	  (if class
+	      ;; Scan out things not of the right class.
+	      (semantic-find-tags-by-class class (append lv sc))
+	    (append lv sc))
+	  )
+      ;; Not a real scope.  Our scope calculation analyze parts of
+      ;; what it finds, and needs to pass lists through to do it's work.
+      ;; Tread that list as a singly entry.
+      (if class
+	  (semantic-find-tags-by-class class scope)
+	scope)
+      )))
 
 ;;; DUMP
 ;;
