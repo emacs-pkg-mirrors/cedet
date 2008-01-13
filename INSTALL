@@ -54,6 +54,12 @@ install scripts:
   a) make clean-autoloads
   b) make clean-all
 
+2.2) Make Issues
+
+  If the version of Make you are using doesn't work with the CEDET
+  Makefiles, (such as the version on AIX) you will need to download and
+  install GNU Make to use with these Makefiles.
+
 3) Install load hooks into your .emacs file.
 
 -----------
