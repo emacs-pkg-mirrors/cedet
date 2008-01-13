@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.14 2008/01/11 16:56:14 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.15 2008/01/13 20:08:18 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -297,6 +297,17 @@ found tag to be loaded."
 
       ;; We stripped duplicates, so this will be super-fast!
       (setq ans (semantic-find-first-tag-by-name (car type) stream))
+
+      ;; If this is not the last entry from the list, then it
+      ;; must be a type or a namespace.  Lets double check.
+      (when (and (null (cdr type))
+		 (not (semantic-tag-of-class-p ans 'type)))
+
+	;; If this is not the last entry in the type, then it
+	;; must be a type or namespace.
+	(setq ans (semantic-find-tags-by-class 'type stream))
+	;; Same basic query as above with non types stripped out.
+	(setq ans (semantic-find-first-tag-by-name (car type) ans)))
 
       ;; Track most recent file.
       (setq thisfile (semantic-tag-file-name ans))
