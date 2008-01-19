@@ -5,6 +5,7 @@
  */
 
 #include <cmath>
+#include <stdio.h>
 
 #ifndef TESTSUBCLASS_HH
 #define TESTSUBCLASS_HH
@@ -25,10 +26,16 @@ namespace animal {
   protected:
 
     bool fIsValid;
+    int fIsProtectedInt;
 
   private:
     int fFeet; // Usually 2 or 4.
+    bool fIsPrivateBool;
+    
   };
+
+  int two_prototypes();
+  int two_prototypes();
 
 } // moose
 
@@ -62,7 +69,7 @@ namespace deer {
 
   class alces : public animal::moose {
   public:
-    alces() : fLatin(true)
+    alces(int lat) : fLatin(lat)
     { }
 
     void setLatin(bool);
@@ -72,8 +79,13 @@ namespace deer {
 
     moose createMoose(); // for completion testing.
 
+  protected:
+    bool fAlcesBool;
+    int fAlcesInt;
+
   private:
     bool fLatin;
+    int fGreek;
   };
 
 };
