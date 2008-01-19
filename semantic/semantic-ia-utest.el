@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.1 2008/01/19 01:49:05 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.2 2008/01/19 17:31:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -32,6 +32,7 @@
 ;;; Code:
 (defvar semantic-ia-utest-file-list
   '( "tests/testdoublens.cpp"
+     "tests/testsubclass.cpp"
      )
   "List of files with analyzer completion test points.")
 
