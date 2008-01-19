@@ -23,8 +23,6 @@ void animal::moose::doNothing()
 {
   animal::moose foo();
 
-  foo
-
   fFeet = 3;
 }
 
@@ -81,12 +79,33 @@ void deer::alces::doLatinStuff(moose moosein) {
 moose deer::alces::createMoose()
 {
   moose MooseVariableName;
+  bool tmp;
+  int itmp;
+  bool fool;
+  int fast;
 
   MooseVariableName = createMoose();
 
   doLatinStuff(MooseVariableName);
   
-  fIsValid = createMoose().
+  tmp = this.f// -1-
+    // #1# ( "fAlcesBool" "fIsValid" "fLatin" )
+    ;
+
+  itmp = this.f// -2-
+    // #2# ( "fAlcesInt" "fGreek" "fIsProtectedInt" )
+    ;
+
+  tmp = f// -3-
+    // #3# ( "fAlcesBool" "fIsValid" "fLatin" "fool" )
+    ;
+
+  itmp = f// -4-
+    // #4# ( "fAlcesInt" "fGreek" "fIsProtectedInt" "fast" )
+    ;
+
+  MooseVariableName = m// -5-
+    // #5# ( "moose" )
 
   return MooseVariableName;
 }
