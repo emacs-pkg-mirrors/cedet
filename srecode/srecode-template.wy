@@ -1,10 +1,10 @@
 ;;; srecode-template.wy --- Semantic Recoder Template parser
 
-;; Copyright (C) 2005, 2007 Eric M. Ludlam
+;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: srecode-template.wy,v 1.4 2007/08/23 00:08:50 zappo Exp $
+;; X-RCS: $Id: srecode-template.wy,v 1.5 2008/01/20 02:10:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,7 +45,7 @@
 %keyword PROMPT "prompt"
 %keyword DEFAULT "default"
 %keyword READ "read"
-%put     { PROMPT DEFAULT READ } summary "prompt <symbol> \"Describe Symbol: \" [default <lispsym>] [read <lispsym>]"
+%put     { PROMPT DEFAULT READ } summary "prompt <symbol> \"Describe Symbol: \" [default <lispsym>|\"valuetext\"] [read <lispsym>]"
 
 ;;; Punctuation Types
 %type <punctuation> syntax "\\s.+"
@@ -55,7 +55,7 @@
 %token <separator> TEMPLATE_BLOCK "^----"
 
 ;;; Bland default types
-%type <property> ":\\w+"
+%type <property> ":\\(\\w\\|\\s_\\)+"
 %token <property> property
 
 %type  <symbol>
@@ -129,7 +129,7 @@ opt-string
 %%
 (define-lex-simple-regex-analyzer srecode-template-property-analyzer
   "Detect and create a dynamic argument properties."
-  ":\\w+" 'property 0)
+  ":\\(\\w\\|\\s_\\)+" 'property 0)
 
 (define-lex-regex-analyzer srecode-template-separator-block
   "Detect and create a template quote block."
