@@ -38,10 +38,6 @@
     :source '("ede.texi" "ede-projects.texi" "ede-targets.texi" "ede-sourcecode.texi" "ede-compilers.texi")
     :mainmenu "ede.texi"
     )
-   (ede-proj-target-aux "test"
-    :name "test"
-    :path "subdir/"
-    )
    )
   :web-site-url "http://cedet.sourceforge.net/ede.shtml"
   :web-site-directory "../www"
