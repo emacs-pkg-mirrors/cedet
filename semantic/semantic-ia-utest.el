@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.2 2008/01/19 17:31:10 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.3 2008/01/20 00:06:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,6 +30,8 @@
 ;; where # is 1, 2, 3, etc, and some sort of answer list.
 
 ;;; Code:
+(require 'semantic)
+
 (defvar semantic-ia-utest-file-list
   '( "tests/testdoublens.cpp"
      "tests/testsubclass.cpp"
