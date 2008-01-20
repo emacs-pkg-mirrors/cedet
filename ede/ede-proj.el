@@ -1,10 +1,10 @@
 ;;; ede-proj.el --- EDE Generic Project file driver
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2007  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2007, 2008  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.49 2007/09/02 14:31:47 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.50 2008/01/20 01:59:35 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -359,7 +359,11 @@ Argument TARGET is the project we are completing customization on."
 	      (setq ede-object ot)
 	      (ede-apply-object-keymap)))
     ;; Add it to the project object
-    (oset this targets (cons ot (oref this targets)))
+    ;;(oset this targets (cons ot (oref this targets)))
+    ;; New form: Add to the end using fancy eieio function.
+    ;; @todo - Some targets probably want to be in the front.
+    ;;         How to do that?
+    (object-add-to-list this 'targets ot t)
     ;; And save
     (ede-proj-save this)))
 
