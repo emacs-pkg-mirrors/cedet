@@ -24,15 +24,16 @@ example_MISC=semantic-example.el semanticdb-skel.el
 init_LISP=semantic-load.el
 semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el semantic-tag.el semantic-find.el semantic-format.el semantic-complete.el semantic-sort.el semantic-decorate.el semantic-tag-file.el semantic-doc.el semantic-tag-ls.el semantic-ast.el semantic-lex-spp.el semantic-dep.el
 Languages_LISP=semantic-texi.el semantic-html.el
-tools_LISP=semantic-imenu.el semantic-sb.el semanticdb.el document.el document-vars.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el semantic-idle.el semantic-decorate-mode.el semanticdb-ebrowse.el semantic-utest.el semantic-adebug.el semantic-adebug-eieio.el semantic-mru-bookmark.el semanticdb-ref.el semanticdb-typecache.el semantic-analyze-fcn.el semantic-analyze-complete.el semantic-scope.el
+tools_LISP=semantic-imenu.el semantic-sb.el semanticdb.el document.el document-vars.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el semantic-idle.el semantic-decorate-mode.el semanticdb-ebrowse.el semantic-adebug.el semantic-adebug-eieio.el semantic-mru-bookmark.el semanticdb-ref.el semanticdb-typecache.el semantic-analyze-fcn.el semantic-analyze-complete.el semantic-scope.el
 senator_LISP=senator.el
+tests_LISP=semantic-ia-utest.el semantic-utest.el
 misc_AUX=INSTALL NEWS ChangeLog AUTHORS ONEWS renamelist.txt
 VERSION=2.0pre4
 DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: autoloads metagrammar scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
+all: autoloads metagrammar scripts example init semantic Languages tools senator tests wisent Tests Documentation bovinator
 
 .PHONY: autoloads
 autoloads: 
@@ -113,6 +114,15 @@ senator: $(senator_LISP)
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
+.PHONY: tests
+tests: $(tests_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+
 .PHONY:wisent
 wisent:
 	cd wisent; $(MAKE)
@@ -143,7 +153,7 @@ clean:
 
 dist: autoloads $(metagrammar_SEMANTIC_GRAMMAR_EL)
 	mkdir $(DISTDIR)
-	cp semantic-loaddefs.el $(metagrammar_SEMANTIC_GRAMMAR) $(metagrammar_SEMANTIC_GRAMMAR_EL) $(maintenance_LISP) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
+	cp semantic-loaddefs.el $(metagrammar_SEMANTIC_GRAMMAR) $(metagrammar_SEMANTIC_GRAMMAR_EL) $(maintenance_LISP) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(tests_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/wisent dist
 	cd tests; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/tests dist
 	cd doc; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/doc dist
