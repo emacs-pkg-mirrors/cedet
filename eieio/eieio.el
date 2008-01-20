@@ -2,10 +2,10 @@
 ;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07 Eric M. Ludlam
+;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.152 2007/09/10 20:13:43 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.153 2008/01/20 02:01:34 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -193,7 +193,7 @@ Stored outright without modifications or stripping.")
 ;;
 (defmacro class-v (class) "Internal: Return the class vector from the CLASS symbol."
   ;; No check: If eieio gets this far, it's probably been checked already.
-  `(get ,class `eieio-class-definition))
+  `(get ,class 'eieio-class-definition))
 
 (defmacro class-p (class)
   "Return t if CLASS is a valid class vector.
