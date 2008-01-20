@@ -53,13 +53,18 @@
    (ede-proj-target-elisp "tools"
     :name "tools"
     :path ""
-    :source '("semantic-imenu.el" "semantic-sb.el" "semanticdb.el" "document.el" "document-vars.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el" "semanticdb-file.el" "semanticdb-search.el" "semanticdb-mk.el" "semanticdb-el.el" "semanticdb-system.el" "semantic-debug.el" "semanticdb-find.el" "semantic-regtest.el" "semantic-idle.el" "semantic-decorate-mode.el" "semanticdb-ebrowse.el" "semantic-utest.el" "semantic-adebug.el" "semantic-adebug-eieio.el" "semantic-mru-bookmark.el" "semanticdb-ref.el" "semanticdb-typecache.el" "semantic-analyze-fcn.el" "semantic-analyze-complete.el" "semantic-scope.el")
+    :source '("semantic-imenu.el" "semantic-sb.el" "semanticdb.el" "document.el" "document-vars.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el" "semanticdb-file.el" "semanticdb-search.el" "semanticdb-mk.el" "semanticdb-el.el" "semanticdb-system.el" "semantic-debug.el" "semanticdb-find.el" "semantic-regtest.el" "semantic-idle.el" "semantic-decorate-mode.el" "semanticdb-ebrowse.el" "semantic-adebug.el" "semantic-adebug-eieio.el" "semantic-mru-bookmark.el" "semanticdb-ref.el" "semanticdb-typecache.el" "semantic-analyze-fcn.el" "semantic-analyze-complete.el" "semantic-scope.el")
     :aux-packages '("eieio" "ede" "speedbar" "inversion")
     )
    (ede-proj-target-elisp "senator"
     :name "senator"
     :path ""
     :source '("senator.el")
+    )
+   (ede-proj-target-elisp "tests"
+    :name "tests"
+    :path ""
+    :source '("semantic-ia-utest.el" "semantic-utest.el")
     )
    (ede-proj-target-aux "misc"
     :name "misc"
