@@ -1,9 +1,9 @@
 ;;; srecode-insert --- Insert srecode templates to an output stream.
 
-;;; Copyright (C) 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.7 2007/09/07 20:34:19 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.8 2008/01/20 02:07:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -278,18 +278,27 @@ Loop over the prompts to see if we have a match."
 			     (error "Unknown default for prompt: %S"
 				    defaultfcn))))
 	     (reader (oref sti :read-fcn))
+	     (defaultfromdict (srecode-dictionary-lookup-name
+			       dictionary defaultfcn))
 	     )
+	;; If the default value is a string that is also a dictionary
+	;; entry, then just use that dictionary entry's value.
+	(when defaultfromdict
+	  (setq default defaultfromdict))
+
 	(cond ((eq reader 'y-or-n-p)
-	       (when (y-or-n-p (or prompt
-				   (format "%s? "
-					   (oref sti :object-name))))
-		 (setq val default)))
+	       (if (y-or-n-p (or prompt
+				 (format "%s? "
+					 (oref sti :object-name))))
+		   (setq val default)
+		 (setq val "")))
 	      (t
 	       
 	       (setq val (funcall reader
 				  (or prompt
 				      (format "Specify %s: "
 					      (oref sti :object-name)))
+				  default
 				  ))))
 	)
       ;; After asking, save in the dictionary so that
