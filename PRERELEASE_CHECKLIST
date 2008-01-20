@@ -140,6 +140,9 @@ Semantic
       M-x load-library semantic-utest.el
       M-x semantic-utest-main RET
 
+      M-x load-library semantic-ai-utest.el+
+      M-x semantic-ia-utest RET
+
       M-x semantic-test-data-cache RET
       M-x semantic-test-throw-on-input RET
 
