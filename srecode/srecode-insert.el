@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.8 2008/01/20 02:07:45 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.9 2008/01/21 17:45:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +38,18 @@
 ;;; INSERTION COMMANDS
 ;;
 ;; User level commands for inserting stuff.
+(defvar srecode-insertion-start-context nil
+  "The context that was at point at the beginning of the template insertion.")
+
+;;;###autoload
+(defun srecode-insert-again ()
+  "Insert the previously inserted template (by name) again."
+  (interactive)
+  (let ((prev (car srecode-read-template-name-history)))
+    (if prev
+	(srecode-insert prev)
+      (call-interactively 'srecode-insert))))
+
 ;;;###autoload
 (defun srecode-insert (template-name)
   "Inesrt the template TEMPLATE-NAME into the current buffer at point."
@@ -45,7 +57,8 @@
   (if (not (srecode-table))
       (error "No template table found for mode %s" major-mode))
   (let ((newdict (srecode-create-dictionary))
-	(temp (srecode-template-get-table (srecode-table) template-name)))
+	(temp (srecode-template-get-table (srecode-table) template-name))
+	(srecode-insertion-start-context (srecode-calculate-context)))
     (if (not temp)
 	(error "No Template named %s" template-name))
     (srecode-resolve-arguments temp newdict)
@@ -72,15 +85,25 @@
 (defun srecode-resolve-arguments (temp dict)
   "Resolve all the arguments needed by the template TEMP.
 Apply anything learned to the dictionary DICT."
-  (let ((args (oref temp args))
-	(fcn nil)
-	)
+  (srecode-resolve-argument-list (oref temp args) dict temp))
+
+(defun srecode-resolve-argument-list (args dict &optional temp)
+  "Resolve arguments in the argument list ARGS.
+Apply values to DICT.
+Optional argument TEMP is the template that is getting it's arguments resolved."
+  (let ((fcn nil))
     (while args
       (setq fcn (intern-soft (concat "srecode-semantic-handle-"
 				     (symbol-name (car args)))))
       (if (not fcn)
 	  (error "Error resolving template argument %S" (car args)))
-      (funcall fcn dict)
+      (if temp
+	  (condition-case nil
+	      ;; Allow some to accept a 2nd argument optionally.
+	      ;; They throw an error if not available, so try again.
+	      (funcall fcn dict temp)
+	    (error (funcall fcn dict)))
+	(funcall fcn dict))
       (setq args (cdr args)))
     ))
 
@@ -253,7 +276,8 @@ Loop over the prompts to see if we have a match."
 	(oset ins :defaultfcn
 	      (semantic-tag-get-attribute (car prompts) :default))
 	(oset ins :read-fcn
-	      (semantic-tag-get-attribute (car prompts) :read))
+	      (or (semantic-tag-get-attribute (car prompts) :read)
+		  'read-string))
 	)
       (setq prompts (cdr prompts)))
     ))
@@ -292,14 +316,21 @@ Loop over the prompts to see if we have a match."
 					 (oref sti :object-name))))
 		   (setq val default)
 		 (setq val "")))
+	      ((eq reader 'read-char)
+	       (setq val (format
+			  "%c"
+			  (read-char (or prompt
+					 (format "Char for %s: "
+						 (oref sti :object-name))))))
+	       )
 	      (t
-	       
-	       (setq val (funcall reader
-				  (or prompt
-				      (format "Specify %s: "
-					      (oref sti :object-name)))
-				  default
-				  ))))
+	       (save-excursion
+		 (setq val (funcall reader
+				    (or prompt
+					(format "Specify %s: "
+						(oref sti :object-name)))
+				    default
+				    )))))
 	)
       ;; After asking, save in the dictionary so that
       ;; the user can use the same name again later.
