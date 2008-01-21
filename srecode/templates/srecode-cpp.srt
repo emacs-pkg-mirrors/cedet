@@ -1,9 +1,9 @@
 ;;; srecode-cpp.srt --- Templates for c++-mode
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-cpp.srt,v 1.4 2007/03/18 17:05:47 zappo Exp $
+;; X-RCS: $Id: srecode-cpp.srt,v 1.5 2008/01/21 17:55:11 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -23,16 +23,15 @@
 set mode "c++-mode"
 
 set comment_start  "/**"
-set comment_end    " *"
-set comment_prefix " */"
+set comment_end    " */"
+set comment_prefix " *"
 
 context file
 
-template empty :time :user :cpp
+template empty :time :user :file :cpp
 ----
-/**
- * Copyright (C) {{YEAR}} {{AUTHOR}}
- */
+{{>:filecomment}}
+
 {{#NOTHEADER}}
 #include ...
 {{/NOTHEADER}}
@@ -61,6 +60,7 @@ template function-tag :tag :indent
 {{^}}
 }
 ----
+bind "f"
 
 template constructor-tag :tagtype :indent
 ----
