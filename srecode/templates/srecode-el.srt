@@ -1,9 +1,9 @@
 ;;; srecode-el.srt --- Templates for Emacs Lisp mode
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-el.srt,v 1.4 2007/08/23 00:09:44 zappo Exp $
+;; X-RCS: $Id: srecode-el.srt,v 1.5 2008/01/21 17:58:02 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -20,8 +20,8 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
 
-set escape_start "\\$"
-set escape_end "\\$"
+set escape_start "$"
+set escape_end "$"
 
 set mode "emacs-lisp-mode"
 
@@ -44,7 +44,6 @@ $>:filecomment$
 ;;; Code:
 
 (provide '$FILE$)
-
 ;;; $FILENAME$ ends here
 
 ----
@@ -113,36 +112,57 @@ template major-mode :file
 (add-to-list 'auto-mode-alist '("\\.$?MODEEXTENSION$$DOLLAR$" . $MODESYM$-mode))
 ----
 
-context declaration
-
 template section-comment
 "Insert a comment that separates sections of an Emacs Lisp file."
 ----
 
 ;;; $^$
 ;;
+
 ----
+bind "s"
 
-prompt INTERACTIVE "Is this an interactive function? " default "(interactive)" read y-or-n-p
+context declaration
 
-template function
+prompt INTERACTIVE "Is this an interactive function? " default "  (interactive)\n" read y-or-n-p
+prompt NAME "Name: " default "PRENAME"
+
+template function :el
 "Insert a defun outline."
 ----
 (defun $?NAME$ ()
   ""
-  $?INTERACTIVE$
-  $^$
+$?INTERACTIVE$  $^$
   )
 ----
+bind "f"
 
-template variable
+template variable :el
 "Inert a variable."
 ----
-(defvar $^NAME$ $^$
+(defvar $?NAME$ $^$
+  "")
+----
+bind "v"
+
+template variable-const :el
+"Inert a variable."
+----
+(defconst $?NAME$ $^$
   "")
 ----
 
-template type
+template variable-option :el :el-custom
+"Inert a variable created using defcustom."
+----
+(defcustom $?NAME$ nil
+  "* "
+  :group $GROUP$
+  :type )
+----
+bind "o"
+
+template type :el
 "Insert a new class."
 ----
 (defclass $?NAME$ ()
@@ -152,14 +172,34 @@ template type
    )
    "Class $NAME$ ")
 ----
+bind "c"
 
-template method
+template method :el :ctxt
 "Insert a new method."
 ----
-(defmethod $?NAME$ ((this $?CLASS$))
-  ""
+(defmethod $?NAME$ ((this $?PARENT$))
+  "THIS"
   $^$
   )
+----
+bind "m"
+
+context classdecl
+
+prompt NAME "Slot Name: "
+
+template variable :indent
+"A field in a class."
+----
+($?NAME$ :initarg :$NAME$
+	 :initform nil
+	 :type list
+	 :documentation
+	 "")
+
+----
+bind "s"
+
 
 ;; end
 
