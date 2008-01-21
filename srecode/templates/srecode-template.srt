@@ -1,9 +1,9 @@
 ;;; srecode-template.srt --- Templates for Semantic Recoders
 
-;; Copyright (C) 2005, 2007 Eric M. Ludlam
+;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-template.srt,v 1.3 2007/03/10 04:58:43 zappo Exp $
+;; X-RCS: $Id: srecode-template.srt,v 1.4 2008/01/21 17:59:29 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -20,8 +20,8 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
 
-set escape_start "\\$"
-set escape_end "\\$"
+set escape_start "$"
+set escape_end "$"
 set mode "srecode-template-mode"
 set priority "70"
 
@@ -50,15 +50,21 @@ set mode "$?NEWMODE$"
 context declaration
 
 prompt NAME "Name of new template: "
+prompt KEY "Key Binding: " read read-char
 
 template function
 "Insert a template block for Srecoder templates."
 ----
+
 template $?NAME$
+""
 $SEPARATOR$
 $^$
 $SEPARATOR$
+bind "$?KEY$"
+
 ----
+bind "f"
 
 prompt NAME "Name of new variable: "
 
@@ -67,6 +73,69 @@ template variable
 ----
 set $?NAME$ "$^$"
 ----
+bind "v"
+
+template context
+"Insert a context statement."
+----
+
+context $?NAME$
+
+----
+bind "c"
+
+context code
+
+prompt NAME "Name of variable: " read srecode-read-variable-name
+
+template var :srt
+"Insert a variable with completion from the current file."
+----
+$ESCAPE_START$$?NAME$$ESCAPE_END$
+----
+bind "v"
+
+prompt NAME "Name of macro: "
+
+template ask :srt
+"Insert a prompting variable."
+----
+$ESCAPE_START$?$?NAME$$ESCAPE_END$
+----
+bind "a"
+
+template comment :srt
+----
+$ESCAPE_START$!$^$$ESCAPE_END$
+----
+bind "c"
+
+prompt TEMPLATE "Template to include: " read srecode-read-template-name
+
+template include :srt
+----
+$ESCAPE_START$>:$?TEMPLATE$$ESCAPE_END$
+----
+bind "i"
+
+template point
+----
+$ESCAPE_START$^$ESCAPE_END$
+----
+bind "p"
+
+template section :srt
+"Insert a section, or looping construct."
+----
+$ESCAPE_START$#$?NAME$$ESCAPE_END$
+$^$
+$ESCAPE_START$/$NAME$$ESCAPE_END$
+----
+bind "s"
+
+;;
+;; These are for testing features of template files.
+;;
 
 template test :user
 ----
