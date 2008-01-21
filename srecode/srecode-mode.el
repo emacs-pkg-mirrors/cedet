@@ -22,6 +22,8 @@
 ;; This uses a bunch of semantic conveniences for making a minor mode.
 
 (require 'srecode)
+(require 'srecode-insert)
+(require 'srecode-find)
 (require 'senator)
 (require 'wisent)
 
@@ -54,8 +56,13 @@
   (let ((km (make-sparse-keymap)))
     ;; Basic template codes
     (define-key km "/" 'srecode-insert)
-    (define-key km "e" 'srecode-edit)
-    ;; Template direct binding
+    (define-key km "." 'srecode-insert-again)
+    (define-key km "E" 'srecode-edit)
+    ;; Template indirect binding
+    (let ((k ?a))
+      (while (<= k ?z)
+	(define-key km (format "%c" k) 'srecode-bind-insert)
+	(setq k (1+ k))))
     ;; Template applications
     (define-key km "G" 'srecode-insert-getset)
     km)
@@ -66,10 +73,16 @@
    "SRecoder"
    (senator-menu-item
     ["Insert Template"
-      srecode-insert
-      :active t
-      :help "Insert a template by name."
-      ])
+     srecode-insert
+     :active t
+     :help "Insert a template by name."
+     ])
+   (senator-menu-item
+    ["Insert Template Again"
+     srecode-insert-again
+     :active t
+     :help "Run the same template as last time again."
+     ])
    (senator-menu-item
     ["Edit Template"
      srecode-edit
@@ -77,12 +90,14 @@
      :help "Edit a template for this language by name."
      ])
    "---"
+   '( "Insert ..." :filter srecode-minor-mode-templates-menu )
+   "---"
    (senator-menu-item
     ["Dump Tables"
-      srecode-dump-templates
-      :active t
-      :help "Dump the current template table."
-      ])
+     srecode-dump-templates
+     :active t
+     :help "Dump the current template table."
+     ])
    )
   "Menu for srecode minor mode.")
 
@@ -133,9 +148,87 @@ If ARG is nil, then toggle."
 			 ""
 			 srecode-mode-map)
 
+;;; Menu Filters
+;;
+(defun srecode-minor-mode-templates-menu (menu-def)
+  "Create a menu item of cascading filters active for this mode.
+MENU-DEF is the menu to bind this into."
+  (srecode-load-tables-for-mode major-mode)
+  (let* ((modetable (srecode-get-mode-table major-mode))
+	 (subtab (oref modetable :tables))
+	 (context (car-safe (srecode-calculate-context)))
+	 (active nil)
+	 (ltab nil)
+	 (temp nil)
+	 (alltabs nil)
+	 )
+    (while subtab
+      (setq ltab (oref (car subtab) templates))
+      (while ltab
+	(setq temp (car ltab))
+	
+	;; Do something with this template.
+
+	(let* ((ctxt (oref temp context))
+	       (ctxtcons (assoc ctxt alltabs))
+	       (bind (if (slot-boundp temp 'binding)
+			 (oref temp binding)))
+	       (name (object-name-string temp)))
+
+	  (when (not ctxtcons)
+	    (if (string= context ctxt)
+		;; If this context is not in the current list of contexts
+		;; is equal to the current context, then manage the
+		;; active list instead
+		(setq active
+		      (setq ctxtcons (or active (cons ctxt nil))))
+	      ;; This is not an active context, add it to alltabs.
+	      (setq ctxtcons (cons ctxt nil))
+	      (setq alltabs (cons ctxtcons alltabs))))
+
+	  (let ((new (vector
+		      (if bind
+			  (concat name "   (" bind ")")
+			name)
+		      `(lambda () (interactive)
+			 (srecode-insert (concat ,ctxt ":" ,name)))
+		      t)))
+
+	    (setcdr ctxtcons (cons
+			      new
+			      (cdr ctxtcons)))))
+
+	(setq ltab (cdr ltab)))
+      (setq subtab (cdr subtab)))
+
+    ;; Now create the menu
+    (easy-menu-filter-return
+     (easy-menu-create-menu
+      "Semantic Recoder Filters"
+      (append (cdr active)
+	      alltabs)
+      ))
+    ))
 
 ;;; Minor Mode commands
 ;;
+(defun srecode-bind-insert ()
+  "Bound insert for Srecode macros.
+This command will insert whichever srecode template has a binding
+to the current key."
+  (interactive)
+  (let* ((k last-command-char)
+	 (ctxt (srecode-calculate-context))
+	 ;; Find the template with the binding K
+	 (template (srecode-template-get-table-for-binding
+		    (srecode-table) k ctxt)))
+    ;; test it.
+    (when (not template)
+      (error "No template bound to %c" k))
+    ;; insert
+    (srecode-insert template)
+    ))
+
 (defun srecode-edit (template-name)
   "Switch to the template buffer for TEMPLATE-NAME.
 Template is chosen based on the mode of the starting buffer."
