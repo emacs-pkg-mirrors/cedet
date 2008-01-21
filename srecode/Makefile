@@ -12,14 +12,14 @@ ede_FILES=Project.ede Makefile
 doc_TEXINFOS=srecode.texi
 MAKEINFO=makeinfo
 EMACS=emacs
-LOADPATH= ../common/  ../semantic/ ../eieio/\
+LOADPATH= ../common/ ../common/ ../semantic/ ../eieio/\
     ../speedbar/ ../semantic/bovine/ ../semantic/wisent/
 LOADDEFS=srecode-loaddefs.el
 LOADDIRS=.
 lang_SEMANTIC_GRAMMAR=srecode-template.wy
 EMACS=emacs
 lang_SEMANTIC_GRAMMAR_EL=srecode-template-wy.el
-srecode_LISP=srecode.el srecode-mode.el srecode-compile.el srecode-insert.el srecode-template-mode.el srecode-semantic.el srecode-load.el srecode-template.el srecode-dictionary.el srecode-args.el srecode-table.el srecode-filters.el srecode-find.el srecode-ctxt.el srecode-getset.el srecode-cpp.el srecode-expandproto.el
+srecode_LISP=srecode.el srecode-mode.el srecode-compile.el srecode-insert.el srecode-template-mode.el srecode-semantic.el srecode-load.el srecode-template.el srecode-dictionary.el srecode-args.el srecode-table.el srecode-filters.el srecode-find.el srecode-ctxt.el srecode-getset.el srecode-cpp.el srecode-expandproto.el srecode-el.el srecode-srt.el
 EMACS=emacs
 VERSION=1.0
 DISTDIR=$(top)srecode-$(VERSION)
