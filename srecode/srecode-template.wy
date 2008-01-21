@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: srecode-template.wy,v 1.5 2008/01/20 02:10:29 zappo Exp $
+;; X-RCS: $Id: srecode-template.wy,v 1.6 2008/01/21 17:41:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,6 +46,8 @@
 %keyword DEFAULT "default"
 %keyword READ "read"
 %put     { PROMPT DEFAULT READ } summary "prompt <symbol> \"Describe Symbol: \" [default <lispsym>|\"valuetext\"] [read <lispsym>]"
+%keyword BIND "bind"
+%put     BIND summary "bind \"<letter>\""
 
 ;;; Punctuation Types
 %type <punctuation> syntax "\\s.+"
@@ -87,18 +89,6 @@ prompt
     (TAG $2 'prompt :text (read $3) :default $4 :read $5)
   ;
 
-variable
-  : SET symbol string newline
-    (VARIABLE-TAG $2 nil $3)
-  ;
-
-template
-  : TEMPLATE symbol opt-dynamic-arguments newline
-    opt-string
-    TEMPLATE_BLOCK newline
-    (FUNCTION-TAG $2 nil $3 :documentation $5 :code $6)
-  ;
-
 opt-default-fcn
   : DEFAULT symbol
     (progn (read $2))
@@ -113,6 +103,19 @@ opt-read-fcn
   | ()
   ;
 
+variable
+  : SET symbol string newline
+    (VARIABLE-TAG $2 nil $3)
+  ;
+
+template
+  : TEMPLATE symbol opt-dynamic-arguments newline
+    opt-string
+    TEMPLATE_BLOCK newline
+    opt-bind
+    (FUNCTION-TAG $2 nil $3 :documentation $5 :code $6 :binding $8 )
+  ;
+
 opt-dynamic-arguments
   : property opt-dynamic-arguments
     (cons $1 $2)
@@ -125,6 +128,11 @@ opt-string
   | ()
   ;
 
+opt-bind
+  : BIND string newline
+    ( read $2 )
+  | ()
+  ;
 
 %%
 (define-lex-simple-regex-analyzer srecode-template-property-analyzer
