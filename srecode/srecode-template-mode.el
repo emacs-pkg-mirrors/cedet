@@ -29,6 +29,7 @@
   (let ((table (make-syntax-table (standard-syntax-table))))
     (modify-syntax-entry ?\; ". 12"  table) ;; SEMI, Comment start ;;
     (modify-syntax-entry ?\n ">"     table) ;; Comment end
+    (modify-syntax-entry ?$  "."     table) ;; Comment end
     (modify-syntax-entry ?\" "\""    table) ;; String
     (modify-syntax-entry ?\- "_"     table) ;; Symbol
     (modify-syntax-entry ?\: "_"     table) ;; Symbol
@@ -47,6 +48,8 @@
      (1 font-lock-keyword-face)
      (2 font-lock-function-name-face)
      (3 font-lock-builtin-face ))
+    ("^\\(bind\\)\\s-+\""
+     (1 font-lock-keyword-face))
     ;; Variable type setting
     ("^\\(set\\)\\s-+\\(\\w+\\)\\s-+\""
      (1 font-lock-keyword-face)
