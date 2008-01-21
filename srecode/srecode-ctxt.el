@@ -1,6 +1,6 @@
 ;;; srecode-ctxt.el --- Derive a context from the source buffer.
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
 
@@ -48,17 +48,23 @@ Some useful context values used by the provided srecode templates are:
      \"package\" - In or near provide statements
      \"function\" - In or near function statements
          \"NAME\" - Near functions within NAME namespace or class
-     \"method\"   - In or near methods within NAME namespace
-         \"NAME\" - The name of the parent we are near
      \"variable\" - In or near variable statements.
+     \"type\"     - In or near type declarations.
+     \"comment\"  - In a comment
   \"classdecl\" - Declarations within a class/struct/etc.
-     \"public\", \"protected\", \"private\" -
-                  In or near a section of public/pritected/private entries.
-     \"method\" - In or near methods
+     \"variable\" - In or near class fields
+     \"function\" - In or near methods/functions
         \"virtual\" - Nearby items are virtual
            \"pure\" - and those virtual items are pure virtual
-     \"field\" - In or near fields
+     \"type\"     - In or near type declarations.
+     \"comment\"  - In a comment in a block of code
+     -- these items show up at the end of the context list. --
+     \"public\", \"protected\", \"private\" -
+                  In or near a section of public/pritected/private entries.
   \"code\" - In a block of code.
+     \"string\" - In a string in a block of code
+     \"comment\"  - In a comment in a block of code
+
     ... More later."
   )
 
@@ -68,19 +74,21 @@ Some useful context values used by the provided srecode templates are:
 Assume that what we want to insert next is based on what is just
 before point.  If there is nothing, then assume it is whatever is
 after point."
+  ;; @todo - ADD BOUNDS TO THE PREV/NEXT TAG SEARCH
+  ;;         thus classdecl "near" stuff cannot be 
+  ;;         outside the bounds of the type in question.
   (let ((near (semantic-find-tag-by-overlay-prev))
+	(prot nil)
 	(ans nil))
     (if (not near)
 	(setq near (semantic-find-tag-by-overlay-next)))
     (when near
+      ;; Calculate the type of thing we are near.
       (if (not (semantic-tag-of-class-p near 'function))
 	  (setq ans (cons (symbol-name (semantic-tag-class near)) ans))
 	;; if the symbol NEAR has a parent,
 	(let ((p (semantic-tag-function-parent near)))
-	  (if (not p)
-	      (setq ans (cons (symbol-name (semantic-tag-class near)) ans))
-	    ;; Else, it is a method.
-	    (setq ans (cons "method" ans)))
+	  (setq ans (cons (symbol-name (semantic-tag-class near)) ans))
 	  (cond ((semantic-tag-p p)
 		 (setq ans (cons (semantic-tag-name p) ans)))
 		((stringp p)
@@ -92,14 +100,29 @@ after point."
 	;; Was it pure?
 	(when (semantic-tag-get-attribute near :pure-virtual-flag)
 	  (setq ans (cons "pure" ans)))
-
-      ))
+      )
+      ;; Calculate the protection
+      (setq prot (semantic-tag-protection near))
+      (when (and prot (not (eq prot 'unknown)))
+	(setq ans (cons (symbol-name prot) ans)))
+      )
     (nreverse ans)))
 
+(defun srecode-calculate-context-font-lock ()
+  "Calculate an srecode context by using font-lock."
+  (let ((face (get-text-property (point) 'face))
+	)
+    (cond ((member face '(font-lock-string-face
+			  font-lock-doc-face))
+	   (list "string"))
+	  ((member face '(font-lock-comment-face
+			  font-lock-comment-delimiter-face))
+	   (list "comment"))
+	  )
+    ))
+
 (defun srecode-calculate-context-default ()
-  "Generic method for calculating a context for srecode.
-Use Semantic language-agnostic functions to attempt a general solution
-for most languages."
+  "Generic method for calculating a context for srecode."
   (if (= (point-min) (point-max))
       (list "file" "empty")
 
@@ -110,14 +133,17 @@ for most languages."
 		 (and (eq (semantic-tag-class (car ct)) 'type)
 		      (string= (semantic-tag-type (car ct)) "namespace")))
 	     (cons "declaration"
-		   (srecode-calculate-nearby-things))
+		   (or (srecode-calculate-context-font-lock)
+		       (srecode-calculate-nearby-things)
+		       ))
 	     )
 	    ((eq (semantic-tag-class (car ct)) 'function)
-	     (list "code")
+	     (cons "code" (srecode-calculate-context-font-lock))
 	     )
 	    ((eq (semantic-tag-class (car ct)) 'type) ; We know not namespace
 	     (cons "classdecl"
-		   (srecode-calculate-nearby-things))
+		   (or (srecode-calculate-context-font-lock)
+		       (srecode-calculate-nearby-things)))
 	     )
 	    ((and (car (cdr ct))
 		  (eq (semantic-tag-class (car (cdr ct))) 'type))
@@ -126,6 +152,77 @@ for most languages."
 	     )
 	    )
       )))
+
+
+;;; HANDLERS
+;;
+;; The calculated context is one thing, but more info is often available.
+;; The context handlers can add info into the active dictionary that is
+;; based on the context, such as a method parent name, protection scheme,
+;; or other feature.
+
+(defun srecode-semantic-handle-:ctxt (dict &optional template)
+  "Add macros into the dictionary DICT based on the current Emacs Lisp file.
+Argument TEMPLATE is the template object adding context dictionary
+entries.
+This might add the following:
+   VIRTUAL - show a section if a function is virtual
+   PURE - show a section if a function is pure virtual.
+   PARENT - The name of a parent type for functions.
+   PROTECTION - Show a protection section, and what the protection is."
+  (when template
+
+    (let ((context (oref template context))
+	  (cc srecode-insertion-start-context))
+  
+;      (when (and cc 
+;		 (null (string= (car cc) context))
+;		 )
+;	;; No current context, or the base is different, then
+;	;; this is the section where we need to recalculate
+;	;; the context based on user choice, if possible.
+;	;;
+;	;; The recalculation is complex, as there are many possibilities
+;	;; that need to be divined.  Set "cc" to the new context
+;	;; at the end.
+;	;;
+;	;; @todo -
+;	
+;	)
+
+      ;; The various context all have different features.
+      (let ((ct (nth 0 cc))
+	    (it (nth 1 cc))
+	    (last (last cc))
+	    (parent nil)
+	    )
+	(cond ((string= it "function")
+	       (setq parent (nth 2 cc))
+	       (when parent
+		 (cond ((string= parent "virtual")
+			(srecode-dictionary-show-section dict "VIRTUAL")
+			(when (nth 3 cc)
+			  (srecode-dictionary-show-section dict "PURE"))
+			)
+		       (t
+			(srecode-dictionary-set-value dict "PARENT" parent))))
+	       )
+	      ((string= ct "code")
+	       ;;(let ((analyzer (semantic-analyze-current-context)))
+	       ;; @todo - Use the analyze to setup things like local
+	       ;;         variables we might use or something.
+	       nil
+	       ;;)
+	       )
+	      (t
+	       nil))
+	(when (member last '("public" "private" "protected"))
+	  ;; Hey, fancy that, we can do both.
+	  (srecode-dictionary-set-value dict "PROTECTION" parent)
+	  (srecode-dictionary-show-section dict "PROTECTION"))
+	))
+    ))
+
 
 (provide 'srecode-ctxt)
 
