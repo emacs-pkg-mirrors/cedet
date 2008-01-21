@@ -1,6 +1,6 @@
 ;;;; srecode-find.el --- Tools for finding templates in the database.
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
 
@@ -25,7 +25,7 @@
 ;; in search of the right template.
 
 (require 'srecode-ctxt)
-
+(require 'srecode-table)
 ;;; Code:
 
 ;;; Basics
@@ -145,6 +145,65 @@ tables that do not belong to an application will be searched."
 	  (srecode-template-get-table (srecode-get-mode-table 'default)
 				      template-name context)))))
 
+;;
+;; Find a given template based on a key binding.
+;;
+(defmethod srecode-template-get-table-for-binding
+  ((tab srecode-template-table) binding &optional context)
+  "Find in the template name in table TAB, the template with BINDING.
+Optional argument CONTEXT specifies that the template should part
+of a particular context."
+  (let* ((keyout nil)
+	 (hashfcn (lambda (key value)
+		    (when (and (slot-boundp value 'binding)
+			       (oref value binding)
+			       (= (aref (oref value binding) 0) binding))
+		      (setq keyout key))))
+	 (contextstr (cond ((listp context)
+			    (car-safe context))
+			   ((stringp context)
+			    context)
+			   (t nil)))
+	 )
+    (if context
+	(let ((ctxth (gethash contextstr (oref tab contexthash))))
+	  (when ctxth
+	    ;; If a context is specified, then look it up there.
+	    (maphash hashfcn ctxth)
+	    ;; Context hashes EXCLUDE the context prefix which
+	    ;; we need to include, so concat it here
+	    (when keyout
+	      (setq keyout (concat contextstr ":" keyout)))
+	    )))
+    (when (not keyout)
+      ;; No context, or binding in context.  Try full hash.
+      (maphash hashfcn (oref tab namehash)))
+    keyout))
+
+;;;###autoload
+(defmethod srecode-template-get-table-for-binding
+  ((tab srecode-mode-table) binding &optional context application)
+  "Find in the template name in mode table TAB, the template with BINDING.
+Optional argument CONTEXT specifies a context a particular template
+would belong to.
+Optional argument APPLICATION restricts searches to only template tables
+belonging to a specific application.  If APPLICATION is nil, then only
+tables that do not belong to an application will be searched."
+  (let* ((mt tab)
+	 (tabs (oref mt :tables))
+	 (ans nil))
+    (while (and (not ans) tabs)
+      (let ((app (oref (car tabs) :application)))
+	(when (or (and (not application) (null app))
+		  (and application (eq app application)))
+	  (setq ans (srecode-template-get-table-for-binding
+		     (car tabs) binding context)))
+	(setq tabs (cdr tabs))))
+    (or ans
+	;; Recurse to the default.
+	(when (not (equal (oref tab :major-mode) 'default))
+	  (srecode-template-get-table-for-binding
+	   (srecode-get-mode-table 'default) binding context)))))
 ;;; Interactive
 ;;
 ;; Interactive queries into the template data.
@@ -179,15 +238,18 @@ Optional argument HASH is the hash table to fill in."
 	(setq tabs (cdr tabs)))
       mhash)))
 
-(defun srecode-calculate-default-template (hash)
+(defun srecode-calculate-default-template-string (hash)
   "Calculate the name of the template to use as a DEFAULT.
 Templates are read from HASH.
 Context into which the template is inserted is calculated
 with `srecode-calculate-context'."
   (let* ((ctxt (srecode-calculate-context))
 	 (ans (concat (nth 0 ctxt) ":" (nth 1 ctxt))))
-    (when (gethash ans hash)
-      ans)))
+    (if (gethash ans hash)
+	ans
+      ;; No hash at the specifics, at least offer
+      ;; the prefix for the completing read
+      (concat (nth 0 ctxt) ":"))))
 
 ;;;###autoload
 (defun srecode-read-template-name (prompt)
@@ -195,7 +257,7 @@ with `srecode-calculate-context'."
 PROMPT is used to query for the name of the template desired."
   (srecode-load-tables-for-mode major-mode)
   (let* ((hash (srecode-all-template-hash))
-	 (def (srecode-calculate-default-template hash)))
+	 (def (srecode-calculate-default-template-string hash)))
     (completing-read prompt hash
 		     nil t def
 		     'srecode-read-template-name-history)))
