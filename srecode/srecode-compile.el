@@ -51,6 +51,9 @@
    (code :initarg :code
 	 :documentation
 	 "Compiled text from the template.")
+   (binding :initarg :binding
+	    :documentation
+	    "Preferred keybinding for this template in `srecode-minor-mode-map'.")
    (active :allocation :class
 	   :initform nil
 	   :documentation
@@ -263,6 +266,7 @@ STATE is the current compile state as an `srecode-compile-state' object."
 		 tag (semantic-tag-get-attribute tag :code)
 		 STATE))
 	 (args (semantic-tag-function-arguments tag))
+	 (binding (semantic-tag-get-attribute tag :binding))
 	 (addargs nil))
     (message "Compiled %s to %d codes with %d args and %d prompts."
 	     (semantic-tag-name tag)
@@ -275,6 +279,7 @@ STATE is the current compile state as an `srecode-compile-state' object."
     (srecode-template (semantic-tag-name tag)
 		      :context context
 		      :args (nreverse addargs)
+		      :binding binding
 		      :code (cdr code))
     ))
 
@@ -292,7 +297,8 @@ If END-NAME is specified, and the input string"
   (let* ((what str)
 	 (end-token nil)
 	 (comp nil)
-	 (regex (concat "\n\\|" (oref STATE escape_start)))
+	 (regex (concat "\n\\|" (regexp-quote (oref STATE escape_start))))
+	 (regexend (regexp-quote (oref STATE escape_end)))
 	 (tmp nil)
 	 )
     (while (and what (not end-token))
@@ -303,7 +309,7 @@ If END-NAME is specified, and the input string"
 				 (match-beginning 0)
 				 (match-end 0)))
 	       (namestart (match-end 0))
-	       (junk (string-match (oref STATE escape_end) what namestart))
+	       (junk (string-match regexend what namestart))
 	       end tail name key)
 	  ;; Add string to compiled output
 	  (setq comp (cons prefix comp))
@@ -461,8 +467,12 @@ A list of defined variables VARS provides a variable table."
   (princ (object-name-string tmp))
   (princ "\" in context ")
   (princ (oref tmp context))
-  (princ "\n   Input Arguments required: ")
-  (prin1 (oref tmp args))
+  (when (oref tmp args)
+    (princ "\n   Arguments: ")
+    (prin1 (oref tmp args)))
+  (when (and (slot-boundp tmp 'binding) (oref tmp binding))
+    (princ "\n   Binding: ")
+    (prin1 (oref tmp binding)))
   (princ "\n   Compiled Codes:\n")
   (srecode-dump-code-list (oref tmp code) "    ")
   )
