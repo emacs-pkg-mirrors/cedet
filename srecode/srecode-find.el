@@ -47,6 +47,7 @@
      ( srecode-template-mode . "srecode-template.srt" )
      ( c++-mode . "srecode-cpp.srt" )
      ( emacs-lisp-mode . "srecode-el.srt" )
+     ( texinfo-mode . "srecode-texi.srt" )
      ( wisent-grammar-mode . "srecode-wisent.srt" )
     )
   ;; @todo - Make this variable auto-generated from the Makefile.
@@ -252,15 +253,20 @@ with `srecode-calculate-context'."
       (concat (nth 0 ctxt) ":"))))
 
 ;;;###autoload
-(defun srecode-read-template-name (prompt)
+(defun srecode-read-template-name (prompt &optional initial hist default)
   "Completing read for Semantic Recoder template names.
-PROMPT is used to query for the name of the template desired."
+PROMPT is used to query for the name of the template desired.
+INITIAL is the initial string to use.
+HIST is a history variable to use.
+DEFAULT is what to use if the user presses RET."
   (srecode-load-tables-for-mode major-mode)
   (let* ((hash (srecode-all-template-hash))
-	 (def (srecode-calculate-default-template-string hash)))
+	 (def (or initial
+		  (srecode-calculate-default-template-string hash))))
     (completing-read prompt hash
 		     nil t def
-		     'srecode-read-template-name-history)))
+		     (or hist
+			 'srecode-read-template-name-history))))
 
 
 
