@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-srt.el,v 1.1 2008/01/21 14:47:54 zappo Exp $
+;; X-RCS: $Id: srecode-srt.el,v 1.2 2008/01/22 22:52:58 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -50,19 +50,6 @@ DEFAULT is the default if RET is hit."
 		       (or hist 'srecode-read-variable-name-history)
 		       default))
     ))
-
-;;;###autoload
-(defun srecode-read-template-name (prompt &optional initial hist default)
-  "Read in the name of a declaired variable in the current SRT file.
-PROMPT is the prompt to use.
-INITIAL is the initial string.
-HIST is the history value, otherwise `srecode-read-variable-name-history'
-     is used.
-DEFAULT is the default if RET is hit."
-  ;; @todo - Find the list of templates available in this
-  ;; context, and complete on them.
-  (read-string prompt initial hist default)
-  )
 
 ;;;###autoload
 (defun srecode-semantic-handle-:srt (dict)
