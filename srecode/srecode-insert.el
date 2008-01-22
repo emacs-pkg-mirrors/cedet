@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.9 2008/01/21 17:45:50 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.10 2008/01/22 22:52:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -164,14 +164,18 @@ ST can be a class, or an object."
     (when (eq i t)
       (indent-according-to-mode)
       (goto-char pm))
-    (insert "\n")
+    (princ "\n")
     ;; Indent after the newline, particularly for numeric indents.
     (cond ((eq i t)
-	   (indent-according-to-mode))
+	   ;; WARNING - indent according to mode requires that standard-output
+	   ;;           is a buffer!
+	   ;; @todo - how to indent in a string???
+	   (when (bufferp standard-output)
+	     (indent-according-to-mode)))
 	  ((numberp i)
-	   (insert (make-string i " ")))
+	   (princ (make-string i " ")))
 	  ((stringp i)
-	   (insert i)))))
+	   (princ i)))))
 
 (defclass srecode-template-inserter-comment (srecode-template-inserter)
   ((key :initform ?!
