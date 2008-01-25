@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.10 2008/01/22 22:52:22 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.11 2008/01/25 13:49:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -51,8 +51,9 @@
       (call-interactively 'srecode-insert))))
 
 ;;;###autoload
-(defun srecode-insert (template-name)
-  "Inesrt the template TEMPLATE-NAME into the current buffer at point."
+(defun srecode-insert (template-name &rest dictentries)
+  "Inesrt the template TEMPLATE-NAME into the current buffer at point.
+DICTENTRIES are additional dictionary values to add."
   (interactive (list (srecode-read-template-name "Template Name: ")))
   (if (not (srecode-table))
       (error "No template table found for mode %s" major-mode))
@@ -61,6 +62,11 @@
 	(srecode-insertion-start-context (srecode-calculate-context)))
     (if (not temp)
 	(error "No Template named %s" template-name))
+    (while dictentries
+      (srecode-dictionary-set-value newdict 
+				    (car dictentries)
+				    (car (cdr dictentries)))
+      (setq dictentries (cdr (cdr dictentries))))
     (srecode-resolve-arguments temp newdict)
     (srecode-insert-fcn temp newdict)
     ))
