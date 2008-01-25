@@ -1,12 +1,13 @@
 ;;; mode-local.el --- Support for mode local facilities
 ;;
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 ;; Copyright (C) 2004, 2005 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.10 2006/01/30 12:51:20 ponced Exp $
+;; X-RCS: $Id: mode-local.el,v 1.11 2008/01/25 19:33:30 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -44,6 +45,8 @@
 
 ;; To Do:
 ;; Allow customization of a variable for a specific mode?
+;;
+;; Add mecro for defining the '-default' functionality.
 
 ;;; History:
 ;;
@@ -562,6 +565,14 @@ BODY is the implementation of this function."
                         '(override-flag t)
                         ',mode))
     ))
+
+;;; Read/Query Support
+;;
+;;;###autoload
+(defun mode-local-read-function (prompt &optional initial hist default)
+  "Interactively read in the name of a mode-local function.
+PROMPT, INITIAL, HIST, and DEFAULT are the same as for `completing-read'."
+  (completing-read prompt obarray 'function-overload-p t initial hist default))
 
 ;;; Help support
 ;;
