@@ -62,9 +62,14 @@
     ("^\\(prompt\\)\\s-+\\(\\w+\\)"
      (1 font-lock-keyword-face)
      (2 font-lock-variable-name-face))
-    ("\\(default\\)\\s-+\\(\\w+\\)"
+    ("\\(default\\)\\s-+\\(\\(\\w\\|\\s_\\)+\\)"
      (1 font-lock-keyword-face)
      (2 font-lock-type-face))
+    ("\\<\\(default\\)\\>" (1 font-lock-keyword-face))
+    ("\\<\\(read\\)\\s-+\\(\\(\\w\\|\\s_\\)+\\)"
+     (1 font-lock-keyword-face)
+     (2 font-lock-type-face))
+
     ;; Macro separators
     ("^----$" 0 'bold)
     )
