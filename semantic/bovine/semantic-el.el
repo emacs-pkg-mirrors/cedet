@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.41 2008/01/21 14:45:54 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.42 2008/01/25 19:40:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -522,8 +522,8 @@ Optional argument NOSNARF is ignored."
        (semantic-emacs-lisp-obsoleted-doc tag)))))
 
 (define-mode-local-override semantic-insert-foreign-tag
-  emacs-lisp-mode (tag tagfile)
-  "Insert TAG from TAGFILE at point.
+  emacs-lisp-mode (tag)
+  "Insert TAG at point.
 Attempts a simple prototype for calling or using TAG."
   (cond ((semantic-tag-of-class-p tag 'function)
 	 (insert "(" (semantic-tag-name tag) " )")
