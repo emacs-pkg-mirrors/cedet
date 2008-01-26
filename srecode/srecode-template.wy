@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: srecode-template.wy,v 1.6 2008/01/21 17:41:05 zappo Exp $
+;; X-RCS: $Id: srecode-template.wy,v 1.7 2008/01/26 02:43:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,7 +85,7 @@ context
   ;
 
 prompt
-  : PROMPT symbol string opt-default-fcn opt-read-fcn
+  : PROMPT symbol string opt-default-fcn opt-read-fcn newline
     (TAG $2 'prompt :text (read $3) :default $4 :read $5)
   ;
 
