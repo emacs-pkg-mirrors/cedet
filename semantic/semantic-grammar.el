@@ -1,12 +1,12 @@
 ;;; semantic-grammar.el --- Major mode framework for Semantic grammars
 ;;
-;; Copyright (C) 2002, 2003, 2004, 2005, 2007 David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.72 2007/02/18 22:40:58 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.73 2008/01/29 13:57:07 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1835,7 +1835,7 @@ Optional argument COLOR determines if color is added to the text."
 
     (let* ((context-return nil)
 	   (startpoint (point))
-	   (prefixandbounds (semantic-analyze-calculate-bounds))
+	   (prefixandbounds (semantic-ctxt-current-symbol-and-bounds))
 	   (prefix (car prefixandbounds))
 	   (endsym (nth 1 prefixandbounds))
 	   (bounds (nth 2 prefixandbounds))
@@ -1854,9 +1854,8 @@ Optional argument COLOR determines if color is added to the text."
 	     "context-for-semantic-grammar"
 	     :buffer (current-buffer)
 	     :scope nil
-	     :scopetypes nil
-	     :localvariables nil
 	     :bounds bounds
+	     :scope nil
 	     :prefix (if prefixsym
 			 (list prefixsym)
 		       prefix)
