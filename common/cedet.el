@@ -1,12 +1,13 @@
 ;;; cedet.el --- Setup CEDET environment
 
-;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007 by David Ponce
+;; Copyright (C) 2007, 2008 by Eric M. Ludlam
+;; Copyright (C) 2002, 2003, 2004, 2005, 2006 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.23 2007/08/14 18:15:58 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.24 2008/01/29 14:39:12 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -50,6 +51,8 @@
 ;;     |
 ;;     +- speedbar
 ;;     |
+;;     +- srecode
+;;     |
 ;;     \- contrib
 ;;
 ;; Then, add the following into your ~/.emacs startup file:
@@ -69,9 +72,6 @@
 ;;   (load-file "<INSTALL-PATH>/cedet/common/cedet.el")
 ;;
 ;; That's it!
-;;
-
-;;; History:
 ;;
 
 ;;; Code:
@@ -96,6 +96,7 @@
     (eieio         "1.0"           nil      "eieio"        )
     (semantic      "2.0pre4"       nil      "semantic/doc" )
     (speedbar      "1.0.1"         nil      "speedbar"     )
+    (srecode       "0.1"           nil      "srecode"      ) 
     (cedet-contrib "1.0pre4"      "contrib"  nil           )
     )
   "Table of CEDET packages to install.")
