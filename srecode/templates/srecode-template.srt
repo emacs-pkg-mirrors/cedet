@@ -3,7 +3,7 @@
 ;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-template.srt,v 1.4 2008/01/21 17:59:29 zappo Exp $
+;; X-RCS: $Id: srecode-template.srt,v 1.5 2008/01/29 14:29:55 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -117,6 +117,12 @@ template include :srt
 $ESCAPE_START$>:$?TEMPLATE$$ESCAPE_END$
 ----
 bind "i"
+
+template includewrap :srt
+----
+$ESCAPE_START$<:$?TEMPLATE$$ESCAPE_END$$^$$ESCAPE_START$/$NAME$$ESCAPE_END$
+----
+bind "w"
 
 template point
 ----
