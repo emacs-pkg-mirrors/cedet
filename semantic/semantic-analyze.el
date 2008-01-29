@@ -4,13 +4,13 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.61 2008/01/06 02:13:02 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.62 2008/01/29 13:54:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
+;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
 ;; This software is distributed in the hope that it will be useful,
@@ -110,7 +110,7 @@ This list is one shorter than :prefix.  Each element is a semantic
 tag representing a type matching the semantic tag in the same
 position in PREFIX.")
    (scope :initarg :scope
-	  :type semantic-scope-cache
+	  :type (or null semantic-scope-cache)
 	  :documentation "List of tags available in scopetype.
 See `semantic-analyze-scoped-tags' for details.")
    (buffer :initarg :buffer
