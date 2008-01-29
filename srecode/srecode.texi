@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.3 2008/01/21 17:53:37 zappo Exp $
+@c $Id: srecode.texi,v 1.4 2008/01/29 14:26:27 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -30,16 +30,16 @@ Copyright @copyright{} 2007, 2008 Eric M. Ludlam
 
 SRecode is the Semantic Recoder.  Where semantic will parse source
 files into lists of tags, the Semantic Recoder will aid in converting
-semantic tags back into various types of code.
+semantic tags and various other information back into various types of
+code.
 
 The end goal is to provide templates that generate different types of
 code for all the various languages, and also a sequence of hueristics
 in the form of a minor-mode that aid the user in choosing the correct
 template to insert.
 
-Warning: Very little in this manual has been written.
-
 @menu
+* Quick Start::                 Basic Setup
 * Parts of SRecode::		Parts of the system
 * SRecode Minor Mode::		A minor mode for using templates
 * Template Writing::		How to write a template
@@ -48,6 +48,37 @@ Warning: Very little in this manual has been written.
 * Developing Template Functions:: How to write your own template insert functions.
 * Index::
 @end menu
+
+
+@node Quick Start
+@chapter Quick Start
+
+When you intall CEDET, an @code{SRecoder} menu item should appear.
+
+To toggle SRecode minor mode on and off use:
+
+@example
+M-x srecode-minor-mode RET
+@end example
+
+or add
+
+@example
+(srecode-minor-mode 1)
+@end example
+
+to force it on (which is the default) or pass in @code{-1} to force it
+off.
+
+Use the menu to insert templates into the current file.
+
+You can add your own templates in @file{~/.srecode}, or update the
+user template directory.
+
+@defvar srecode-user-template-directory
+@anchor{srecode-user-template-directory}
+Directory where user templates are stored.
+@end defvar
 
 @node Parts of SRecode
 @chapter Parts of SRecode
@@ -78,11 +109,12 @@ author new @file{.srt} files @ref{Template Writing}.
 While the template system was designed for the ``Semantic Recoder'',
 it can be used independantly for code generation or other purposes.
 
-@section Template Loader/Finder
+@section Template Manager
 Once templates have been written, a scheme for loading and selecting
-templates is needed.  The template loader will find and read in all
-relevant templates for a given buffer, by priority, by context, and
-application.
+templates is needed.  The template manager has a loader for finding
+template files, and determining which templates are relevant to the
+current buffer.  Template files are sorted by priority, with user
+templates being found first, and system level default templates last.
 
 @section Dictionary
 Dictionaries contain values associated with macro names.  A value can
@@ -95,7 +127,12 @@ layer.  A wide range of custom macros are available for mixing derived
 data as macros into the plain text of a template.
 
 In addition, templates can be declared with arguments.  These
-arguments represent predetermined sets of dictionary values.
+arguments represent predetermined sets of dictionary values, such as
+features of the current file name, user name, time, etc.
+
+Some areguments are major-mode specific, such as the @code{:el} or @code{:cpp}
+arguments.
+@refill
 
 @section Template Insertion Context
 A context can be provided for templates in a file.  This helps
@@ -103,10 +140,14 @@ auto-selection of templates by name, or allows templates in different
 contexts to have the same name.
 
 A context can be automatically derived as well based on the parsing
-state from Semantic.
+state from @i{Semantic}.  @inforef{Top, Semantic Manual, semantic}.
+@refill
 
 @section Multiple Positioning system
 Not written or implemented
+
+The basic idea is a way to record multiple locations so that srecode
+applications can inserted multiple related templates in multiple places.
 
 @section Applications
 Commands that do a particular task which involves writing code sits at
@@ -133,17 +174,18 @@ Reserved for direct binding of simple templates to keys using a
 keybinding command in the template file.
 @item C-c / <upper case letter>
 Reserved for template applications (Such as get/set inserter.)
-@item C-c / <symbol>
+@item C-c / <punctuation>
 Srecode template management keys.
 @end table
 
 
 @node Template Writing
 @chapter Template Writing
+@anchor{@code{SRecode-template-mode}}
 
-SRecode-template-mode is the major mode used for designing new templates.
-Srecode files (Extension @file{.srt}) are made up of variable settings
-and template declarations.
+@code{SRecode-template-mode} is the major mode used for designing new
+templates.  Srecode files (Extension @file{.srt}) are made up of
+variable settings and template declarations.
 
 @menu
 * Variables:: Creating special and regular variables.
@@ -161,12 +203,66 @@ user can set up that are used in system templates.
 
 A variable can be set like this:
 @example
-set VARNAME "some value as a string"
+set VARNAME "some value"
 @end example
 
-Variables must be set to strings.  Strings may contain newlines or any
-other characters.  Strings are interpreted by the Emacs Lisp reader
-so @code{\n}, @code{\t}, and @code{\"} work.
+@menu
+* String Values::       Basic Variable values
+* Compound Values::     Complex variable values
+* Section Show::        Enabling the display of a named section.
+* Special Variables::   Variables with special names
+@end menu
+
+@node String Values
+@subsection String Values
+
+Variables can be set to strings.  Strings may contain newlines or any
+other characters.  Strings are interpreted by the Emacs Lisp reader so
+@code{\n}, @code{\t}, and @code{\"} work.
+
+When a string is inserted as part of a template, nothing withing the
+string is interperted, such as template escape characters.
+
+@node Compound Values
+@subsection Compound Values
+
+A variable can be set to a compound value.  A compound value is
+usually used when you want to use dictionary entries as part of a
+variable later on.
+
+Compound variable values are set like string values except there are
+more than one.  For example
+
+@example
+set NAME "this" "-mode"
+@end example
+
+These two strings will be concatenated together.
+
+A more useful thing is to include dictionary macros and concatenate
+those into the string.  For example:
+
+@example
+set NAME macro "MODE" "-mode"
+@end example
+
+will extract the value of the dictionary macro MODE and append
+``-mode'' to the end.
+
+@node Section Show
+@subsection Section Show
+
+To set a variable to show a template section, use the @code{show}
+command.
+
+@example
+show NAME
+@end example
+
+This will enable that section.
+
+@node Special Variables
+@subsection Special Variables
 
 Some variables have special meaning that changes attributes when
 templates are compiled, including:
@@ -214,9 +310,10 @@ set DOLLAR "$"
 @node Templates
 @section Templates
 
-A template 
+A template represents a text pattern that can be inserted into
+a buffer.
 
-A template is declaired like this:
+A basic template is declaired like this:
 @example
 template TEMPLATENAME :arg1 :arg2
 "Optional documentation string"
@@ -235,9 +332,96 @@ be used to aid users in selecting which template they want to use.
 The code that makes up the raw template occurs between the lines that
 contain the text ``----''.
 
+@menu
+* Template Section Dictionaries::  Template Scoped Macro values
+* Template Macros::     Macros occuring in template patterns
+@end menu
+
+@node Template Section Dictionaries
+@subsection Template Section Dictionaries
+
+To add variable values to section dictionaries used withing a specific
+template, you can add them to the beginning of the template
+declaration like this:
+
+@example
+template TEMPLATENAME :arg1 :arg2
+"Optional documentation string"
+sectiondictionary "A"
+set NAME "foo"
+----
+A beginning line @{@{NAME@}@}
+@{@{#A@}@}Optional string @{@{NAME@}@} here@{@{/A@}@}
+An end line
+----
+@end example
+
+In this example, the @var{NAME} macro gets the value ``foo'', but only
+while it is inside section A.  The outer scoped NAME will be empty.
+
+This is particularly useful while using an include macro to pull in a
+second template.  In this way, you can pass values known from one
+template to a subordinate template where some value is not know.
+
+From the Elisp default template file, a syntax table is just a
+variable with a specialized value.
+
+If a variable is declared like this:
+
+@example
+template variable :el
+"Inert a variable.
+DOC is optional."
+----
+(defvar $?NAME$ $^$
+  "$DOC$")
+----
+@end example
+
+then you can see that there is a NAME and DOC that is needed.
+The @code{^} point inserter is also a handy key here.
+
+The syntax table wants a variable, but knows the values of some of
+these variables, and can recast the problem like this by using
+template specific @code{sectiondictionary} macro declarations.
+
+@example
+template syntax-table
+"Create a syntax table."
+sectiondictionary "A"
+set NAME macro "?MODESYM" "-mode-syntax-table"
+set DOC "Syntax table used in " macro "?MODESYM" " buffers."
+----
+$<A:variable$
+  (let ((table (make-syntax-table (standard-syntax-table))))
+    (modify-syntax-entry ?\; ". 12"  table) ;; SEMI, Comment start ;;
+    ;; ...
+    table)
+$/A$
+----
+@end example
+
+In this way, @var{NAME} can be set as a user posed question for
+@var{MODESYM} with ``-mode-syntax-table'' appended.  A simplified doc
+string can also be posed.
+
+Lastly, the A section contains more macro text which is inserted at
+the @code{^} point marker.
+
+By creating useful base macros for things like function or variable
+declarations, and recycling them in higher-order macros, an end user
+can override the basic declarator, and the higher order macros will
+then obey the new format, or perhaps even work in more than one major
+mode.
+
+@node Template Macros
+@subsection Template Macros
+
 Template macros occur in the template text.  The default escape
-characters are ``@{@{`` and ``@}@}''.  Thus, if you have the template code
-that looks like this:
+characters are ``@{@{`` and ``@}@}'', though they can be changed
+in the top-level variables.  See @ref{Variables}.
+
+Thus, if you have the template code that looks like this:
 
 @example
 ;; Author: @{@{AUTHOR@}@}
@@ -296,6 +480,12 @@ In this example if the section MOOSE was ``shown'' in the active
 dictionary, then the text between the # and / macros will also be
 inserted.
 
+All the text and macros within a section are either not shown at all
+(if that section is not 'visible') or the section is is show one time
+for each dictionary added to that symbol.
+@xref{Developing Template Functions}.
+@refill
+
 Macros prefixed with ``>'' will include another template.  Include
 macros would look like this:
 
@@ -308,9 +498,17 @@ expanding the template @code{defun}.  The @code{defun} template will
 be looked up in the template repository for the current mode, or in
 any inherited modes.
 
-All the text and macros within a section are either not shown at all
-(if that section is not 'visible') or the section is is show one time
-for each dictionary added to that symbol.  @xref{Developing Template Functions}.
+Another way to include another template is with the includewrap
+insertion method, such as:
+
+@example
+@{@{>FOO:defun@}@}Handy Text goes here@{@{/FOO@}@}
+@end example
+
+In this case, @code{defun} is included just as above.  If the
+@code{defun} template has a @{@{^@}@} macro in it, then the
+section text ``Handy Text goes here'' will be inserted at that point,
+and that location will not be saved as the cursor location.
 
 @node Contexts
 @section Context
@@ -379,7 +577,7 @@ and subsequent occurances of that dictionary entry use the same value.
 To get a different prompt, use a prompt command like this:
 
 @example
-prompt "VARNAME" "Nice Way to ask for VARNAME: "
+prompt VARNAME "Nice Way to ask for VARNAME: "
 @end example
 
 Now, if you put this in a template:
@@ -395,7 +593,7 @@ when VARNAME is encountered, it will use the nice prompt.
 Prompts can be extended as well.  For example:
 
 @example
-prompt "VARNAME" "VARNAME: " default "srecode" read y-or-n-p
+prompt VARNAME "VARNAME: " default "srecode" read y-or-n-p
 @end example
 
 In this case, the @code{default} keyword indicates that
@@ -410,20 +608,36 @@ expected to take the same argument list as @code{read-string}.  As
 such, you can create your own prompts that do completing reads on
 deterministic values.
 
-The @code{default} can also be a dictionary entry.  For the case of
-regular string reads, if the value specified by @code{default} exists
-as an entry in the dictionary, then the initial value of the prompt is
-the dictionary value, not the text immediatly after @code{default}
+To have the default be calculated later from a dictionary entry, you
+need to use the @code{defaultmacro} keyword instead.
+
+@example
+prompt VARNAME "Varname: " defaultmacro "PREFIX"
+@end example
+
+now, when it attempts to read in VARNAME, it will pre-populte the text
+editing section with whatever the value of PREFIX is.
+
+Some language arguments may supply possible prefixes for prompts.
+Look for these when creating your prompts.
 
 @node Dictionaries
 @chapter Dictionaries
 
-Dictionaries contain lists of macros.  The values associated with the
-names could be anything.  That thing will be converted into text
-before it is inserted into the template output stream.
+Dictionaries contain sets of macros.  The values associated with the
+macro names could be anything, but how it is handled is dependent on
+the type of macro being inserted.
 
-If no specialized function or inserter class is defined to handle that
-type, it is output via the format string ``%S''.
+@menu
+* Create a Dictionary::	
+* Setting Dictionary Values::	Basic dictionary values
+* Compound Dictionary Values::	Complex dictionary values
+* Argument Resolution::	        Automatic argument resolution
+* Template Argument Dictionary Entries:: Catalog of arguments
+@end menu
+
+@node Create a Dictionary
+@section Create a Dictionary
 
 @defun srecode-create-dictionary &optional buffer
 @anchor{srecode-create-dictionary}
@@ -434,11 +648,124 @@ Any variables defined with @code{set} in the template, however,
 becomes a name in the dictionary.
 @end defun
 
-The dictionary is also initialized with any names specified based on
-the template arguments.  There is a set of pre-defined template
-arguments.
+@node Setting Dictionary Values
+@section Setting Dictionary Values
 
-A template is of the form:
+When building an srecode based application, you will need to setup
+your dictionary values yourself.  There are several utility functions
+for this.
+
+In the simplest form, you can assocate a string with a macro.
+
+@defun srecode-dictionary-set-value dict name value
+@anchor{srecode-dictionary-set-value}
+In dictionary @var{dict}, set @var{name} to have @var{value}.
+@end defun
+
+For section macros, you can have alternate values.  A section can
+either be toggled as visible, or it can act as a loop.
+
+@defun srecode-dictionary-show-section dict name
+@anchor{srecode-dictionary-show-section}
+In dictionary @var{dict}, indicate that the section @var{name} should be exposed.
+@end defun
+
+@defun srecode-dictionary-add-section-dictionary dict name
+@anchor{srecode-dictionary-add-section-dictionary}
+In dictionary @var{dict}, add a section dictionary for section macro @var{name}.
+Return the new dictionary.
+
+You can add several dictionaries to the same section macro.
+For each dictionary added to a macro, the block of codes in the
+template will be repeated.
+@end defun
+
+@node Compound Dictionary Values
+@section Compound Dictionary Values
+
+If you want to associate a non-string value with a dictionary macro,
+then you will need to use a compound value.  Compound dictionary
+values are derived using EIEIO from a base class for handling
+arbitrary data in a macro.
+
+@deffn Type srecode-dictionary-compound-value
+@anchor{srecode-dictionary-compound-value}
+A compound dictionary value.
+Values stored in a dictionary must be a @var{string}
+or perhaps a dictionary for the case of sections.
+
+Compound dictionary values derive from this class, and must
+provide a sequence of method implementations to convert into
+a string.
+@end deffn
+
+Your new subclass of the compound value needs to implement these
+methods:
+
+@defun srecode-compound-toString cp function dictionary
+@anchor{srecode-compound-toString}
+Convert the compound dictionary value @var{cp} to a string.
+If @var{function} is non-@code{nil}, then @var{function} is somehow applied to an aspect
+of the compound value.  The @var{function} could be a fraction
+of some function symbol with a logical prefix excluded.
+@end defun
+
+This method is for dumping out tables during debugging.
+
+@defun srecode-dump cp &optional indent
+@anchor{srecode-dump}
+Display information about this compound value.
+@end defun
+
+
+Here is an example of wrapping a semantic tag in a compound value:
+
+@example
+(defclass srecode-semantic-tag (srecode-dictionary-compound-value)
+  ((prime :initarg :prime
+	  :type semantic-tag
+	  :documentation
+	  "This is the primary insertion tag.")
+   )
+  "Wrap up a collection of semantic tag information.
+This class will be used to derive dictionary values.")
+
+(defmethod srecode-compound-toString((cp srecode-semantic-tag)
+				     function
+				     dictionary)
+  "Convert the compound dictionary value CP to a string.
+If FUNCTION is non-nil, then FUNCTION is somehow applied to an
+aspect of the compound value."
+  (if (not function)
+      ;; Just format it in some handy dandy way.
+      (semantic-format-tag-prototype (oref cp :prime))
+    ;; Otherwise, apply the function to the tag itself.
+    (funcall function (oref cp :prime))
+    ))
+@end example
+
+@node Argument Resolution
+@section Argument Resolution
+
+Additional dictionary modifiers involve adding a set of predefined
+macro values into the dictionary.
+
+The create routines add a few.  Template specified arguments can also
+add dictionary values.
+
+@defun srecode-resolve-arguments temp dict
+@anchor{srecode-resolve-arguments}
+Resolve all the arguments needed by the template @var{temp}.
+Apply anything learned to the dictionary @var{dict}.
+@end defun
+
+@node Template Argument Dictionary Entries
+@section Template Argument Dictionary Entries 
+
+When a dictionary is initialized for a template, then the dictionary
+will be initialized with a predefined set of macro values.
+
+A template of the form:
 
 @example
 template template-name :arg1 :arg2
@@ -447,10 +774,20 @@ Your template goes here
 ----
 @end example
 
-specifies two arguments :arg1, and :arg2.  The following built-in
-simple arguments are available:
+specifies two arguments :arg1, and :arg2.
 
-@subsection Argument :user
+The following built-in simple arguments are available:
+
+@menu
+* Base Arguments::
+* Semantic Arguments::
+* Language Arguments::
+@end menu
+
+@node Base Arguments
+@subsection Base Arguments
+
+@subsubsection Argument :user
 
 @table @code
 @item AUTHOR
@@ -465,7 +802,7 @@ Current Emacs users login name.
 I'm not sure when this is handy, but it is this Emacs sessions' init file.
 @end table
 
-@subsection Argument :time
+@subsubsection Argument :time
 
 @table @code
 @item YEAR
@@ -480,7 +817,7 @@ The Locale supported date (%D).
 The Locale supported time format (%X).
 @end table
 
-@subsection Argument :file
+@subsubsection Argument :file
 
 @table @code
 @item FILENAME
@@ -500,7 +837,7 @@ Useful for inserting the Emacs mode specifier.
 Show the section RCS if there is a CVS or RCS directory here.
 @end table
 
-@subsection Argument :system
+@subsubsection Argument :system
 
 @table @code
 @item SYSTEMCONF
@@ -513,7 +850,7 @@ The ``system-name''.
 The name of the machine Emacs derived mail ``comes from''.
 @end table
 
-@subsection Argument :kill
+@subsubsection Argument :kill
 
 @table @code
 @item KILL
@@ -526,12 +863,64 @@ The third item in the kill ring.
 The fourth item in the kill ring.
 @end table
 
-@subsection Argument :tag
+@node Semantic Arguments
+@subsection Semantic Arguments
+
+@subsubsection Argument :tag
 
 The :tag argument is filled in with information from Semantic.
 The tag in question is queried from the senator tag ring.
 
-@c @todo - Add more stuff here.
+@table @code
+@item TAG
+This is a compound value for the tag in the current senator kill ring,
+or something handled via the variable
+@code{srecode-semantic-selected-tag}.
+
+@defvar srecode-semantic-selected-tag
+@anchor{srecode-semantic-selected-tag}
+The tag selected by a @code{:tag} template argument.
+If this is @code{nil}, then @code{senator-tag-ring} is used.
+@end defvar
+
+Use the function part of a macro insert to extract obscure parts
+of the tag.
+@item NAME
+The name of the tag as a string.
+@item TYPE
+The data type of the tag as a string.
+@item ARGS
+A Loop macro value.  Each argument is inserted in ARGS.  To create a
+comma separated list of arguments, you might do this:
+
+@example
+@{@{#ARGS@}@}@{@{TYPE@}@} @{@{NAME@}@}@{@{#NOTLAST@}@},@{@{/NOTLAST@}@}@{@{/ARGS@}@}
+@end example
+
+Within the section dictionaries for each argument, you will find both
+@var{NAME} and @var{TYPE}, in addition to the section values:
+
+@table @code
+@item FIRST, NOTFIRST
+If ARG is the first item, or not.
+@item LAST, NOTLAST
+If ARG is the last item, or not.
+@end table
+
+@end table
+
+@node Language Arguments
+@subsection language Arguments
+
+ - todo - fill in these sections
+
+@subsubsection Argument :cpp
+
+
+@subsubsection Argument :el
+
+
+@subsubsection Argument :texi
 
 
 
@@ -620,49 +1009,6 @@ Lets look at the key functions involved above:
 @anchor{srecode-read-template-name}
 Completing read for Semantic Recoder template names.
 @var{prompt} is used to query for the name of the template desired.
-@end defun
-
-
-@section Dictionary commands:
-
-The first thing you need to do with a dictionary is create one.
-@ref{Dictionaries}
-
-
-You can add items to a dictionary with these commands.
-
-@defun srecode-dictionary-set-value dict name value
-@anchor{srecode-dictionary-set-value}
-In dictionary @var{dict}, set @var{name} to have @var{value}.
-@end defun
-
-@defun srecode-dictionary-show-section dict name
-@anchor{srecode-dictionary-show-section}
-In dictionary @var{dict}, indicate that the section @var{name} should be exposed.
-@end defun
-
-@defun srecode-dictionary-add-section-dictionary dict name
-@anchor{srecode-dictionary-add-section-dictionary}
-In dictionary @var{dict}, add a section dictionary for section delimeters @var{name}.
-Return the new dictionary.
-
-You can add several dictionaries to the same section variables.
-For each dictionary added, the block of codes in the template will be
-repeated.
-@end defun
-
-@section More Dictionary commands
-
-Additional dictionary modifiers involve adding a set of predefined
-macro values into the dictionary.
-
-The create routines add a few.  Template specified arguments can also
-add dictionary values.
-
-@defun srecode-resolve-arguments temp dict
-@anchor{srecode-resolve-arguments}
-Resolve all the arguments needed by the template @var{temp}.
-Apply anything learned to the dictionary @var{dict}.
 @end defun
 
 @section Template Insertion Commands
