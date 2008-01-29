@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.88 2008/01/06 02:37:19 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.89 2008/01/29 13:55:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -694,6 +694,7 @@ Save all the databases."
     (semanticdb-synchronize-table semantic-after-toplevel-cache-change-hook)
     (semanticdb-partial-synchronize-table semantic-after-partial-cache-change-hook)
     (semanticdb-kill-hook kill-buffer-hook)
+    (semanticdb-kill-hook change-major-mode-hook) ;; Not really a kill, but we need the same effect.
     (semanticdb-kill-emacs-hook kill-emacs-hook)
     )
   "List of hooks and values to add/remove when configuring semanticdb.")
