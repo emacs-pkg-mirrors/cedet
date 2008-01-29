@@ -1,11 +1,11 @@
 ## Makefile --- Definition file for building CEDET
 ##
-## Copyright (C) 2003, 2004, 2005, 2007 by David Ponce
+## Copyright (C) 2003, 2004, 2005, 2007, 2008 by David Ponce
 ##
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.14 2007/05/28 00:51:19 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.15 2008/01/29 14:38:51 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -34,6 +34,7 @@ ede \
 speedbar \
 eieio \
 semantic \
+srecode \
 cogre \
 contrib
 
