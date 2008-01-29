@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-texi.el,v 1.2 2008/01/26 02:44:32 zappo Exp $
+;; X-RCS: $Id: srecode-texi.el,v 1.3 2008/01/29 14:22:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,9 +30,11 @@
 (require 'semantic-texi)
 
 ;;; Code:
+;;;###autoload
 (defun srecode-texi-add-menu ()
   "Add an item into the current menu.  Add @node statements as well."
   (interactive)
+  (srecode-load-tables-for-mode major-mode)
   (let ((currnode (reverse (semantic-find-tag-by-overlay)))
 	(nodebounds nil))
     (when (not currnode)
@@ -68,6 +70,7 @@
       (let ((menuname (read-string "Name of new node: "))
 	    (returnpoint nil))
 	(srecode-insert "declaration:menuitem" "NAME" menuname)
+	(set-mark (point))
 	(setq returnpoint (make-marker))
 	;; Update the bound since we added text
 	(setq nodebounds (semantic-tag-texi-section-text-bounds currnode))
@@ -75,19 +78,20 @@
 	(forward-char -1)
 	(beginning-of-line)
 	(let ((end nil))
-	  (if (not (looking-at "\\* \\([[^:]+\\):"))
+	  (if (not (looking-at "\\* \\([^:]+\\):"))
 	      (setq end (car (cdr nodebounds)))
 	    (let* ((nname (match-string 1))
 		   (tag
-		    (semantic-find-first-tag-by-name nname (current-buffer))))
+		    (semantic-deep-find-tags-by-name nname (current-buffer))))
 	      (when tag
-		(setq end (semantic-tag-end tag)))
+		(setq end (semantic-tag-end (car tag))))
 	      ))
 	  (when (not end)
 	    (goto-char returnpoint)
 	    (error "Could not find location for new node" ))
 	  (when end
 	    (goto-char end)
+	    (when (bolp) (forward-char -1))
 	    (insert "\n")
 	    (srecode-insert "declaration:node" "NAME" menuname)
 	    )
@@ -107,6 +111,9 @@ Adds the following:
     (when tags
       (save-excursion
 	(goto-char (semantic-tag-start (car tags)))
+	(when (looking-at "@node")
+	  (forward-line 1)
+	  (beginning-of-line))
 	(when (looking-at "@\\(\\w+\\)")
 	  (setq level (match-string 1))
 	  )))
