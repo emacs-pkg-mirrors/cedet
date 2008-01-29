@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.12 2008/01/25 19:40:41 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.13 2008/01/29 14:18:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -74,6 +74,7 @@ DICT-ENTRIES are additional dictionary values to add."
 ;;;###autoload
 (defun srecode-insert-fcn (template dictionary &optional stream)
   "Insert TEMPLATE using DICTIONARY into STREAM."
+  ;; Perform the insertion.
   (let ((standard-output (or stream (current-buffer))))
     (srecode-insert-method template dictionary)
     ;; Handle specialization of the POINT inserter.
@@ -113,9 +114,10 @@ Optional argument TEMP is the template that is getting it's arguments resolved."
       (setq args (cdr args)))
     ))
 
-;;; INSERTION METHODS
+;;; INSERTION STACK & METHOD
 ;;
-;; Code managing the top-level insert command.  The insert function
+;; Code managing the top-level insert method and the current
+;; insertion stack.
 ;; 
 (defmethod srecode-push ((st srecode-template))
   "Push the srecoder template ST onto the active stack."
@@ -132,17 +134,26 @@ ST can be a class, or an object."
 
 (defmethod srecode-insert-method ((st srecode-template) dictionary)
   "Insert the srecoder template ST."
+  ;; Merge any template entries into the input dictionary.
+  (when (slot-boundp st 'dictionary)
+    (srecode-dictionary-merge dictionary (oref st dictionary)))
+  ;; Do an insertion.
   (unwind-protect
       (let ((c (oref st code)))
 	(srecode-push st)
-	(while c
-	  (cond ((stringp (car c))
-		 (princ (car c)))
-		(t
-		 (srecode-insert-method (car c) dictionary)))
-	  (setq c (cdr c))))
+	(srecode-insert-code-stream c dictionary))
     ;; Poping the stack is protected
     (srecode-pop st)))
+
+(defun srecode-insert-code-stream (code dictionary)
+  "Insert the CODE from a template into `standard-output'.
+Use DICTIONARY to resolve any macros."
+  (while code
+    (cond ((stringp (car code))
+	   (princ (car code)))
+	  (t
+	   (srecode-insert-method (car code) dictionary)))
+    (setq code (cdr code))))
 
 ;;; INSERTERS
 ;;
@@ -189,8 +200,8 @@ ST can be a class, or an object."
 	:documentation
 	"The character code used to identify inserters of this style.")
    )
-  "Insert the value of some variable with :object-name.
-If this object isn't in the dictionary, ask the user what it should be.")
+  "Allow comments within template coding.
+This inserts nothing.")
 
 (defmethod srecode-insert-method ((sti srecode-template-inserter-comment)
 				  dictionary)
@@ -220,8 +231,9 @@ If this object isn't in the dictionary, ask the user what it should be.")
 	       dictionary name))
 	 (ans nil))
     ;; Alert if a macro wasn't found.
-    (if (not val)
-	(error "Macro %S was not found in the dictionary." name))
+    (when (not val)
+      (message "Warning: macro %S was not found in the dictionary." name)
+      (setq val ""))
     ;; If there was a functional part, call that function.
     (cond ;; Strings
        ((stringp val)
@@ -230,16 +242,8 @@ If this object isn't in the dictionary, ask the user what it should be.")
 	      (setq val (funcall fcnpart val)))))
        ;; Compound data value
        ((srecode-dictionary-compound-value-child-p val)
-	;; Methods should accept a dictionary to look stuff up in.
-	(if fcnpart
-	    (progn
-	      (if (not (fboundp fcnpart))
-		  ;; May be a short-form name.  Prefix it.
-		  (let ((nfcn (concat "srecode-compound-" (symbol-name fcnpart))))
-		    (setq fcnpart (read nfcn))))
-	      (setq val (funcall fcnpart val dictionary)))
-	  ;; use always available toString...
-	  (setq val (srecode-compound-toString val dictionary)))
+	(setq val (srecode-compound-toString val fcnpart dictionary))
+	(if (not val) (setq val ""))
 	)
        ;; Dictionaries... not allowed in this style
        ((srecode-dictionary-child-p val)
@@ -247,8 +251,10 @@ If this object isn't in the dictionary, ask the user what it should be.")
 	       name))
        ;; Other stuff... convert
        (t
-	(if (and val (not (stringp val)))
-	    (setq val (format "%S" val)))))
+	(error "Macro %s cannot insert arbitrary data." name)
+	;;(if (and val (not (stringp val)))
+	;;    (setq val (format "%S" val))))
+	))
     ;; Output the dumb thing
     (princ val)))
 
@@ -306,20 +312,17 @@ Loop over the prompts to see if we have a match."
 			     defaultfcn)
 			    ((functionp defaultfcn)
 			     (funcall defaultfcn))
+			    ((and (listp defaultfcn)
+				  (eq (car defaultfcn) 'macro))
+			      (srecode-dictionary-lookup-name
+			       dictionary (cdr defaultfcn)))
 			    ((null defaultfcn)
 			     "")
 			    (t
 			     (error "Unknown default for prompt: %S"
 				    defaultfcn))))
 	     (reader (oref sti :read-fcn))
-	     (defaultfromdict (srecode-dictionary-lookup-name
-			       dictionary defaultfcn))
 	     )
-	;; If the default value is a string that is also a dictionary
-	;; entry, then just use that dictionary entry's value.
-	(when defaultfromdict
-	  (setq default defaultfromdict))
-
 	(cond ((eq reader 'y-or-n-p)
 	       (if (y-or-n-p (or prompt
 				 (format "%s? "
@@ -345,7 +348,10 @@ Loop over the prompts to see if we have a match."
       ;; After asking, save in the dictionary so that
       ;; the user can use the same name again later.
       (srecode-dictionary-set-value 
-       dictionary (oref sti :object-name) val)
+       (srecode-root-dictionary dictionary)
+       (oref sti :object-name) val)
+      ;; Now that this value is safely stowed in the dictionary,
+      ;; we can do what regular inserters do.
       (call-next-method))))
 
 (defmethod srecode-dump ((ins srecode-template-inserter-ask) indent)
@@ -355,6 +361,9 @@ Loop over the prompts to see if we have a match."
   (princ (oref ins prompt))
   (princ "\"")
   )
+
+(defvar srecode-template-inserter-point-override nil
+  "When non-nil, the point inserter will do this functin instead.")
 
 (defclass srecode-template-inserter-point (srecode-template-inserter)
   ((key :initform ?^
@@ -372,47 +381,60 @@ after a successful insertion."))
 (defmethod srecode-insert-method ((sti srecode-template-inserter-point)
 				  dictionary)
   "Insert the STI inserter.
-Save point in the class allocated 'point' slot."
-  (oset sti point (point-marker))
-  )
+Save point in the class allocated 'point' slot.
+If `srecode-template-inserter-point-override' then this generalized
+marker will do something else.  See `srecode-template-inserter-include-wrap'
+as an example."
+  (if srecode-template-inserter-point-override
+      (funcall srecode-template-inserter-point-override dictionary)
+    (oset sti point (point-marker))
+    ))
 
 (defclass srecode-template-inserter-subtemplate (srecode-template-inserter)
-  ((template :initarg :template
-	     :documentation
-	     "A Template used to frame the codes from this inserter.")
-   )
+  ()
   "All template segments between the secion-start and section-end
 are treated specially."
   :abstract t)
 
 (defmethod srecode-insert-subtemplate ((sti srecode-template-inserter-subtemplate)
-				       dict)
+				       dict slot)
   "Insert a subtemplate for the inserter STI with dictionary DICT."
   ;; make sure that only dictionaries are used.
   (when (not (srecode-dictionary-child-p dict))
     (error "Only section dictionaries allowed for %s" 
 	   (object-name-string sti)))
   ;; Output the code from the sub-template.
-  (srecode-insert-method (oref sti template) dict)
+  (srecode-insert-method (slot-value sti slot) dict)
   )
 
-(defmethod srecode-insert-method ((sti srecode-template-inserter-subtemplate)
-				  dictionary)
-  "Insert the STI inserter.
-Loops over the embedded CODE which was saved here during compilation."
+(defmethod srecode-insert-method-helper ((sti srecode-template-inserter-subtemplate)
+					 dictionary slot)
+  "Do the work for inserting the STI inserter.
+Loops over the embedded CODE which was saved here during compilation.
+The template to insert is stored in SLOT."
   (let ((dicts (srecode-dictionary-lookup-name 
 		dictionary (oref sti :object-name))))
     ;; If there is no section dictionary, then don't output anything
     ;; from this section.
     (while dicts
-      (srecode-insert-subtemplate sti (car dicts))
+      (srecode-insert-subtemplate sti (car dicts) slot)
       (setq dicts (cdr dicts)))))
+
+(defmethod srecode-insert-method ((sti srecode-template-inserter-subtemplate)
+				  dictionary)
+  "Insert the STI inserter.
+Calls back to `srecode-insert-method-helper' for this class."
+  (srecode-insert-method-helper sti dictionary 'template))
+
 
 (defclass srecode-template-inserter-section-start (srecode-template-inserter-subtemplate)
   ((key :initform ?#
 	:allocation :class
 	:documentation
 	"The character code used to identify inserters of this style.")
+   (template :initarg :template
+	     :documentation
+	     "A Template used to frame the codes from this inserter.")
    )
   "All template segments between the secion-start and section-end
 are treated specially.")
@@ -465,48 +487,108 @@ are treated specially.")
 	:allocation :class
 	:documentation
 	"The character code used to identify inserters of this style.")
-   )
+   (includedtemplate 
+    :initarg :includedtemplate
+    :documentation
+    "The template included for this inserter."))
   "This macro will bring in an exapansion of a different template.")
 
-(defmethod srecode-insert-method ((sti srecode-template-inserter-include)
-				  dictionary)
-  "Insert the STI inserter.
-Finds the template with this macro function part, and inserts it
-with the dictionaries found in the dictinary."
+(defmethod srecode-insert-include-lookup ((sti srecode-template-inserter-include)
+					  dictionary)
+  "For the template inserter STI, lookup the template to include.
+Finds the template with this macro function part and stores it in
+this template instance."
   (let* ((templatenamepart (oref sti :secondname))
 	 (ans nil))
     ;; If there was no template name, throw an error
     (if (not templatenamepart)
 	(error "Include macro %s needs a template name." (oref sti :object-name)))
     ;; Find the template by name, and save it.
-    (if (or (not (slot-boundp sti 'template))
-	    (not (oref sti template)))
+    (if (or (not (slot-boundp sti 'includedtemplate))
+	    (not (oref sti includedtemplate)))
 	(let ((tmpl (srecode-template-get-table (srecode-table)
 						templatenamepart))
 	      (active (oref srecode-template active))
 	      ctxt)
-	  ;; If it isn't just available, scan back through
-	  ;; the active tempalte stack, searching for a matching
-	  ;; context.
-	  (while (and (not tmpl) active)
-	    (setq ctxt (oref (car active) context))
-	    (setq tmpl (srecode-template-get-table (srecode-table)
-						   templatenamepart
-						   ctxt))
-	    (setq active (cdr active)))
-	  (oset sti :template tmpl)))
+	  (when (not tmpl)
+	    ;; If it isn't just available, scan back through
+	    ;; the active tempalte stack, searching for a matching
+	    ;; context.
+	    (while (and (not tmpl) active)
+	      (setq ctxt (oref (car active) context))
+	      (setq tmpl (srecode-template-get-table (srecode-table)
+						     templatenamepart
+						     ctxt))
+	      (setq active (cdr active)))
+	    (when (not tmpl)
+	      ;; If it wasn't in this context, look to see if it
+	      ;; defines it's own context
+	      (setq tmpl (srecode-template-get-table (srecode-table)
+						     templatenamepart)))
+	    )
+	  (oset sti :includedtemplate tmpl)))
 
-    (if (not (oref sti template))
+    (if (not (oref sti includedtemplate))
 	(error "No template %s found for include %s"
 	       templatenamepart (oref sti :object-name)))
-    ;; Insert the template.
-    ;; Our baseclass has a simple way to do this.
-    (if (srecode-dictionary-lookup-name dictionary (oref sti :object-name))
-	;; If we have a value, then call the next method
-	(call-next-method)
-      ;; If we don't have a special dictitonary, then just insert with the
-      ;; current dictionary.
-      (srecode-insert-subtemplate sti dictionary))
+    ))
+
+(defmethod srecode-insert-method ((sti srecode-template-inserter-include)
+				  dictionary)
+  "Insert the STI inserter.
+Finds the template with this macro function part, and inserts it
+with the dictionaries found in the dictinary."
+  (srecode-insert-include-lookup sti dictionary)
+  ;; Insert the template.
+  ;; Our baseclass has a simple way to do this.
+  (if (srecode-dictionary-lookup-name dictionary (oref sti :object-name))
+      ;; If we have a value, then call the next method
+      (srecode-insert-method-helper sti dictionary 'includedtemplate)
+    ;; If we don't have a special dictitonary, then just insert with the
+    ;; current dictionary.
+    (srecode-insert-subtemplate sti dictionary 'includedtemplate))
+  )
+
+;;
+;; This template combines the include template and the sectional template.
+;; It will first insert the included template, then insert the embedded
+;; template wherever the $^$ in the included template was.
+;;
+;; Since it uses dual inheretance, it will magically get the end-matching
+;; behavior of #, with the including feature of >.
+;;
+(defclass srecode-template-inserter-include-wrap (srecode-template-inserter-include srecode-template-inserter-section-start)
+   ((key :initform ?<
+	 :allocation :class
+	 :documentation
+	 "The character code used to identify inserters of this style.")
+    )
+   "Class srecode-template-inserter-include-wrap ")
+
+(defmethod srecode-insert-method ((sti srecode-template-inserter-include-wrap)
+				  dictionary)
+  "Insert the template STI.
+This will first insert the include part via inheritance, then
+insert the section it wraps into the location in the included
+template where  a ^ inserter occurs."
+  ;; Step 1: Look up the included inserter
+  (srecode-insert-include-lookup sti dictionary)
+  ;; Step 2: Temporarilly override the point inserter.
+  (let* ((vaguely-unique-name sti)
+	 (srecode-template-inserter-point-override
+	  (lambda (dict2)
+	    (if (srecode-dictionary-lookup-name 
+		 dict2 (oref vaguely-unique-name :object-name))
+		;; Insert our sectional part with looping.
+		(srecode-insert-method-helper 
+		 vaguely-unique-name dict2 'template)
+	      ;; Insert our sectional part just once.
+	      (srecode-insert-subtemplate vaguely-unique-name
+					  dict2 'template))
+	   )))
+    ;; Do a regular insertion for an include, but with our override in
+    ;; place.
+    (call-next-method)
     ))
 
 (provide 'srecode-insert)
