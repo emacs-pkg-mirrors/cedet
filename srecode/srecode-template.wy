@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: srecode-template.wy,v 1.7 2008/01/26 02:43:57 zappo Exp $
+;; X-RCS: $Id: srecode-template.wy,v 1.8 2008/01/29 14:00:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,16 +36,23 @@
 
 ;;; KEYWORDS
 %type    <keyword>
-%keyword TEMPLATE  "template"
-%put     TEMPLATE  summary "template <name>\\n <template definition>"
 %keyword SET  "set"
 %put     SET  summary "set <name> <value>"
+%keyword SHOW "show"
+%put     SHOW summary "show <name>   ; to show a section"
+%keyword MACRO "macro"
+%put     MACRO summary "... macro \"string\" ..."
 %keyword CONTEXT "context"
 %put     CONTEXT summary "context <name>"
+%keyword TEMPLATE  "template"
+%put     TEMPLATE  summary "template <name>\\n <template definition>"
+%keyword SECTIONDICTIONARY "sectiondictionary"
+%put     SECTIONDICTIONARY summary "sectiondictionary <name>\\n <dictionary entries>"
 %keyword PROMPT "prompt"
 %keyword DEFAULT "default"
+%keyword DEFAULTMACRO "defaultmacro"
 %keyword READ "read"
-%put     { PROMPT DEFAULT READ } summary "prompt <symbol> \"Describe Symbol: \" [default <lispsym>|\"valuetext\"] [read <lispsym>]"
+%put     { PROMPT DEFAULT DEFAULTMACRO READ } summary "prompt <symbol> \"Describe Symbol: \" [default[macro] <lispsym>|\"valuetext\"] [read <lispsym>]"
 %keyword BIND "bind"
 %put     BIND summary "bind \"<letter>\""
 
@@ -94,6 +101,8 @@ opt-default-fcn
     (progn (read $2))
   | DEFAULT string
     (progn (read $2))
+  | DEFAULTMACRO string
+    (progn (cons 'macro (read $2)))
   | ()
   ;
 
@@ -104,16 +113,34 @@ opt-read-fcn
   ;
 
 variable
-  : SET symbol string newline
+  : SET symbol insertable-string-list newline
     (VARIABLE-TAG $2 nil $3)
+  | SHOW symbol newline
+    (VARIABLE-TAG $2 nil t)
+  ;
+
+insertable-string-list
+  : insertable-string
+    (list $1)
+  | insertable-string-list insertable-string
+    (append $1 (list $2))
+  ;
+
+insertable-string
+  : string
+    (read $1)
+  | MACRO string
+    (cons 'macro (read $2))
   ;
 
 template
   : TEMPLATE symbol opt-dynamic-arguments newline
     opt-string
+    opt-section-dictionaries
     TEMPLATE_BLOCK newline
     opt-bind
-    (FUNCTION-TAG $2 nil $3 :documentation $5 :code $6 :binding $8 )
+    (FUNCTION-TAG $2 nil $3 :documentation $5 :code $7
+		  :dictionaries $6 :binding $9 )
   ;
 
 opt-dynamic-arguments
@@ -126,6 +153,31 @@ opt-string
   : string newline
     ( read $1 )
   | ()
+  ;
+
+opt-section-dictionaries
+  : () ;; EMPTY
+  | section-dictionary-list
+  ;
+
+section-dictionary-list
+  : one-section-dictionary
+    (list $1)
+  | section-dictionary-list one-section-dictionary
+    (append $1 (list $2))
+  ;
+
+one-section-dictionary
+  : SECTIONDICTIONARY string newline
+    variable-list
+    (cons (read $2) $4)
+  ;
+
+variable-list
+  : variable
+    (EXPANDTAG $1)
+  | variable-list variable
+    (append $1 (EXPANDTAG $2))
   ;
 
 opt-bind
