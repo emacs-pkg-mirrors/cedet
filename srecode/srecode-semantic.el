@@ -1,9 +1,9 @@
 ;;; srecode-semantic.el --- Semantic specific extensions to SRecode.
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.3 2007/03/18 16:47:42 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.4 2008/01/29 14:20:42 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -49,6 +49,20 @@
   "Wrap up a collection of semantic tag information.
 This class will be used to derive dictionary values.")
 
+(defmethod srecode-compound-toString((cp srecode-semantic-tag)
+				     function
+				     dictionary)
+  "Convert the compound dictionary value CP to a string.
+If FUNCTION is non-nil, then FUNCTION is somehow applied to an
+aspect of the compound value."
+  (if (not function)
+      ;; Just format it in some handy dandy way.
+      (semantic-format-tag-prototype (oref cp :prime))
+    ;; Otherwise, apply the function to the tag itself.
+    (funcall function (oref cp :prime))
+    ))
+
+
 (defvar srecode-semantic-selected-tag nil
   "The tag selected by a :tag template argument.
 If this is nil, then `senator-tag-ring' is used.")
@@ -57,11 +71,7 @@ If this is nil, then `senator-tag-ring' is used.")
   "Create an `srecode-semantic-tag' from the senator kill ring."
   (if (ring-empty-p senator-tag-ring)
       (error "You must use `senator-copy-tag' to provide a tag to this template"))
-  (let ((tag (ring-ref senator-tag-ring 0))
-	)
-    (srecode-semantic-tag (semantic-tag-name tag)
-			  :prime tag)
-    ))
+  (ring-ref senator-tag-ring 0))
 
 ;;; :tag ARGUMENT HANDLING
 ;;
@@ -71,13 +81,14 @@ If this is nil, then `senator-tag-ring' is used.")
 (defun srecode-semantic-handle-:tag (dict)
   "Add macroes into the dictionary DICT based on the current :tag."
   ;; We have a tag, start adding "stuff" into the dictionary.
-  (srecode-semantic-apply-tag-to-dict
-   (or
-    (when srecode-semantic-selected-tag
-      (srecode-semantic-tag (semantic-tag-name srecode-semantic-selected-tag)
-			    :prime srecode-semantic-selected-tag))
-    (srecode-semantic-tag-from-kill-ring))
-   dict))
+  (let ((tag (or srecode-semantic-selected-tag
+		 (srecode-semantic-tag-from-kill-ring))))
+    (when (not tag)
+      "No tag for current template.  Use the semantic kill-ring.")
+    (srecode-semantic-apply-tag-to-dict
+     (srecode-semantic-tag (semantic-tag-name tag)
+			   :prime tag)
+     dict)))
 
 ;;; :tagtype ARGUMENT HANDLING
 ;;
@@ -119,7 +130,9 @@ Assumes the cursor is in a tag of class type.  If not, throw an error."
 				 larg nil nil)))
 		 ;; Apply the sub-argument to the subdictionary.
 		 (srecode-semantic-apply-tag-to-dict
-		  larg subdict)
+		  (srecode-semantic-tag (semantic-tag-name larg)
+					:prime larg)
+		  subdict)
 		 ;; Is this the first argument?
 		 (if (eq args (semantic-tag-function-arguments tag))
 		     (srecode-dictionary-show-section subdict "FIRST")
