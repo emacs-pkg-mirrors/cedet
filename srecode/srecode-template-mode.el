@@ -48,12 +48,19 @@
      (1 font-lock-keyword-face)
      (2 font-lock-function-name-face)
      (3 font-lock-builtin-face ))
+    ("^\\(sectiondictionary\\)\\s-+\""
+     (1 font-lock-keyword-face))
     ("^\\(bind\\)\\s-+\""
      (1 font-lock-keyword-face))
     ;; Variable type setting
-    ("^\\(set\\)\\s-+\\(\\w+\\)\\s-+\""
+    ("^\\(set\\)\\s-+\\(\\w+\\)\\s-+"
      (1 font-lock-keyword-face)
      (2 font-lock-variable-name-face))
+    ("^\\(show\\)\\s-+\\(\\w+\\)\\s-*$"
+     (1 font-lock-keyword-face)
+     (2 font-lock-variable-name-face))
+    ("\\<\\(macro\\)\\s-+\""
+     (1 font-lock-keyword-face))
     ;; Context type setting
     ("^\\(context\\)\\s-+\\(\\w+\\)"
      (1 font-lock-keyword-face)
@@ -62,10 +69,10 @@
     ("^\\(prompt\\)\\s-+\\(\\w+\\)"
      (1 font-lock-keyword-face)
      (2 font-lock-variable-name-face))
-    ("\\(default\\)\\s-+\\(\\(\\w\\|\\s_\\)+\\)"
+    ("\\(default\\(macro\\)?\\)\\s-+\\(\\(\\w\\|\\s_\\)+\\)"
      (1 font-lock-keyword-face)
-     (2 font-lock-type-face))
-    ("\\<\\(default\\)\\>" (1 font-lock-keyword-face))
+     (3 font-lock-type-face))
+    ("\\<\\(default\\(macro\\)?\\)\\>" (1 font-lock-keyword-face))
     ("\\<\\(read\\)\\s-+\\(\\(\\w\\|\\s_\\)+\\)"
      (1 font-lock-keyword-face)
      (2 font-lock-type-face))
@@ -102,13 +109,21 @@
          ;; This puts _ & - as a word constituant,
          ;; simplifying our keywords significantly
          ((?_ . "w") (?- . "w"))))
-  (srecode-template-setup-parser)
   (run-hooks 'srecode-template-mode-hook)
   )
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.srt$" . srecode-template-mode))
 
+
+;;; Utils
+;;
+(defun srecode-tmeplate-get-mode ()
+  "Get the supported major mode for this template file."
+  (let ((m (semantic-find-first-tag-by-name "mode" (current-buffer))))
+    (when m (read (semantic-tag-variable-default m)))))
+
+
 ;;; MMM-Mode support ??
 (condition-case foo
     (require 'mmm-mode)
