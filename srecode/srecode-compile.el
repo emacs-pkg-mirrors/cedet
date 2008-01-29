@@ -51,6 +51,14 @@
    (code :initarg :code
 	 :documentation
 	 "Compiled text from the template.")
+   (dictionary :initarg :dictionary
+	       :type (or null srecode-dictionary)
+	       :documentation
+	       "List of section dictinaries.
+The compiled template can contain lists of section dictionaries,
+or values that are expected to be passed down into different
+section macros.  The template section dictionaries are merged in with
+any incomming dictionaries values.")
    (binding :initarg :binding
 	    :documentation
 	    "Preferred keybinding for this template in `srecode-minor-mode-map'.")
@@ -122,13 +130,14 @@ STATE is the current compilation state."
   (with-slots (prompts) state
       (let ((match (assoc (semantic-tag-name prompttag) prompts)))
 	(when match
-	  (let ((newprompts nil))
-	    (while prompts
-	      (when (not (string= (car (car prompts))
+	  (let ((newprompts nil)
+		(tmp prompts))
+	    (while tmp
+	      (when (not (string= (car (car tmp))
 				  (car prompttag)))
-		(setq newprompts (cons (car prompts)
+		(setq newprompts (cons (car tmp)
 				       newprompts)))
-	      (setq prompts (cdr prompts)))))
+	      (setq tmp (cdr tmp)))))
 	(setq prompts (cons prompttag prompts)))
       ))
 
@@ -191,24 +200,36 @@ STATE is the current compilation state."
 	    
        ;; VARIABLE tags can specify operational control
        ((eq class 'variable)
-	(let ((name (semantic-tag-name tag))
-	      (value (read (semantic-tag-variable-default tag))))
-	  (cond ((string= name "mode")
-		 (setq mode (intern value)))
-		((string= name "escape_start")
-		 (oset STATE escape_start value)
-		 )
-		((string= name "escape_end")
-		 (oset STATE escape_end value)
-		 )
-		((string= name "application")
-		 (setq application (read value)))
-		((string= name "priority")
-		 (setq priority (read value)))
-		(t
-		 ;; Assign this into some table of variables.
-		 (setq vars (cons (cons name value) vars))
-		 )))
+	(let* ((name (semantic-tag-name tag))
+	       (value (semantic-tag-variable-default tag))
+	       (firstvalue (car value)))
+	  ;; If it is a single string, and one value, then
+	  ;; look to see if it is one of our special variables.
+	  (if (and (= (length value) 1) (stringp firstvalue))
+	      (cond ((string= name "mode")
+		     (setq mode (intern firstvalue)))
+		    ((string= name "escape_start")
+		     (oset STATE escape_start firstvalue)
+		     )
+		    ((string= name "escape_end")
+		     (oset STATE escape_end firstvalue)
+		     )
+		    ((string= name "application")
+		     (setq application (read firstvalue)))
+		    ((string= name "priority")
+		     (setq priority (read firstvalue)))
+		    (t
+		     ;; Assign this into some table of variables.
+		     (setq vars (cons (cons name firstvalue) vars))
+		     ))
+	    ;; If it isn't a single string, then the value of the
+	    ;; variable belongs to a compound dictionary value.
+	    ;;
+	    ;; Create a compound dictionary value from "value".
+	    (let ((cv (srecode-dictionary-compound-variable
+		       name :value value)))
+	      (setq vars (cons (cons name cv) vars)))
+	    ))
 	)
 
        ;; FUNCTION tags are really templates.
@@ -267,18 +288,21 @@ STATE is the current compile state as an `srecode-compile-state' object."
 		 STATE))
 	 (args (semantic-tag-function-arguments tag))
 	 (binding (semantic-tag-get-attribute tag :binding))
+	 (rawdicts (semantic-tag-get-attribute tag :dictionaries))
+	 (sdicts (srecode-create-section-dicionary rawdicts STATE))
 	 (addargs nil))
-    (message "Compiled %s to %d codes with %d args and %d prompts."
-	     (semantic-tag-name tag)
-	     (length code)
-	     (length args)
-	     (length prompts))
+;    (message "Compiled %s to %d codes with %d args and %d prompts."
+;	     (semantic-tag-name tag)
+;	     (length code)
+;	     (length args)
+;	     (length prompts))
     (while args
       (setq addargs (cons (intern (car args)) addargs))
       (setq args (cdr args)))
     (srecode-template (semantic-tag-name tag)
 		      :context context
 		      :args (nreverse addargs)
+		      :dictionary sdicts
 		      :binding binding
 		      :code (cdr code))
     ))
@@ -340,35 +364,25 @@ If END-NAME is specified, and the input string"
 			  (semantic-tag-name tag)))
 		  )
 	    ;; Add string to compiled output
-	    (setq key (aref what namestart))
-	    (if (and (or (< key ?A) (> key ?Z))
-		     (or (< key ?a) (> key ?z)) )
-		(setq name (substring what (1+ namestart) end))
-	      (setq name (substring what namestart end)
-		    key nil))
+	    (setq name (substring what namestart end)
+		  key nil)
 	    ;; Trim WHAT back.
 	    (setq what (substring what tail))
-	    ;; Add new inserted to compiled output
-	    (let* ((junk (string-match ":" name))
-		   (namepart (if junk
-				 (substring name 0 (match-beginning 0))
-			       name))
-		   (secondname (if junk
-				   (substring name (match-end 0))
-				 nil)))
-	      (let ((new-inserter (srecode-compile-inserter
-				   namepart key STATE
-				   :secondname secondname
-				   )))
-		(if (srecode-match-end new-inserter end-name)
-		    (setq end-token new-inserter))
-		;; Add the inserter to our compilation stream.
-		(setq comp (cons new-inserter comp))
-		;; Allow the inserter an opportunity to modify
-		;; the input stream.
-		(setq what (srecode-parse-input new-inserter tag what
-						STATE))
-		))
+	    ;; Get the inserter
+	    (let ((new-inserter
+		   (srecode-compile-parse-inserter name STATE))
+		  )
+	      ;; If this is an end inserter, then assign into
+	      ;; the end-token.
+	      (if (srecode-match-end new-inserter end-name)
+		  (setq end-token new-inserter))
+	      ;; Add the inserter to our compilation stream.
+	      (setq comp (cons new-inserter comp))
+	      ;; Allow the inserter an opportunity to modify
+	      ;; the input stream.
+	      (setq what (srecode-parse-input new-inserter tag what
+					      STATE))
+	      )
 	    )))
        (t
 	(if end-name
@@ -376,6 +390,30 @@ If END-NAME is specified, and the input string"
 	(setq comp (cons what comp)
 	      what nil))))
     (cons what (nreverse comp))))
+
+(defun srecode-compile-parse-inserter (txt STATE)
+  "Parse the inserter TXT with the current STATE.
+Return an inserter object."
+  (let ((key (aref txt 0))
+	)
+    (if (and (or (< key ?A) (> key ?Z))
+	     (or (< key ?a) (> key ?z)) )
+	(setq name (substring txt 1))
+      (setq name txt
+	    key nil))
+    (let* ((junk (string-match ":" name))
+	   (namepart (if junk
+			 (substring name 0 (match-beginning 0))
+		       name))
+	   (secondname (if junk
+			   (substring name (match-end 0))
+			 nil))
+	   (new-inserter (srecode-compile-inserter
+			  namepart key STATE
+			  :secondname secondname
+			  )))
+      ;; Return the new inserter
+      new-inserter)))
 
 (defun srecode-compile-inserter (name key STATE &rest props)
   "Create an srecode inserter object for some macro NAME.
@@ -467,14 +505,23 @@ A list of defined variables VARS provides a variable table."
   (princ (object-name-string tmp))
   (princ "\" in context ")
   (princ (oref tmp context))
+  (princ "\n")
   (when (oref tmp args)
-    (princ "\n   Arguments: ")
-    (prin1 (oref tmp args)))
+    (princ "   Arguments: ")
+    (prin1 (oref tmp args))
+    (princ "\n"))
+  (when (oref tmp dictionary)
+    (princ "   Section Dictionaries:\n")
+    (srecode-dump (oref tmp dictionary) 4)
+    ;(princ "\n")
+    )
   (when (and (slot-boundp tmp 'binding) (oref tmp binding))
-    (princ "\n   Binding: ")
-    (prin1 (oref tmp binding)))
-  (princ "\n   Compiled Codes:\n")
+    (princ "   Binding: ")
+    (prin1 (oref tmp binding))
+    (princ "\n"))
+  (princ "   Compiled Codes:\n")
   (srecode-dump-code-list (oref tmp code) "    ")
+  (princ "\n\n")
   )
 
 (defun srecode-dump-code-list (code indent)
@@ -492,9 +539,10 @@ Argument INDENT specifies the indentation level for the list."
 	    (t
 	     (princ "Unknown Code: ")
 	     (prin1 (car code))))
-      (princ "\n")
       (setq code (cdr code)
-	    i (1+ i))))
+	    i (1+ i))
+      (when code
+	(princ "\n"))))
   )
 
 (defmethod srecode-dump ((ins srecode-template-inserter) indent)
