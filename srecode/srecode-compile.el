@@ -278,19 +278,21 @@ STATE is the current compilation state."
 
 (defun srecode-compile-one-template-tag (tag STATE)
   "Compile a template tag TAG into an srecode template class.
-STATE is the current compile state as an `srecode-compile-state' object."
+STATE is the current compile state as an object `srecode-compile-state'."
   (let* ((context (oref STATE context))
 	 (prompts (oref STATE prompts))
 	 (escape_start (oref STATE escape_start))
 	 (escape_end (oref STATE escape_end))
-	 (code  (srecode-compile-split-code
-		 tag (semantic-tag-get-attribute tag :code)
-		 STATE))
+	 (codeout  (srecode-compile-split-code
+		    tag (semantic-tag-get-attribute tag :code)
+		    STATE))
+	 (code (cdr codeout))
 	 (args (semantic-tag-function-arguments tag))
 	 (binding (semantic-tag-get-attribute tag :binding))
 	 (rawdicts (semantic-tag-get-attribute tag :dictionaries))
 	 (sdicts (srecode-create-section-dicionary rawdicts STATE))
-	 (addargs nil))
+	 (addargs nil)
+	 )
 ;    (message "Compiled %s to %d codes with %d args and %d prompts."
 ;	     (semantic-tag-name tag)
 ;	     (length code)
@@ -298,13 +300,24 @@ STATE is the current compile state as an `srecode-compile-state' object."
 ;	     (length prompts))
     (while args
       (setq addargs (cons (intern (car args)) addargs))
+      (when (eq (car addargs) :blank)
+	;; If we have a wrap, then put wrap inserters on both
+	;; ends of the code.
+	(let ((wrap (srecode-compile-inserter
+				   "BLANK"
+				   "\r"
+				   STATE
+				   :secondname nil))
+	      )
+	  (setq code (append (list wrap) code (list wrap)))
+	  ))
       (setq args (cdr args)))
     (srecode-template (semantic-tag-name tag)
 		      :context context
 		      :args (nreverse addargs)
 		      :dictionary sdicts
 		      :binding binding
-		      :code (cdr code))
+		      :code code)
     ))
 
 (defun srecode-compile-split-code (tag str STATE
@@ -336,7 +349,8 @@ If END-NAME is specified, and the input string"
 	       (junk (string-match regexend what namestart))
 	       end tail name key)
 	  ;; Add string to compiled output
-	  (setq comp (cons prefix comp))
+	  (when (> (length prefix) 0)
+	    (setq comp (cons prefix comp)))
 	  (if (string= match "\n")
 	      ;; Do newline thingy.
 	      (let ((new-inserter (srecode-compile-inserter
