@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-srt.el,v 1.2 2008/01/22 22:52:58 zappo Exp $
+;; X-RCS: $Id: srecode-srt.el,v 1.3 2008/01/30 03:43:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -62,11 +62,11 @@ ESCAPE_END - This files value of escape_end"
 	 (ee (semantic-find-first-tag-by-name "escape_end" (current-buffer))))
     (srecode-dictionary-set-value dict "ESCAPE_START"
 				  (if es
-				      (read (semantic-tag-variable-default es))
+				      (car (semantic-tag-variable-default es))
 				    "{{"))
     (srecode-dictionary-set-value dict "ESCAPE_END"
 				  (if ee
-				      (read (semantic-tag-variable-default ee))
+				      (car (semantic-tag-variable-default ee))
 				    "}}"))
     ))
 
