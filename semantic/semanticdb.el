@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.89 2008/01/29 13:55:43 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.90 2008/01/30 12:01:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -573,41 +573,45 @@ Always append `semanticdb-project-system-databases' if
 (defun semanticdb-semantic-init-hook-fcn ()
   "Function saved in `find-file-hooks'.
 Sets up the semanticdb environment."
-  (let ((cdb nil)
-	(ctbl nil))
-    ;; Allow a database override function
-    (when (not (and semanticdb-semantic-init-hook-overload
-		    (setq cdb (run-hooks 'semanticdb-semantic-init-hook-overload))))
-      (setq cdb (semanticdb-create-database semanticdb-new-database-class
-					    default-directory))
-      )
-    ;; Get the current DB for this directory
-    (setq semanticdb-current-database cdb)
-    ;; Get a table for this file.
-    (setq ctbl (semanticdb-create-table cdb (buffer-file-name)))
-    ;; We set the major mode because we know what it is.
-    (oset ctbl major-mode major-mode)
-    ;; Local state
-    (setq semanticdb-current-table ctbl)
-    ;; Try to swap in saved tags
-    (if (or (not (slot-boundp ctbl 'tags)) (not (oref ctbl tags))
-	    (/= (or (oref ctbl pointmax) 0) (point-max))
-	    )
-	(semantic-clear-toplevel-cache)
-      (condition-case nil
-          (semantic-set-unmatched-syntax-cache
-           (oref ctbl unmatched-syntax))
-        (unbound-slot
-         ;; Old version of the semanticdb table can miss the unmatched
-         ;; syntax slot.  If so, just clear the unmatched syntax cache.
-         (semantic-clear-unmatched-syntax-cache)
-	 ;; Make sure it has a value.
-	 (oset ctbl unmatched-syntax nil)
-	 ))
-      (semantic--set-buffer-cache (oref ctbl tags))
-      (semantic--tag-link-cache-to-buffer)
-      )
-    ))
+  ;; Only initialize semanticdb if we have a file name.
+  ;; There is no reason to cache a tag table if there is no
+  ;; way to load it back in later.
+  (when (buffer-file-name)
+    (let ((cdb nil)
+	  (ctbl nil))
+      ;; Allow a database override function
+      (when (not (and semanticdb-semantic-init-hook-overload
+		      (setq cdb (run-hooks 'semanticdb-semantic-init-hook-overload))))
+	(setq cdb (semanticdb-create-database semanticdb-new-database-class
+					      default-directory))
+	)
+      ;; Get the current DB for this directory
+      (setq semanticdb-current-database cdb)
+      ;; Get a table for this file.
+      (setq ctbl (semanticdb-create-table cdb (buffer-file-name)))
+      ;; We set the major mode because we know what it is.
+      (oset ctbl major-mode major-mode)
+      ;; Local state
+      (setq semanticdb-current-table ctbl)
+      ;; Try to swap in saved tags
+      (if (or (not (slot-boundp ctbl 'tags)) (not (oref ctbl tags))
+	      (/= (or (oref ctbl pointmax) 0) (point-max))
+	      )
+	  (semantic-clear-toplevel-cache)
+	(condition-case nil
+	    (semantic-set-unmatched-syntax-cache
+	     (oref ctbl unmatched-syntax))
+	  (unbound-slot
+	   ;; Old version of the semanticdb table can miss the unmatched
+	   ;; syntax slot.  If so, just clear the unmatched syntax cache.
+	   (semantic-clear-unmatched-syntax-cache)
+	   ;; Make sure it has a value.
+	   (oset ctbl unmatched-syntax nil)
+	   ))
+	(semantic--set-buffer-cache (oref ctbl tags))
+	(semantic--tag-link-cache-to-buffer)
+	)
+      )))
 
 (defmethod semanticdb-synchronize ((table semanticdb-abstract-table)
 				   new-tags)
