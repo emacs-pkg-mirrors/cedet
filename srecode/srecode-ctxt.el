@@ -173,9 +173,10 @@ This might add the following:
   (when template
 
     (let ((context (oref template context))
+	  (name (oref template object-name))
 	  (cc srecode-insertion-start-context))
   
-;      (when (and cc 
+;      (when (and cc
 ;		 (null (string= (car cc) context))
 ;		 )
 ;	;; No current context, or the base is different, then
@@ -206,6 +207,15 @@ This might add the following:
 			)
 		       (t
 			(srecode-dictionary-set-value dict "PARENT" parent))))
+	       )
+	      ((and (string= it "type")
+		    (or (string= name "function") (string= name "method")))
+	       ;; If we have a type, but we insert a fcn, then use that type
+	       ;; as the function parent.
+	       (let ((near (semantic-find-tag-by-overlay-prev)))
+		 (when (and near (semantic-tag-of-class-p near 'type))
+		   (srecode-dictionary-set-value
+		    dict "PARENT" (semantic-tag-name near))))
 	       )
 	      ((string= ct "code")
 	       ;;(let ((analyzer (semantic-analyze-current-context)))
