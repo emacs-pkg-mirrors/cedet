@@ -3,7 +3,7 @@
 ;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-template.srt,v 1.5 2008/01/29 14:29:55 zappo Exp $
+;; X-RCS: $Id: srecode-template.srt,v 1.6 2008/01/30 03:47:44 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -43,52 +43,112 @@ template empty :file :user :time
 $>:filecomment$
 
 set mode "$?NEWMODE$"
+set escape_start "$?START$"
+set escape_end "$?END$"
+
+context file
+
+$^$
+
 
 ;; end
 ----
+
+template mode-basics
+"Fill out a full template including parts for basic new mode stuff."
+sectiondictionary "E"
+set NAME "empty :file :user :time"
+set DOC "Fill out an empty file."
+set KEY "e"
+sectiondictionary "C1"
+set NAME "declaration"
+sectiondictionary "DTF"
+set NAME "function :blank :indent"
+set DOC "Template to declare a function."
+set KEY "f"
+sectiondictionary "DTV"
+set NAME "variable :blank :indent"
+set DOC "Template to declare a variable."
+set KEY "v"
+sectiondictionary "PR"
+set NAME "NAME"
+set PROMPT "Name for declaration: "
+----
+$>:declaration:commentchars$
+
+$<E:declaration:function$
+$ESCAPE_START$>:filecomment$ESCAPE_END$
+$/E$
+
+$>C1:declaration:context$
+
+$>PR:declaration:prompt$
+
+$>DTF:declaration:function$
+$>DTV:declaration:function$
+----
+bind "m"
+
 
 context declaration
 
 prompt NAME "Name of new template: "
 prompt KEY "Key Binding: " read read-char
 
-template function
+template function :blank
 "Insert a template block for Srecoder templates."
 ----
-
-template $?NAME$
-""
+template $?NAME$$#ARG$$NAME$$/ARG$
+"$DOC$"
 $SEPARATOR$
 $^$
 $SEPARATOR$
 bind "$?KEY$"
-
 ----
 bind "f"
 
 prompt NAME "Name of new variable: "
 
-template variable
+template variable :blank
 "Inert a variable."
 ----
 set $?NAME$ "$^$"
 ----
 bind "v"
 
-template context
+template prompt :blank
+"Insert a prompt."
+----
+prompt $?NAME$ "$?PROMPT$"
+----
+bind "p"
+
+template priority :blank
+"Insert a prompt."
+----
+set priority $^$
+----
+
+template context :blank
 "Insert a context statement."
 ----
-
-context $?NAME$
-
+context $NAME$
 ----
 bind "c"
+
+template commentchars :blank
+"Insert the variables for handling comments."
+----
+set comment_start  ""
+set comment_end    ""
+set comment_prefix ""
+----
 
 context code
 
 prompt NAME "Name of variable: " read srecode-read-variable-name
 
-template var :srt
+template variable :srt
 "Insert a variable with completion from the current file."
 ----
 $ESCAPE_START$$?NAME$$ESCAPE_END$
@@ -139,9 +199,25 @@ $ESCAPE_START$/$NAME$$ESCAPE_END$
 ----
 bind "s"
 
+template escape-start-quoted :srt
+"Escape Start"
+----
+$ESCAPE_START$ESCAPE_START$ESCAPE_END$
+----
+bind "q"
+
+template escape-end-quoted :srt
+"Escape Start"
+----
+$ESCAPE_START$ESCAPE_END$ESCAPE_END$
+----
+bind "e"
+
+
 ;;
 ;; These are for testing features of template files.
 ;;
+context test
 
 template test :user
 ----
@@ -158,6 +234,19 @@ $#LOOP$
 $/LOOP$
 ;; After Loop
 $>:function$
+----
+
+
+template wrapsomething :region
+----
+;; Put this line in front:
+$REGIONTEXT$
+;; Put this line at the end:
+----
+
+template gapsomething :blank
+----
+### ALL ALONE ON A LINE ###
 ----
 
 
