@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: srecode-template.wy,v 1.8 2008/01/29 14:00:47 zappo Exp $
+;; X-RCS: $Id: srecode-template.wy,v 1.9 2008/01/30 03:43:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -134,13 +134,25 @@ insertable-string
   ;
 
 template
-  : TEMPLATE symbol opt-dynamic-arguments newline
+  : TEMPLATE templatename opt-dynamic-arguments newline
     opt-string
     opt-section-dictionaries
     TEMPLATE_BLOCK newline
     opt-bind
     (FUNCTION-TAG $2 nil $3 :documentation $5 :code $7
 		  :dictionaries $6 :binding $9 )
+  ;
+
+templatename
+  : symbol
+  | PROMPT
+  | CONTEXT
+  | TEMPLATE
+  | DEFAULT
+  | MACRO
+  | DEFAULTMACRO
+  | READ
+  | SET
   ;
 
 opt-dynamic-arguments
