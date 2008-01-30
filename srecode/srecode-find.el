@@ -42,65 +42,40 @@
 ;;
 ;; Template file tracker for between sessions.
 ;;
-(defcustom srecode-template-file-alist
-  '( ( default . "default.srt" )
-     ( srecode-template-mode . "srecode-template.srt" )
-     ( c++-mode . "srecode-cpp.srt" )
-     ( emacs-lisp-mode . "srecode-el.srt" )
-     ( texinfo-mode . "srecode-texi.srt" )
-     ( wisent-grammar-mode . "srecode-wisent.srt" )
-    )
-  ;; @todo - Make this variable auto-generated from the Makefile.
-  "List of template files and location associated with a given major mode."
-  :group 'srecode
-  :type '(repeat (cons (sexp :tag "Mode")
-		       (sexp :tag "Filename"))
-		 ))
-
-(defcustom srecode-user-template-directory "~/.srecode/"
-  "Directory where user templates are stored."
-  :group 'srecode
-  :type 'file)
-
 ;;;###autoload
-(defun srecode-load-tables-for-mode (mmode &optional alist)
+(defun srecode-load-tables-for-mode (mmode &optional appname)
   "Load all the template files for MMODE.
 Templates are found on the Emacs Lisp path as follows:
   <load-path>/templates/*.srt
   ~/.srecode/*.srt
-If ALIST is provided, then use ALIST instead of
-`srecode-template-file-alist'."
-  (let ((search-list (or alist srecode-template-file-alist)))
+APPNAME is the name of an application.  In this case,
+all template files for that application will be loaded."
+  (let ((files (if (not appname)
+		   (apply 'append
+			  (mapcar (lambda (map)
+				    (srecode-map-entries-for-mode map mmode))
+				  (srecode-get-maps)))
+		 ;; @todo - else, do an appname search
+		 ))
+	)
     ;; Don't recurse if we are already the 'default state.
     (when (not (eq mmode 'default))
       ;; Are we a derived mode?  If so, get the parent mode's
       ;; templates loaded too.
       (if (get-mode-local-parent mmode)
 	  (srecode-load-tables-for-mode (get-mode-local-parent mmode)
-					search-list)
+					appname)
 	;; No parent mode, all templates depend on the defaults being
 	;; loaded in, so get that in instead.
-	(srecode-load-tables-for-mode 'default search-list)))
+	(srecode-load-tables-for-mode 'default appname)))
 
     ;; Load in templates for our major mode.
-    ;; @todo More than one template file??  User files??
-    (let* ((mma (assoc mmode search-list))
-	   (fname (cdr-safe mma))
-	   (mt (srecode-get-mode-table mmode))
-	   )
-      (when fname
-	;; Don't reload tables.
-	(let ((actualfname
-	       (or (locate-library fname t)
-		   (locate-library (concat "templates/" fname))
-		   )))
-	  (when (and actualfname
-		     (or (not mt)
-			 (not (srecode-mode-table-find mt actualfname))))
-	    (srecode-compile-file (locate-library actualfname t)))))
-      )
-    
-    ;; @todo Once we've loaded in the shipped files, load in user files.
+    (dolist (f files)
+      (let ((mt (srecode-get-mode-table mmode))
+	    )
+	  (when (or (not mt) (not (srecode-mode-table-find mt (car f))))
+	    (srecode-compile-file (car f)))
+	))
     ))
 
 ;;; SEARCH
