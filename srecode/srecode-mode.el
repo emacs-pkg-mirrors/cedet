@@ -92,12 +92,27 @@
    "---"
    '( "Insert ..." :filter srecode-minor-mode-templates-menu )
    "---"
-   (senator-menu-item
-    ["Dump Tables"
-     srecode-dump-templates
-     :active t
-     :help "Dump the current template table."
-     ])
+   (list
+    "Debugging Tools..."
+    (senator-menu-item
+     ["Dump Template MAP"
+      srecode-get-maps
+      :active t
+      :help "Calculate (if needed) and display the current template file map."
+      ])
+    (senator-menu-item
+     ["Dump Tables"
+      srecode-dump-templates
+      :active t
+      :help "Dump the current template table."
+      ])
+    (senator-menu-item
+     ["Dump Dictionary"
+      srecode-dictionary-dump
+      :active t
+      :help "Calculate a dump a dictionary for point."
+      ])
+    )
    )
   "Menu for srecode minor mode.")
 
