@@ -1,9 +1,9 @@
 ;;; srecode-args.el --- Provide some simple template arguments
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-args.el,v 1.2 2007/02/24 03:10:00 zappo Exp $
+;; X-RCS: $Id: srecode-args.el,v 1.3 2008/01/30 03:40:20 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -31,6 +31,20 @@
 
 ;;; Code:
 
+;;; :blank
+;;
+;; Using :blank means that the template should force blank lines
+;; before and after the template, reguardless of where the insertion
+;; is occuring.
+(defun srecode-semantic-handle-:blank (dict)
+  "Add macros into the dictionary DICT specifying blank line spacing.
+The wrapgap means make sure the first and last lines of the macro
+do not contain any text from preceeding or following text."
+  ;; This won't actually get used, but it might be nice
+  ;; to know about it.
+  (srecode-dictionary-set-value dict "BLANK" t)
+  )
+
 ;;; :indent ARGUMENT HANDLING
 ;;
 ;; When a :indent argument is required, the default is to indent
@@ -39,6 +53,31 @@
 (defun srecode-semantic-handle-:indent (dict)
   "Add macros into the dictionary DICT based on the current :user."
   (srecode-dictionary-set-value dict "INDENT" t)
+  )
+
+;;; :region ARGUMENT HANDLING
+;;
+;; When a :region argument is required, provide macros that
+;; deal with that active region.
+;;
+;; Regions allow a macro to wrap the region text within the
+;; template bounds.
+;;
+;;;###autoload
+(defun srecode-semantic-handle-:region (dict)
+  "Add macros into the dictionary DICT based on the current :user."
+  ;; Only enable the region section if we can clearly show that
+  ;; the user is intending to do something with the region.
+  (when (or (eq last-command 'mouse-drag-region)
+	    (and transient-mark-mode mark-active))
+    ;; Show the region section
+    (srecode-dictionary-show-section dict "REGION")
+    (srecode-dictionary-set-value
+     dict "REGIONTEXT" (buffer-substring-no-properties (point) (mark)))
+    ;; Only whack the region if our template output
+    ;; is also destined for the current buffer.
+    (when (eq standard-output (current-buffer))
+      (kill-region (point) (mark))))
   )
 
 ;;; :user ARGUMENT HANDLING
