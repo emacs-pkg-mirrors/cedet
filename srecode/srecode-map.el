@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.1 2008/01/30 12:29:31 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.2 2008/01/30 16:07:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -36,20 +36,6 @@
     (expand-file-name "templates/" dir)
     ))
 
-(defcustom srecode-map-load-path
-  (list (srecode-map-base-template-dir)
-	(expand-file-name "~/.srecode/")
-	)
-  "*Global load path for SRecode template files."
-  :group 'srecode
-  :type '(repeat file)
-  :set 'srecode-map-load-path-set)
-
-(defun srecode-map-load-path-set (sym val)
-  "Set SYM to the new VAL, then update the srecode map."
-  (set-default sym val)
-  (srecode-map-update-map t))
-
 
 ;;; Current MAP
 ;;
@@ -77,6 +63,14 @@
   "Return then entry in MAP for FILE."
   (assoc file (oref map files)))
 
+(defmethod srecode-map-entries-for-mode ((map srecode-map) mode)
+  "Return the entries in MAP for major MODE."
+  (let ((ans nil))
+    (dolist (f (oref map files))
+      (when (eq (cdr f) mode)
+	(setq ans (cons f ans))))
+    ans))
+
 (defmethod srecode-map-delete-file-entry ((map srecode-map) file)
   "Update MAP to exclude FILE from the file list."
   (let ((entry (srecode-map-entry-for-file map file)))
@@ -101,6 +95,7 @@
 
 ;;; MAP Updating
 ;;
+;;;###autoload
 (defun srecode-get-maps (&optional reset)
   "Get a list of maps relevant to the current buffer.
 Optional argument RESET forces a reset of the current map."
@@ -124,7 +119,10 @@ Optional argument RESET forces a reset of the current map."
 	    (princ "\t"))
 	  (princ (car fe))
 	  (princ "\n")
-	  ))
+	  )
+	(princ "\n\nUse:\n\n M-x customize-variable RET srecode-map-load-path RET\n")
+	(princ "\n To change the path where SRecode loads templates from.")
+	)
     ;; Eventually, I want to return many maps to search through.
     (list srecode-current-map)))
 
@@ -206,6 +204,25 @@ is already an entry for it."
 					 (read val))
 	  )
 	))))
+
+
+;;; THE PATH
+;;
+;; We need to do this last since the setter needs the above code.
+
+(defun srecode-map-load-path-set (sym val)
+  "Set SYM to the new VAL, then update the srecode map."
+  (set-default sym val)
+  (srecode-map-update-map t))
+
+(defcustom srecode-map-load-path
+  (list (srecode-map-base-template-dir)
+	(expand-file-name "~/.srecode/")
+	)
+  "*Global load path for SRecode template files."
+  :group 'srecode
+  :type '(repeat file)
+  :set 'srecode-map-load-path-set)
 
 
 (provide 'srecode-map)
