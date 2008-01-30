@@ -1,10 +1,10 @@
 ;;; eieio-base.el --- Base classes for EIEIO.
 
 ;;;
-;; Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007 Eric M. Ludlam
+;; Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.22 2007/06/04 00:39:27 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.23 2008/01/30 12:33:31 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -203,7 +203,7 @@ a file.  Optional argument NAME specifies a default file name."
   (oref this file))
 
 (defun eieio-persistent-read (filename)
-  "Read a persistent object from FILENAME."
+  "Read a persistent object from FILENAME, and return it."
   (save-excursion
     (let ((ret nil))
       (set-buffer (get-buffer-create " *tmp eieio read*"))
