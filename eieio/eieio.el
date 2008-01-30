@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.153 2008/01/20 02:01:34 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.154 2008/01/30 12:33:13 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -1450,6 +1450,7 @@ If there is no class, nil is returned if ERRORP is nil."
 ;;
 (defun object-assoc (key field list)
   "Return non-nil if KEY is `equal' to the FIELD of the car of objects in LIST.
+LIST is a list of objects who's fields are searched.
 The value is actually the element of LIST whose field equals KEY."
   (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
   (while (and list (not (condition-case nil
@@ -1512,8 +1513,8 @@ If SLOT is unbound, bind it to the list containing ITEM."
 
 (defun object-remove-from-list (object slot item)
   "In OBJECT's SLOT, remove occurrences ITEM.
-If ITEM already exists in the list in SLOT, then it is not added.
-Comparison is done with `equal' through the `delete' function call.
+If ITEM exists in the list in SLOT, then it is removed.
+Comparison is done with `equal' via the `delete' function call.
 If SLOT is unbound, do nothing."
   (if (not (slot-boundp object slot))
       nil
