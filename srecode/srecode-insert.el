@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.13 2008/01/29 14:18:44 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.14 2008/01/30 03:42:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -59,7 +59,8 @@ DICT-ENTRIES are additional dictionary values to add."
       (error "No template table found for mode %s" major-mode))
   (let ((newdict (srecode-create-dictionary))
 	(temp (srecode-template-get-table (srecode-table) template-name))
-	(srecode-insertion-start-context (srecode-calculate-context)))
+	(srecode-insertion-start-context (srecode-calculate-context))
+	)
     (if (not temp)
 	(error "No Template named %s" template-name))
     (while dict-entries
@@ -67,7 +68,7 @@ DICT-ENTRIES are additional dictionary values to add."
 				    (car dict-entries)
 				    (car (cdr dict-entries)))
       (setq dict-entries (cdr (cdr dict-entries))))
-    (srecode-resolve-arguments temp newdict)
+    ;;(srecode-resolve-arguments temp newdict)
     (srecode-insert-fcn temp newdict)
     ))
 
@@ -76,6 +77,9 @@ DICT-ENTRIES are additional dictionary values to add."
   "Insert TEMPLATE using DICTIONARY into STREAM."
   ;; Perform the insertion.
   (let ((standard-output (or stream (current-buffer))))
+    ;; Resolve the arguments
+    (srecode-resolve-arguments template dictionary)
+    ;; Insert
     (srecode-insert-method template dictionary)
     ;; Handle specialization of the POINT inserter.
     (when (and (bufferp standard-output)
@@ -193,6 +197,26 @@ Use DICTIONARY to resolve any macros."
 	   (princ (make-string i " ")))
 	  ((stringp i)
 	   (princ i)))))
+
+(defclass srecode-template-inserter-blank (srecode-template-inserter)
+   ((key :initform "\r"
+	 :allocation :class
+	 :documentation
+	 "The character represeinting this inserter style.
+Can't be blank, or it might be used by regular variable insertion.")
+    ;; @TODO - Add slot and control for the number of blank
+    ;;         lines before and after point.
+   )
+   "Insert a newline, and possibly do indenting.")
+
+(defmethod srecode-insert-method ((sti srecode-template-inserter-blank)
+				  dictionary)
+  "Make sure there is no text before or after point."
+  (when (bufferp standard-output)
+    (when (or (not (bolp)) (not (eolp)))
+      (princ "\n")
+      )))
+
 
 (defclass srecode-template-inserter-comment (srecode-template-inserter)
   ((key :initform ?!
