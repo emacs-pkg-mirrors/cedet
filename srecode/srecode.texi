@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.4 2008/01/29 14:26:27 zappo Exp $
+@c $Id: srecode.texi,v 1.5 2008/01/30 03:45:23 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -786,6 +786,29 @@ The following built-in simple arguments are available:
 
 @node Base Arguments
 @subsection Base Arguments
+
+@subsubsection Argument :indent
+
+Supplies the @code{INDENT} macro.  When @code{INDENT} is non-nil, then
+each line is individually indented during macro processing.
+
+@subsection Argument :blank
+
+Specifying this argument adds a special @code{:blank} handler at the
+beginning and end of the tmplate.  This handler will insert @code{\n}
+if the insertion point is not on a line by itself.
+
+@subsubsection Argument :region
+
+If there is an active region via transient-mark-mode, or
+mouse-drag-region, then the @code{REGION} section will be enabled.
+
+In addition, @code{REGIONTEXT} will be set the the text in the region,
+and that region of text will be ``killed'' from the current buffer.
+
+If standard-output is NOT the current buffer, then the region will not
+be deleted.  In this way, you can safely use @code{:region} using
+templtes in arbitrary output streams.
 
 @subsubsection Argument :user
 
