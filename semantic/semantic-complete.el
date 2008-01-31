@@ -1,10 +1,10 @@
 ;;; semantic-complete.el --- Routines for performing tag completion
 
-;;; Copyright (C) 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.45 2007/06/05 01:23:59 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.46 2008/01/31 14:51:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -141,6 +141,7 @@
 (defvar semantic-complete-inline-overlay nil
   "The overlay currently active while completing inline.")
 
+;;;###autoload
 (defun semantic-completion-inline-active-p ()
   "Non-nil if inline completion is active."
   semantic-complete-inline-overlay)
