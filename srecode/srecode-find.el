@@ -45,18 +45,22 @@
 ;;;###autoload
 (defun srecode-load-tables-for-mode (mmode &optional appname)
   "Load all the template files for MMODE.
-Templates are found on the Emacs Lisp path as follows:
-  <load-path>/templates/*.srt
-  ~/.srecode/*.srt
+Templates are found in the SRecode Template Map.
+See `srecode-get-maps' for more.
 APPNAME is the name of an application.  In this case,
 all template files for that application will be loaded."
-  (let ((files (if (not appname)
-		   (apply 'append
-			  (mapcar (lambda (map)
-				    (srecode-map-entries-for-mode map mmode))
-				  (srecode-get-maps)))
-		 ;; @todo - else, do an appname search
-		 ))
+  (let ((files
+	 (if appname
+	     (apply 'append
+		    (mapcar
+		     (lambda (map)
+		       (srecode-map-entries-for-app-and-mode map appname mmode))
+		     (srecode-get-maps)))
+	   (apply 'append
+		  (mapcar
+		   (lambda (map)
+		     (srecode-map-entries-for-mode map mmode))
+		   (srecode-get-maps)))))
 	)
     ;; Don't recurse if we are already the 'default state.
     (when (not (eq mmode 'default))
@@ -68,7 +72,7 @@ all template files for that application will be loaded."
 	;; No parent mode, all templates depend on the defaults being
 	;; loaded in, so get that in instead.
 	(srecode-load-tables-for-mode 'default appname)))
-
+    
     ;; Load in templates for our major mode.
     (dolist (f files)
       (let ((mt (srecode-get-mode-table mmode))
