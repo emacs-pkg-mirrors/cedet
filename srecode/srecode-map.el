@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.2 2008/01/30 16:07:05 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.3 2008/01/31 03:41:09 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -55,12 +55,17 @@
 	  :type list
 	  :documentation
 	  "An alist of files and the major-mode that they cover.")
-   ;; @todo - build an application map
+   (apps :initarg :apps
+	 :initform nil
+	 :type list
+	 :documentation
+	 "An alist of applications.
+Each app keys to an alist of files and modes (as above.)")
    )
   "A map of srecode templates.")
 
 (defmethod srecode-map-entry-for-file ((map srecode-map) file)
-  "Return then entry in MAP for FILE."
+  "Return the entry in MAP for FILE."
   (assoc file (oref map files)))
 
 (defmethod srecode-map-entries-for-mode ((map srecode-map) mode)
@@ -70,6 +75,39 @@
       (when (eq (cdr f) mode)
 	(setq ans (cons f ans))))
     ans))
+
+(defmethod srecode-map-entry-for-app ((map srecode-map) app)
+  "Return the entry in MAP for APP'lication."
+  (assoc app (oref map apps))
+  )
+
+(defmethod srecode-map-entries-for-app-and-mode ((map srecode-map) app mode)
+  "Return the entries in MAP for major MODE."
+  (let ((ans nil)
+	(appentry (srecode-map-entry-for-app map app)))
+    (dolist (f (cdr appentry))
+      (when (eq (cdr f) mode)
+	(setq ans (cons f ans))))
+    ans))
+
+(defmethod srecode-map-entry-for-file-anywhere ((map srecode-map) file)
+  "Search in all entry points in MAP for FILE.
+Return a list ( APP . FILE-ASSOC ) where APP is nil
+in the global map."
+  (or
+   ;; Look in the global entry
+   (let ((globalentry (srecode-map-entry-for-file map file)))
+     (when globalentry
+       (cons nil globalentry)))
+   ;; Look in each app.
+   (let ((match nil))
+     (dolist (app (oref map apps))
+       (let ((appmatch (assoc file (cdr app))))
+	 (when appmatch
+	   (setq match (cons app appmatch)))))
+     match)
+   ;; Other?
+   ))
 
 (defmethod srecode-map-delete-file-entry ((map srecode-map) file)
   "Update MAP to exclude FILE from the file list."
@@ -92,6 +130,50 @@
       (object-add-to-list map 'files (cons file mode))
       ))))
 
+(defmethod srecode-map-delete-file-entry-from-app ((map srecode-map) file app)
+  "Delete from MAP the FILE entry within the APP'lication."
+  (let* ((appe (srecode-map-entry-for-app map app))
+	 (fentry (assoc file (cdr appe))))
+    (setcdr appe (delete fentry (cdr appe))))
+  )
+
+(defmethod srecode-map-update-app-file-entry ((map srecode-map) file mode app)
+  "Update the MAP entry for FILE to be used with MODE within APP."
+  (let* ((appentry (srecode-map-entry-for-app map app))
+	 (appfileentry (assoc file (cdr appentry)))
+	 )
+    (cond
+     ;; Option 1 - We have this file in this application already
+     ;;            with the correct mode.
+     ((and appfileentry (eq (cdr appfileentry) mode))
+      nil)
+     ;; Option 2 - We have a non-matching entry.  Change Cdr.
+     (appfileentry
+      (setcdr appfileentry mode))
+     (t
+      ;; For option 3 & 4 - remove the entry from any other lists
+      ;; we can find.
+      (let ((any (srecode-map-entry-for-file-anywhere map file)))
+	(when any
+	  (if (null (car any))
+	      ;; Global map entry
+	      (srecode-map-delete-file-entry map file)
+	    ;; Some app
+	    (let ((appentry (srecode-map-entry-for-app map app)))
+	      (setcdr appentry (delete (cdr any) (cdr appentry))))
+	  )))
+      ;; Now do option 3 and 4
+      (cond
+       ;; Option 3 - No entry for app.  Add to the list.
+       (appentry
+	(setcdr appentry (cons (cons file mode) (cdr appentry)))
+	)
+       ;; Option 4 - No app entry.  Add app to list with this file.
+       (t
+	(object-add-to-list map 'apps (list app (cons file mode)))
+	)))
+     )))
+
 
 ;;; MAP Updating
 ;;
@@ -107,24 +189,35 @@ Optional argument RESET forces a reset of the current map."
   (if (interactive-p)
       ;; Dump this map.
       (with-output-to-temp-buffer "*SRECODE MAP*"
-	(princ " -- SRECODE MAP --\n")
-	(princ "Mode\t\t\tFilename\n")
-	(princ "------\t\t\t------------------\n")
-	(dolist (fe (oref srecode-current-map files))
-	  (prin1 (cdr fe))
-	  (princ "\t")
-	  (when (> (* 2 8) (length (symbol-name (cdr fe))))
-	    (princ "\t"))
-	  (when (> 8 (length (symbol-name (cdr fe))))
-	    (princ "\t"))
-	  (princ (car fe))
-	  (princ "\n")
-	  )
+	(princ "   -- SRecode Global map --\n")
+	(srecode-maps-dump-file-list (oref srecode-current-map files))
+	(princ "\n   -- Application Maps --\n")
+	(dolist (ap (oref srecode-current-map apps))
+	  (let ((app (car ap))
+		(files (cdr ap)))
+	    (princ app)
+	    (princ " :\n")
+	    (srecode-maps-dump-file-list files)))
 	(princ "\n\nUse:\n\n M-x customize-variable RET srecode-map-load-path RET\n")
 	(princ "\n To change the path where SRecode loads templates from.")
 	)
     ;; Eventually, I want to return many maps to search through.
     (list srecode-current-map)))
+
+(defun srecode-maps-dump-file-list (flist)
+  "Dump a file list FLIST to `standard-output'."
+  (princ "Mode\t\t\tFilename\n")
+  (princ "------\t\t\t------------------\n")
+  (dolist (fe flist)
+    (prin1 (cdr fe))
+    (princ "\t")
+    (when (> (* 2 8) (length (symbol-name (cdr fe))))
+      (princ "\t"))
+    (when (> 8 (length (symbol-name (cdr fe))))
+      (princ "\t"))
+    (princ (car fe))
+    (princ "\n")
+    ))
 
 (defun srecode-map-update-map (&optional fast)
   "Update the current map from `srecode-map-load-path'.
@@ -194,14 +287,24 @@ is already an entry for it."
 	(semantic-fetch-tags)
 	(let* ((mode-tag
 		(semantic-find-first-tag-by-name "mode" (current-buffer)))
-	       (val nil))
+	       (val nil)
+	       (app-tag
+		(semantic-find-first-tag-by-name "application" (current-buffer)))
+	       (app nil))
 	  (if mode-tag
 	      (setq val (car (semantic-tag-variable-default mode-tag)))
 	    (error "There should be a mode declaration in %s" file))
+	  (when app-tag
+	    (setq app (car (semantic-tag-variable-default app-tag))))
 
-	  (srecode-map-update-file-entry srecode-current-map
-					 file
-					 (read val))
+	  (if app
+	      (srecode-map-update-app-file-entry srecode-current-map
+						 file
+						 (read val)
+						 (read app))
+	    (srecode-map-update-file-entry srecode-current-map
+					   file
+					   (read val)))
 	  )
 	))))
 
