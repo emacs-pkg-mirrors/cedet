@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.5 2008/01/30 03:45:23 zappo Exp $
+@c $Id: srecode.texi,v 1.6 2008/01/31 03:44:18 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -24,28 +24,43 @@ END-INFO-DIR-ENTRY
 Copyright @copyright{} 2007, 2008 Eric M. Ludlam
 @end titlepage
 
+@macro semantic{}
+@i{semantic}
+@end macro
+
+@macro srecode{}
+@i{SRecode}
+@end macro
 
 @node Top
 @top @value{TITLE}
 
-SRecode is the Semantic Recoder.  Where semantic will parse source
-files into lists of tags, the Semantic Recoder will aid in converting
-semantic tags and various other information back into various types of
-code.
+@srecode{} is the @i{Semantic Recoder}.  Where @semantic{} will parse
+source files into lists of tags, the @i{Semantic Recoder} will aid in
+converting @semantic{} tags and various other information back into
+various types of code.
 
-The end goal is to provide templates that generate different types of
-code for all the various languages, and also a sequence of hueristics
-in the form of a minor-mode that aid the user in choosing the correct
-template to insert.
+While the @srecode{} tool provides a nice template language, a nice
+set of base templates for several languages, and even a sequence of
+hueristics in the form of a minor-mode that aid the user in choosing
+the correct template to insert, this is not the main goal of
+@srecode{}.
+
+The goal of @srecode{} is to provide an application framewhere where
+someone can write a complex code generator, and the underlying
+template commonality allows it to work in multiple languages with
+ease.
 
 @menu
 * Quick Start::                 Basic Setup
+* User Templates::	        Custom User Templates
 * Parts of SRecode::		Parts of the system
 * SRecode Minor Mode::		A minor mode for using templates
 * Template Writing::		How to write a template
 * Dictionaries::                How dictionaries work
 * Getting Started::             How to use the system.
 * Developing Template Functions:: How to write your own template insert functions.
+* Application Writing::         Writing an @srecode{}r application
 * Index::
 @end menu
 
@@ -55,7 +70,7 @@ template to insert.
 
 When you intall CEDET, an @code{SRecoder} menu item should appear.
 
-To toggle SRecode minor mode on and off use:
+To toggle @srecode{} minor mode on and off use:
 
 @example
 M-x srecode-minor-mode RET
@@ -80,6 +95,54 @@ user template directory.
 Directory where user templates are stored.
 @end defvar
 
+@node User Templates
+@chapter User Templates
+
+@srecode{} builds and maintains a map of all template files.  The root
+template files resides in the @srecode{} distribution.  User written
+templates files are saved in @file{~/.srecode}, along with the
+@srecode{} map file.
+
+@defvar srecode-map-save-file
+@anchor{srecode-map-save-file}
+The save location for SRecode's map file.
+@end defvar
+
+Template files end with a @file{.srt} extension.  Details on how to
+write templates are @ref{Template Writing}.
+
+Each template file you write is dedicated to a single major mode.  In
+it, you can write templates within the same context and with the same
+name as core templates.  You can force your templates to override the
+core templates for a particular major mode by setting the
+priority.  See @ref{Special Variables}.
+
+To get going quickly, open a new @file{.srt} file.  It will start in
+the @srecode{} template writing mode.  Use the @srecode{} minor mode
+menu to insert the @code{empty} file template.
+
+When using templates in other modes (such as C++ or Emacs Lisp
+templates), use the ``Edit Template'' menu to find a template you
+would like to update.  Copy it into your user template file, and
+change it.
+
+If you were to update @code{declaration:function} in your user
+template file, then you would get this new template instead of the one
+that comes with @srecode{}.  Higher level applications should always
+use @code{declaration:function} when generating their own code, so
+higher level templates will then adopt your changes to
+@code{declaration:function} into themselves.
+
+You can also override variables.  Core variables are stored in the
+@srecode{} root template file @file{default.srt}, and that contains
+the copyright usually used, and some basic file setup formats.
+Override variables like this by specifying a @code{mode} of
+@code{default} like this:
+
+@example
+set mode "default"
+@end example
+
 @node Parts of SRecode
 @chapter Parts of SRecode
 
@@ -95,10 +158,10 @@ libraries concepts.
 The template layer provides a way to write, and compile templates.  The
 template layer is the scheme used to insert text into an Emacs buffer.
 
-The SRecode template layer is more advanced than other modes like the
+The @srecode{} template layer is more advanced than other modes like the
 Emacs packages @code{skeleton} or @code{tempo} in that it allows
 multiple layers of templates to be created with the same names.  This
-means that SRecode can provide a wide range of templates, and users
+means that @srecode{} can provide a wide range of templates, and users
 can override only the small sections they want, instead of either
 accepting someone else's template, or writing large new templates of
 their own.
@@ -146,7 +209,7 @@ state from @i{Semantic}.  @inforef{Top, Semantic Manual, semantic}.
 @section Multiple Positioning system
 Not written or implemented
 
-The basic idea is a way to record multiple locations so that srecode
+The basic idea is a way to record multiple locations so that @srecode{}
 applications can inserted multiple related templates in multiple places.
 
 @section Applications
@@ -175,7 +238,7 @@ keybinding command in the template file.
 @item C-c / <upper case letter>
 Reserved for template applications (Such as get/set inserter.)
 @item C-c / <punctuation>
-Srecode template management keys.
+@srecode{} template management keys.
 @end table
 
 
@@ -184,7 +247,7 @@ Srecode template management keys.
 @anchor{@code{SRecode-template-mode}}
 
 @code{SRecode-template-mode} is the major mode used for designing new
-templates.  Srecode files (Extension @file{.srt}) are made up of
+templates.  @srecode{} files (Extension @file{.srt}) are made up of
 variable settings and template declarations.
 
 @menu
@@ -651,7 +714,7 @@ becomes a name in the dictionary.
 @node Setting Dictionary Values
 @section Setting Dictionary Values
 
-When building an srecode based application, you will need to setup
+When building an @srecode{} based application, you will need to setup
 your dictionary values yourself.  There are several utility functions
 for this.
 
@@ -950,12 +1013,12 @@ If ARG is the last item, or not.
 @node Getting Started
 @chapter Getting Started
 
-The user interface to the srecode template insertion system is very
+The user interface to the @srecode{} template insertion system is very
 basic right now.
 
 @deffn Command global-srecode-minor-mode &optional arg
 @anchor{global-srecode-minor-mode}
-Toggle global use of srecode minor mode.
+Toggle global use of @srecode{} minor mode.
 If @var{arg} is positive, enable, if it is negative, disable.
 If @var{arg} is @code{nil}, then toggle.
 @end deffn
@@ -969,7 +1032,7 @@ Inesrt the template @var{template-name} into the current buffer at point.
 @end menu
 
 @node Developing Template Functions
-@chapter Developint Template Functions
+@chapter Developing Template Functions
 
 You can develop your own custom template insertion functions.
 Doing so is relatively simple, and requires that you write an Emacs
@@ -1043,6 +1106,46 @@ start with the main entry point.
 @anchor{srecode-insert-fcn}
 Insert @var{template} using @var{dictionary} into @var{stream}.
 @end defun
+
+@node Application Writing
+@chapter Application Writing
+
+The main goal of @srecode{} is to provide a strong platform for
+writing code generating applications.
+
+Any templates that are application specific should make an application
+declaration for each template file they use.  This prevents those
+templates from being used outside of that application.
+
+For example, add this to a file:
+@example
+set application "getset"
+@end example
+
+In your application Emacs Lisp code, you would then load those
+templates.  A typical initialization would look like this:
+
+@example
+  (srecode-load-tables-for-mode major-mode)
+  (srecode-load-tables-for-mode major-mode 'getset)
+@end example
+
+These two lines will load in the base templates for the major mode,
+and then the application specific templates.
+
+@defun srecode-load-tables-for-mode mmode &optional appname
+@anchor{srecode-load-tables-for-mode}
+Load all the template files for @var{mmode}.
+Templates are found in the SRecode Template Map.
+See @dfn{srecode-get-maps} for more.
+@var{appname} is the name of an application.  In this case,
+all template files for that application will be loaded.
+@end defun
+
+
+ todo - Add examples.  Most core stuff is already described above.
+
+
 
 @node Index
 @chapter Index
