@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.3 2008/01/31 03:41:09 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.4 2008/01/31 14:18:23 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -116,19 +116,22 @@ in the global map."
       (object-remove-from-list map 'files entry))))
 
 (defmethod srecode-map-update-file-entry ((map srecode-map) file mode)
-  "Update a MAP entry for FILE to be used with MODE."
-  (let ((entry (srecode-map-entry-for-file map file)))
+  "Update a MAP entry for FILE to be used with MODE.
+Return non-nil if the MAP was changed."
+  (let ((entry (srecode-map-entry-for-file map file))
+	(dirty t))
     (cond 
      ;; It is already a match.. do nothing.
      ((and entry (eq (cdr entry) mode))
-      nil)
+      (setq dirty nil))
      ;; We have a non-matching entry.  Change the cdr.
      (entry
       (setcdr entry mode))
      ;; No entry, just add it to the list.
      (t
       (object-add-to-list map 'files (cons file mode))
-      ))))
+      ))
+    dirty))
 
 (defmethod srecode-map-delete-file-entry-from-app ((map srecode-map) file app)
   "Delete from MAP the FILE entry within the APP'lication."
@@ -138,15 +141,18 @@ in the global map."
   )
 
 (defmethod srecode-map-update-app-file-entry ((map srecode-map) file mode app)
-  "Update the MAP entry for FILE to be used with MODE within APP."
+  "Update the MAP entry for FILE to be used with MODE within APP.
+Return non-nil if the map was changed."
   (let* ((appentry (srecode-map-entry-for-app map app))
 	 (appfileentry (assoc file (cdr appentry)))
+	 (dirty t)
 	 )
     (cond
      ;; Option 1 - We have this file in this application already
      ;;            with the correct mode.
      ((and appfileentry (eq (cdr appfileentry) mode))
-      nil)
+      (setq dirty nil)
+      )
      ;; Option 2 - We have a non-matching entry.  Change Cdr.
      (appfileentry
       (setcdr appfileentry mode))
@@ -172,7 +178,8 @@ in the global map."
        (t
 	(object-add-to-list map 'apps (list app (cons file mode)))
 	)))
-     )))
+     )
+    dirty))
 
 
 ;;; MAP Updating
@@ -252,28 +259,34 @@ if that file is NEW, otherwise assume the mode has not changed."
   ;;
   ;; We better have a MAP object now.
   ;;
+  (let ((dirty nil))
+    ;; 3) - Purge dead files from the file list.
+    (dolist (entry (copy-list (oref srecode-current-map files)))
+      (when (not (file-exists-p (car entry)))
+	(srecode-map-delete-file-entry srecode-current-map (car entry))
+	(setq dirty t)
+	))
+    ;; 4) - Find new files and add them to the map.
+    (dolist (dir srecode-map-load-path)
+      (dolist (f (directory-files dir t "\\.srt$"))
+	(setq dirty
+	      (or dirty
+		  (srecode-map-validate-file-for-mode f fast)))
 
-  ;; 3) - Purge dead files from the file list.
-  (dolist (entry (copy-list (oref srecode-current-map files)))
-    (when (not (file-exists-p (car entry)))
-      (srecode-map-delete-file-entry srecode-current-map (car entry))
-      ))
-  ;; 4) - Find new files and add them to the map.
-  (dolist (dir srecode-map-load-path)
-    (dolist (f (directory-files dir t "\\.srt$"))
-      (srecode-map-validate-file-for-mode f fast)
-      ))
-  
-  (eieio-persistent-save srecode-current-map)
-  )
+	))
+    (when dirty
+      (eieio-persistent-save srecode-current-map))
+    ))
 
 (defun srecode-map-validate-file-for-mode (file fast)
   "Read and validate FILE via the parser.  Return the mode.
 Argument FAST implies that the file should not be reparsed if there
-is already an entry for it."
+is already an entry for it.
+Return non-nil if the map changed."
   (when (or (not fast)
 	    (not (srecode-map-entry-for-file srecode-current-map file)))
-    (let ((buff-orig (get-file-buffer file)))
+    (let ((buff-orig (get-file-buffer file))
+	  (dirty nil))
       (save-excursion
 	(if buff-orig
 	    (set-buffer buff-orig)
@@ -281,7 +294,8 @@ is already an entry for it."
 	  (insert-file-contents file nil nil nil t)
 	  ;; Force it to be ready to parse.
 	  (srecode-template-mode)
-	  (semantic-new-buffer-fcn)
+	  (let ((semantic-init-hooks nil))
+	    (semantic-new-buffer-fcn))
 	  )
 
 	(semantic-fetch-tags)
@@ -297,16 +311,18 @@ is already an entry for it."
 	  (when app-tag
 	    (setq app (car (semantic-tag-variable-default app-tag))))
 
-	  (if app
-	      (srecode-map-update-app-file-entry srecode-current-map
+	  (setq dirty
+		(if app
+		    (srecode-map-update-app-file-entry srecode-current-map
+						       file
+						       (read val)
+						       (read app))
+		  (srecode-map-update-file-entry srecode-current-map
 						 file
-						 (read val)
-						 (read app))
-	    (srecode-map-update-file-entry srecode-current-map
-					   file
-					   (read val)))
+						 (read val))))
 	  )
-	))))
+	)
+      dirty)))
 
 
 ;;; THE PATH
