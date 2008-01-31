@@ -24,6 +24,7 @@
 (require 'srecode)
 (require 'srecode-insert)
 (require 'srecode-find)
+(require 'srecode-map)
 (require 'senator)
 (require 'wisent)
 
@@ -92,6 +93,12 @@
    "---"
    '( "Insert ..." :filter srecode-minor-mode-templates-menu )
    "---"
+    (senator-menu-item
+     ["Customize..."
+      (customize-group "srecode")
+      :active t
+      :help "Customize SRecode options"
+      ])
    (list
     "Debugging Tools..."
     (senator-menu-item
@@ -139,13 +146,26 @@ minor mode is enabled.
   (interactive
    (list (or current-prefix-arg
              (if srecode-minor-mode 0 1))))
+  ;; Flip the bits.
   (setq srecode-minor-mode
         (if arg
             (>
              (prefix-numeric-value arg)
              0)
           (not srecode-minor-mode)))
-  (run-hooks 'srecode-minor-mode-hook)
+  ;; If we are turning things on, make sure we have templates for
+  ;; this mode first.
+  (when srecode-minor-mode
+    (when (not (apply
+		'append
+		(mapcar (lambda (map)
+			  (srecode-map-entries-for-mode map major-mode))
+			(srecode-get-maps))))
+      (setq srecode-minor-mode nil))
+    )
+  ;; Run hooks if we are turning this on.
+  (when srecode-minor-mode
+    (run-hooks 'srecode-minor-mode-hook))
   srecode-minor-mode)
 
 ;;;###autoload
