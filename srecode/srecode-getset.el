@@ -1,6 +1,6 @@
 ;;; srecode-getset.el --- 
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
 
@@ -29,23 +29,13 @@
 (require 'srecode-dictionary)
 
 ;;; Code:
-(defcustom srecode-getset-template-file-alist
-  '( ( c++-mode . "srecode-getset-cpp.srt" )
-     )
-  ;; @todo - Make this variable auto-generated from the Makefile.
-  "List of template files for getsest associated with a given major mode."
-  :group 'srecode
-  :type '(repeat (cons (sexp :tag "Mode")
-		       (sexp :tag "Filename"))
-		 ))
-
 ;;;###autoload
 (defun srecode-insert-getset ()
   "Insert get/set methods for the current class."
   (interactive)
 
   (srecode-load-tables-for-mode major-mode)
-  (srecode-load-tables-for-mode major-mode srecode-getset-template-file-alist)
+  (srecode-load-tables-for-mode major-mode 'getset)
 
   (if (not (srecode-table))
       (error "No template table found for mode %s" major-mode))
