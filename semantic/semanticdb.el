@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.90 2008/01/30 12:01:53 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.91 2008/02/01 04:55:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -63,11 +63,6 @@ on or off."
 
 (defvar semanticdb-database-list nil
   "List of all active databases.")
-
-(defvar semanticdb-semantic-init-hook-overload nil
-  "Semantic init hook overload.
-Tools wanting to specify the file names of the semantic database
-use this.")
 
 ;;;###autoload
 (defvar semanticdb-current-database nil
@@ -460,6 +455,8 @@ local variable."
   (save-excursion
     (if buffer (set-buffer buffer))
     (or
+     ;; nil major mode in table means we don't know yet.  Assume yes for now?
+     (null (oref table major-mode))
      ;; nil means the same as major-mode
      (and (not semantic-equivalent-major-modes)
 	  (eq major-mode (oref table major-mode)))
@@ -571,24 +568,18 @@ Always append `semanticdb-project-system-databases' if
 ;;; Hooks:
 ;;
 (defun semanticdb-semantic-init-hook-fcn ()
-  "Function saved in `find-file-hooks'.
+  "Function saved in `semantic-init-db-hooks'.
 Sets up the semanticdb environment."
   ;; Only initialize semanticdb if we have a file name.
   ;; There is no reason to cache a tag table if there is no
   ;; way to load it back in later.
   (when (buffer-file-name)
-    (let ((cdb nil)
-	  (ctbl nil))
-      ;; Allow a database override function
-      (when (not (and semanticdb-semantic-init-hook-overload
-		      (setq cdb (run-hooks 'semanticdb-semantic-init-hook-overload))))
-	(setq cdb (semanticdb-create-database semanticdb-new-database-class
-					      default-directory))
-	)
+    (let* ((ans (semanticdb-create-table-for-file (buffer-file-name)))
+	   (cdb (car ans))
+	   (ctbl (cdr ans))
+	   )
       ;; Get the current DB for this directory
       (setq semanticdb-current-database cdb)
-      ;; Get a table for this file.
-      (setq ctbl (semanticdb-create-table cdb (buffer-file-name)))
       ;; We set the major mode because we know what it is.
       (oset ctbl major-mode major-mode)
       ;; Local state
@@ -613,10 +604,29 @@ Sets up the semanticdb environment."
 	)
       )))
 
+(defun semanticdb-create-table-for-file (filename)
+  "Initialize a database table for FILENAME, and return it.
+If FILENAME exists in the database already, return that.
+If there is no database for the table to live in, create one."
+  (let ((cdb nil)
+	(dd (file-name-directory filename))
+	)
+    ;; Allow a database override function
+    (setq cdb (semanticdb-create-database semanticdb-new-database-class
+					  dd))
+    ;; Get a table for this file.
+    (let ((tbl (semanticdb-create-table cdb filename)))
+      ;; Bind some slots to something meaningful.
+      (oset tbl unmatched-syntax nil)
+      (oset tbl tags nil)
+      (cons cdb tbl))
+    ))
+
 (defmethod semanticdb-synchronize ((table semanticdb-abstract-table)
 				   new-tags)
   "Synchronize the table TABLE with some NEW-TAGS."
   (oset table tags new-tags)
+  (oset table pointmax (point-max))
 
   ;; Synchronize the index
   (when (slot-boundp table 'index)
@@ -746,6 +756,43 @@ Update the environment of Semantic enabled buffers accordingly."
 
 ;;; Validate the semantic database
 ;;
+(defun semanticdb-adebug-current-database-list ()
+  "Run ADEBUG on the current database."
+  (interactive)
+    (require 'semantic-adebug)
+    (let ((start (current-time))
+	  (p semanticdb-database-list)
+	  (end (current-time))
+	  (ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
+	  )
+    
+      (semantic-adebug-insert-stuff-list p "*")))
+
+(defun semanticdb-adebug-current-database ()
+  "Run ADEBUG on the current database."
+  (interactive)
+    (require 'semantic-adebug)
+    (let ((start (current-time))
+	  (p semanticdb-current-database)
+	  (end (current-time))
+	  (ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
+	  )
+    
+      (semantic-adebug-insert-stuff-list p "*")))
+
+(defun semanticdb-adebug-current-table ()
+  "Run ADEBUG on the current database."
+  (interactive)
+    (require 'semantic-adebug)
+    (let ((start (current-time))
+	  (p semanticdb-current-table)
+	  (end (current-time))
+	  (ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
+	  )
+    
+      (semantic-adebug-insert-stuff-list p "*")))
+
+
 (defun semanticdb-table-oob-sanity-check (cache)
   "Validate that CACHE tags do not have any overlays in them."
   (while cache
@@ -819,27 +866,44 @@ DONTLOAD does not affect the creation of new database objects."
 		(semanticdb-directory-loaded-p default-directory)
 		;; this line will make a new one if needed.
 		(semanticdb-get-database default-directory)))
+	   (tab (semanticdb-file-table db file))
 	   )
-      (or (semanticdb-file-table db file)
-	  ;; We must load the file.
-	  (if (not dontload)
-	      (save-excursion
-		(set-buffer (find-file-noselect file t))
-		;; Find file should automatically do this for us.
-		;; Sometimes the DB table doesn't contains tags and needs
-		;; a refresh.  For example, when the file is loaded for
-		;; the first time, and the idle scheduler didn't get a
-		;; chance to trigger a parse before the file buffer is
-		;; killed.
-		(when (and 
-		       semanticdb-current-table
-		       (semanticdb-needs-refresh-p semanticdb-current-table))
-		  (semanticdb-refresh-table semanticdb-current-table))
-		(prog1
-		    semanticdb-current-table
-		  ;; If we had to find the file, then we should kill it
-		  ;; to keep the master buffer list clean.
-		  (kill-buffer (current-buffer))))))
+      (if (and tab
+	       ;; Is table fully loaded, or just a proxy?
+	       (number-or-marker-p (oref tab pointmax)))
+	  tab
+	;; ELSE
+	;; We must load the file.
+	(if (not dontload)
+	    (save-excursion
+	      (set-buffer (find-file-noselect file t))
+	      ;; Find file should automatically do this for us.
+	      ;; Sometimes the DB table doesn't contains tags and needs
+	      ;; a refresh.  For example, when the file is loaded for
+	      ;; the first time, and the idle scheduler didn't get a
+	      ;; chance to trigger a parse before the file buffer is
+	      ;; killed.
+	      (when (and
+		     semanticdb-current-table
+		     (semanticdb-needs-refresh-p semanticdb-current-table))
+		(semanticdb-refresh-table semanticdb-current-table))
+	      (prog1
+		  semanticdb-current-table
+		;; If we had to find the file, then we should kill it
+		;; to keep the master buffer list clean.
+		(kill-buffer (current-buffer))))
+
+	  ;; We were asked not to load the file in and parse it.
+	  ;; Instead just create a database table with no tags
+	  ;; and a claim of being empty.
+	  ;;
+	  ;; This will give us a starting point for storing
+	  ;; database cross-references so when it is loaded,
+	  ;; the cross-references will fire and caches will
+	  ;; be cleaned.
+	  (let ((ans (semanticdb-create-table-for-file file)))
+	    (cdr ans))
+	  ))
       )))
 
 ;;;###autoload
