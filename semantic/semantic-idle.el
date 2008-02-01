@@ -1,10 +1,10 @@
 ;;; semantic-idle.el --- Schedule parsing tasks in idle time
 
-;;; Copyright (C) 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004, 2005, 2006, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.35 2006/09/12 01:16:12 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.36 2008/02/01 04:58:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -550,15 +550,24 @@ Use the semantic analyzer to find the symbol information."
       (semantic-analyze-interesting-tag analysis))))
 
 (defun semantic-idle-summary-current-symbol-info-default ()
-  "Return a string message describing the current context."
-  ;; use whicever has success first.
-  (or
-   (semantic-idle-summary-current-symbol-keyword)
-
-   (semantic-idle-summary-current-symbol-info-context)
-
-   (semantic-idle-summary-current-symbol-info-brutish)
-   ))
+  "Return a string message describing the current context.
+This functin will disable loading of previously unloaded files
+by semanticdb as a time-saving measure."
+  (let (
+	(semanticdb-find-default-throttle
+	 (if (featurep 'semanticdb-find)
+	     (remq 'unloaded semanticdb-find-default-throttle)
+	   nil))
+	)
+    (save-excursion
+      ;; use whicever has success first.
+      (or
+       (semantic-idle-summary-current-symbol-keyword)
+       
+       (semantic-idle-summary-current-symbol-info-context)
+       
+       (semantic-idle-summary-current-symbol-info-brutish)
+       ))))
 
 (defvar semantic-idle-summary-out-of-context-faces
   '(
