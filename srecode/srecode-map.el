@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.4 2008/01/31 14:18:23 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.5 2008/02/01 04:59:56 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -284,7 +284,7 @@ Argument FAST implies that the file should not be reparsed if there
 is already an entry for it.
 Return non-nil if the map changed."
   (when (or (not fast)
-	    (not (srecode-map-entry-for-file srecode-current-map file)))
+	    (not (srecode-map-entry-for-file-anywhere srecode-current-map file)))
     (let ((buff-orig (get-file-buffer file))
 	  (dirty nil))
       (save-excursion
