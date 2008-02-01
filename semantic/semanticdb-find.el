@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.47 2008/01/11 16:58:11 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.48 2008/02/01 04:57:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -136,7 +136,7 @@
 See `semanticdb-find-throttle' for details.")
 
 ;;;###autoload
-(defcustom semanticdb-find-default-throttle 
+(defcustom semanticdb-find-default-throttle
   '(local project unloaded system recursive)
   "The default throttle for `semanticdb-find' routines.
 The throttle controls how detailed the list of database
@@ -322,6 +322,15 @@ Default action as described in `semanticdb-find-translate-path'."
 	 default-directory))))
     ))
 
+(defun semanticdb-find-incomplete-cache-entries-p (cache)
+  "Are there any incomplete entries in CACHE?"
+  (let ((ans nil))
+    (dolist (tab cache)
+      (when (not (number-or-marker-p (oref tab pointmax)))
+	(setq ans t))
+      )
+    ans))
+
 (defun semanticdb-find-translate-path-includes-default (path)
   "Translate PATH into a list of semantic tables.
 Default action as described in `semanticdb-find-translate-path'."
@@ -334,9 +343,18 @@ Default action as described in `semanticdb-find-translate-path'."
 	;; If we were passed in something related to a TABLE,
 	;; do a caching lookup.
 	(let* ((index (semanticdb-get-table-index table))
-	       (cache (when index
-			(oref index include-path))))
-	  (if cache
+	       (cache (when index (oref index include-path)))
+	       (incom (semanticdb-find-incomplete-cache-entries-p cache))
+	       (unl (semanticdb-find-throttle-active-p 'unloaded))
+	       )
+	  (if (and
+	       cache ;; Must have a cache
+	       (or
+		;; If all entries are "full", or if 'unloaded
+		;; OR
+		;; is not in the throttle, it is ok to use the cache.
+		(not incom) (not unl)
+		))
 	      cache
 	    ;; Lets go look up our indicies
 	    (let ((ans (semanticdb-find-translate-path-includes--internal path)))
@@ -427,8 +445,9 @@ a new path from the provided PATH."
 Assumes that FILENAME exists as a source file.
 Assumes that a preexisting table does not exist, even if it
 isn't in memory yet."
-  (when (semanticdb-find-throttle-active-p 'unloaded)
-    (:override)))
+  (if (semanticdb-find-throttle-active-p 'unloaded)
+      (:override)
+    (semanticdb-file-table-object filename t)))
 
 (defun semanticdb-find-load-unloaded-default (filename)
   "Load an unloaded file in FILENAME using the default semanticdb loader."
@@ -491,9 +510,8 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
      ((and (semanticdb-find-throttle-active-p 'local)
 	   (file-exists-p (expand-file-name name originfiledir)))
 
-      (setq ans (semanticdb-file-table-object
-		 (expand-file-name name originfiledir)
-		 (not (semanticdb-find-throttle-active-p 'unloaded))))
+      (setq ans (semanticdb-find-load-unloaded
+		 (expand-file-name name originfiledir)))
       )
      ;; Step 2: System or Project level includes
      ;;
@@ -517,21 +535,8 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 	    (setq tmp (semantic-dependency-tag-file includetag))
 	    )
        )
-      (let ((db (semanticdb-directory-loaded-p (file-name-directory tmp))))
-	(if db
-	    ;; We have a database, but perhaps not a table?
-	    (setq ans (semanticdb-file-table db tmp))
-	  ;; ELSE: we could load a cache if it isn't already loaded
-	  ;; based on another throttle value.
-	  )
-	(if ans
-	    ;; We are A-ok!
-	    nil
-	  ;; The file is not in memory!
-	  ;; Should we force it to be loaded in?
-	  (setq ans (semanticdb-find-load-unloaded tmp))
-	  )))
-
+      (setq ans (semanticdb-find-load-unloaded tmp))
+      )
      ;; Somewhere in our project hierarchy
      ;;
      ;; Remember: Roots includes system databases which can create
@@ -554,7 +559,7 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 			     (expand-file-name (file-name-nondirectory name) ref)))))
 	  (when (and ref fname)
 	    ;; There is an actual file.  Grab it.
-	    (setq ans (semanticdb-file-table-object fname)))
+	    (setq ans (semanticdb-find-load-unloaded fname)))
 
 	  ;; ELSE
 	  ;;
@@ -591,30 +596,6 @@ for details on how this list is derived."
 	     (semantic-elapsed-time start end))
     
     (semantic-adebug-insert-stuff-list p "*")))
-
-;;    ;; Output the result
-;;    (message "%d paths found." (length p))
-;;    (with-output-to-temp-buffer "*Translated Path*"
-;;      (while p
-;;	(condition-case nil
-;;	    (progn
-;;	      (princ (semanticdb-full-filename (car p)))
-;;	      (princ ": ")
-;;	      (prin1 (condition-case nil
-;;			 (length (oref (car p) tags))
-;;		       (error "--")))
-;;	      (princ " tags")
-;;	      (let ((parent (oref (car p) parent-db)))
-;;		(when parent
-;;		  (princ " : ")
-;;		  (princ (object-name parent))))
-;;	      )
-;;	  (no-method-definition
-;;	   (princ (semanticdb-printable-name (car p)))))
-;;	(princ "\n")
-;;	(setq p (cdr p)))
-;;      )
-;;    ))
 
 
 ;;; FIND results and edebug
