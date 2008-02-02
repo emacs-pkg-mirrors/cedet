@@ -1,9 +1,9 @@
 ;;; semantic-analyze-complete.el --- Smart Completions
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-complete.el,v 1.2 2007/09/20 01:51:43 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-complete.el,v 1.3 2008/02/02 02:43:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -58,6 +58,7 @@ Used as options when completing."
        (t nil)))
     (nreverse out)))
 
+;;;###autoload
 (defun semantic-analyze-tags-of-class-list (tags classlist)
   "Return the tags in TAGS that are of classes in CLASSLIST."
   (let ((origc tags))
