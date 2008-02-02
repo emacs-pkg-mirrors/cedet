@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.36 2008/01/25 19:38:42 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.37 2008/02/02 02:47:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -366,7 +366,7 @@ Optional argument POINT is where to look for the environment."
 (define-mode-local-override semantic-analyze-current-context
   texinfo-mode (point)
   "Analysis context makes no sense for texinfo.  Return nil."
-  (let* ((prefixandbounds (semantic-analyze-calculate-bounds))
+  (let* ((prefixandbounds (semantic-ctxt-current-symbol-and-bounds (point)))
 	 (prefix (car prefixandbounds))
 	 (endsym (nth 1 prefixandbounds))
 	 (bounds (nth 2 prefixandbounds))
@@ -378,8 +378,6 @@ Optional argument POINT is where to look for the environment."
        "Context-for-texinfo"
        :buffer (current-buffer)
        :scope nil
-       :scopetypes nil
-       :localvariables nil
        :bounds bounds
        :prefix prefix
        :prefixtypes nil
