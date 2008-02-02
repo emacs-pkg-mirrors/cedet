@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.73 2008/01/29 13:57:07 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.74 2008/02/02 02:44:43 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1855,7 +1855,6 @@ Optional argument COLOR determines if color is added to the text."
 	     :buffer (current-buffer)
 	     :scope nil
 	     :bounds bounds
-	     :scope nil
 	     :prefix (if prefixsym
 			 (list prefixsym)
 		       prefix)
