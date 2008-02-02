@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.2 2008/01/13 20:03:07 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.3 2008/02/02 02:47:02 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -318,7 +318,11 @@ The class returned from the scope calculation is variable
       (when (not (semantic-equivalent-tag-p TAG (oref scopecache tag)))
 	(semantic-reset scopecache))
       (if (oref scopecache tag)
-	  nil
+	  ;; Even though we can recycle most of the scope, we
+	  ;; need to redo the local variables since those change
+	  ;; as you move about the tag.
+	  (oset scopecache localvar (semantic-get-all-local-variables))
+
 	(let*
 	    (
 	     ;; Step 1:
