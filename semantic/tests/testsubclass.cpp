@@ -109,3 +109,31 @@ moose deer::alces::createMoose()
 
   return MooseVariableName;
 }
+
+/** Test Scope Changes
+ *
+ * This function is rigged to make sure the scope changes to account
+ * for different locations in local variable parsing.
+ */
+int someFunction(int mPickle)
+{
+  moose mMoose = deer::alces::createMoose();
+
+  if (mPickle == 1) {
+
+    int mOption1 = 2;
+
+    m// -5-
+      // #5# ( "mMoose" "mOption1" "mPickle" )
+      ;
+
+  } else {
+
+    int mOption2 = 2;
+
+    m// -6-
+      // #6# ( "mMoose" "mOption2" "mPickle" )
+      ;
+  }
+
+}
