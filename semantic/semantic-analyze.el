@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.62 2008/01/29 13:54:24 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.63 2008/02/02 02:44:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -460,6 +460,14 @@ Returns an object based on symbol `semantic-analyze-context'."
 		  (semantic-analyze-find-tag-sequence function scope))
 	  (error nil))
 
+	;; fntag can have the last entry as just a string, meaning we
+	;; could not find the core datatype.  In this case, the searches
+	;; below will not work.
+	(when (stringp (last (car fntag)))
+	    ;; Take a wild guess!
+          (setcar (last fntag) (semantic-tag (car (last fntag)) 'function))
+	  )
+
 	(when fntag
 	  (let ((fcn (semantic-find-tags-by-class 'function fntag)))
 	    (when (not fcn)
@@ -585,7 +593,8 @@ Use BUFF as a source of override methods."
   ;(semantic-analyze-princ-sequence (oref context scopetypes) "Scope Types: ")
   ;(semantic-analyze-princ-sequence (oref context scope) "Scope: ")
   ;(semantic-analyze-princ-sequence (oref context localvariables) "LocalVars: ")
-  (semantic-analyze-show (oref context scope))
+  (when (oref context scope)
+    (semantic-analyze-show (oref context scope)))
   )
 
 (defmethod semantic-analyze-show ((context semantic-analyze-context-assignment))
