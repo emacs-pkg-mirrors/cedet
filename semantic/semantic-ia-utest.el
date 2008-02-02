@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.3 2008/01/20 00:06:48 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.4 2008/02/02 02:46:23 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -64,7 +64,9 @@
   "Run a unit-test pass in the current buffer."
   (interactive)
 
+  ;; This line will also force the include, scope, and typecache.
   (semantic-clear-toplevel-cache)
+  ;; Force tags to be parsed.
   (semantic-fetch-tags)
 
   (let* ((idx 1)
@@ -76,6 +78,10 @@
 	 (fail nil)
 	 (actual nil)
 	 (desired nil)
+	 ;; Exclude unpredictable system files in the
+	 ;; header include list.
+	 (semanticdb-find-default-throttle
+	  (remq 'system semanticdb-find-default-throttle))
 	 )
     ;; Keep looking for test points until we run out.
     (while (save-excursion
