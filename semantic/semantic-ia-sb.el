@@ -1,10 +1,10 @@
 ;;; semantic-ia-sb.el --- Speedbar analysis display interactor
 
-;;; Copyright (C) 2002, 2003, 2004, 2006 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2006, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.18 2006/07/29 15:05:00 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.19 2008/02/02 02:45:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -262,7 +262,8 @@ TEXT, TAG, and INDENT are speedbar function arguments."
 		     (condition-case nil
 			 (save-excursion
 			   (set-buffer ob)
-			   (semantic-analyze-tag-type tag))
+			   ;; @todo - We need a context to derive a scope from.
+			   (semantic-analyze-tag-type tag nil))
 		       (error nil))))
 		(if typetok
 		    (insert (semantic-format-tag-prototype
