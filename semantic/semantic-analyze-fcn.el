@@ -1,9 +1,9 @@
 ;;; semantic-analyze-fcn.el --- Analyzer support functions.
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.2 2007/09/20 01:50:38 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.3 2008/02/02 22:56:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -150,13 +150,14 @@ or a string, or a non-positional tag."
 	   (car tt))
 	  (t nil))))
 
-(defun semantic-analyze-tag-type (tag scope)
+(defun semantic-analyze-tag-type (tag &optional scope)
   "Return the semantic tag for a type within the type of TAG.
 TAG can be a variable, function or other type of tag.
 The type of tag (such as a class or struct) is a name.
 Lookup this name in database, and return all slots/fields
 within that types field.  Also handles anonymous types.
-SCOPE represents a calculated scope in which the types might be found."
+Optional SCOPE represents a calculated scope in which the
+types might be found.  This can be nil."
   (let ((ttype (semantic-tag-type tag))
 	(name nil)
 	(typetag nil)
