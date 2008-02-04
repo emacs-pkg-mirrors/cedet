@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-dictionary.el,v 1.2 2008/01/29 14:10:13 zappo Exp $
+;; X-RCS: $Id: srecode-dictionary.el,v 1.3 2008/02/04 02:05:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -387,13 +387,17 @@ STATE is the current compiler state."
 			(princ "\n")
 			(srecode-dump (car entry) newindent)
 			(setq entry (cdr entry))
-			)))
+			))
+		    (princ "\n")
+		    )
 		   ((srecode-dictionary-compound-value-child-p entry)
-		    (srecode-dump entry indent))
+		    (srecode-dump entry indent)
+		    (princ "\n")
+		    )
 		   (t
 		    (prin1 entry)
-		    (princ "\n")))
-	     (princ "\n")
+		    ;(princ "\n")
+		    ))
 	     )
 	   (oref dict namehash))
   )
