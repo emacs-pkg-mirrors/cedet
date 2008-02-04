@@ -1,8 +1,8 @@
 ;;; semantic-tag-ls.el --- Language Specific override functions for tags
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.12 2007/08/29 13:01:55 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.13 2008/02/04 23:04:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -50,12 +50,13 @@ search locally, then semanticdb for that tag (when enabled.)")
 
 (defun semantic-tag-calculate-parent-default (tag)
   "Attempt to calculate the parent of TAG."
-  (save-excursion
-    (set-buffer (semantic-tag-buffer tag))
+  (when (semantic-tag-in-buffer-p tag)
     (save-excursion
-      (goto-char (semantic-tag-start tag))
-      (semantic-current-tag-parent))
-    ))
+      (set-buffer (semantic-tag-buffer tag))
+      (save-excursion
+	(goto-char (semantic-tag-start tag))
+	(semantic-current-tag-parent))
+      )))
 
 ;;;###autoload
 (define-overload semantic-tag-protection (tag &optional parent)
@@ -73,7 +74,7 @@ The default behavior (if not overridden with `tag-protection'
 is to return a symbol based on type modifiers."
   (and (not parent)
        (semantic-tag-overlay tag)
-       (semantic-tag-buffer tag)
+       (semantic-tag-in-buffer-p tag)
        (setq parent (semantic-tag-calculate-parent tag)))
   (:override))
 
