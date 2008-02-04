@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-args.el,v 1.3 2008/01/30 03:40:20 zappo Exp $
+;; X-RCS: $Id: srecode-args.el,v 1.4 2008/02/04 01:43:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -36,6 +36,7 @@
 ;; Using :blank means that the template should force blank lines
 ;; before and after the template, reguardless of where the insertion
 ;; is occuring.
+;;;###autoload
 (defun srecode-semantic-handle-:blank (dict)
   "Add macros into the dictionary DICT specifying blank line spacing.
 The wrapgap means make sure the first and last lines of the macro
