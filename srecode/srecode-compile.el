@@ -303,14 +303,19 @@ STATE is the current compile state as an object `srecode-compile-state'."
       (when (eq (car addargs) :blank)
 	;; If we have a wrap, then put wrap inserters on both
 	;; ends of the code.
-	(let ((wrap (srecode-compile-inserter
-				   "BLANK"
-				   "\r"
-				   STATE
-				   :secondname nil))
-	      )
-	  (setq code (append (list wrap) code (list wrap)))
-	  ))
+	(setq code (append 
+		    (list (srecode-compile-inserter "BLANK"
+						    "\r"
+						    STATE
+						    :secondname nil
+						    :where 'begin))
+		    code
+		    (list (srecode-compile-inserter "BLANK"
+						    "\r"
+						    STATE
+						    :secondname nil
+						    :where 'end))
+			  )))
       (setq args (cdr args)))
     (srecode-template (semantic-tag-name tag)
 		      :context context
@@ -353,11 +358,19 @@ If END-NAME is specified, and the input string"
 	    (setq comp (cons prefix comp)))
 	  (if (string= match "\n")
 	      ;; Do newline thingy.
-	      (let ((new-inserter (srecode-compile-inserter
-				   "INDENT"
-				   "\n"
-				   STATE
-				   :secondname nil)))
+	      (let ((new-inserter
+		     (srecode-compile-inserter
+		      "INDENT"
+		      "\n"
+		      STATE
+		      :secondname nil
+		      ;; This newline is "hard" meaning ALWAYS do it
+		      ;; if the previous entry is also a newline.
+		      ;; Without it, user entered blank lines will be
+		      ;; ignored.
+		      :hard (srecode-template-inserter-newline-child-p
+			     (car comp))
+		      )))
 		;; Trim WHAT back.
 		(setq what (substring what namestart))
 		(when (> (length what) 0)
