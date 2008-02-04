@@ -1,10 +1,10 @@
 ;;; semantic-tag-file.el --- Routines that find files based on tags.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.18 2007/06/22 19:01:31 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.19 2008/02/04 23:02:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,7 +48,7 @@ depended on (see `semantic-dependency-tag-file'."
 		  (when f
 		    (set-buffer (find-file-noselect f))
 		    (point))))
-     (cond ((semantic-tag-buffer tag)
+     (cond ((semantic-tag-in-buffer-p tag)
 	    ;; We have a linked tag, go to that buffer.
 	    (set-buffer (semantic-tag-buffer tag)))
 	   ((semantic-tag-file-name tag)
@@ -56,7 +56,7 @@ depended on (see `semantic-dependency-tag-file'."
 	    ;; name, then we need to get to that file so the tag
 	    ;; location is made accurate.
 	    (set-buffer (find-file-noselect (semantic-tag-file-name tag))))
-	   ((and parent (semantic-tag-p parent) (semantic-tag-buffer parent))
+	   ((and parent (semantic-tag-p parent) (semantic-tag-in-buffer-p parent))
 	    ;; The tag had nothing useful, but we have a parent with
 	    ;; a buffer, then go there.
 	    (set-buffer (semantic-tag-buffer parent)))
@@ -128,16 +128,23 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
   (unless (semantic-tag-of-class-p tag 'include)
     (signal 'wrong-type-argument (list tag 'include)))
   (save-excursion
-    (cond ((semantic-tag-buffer tag)
-	   ;; If the tag has an overlay and buffer associated with it,
-	   ;; switch to that buffer so that we get the right override metohds.
-	   (set-buffer (semantic-tag-buffer tag)))
-	  ((semantic-tag-file-name tag)
-	   ;; If it didn't have a buffer, but does have a file
-	   ;; name, then we need to get to that file so the tag
-	   ;; location is made accurate.
-	   (set-buffer (find-file-noselect (semantic-tag-file-name tag)))))
-    (let ((result nil))
+    (let ((result nil)
+	  (default-directory default-directory))
+      (cond ((semantic-tag-in-buffer-p tag)
+	     ;; If the tag has an overlay and buffer associated with it,
+	     ;; switch to that buffer so that we get the right override metohds.
+	     (set-buffer (semantic-tag-buffer tag)))
+	    ((semantic-tag-file-name tag)
+	     ;; If it didn't have a buffer, but does have a file
+	     ;; name, then we need to get to that file so the tag
+	     ;; location is made accurate.
+	     ;;(set-buffer (find-file-noselect (semantic-tag-file-name tag)))
+	     ;;
+	     ;; 2/3/08
+	     ;; The above causes unnecessary buffer loads all over the place. Ick!
+	     ;; All we really need is for 'default-directory' to be set correctly.
+	     (setq default-directory (file-name-directory (semantic-tag-file-name tag)))
+	     ))
       ;; First, see if this file exists in the current EDE project
       ;; @ToDo : Move EDE piece into semantic-dep
       (if (and (not (semantic-tag-include-system-p tag))
