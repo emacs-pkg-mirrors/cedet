@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.14 2008/01/30 03:42:36 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.15 2008/02/04 02:07:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -172,7 +172,14 @@ Use DICTIONARY to resolve any macros."
   ((key :initform "\n"
 	:allocation :class
 	:documentation
-	"The character code used to identify inserters of this style."))
+	"The character code used to identify inserters of this style.")
+   (hard :initform nil
+	 :initarg :hard
+	 :documentation
+	 "Is this a hard newline (always inserted) or optional?
+Optional newlines don't insert themselves if they are on a blank line
+by themselves.")
+   )
   "Insert a newline, and possibly do indenting.")
 
 (defmethod srecode-insert-method ((sti srecode-template-inserter-newline)
@@ -181,22 +188,41 @@ Use DICTIONARY to resolve any macros."
   ;; To be safe, indent the previous line since the template will
   ;; change what is there to indent
   (let ((i (srecode-dictionary-lookup-name dictionary "INDENT"))
+	(inbuff (bufferp standard-output))
+	(doit t)
 	(pm (point-marker)))
-    (when (eq i t)
-      (indent-according-to-mode)
-      (goto-char pm))
-    (princ "\n")
-    ;; Indent after the newline, particularly for numeric indents.
-    (cond ((eq i t)
-	   ;; WARNING - indent according to mode requires that standard-output
-	   ;;           is a buffer!
-	   ;; @todo - how to indent in a string???
-	   (when (bufferp standard-output)
-	     (indent-according-to-mode)))
-	  ((numberp i)
-	   (princ (make-string i " ")))
-	  ((stringp i)
-	   (princ i)))))
+    (when (and inbuff (not (oref sti hard)))
+      ;; If this is not a hard newline, we need do the calculation
+      ;; and set "doit" to nil.
+      (beginning-of-line)
+      (save-restriction
+	(narrow-to-region (point) pm)
+	(when (looking-at "\\s-*$")
+	  (setq doit nil)))
+      (goto-char pm)
+      )
+    (when doit
+      (when (and (eq i t) inbuff)
+	(indent-according-to-mode)
+	(goto-char pm))
+      (princ "\n")
+      ;; Indent after the newline, particularly for numeric indents.
+      (cond ((and (eq i t) (bufferp standard-output))
+	     ;; WARNING - indent according to mode requires that standard-output
+	     ;;           is a buffer!
+	     ;; @todo - how to indent in a string???
+	     (indent-according-to-mode))
+	    ((numberp i)
+	     (princ (make-string i " ")))
+	    ((stringp i)
+	     (princ i))))))
+
+(defmethod srecode-dump ((ins srecode-template-inserter-newline) indent)
+  "Dump the state of the SRecode template inserter INS."
+  (call-next-method)
+  (when (oref ins hard)
+    (princ " : hard")
+    ))
 
 (defclass srecode-template-inserter-blank (srecode-template-inserter)
    ((key :initform "\r"
@@ -204,19 +230,26 @@ Use DICTIONARY to resolve any macros."
 	 :documentation
 	 "The character represeinting this inserter style.
 Can't be blank, or it might be used by regular variable insertion.")
+    (where :initform 'begin
+	   :initarg :where
+	   :documentation
+	   "This should be 'begin or 'end, indicating where to insrt a CR.
+When set to 'begin, it will insert a CR if we are not at 'bol'.
+When set to 'end it will insert a CR if we are not at 'eol'")
     ;; @TODO - Add slot and control for the number of blank
     ;;         lines before and after point.
    )
-   "Insert a newline, and possibly do indenting.")
+   "Insert a newline before and after a template, and possibly do indenting.")
 
 (defmethod srecode-insert-method ((sti srecode-template-inserter-blank)
 				  dictionary)
   "Make sure there is no text before or after point."
   (when (bufferp standard-output)
-    (when (or (not (bolp)) (not (eolp)))
-      (princ "\n")
-      )))
-
+    (cond ((and (eq (oref sti where) 'begin) (not (bolp)))
+	   (princ "\n"))
+	  ((and (eq (oref sti where) 'end) (not (eolp)))
+	   (princ "\n"))
+	  )))
 
 (defclass srecode-template-inserter-comment (srecode-template-inserter)
   ((key :initform ?!
