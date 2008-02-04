@@ -1,8 +1,8 @@
 ;;; semantic-tag.el --- tag creation and access
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.49 2007/09/08 03:35:57 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.50 2008/02/04 23:00:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -170,23 +170,28 @@ That function is for internal use only."
         (semantic-overlay-move o start end)
       (semantic--tag-set-overlay tag (vector start end)))))
 
+(defun semantic-tag-in-buffer-p (tag)
+  "Return the buffer TAG resides in IFF tag is already in a buffer."
+  (let ((o (semantic-tag-overlay tag)))
+     ;; TAG is currently linked to a buffer, return it.
+    (when (and (semantic-overlay-p o)
+	       (semantic-overlay-live-p o))
+      (semantic-overlay-buffer o))))
+
 (defun semantic-tag-buffer (tag)
   "Return the buffer TAG resides in.
 If TAG has an originating file, read that file into a (maybe new)
 buffer, and return it.
 Return nil if there is no buffer for this tag."
-  (let ((o (semantic-tag-overlay tag)))
-    (cond
-     ;; TAG is currently linked to a buffer, return it.
-     ((and (semantic-overlay-p o)
-           (semantic-overlay-live-p o))
-      (semantic-overlay-buffer o))
-     ;; TAG has an originating file, read that file into a buffer, and
-     ;; return it.
-     ((semantic--tag-get-property tag :filename)
-      (find-file-noselect (semantic--tag-get-property tag :filename)))
-     ;; TAG is not in Emacs right now, no buffer is available.
-     )))
+  (let ((buff (semantic-tag-in-buffer-p tag)))
+    (if buff
+	buff
+      ;; TAG has an originating file, read that file into a buffer, and
+      ;; return it.
+     (if (semantic--tag-get-property tag :filename)
+	 (find-file-noselect (semantic--tag-get-property tag :filename))
+       ;; TAG is not in Emacs right now, no buffer is available.
+       ))))
 
 (defun semantic-tag-mode (&optional tag)
   "Return the major mode active for TAG.
@@ -297,7 +302,7 @@ That function is for internal use only."
 Return nil if that information can't be obtained.
 If TAG is from a loaded buffer, then that buffer's filename is used.
 If TAG is unlinked, but has a :filename property, then that is used."
-  (let ((buffer (semantic-tag-buffer tag)))
+  (let ((buffer (semantic-tag-in-buffer-p tag)))
     (if buffer
         (buffer-file-name buffer)
       (semantic--tag-get-property tag :filename))))
