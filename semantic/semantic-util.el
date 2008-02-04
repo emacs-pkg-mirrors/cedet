@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic tag tables
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.133 2007/08/30 01:01:08 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.134 2008/02/04 23:06:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -99,7 +99,7 @@ buffer, or a filename.  If SOMETHING is nil return nil."
       (semantic-fetch-tags)))
    ;; A Tag: Get that tag's buffer
    ((and (semantic-tag-with-position-p something)
-	 (semantic-tag-buffer something))
+	 (semantic-tag-in-buffer-p something))
     (save-excursion
       (set-buffer (semantic-tag-buffer something))
       (semantic-fetch-tags)))
