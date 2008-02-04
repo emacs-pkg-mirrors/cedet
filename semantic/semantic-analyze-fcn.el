@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.3 2008/02/02 22:56:43 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.4 2008/02/04 22:57:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -127,8 +127,7 @@ Almost all searches use the same arguments."
            (semanticdb-minor-mode-p))
       ;; Search the database & concatenate all matches together.
       (semanticdb-strip-find-results
-       (semanticdb-find-tags-for-completion prefix)
-       t)
+       (semanticdb-find-tags-for-completion prefix))
     ;; Search just this file because there is no DB available.
     (semantic-find-tags-for-completion
      prefix (current-buffer))))
