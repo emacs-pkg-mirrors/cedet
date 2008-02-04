@@ -1,8 +1,8 @@
 ;;; semantic-lex-spp.el --- Semantic Lexical Pre-processor
 
-;;; Copyright (C) 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.9 2007/09/02 17:10:32 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.10 2008/02/04 19:59:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -286,7 +286,7 @@ Finds the header file belonging to NAME, gets the macros
 from that file, and then merge the macros with our current
 symbol table."
   (when semantic-lex-spp-use-headers-flag
-    
+    ;; @todo - do this someday, ok?
     ))
 
 (defmacro define-lex-spp-include-analyzer (name doc regexp tokidx
@@ -318,7 +318,7 @@ where a valid symbol is 'system, or nil."
 	     (,startpnt semantic-lex-end-point)
 	     (,val (save-match-data ,@valform))
 	     (,endpnt semantic-lex-end-point))
-	 (message "(car ,val) -> %S" (car ,val))
+	 ;;(message "(car ,val) -> %S" (car ,val))
 	 (semantic-lex-spp-merge-header (car ,val))
 	 (semantic-lex-push-token
 	  (semantic-lex-token (if (eq (cdr ,val) 'system)
