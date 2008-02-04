@@ -41,16 +41,22 @@
 <H3>Base Tools are:</h3>
 </td></tr></table>
 
+<P><A HREF="eieio.shtml"> <B>EIEIO: Enhanced Implementation of Emacs
+   Interpreted Objects</B></A><br> is a package which implements a
+   <B>CLOS</B> subset for Emacs.  It includes examples which can draw
+   simple tree graphs, and bar charts.
+</p>
+
 <P><A HREF="semantic.shtml"><B>Semantic</B></A><br> is a
    Infrastructure for parser based text analysis in Emacs.  It creates
    parsers in Emacs Lisp.  Includes interfaces to all common tag-like
    features in Emacs.
 </P>
 
-<P><A HREF="eieio.shtml"> <B>EIEIO: Enhanced Implementation of Emacs
-   Interpreted Objects</B></A><br> is a package which implements a
-   <B>CLOS</B> subset for Emacs.  It includes examples which can draw
-   simple tree graphs, and bar charts.
+<P><A HREF="srecode.shtml"> <B>SRecode: Semantic Recoder</B></A><br>
+  is a template authoring and cataloging system.  Includes base
+  templates for several languages and sample SRecode applications.
+  <em>Currently available from CVS only.</em>
 </p>
 
 <P><B>CEDET/common:</B><br>
