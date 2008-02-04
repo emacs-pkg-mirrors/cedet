@@ -1,10 +1,10 @@
 ;;; semantic-sb.el --- Semantic tag display for speedbar
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.58 2007/02/19 02:52:50 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.59 2008/02/04 22:59:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -297,7 +297,7 @@ TEXT TOKEN and INDENT are the details."
   (let ((file
 	 (or
 	  (cond ((fboundp 'speedbar-line-path)
-		 (speedbar-line-path indent))
+		 (speedbar-line-directory indent))
 		((fboundp 'speedbar-line-directory)
 		 (speedbar-line-directory indent)))
 	  ;; If speedbar cannot figure this out, extract the filename from
