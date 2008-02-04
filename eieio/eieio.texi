@@ -1,7 +1,7 @@
 
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.55 2007/09/12 02:23:10 zappo Exp $
+@c $Id: eieio.texi,v 1.56 2008/02/04 01:42:12 zappo Exp $
 @c
 
 @c
@@ -22,7 +22,7 @@
 @copying
 This manual documents CEDET, a collection of other tools.
 
-Copyright @copyright{} 2007 Eric M. Ludlam
+Copyright @copyright{} 2007, 2008 Eric M. Ludlam
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -675,30 +675,32 @@ changed, this can be arranged by simply executing this bit of code:
 
 @end defun
 
-@defun oref object slot
-
-This recalls the value in slot @var{slot} in @var{object} and returns
-it.  If @var{object} is a class, and @var{slot} is a class allocated
-slot, then oref will return that value.  If @var{object} is a class, and
-@var{slot} is not class allocated, a signal will be thrown.
+@defun oref obj field
+@anchor{oref}
+Retrieve the value stored in @var{obj} in the slot named by @var{field}.
+Field is the name of the slot when created by @dfn{defclass} or the label
+created by the @code{:initarg} tag.
 @end defun
 
-@defun oref-default object slot
-This gets the default value in @var{object}'s class definition for
-@code{slot}.  This can be different from the value returned by
-@code{oref}.  @var{object} can also be a class symbol or an instantiated
-object.
+@defun oref-default obj field
+@anchor{oref-default}
+Gets the default value of @var{obj} (maybe a class) for @var{field}.
+The default value is the value installed in a class with the @code{:initform}
+tag.  @var{field} can be the slot name, or the tag specified by the @code{:initarg}
+tag in the @dfn{defclass} call.
 @end defun
 
 These next accessors are defined by CLOS to reference or modify slot
 values, and use the previously mentioned set/ref routines.
 
 @defun slot-value object slot
+@anchor{slot-value}
 This function retrieves the value of @var{slot} from @var{object}.
 Unlike @code{oref}, the symbol for @var{slot} must be quoted in.
 @end defun
 
 @defun set-slot-value object slot value
+@anchor{set-slot-value}
 This is not a CLOS function, but is meant to mirror @code{slot-value} if
 you don't want to use the cl package's @code{setf} function.  This
 function sets the value of @var{slot} from @var{object}.  Unlike
@@ -710,15 +712,25 @@ This function unbinds @var{slot} in @var{object}.  Referencing an
 unbound slot can throw an error.
 @end defun
 
-@defun object-add-to-list object slot &optional append
-In @var{OBJECT}'s @var{SLOT}, add @var{ITEM} to the pre-existing list of elements.
-Optional argument @var{APPEND} indicates we need to append to the list.
-If @var{ITEM} already exists in the list in @var{SLOT}, then it is not added.
+@defun object-add-to-list object slot item &optional append
+@anchor{object-add-to-list}
+In OBJECT's @var{slot}, add @var{item} to the pre-existing list of elements.
+Optional argument @var{append} indicates we need to append to the list.
+If @var{item} already exists in the list in @var{slot}, then it is not added.
 Comparison is done with @dfn{equal} through the @dfn{member} function call.
-If @var{SLOT} is unbound, bind it to the list containing @var{ITEM}.
+If @var{slot} is unbound, bind it to the list containing @var{item}.
+@end defun
+
+@defun object-remove-from-list object slot item
+@anchor{object-remove-from-list}
+In OBJECT's @var{slot}, remove occurrences @var{item}.
+If @var{item} exists in the list in @var{slot}, then it is removed.
+Comparison is done with @dfn{equal} via the @dfn{delete} function call.
+If @var{slot} is unbound, do nothing.
 @end defun
 
 @defun with-slots entries object forms
+@anchor{with-slots}
 Bind @var{entries} lexically to the specified slot values in
 @var{object}, and execute @var{forms}.  In CLOS, it would be possible to
 set values in OBJECT by using @code{setf} to assign to these values, but
@@ -1006,9 +1018,11 @@ Lisp offers the concept of association lists, with primitives such as
 @code{assoc} used to access them.  @eieio{} provides a few such functions
 to help with using lists of objects easily.
 
-@defun object-assoc key slot list
-Returns the first object in @var{list} for which @var{key} is in
-@var{slot}.
+@defun object-assoc key field list
+@anchor{object-assoc}
+Return non-@code{nil} if @var{key} is @dfn{equal} to the @var{field} of the car of objects in @var{list}.
+@var{list} is a list of objects who's fields are searched.
+The value is actually the element of @var{list} whose field equals @var{key}.
 @end defun
 
 @defun object-assoc-list slot list
