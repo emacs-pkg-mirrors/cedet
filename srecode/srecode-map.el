@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.5 2008/02/01 04:59:56 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.6 2008/02/04 01:44:53 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -269,9 +269,12 @@ if that file is NEW, otherwise assume the mode has not changed."
     ;; 4) - Find new files and add them to the map.
     (dolist (dir srecode-map-load-path)
       (dolist (f (directory-files dir t "\\.srt$"))
-	(setq dirty
-	      (or dirty
-		  (srecode-map-validate-file-for-mode f fast)))
+	(when (and (not (backup-file-name-p f))
+		   (not (auto-save-file-name-p f))
+		   (file-readable-p f))
+	  (setq dirty
+		(or dirty
+		    (srecode-map-validate-file-for-mode f fast))))
 
 	))
     (when dirty
