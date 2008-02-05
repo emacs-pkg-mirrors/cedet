@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic tag tables
 
-;;; Copyright (C) 1999, 2000, 2001, 2003, 2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2003, 2005, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.10 2005/09/30 20:18:53 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.11 2008/02/05 15:13:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -143,6 +143,29 @@ TAGTABLE is passedto `semantic-something-to-tag-table'."
 		       names namelabel
 		       nums "Complexity (Lines of code)")
     ))
+
+;;;###autoload
+(defun semantic-chart-analyzer ()
+  "Chart the extent of the context analysis."
+  (interactive)
+  (let* ((p (semanticdb-find-translate-path nil nil))
+	 (plen (length p))
+	 (tab semanticdb-current-table)
+	 (tc (semanticdb-get-typecache tab))
+	 (tclen (length (oref tc stream)))
+	 (scope (semantic-calculate-scope))
+	 (fslen (length (oref scope fullscope)))
+	 (lvarlen (length (oref scope localvar)))
+	 )
+    (chart-bar-quickie 'vertical
+		       (format "Analyzer Overhead in %s" (buffer-name))
+		       '("includes" "typecache" "scopelen" "localvar")
+		       "Overhead Entries"
+		       (list plen tclen fslen lvarlen)
+		       "Number of tags")
+    ))
+	 
+
 
 (provide 'semantic-chart)
 
