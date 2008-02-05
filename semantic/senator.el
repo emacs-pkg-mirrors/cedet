@@ -1,12 +1,12 @@
 ;;; senator.el --- SEmantic NAvigaTOR
 
-;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 by David Ponce
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.117 2007/11/07 14:52:12 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.118 2008/02/05 15:14:40 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2061,6 +2061,12 @@ This is a buffer local variable.")
        semantic-chart-database-size
        :active (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
        :help "Choose the files with the most tags, and chart them by volume"
+       ])
+    (senator-menu-item
+     [ "Chart Analyzer Overhead"
+       semantic-chart-analyzer
+       :active t
+       :help "Calculate the overhead of running the analyzer, and chart it out."
        ])
     )
    (if (or (featurep 'xemacs) (> emacs-major-version 20))
