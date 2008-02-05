@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.3 2008/02/02 02:47:02 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.4 2008/02/05 14:52:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -110,20 +110,13 @@ Saves scoping information between runs of the analyzer.")
       (semantic-reset cache))
   )
 
-(defun semantic-scope-cache-get (slot)
-  "Get the current cached value of SLOT."
+;;;###autoload
+(defun semantic-scope-reset-cache ()
+  "Get the current cached scope, and reset it."
   (when semanticdb-current-table
     (let ((co (semanticdb-cache-get semanticdb-current-table
 				    semantic-scope-cache)))
-      (slot-value co slot))))
-
-;; @todo - Delete the below fcn?
-(defun semantic-scope-cache-set (slot value)
-  "Set the value of SLOT to VALUE in the current analyzer cache."
-  (when semanticdb-current-table
-    (let ((co (semanticdb-cache-get semanticdb-current-table
-				    semantic-scope-cache)))
-      (eieio-oset co slot value))))
+      (semantic-reset co))))
 
 ;;; SCOPE UTILITIES
 ;;
