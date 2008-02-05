@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.63 2008/02/02 02:44:16 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.64 2008/02/05 14:49:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -327,7 +327,7 @@ searches use the same arguments."
      ;; fcn better not, in turn, be splittable.
      ((listp namelst)
       (let ((seq (semantic-analyze-find-tag-sequence
-		  namelst nil scope)))
+		  namelst scope nil)))
 	(car (nreverse seq))))
      ;; If NAME is solo, then do our searches for it here.
      ((stringp namelst)
