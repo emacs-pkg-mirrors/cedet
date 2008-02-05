@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.49 2008/02/05 14:55:08 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.50 2008/02/05 15:15:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -330,7 +330,8 @@ Default action as described in `semanticdb-find-translate-path'."
   "Are there any incomplete entries in CACHE?"
   (let ((ans nil))
     (dolist (tab cache)
-      (when (not (number-or-marker-p (oref tab pointmax)))
+      (when (and (semanticdb-table-child-p tab)
+		 (not (number-or-marker-p (oref tab pointmax))))
 	(setq ans t))
       )
     ans))
