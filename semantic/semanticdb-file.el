@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.20 2008/01/06 02:39:13 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.21 2008/02/05 12:17:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,7 +58,7 @@ stores caches in a coded file name in this directory."
                  (directory)))
 
 ;;;###autoload
-(defcustom semanticdb-persistent-path '(project)
+(defcustom semanticdb-persistent-path '(always)
   "*List of valid paths that semanticdb will cache tags to.
 When `global-semanticdb-minor-mode' is active, tag lists will
 be saved to disk when Emacs exits.  Not all directories will have
@@ -276,6 +276,10 @@ Uses `semanticdb-persistent-path' to determine the return value."
 	       (if (string= (oref obj reference-directory) (car path))
 		   (throw 'found t)))
 	      ((eq (car path) 'project)
+	       ;; @TODO - EDE causes us to go in here and disable
+	       ;; the old default 'always save' setting.
+	       ;;
+	       ;; With new default 'always' should I care?
 	       (if semanticdb-project-predicate-functions
 		   (if (run-hook-with-args-until-success
 			'semanticdb-project-predicate-functions
