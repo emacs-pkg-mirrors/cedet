@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.48 2008/02/01 04:57:54 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.49 2008/02/05 14:55:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -195,6 +195,9 @@ This class will cache data derived during various searches.")
   ;; Clear the include path.
   (oset idx include-path nil)
   (oset idx type-cache nil)
+  ;; Clear the scope.  Scope doesn't have the data it needs to track
+  ;; it's own reset.
+  (semantic-scope-reset-cache)
   )
 
 (defmethod semanticdb-synchronize ((idx semanticdb-find-search-index)
@@ -298,6 +301,7 @@ Default action as described in `semanticdb-find-translate-path'."
 	       ((semanticdb-table-p path) (oref path parent-db))
 	       (t (let ((tt (semantic-something-to-tag-table path)))
 		    (save-excursion
+		      ;; @todo - What does this DO ??!?!
 		      (set-buffer (semantic-tag-buffer (car tt)))
 		      semanticdb-current-database))))))
     (apply
@@ -485,7 +489,7 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
     ;; and must set our current buffer eto the origin of includetag
     ;; or nothing may work.
     (setq originfiledir
-	  (cond ((semantic-tag-buffer includetag)
+	  (cond ((semantic-tag-in-buffer-p includetag)
 		 ;; If the tag has an overlay and buffer associated with it,
 		 ;; switch to that buffer so that we get the right override metohds.
 		 (file-name-directory (buffer-file-name (semantic-tag-buffer includetag))))
