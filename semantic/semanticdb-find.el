@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.50 2008/02/05 15:15:20 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.51 2008/02/06 04:07:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -305,7 +305,7 @@ Default action as described in `semanticdb-find-translate-path'."
 		      (set-buffer (semantic-tag-buffer (car tt)))
 		      semanticdb-current-database))))))
     (apply
-     #'append
+     #'nconc
      (mapcar
       (lambda (db)
 	(let ((tabs (semanticdb-get-database-tables db))
@@ -634,10 +634,12 @@ return a value."
 	  (let ((tab (car (car tmp)))
 		(tags (cdr (car tmp))))
 	    (semanticdb-get-buffer tab)
-	    (setq output (append output
-				 (semanticdb-normalize-tags tab tags))))
+	    (setq output (nconc output
+				(semanticdb-normalize-tags tab tags))))
 	  (setq tmp (cdr tmp)))
 	output)
+    ;; @todo - I could use nconc, but I don't know what the caller may do with
+    ;;         RESULTS after this is called.
     (apply #'append (mapcar #'cdr results))))
 
 ;;;###autoload
