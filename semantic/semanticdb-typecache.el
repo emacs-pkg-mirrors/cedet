@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.15 2008/01/13 20:08:18 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.16 2008/02/06 04:03:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -99,7 +99,10 @@ If there is no table, create one, and fill it in."
   ;; Assume we always have datatypes, as this typecache isn'nt really
   ;; useful without a typed language.
   (let ((S (semantic-sort-tags-by-name-then-type-increasing
-	    (append cache1 cache2)))
+	    ;; I used to use append, but it copied cache1 but not cache2.
+	    ;; Since sort was permuting cache2, I already had to make sure
+	    ;; the caches were permute-safe.  Might as well use nconc here.
+	    (nconc cache1 cache2)))
 	(ans nil)
 	(next nil)
 	(prev nil)
