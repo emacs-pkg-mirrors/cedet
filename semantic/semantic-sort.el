@@ -1,10 +1,10 @@
 ;;; semantic-sort.el --- Utilities for sorting and re-arranging tag tables.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.24 2007/09/08 03:33:42 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.25 2008/02/06 04:04:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -68,11 +68,11 @@ Argument S1 and S2 are the strings to compare."
   "Return t if tag A is < tag B.
 First sorts on name, then sorts on the name of the :type of
 each tag."
-  (let* ((na (semantic-tag-name A))
-	 (nb (semantic-tag-name B))
-	 (ans (string-lessp na nb)))
-    (if ans
-	ans ; a sure thing.
+  (let ((na (semantic-tag-name A))
+	(nb (semantic-tag-name B))
+	)
+    (if (string-lessp na nb)
+	t ; a sure thing.
       (if (string= na nb)
 	  ;; If equal, test the :type which might be different.
 	  (let* ((ta (semantic-tag-type A))
