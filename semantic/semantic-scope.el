@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.4 2008/02/05 14:52:43 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.5 2008/02/06 04:06:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -314,7 +314,9 @@ The class returned from the scope calculation is variable
 	  ;; Even though we can recycle most of the scope, we
 	  ;; need to redo the local variables since those change
 	  ;; as you move about the tag.
-	  (oset scopecache localvar (semantic-get-all-local-variables))
+	  (condition-case nil
+	      (oset scopecache localvar (semantic-get-all-local-variables))
+	    (error nil))
 
 	(let*
 	    (
@@ -326,7 +328,9 @@ The class returned from the scope calculation is variable
 			(semantic-analyze-scoped-tags scopetypes parents)))
 	     (fullscope (append scopetypes scope parents))
 	     ;; Step 3:
-	     (localvar (semantic-get-all-local-variables))
+	     (localvar (condition-case nil
+			   (semantic-get-all-local-variables)
+			 (error nil)))
 	     )
 	  (oset scopecache tag TAG)
 	  (oset scopecache scopetypes scopetypes)
