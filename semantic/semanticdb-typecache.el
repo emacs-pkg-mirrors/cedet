@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.16 2008/02/06 04:03:47 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.17 2008/02/07 22:51:38 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -33,12 +33,48 @@
 
 ;;; Code:
 (defclass semanticdb-typecache ()
-  ((stream :initform nil
+  ((filestream :initform nil
+	       :documentation
+	       "Fully sorted/merged list of tags within this buffer.")
+   (includestream :initform nil
+		  :documentation
+		  "Fully sorted/merged list of tags from this file's includes list.")
+   (stream :initform nil
 	   :documentation
-	   "The searchable tag stream for this cache.")
+	   "The searchable tag stream for this cache.
+NOTE: Can I get rid of this?  Use a hashtable instead?")
    ;; @todo - add some sort of fast-hash.
    )
   "Structure for maintaining a typecache.")
+
+(defmethod semantic-reset ((tc semanticdb-typecache))
+  "Reset the object IDX."
+  (oset tc filestream nil)
+  (oset tc includestream nil)
+
+  (oset tc stream nil)
+  )
+
+(defmethod semanticdb-typecache-notify-reset ((tc semanticdb-typecache))
+  "Do a reset from a notify from a table we depend on."
+  (oset tc includestream nil)
+  )
+
+(defmethod semanticdb-partial-synchronize ((tc semanticdb-typecache)
+					   new-tags)
+  "Reset the typecache based on a pratial reparse."
+  (when (semantic-find-tags-by-class 'include new-tags)
+    (oset tc includestream nil)
+    )
+
+  (when (semantic-find-tags-by-class 'type new-tags)
+    ;; Reset our index
+    (oset tc filestream nil)
+    t ;; Return true, our core file tags have changed in a relavant way.
+    )
+
+  ;; NO CODE HERE
+  )
 
 (defun semanticdb-typecache-length(thing)
   "How long is THING?
@@ -59,19 +95,26 @@ Debugging function."
   "Retrieve the typecache from the semanticdb TABLE.
 If there is no table, create one, and fill it in."
   (semanticdb-refresh-table table)
-  (let* ((idx (semanticdb-get-table-index table))
-	 (cache (oref idx type-cache)))
-    (if cache
-	cache
-      (semanticdb-typecache-update table))
-    ))
+  (let* ((idx (semanticdb-get-table-index table))	 
+	 (cache (oref idx type-cache))
+	 )
+    
+    ;; Make sure we have a cache object in the DB index.
+    (when (not cache)
+      ;; The object won't change as we fill it with stuff.
+      (setq cache (semanticdb-typecache (semanticdb-full-filename table)))
+      (oset idx type-cache cache))
+
+    cache))
 
 (defmethod semanticdb-have-typecache-p ((table semanticdb-abstract-table))
   "Return non-nil (the typecache) if TABLE has a pre-calculated typecache."
   (let* ((idx (semanticdb-get-table-index table)))
     (oref idx type-cache)))
-
-;;; CREATE
+
+;;; MERGING
+;;
+;; Managing long streams of tags representing data types.
 ;;
 (defun semanticdb-typecache-apply-filename (file stream)
   "Apply the filename FILE to all tags in STREAM."
@@ -95,7 +138,7 @@ If there is no table, create one, and fill it in."
 ;; @todo - This should go into semantic-sort.el
 ;;;###autoload
 (defun semanticdb-typecache-merge-streams (cache1 cache2)
-  "Merge into CACHE1 and CACHE2 together."
+  "Merge into CACHE1 and CACHE2 together.  The Caches will be merged in place."
   ;; Assume we always have datatypes, as this typecache isn'nt really
   ;; useful without a typed language.
   (let ((S (semantic-sort-tags-by-name-then-type-increasing
@@ -162,99 +205,64 @@ If there is no table, create one, and fill it in."
 	  ))
       (setq S (cdr S)))
     (nreverse ans)))
-
-(defmethod semanticdb-typecache-merge ((dest semanticdb-typecache) add)
-  "Add into the cache DEST all entries from ADD.
-If ADD is a tag stream, add them.
-If ADD is another typecache object, Merge it in."
-  (let* ((stream1 (oref dest stream)) ; our stream is ok to permute
-	 (stream2 (if (semanticdb-typecache-child-p add)
-		      ;; We need to leave ADD pristine.
-		      (copy-sequence (oref add stream))
-		    add))
+
+;;; Refresh / Query API
+;;
+;; Queries that can be made for the typecache.
+(defmethod semanticdb-typecache-file-tags ((table semanticdb-table))
+  "Update the typecache for TABLE, and return the file-tags.
+File-tags are those that belong to this file only, and excludes
+all included files."
+  (let* ((idx (semanticdb-get-table-index table))	 
+	 (cache (semanticdb-get-typecache table))
 	 )
-    (oset dest stream
-	  (semanticdb-typecache-merge-streams stream1 stream2))
+
+    ;; Make sure our file-tags list is up to date.
+    (when (not (oref cache filestream))
+      (oset cache filestream (semanticdb-typecache-merge-streams (semantic-find-tags-by-class 'type table)
+								 nil)))
+
+    ;; Return our cache.
+    (oref cache filestream)
     ))
 
-(defun semanticdb-stream-to-typecache (file stream)
-  "For FILE, convert a tag STREAM into a typecache.
-Argument FILE is the name of the created typecache.
-STREAM is the list of tags.
-
-This function makes copies of the tags in STREAM."
-  (let ((tc (semanticdb-typecache file))
-	)
-    ;; Force a "filename" property onto the tags.
-    (setq stream (semanticdb-typecache-apply-filename file stream))
-
-    ;; Perform a merge
-    (semanticdb-typecache-merge tc stream)
-
-    tc))
-
-(defmethod semanticdb-typecache-update ((table semanticdb-abstract-table))
-  "Update the typecache for TABLE."
-;  (message "Typecache (Abst) Update for: %s"
-;	   (object-name table))
-  (let ((idx (semanticdb-get-table-index table))
-	(cache (semanticdb-typecache "empty-cache")))
-    ;; The object won't change as we fill it with stuff.
-    (oset idx type-cache cache)
-    ))
-
-(defvar semanticdb-typecache-recursion-flag nil
-  "Use this to avoid recursion in the typecache update.")
-
-(defmethod semanticdb-typecache-update ((table semanticdb-table))
-  "Update the typecache for TABLE.
-A typecache keeps all type information that is findable through semanticdb.
-Each database table has a cache, and the cache for the current file will
-combine the caches of all files included within itself."
-;  (message "Typecache (File) Update for: %s"
-;	   (object-name table))
-  (let* ((idx (semanticdb-get-table-index table))
-	 (local-list (semantic-find-tags-by-class 'type table))
-	 (local-inc (semantic-find-tags-by-class 'include table))
-	 (cache (semanticdb-stream-to-typecache 
-		 (semanticdb-full-filename table)
-		 local-list))
-	 (incpath (reverse (semanticdb-find-translate-path table nil)))
-	 (top (not semanticdb-typecache-recursion-flag))
-	 (semanticdb-typecache-recursion-flag t)
+(defmethod semanticdb-typecache-include-tags ((table semanticdb-table))
+  "Update the typecache for TABLE, and return the merged types from the include tags.
+Include-tags are the tags brought in via includes, all merged together into
+a master list."
+  (let* ((idx (semanticdb-get-table-index table))	 
+	 (cache (semanticdb-get-typecache table))
 	 )
-    ;; The object won't change as we fill it with stuff.
-    (oset idx type-cache cache)
 
-    (when top
-      ;; To avoid recursion problems, we need to go through our path
-      ;; iteratively and force a cache refresh on each.
-      ;; Go through the path backwards since the leave includes are at the
-      ;; end.
-      (while incpath
-	(when (not (eq (car incpath) table))
-	  (semanticdb-get-typecache (car incpath)))
-	(setq incpath (cdr incpath)))
-      )
-
-    ;; Now loop over our local include path, and merge those caches with
-    ;; our own.
-    (while local-inc
-      (let ((inc-tab (semanticdb-find-table-for-include (car local-inc) table))
+    ;; Make sure our file-tags list is up to date.
+    (when (not (oref cache includestream))
+      (let ((incstream nil)
+	    (incpath (semanticdb-find-translate-path table nil))
 	    )
-	(when inc-tab
-	  (semanticdb-typecache-merge 
-	   cache
-	   ;; Getting the cache from this table will also cause this
-	   ;; file to update it's cache from it's decendants.
-	   ;;
-	   ;; In theory, caches are only built for most includes
-	   ;; only once (in the loop before this one), so this ends
-	   ;; up being super fast as we edit our file.
-	   (semanticdb-get-typecache inc-tab)))
-	)
-      (setq local-inc (cdr local-inc)))
-    cache))
+	;; Get the translated path, and extract all the type tags, then merge
+	;; them all together.
+	(dolist (i incpath)
+	  ;; don't include ourselves in this crazy list.
+	  (when (and i (not (eq i table)))
+	    (setq incstream
+		  (semanticdb-typecache-merge-streams
+		   incstream
+		   ;; Getting the cache from this table will also cause this
+		   ;; file to update it's cache from it's decendants.
+		   ;;
+		   ;; In theory, caches are only built for most includes
+		   ;; only once (in the loop before this one), so this ends
+		   ;; up being super fast as we edit our file.
+		   (copy-sequence
+		    (semanticdb-typecache-file-tags i))))
+	    ))
+	  
+	;; Save...
+	(oset cache includestream incstream)))
+
+    ;; Return our cache.
+    (oref cache includestream)
+    ))
 
 
 ;;; Search Routines
@@ -276,7 +284,6 @@ Call directly to `semanticdb-typecache-find-method'."
   (semanticdb-typecache-find-method (or path semanticdb-current-table)
 				    type find-file-match))
     
-
 (defmethod semanticdb-typecache-find-method ((table semanticdb-abstract-table)
 					     type find-file-match)
   "Search the typecache in TABLE for the datatype TYPE.
@@ -289,25 +296,51 @@ found tag to be loaded."
   (when (stringp type) (setq type (list type)))
 
   ;; Search for the list in our typecache.
-  (let* ((cache (semanticdb-get-typecache table))
-	 (stream (oref cache stream))
+  (let* ((file (semanticdb-typecache-file-tags table))
+	 (inc (semanticdb-typecache-include-tags table))
+	 (stream nil)
+	 (f-ans nil)
+	 (i-ans nil)
 	 (ans nil)
 	 (notdone t)
 	 (lastfile nil)
 	 (thisfile nil)
 	 )
+    ;; 1) Find first symbol in the two master lists and then merge
+    ;;    the found streams.
+
+    ;; We stripped duplicates, so these will be super-fast!
+    (setq f-ans (semantic-find-first-tag-by-name (car type) file))
+    (setq i-ans (semantic-find-first-tag-by-name (car type) inc))
+    (if (and f-ans i-ans)
+	(progn
+	  ;; This trick merges the two identified tags, making sure our lists are
+	  ;; complete.  The second find then gets the new 'master' from the list of 2.
+	  (setq ans (semanticdb-typecache-merge-streams (list f-ans) (list i-ans)))
+	  (setq ans (semantic-find-first-tag-by-name (car type) ans)))
+
+      ;; The answers are already sorted and merged, so if one misses,
+      ;; no need to do any special work.
+      (setq ans (or f-ans i-ans)))
+
+    ;; 2) Loop over the remaining parts.
     (while (and type notdone)
 
-      ;; We stripped duplicates, so this will be super-fast!
-      (setq ans (semantic-find-first-tag-by-name (car type) stream))
+      ;; For pass > 1, stream will be non-nil, so do a search, otherwise
+      ;; ans is from outside the loop.
+      (when stream
+	(setq ans (semantic-find-first-tag-by-name (car type) stream)))
+
+      ;; NOTE: The below test to make sure we get a type is only relevant
+      ;;       for the SECOND pass or later.  The first pass can only ever
+      ;;       find a type/namespace because everything else is excluded.
 
       ;; If this is not the last entry from the list, then it
       ;; must be a type or a namespace.  Lets double check.
-      (when (and (null (cdr type))
+      (when (and stream 
+		 (null (cdr type))
 		 (not (semantic-tag-of-class-p ans 'type)))
 
-	;; If this is not the last entry in the type, then it
-	;; must be a type or namespace.
 	(setq ans (semantic-find-tags-by-class 'type stream))
 	;; Same basic query as above with non types stripped out.
 	(setq ans (semantic-find-first-tag-by-name (car type) ans)))
