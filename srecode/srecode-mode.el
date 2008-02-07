@@ -267,7 +267,9 @@ to the current key."
 (defun srecode-edit (template-name)
   "Switch to the template buffer for TEMPLATE-NAME.
 Template is chosen based on the mode of the starting buffer."
-  (interactive (list (srecode-read-template-name "Template Name: ")))
+  (interactive (list (srecode-read-template-name
+		      "Template Name: "
+		      (car srecode-read-template-name-history))))
   (if (not (srecode-table))
       (error "No template table found for mode %s" major-mode))
     (let ((newdict (srecode-create-dictionary))
