@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.118 2008/02/05 15:14:40 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.119 2008/02/07 22:52:31 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1737,8 +1737,16 @@ minor mode entry."
    :help "Automatically enable decoration mode in all Semantic buffers."
    :save global-semantic-decoration-mode
    )
- 
- )
+  )
+
+(senator-register-mode-menu-entry
+ "MRU Bookmark"
+ nil
+ '(global-semantic-mru-bookmark-mode
+   :help "Automatically enable MRU bookmark tracking at a tag level."
+   :save global-semantic-mru-bookmark-mode
+   )
+  )
 
 
 ;;;;
@@ -2648,6 +2656,9 @@ Use Semantic, or the semantic database to look up possible
 completions.  The argument OLD has to be nil the first call of this
 function.  It returns t if a unique, possibly partial, completion is
 found, nil otherwise."
+
+  ;;@TODO - Can I support smart completion in here?
+
   (if (semantic-active-p)
       (let (symstart)
         ;; If the hippie says so, start over.
