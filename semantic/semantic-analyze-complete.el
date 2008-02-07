@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-complete.el,v 1.3 2008/02/02 02:43:05 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-complete.el,v 1.4 2008/02/07 22:44:32 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -64,7 +64,7 @@ Used as options when completing."
   (let ((origc tags))
     ;; Accept only tags that are of the datatype specified by
     ;; the desired classes.
-    (setq tags (apply 'append
+    (setq tags (apply 'nconc ;; All input lists are permutable.
 		      (mapcar (lambda (class)
 				(semantic-find-tags-by-class class origc))
 			      classlist)))
@@ -164,7 +164,7 @@ Argument CONTEXT is an object specifying the locally derived context."
 	;; No type based on the completetext.  This is a free-range
 	;; var or function.  We need to expand our search beyond this
 	;; scope into semanticdb, etc.
-	(setq c (append
+	(setq c (nconc
 		 ;; Argument list and local variables
 		 (semantic-find-tags-by-name-regexp expr localvar)
 		 ;; The current scope
@@ -244,7 +244,7 @@ Argument CONTEXT is an object specifying the locally derived context."
 		     (concat "^" completetext)
 		     constants))
 	      ;; Add to the list
-	      (setq c (append c constants)))
+	      (setq c (nconc c constants)))
 	  )))
       )
 
