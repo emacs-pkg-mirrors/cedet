@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.51 2008/02/06 04:07:48 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.52 2008/02/07 22:48:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -194,7 +194,8 @@ This class will cache data derived during various searches.")
   "Reset the object IDX."
   ;; Clear the include path.
   (oset idx include-path nil)
-  (oset idx type-cache nil)
+  (when (oref idx type-cache)
+    (semantic-reset (oref idx type-cache)))
   ;; Clear the scope.  Scope doesn't have the data it needs to track
   ;; it's own reset.
   (semantic-scope-reset-cache)
@@ -203,6 +204,7 @@ This class will cache data derived during various searches.")
 (defmethod semanticdb-synchronize ((idx semanticdb-find-search-index)
 				   new-tags)
   "Synchronize the search index IDX with some NEW-TAGS."
+  ;; Reset our parts.
   (semantic-reset idx)
   ;; Notify dependants by clearning their indicies.
   (semanticdb-notify-references
@@ -225,17 +227,20 @@ This class will cache data derived during various searches.")
 	   (semantic-reset (semanticdb-get-table-index tab))))
 	)
     ;; Else, not an include, by just a type.
-    (when (semantic-find-tags-by-class 'type new-tags)
-      ;; Reset our index
-      (oset idx type-cache nil)
-      ;; Notify dependants by clearning their indicies.
-      (semanticdb-notify-references
-       (oref idx table)
-       (lambda (tab me)
-	 (let ((tab-idx (semanticdb-get-table-index tab)))
-	   ;; Not a full reset?
-	   (oset tab-idx type-cache nil))))
-      )
+    (when (oref idx type-cache)
+      (when (semanticdb-partial-synchronize (oref idx type-cache) new-tags)
+	;; If the synchronize returns true, we need to notify.
+	;; Notify dependants by clearning their indicies.
+	(semanticdb-notify-references
+	 (oref idx table)
+	 (lambda (tab me)
+	   (let ((tab-idx (semanticdb-get-table-index tab)))
+	     ;; Not a full reset?
+	     (when (oref tab-idx typecache)
+	       (semanticdb-typecache-notify-reset
+		(oref tab-idx typecache)))
+	     )))
+	))
   ))
 
 
