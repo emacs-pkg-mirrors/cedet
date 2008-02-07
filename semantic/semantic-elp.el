@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.1 2008/02/06 04:01:24 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.2 2008/02/07 03:38:03 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -260,50 +260,176 @@ You may also need `semantic-elp-include-path-list'.")
   (elp-set-master 'semantic-analyze-possible-completions)
   )
 
-;; Storage Class
-(defclass semantic-elp-object ()
-  (
-   (path :initarg :path
+;;; Storage Classes
+;;
+;;
+(defclass semantic-elp-data ()
+  ((raw :initarg :raw
+	:type list
+	:documentation
+	"The raw ELP data.")
+   (sort :initform time
 	 :documentation
-	 "The include path")
+	 "Which column do we sort our data by during various dumps.")
+   (sorted :initform nil
+	   :documentation
+	   "The sorted and filtered version of this data.")
+   )
+  "Class for managing ELP data.")
+
+(defmethod semantic-elp-change-sort ((data semantic-elp-data) &optional newsort)
+  "Change the sort in DATA object to NEWSORT."
+  (cond ((eq newsort 'rotate)
+	 (let* ((arot '((time . avg)
+			(avg . calls)
+			(calls . name)
+			(name . time)))
+		(next (cdr (assoc (oref data sort) arot)))
+		)
+	   (oset data sort next)))
+	((null newsort)
+	 nil)
+	(t
+	 (oset data sort newsort)))
+  (let ((r (copy-sequence (oref data raw)))
+	(s (oref data sort)))
+    (cond ((eq s 'time)
+	   (oset data sorted (sort r (lambda (a b)
+				       (> (aref a 1) (aref b 1))
+				       )))
+	   )
+	  ((eq s 'avg)
+	   (oset data sorted (sort r (lambda (a b)
+				       (> (aref a 2) (aref b 2))
+				       )))
+	   )
+	  ((eq s 'calls)
+	   (oset data sorted (sort r (lambda (a b)
+				       (> (aref a 0) (aref b 0))
+				       )))
+	   )
+	  ((eq s 'name)
+	   (oset data sorted (sort r (lambda (a b)
+				       (string< (aref a 3) (aref b 3))
+				       )))
+	   )
+	  (t (message "Don't know how to resort with %s" s)
+	     ))))
+
+(defmethod semantic-elp-dump-table ((data semantic-elp-data)
+				    prefix)
+  "dump out the current DATA table using PREFIX before each line."
+  (let* ((elpd (oref data sorted))
+	 (spaces (make-string (- (length prefix) 2) ? ))
+	 )
+    (semantic-adebug-insert-simple-thing 
+     "Calls\t Total Time\t Avg Time/Call\tName"
+     spaces " " 'underline)
+    (dolist (d elpd)
+      (when (> (aref d 0) 0) ;; We had some calls
+	
+	(semantic-adebug-insert-simple-thing 
+	 (format " % 4d\t% 2.7f\t% 2.7f\t%s"
+		 (aref d 0) (aref d 1) (aref d 2) (aref d 3))
+	 spaces " " nil)
+
+	))
+    )
+  )
+
+(defmethod semantic-adebug/eieio-insert-fields ((data semantic-elp-data)
+						prefix)
+  "Show the fields of ELP data in an adebug buffer.
+Ignore the usual, and format a nice table."
+  (semantic-adebug-insert-thing (object-name-string data)
+				prefix
+				"Name: ")
+  (let* ((cl (object-class data))
+	 (cv (class-v cl)))
+    (semantic-adebug-insert-thing (class-constructor cl)
+				  prefix
+				  "Class: ")
+    )
+  
+  (let ((s (oref data sort))
+	)
+    ;; Show how it's sorted:
+    (let ((start (point))
+	  (end nil)
+	  )
+      (insert prefix "Sort Method: " (symbol-name s))
+      (setq end (point))
+      ;; (semantic-adebug-insert-thing s prefix "Sort Method: ")
+      (put-text-property start end 'adebug data)
+      (put-text-property start end 'adebug-indent(length prefix))
+      (put-text-property start end 'adebug-prefix prefix)
+      (put-text-property start end 'adebug-function
+			 'semantic-elp-change-sort-adebug)
+      (put-text-property start end 'help-echo
+			 "Change the Sort by selecting twice.")
+      (insert "\n"))
+
+    ;; How to sort the raw data
+    (semantic-elp-change-sort data)
+    )
+  ;; Display
+  (semantic-elp-dump-table data prefix)
+  )
+
+(defun semantic-elp-change-sort-adebug (point)
+  "Change the sort function here.  Redisplay.
+Argument POINT is where the text is."
+  (let* ((data (get-text-property point 'adebug))
+	 (prefix (get-text-property point 'adebug-prefix))
+	 )
+    ;; Change it
+    (semantic-elp-change-sort data 'rotate)
+    (end-of-line)
+    (forward-word -1)
+    (delete-region (point) (point-at-eol))
+    (insert (symbol-name (oref data sort)))
+    ;; Redraw it.
+    (save-excursion
+      (end-of-line)
+      (forward-char 1)
+      (semantic-elp-dump-table data prefix))
+    ))
+
+(defclass semantic-elp-object (eieio-persistent)
+  ((file-header-line :initform ";; SEMANTIC ELP Profiling Save File")
    (pathtime :initarg :pathtime
+	     :type semantic-elp-data
 	     :documentation
 	     "Times for calculating the include path.")
-   (typecache :initarg :typecache
-	      :documentation
-	      "The type cache.")
    (typecachetime :initarg :typecachetime
+		  :type semantic-elp-data
 		  :documentation
 		  "Times for calculating the typecache.")
-   (scope :initarg :scope
-	  :documentation
-	  "The scope object")
    (scopetime :initarg :scopetime
+	      :type semantic-elp-data
 	      :documentation
 	      "Times for calculating the typecache")
-   (ctxt :initarg :ctxt
-	 :documentation
-	 "The Analyzed context")
    (ctxttime :initarg :ctxttime
+	     :type semantic-elp-data
 	     :documentation
 	     "Times for calculating the context.")
-   (completion :initarg :completion
-	       :documentation
-	       "Possible completions.")
    (completiontime :initarg :completiontime
+		   :type semantic-elp-data
 		   :documentation
 		   "Times for calculating the completions.")
    )
   "Results from a profile run.")
   
+;;; ELP hackery.
+;;
 
-
-;; Calculate the profile
 (defvar semantic-elp-last-results nil
   "Save the last results from an ELP run for more post processing.")
 
-(defun semantic-elp-results ()
-  "Fetch results from the last run, and display."
+(defun semantic-elp-results (name)
+  "Fetch results from the last run, and display.
+Copied out of elp.el and modified only slightly.
+Argument NAME is the name to give the ELP data object."
   (let ((resvec
 	 (mapcar
 	  (function
@@ -322,11 +448,16 @@ You may also need `semantic-elp-include-path-list'.")
 			 symname)))))
 	  elp-all-instrumented-list))
 	)				; end let
-    (setq semantic-elp-last-results resvec))
-  (save-excursion
-    (elp-results)
+    (setq semantic-elp-last-results (semantic-elp-data name :raw resvec))
     (elp-reset-all))
   )
+
+;;; The big analyze and timer function!
+;;
+;;
+
+(defvar semantic-elp-last-run nil
+  "The results from the last elp run.")
 
 ;;;###autoload
 (defun semantic-elp-analyze ()
@@ -341,7 +472,7 @@ You may also need `semantic-elp-include-path-list'.")
     ;; Path translation
     (semantic-elp-include-path-enable)
     (setq path (semanticdb-find-translate-path nil nil))
-    (semantic-elp-results)
+    (semantic-elp-results "translate-path")
     (setq pathtime semantic-elp-last-results)
     ;; typecache
     (semantic-elp-typecache-enable)
@@ -350,41 +481,54 @@ You may also need `semantic-elp-include-path-list'.")
 	   (junk (oset idx type-cache nil)) ;; flush!
 	   (tc (semanticdb-get-typecache tab)))
       (setq typecache tc))
-    (semantic-elp-results)
+    (semantic-elp-results "typecache")
     (setq typecachetime semantic-elp-last-results)
     ;; Scope
     (semantic-elp-scope-enable)
     (setq scope (semantic-calculate-scope))
-    (semantic-elp-results)
+    (semantic-elp-results "scope")
     (setq scopetime semantic-elp-last-results)
     ;; Analyze!
     (semantic-elp-analyze-enable)
     (setq ctxt (semantic-analyze-current-context))
-    (semantic-elp-results)
+    (semantic-elp-results "analyze")
     (setq ctxttime semantic-elp-last-results)
     ;; Complete!
     (semantic-elp-complete-enable)
     (setq completion (semantic-analyze-possible-completions ctxt))
-    (semantic-elp-results)
+    (semantic-elp-results "complete")
     (setq completiontime semantic-elp-last-results)
     ;; build it
     (let ((elpobj (semantic-elp-object
 		   "ELP"
-		   :path           path
 		   :pathtime	   pathtime
-		   :typecache	   typecache
 		   :typecachetime  typecachetime
-		   :scope	   scope
 		   :scopetime	   scopetime
-		   :ctxt	   ctxt
 		   :ctxttime	   ctxttime
-		   :completion	   completion
 		   :completiontime completiontime
 		   )))
       (semantic-adebug-show elpobj)
+      (setq semantic-elp-last-run elpobj)
+      (let ((saveas (read-file-name "Save Profile to: " (expand-file-name "~/")
+				    "semantic.elp" nil "semantic.elp")))
+	(oset elpobj :file saveas)
+	(eieio-persistent-save elpobj)
+	)
       )))
 
+(defun semantic-elp-show-last-run ()
+  "Show the last elp run."
+  (interactive)
+  (when (not semantic-elp-last-run)
+    (error "No last run to show"))
+  (semantic-adebug-show semantic-elp-last-run))
 
+(defun semantic-elp-load-old-run (file)
+  "Load an old run from FILE, and show it."
+  (interactive "fLast Run File: ")
+  (setq semantic-elp-last-run
+	(eieio-persistent-read file))
+  (semantic-adebug-show semantic-elp-last-run))
 
 (provide 'semantic-elp)
 ;;; semantic-elp.el ends here
