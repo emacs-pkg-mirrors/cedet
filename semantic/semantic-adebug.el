@@ -1,9 +1,9 @@
 ;;; semantic-adebug.el --- Semantic Application Debugger
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.8 2007/09/08 03:27:15 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.9 2008/02/07 03:35:03 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -580,6 +580,7 @@ If PARENT is non-nil, it is somehow related as a parent to thing."
   (let ((km (make-sparse-keymap)))
     (define-key km [mouse-2] 'semantic-adebug-expand-or-contract-mouse)
     (define-key km " " 'semantic-adebug-expand-or-contract)
+    (define-key km "\C-m" 'semantic-adebug-expand-or-contract)
     (define-key km "n" 'semantic-adebug-next)
     (define-key km "p" 'semantic-adebug-prev)
     (define-key km "N" 'semantic-adebug-next-expando)
