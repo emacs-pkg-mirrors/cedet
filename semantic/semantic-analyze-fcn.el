@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.4 2008/02/04 22:57:17 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.5 2008/02/07 22:46:19 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -240,7 +240,10 @@ databases which have this type as a property."
 	(slots (semantic-tag-components type))
 	;; EXTMETH are externally defined methods that are still
 	;; a part of this class.
-	(extmeth (semantic-tag-external-member-children type t))
+	
+	;; @TODO - is this line needed??  Try w/out for a while
+	(extmeth nil) ; (semantic-tag-external-member-children type t))
+
 	;; INHERITED are tags found in classes that our TYPE tag
 	;; inherits from.
 	(inherited (semantic-analyze-inherited-tags type scope))
@@ -287,7 +290,7 @@ it should strip out those not accessable by methods of TYPE."
 	(when (and oneparent (semantic-tag-p oneparent))
 	  ;; Get tags from this parent.
 	  (let* ((alltags (semantic-analyze-type-parts oneparent))
-		 (accessabletags (append
+		 (accessabletags (nconc
 				  ;; @todo: Is there a better way to ask
 				  ;;        this question than two full
 				  ;;        searches?
@@ -295,10 +298,10 @@ it should strip out those not accessable by methods of TYPE."
 				   'public oneparent alltags)
 				  (semantic-find-tags-by-scope-protection
 				   'protected oneparent alltags))))
-	    (setq ret (append ret accessabletags)))
+	    (setq ret (nconc ret accessabletags)))
 	  ;; is this right?
-	  (setq ret (append ret (semantic-analyze-inherited-tags
-				 oneparent scope)))
+	  (setq ret (nconc ret (semantic-analyze-inherited-tags
+				oneparent scope)))
 	  ))
 	;; Continue on
       (setq parents (cdr parents)))
