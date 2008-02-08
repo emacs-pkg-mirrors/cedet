@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.18 2008/02/08 03:50:38 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.19 2008/02/08 20:46:54 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -139,72 +139,82 @@ If there is no table, create one, and fill it in."
 ;;;###autoload
 (defun semanticdb-typecache-merge-streams (cache1 cache2)
   "Merge into CACHE1 and CACHE2 together.  The Caches will be merged in place."
-  ;; Assume we always have datatypes, as this typecache isn'nt really
-  ;; useful without a typed language.
-  (let ((S (semantic-sort-tags-by-name-then-type-increasing
-	    ;; I used to use append, but it copied cache1 but not cache2.
-	    ;; Since sort was permuting cache2, I already had to make sure
-	    ;; the caches were permute-safe.  Might as well use nconc here.
-	    (nconc cache1 cache2)))
-	(ans nil)
-	(next nil)
-	(prev nil)
-	(type nil))
-    ;; With all the tags in order, we can loop over them, and when
-    ;; two have the same name, we can either throw one away, or construct
-    ;; a fresh new tag merging the items together.
-    (while S
-      (setq prev (car ans))
-      (setq next (car S))
-      (if (or
-	   ;; CASE 1 - First item
-	   (null prev)
-	   ;; CASE 2 - New name
-	   (not (string= (semantic-tag-name next)
-			 (semantic-tag-name prev))))
-	  (setq ans (cons next ans))
-	;; ELSE - We have a NAME match.
-	(setq type (semantic-tag-type next))
-	(if (semantic-tag-of-type-p prev type) ; Are they the same datatype
-	    ;; Same Class, we can do a merge.
-	    (cond
-	     ((and (semantic-tag-of-class-p next 'type)
-		   (string= type "namespace"))
-	      ;; Namespaces - merge the children together.
-	      (setcar ans
-		      (semantic-tag-new-type
-		       (semantic-tag-name prev) ; - they are the same
-		       "namespace"	; - we know this as fact
-		       (semanticdb-typecache-merge-streams
-			(semanticdb-typecache-safe-tag-members prev)
-			(semanticdb-typecache-safe-tag-members next))
-		       nil		; - no attributes
-		       ))
-	      ;; Make sure we mark this as a fake tag.
-	      (semantic-tag-set-faux (car ans))
-	      )
-	     ((semantic-tag-prototype-p next)
-	      ;; NEXT is a prototype... so keep previous.
-	      nil			; - keep prev, do nothing
-	      )
-	     ((semantic-tag-prototype-p prev)
-	      ;; PREV is a prototype, but not next.. so keep NEXT.
-	      ;; setcar - set by side-effect on top of prev
-	      (setcar ans next)
-	      )
-	     (t
-	      ;; @todo - comment out this debug statement.
-	      ;(message "Don't know how to merge %s.  Keeping first entry." (semantic-tag-name next))
-	     ))
-	  ;; Not same class... but same name
-	  ;(message "Same name, different type: %s, %s!=%s"
-	  ;	   (semantic-tag-name next)
-	  ;	   (semantic-tag-type next)
-	  ;        (semantic-tag-type prev))
-	  (setq ans (cons next ans))
-	  ))
-      (setq S (cdr S)))
-    (nreverse ans)))
+  (if (or (and (not cache1) (not cache2))
+	  (and (not (cdr cache1)) (not cache2))
+	  (and (not cache1) (not (cdr cache2))))
+      ;; If all caches are empty OR
+      ;; cache1 is length 1 and no cache2 OR
+      ;; no cache1 and length 1 cache2
+      ;;
+      ;; then just return the cache, and skip all this merging stuff.
+      (or cache1 cache2)
+
+    ;; Assume we always have datatypes, as this typecache isn'nt really
+    ;; useful without a typed language.
+    (let ((S (semantic-sort-tags-by-name-then-type-increasing
+	      ;; I used to use append, but it copied cache1 but not cache2.
+	      ;; Since sort was permuting cache2, I already had to make sure
+	      ;; the caches were permute-safe.  Might as well use nconc here.
+	      (nconc cache1 cache2)))
+	  (ans nil)
+	  (next nil)
+	  (prev nil)
+	  (type nil))
+      ;; With all the tags in order, we can loop over them, and when
+      ;; two have the same name, we can either throw one away, or construct
+      ;; a fresh new tag merging the items together.
+      (while S
+	(setq prev (car ans))
+	(setq next (car S))
+	(if (or
+	     ;; CASE 1 - First item
+	     (null prev)
+	     ;; CASE 2 - New name
+	     (not (string= (semantic-tag-name next)
+			   (semantic-tag-name prev))))
+	    (setq ans (cons next ans))
+	  ;; ELSE - We have a NAME match.
+	  (setq type (semantic-tag-type next))
+	  (if (semantic-tag-of-type-p prev type) ; Are they the same datatype
+	      ;; Same Class, we can do a merge.
+	      (cond
+	       ((and (semantic-tag-of-class-p next 'type)
+		     (string= type "namespace"))
+		;; Namespaces - merge the children together.
+		(setcar ans
+			(semantic-tag-new-type
+			 (semantic-tag-name prev) ; - they are the same
+			 "namespace"	; - we know this as fact
+			 (semanticdb-typecache-merge-streams
+			  (semanticdb-typecache-safe-tag-members prev)
+			  (semanticdb-typecache-safe-tag-members next))
+			 nil		; - no attributes
+			 ))
+		;; Make sure we mark this as a fake tag.
+		(semantic-tag-set-faux (car ans))
+		)
+	       ((semantic-tag-prototype-p next)
+		;; NEXT is a prototype... so keep previous.
+		nil			; - keep prev, do nothing
+		)
+	       ((semantic-tag-prototype-p prev)
+		;; PREV is a prototype, but not next.. so keep NEXT.
+		;; setcar - set by side-effect on top of prev
+		(setcar ans next)
+		)
+	       (t
+		;; @todo - comment out this debug statement.
+					;(message "Don't know how to merge %s.  Keeping first entry." (semantic-tag-name next))
+		))
+	    ;; Not same class... but same name
+					;(message "Same name, different type: %s, %s!=%s"
+					;	   (semantic-tag-name next)
+					;	   (semantic-tag-type next)
+					;        (semantic-tag-type prev))
+	    (setq ans (cons next ans))
+	    ))
+	(setq S (cdr S)))
+      (nreverse ans))))
 
 ;;; Refresh / Query API
 ;;
@@ -219,9 +229,10 @@ all included files."
 
     ;; Make sure our file-tags list is up to date.
     (when (not (oref cache filestream))
-      (oset cache filestream (semanticdb-typecache-merge-streams (semantic-find-tags-by-class 'type table)
-								 nil)))
-
+      (let ((tags  (semantic-find-tags-by-class 'type table)))
+	(when tags
+	  (oset cache filestream (semanticdb-typecache-merge-streams tags nil)))))
+    
     ;; Return our cache.
     (oref cache filestream)
     ))
@@ -269,11 +280,12 @@ a master list."
 ;;; Search Routines
 ;;
 ;;;###autoload
-(define-overload semanticdb-typecache-find (type &optional path find-file-match)
+(define-overload semanticdb-typecache-find (type &optional path find-file-match tagreturn)
   "Search the typecache for TYPE in PATH.
 If type is a string, split the string, and search for the parts.
 If type is a list, treat the type as a pre-split string.
-PATH can be nil for the current buffer, or a semanticdb table.")
+PATH can be nil for the current buffer, or a semanticdb table.
+FIND-FILE-MATCH is non-nil to force all found tags to be loaded into a buffer.")
 
 (defun semanticdb-typecache-find-default (type &optional path find-file-match)
   "Default implementation of `semanticdb-typecache-find'.
