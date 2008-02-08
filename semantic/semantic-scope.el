@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.5 2008/02/06 04:06:27 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.6 2008/02/08 20:49:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -156,8 +156,10 @@ Use `semantic-ctxt-scoped-types' to find types."
 		    (cons tmp code-scoped-types))))
 	  (setq  sp (cdr sp))))
       (setq code-scoped-types (nreverse code-scoped-types))
-      (semanticdb-typecache-merge-streams code-scoped-types nil)
-      ;;(semantic-unique-tag-table code-scoped-types)
+
+      (when code-scoped-types
+	(semanticdb-typecache-merge-streams code-scoped-types nil))
+
       )))
 
 ;;------------------------------------------------------------
