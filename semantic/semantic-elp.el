@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.2 2008/02/07 03:38:03 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.3 2008/02/08 03:51:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -179,11 +179,11 @@ You may also need `semantic-elp-include-path-list'.")
   '(
     semantic-analyze-split-name
     semanticdb-get-typecache
-    semanticdb-stream-to-typecache
-    semanticdb-typecache-merge
     semanticdb-typecache-merge-streams
     semanticdb-typecache-safe-tag-members
-    semanticdb-typecache-update
+    semanticdb-typecache-apply-filename
+    semanticdb-typecache-file-tags
+    semanticdb-typecache-include-tags
     )
   "List of typecaching functions for profiling.")
 (defun semantic-elp-typecache-enable ()
@@ -479,7 +479,10 @@ Argument NAME is the name to give the ELP data object."
     (let* ((tab semanticdb-current-table)
 	   (idx (semanticdb-get-table-index tab))
 	   (junk (oset idx type-cache nil)) ;; flush!
-	   (tc (semanticdb-get-typecache tab)))
+	   (tc (semanticdb-get-typecache tab))
+	   )
+      (semanticdb-typecache-file-tags tab)
+      (semanticdb-typecache-include-tags tab)
       (setq typecache tc))
     (semantic-elp-results "typecache")
     (setq typecachetime semantic-elp-last-results)
