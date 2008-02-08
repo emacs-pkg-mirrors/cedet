@@ -7,7 +7,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.24 2008/01/29 14:39:12 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.25 2008/02/08 20:59:04 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -118,7 +118,7 @@
 
   ;; Go up to the parent "<INSTALL-DIR>/cedet" directory.
   (let ((default-directory (expand-file-name ".."))
-        package min-version installdir)
+        package min-version installdir docdir)
 
     ;; Add the CEDET packages subdirectories to the `load-path' if
     ;; necessary.
