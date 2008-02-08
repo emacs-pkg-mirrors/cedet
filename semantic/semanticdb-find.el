@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.52 2008/02/07 22:48:16 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.53 2008/02/08 20:50:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -385,6 +385,7 @@ a new path from the provided PATH."
   (let ((includetags nil)
 	(curtable nil)
 	(matchedtables (list semanticdb-current-table))
+	(matchedincludes nil)
 	nexttable)
     (cond ((null path)
 	   (setq includetags (semantic-find-tags-included (current-buffer))
@@ -405,7 +406,12 @@ a new path from the provided PATH."
     ;; Loop over all include tags adding to matchedtables
     (while includetags
       (semantic-throw-on-input 'semantic-find-translate-path-includes-default)
-      (setq nexttable (semanticdb-find-table-for-include (car includetags) curtable))
+
+      ;; If we've seen this include string before, lets skip it.
+      (if (member (semantic-tag-name (car includetags)) matchedincludes)
+	  (setq nexttable nil)
+	(setq nexttable (semanticdb-find-table-for-include (car includetags) curtable)))
+
       ;; (message "Scanning %s" (semantic-tag-name (car includetags)))
       (when (and nexttable
 		 (not (memq nexttable matchedtables))
@@ -414,6 +420,8 @@ a new path from the provided PATH."
 		 )
 	;; Add to list of tables
 	(push nexttable matchedtables)
+	(push (semantic-tag-name (car includetags)) matchedincludes)
+
 	;; Queue new includes to list
 	(if (semanticdb-find-throttle-active-p 'recursive)
 	    (let ((newtags
