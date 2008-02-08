@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.17 2008/02/07 22:51:38 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.18 2008/02/08 03:50:38 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -243,7 +243,8 @@ a master list."
 	;; them all together.
 	(dolist (i incpath)
 	  ;; don't include ourselves in this crazy list.
-	  (when (and i (not (eq i table)))
+	  (when (and i (not (eq i table))
+		     (semanticdb-table-child-p i))
 	    (setq incstream
 		  (semanticdb-typecache-merge-streams
 		   incstream
@@ -375,6 +376,9 @@ found tag to be loaded."
 	 (junk (oset idx type-cache nil)) ;; flush!
 	 (start (current-time))
 	 (tc (semanticdb-get-typecache tab))
+	 (junk2 (progn
+		  (semanticdb-typecache-file-tags tab)
+		  (semanticdb-typecache-include-tags tab)))
 	 (end (current-time))
 	 (ab (semantic-adebug-new-buffer "*TypeCache ADEBUG*"))
 	 )
