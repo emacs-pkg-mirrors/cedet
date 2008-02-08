@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.64 2008/02/05 14:49:33 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.65 2008/02/08 20:52:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -244,23 +244,35 @@ are found in SEQUENCE."
 	(tag nil)			; tag return list
 	(tagtype nil)			; tag types return list
 	)
-    ;; For the first entry, it better be a variable, but it might
-    ;; be in the local context too.
-    ;; NOTE: Don't forget c++ namespace foo::bar.
-    (setq tmp (or
-	       ;; Is this tag within our scope.  Scopes can sometimes
-	       ;; shadow other things, so it goes first.
-	       (and scope (semantic-scope-find (car s) nil scope))
-	       ;; Find the tag out there... somewhere, but not in scope
-	       (semantic-analyze-find-tag (car s))
-	       ))
+    ;; First order check.  Is this wholely contained in the typecache?
+    ;; @TODO - EXPERIMENTAL - do we loose anything?
+    (setq tmp (semanticdb-typecache-find sequence))
 
-    (if (and (listp tmp) (semantic-tag-p (car tmp)))
-	(setq tmp (semantic-analyze-select-best-tag tmp)))
-    (if (not (semantic-tag-p tmp))
-	(error "Cannot find definition for \"%s\"" (car s)))
-    (setq s (cdr s))
-    (setq tag (cons tmp tag))
+    (if tmp
+	(progn
+	  ;; We are effectively done...
+	  (setq s nil)
+	  (setq tag (list tmp)))
+
+      ;; For the first entry, it better be a variable, but it might
+      ;; be in the local context too.
+      ;; NOTE: Don't forget c++ namespace foo::bar.
+      (setq tmp (or
+		 ;; Is this tag within our scope.  Scopes can sometimes
+		 ;; shadow other things, so it goes first.
+		 (and scope (semantic-scope-find (car s) nil scope))
+		 ;; Find the tag out there... somewhere, but not in scope
+		 (semantic-analyze-find-tag (car s))
+		 ))
+
+      (if (and (listp tmp) (semantic-tag-p (car tmp)))
+	  (setq tmp (semantic-analyze-select-best-tag tmp)))
+      (if (not (semantic-tag-p tmp))
+	  (error "Cannot find definition for \"%s\"" (car s)))
+      (setq s (cdr s))
+      (setq tag (cons tmp tag))
+      
+      )
 
     ;; For the middle entries
     (while s
@@ -326,42 +338,31 @@ searches use the same arguments."
      ;; (recursively now) so the names that we get from the above
      ;; fcn better not, in turn, be splittable.
      ((listp namelst)
-      (let ((seq (semantic-analyze-find-tag-sequence
-		  namelst scope nil)))
-	(car (nreverse seq))))
+      ;; If we had a split, then this is likely a c++ style namespace::name sequence,
+      ;; so take a short-cut through the typecache.
+      (or (semanticdb-typecache-find namelst)
+	  ;; Ok, not there, try the usual...
+	  (let ((seq (semantic-analyze-find-tag-sequence
+		      namelst scope nil)))
+	    (car (nreverse seq)))))
      ;; If NAME is solo, then do our searches for it here.
      ((stringp namelst)
       (let ((retlist (and scope (semantic-scope-find name tagclass scope))))
 	(if retlist
 	    retlist
-	  (cond
-	   ((eq tagclass 'type)
-	    (semanticdb-typecache-find name)
-	    )
-	   (t
-	    (semantic-analyze-select-best-tag
-	     (semanticdb-strip-find-results
-	      (semanticdb-find-tags-by-name name))
-	     tagclass)
-	    )
-	   ))))
+	  (if (eq tagclass 'type)
+	      (semanticdb-typecache-find name)
+	    ;; Search in the typecache.  First entries in a sequence are
+	    ;; often there.
+	    (setq retlist (semanticdb-typecache-find name))
+	    (if retlist
+		retlist
+	      (semantic-analyze-select-best-tag
+	       (semanticdb-strip-find-results
+		(semanticdb-find-tags-by-name name))
+	       tagclass)
+	      )))))
      )))
-
-;      (let ((retlist
-;	     (or (and scope (semantic-scope-find name nil scope))
-;		 (if (and (fboundp 'semanticdb-minor-mode-p)
-;			  (semanticdb-minor-mode-p))
-;		     ;; Search the database
-;		     (semanticdb-strip-find-results
-;		      (semanticdb-find-tags-by-name name)
-;		      ;; This T means to find files for matching symbols
-;		      t)
-;		   ;; Search just this file
-;		   (semantic-find-tags-by-name
-;		    name (current-buffer))))))
-;
-;	(semantic-analyze-select-best-tag retlist tagclass))))))
-
 
 ;;; MAIN ANALYSIS
 ;;
