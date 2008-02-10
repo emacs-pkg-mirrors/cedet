@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.255 2008/01/22 01:27:35 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.256 2008/02/10 02:06:09 zappo Exp $
 
 (defvar speedbar-version "1.0.2"
   "The current version of speedbar.")
@@ -4120,11 +4120,14 @@ When available, use `pulse' package."
 
 ;;; Obsolete variables and functions
 
-(define-obsolete-variable-alias
-  'speedbar-ignored-path-regexp 'speedbar-ignored-directory-regexp)
+(when (fboundp 'define-obsolete-variable-alias)
 
-(define-obsolete-variable-alias 'speedbar-ignored-path-expressions
-  'speedbar-ignored-directory-expressions)
+  (define-obsolete-variable-alias
+    'speedbar-ignored-path-regexp 'speedbar-ignored-directory-regexp)
+
+  (define-obsolete-variable-alias 'speedbar-ignored-path-expressions
+    'speedbar-ignored-directory-expressions)
+  )
 
 (define-obsolete-function-alias 'speedbar-add-ignored-path-regexp
   'speedbar-add-ignored-directory-regexp)
