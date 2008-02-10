@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.6 2008/02/08 20:49:14 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.7 2008/02/10 12:31:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -303,48 +303,51 @@ If POINT is not provided, then use the current location of `point'.
 The class returned from the scope calculation is variable
 `semantic-scope-cache'."
   (interactive)
-  (if (not point) (setq point (point)))
-  (save-excursion
-    (goto-char point)
-    (let* ((TAG  (semantic-current-tag))
-	   (scopecache (semanticdb-cache-get semanticdb-current-table
-					     semantic-scope-cache))
-	   )
-      (when (not (semantic-equivalent-tag-p TAG (oref scopecache tag)))
-	(semantic-reset scopecache))
-      (if (oref scopecache tag)
-	  ;; Even though we can recycle most of the scope, we
-	  ;; need to redo the local variables since those change
-	  ;; as you move about the tag.
-	  (condition-case nil
-	      (oset scopecache localvar (semantic-get-all-local-variables))
-	    (error nil))
-
-	(let*
-	    (
-	     ;; Step 1:
-	     (scopetypes (semantic-analyze-scoped-types point))
-	     (parents (semantic-analyze-scope-nested-tags point scopetypes))
-	     ;; Step 2:
-	     (scope (if (or scopetypes parents)
-			(semantic-analyze-scoped-tags scopetypes parents)))
-	     (fullscope (append scopetypes scope parents))
-	     ;; Step 3:
-	     (localvar (condition-case nil
-			   (semantic-get-all-local-variables)
-			 (error nil)))
+  (if (not (and (featurep 'semanticdb) semanticdb-current-database))
+      nil ;; Don't do anything...
+    (if (not point) (setq point (point)))
+    (save-excursion
+      (goto-char point)
+      (let* ((TAG  (semantic-current-tag))
+	     (scopecache
+	      (semanticdb-cache-get semanticdb-current-table
+				    semantic-scope-cache))
 	     )
-	  (oset scopecache tag TAG)
-	  (oset scopecache scopetypes scopetypes)
-	  (oset scopecache parents parents)
-	  (oset scopecache scope scope)
-	  (oset scopecache fullscope fullscope)
-	  (oset scopecache localvar localvar)
-	  ))
-      (when (interactive-p)
-	(semantic-adebug-show scopecache)
-	)
-      scopecache)))
+	(when (not (semantic-equivalent-tag-p TAG (oref scopecache tag)))
+	  (semantic-reset scopecache))
+	(if (oref scopecache tag)
+	    ;; Even though we can recycle most of the scope, we
+	    ;; need to redo the local variables since those change
+	    ;; as you move about the tag.
+	    (condition-case nil
+		(oset scopecache localvar (semantic-get-all-local-variables))
+	      (error nil))
+
+	  (let*
+	      (
+	       ;; Step 1:
+	       (scopetypes (semantic-analyze-scoped-types point))
+	       (parents (semantic-analyze-scope-nested-tags point scopetypes))
+	       ;; Step 2:
+	       (scope (if (or scopetypes parents)
+			  (semantic-analyze-scoped-tags scopetypes parents)))
+	       (fullscope (append scopetypes scope parents))
+	       ;; Step 3:
+	       (localvar (condition-case nil
+			     (semantic-get-all-local-variables)
+			   (error nil)))
+	       )
+	    (oset scopecache tag TAG)
+	    (oset scopecache scopetypes scopetypes)
+	    (oset scopecache parents parents)
+	    (oset scopecache scope scope)
+	    (oset scopecache fullscope fullscope)
+	    (oset scopecache localvar localvar)
+	    ))
+	(when (interactive-p)
+	  (semantic-adebug-show scopecache)
+	  )
+	scopecache))))
 
 (defun semantic-scope-find (name &optional class scope-in)
   "Find the tag with NAME, and optinal CLASS in the current SCOPE-IN.
