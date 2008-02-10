@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.59 2007/09/27 11:14:38 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.60 2008/02/10 02:54:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -24,9 +24,9 @@
 
 ;;; Commentary:
 ;;
-
-;;; History:
-;; 
+;; Support for the C/C++ bovine parser for Semantic.
+;;
+;; @todo - can I support c++-font-lock-extra-types ?
 
 (require 'semantic)
 (require 'semantic-lex-spp)
@@ -556,6 +556,36 @@ Argument COLOR adds color to the text."
     (when type
       (concat defaulttype ref point))
     ))
+
+(define-mode-local-override semantic-find-tags-by-scope-protection
+  c-mode (scopeprotection parent &optional table)
+  "Override the usual search for protection.
+We can be more effective that the default by scanning through once,
+and collecting tags based on the labels we see along the way."
+  (if (not table) (setq table (semantic-tag-type-members parent)))
+  (if (null scopeprotection)
+      table
+    (let ((ans nil)
+	  (curprot 1)
+	  (targetprot (cond ((eq scopeprotection 'public)
+			     1)
+			    ((eq scopeprotection 'protected)
+			     2)
+			    (t 3)
+			    ))
+	  (alist '(("public" . 1)
+		   ("protected" . 2)
+		   ("private" . 3)))
+	  )
+      (dolist (tag table)
+	(cond 
+	 ((semantic-tag-of-class-p tag 'label)
+	  (setq curprot (cdr (assoc (semantic-tag-name tag) alist)))
+	  )
+	 ((>= targetprot curprot)
+	  (setq ans (cons tag ans)))
+	 ))
+      ans)))
 
 (define-mode-local-override semantic-tag-protection
   c-mode (token &optional parent)
