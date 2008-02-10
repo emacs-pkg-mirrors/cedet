@@ -1,9 +1,9 @@
 ;;; semantic-adebug-eieio.el --- EIEIO extensions to adebug
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug-eieio.el,v 1.3 2007/09/08 03:26:46 zappo Exp $
+;; X-RCS: $Id: semantic-adebug-eieio.el,v 1.4 2008/02/10 19:09:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -58,7 +58,7 @@ PREFIX is the text that preceeds the button.
 PREBUTTONTEXT is some text between PREFIX and the object button."
   (let ((start (point))
 	(end nil)
-	(str (object-name object))
+	(str (object-print object))
 	(tip (format "Object %s\nClass: %S\nParent(s): %S\n%d slots"
 		     (object-name-string object)
 		     (object-class object)
