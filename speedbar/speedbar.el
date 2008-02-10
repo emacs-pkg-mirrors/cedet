@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.256 2008/02/10 02:06:09 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.257 2008/02/10 02:17:45 zappo Exp $
 
 (defvar speedbar-version "1.0.2"
   "The current version of speedbar.")
@@ -4129,20 +4129,24 @@ When available, use `pulse' package."
     'speedbar-ignored-directory-expressions)
   )
 
-(define-obsolete-function-alias 'speedbar-add-ignored-path-regexp
-  'speedbar-add-ignored-directory-regexp)
+(when (fboundp 'define-obsolete-function-alias)
 
-(define-obsolete-function-alias 'speedbar-line-path
-  'speedbar-line-directory)
+  (define-obsolete-function-alias 'speedbar-add-ignored-path-regexp
+    'speedbar-add-ignored-directory-regexp)
 
-(define-obsolete-function-alias 'speedbar-buffers-line-path
-  'speedbar-buffers-line-directory)
+  (define-obsolete-function-alias 'speedbar-line-path
+    'speedbar-line-directory)
 
-(define-obsolete-function-alias 'speedbar-path-line
-  'speedbar-directory-line)
+  (define-obsolete-function-alias 'speedbar-buffers-line-path
+    'speedbar-buffers-line-directory)
 
-(define-obsolete-function-alias 'speedbar-buffers-line-path
-  'speedbar-buffers-line-directory)
+  (define-obsolete-function-alias 'speedbar-path-line
+    'speedbar-directory-line)
+
+  (define-obsolete-function-alias 'speedbar-buffers-line-path
+    'speedbar-buffers-line-directory)
+
+  )
 
 (provide 'speedbar)
 
