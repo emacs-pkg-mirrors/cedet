@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.154 2008/01/30 12:33:13 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.155 2008/02/10 16:33:40 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -1321,6 +1321,7 @@ can be used to set the value of the slot."
   ;; and I wanted a string.  Arg!
   (format "#<class %s>" (symbol-name class)))
 
+;;;###autoload
 (defun object-name (obj &optional extra)
   "Return a Lisp like symbol string for object OBJ.
 If EXTRA, include that in the string returned to represent the symbol."
