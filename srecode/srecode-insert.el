@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.15 2008/02/04 02:07:10 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.16 2008/02/10 02:55:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -70,13 +70,16 @@ DICT-ENTRIES are additional dictionary values to add."
       (setq dict-entries (cdr (cdr dict-entries))))
     ;;(srecode-resolve-arguments temp newdict)
     (srecode-insert-fcn temp newdict)
+    ;; Don't put code here.  We need to return the end-mark
+    ;; for this insertion step.
     ))
 
 ;;;###autoload
 (defun srecode-insert-fcn (template dictionary &optional stream)
   "Insert TEMPLATE using DICTIONARY into STREAM."
   ;; Perform the insertion.
-  (let ((standard-output (or stream (current-buffer))))
+  (let ((standard-output (or stream (current-buffer)))
+	(end-mark nil))
     ;; Resolve the arguments
     (srecode-resolve-arguments template dictionary)
     ;; Insert
@@ -85,8 +88,10 @@ DICT-ENTRIES are additional dictionary values to add."
     (when (and (bufferp standard-output)
 	       (slot-boundp 'srecode-template-inserter-point 'point))
       (set-buffer standard-output)
+      (setq end-mark (point-marker))
       (goto-char  (oref 'srecode-template-inserter-point point)))
-    (oset-default 'srecode-template-inserter-point point eieio-unbound))
+    (oset-default 'srecode-template-inserter-point point eieio-unbound)
+    end-mark)
   )
 
 ;;; TEMPLATE ARGUMENTS
