@@ -60,17 +60,26 @@ install scripts:
   Makefiles, (such as the version on AIX) you will need to download and
   install GNU Make to use with these Makefiles.
 
-3) Install load hooks into your .emacs file.
+3) Install load hooks into your .emacs file.  The following snippet
+   should get you going for basic code-completion.
 
 -----------
-;; Load CEDET
+;; Load CEDET.
+;; See cedet/common/cedet.info for configuration details.
 (load-file "~/cedet-VERSION/common/cedet.el")
 
-;; Enabling various SEMANTIC minor modes.  See semantic/INSTALL for more ideas.
+
+;; Enable EDE (Project Management) features
+(global-ede-mode 1)
+;; Enable EDE for a pre-existing C++ project
+;; (ede-cpp-root-project "NAME" :file "~/myproject/Makefile")
+
+
+;; Enabling Semantic (code-parsing, smart completion) features
 ;; Select one of the following:
 
 ;; * This enables the database and idle reparse engines
-;;(semantic-load-enable-minimum-features)
+(semantic-load-enable-minimum-features)
 
 ;; * This enables some tools useful for coding, such as summary mode
 ;;   imenu support, and the semantic navigator
@@ -80,13 +89,10 @@ install scripts:
 ;;   decoration mode, and stickyfunc mode (plus regular code helpers)
 ;; (semantic-load-enable-guady-code-helpers)
 
-;; * This turns on which-func support (Plus all other code helpers)
-;; (semantic-load-enable-excessive-code-helpers)
 
-;; This turns on modes that aid in grammar writing and semantic tool
-;; development.  It does not enable any other features such as code
-;; helpers above.
-;; (semantic-load-enable-semantic-debugging-helpers)
+;; Enable SRecode (Template management) minor-mode
+;; (global-srecode-minor-mode 1)
+
 -----------
 
   Some items in the contrib directory may need additional study or
@@ -95,10 +101,11 @@ install scripts:
 
 4) CONFIGURE:
 
-   You can configure how the individual packages load in the above example
-   by adding settings in the comment section.  Please read individual
-   INSTALL files for each package for details on configuring them.
-   See the texinfo manuals for details on more specific configurations.
+   You can configure how the individual packages loaded in the above
+   example by adding settings in the comment section.  Please read
+   individual info manuals for each package for details on configuring
+   them.  See the texinfo manuals for details on more specific
+   configurations.
 
    To dive right into configuring CEDET for a particular purpose, many
    common purposes are enumerated in the CEDET installation info file.
