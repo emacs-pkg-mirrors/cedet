@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.92 2008/02/04 22:58:09 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.93 2008/02/10 19:12:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -100,6 +100,9 @@ same major mode as the current buffer.")
    (tags :initarg :tags
 	 :accessor semanticdb-get-tags
 	 :documentation "The tags belonging to this table.")
+   (dirty :initform nil
+	  :documentation
+	  "Non nil if this table needs to be `Saved'.")
    (db-refs :initform nil
 	    :documentation
 	    "List of `semanticdb-table' objects refering to this one.
@@ -132,6 +135,13 @@ for a new table not associated with a buffer."
   "Return a buffer associated with OBJ.
 If the buffer is not in memory, load it with `find-file-noselect'."
   nil)
+
+(defmethod semanticdb-set-dirty ((obj semanticdb-abstract-table))
+  "Mark the abstract table OBJ dirty.
+Abstract tables can not be marked dirty, as there is nothing
+for them to synchronize against."
+  ;; The abstract table can not be dirty.
+  )
 
 ;;; Index Cache
 ;;
@@ -237,11 +247,20 @@ Checked on retrieval to make sure the file is the same.")
    )
   "A single table of tags derived from file.")
 
+(defmethod semanticdb-set-dirty ((obj semanticdb-table))
+  "Mark the abstract table OBJ dirty."
+  (oset obj dirty t)
+  )
+
 (defmethod object-print ((obj semanticdb-table) &rest strings)
   "Pretty printer extension for `semanticdb-abstract-table'.
 Adds the number of tags in this file to the object print name."
   (apply 'call-next-method obj
-	 (cons (format " (%d tags)" (length (semanticdb-get-tags obj)))
+	 (cons (format " (%d tags%s)"
+		       (length (semanticdb-get-tags obj))
+		       (if (oref obj dirty)
+			   " DIRTY" "")
+		       )
 	       strings)))
 
 (defclass semanticdb-project-database (eieio-instance-tracker)
@@ -264,6 +283,17 @@ this database contains symbols for.")
   "Database of file tables.")
 
 ;;; Code:
+(defmethod object-print ((obj semanticdb-project-database) &rest strings)
+  "Pretty printer extension for `semanticdb-project-database'.
+Adds the number of tables in this file to the object print name."
+  (apply 'call-next-method obj
+	 (cons (format " (%d tables%s)"
+		       (length (semanticdb-get-database-tables obj))
+		       (if (semanticdb-dirty-p obj)
+			   " DIRTY" "")
+		       )
+	       strings)))
+
 (defmethod semanticdb-create-database :STATIC ((dbc semanticdb-project-database) directory)
   "Create a new semantic database of class DBC for DIRECTORY and return it.
 If a database for DIRECTORY has already been created, return it.
@@ -368,6 +398,21 @@ The file associated with OBJ does not need to be in a buffer."
 	    (/= (or (oref obj pointmax) 0) actualmax)
 	    )
 	))))
+
+(defmethod semanticdb-dirty-p ((obj semanticdb-abstract-table))
+  "Return non-nil if OBJ is 'dirty'."
+  (oref obj dirty))
+
+(defmethod semanticdb-dirty-p ((DB semanticdb-project-database))
+  "Return non-nil if DB is 'dirty'.
+A database is dirty if the state of the database changed in a way
+where it may need to resynchronize with some persistent storage."
+  (let ((dirty nil)
+	(tabs (oref DB tables)))
+    (while (and (not dirty) tabs)
+      (setq dirty (semanticdb-dirty-p (car tabs)))
+      (setq tabs (cdr tabs)))
+    dirty))
 
 (defmethod semanticdb-save-db ((DB semanticdb-project-database))
   "Cause a database to save itself.
@@ -603,6 +648,7 @@ Sets up the semanticdb environment."
 	   (oset ctbl unmatched-syntax nil)
 	   ))
 	(semantic--set-buffer-cache (oref ctbl tags))
+	(oset ctbl dirty nil) ;; Special case here.
 	(semantic--tag-link-cache-to-buffer)
 	)
       )))
@@ -619,9 +665,6 @@ If there is no database for the table to live in, create one."
 					  dd))
     ;; Get a table for this file.
     (let ((tbl (semanticdb-create-table cdb filename)))
-      ;; Bind some slots to something meaningful.
-      (oset tbl unmatched-syntax nil)
-      (oset tbl tags nil)
       (cons cdb tbl))
     ))
 
@@ -630,6 +673,7 @@ If there is no database for the table to live in, create one."
   "Synchronize the table TABLE with some NEW-TAGS."
   (oset table tags new-tags)
   (oset table pointmax (point-max))
+  (semanticdb-set-dirty table)
 
   ;; Synchronize the index
   (when (slot-boundp table 'index)
@@ -652,6 +696,8 @@ If there is no database for the table to live in, create one."
   ;; You might think we need to reset the tags, but since the partial
   ;; parser splices the lists, we don't need to do anything
   ;;(oset table tags new-tags)
+  ;; We do need to mark ourselves dirty.
+  (semanticdb-set-dirty table)
 
   ;; Synchronize the index
   (when (slot-boundp table 'index)
@@ -757,98 +803,6 @@ Update the environment of Semantic enabled buffers accordingly."
   (global-semanticdb-minor-mode))
 
 
-;;; Validate the semantic database
-;;
-(defun semanticdb-adebug-current-database-list ()
-  "Run ADEBUG on the current database."
-  (interactive)
-    (require 'semantic-adebug)
-    (let ((start (current-time))
-	  (p semanticdb-database-list)
-	  (end (current-time))
-	  (ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
-	  )
-    
-      (semantic-adebug-insert-stuff-list p "*")))
-
-(defun semanticdb-adebug-current-database ()
-  "Run ADEBUG on the current database."
-  (interactive)
-    (require 'semantic-adebug)
-    (let ((start (current-time))
-	  (p semanticdb-current-database)
-	  (end (current-time))
-	  (ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
-	  )
-    
-      (semantic-adebug-insert-stuff-list p "*")))
-
-(defun semanticdb-adebug-current-table ()
-  "Run ADEBUG on the current database."
-  (interactive)
-    (require 'semantic-adebug)
-    (let ((start (current-time))
-	  (p semanticdb-current-table)
-	  (end (current-time))
-	  (ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
-	  )
-    
-      (semantic-adebug-insert-stuff-list p "*")))
-
-
-(defun semanticdb-table-oob-sanity-check (cache)
-  "Validate that CACHE tags do not have any overlays in them."
-  (while cache
-    (when (semantic-overlay-p (semantic-tag-overlay cache))
-      (message "Tag %s has an erroneous overlay!"
-	       (semantic-format-tag-summarize (car cache))))
-    (semanticdb-table-oob-sanity-check
-     (semantic-tag-components-with-overlays (car cache)))
-    (setq cache (cdr cache))))
-
-(defun semanticdb-table-sanity-check (&optional table)
-  "Validate the current semanticdb TABLE."
-  (interactive)
-  (if (not table) (setq table semanticdb-current-table))
-  (let* ((full-filename (semanticdb-full-filename table))
-	 (buff (get-file-buffer full-filename)))
-    (if buff
-	(save-excursion
-	  (set-buffer buff)
-	  (semantic-sanity-check))
-      ;; We can't use the usual semantic validity check, so hack our own.
-      (semanticdb-table-oob-sanity-check (semanticdb-get-tags table)))))
-
-(defun semanticdb-database-sanity-check ()
-  "Validate the current semantic database."
-  (interactive)
-  (let ((tables (semanticdb-get-database-tables
-		 semanticdb-current-database)))
-    (while tables
-      (semanticdb-table-sanity-check (car tables))
-      (setq tables (cdr tables)))
-    ))
-
-(defun semanticdb-dump-all-table-summary ()
-  "Dump a list of all databases in Emacs memory."
-  (interactive)
-  (require 'semantic-adebug)
-  (let ((ab (semantic-adebug-new-buffer "*SEMANTICDB*"))
-	(db semanticdb-database-list))
-    (semantic-adebug-insert-stuff-list db "*")))
-
-
-;;    (with-output-to-temp-buffer "*SEMANTICDB*"
-;;      (while db
-;;	(princ (object-name (car db)))
-;;	(princ ": ")
-;;	(if (slot-boundp (car db) 'reference-directory)
-;;	    (princ (oref (car db) reference-directory))
-;;	  (princ "System DB"))
-;;	(princ "\n")
-;;	(setq db (cdr db))))
-;;    ))
-
 ;;; Generic Accessor Routines
 ;;
 ;; These routines can be used to get at tags in files w/out
