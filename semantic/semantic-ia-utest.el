@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.4 2008/02/02 02:46:23 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.5 2008/02/10 19:14:59 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -42,23 +42,28 @@
 (defun semantic-ia-utest ()
   "Run the semantic ia unit test against stored sources."
   (interactive)
-  (let ((fl semantic-ia-utest-file-list))
+  (save-excursion
 
-    (while fl
+    (set-buffer (find-file-noselect
+		 (locate-library "semantic-ia-utest.el")))
 
-      (let ((fb (get-file-buffer (car fl)))
-	    (b (find-file-noselect (car fl) t)))
+    (let ((fl semantic-ia-utest-file-list))
 
-	;; Run the test on it.
-	(save-excursion
-	  (set-buffer b)
-	  (semantic-ia-utest-buffer))
+      (while fl
 
-	;; If it wasn't already in memory, whack it.
-	(when (not fb)
-	  (kill-buffer b))
-	)
-      (setq fl (cdr fl)))))
+	(let ((fb (get-file-buffer (car fl)))
+	      (b (find-file-noselect (car fl) t)))
+
+	  ;; Run the test on it.
+	  (save-excursion
+	    (set-buffer b)
+	    (semantic-ia-utest-buffer))
+
+	  ;; If it wasn't already in memory, whack it.
+	  (when (not fb)
+	    (kill-buffer b))
+	  )
+	(setq fl (cdr fl))))))
 
 (defun semantic-ia-utest-buffer ()
   "Run a unit-test pass in the current buffer."
