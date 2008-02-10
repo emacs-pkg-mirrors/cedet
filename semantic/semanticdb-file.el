@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.21 2008/02/05 12:17:29 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.22 2008/02/10 19:14:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -193,7 +193,8 @@ If DIRECTORY doesn't exist, create a new one."
 If DB is not specified, then use the current database."
   (let ((objname (oref DB file)))
     (when (and (semanticdb-live-p DB)
-	       (semanticdb-write-directory-p DB))
+	       (semanticdb-write-directory-p DB)
+	       (semanticdb-dirty-p DB))
       (message "Saving tag summary for %s..." objname)
       (condition-case foo
 	  (eieio-persistent-save (or DB semanticdb-current-database))
@@ -260,8 +261,18 @@ Argument OBJ is the object to write."
 		       (oset obj pointmax (point-max)))))
 	(call-next-method)
 	(save-excursion
-	  (if b (progn (set-buffer b) (semantic--tag-link-cache-to-buffer)))
+	  (if b (progn 
+		  (set-buffer b)
+		  (semantic--tag-link-cache-to-buffer)
+		  ;; This will re-decorate our tags.
+		  ;; Don't do this for now, it messes up the dirty thing.
+		  ;;(run-hook-with-args
+		  ;; 'semantic-after-toplevel-cache-change-hook
+		  ;; semantic--buffer-cache)
+		  ))
 	  (oset obj unmatched-syntax nil))
+	;; Clear the dirty bit.
+	(oset obj dirty nil)
 	)))
 
 ;;; State queries
