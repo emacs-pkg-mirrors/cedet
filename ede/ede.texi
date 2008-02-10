@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.13 2008/01/11 14:38:57 zappo Exp $
+@c $Id: ede.texi,v 1.14 2008/02/10 16:33:14 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -20,25 +20,53 @@ END-INFO-DIR-ENTRY
 Copyright @copyright{} 1998, 1999, 2000, 2001, 2004, 2005, 2008 Eric M. Ludlam
 @end titlepage
 
+@macro cedet{}
+@i{CEDET}
+@end macro
+
+@macro semantic{}
+@i{semantic}
+@end macro
+
+@macro srecode{}
+@i{SRecode}
+@end macro
+
+@macro eieio{}
+@i{EIEIO}
+@end macro
+
+@macro ede{}
+@i{EDE}
+@end macro
+
+@macro cogre{}
+@i{COGRE}
+@end macro
+
+@macro speedbar{}
+@i{Speedbar}
+@end macro
+
 @contents
 
 @node top, EDE Project Concepts, (dir), (dir)
 @comment  node-name,  next,  previous,  up
 
-EDE is a collection of definitions called the 
-@emph{Emacs Development Extensions}.  EDE provides the gloss that
+@ede{} is a collection of definitions called the 
+@emph{Emacs Development Extensions}.  @ede{} provides the gloss that
 simplifies the learning curve for all the very useful functionality of
 building and debugging under emacs.  In doing so it attempts to emulate
 a typical IDE (Integrated Development Environment).  What this means is
-that EDE can manage or create your makefiles and other building
+that @ede{} can manage or create your makefiles and other building
 environment duties so the developer can concentrate on code, and not
 support files.  In doing so, it will be much easier for new programmers
 to learn and adopt the GNU ways of doing things.
 @refill
 
 @menu
-* EDE Project Concepts::        EDE Project Concepts
-* EDE Mode::                    Turning on EDE mode.
+* EDE Project Concepts::        @ede{} Project Concepts
+* EDE Mode::                    Turning on @ede{} mode.
 * Creating a project::          Creating a project.
 * Modifying your project::      Adding and removing files and targets.
 * Building and Debugging::      Initiating a build or debug session.
@@ -60,7 +88,7 @@ Modifying your project
 * Customize Features::          
 * EDE Project Features::        
 
-EDE Project Features
+@ede{} Project Features
 
 * Changing Compilers and Flags::  
 * Configurations::              
@@ -70,10 +98,10 @@ Project types
 * Make and Automake projects::  Project types of @samp{ede-project}
 * Automake direct projects::    Project interface on hand-written automake files.
 
-Extending EDE
+Extending @ede{}
 
 * User interface methods::      Methods associated with keybindings
-* Base project methods::        The most basic methods on EDE objects.
+* Base project methods::        The most basic methods on @ede{} objects.
 * Sourcecode objects::          Defining new sourcecode classes.
 * Compiler and Linker objects::  Defining new compilers and linkers.
 
@@ -88,16 +116,16 @@ Class hierarchies
 @end menu
 
 @node EDE Project Concepts, EDE Mode, top, top
-@chapter EDE Project Concepts
+@chapter @ede{} Project Concepts
 
-EDE is a generic interface for managing projects.  In other words,
-there is one set of menus and keybindings specified by EDE, but there
+@ede{} is a generic interface for managing projects.  In other words,
+there is one set of menus and keybindings specified by @ede{}, but there
 are multiple ways a project can be expressed via a build system.
 
 You can learn about multiple @ref{Project types}, or the specific
 build or debug commands in other chapters.
 
-In EDE, a project hierarchy matches a directory hierarchy.  There
+In @ede{}, a project hierarchy matches a directory hierarchy.  There
 would be a project root, and subprojects in different subdirectories.
 
 Within each project, there can be multiple targets.  A target at the
@@ -120,26 +148,25 @@ will also be distributed, but the build process will also convert
 those files into some specified built thing, such as a program or
 compiled documentation.
 
-Lastly, EDE provides a way for other tools to easilly learn file
+Lastly, @ede{} provides a way for other tools to easilly learn file
 associations.  For example, a program might need to restrict some sort
 of search to files in a single target, or need to discover the
-location of documentation or interface files.  EDE can provide this
+location of documentation or interface files.  @ede{} can provide this
 information.
 
 @node EDE Mode, Creating a project, EDE Project Concepts, top
-@chapter EDE Mode
+@chapter @ede{} Mode
 
-EDE is implemented as a minor-mode, which augments other modes such as C
-mode, and Texinfo mode.  You can turn EDE on for all buffers by running
+@ede{} is implemented as a minor-mode, which augments other modes such as C
+mode, and Texinfo mode.  You can turn @ede{} on for all buffers by running
 the command @code{global-ede-mode}, or by putting this in your
 @file{~/.emacs} file.
 
 @example
-(require 'ede)
 (global-ede-mode t)
 @end example
 
-When EDE is active for a given buffer, the menu item ``Project''
+When @ede{} is active for a given buffer, the menu item ``Project''
 appears.  This menu contains several high-level functions to make
 working on a code set easier.  These items and keybindings never change
 regardless of the type of project you are actually working on.
@@ -156,7 +183,7 @@ project into a buffer.  If you have a hierarchy of directories, choose
 a file in the topmost directory first.  From this buffer, run
 @command{ede-new}.
 
-EDE can support several types of projects.  When creating a new
+@ede{} can support several types of projects.  When creating a new
 project with the command @command{ede-new} you must choose the type of
 project you would like to create.  @xref{Project types}.
 
@@ -168,9 +195,9 @@ derivation of this is the @samp{Automake} type.
 Not all project types can be created in this way.  For example, there
 are two ways to handle Automake based projects.  One is by making an
 @emph{Automake} project with @command{ede-new}.  The other is to just write
-some automake files which EDE with automatically detect this, and put
+some automake files which @ede{} with automatically detect this, and put
 you into a different Automake mode.  Any GNU project using Automake
-will be detected in this way, and you can use EDE to modify those
+will be detected in this way, and you can use @ede{} to modify those
 Makefiles for you.
 
 @section Creating a subproject
@@ -182,7 +209,7 @@ an existing project.  This new project will be automatically added to
 the parent project, and will be automatically loaded when the parent
 is read.
 
-When using a project command that invovles a makefile, EDE uses
+When using a project command that invovles a makefile, @ede{} uses
 the top-most project's makefile as a starting place for the build.  How
 the toplevel project handles subprojects in the build process is
 dependendent on that project's type.
@@ -205,7 +232,7 @@ using.
 @node Add/Remove target, Add/Remove files, Modifying your project, Modifying your project
 @section Add/Remove target
 
-A project with no targets isn't very useful, so you can use EDE to add
+A project with no targets isn't very useful, so you can use @ede{} to add
 and remove targets from your project.
 
 You can create a new target with the @command{ede-new-target} command
@@ -224,7 +251,7 @@ menu.
 @node Add/Remove files, Customize Features, Add/Remove target, Modifying your project
 @section Add/Remove files
 
-A target with no files isn't very useful, so you can use EDE to add
+A target with no files isn't very useful, so you can use @ede{} to add
 and remove files to targets.  Sometimes files can belong to multiple
 targets, and that is ok.
 
@@ -238,7 +265,7 @@ bound to @kbd{C-c . d}.  If the file is in multiple targets, it will
 query for every target it could be removed from.
 
 When you are working in a project, if you load a new file into a
-buffer that is not a part of an active target, EDE will automatically
+buffer that is not a part of an active target, @ede{} will automatically
 remind you to add it to a target of your choosing.  If you do not wish
 to add it to a target, you can choose @samp{none}.  You can customize
 the behavior with the variable @command{ede-auto-add-method}.
@@ -265,7 +292,7 @@ object, you can edit the file.  Use the command
 @node EDE Project Features,  , Customize Features, Modifying your project
 @section EDE Project Features
 
-This section details user facing features of an EDE @samp{Make} style
+This section details user facing features of an @ede{} @samp{Make} style
 project.  The specified options may be the same as in a
 @samp{Automake} project, but are not the same as in an direct Automake
 project.
@@ -275,7 +302,7 @@ customize the project or target with @command{customize-project} or
 @command{customize-target}.
 
 When you are customizing, you are directly manipulating slot values in
-EIEIO objects.  If you are interested in additional details, see
+@eieio{} objects.  If you are interested in additional details, see
 @ref{Extending EDE}
 
 @menu
@@ -326,8 +353,8 @@ To switch between different active conifigurations, modify the
 @node Building and Debugging, Miscellaneous commands, Modifying your project, top
 @chapter Building and Debugging
 
-EDE assumes you are writing some sort of program, so attempts to
-facilitate this activity.  EDE will associate the current buffer with a
+@ede{} assumes you are writing some sort of program, so attempts to
+facilitate this activity.  @ede{} will associate the current buffer with a
 target.  The target then knows how to compile or debug the given source
 file.
 
@@ -352,7 +379,7 @@ in the @samp{Project} menu.
 
 @section Rescan
 
-If you opt to go in and edit EDE project files directly, perhaps with
+If you opt to go in and edit @ede{} project files directly, perhaps with
 the @command{ede-edit-file-target}, you will need to have Emacs rescan
 the project files to update the internal data structures.
 
@@ -361,8 +388,8 @@ your system.
 
 @section Speedbar
 
-EDE also supports the speedbar package.  While speedbar works great
-against directories already, EDE provides a project display mode.
+@ede{} also supports the speedbar package.  While speedbar works great
+against directories already, @ede{} provides a project display mode.
 This lets you look at your source files as they are structured in your
 project.  Thus, where many files may be clumped together in one
 directory, the Project view will provide a hierarchical view of your
@@ -379,9 +406,9 @@ There are currently three types of project modes.  One is
 when creating new projects.
 
 The other is project type handles automake projects directly from the
-automake files.  EDE cannot make new projects of this type, assuming
+automake files.  @ede{} cannot make new projects of this type, assuming
 the user will do it themselves.  Use @samp{ede-project} in
-@samp{Automake} mode to have EDE create @file{Makefile.am} file, and a
+@samp{Automake} mode to have @ede{} create @file{Makefile.am} file, and a
 @file{configure.in} file.
 @refill
 
@@ -389,12 +416,12 @@ The third project style are ``Simple'' projects.  If you already have
 project infrastructure for building and debugging, you can instead
 create a simple project that identifies a project root and can look up
 files.  The simple project styles are useful for working with tools
-that use EDE to look up files.
+that use @ede{} to look up files.
 
 @menu
 * Make and Automake projects::  Project types of @samp{ede-project}
 * Automake direct projects::    Project interface on hand-written automake files.
-* Simple projects::             Projects EDE doesn't manage.
+* Simple projects::             Projects @ede{} doesn't manage.
 @end menu
 
 @node Make and Automake projects, Automake direct projects, Project types, Project types
@@ -414,7 +441,7 @@ host of other files required by Automake.
 
 The project type that reads @file{Makefile.am} directly is derived
 from the sources of the original @file{project-am.el} mode that was
-distributed independently.  This mode eventually became EDE.  The
+distributed independently.  This mode eventually became @ede{}.  The
 @samp{project-am} project will read existing automake files, but will
 not generate them automatically, or create new ones.  As such, it is
 useful as a browsing tool, or as maintenance in managing file lists.
@@ -427,13 +454,13 @@ projects is the class @code{ede-simple-project}.  This handles the
 infrastructure of storing a .ede file if needed.
 
 The class @code{ede-simple-project} is designed to be subclassed.
-Then key EDE methods can be overridden to provide a quick wrapper over
-any project.
+Then key @ede{} methods can be overridden to provide a quick wrapper
+over any project.
 
 A second project type is @code{ede-cpp-root}.  This project type is
 designed to be created for a directory hierarchy full of C/C++ code.
 It can be configured with minimal lisp knowledge to do header file
-lookup for Semantic, improving code completion performance.
+lookup for @semantic{}, improving code completion performance.
 
 @menu
 * ede-cpp-root::
@@ -443,15 +470,16 @@ lookup for Semantic, improving code completion performance.
 @node ede-cpp-root
 @subsection ede-cpp-root
 
-The cpp-root project type will allow you to create a single object
-with no save-file in your @file{.emacs} file.  It will allow EDE to provide
-Semantic with the ability to find header files quickly.
+The @code{ede-cpp-root} project type will allow you to create a single
+object with no save-file in your @file{.emacs} file.  It will allow
+@ede{} to provide @semantic{} with the ability to find header files
+quickly.
 
-The cpp-root class knows a few things about C++ projects, such as
-the prevalence of "include" directories, and typical file-layout
-stuff.  If this isn't sufficient, you can subclass
-`ede-cpp-root-project' and add your own tweaks in just a few lines.
-See the end of this file for an example.
+The @code{ede-cpp-root} class knows a few things about C++ projects,
+such as the prevalence of "include" directories, and typical
+file-layout stuff.  If this isn't sufficient, you can subclass
+@code{ede-cpp-root-project} and add your own tweaks in just a few
+lines.  See the end of this file for an example.
 
 In the most basic case, add this to your @file{.emacs} file, modifying
 apropriate bits as needed.
@@ -463,12 +491,12 @@ apropriate bits as needed.
 Replace @var{SOMENAME} with whatever name you want, and the filename
 to an actual file at the root of your project.  It might be a
 Makefile, a README file.  Whatever.  It doesn't matter.  It's just a
-key to hang the rest of EDE off of.
+key to hang the rest of @ede{} off of.
 
 The most likely reason to create this project, is to speed up
-searching for includes files, or to simplify bootstrapping Semantic's
+searching for includes files, or to simplify bootstrapping @semantic{}'s
 ability to find files without much user interaction.  In conjunction
-with Semantic completion, having a short include path is key.  You can
+with @semantic{} completion, having a short include path is key.  You can
 override the default include path like this:
 
 @example
@@ -495,7 +523,7 @@ function you can do this:
 Where @var{MYFCN} is a symbol for a function.  The locate function can
 be used in place of @code{ede-expand-filename} so you can quickly
 customize your custom target to use specialized local routines instead
-of the default EDE routines.  The function symbol must take two
+of the default @ede{} routines.  The function symbol must take two
 arguments: 
 
 @table @var
@@ -512,7 +540,7 @@ can do that too, but you will need to write some lisp code.
 
 To do that, you need to add an entry to the
 @code{ede-project-class-files} list, and also provide two functions to
-teach EDE how to load your project pattern
+teach @ede{} how to load your project pattern
 
 It would oook like this:
 
@@ -553,30 +581,32 @@ of project.
 @node ede-simple subclassing
 @subsection ede-simple Subclassing
 
-todo - Write some doc.  In the meantime look in the commentary of ede-simple.el
+todo - Write some doc.
+
+  In the meantime look in the commentary of ede-simple.el
 
 @node Extending EDE, Project, Project types, top
-@chapter Extending EDE
+@chapter Extending @ede{}
 
 This chapter is intended for users who want to write new parts or fix
-bugs in EDE.  A knowledge of Emacs Lisp, and some EIEIO(CLOS) is
+bugs in @ede{}.  A knowledge of Emacs Lisp, and some @eieio{}(CLOS) is
 required.
 
-EDE's dependance on EIEIO, the CLOS package for Emacs lets EDE define
+@ede{}'s dependance on @eieio{}, the CLOS package for Emacs lets @ede{} define
 two object superclasses, specifically the PROJECT and TARGET.  All
-commands in EDE are usually meant to address the current project, or
+commands in @ede{} are usually meant to address the current project, or
 current target.
 
-All specific projects in EDE derive subclasses of the EDE superclasses.
+All specific projects in @ede{} derive subclasses of the @ede{} superclasses.
 In this way, specific behaviors such as how a project is saved, or how a
-target is compiled can be customized by a project author in detail.  EDE
+target is compiled can be customized by a project author in detail.  @ede{}
 communicates to these project objects via an API using methods.  The
-commands you use in EDE mode are high-level functional wrappers over
+commands you use in @ede{} mode are high-level functional wrappers over
 these methods.  For details on different types of projects,
-@ref{Project types}.  @ref{(eieio)Top}. For details on using EIEIO to
+@ref{Project types}.  @ref{(eieio)Top}. For details on using @eieio{} to
 extending classes, and writing methods.
 
-If you intend to exted EDE, it is most likely that a new target type is
+If you intend to exted @ede{}, it is most likely that a new target type is
 needed in one of the existing project types.  The rest of this chapter
 will discuss extending the @code{ede-project} class, and it's targets.
 See @file{project-am.el} for basic details on adding targets to it.
@@ -600,7 +630,7 @@ examples.
 
 @menu
 * User interface methods::      Methods associated with keybindings
-* Base project methods::        The most basic methods on EDE objects.
+* Base project methods::        The most basic methods on @ede{} objects.
 * Sourcecode objects::          Defining new sourcecode classes.
 * Compiler and Linker objects::  Defining new compilers and linkers.
 @end menu
@@ -677,7 +707,7 @@ List all documentation a project or target is responsible for.
 @node Sourcecode objects, Compiler and Linker objects, Base project methods, Extending EDE
 @section Sourcecode objects
 
-EDE projects track source file / target associates via source code
+@ede{} projects track source file / target associates via source code
 objects.  The definitions for this is in @file{ede-source.el}.  A source
 code object contains methods that know how to identify a file as being
 of that class, (ie, a C file ends with @file{.c}).  Some targets can
@@ -732,7 +762,7 @@ with a given source code type.  Some targets can handle many types of
 sources, and thus has many compilers available to it.  Some targets
 may have multiple compilers for a given type of source code.
 
-EDE will examine the actual source files in a target, cross reference
+@ede{} will examine the actual source files in a target, cross reference
 that against the compiler list to come up with the final set of
 compilers that will be inserted into the Makefile.
 
