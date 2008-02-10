@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.13 2008/02/04 23:04:57 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.14 2008/02/10 02:53:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -120,15 +120,16 @@ For these PROTECTIONs, true is returned if TAG is:
 @item public
   True if private, protected, or nil.
 @end table"
-  (let ((tagpro (semantic-tag-protection tag parent)))
-    (or (null protection)
-	(and (eq protection 'private)
-	     (null tagpro))
-	(and (eq protection 'protected)
-	     (or (null tagpro)
-		 (eq tagpro 'private)))
-	(and (eq protection 'public)
-	     (not (eq tagpro 'public))))
+  (if (null protection)
+      t
+    (let ((tagpro (semantic-tag-protection tag parent)))
+      (or (and (eq protection 'private)
+	       (null tagpro))
+	  (and (eq protection 'protected)
+	       (or (null tagpro)
+		   (eq tagpro 'private)))
+	  (and (eq protection 'public)
+	       (not (eq tagpro 'public)))))
     ))
 
 ;;;###autoload
