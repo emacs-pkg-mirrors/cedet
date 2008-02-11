@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.65 2008/02/08 20:52:28 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.66 2008/02/11 13:59:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -358,7 +358,7 @@ searches use the same arguments."
 	    (if retlist
 		retlist
 	      (semantic-analyze-select-best-tag
-	       (semanticdb-strip-find-results
+	       (semanticdb-fast-strip-find-results
 		(semanticdb-find-tags-by-name name))
 	       tagclass)
 	      )))))
