@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.4 2008/02/08 20:48:45 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.5 2008/02/11 14:01:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -60,6 +60,13 @@
     obj-of-class-p
     )
   "List of EIEIO functions for profiling.")
+
+(defvar semantic-elp-ede-core-list
+  '(
+    ede-current-project
+    ede-expand-filename
+    )
+  "List of EDE functions to watch out for.")
 
 (defvar semantic-elp-semantic-core-list
   '(
@@ -122,6 +129,7 @@
     semanticdb-cache-get
     semanticdb-current-database-list
     semanticdb-file-table
+    semanticdb-file-table-object
     semanticdb-full-filename
     semanticdb-get-buffer
     semanticdb-get-table-index
@@ -145,6 +153,7 @@
 
 (defvar semantic-elp-semanticdb-find-list
   '(
+    semanticdb-fast-strip-find-results
     semanticdb-find-results-p
     semanticdb-find-tags-by-class
     semanticdb-find-tags-by-name
@@ -162,6 +171,7 @@ You may also need `semantic-elp-include-path-list'.")
   (elp-reset-all)
   (elp-instrument-list semantic-elp-emacs-core-list)
   (elp-instrument-list semantic-elp-eieio-core-list)
+  (elp-instrument-list semantic-elp-ede-core-list)
   (elp-instrument-list semantic-elp-semantic-core-list)
   (elp-instrument-list semantic-elp-semanticdb-core-list)
   (elp-instrument-list semantic-elp-semanticdb-find-list)
@@ -316,6 +326,14 @@ You may also need `semantic-elp-include-path-list'.")
 	  (t (message "Don't know how to resort with %s" s)
 	     ))))
 
+(defun semantic-elp-goto-function (point)
+  "Goto the function from the ELP data.
+Argument POINT is where to get the data from."
+  (let* ((data (get-text-property point 'adebug))
+	 )
+    (find-function (intern-soft (aref data 3)))
+    ))
+
 (defmethod semantic-elp-dump-table ((data semantic-elp-data)
 				    prefix)
   "dump out the current DATA table using PREFIX before each line."
@@ -327,12 +345,18 @@ You may also need `semantic-elp-include-path-list'.")
      spaces " " 'underline)
     (dolist (d elpd)
       (when (> (aref d 0) 0) ;; We had some calls
-	
-	(semantic-adebug-insert-simple-thing 
-	 (format " % 4d\t% 2.7f\t% 2.7f\t%s"
-		 (aref d 0) (aref d 1) (aref d 2) (aref d 3))
-	 spaces " " nil)
-
+	(let ((start (point))
+	      (end nil))
+	  (semantic-adebug-insert-simple-thing 
+	   (format " % 4d\t% 2.7f\t% 2.7f\t%s"
+		   (aref d 0) (aref d 1) (aref d 2) (aref d 3))
+	   spaces " " nil)
+	  (setq end (1- (point)))
+	  (put-text-property start end 'adebug d)
+	  (put-text-property start end 'adebug-noexpand t)
+	  (put-text-property start end 'adebug-function
+			     'semantic-elp-goto-function)
+	  )
 	))
     )
   )
@@ -361,6 +385,7 @@ Ignore the usual, and format a nice table."
       (setq end (point))
       ;; (semantic-adebug-insert-thing s prefix "Sort Method: ")
       (put-text-property start end 'adebug data)
+      (put-text-property start end 'adebug-noexpand t)
       (put-text-property start end 'adebug-indent(length prefix))
       (put-text-property start end 'adebug-prefix prefix)
       (put-text-property start end 'adebug-function
@@ -382,6 +407,8 @@ Argument POINT is where the text is."
   (let* ((data (get-text-property point 'adebug))
 	 (prefix (get-text-property point 'adebug-prefix))
 	 )
+    ;; Get rid of the old table.
+    (semantic-adebug-contract-current-line)
     ;; Change it
     (semantic-elp-change-sort data 'rotate)
     (end-of-line)
