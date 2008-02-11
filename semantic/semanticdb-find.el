@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.53 2008/02/08 20:50:20 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.54 2008/02/11 13:56:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -433,8 +433,9 @@ a new path from the provided PATH."
 		      nexttable 'include))
 		    (t
 		     (semantic-find-tags-included
-		      (semanticdb-get-tags nexttable))))))
-	      (setq includetags (append includetags newtags)))))
+		      (semanticdb-get-tags nexttable)))
+		    )))
+	      (setq includetags (nconc includetags newtags)))))
       (setq includetags (cdr includetags)))
     ;; Find all the omniscient databases for this major mode, and
     ;; add them if needed
@@ -562,8 +563,12 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
      ;;
      ;; NOTE: Not used if EDE is active!
      ((and (semanticdb-find-throttle-active-p 'project)
+	   ;; And dont do this if it is a system include.  Not supported by all languages,
+	   ;; but when it is, this is a nice fast way to skip this step.
+	   (not (semantic-tag-include-system-p includetag))
 	   ;; Don't do this if we have an EDE project.
-	   (not (and (featurep 'ede) (ede-current-project originfiledir))))
+	   (not (and (featurep 'ede) (ede-current-project originfiledir)))
+	   )
 
       (setq roots (semanticdb-current-database-list))
 
@@ -638,7 +643,9 @@ for details on how this list is derived."
 This makes it appear more like the results of a `semantic-find-' call.
 Optional FIND-FILE-MATCH loads all files associated with RESULTS
 into buffers.  This has the side effect of enabling `semantic-tag-buffer' to
-return a value."
+return a value.
+If the input RESULTS are not going to be used again, and if FIND-FILE-MATCH is nil,
+you can use `semanticdb-fast-strip-find-results' instead."
   (if find-file-match
       ;; Load all files associated with RESULTS.
       (let ((tmp results)
@@ -647,13 +654,22 @@ return a value."
 	  (let ((tab (car (car tmp)))
 		(tags (cdr (car tmp))))
 	    (semanticdb-get-buffer tab)
-	    (setq output (nconc output
-				(semanticdb-normalize-tags tab tags))))
+	    (setq output (append output
+				 (semanticdb-normalize-tags tab tags))))
 	  (setq tmp (cdr tmp)))
 	output)
     ;; @todo - I could use nconc, but I don't know what the caller may do with
-    ;;         RESULTS after this is called.
+    ;;         RESULTS after this is called.  Right now semantic-complete will
+    ;;         recycling the input after calling this routine.
     (apply #'append (mapcar #'cdr results))))
+
+;;;###autoload
+(defun semanticdb-fast-strip-find-results (results)
+  "Destructively strip a semanticdb search RESULTS to exclude objects.
+This makes it appear more like the results of a `semantic-find-' call.
+This is like `semanticdb-strip-find-results', except the input list RESULTS
+will be changed."
+  (apply #'nconc (mapcar #'cdr results)))
 
 ;;;###autoload
 (defun semanticdb-find-results-p (resultp)
