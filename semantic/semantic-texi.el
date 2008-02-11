@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.37 2008/02/02 02:47:34 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.38 2008/02/11 14:02:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -645,7 +645,7 @@ If TAG is nil, it is derived from the deffn under POINT."
   (unless (semantic-tag-of-class-p tag 'def)
     (error "Only deffns (or defun or defvar) can be updated"))
   (let* ((name (semantic-tag-name tag))
-	 (tags (semanticdb-strip-find-results
+	 (tags (semanticdb-fast-strip-find-results
 		(semanticdb-with-match-any-mode
 		  (semanticdb-brute-deep-find-tags-by-name name nil t))
 		))
