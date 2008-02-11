@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.119 2008/02/07 22:52:31 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.120 2008/02/11 14:02:37 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -456,7 +456,7 @@ Uses `semanticdb' when available."
 	      (semanticdb-deep-find-tags-for-completion prefix)
 	    ;; semantic version returns a TAG-LIST
 	    (semantic-deep-find-tags-for-completion prefix (current-buffer))))
-    (append tagsa (semanticdb-strip-find-results tagsb))))
+    (append tagsa (semanticdb-fast-strip-find-results tagsb))))
 
 ;;; Senator stream searching functions: no more supported.
 ;;
