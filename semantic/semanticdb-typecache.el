@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.20 2008/02/08 20:48:12 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.21 2008/02/11 13:58:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -32,6 +32,7 @@
 (require 'semanticdb)
 
 ;;; Code:
+;;;###autoload
 (defclass semanticdb-typecache ()
   ((filestream :initform nil
 	       :documentation
@@ -55,6 +56,7 @@ NOTE: Can I get rid of this?  Use a hashtable instead?")
   (oset tc stream nil)
   )
 
+;;;###autoload
 (defmethod semanticdb-typecache-notify-reset ((tc semanticdb-typecache))
   "Do a reset from a notify from a table we depend on."
   (oset tc includestream nil)
