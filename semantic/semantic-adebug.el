@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.9 2008/02/07 03:35:03 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.10 2008/02/11 02:36:44 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -668,10 +668,16 @@ we move to."
 	      (error 0))))
     (> ni ti)))
 
+(defun semantic-adebug-line-expandable-p ()
+  "Return non-nil if the current line is expandable.
+Lines that are not expandable are assumed to not be contractable."
+  (not (get-text-property (point) 'adebug-noexpand)))
+
 (defun semantic-adebug-expand-current-line ()
   "Expand the current line (if possible).
 Do nothing if already expanded."
-  (when (not (semantic-adebug-current-line-expanded-p))
+  (when (or (not (semantic-adebug-line-expandable-p))
+	    (not (semantic-adebug-current-line-expanded-p)))
     ;; If the next line is the same or less indentation, expand.
     (let ((fcn (get-text-property (point) 'adebug-function)))
       (when fcn
@@ -709,7 +715,8 @@ Do nothing if already expanded."
 (defun semantic-adebug-expand-or-contract ()
   "Expand or contract anything at the current point."
   (interactive)
-  (if (semantic-adebug-current-line-expanded-p)
+  (if (and (semantic-adebug-line-expandable-p)
+	   (semantic-adebug-current-line-expanded-p))
       (semantic-adebug-contract-current-line)
     (semantic-adebug-expand-current-line))
   (skip-chars-forward " *-><[]" (point-at-eol)))
