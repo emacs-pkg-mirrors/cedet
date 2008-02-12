@@ -25,7 +25,7 @@
 @copying
 This manual documents Application Development with Semantic.
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -1751,6 +1751,16 @@ This makes it appear more like the results of a @code{semantic-find-} call.
 Optional @var{find-file-match} loads all files associated with @var{results}
 into buffers.  This has the side effect of enabling @dfn{semantic-tag-buffer} to
 return a value.
+If the input @var{results} are not going to be used again, and if @var{find-file-match} is @code{nil},
+you can use @dfn{semanticdb-fast-strip-find-results} instead.
+@end defun
+
+@defun semanticdb-fast-strip-find-results results
+@anchor{semanticdb-fast-strip-find-results}
+Destructively strip a semanticdb search @var{results} to exclude objects.
+This makes it appear more like the results of a @code{semantic-find-} call.
+This is like @dfn{semanticdb-strip-find-results}, except the input list @var{results}
+will be changed.
 @end defun
 
 To write a function that accepts a tag table, or a semanticdb search
