@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.5 2008/02/10 19:14:59 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.6 2008/02/12 03:47:37 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -125,7 +125,8 @@
     
     (if fail
 	(error "Unit tests in %s failed tests %S" (buffer-name) fail)
-      (message "Unit tests in %s passed" (buffer-name)))
+      (message "Unit tests in %s passed (%d total)" (buffer-name)
+	       (- idx 1)))
 
     ))
 
