@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-debug.el,v 1.1 2008/02/10 19:15:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-debug.el,v 1.2 2008/02/12 17:35:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,17 +30,16 @@
 ;;; Code:
 ;;
 ;;;###autoload
-(defun semanticdb-adebug-current-database-list ()
-  "Run ADEBUG on the current database."
+(defun semanticdb-dump-all-table-summary ()
+  "Dump a list of all databases in Emacs memory."
   (interactive)
   (require 'semantic-adebug)
-  (let ((start (current-time))
-	(p semanticdb-database-list)
-	(end (current-time))
-	(ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
-	)
-    
-    (semantic-adebug-insert-stuff-list p "*")))
+  (let ((ab (semantic-adebug-new-buffer "*SEMANTICDB*"))
+	(db semanticdb-database-list))
+    (semantic-adebug-insert-stuff-list db "*")))
+
+;;;###autoload
+(defalias 'semanticdb-adebug-database-list 'semanticdb-dump-all-table-summary)
 
 ;;;###autoload
 (defun semanticdb-adebug-current-database ()
@@ -68,14 +67,19 @@
     
     (semantic-adebug-insert-stuff-list p "*")))
 
+
 ;;;###autoload
-(defun semanticdb-dump-all-table-summary ()
-  "Dump a list of all databases in Emacs memory."
+(defun semanticdb-adebug-project-database-list ()
+  "Run ADEBUG on the current database."
   (interactive)
   (require 'semantic-adebug)
-  (let ((ab (semantic-adebug-new-buffer "*SEMANTICDB*"))
-	(db semanticdb-database-list))
-    (semantic-adebug-insert-stuff-list db "*")))
+  (let ((start (current-time))
+	(p (semanticdb-current-database-list))
+	(end (current-time))
+	(ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
+	)
+    
+    (semantic-adebug-insert-stuff-list p "*")))
 
 
 
