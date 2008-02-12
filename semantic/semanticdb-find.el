@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.55 2008/02/12 01:28:55 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.56 2008/02/12 01:51:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -378,6 +378,10 @@ Default action as described in `semanticdb-find-translate-path'."
       ;; searchable item, then instead do the regular thing without caching.
       (semanticdb-find-translate-path-includes--internal path))))
 
+(defvar semanticdb-find-lost-includes nil
+  "Include files that we cannot find associated with this buffer.")
+(make-variable-buffer-local 'semanticdb-find-lost-includes)
+
 (defun semanticdb-find-translate-path-includes--internal (path)
   "Internal implementation of `semanticdb-find-translate-path-includes-default'.
 This routine does not depend on the cache, but will always derive
@@ -386,6 +390,7 @@ a new path from the provided PATH."
 	(curtable nil)
 	(matchedtables (list semanticdb-current-table))
 	(matchedincludes nil)
+	(lostincludes nil)
 	nexttable)
     (cond ((null path)
 	   (setq includetags (semantic-find-tags-included (current-buffer))
@@ -410,7 +415,11 @@ a new path from the provided PATH."
       ;; If we've seen this include string before, lets skip it.
       (if (member (semantic-tag-name (car includetags)) matchedincludes)
 	  (setq nexttable nil)
-	(setq nexttable (semanticdb-find-table-for-include (car includetags) curtable)))
+	(setq nexttable (semanticdb-find-table-for-include (car includetags) curtable))
+	(when (not nexttable)
+	  ;; Save the lost include.
+	  (push (car includetags) lostincludes))
+	)
 
       ;; Push the include file, so if we can't find it, we only
       ;; can't find it once.
@@ -440,6 +449,9 @@ a new path from the provided PATH."
 		    )))
 	      (setq includetags (nconc includetags newtags)))))
       (setq includetags (cdr includetags)))
+
+    (setq semanticdb-find-lost-includes lostincludes)
+
     ;; Find all the omniscient databases for this major mode, and
     ;; add them if needed
     (when (and (semanticdb-find-throttle-active-p 'omniscience)
@@ -622,6 +634,24 @@ for details on how this list is derived."
 	     (semantic-elapsed-time start end))
     
     (semantic-adebug-insert-stuff-list p "*")))
+
+(defun semanticdb-find-adebug-lost-includes ()
+  "Translate the current path, then display the lost includes.
+Examines the variable `semanticdb-find-lost-includes'."
+  (interactive)
+  (require 'semantic-adebug)
+  (let ((p (semanticdb-find-translate-path nil nil))
+	(lost semanticdb-find-lost-includes)
+	ab)
+
+    (if (not semanticdb-find-lost-includes)
+	(message "There are no unknown includes for %s"
+		 (buffer-name))
+    
+      (setq ab (semantic-adebug-new-buffer "*SEMANTICDB lost-includes ADEBUG*"))
+      (semantic-adebug-insert-tag-list lost "*")
+      )))
+  
 
 
 ;;; FIND results and edebug
