@@ -25,7 +25,7 @@
 @copying
 This is the Semantic User's Manual
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -1123,6 +1123,9 @@ Modifies a mode-local version of
 For a bit more on include paths, see the
 @inforef{Search Optimization, Search Optimization section, semantic}.
 
+Debug your search paths using stiff in
+@ref{Semanticdb search debugging commands}.
+
 @node Search Throttle
 @subsection SemanticDB Search Throttle
 
@@ -1186,6 +1189,10 @@ should include DBs for the directories you expect.  You can follow up
 with @kbd{M-x semanticdb-find-test-translate-path RET} to then make
 sure specific tables from the path are discovered correctly. 
 
+Alternately, you can get a list of include files @semantic{}
+encountered, but could not find on disk using
+@kbd{M-x semanticdb-find-lost-includes RET}.
+
 @deffn Command semanticdb-dump-all-table-summary
 @anchor{semanticdb-dump-all-table-summary}
 Dump a list of all databases in Emacs memory.
@@ -1195,6 +1202,12 @@ Dump a list of all databases in Emacs memory.
 @anchor{semanticdb-find-test-translate-path}
 Call and output results of @dfn{semanticdb-find-translate-path}
 With @var{arg} non-@code{nil}, specify a @var{brutish} translation.
+@end deffn
+
+@deffn Command semanticdb-find-adebug-lost-includes
+@anchor{semanticdb-find-adebug-lost-includes}
+Translate the current path, then display the lost includes.
+Examines the variable @code{semanticdb-find-lost-includes}.
 @end deffn
 
 Lastly, you can test an explicit search term using this command:
