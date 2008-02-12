@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.5 2008/02/11 14:01:43 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.6 2008/02/12 01:29:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -55,6 +55,7 @@
 
 (defvar semantic-elp-eieio-core-list
   '(
+    eieio-generic-call
     eieio-oref
     eieio-oset
     obj-of-class-p
@@ -284,6 +285,11 @@ You may also need `semantic-elp-include-path-list'.")
    (sorted :initform nil
 	   :documentation
 	   "The sorted and filtered version of this data.")
+   (total :initarg :total
+	  :initform nil
+	  :documentation
+	  "The total time spent in the operation.
+Recorded outside of ELP.")
    )
   "Class for managing ELP data.")
 
@@ -374,6 +380,10 @@ Ignore the usual, and format a nice table."
 				  prefix
 				  "Class: ")
     )
+
+  (semantic-adebug-insert-thing (oref data :total)
+				prefix
+				"Total Time Spent: ")
   
   (let ((s (oref data sort))
 	)
@@ -424,6 +434,10 @@ Argument POINT is where the text is."
 
 (defclass semantic-elp-object (eieio-persistent)
   ((file-header-line :initform ";; SEMANTIC ELP Profiling Save File")
+   (total :initarg :total
+	  :type number
+	  :documentation
+	  "Amount of time spent during the entire collection.")
    (pathtime :initarg :pathtime
 	     :type semantic-elp-data
 	     :documentation
@@ -491,6 +505,9 @@ Argument NAME is the name to give the ELP data object."
   "Run the analyzer, using ELP to measure performance."
   (interactive)
   (let ((elp-recycle-buffers-p nil)
+	(totalstart (current-time))
+	(totalstop nil)
+	start stop
 	path pathtime
 	typecache typecachetime
 	scope scopetime
@@ -498,11 +515,15 @@ Argument NAME is the name to give the ELP data object."
 	completion completiontime)
     ;; Path translation
     (semantic-elp-include-path-enable)
+    (setq start (current-time))
     (setq path (semanticdb-find-translate-path nil nil))
+    (setq stop (current-time))
     (semantic-elp-results "translate-path")
     (setq pathtime semantic-elp-last-results)
+    (oset pathtime :total (semantic-elapsed-time start stop))
     ;; typecache
     (semantic-elp-typecache-enable)
+    (setq start (current-time))
     (let* ((tab semanticdb-current-table)
 	   (idx (semanticdb-get-table-index tab))
 	   (junk (oset idx type-cache nil)) ;; flush!
@@ -511,26 +532,40 @@ Argument NAME is the name to give the ELP data object."
       (semanticdb-typecache-file-tags tab)
       (semanticdb-typecache-include-tags tab)
       (setq typecache tc))
+    (setq stop (current-time))
     (semantic-elp-results "typecache")
     (setq typecachetime semantic-elp-last-results)
+    (oset typecachetime :total (semantic-elapsed-time start stop))
     ;; Scope
     (semantic-elp-scope-enable)
+    (setq start (current-time))
     (setq scope (semantic-calculate-scope))
+    (setq stop (current-time))
     (semantic-elp-results "scope")
     (setq scopetime semantic-elp-last-results)
+    (oset scopetime :total (semantic-elapsed-time start stop))
     ;; Analyze!
     (semantic-elp-analyze-enable)
+    (setq start (current-time))
     (setq ctxt (semantic-analyze-current-context))
+    (setq stop (current-time))
     (semantic-elp-results "analyze")
     (setq ctxttime semantic-elp-last-results)
+    (oset ctxttime :total (semantic-elapsed-time start stop))
     ;; Complete!
     (semantic-elp-complete-enable)
+    (setq start (current-time))
     (setq completion (semantic-analyze-possible-completions ctxt))
+    (setq stop (current-time))
     (semantic-elp-results "complete")
     (setq completiontime semantic-elp-last-results)
+    (oset completiontime :total (semantic-elapsed-time start stop))
+    ;; Finish it
+    (setq totalstop (current-time))
     ;; build it
     (let ((elpobj (semantic-elp-object
 		   "ELP"
+		   :total          (semantic-elapsed-time totalstart totalstop)
 		   :pathtime	   pathtime
 		   :typecachetime  typecachetime
 		   :scopetime	   scopetime
