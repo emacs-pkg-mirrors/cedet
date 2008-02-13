@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.94 2008/02/12 01:28:01 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.95 2008/02/13 03:37:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -305,7 +305,7 @@ If DIRECTORY doesn't exist, create a new one."
 		:tables nil))
       ;; Set this up here.   We can't put it in the constructor because it
       ;; would be saved, and we want DB files to be portable.
-      (oset db reference-directory directory))
+      (oset db reference-directory (expand-file-name directory)))
     db))
 
 (defmethod semanticdb-flush-database-tables ((db semanticdb-project-database))
@@ -332,7 +332,7 @@ If the table for FILE does not exist, create one."
 (defun semanticdb-get-database (filename)
   "Get a database for FILENAME.
 If one isn't found, create one."
-  (semanticdb-create-database semanticdb-new-database-class filename))
+  (semanticdb-create-database semanticdb-new-database-class (expand-file-name filename)))
 
 (defun semanticdb-directory-loaded-p (path)
   "Return the project belonging to PATH if it was already loaded."
@@ -343,6 +343,15 @@ If one isn't found, create one."
   (object-assoc (file-relative-name (expand-file-name filename)
   				    (oref obj reference-directory))
 		'file (oref obj tables)))
+
+(defmethod semanticdb-in-buffer-p ((obj semanticdb-table))
+  "Return a buffer associated with OBJ.
+If the buffer is in memory, return that buffer.
+If the buffer is not in memory, load it with `find-file-noselect'."
+  (let* ((f (semanticdb-full-filename obj))
+	)
+    (get-file-buffer f)))
+
 
 (defmethod semanticdb-get-buffer ((obj semanticdb-table))
   "Return a buffer associated with OBJ.
@@ -462,7 +471,7 @@ Uses `semanticdb-persistent-path' to determine the return value."
   (or semanticdb-current-database
       (and default-directory
 	   (semanticdb-create-database semanticdb-new-database-class
-				       default-directory)
+				       (expand-file-name default-directory))
 	   )
       nil))
 
@@ -658,7 +667,7 @@ Sets up the semanticdb environment."
 If FILENAME exists in the database already, return that.
 If there is no database for the table to live in, create one."
   (let ((cdb nil)
-	(dd (file-name-directory filename))
+	(dd (expand-file-name (file-name-directory filename)))
 	)
     ;; Allow a database override function
     (setq cdb (semanticdb-create-database semanticdb-new-database-class
