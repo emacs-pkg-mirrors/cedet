@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.21 2008/02/11 13:58:14 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.22 2008/02/13 03:39:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -124,7 +124,7 @@ If there is no table, create one, and fill it in."
     (while stream
       (setq new (cons (semantic-tag-copy (car stream) nil file)
 		      new))
-      ;;(semantic--tag-put-property (car stream) :filename file)
+      (semantic--tag-put-property (car stream) :filename file)
       (setq stream (cdr stream)))
     (nreverse new)))
 
@@ -136,6 +136,15 @@ If there is no table, create one, and fill it in."
     (if fname
 	(setq mem (semanticdb-typecache-apply-filename fname mem))
       (copy-sequence mem))))
+
+(defsubst semanticdb-typecache-safe-tag-list (tags table)
+  "Make the tag list TAGS found in TABLE safe for the typecache.
+Adds a filename if the tags are not in a buffer."
+  (if (semanticdb-in-buffer-p table)
+      nil
+    (semanticdb-typecache-apply-filename
+     (semanticdb-full-filename table)
+     tags)))
 
 ;; @todo - This should go into semantic-sort.el
 ;;;###autoload
@@ -233,6 +242,7 @@ all included files."
     (when (not (oref cache filestream))
       (let ((tags  (semantic-find-tags-by-class 'type table)))
 	(when tags
+	  (setq tags (semanticdb-typecache-safe-tag-list tags table))
 	  (oset cache filestream (semanticdb-typecache-merge-streams tags nil)))))
     
     ;; Return our cache.
@@ -372,10 +382,14 @@ found tag to be loaded."
 
       (setq type (cdr type)))
 
-    (when (and find-file-match lastfile)
-      ;; This won't liven up the tag since we have a copy, but
-      ;; we ought to be able to get there and go to the right line.
-      (find-file-noselect lastfile))
+    (if (and find-file-match lastfile)
+	;; This won't liven up the tag since we have a copy, but
+	;; we ought to be able to get there and go to the right line.
+	(find-file-noselect lastfile)
+      ;; We don't want to find-file match, so instead lets
+      ;; push the filename onto the return tag.
+      (semantic--tag-put-property ans :filename lastfile)
+      )
     
     ans))
 
