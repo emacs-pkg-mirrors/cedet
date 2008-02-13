@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.66 2008/02/11 13:59:08 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.67 2008/02/13 03:35:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -243,6 +243,7 @@ are found in SEQUENCE."
 	(nexttype nil)			; a tag for the type next in sequence
 	(tag nil)			; tag return list
 	(tagtype nil)			; tag types return list
+	(fname nil)
 	)
     ;; First order check.  Is this wholely contained in the typecache?
     ;; @TODO - EXPERIMENTAL - do we loose anything?
@@ -270,8 +271,8 @@ are found in SEQUENCE."
       (if (not (semantic-tag-p tmp))
 	  (error "Cannot find definition for \"%s\"" (car s)))
       (setq s (cdr s))
-      (setq tag (cons tmp tag))
-      
+      (setq tag (cons tmp tag)) ; tag is nil here...
+      (setq fname (semantic-tag-file-name tmp))
       )
 
     ;; For the middle entries
@@ -280,14 +281,17 @@ are found in SEQUENCE."
       ;; representing the full typeographic information of its
       ;; type, and use that to determine the search context for
       ;; (car s)
-      (let ((tmptype
-	     ;; In some cases the found TMP is a type,
-	     ;; and we can use it directly.
-	     (cond ((eq (semantic-tag-class tmp) 'type)
-		    tmp)
-		   (t
-		    (semantic-analyze-tag-type tmp scope))))
-	    (slots nil))
+      (let* ((tmptype
+	      ;; In some cases the found TMP is a type,
+	      ;; and we can use it directly.
+	      (cond ((eq (semantic-tag-class tmp) 'type)
+		     tmp)
+		    (t
+		     (semantic-analyze-tag-type tmp scope))))
+	     (typefile
+	      (when tmptype
+		(semantic-tag-file-name tmptype)))
+	     (slots nil))
 	
 	;; Get the children
 	(setq slots (semantic-analyze-type-parts tmptype))
@@ -307,6 +311,10 @@ are found in SEQUENCE."
 	      ;; Else, it's ok to end with a non-tag
 	      (setq tmp (car s))))
 
+	(setq fname (or typefile fname))
+	(when (and fname (semantic-tag-p tmp)
+		   (not (semantic-tag-in-buffer-p tmp)))
+	  (semantic--tag-put-property tmp :filename fname))
 	(setq tag (cons tmp tag))
 	(setq tagtype (cons tmptype tagtype))
 	)
@@ -358,8 +366,9 @@ searches use the same arguments."
 	    (if retlist
 		retlist
 	      (semantic-analyze-select-best-tag
-	       (semanticdb-fast-strip-find-results
-		(semanticdb-find-tags-by-name name))
+	       (semanticdb-strip-find-results
+		(semanticdb-find-tags-by-name name)
+		'name)
 	       tagclass)
 	      )))))
      )))
