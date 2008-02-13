@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.37 2008/02/13 03:39:58 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.38 2008/02/13 16:43:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -524,7 +524,7 @@ file it came from."
   (let ((p (semantic-format-tag-prototype tag parent color))
 	(f (semantic-tag-file-name tag))
 	)
-    (if f
+    (if (and f (not (string= f (buffer-file-name (current-buffer)))))
 	(format "%s: %s"
 		(semantic--format-colorize-text
 		 (file-name-nondirectory f)
