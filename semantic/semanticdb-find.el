@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.56 2008/02/12 01:51:57 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.57 2008/02/13 03:19:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -677,8 +677,11 @@ This makes it appear more like the results of a `semantic-find-' call.
 Optional FIND-FILE-MATCH loads all files associated with RESULTS
 into buffers.  This has the side effect of enabling `semantic-tag-buffer' to
 return a value.
-If the input RESULTS are not going to be used again, and if FIND-FILE-MATCH is nil,
-you can use `semanticdb-fast-strip-find-results' instead."
+If FIND-FILE-MATCH is 'name, then only the filename is stored
+in each tag instead of loading each file into a buffer.
+If the input RESULTS are not going to be used again, and if
+FIND-FILE-MATCH is nil, you can use `semanticdb-fast-strip-find-results'
+instead."
   (if find-file-match
       ;; Load all files associated with RESULTS.
       (let ((tmp results)
@@ -686,7 +689,12 @@ you can use `semanticdb-fast-strip-find-results' instead."
 	(while tmp
 	  (let ((tab (car (car tmp)))
 		(tags (cdr (car tmp))))
-	    (semanticdb-get-buffer tab)
+	    (if (eq find-file-match 'name)
+		(let ((f (semanticdb-full-filename tab)))
+		  (dolist (tag tags)
+		    (semantic--tag-put-propertytab :filename f)
+		    ))
+	      (semanticdb-get-buffer tab))
 	    (setq output (append output
 				 (semanticdb-normalize-tags tab tags))))
 	  (setq tmp (cdr tmp)))
