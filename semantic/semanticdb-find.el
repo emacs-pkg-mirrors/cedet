@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.57 2008/02/13 03:19:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.58 2008/02/13 03:20:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -692,7 +692,7 @@ instead."
 	    (if (eq find-file-match 'name)
 		(let ((f (semanticdb-full-filename tab)))
 		  (dolist (tag tags)
-		    (semantic--tag-put-propertytab :filename f)
+		    (semantic--tag-put-property tag :filename f)
 		    ))
 	      (semanticdb-get-buffer tab))
 	    (setq output (append output
