@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.67 2008/02/13 03:35:57 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.68 2008/02/13 03:56:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -473,7 +473,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 	;; fntag can have the last entry as just a string, meaning we
 	;; could not find the core datatype.  In this case, the searches
 	;; below will not work.
-	(when (stringp (last (car fntag)))
+	(when (stringp (car (last fntag)))
 	    ;; Take a wild guess!
           (setcar (last fntag) (semantic-tag (car (last fntag)) 'function))
 	  )
