@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.22 2008/02/13 03:39:14 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.23 2008/02/13 03:56:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -141,7 +141,7 @@ If there is no table, create one, and fill it in."
   "Make the tag list TAGS found in TABLE safe for the typecache.
 Adds a filename if the tags are not in a buffer."
   (if (semanticdb-in-buffer-p table)
-      nil
+      tags
     (semanticdb-typecache-apply-filename
      (semanticdb-full-filename table)
      tags)))
