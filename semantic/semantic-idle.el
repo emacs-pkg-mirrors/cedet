@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.36 2008/02/01 04:58:42 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.37 2008/02/13 03:39:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -509,11 +509,28 @@ minor mode is enabled.")
 ;; A mode similar to eldoc using semantic
 (require 'semantic-ctxt)
 
-(defcustom semantic-idle-summary-function 'semantic-format-tag-summarize
+(defcustom semantic-idle-summary-function
+  'semantic-idle-summary-format-default
   "*Function to use when displaying tag information during idle time.
 Some useful functions are found in `semantic-format-tag-functions'."
   :group 'semantic
   :type semantic-format-tag-custom-list)
+
+(defun semantic-idle-summary-format-default (tag parent color)
+  "A special displayor for idle summary mode.
+TAG, PARENT and COLOR are pased to
+`semantic-format-tag-prototype'.  The prototype is prefixed with the
+file it came from."
+  (let ((p (semantic-format-tag-prototype tag parent color))
+	(f (semantic-tag-file-name tag))
+	)
+    (if f
+	(format "%s: %s"
+		(semantic--format-colorize-text
+		 (file-name-nondirectory f)
+		 font-lock-string-face)
+		p)
+      p)))
 
 (defsubst semantic-idle-summary-find-current-symbol-tag (sym)
   "Search for a semantic tag with name SYM in database tables.
