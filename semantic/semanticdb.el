@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.95 2008/02/13 03:37:45 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.96 2008/02/13 22:34:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -441,7 +441,7 @@ form."
   "Save all semantic tag databases."
   (interactive)
   (message "Saving tag summaries...")
-  (mapcar 'semanticdb-save-db semanticdb-database-list)
+  (mapc 'semanticdb-save-db semanticdb-database-list)
   (message "Saving tag summaries...done"))
 
 
