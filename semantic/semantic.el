@@ -1,10 +1,10 @@
 ;;; semantic.el --- Semantic buffer evaluator.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.201 2007/06/06 01:04:30 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.202 2008/02/13 22:35:24 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -467,8 +467,8 @@ is requested."
   ;; Nuke all semantic overlays.  This is faster than deleting based
   ;; on our data structure.
   (let ((l (semantic-overlay-lists)))
-    (mapcar 'semantic-delete-overlay-maybe (car l))
-    (mapcar 'semantic-delete-overlay-maybe (cdr l))
+    (mapc 'semantic-delete-overlay-maybe (car l))
+    (mapc 'semantic-delete-overlay-maybe (cdr l))
     )
   (semantic-parse-tree-set-needs-rebuild)
   ;; Remove this hook which tracks if a buffer is up to date or not.
