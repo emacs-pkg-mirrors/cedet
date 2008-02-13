@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.7 2008/02/13 03:36:30 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.8 2008/02/13 16:42:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -239,6 +239,7 @@ This includes both the TYPE parts, and all functions found in all
 databases which have this type as a property."
   (let (;; SLOTS are the slots directly a part of TYPE.
 	(slots (semantic-tag-components type))
+	(fname (semantic-tag-file-name type))
 	;; EXTMETH are externally defined methods that are still
 	;; a part of this class.
 	
@@ -249,6 +250,9 @@ databases which have this type as a property."
 	;; inherits from.
 	(inherited (semantic-analyze-inherited-tags type scope))
 	)
+    (when (not (semantic-tag-in-buffer-p type))
+      (dolist (tag slots)
+	(semantic--tag-put-property tag :filename fname)))
     ;; Flatten the database output.
     (append slots extmeth inherited)
     ))
