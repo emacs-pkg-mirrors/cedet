@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.23 2008/01/30 12:33:31 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.24 2008/02/13 03:17:55 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -181,7 +181,13 @@ Enables auto-choosing nice file names based on name.")
 		     :initform ";; EIEIO PERSISTENT OBJECT"
 		     :documentation
 		     "Header line for the save file.
-This is used with the `object-write' method."))
+This is used with the `object-write' method.")
+   (do-backups :type boolean
+	       :allocation :class
+	       :initform t
+	       :documentation
+	       "Saving this object should make backup files.
+Setting to nil will mean no backups are made."))
   "This special class enables persistence through save files
 Use the `object-save' method to write this object to disk.  The save
 format is Emacs Lisp code which calls the constructor for the saved
@@ -246,7 +252,8 @@ instance."
 			(eieio-persistent-path-relative this file)
 		      (file-name-nondirectory cfn)))
 	      (object-write this (oref this file-header-line)))
-	    (write-file cfn nil))
+	    (let ((backup-inhibited (not (oref this do-backups))))
+	      (write-file cfn nil)))
 	;; Restore :file, and kill the tmp buffer
 	(oset this file cfn)
 	(setq buffer-file-name nil)
