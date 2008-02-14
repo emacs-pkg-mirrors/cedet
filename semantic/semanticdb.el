@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.98 2008/02/14 16:30:18 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.99 2008/02/14 16:42:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -661,7 +661,7 @@ Sets up the semanticdb environment."
 If FILENAME exists in the database already, return that.
 If there is no database for the table to live in, create one."
   (let ((cdb nil)
-	(dd (expand-file-name (file-name-directory filename)))
+	(dd (file-name-directory filename))
 	)
     ;; Allow a database override function
     (setq cdb (semanticdb-create-database semanticdb-new-database-class
@@ -818,7 +818,7 @@ If file has database tags available in the database, return it.
 If file does not have tags available, and DONTLOAD is nil,
 then load the tags for FILE, and create a new table object for it.
 DONTLOAD does not affect the creation of new database objects."
-  (setq file (expand-file-name file))
+  (setq file (file-truename file))
   (when (file-exists-p file)
     (let* ((default-directory (file-name-directory file))
 	   (db (or
