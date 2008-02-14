@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.23 2008/02/13 03:18:41 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.24 2008/02/14 16:04:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -131,7 +131,7 @@ If a database for DIRECTORY has already been loaded, return it.
 If a database for DIRECTORY exists, then load that database, and return it.
 If DIRECTORY doesn't exist, create a new one."
   ;; Make sure this is fully expanded so we don't get duplicates.
-  (setq directory (expand-file-name directory))
+  (setq directory (file-truename directory))
   (let* ((fn (semanticdb-cache-filename dbc directory))
 	 (db (or (semanticdb-file-loaded-p fn)
 		 (if (file-exists-p fn)
@@ -331,9 +331,8 @@ The returned path is related to DIRECTORY."
       (let ((file (cedet-directory-name-to-file-name directory)))
         ;; Now create a filename for the cache file in
         ;; ;`semanticdb-default-save-directory'.
-	(expand-file-name
-         (concat (file-name-as-directory semanticdb-default-save-directory)
-                 file)))
+	(expand-file-name 
+	 file (file-name-as-directory semanticdb-default-save-directory)))
     directory))
 
 (defmethod semanticdb-cache-filename :STATIC
