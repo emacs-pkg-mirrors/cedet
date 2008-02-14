@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.96 2008/02/13 22:34:18 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.97 2008/02/14 15:55:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -305,7 +305,7 @@ If DIRECTORY doesn't exist, create a new one."
 		:tables nil))
       ;; Set this up here.   We can't put it in the constructor because it
       ;; would be saved, and we want DB files to be portable.
-      (oset db reference-directory (expand-file-name directory)))
+      (oset db reference-directory (file-truename directory)))
     db))
 
 (defmethod semanticdb-flush-database-tables ((db semanticdb-project-database))
@@ -332,7 +332,7 @@ If the table for FILE does not exist, create one."
 (defun semanticdb-get-database (filename)
   "Get a database for FILENAME.
 If one isn't found, create one."
-  (semanticdb-create-database semanticdb-new-database-class (expand-file-name filename)))
+  (semanticdb-create-database semanticdb-new-database-class (file-truename filename)))
 
 (defun semanticdb-directory-loaded-p (path)
   "Return the project belonging to PATH if it was already loaded."
@@ -340,7 +340,7 @@ If one isn't found, create one."
 
 (defmethod semanticdb-file-table ((obj semanticdb-project-database) filename)
   "From OBJ, return FILENAME's associated table object."
-  (object-assoc (file-relative-name (expand-file-name filename)
+  (object-assoc (file-relative-name (file-truename filename)
   				    (oref obj reference-directory))
 		'file (oref obj tables)))
 
@@ -471,7 +471,7 @@ Uses `semanticdb-persistent-path' to determine the return value."
   (or semanticdb-current-database
       (and default-directory
 	   (semanticdb-create-database semanticdb-new-database-class
-				       (expand-file-name default-directory))
+				       default-directory)
 	   )
       nil))
 
@@ -578,7 +578,7 @@ Always append `semanticdb-project-system-databases' if
   (let ((root nil)			; found root directory
 	(dbs nil)			; collected databases
 	(roots semanticdb-project-roots) ;all user roots
-	(dir (or dir default-directory))
+	(dir (file-truename (or dir default-directory)))
 	)
     ;; Find the root based on project functions.
     (setq root (run-hook-with-args-until-success
@@ -586,11 +586,9 @@ Always append `semanticdb-project-system-databases' if
 		dir))
     ;; Find roots based on strings
     (while (and roots (not root))
-      (if (string-match (concat "^"
-				(regexp-quote
-				 (expand-file-name (car roots))))
-			(expand-file-name dir))
-	  (setq root (car roots)))
+      (let ((r (file-truename (car roots))))
+	(if (string-match (concat "^" (regexp-quote r)) dir)
+	    (setq root r)))
       (setq roots (cdr roots)))
 
     ;; If no roots are found, use this directory.
@@ -601,20 +599,16 @@ Always append `semanticdb-project-system-databases' if
       ;; The rootlist allows the root functions to possibly
       ;; return several roots which are in different areas but
       ;; all apart of the same system.
-      (let ((rootlist (if (listp root) root (list root))))
-	(while rootlist
-	  (setq root (car rootlist))
-	  (let ((regexp (concat "^" (regexp-quote (expand-file-name root))))
-		(adb semanticdb-database-list) ; all databases
-		)
-	    (while adb
-	      ;; I don't like this part, but close enough.
-	      (if (and ;; (slot-exists-p (car adb) 'file) <-- What was that for? 2/15/07
-		       (slot-boundp (car adb) 'reference-directory)
-		       (string-match regexp (oref (car adb) reference-directory)))
-		  (setq dbs (cons (car adb) dbs)))
-	      (setq adb (cdr adb))))
-	  (setq rootlist (cdr rootlist)))))
+      (let ((regexp (concat "^" (regexp-quote root)))
+	    (adb semanticdb-database-list) ; all databases
+	    )
+	(while adb
+	  ;; I don't like this part, but close enough.
+	  (if (and (slot-boundp (car adb) 'reference-directory)
+		   (string-match regexp (oref (car adb) reference-directory)))
+	      (setq dbs (cons (car adb) dbs)))
+	  (setq adb (cdr adb))))
+      )
     ;; Add in system databases
     (when semanticdb-search-system-databases
       (setq dbs (nconc dbs semanticdb-project-system-databases)))
