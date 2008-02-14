@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.97 2008/02/14 15:55:58 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.98 2008/02/14 16:30:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -400,7 +400,7 @@ The file associated with OBJ does not need to be in a buffer."
       ;; Buffer isn't loaded.  The only clue we have is if the file
       ;; is somehow different from our mark in the semanticdb table.
       (let* ((stats (file-attributes (semanticdb-full-filename obj)))
-	     (actualmax (aref stats 7)))
+	     (actualmax (nth 7 stats)))
 
 	(or (not (slot-boundp obj 'tags))
 	    (not (oref obj tags))
