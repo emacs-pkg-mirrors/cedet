@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.155 2008/02/10 16:33:40 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.156 2008/02/14 16:20:36 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -524,7 +524,11 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		      (format
 		       "Retrieves the slot `%s' from an object of class `%s'"
 		       name cname)
-		      (list 'eieio-oref 'this (list 'quote name))))
+		      (list 'if (list 'slot-boundp 'this (list 'quote name))
+			    (list 'eieio-oref 'this (list 'quote name))
+			    ;; Else - Some error?  nil?
+			    nil
+			    )))
 	      ;; Thanks Pascal Bourguignon <pjb@informatimago.com>
 	      ;; For this complex macro.
 	      (eval (macroexpand
