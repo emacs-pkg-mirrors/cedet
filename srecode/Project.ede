@@ -27,6 +27,11 @@
     :path ""
     :source '("srecode.texi")
     )
+   (ede-proj-target-elisp "tests"
+    :name "tests"
+    :path ""
+    :source '("srecode-test.el")
+    )
    )
   :metasubproject 't
   )

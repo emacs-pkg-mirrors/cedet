@@ -21,12 +21,13 @@ srecode_LISP=srecode.el srecode-mode.el srecode-compile.el srecode-insert.el sre
 EMACS=emacs
 doc_TEXINFOS=srecode.texi
 MAKEINFO=makeinfo
+tests_LISP=srecode-test.el
 VERSION=0.1
 DISTDIR=$(top)srecode-$(VERSION)
 
 
 
-all: autoloads lang srecode srecode.info templates
+all: autoloads lang srecode srecode.info tests templates
 
 .PHONY: autoloads
 autoloads: 
@@ -59,6 +60,15 @@ srecode: $(srecode_LISP)
 srecode.info: $(doc_TEXINFOS)
 	$(MAKEINFO) $<
 
+.PHONY: tests
+tests: $(tests_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+
 .PHONY:templates
 templates:
 	cd templates; $(MAKE)
@@ -74,7 +84,7 @@ clean:
 
 dist: autoloads $(lang_SEMANTIC_GRAMMAR_EL) srecode.info
 	mkdir $(DISTDIR)
-	cp srecode-loaddefs.el $(lang_SEMANTIC_GRAMMAR) $(lang_SEMANTIC_GRAMMAR_EL) $(srecode_LISP) $(doc_TEXINFOS) srecode.info* $(ede_FILES) $(DISTDIR)
+	cp srecode-loaddefs.el $(lang_SEMANTIC_GRAMMAR) $(lang_SEMANTIC_GRAMMAR_EL) $(srecode_LISP) $(doc_TEXINFOS) srecode.info* $(tests_LISP) $(ede_FILES) $(DISTDIR)
 	cd templates; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/templates dist
 
 Makefile: Project.ede
