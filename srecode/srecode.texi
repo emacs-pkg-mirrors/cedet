@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.6 2008/01/31 03:44:18 zappo Exp $
+@c $Id: srecode.texi,v 1.7 2008/02/16 01:57:15 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -52,14 +52,14 @@ template commonality allows it to work in multiple languages with
 ease.
 
 @menu
-* Quick Start::                 Basic Setup
+* Quick Start::                 Basic Setup for template insertion.
 * User Templates::	        Custom User Templates
 * Parts of SRecode::		Parts of the system
 * SRecode Minor Mode::		A minor mode for using templates
 * Template Writing::		How to write a template
 * Dictionaries::                How dictionaries work
-* Getting Started::             How to use the system.
 * Developing Template Functions:: How to write your own template insert functions.
+* Template Naming Conventions:: Creating a set of core temlates
 * Application Writing::         Writing an @srecode{}r application
 * Index::
 @end menu
@@ -75,6 +75,10 @@ To toggle @srecode{} minor mode on and off use:
 @example
 M-x srecode-minor-mode RET
 @end example
+or
+@example
+M-x global-srecode-minor-mode RET
+@end example
 
 or add
 
@@ -82,18 +86,36 @@ or add
 (srecode-minor-mode 1)
 @end example
 
-to force it on (which is the default) or pass in @code{-1} to force it
-off.
+into a language hook function to force it on (which is the default) or
+pass in @code{-1} to force it off.
+
+See @ref{SRecode Minor Mode} for more on using the minor mode.
 
 Use the menu to insert templates into the current file.
 
 You can add your own templates in @file{~/.srecode}, or update the
-user template directory.
+the template map path:
 
-@defvar srecode-user-template-directory
-@anchor{srecode-user-template-directory}
-Directory where user templates are stored.
-@end defvar
+@deffn Option srecode-map-load-path
+@anchor{srecode-map-load-path}
+Global load path for SRecode template files.
+@end deffn
+
+
+Once installed, you can start inserting templates using the menu, or
+the command:
+
+@deffn Command srecode-insert template-name &rest dict-entries
+@anchor{srecode-insert}
+Inesrt the template @var{template-name} into the current buffer at point.
+@var{dict-entries} are additional dictionary values to add.
+@end deffn
+
+SRecode Insert will prompt for a template name.  Template names are
+specific to each major mode.  A typical name is of the form:
+@code{CONTEXT:NAME} where a @var{CONTEXT} might be something like
+@code{file} or @code{declaration}.  The same @var{NAME} can occur in
+multiple contexts.
 
 @node User Templates
 @chapter User Templates
@@ -109,7 +131,7 @@ The save location for SRecode's map file.
 @end defvar
 
 Template files end with a @file{.srt} extension.  Details on how to
-write templates are @ref{Template Writing}.
+write templates are in @ref{Template Writing}.
 
 Each template file you write is dedicated to a single major mode.  In
 it, you can write templates within the same context and with the same
@@ -146,13 +168,10 @@ set mode "default"
 @node Parts of SRecode
 @chapter Parts of SRecode
 
-The Semantic Recoder system is made up of several layers.
+The @srecode{} system is made up of several layers.
 There is a system that needs to be understood for adding template
 support to new languages, and a system for using the templates in your
 code.
-
-See the Google template library to see the aspects of this template
-libraries concepts.
 
 @section Template Layer
 The template layer provides a way to write, and compile templates.  The
@@ -169,8 +188,9 @@ their own.
 Templates are written in @file{.srt} files.  You can learn how to
 author new @file{.srt} files @ref{Template Writing}.
 
-While the template system was designed for the ``Semantic Recoder'',
-it can be used independantly for code generation or other purposes.
+While the template system was designed for @srecode{} based
+applications it can be used independantly for simple template
+insertion during typical coding.
 
 @section Template Manager
 Once templates have been written, a scheme for loading and selecting
@@ -181,8 +201,8 @@ templates being found first, and system level default templates last.
 
 @section Dictionary
 Dictionaries contain values associated with macro names.  A value can
-be any lisp object, but the value of the macro should be directly
-related to the type of macro created. 
+be one of three things; a string, a list of more dictionaries, or a
+special @code{srecode-dictionary-compound-value} object subclass.
 
 @section Template Insertion
 The template insertion layer invovles extensions to the basic template
@@ -214,8 +234,8 @@ applications can inserted multiple related templates in multiple places.
 
 @section Applications
 Commands that do a particular task which involves writing code sits at
-the top level.  These little applications have their own template
-files and logic needed to fill in dictionaries or position a cursor.
+the top level.  These applications have their own template files and
+logic needed to fill in dictionaries or position a cursor.
 
 @node SRecode Minor Mode
 @chapter SRecode Minor Mode
@@ -226,7 +246,7 @@ simple access to different templates or tamplate applications.
 The key prefix is @key{C-c /}.
 
 The most important key is bound to @code{srecode-insert} which is
-@key{C-c / /}.  @ref{Getting Started}.
+@key{C-c / /}.  @ref{Quick Start}.
 
 NOTE: At this time there isn't much in srecode-minor-mode.  The plan
 is the following:
@@ -733,7 +753,7 @@ either be toggled as visible, or it can act as a loop.
 In dictionary @var{dict}, indicate that the section @var{name} should be exposed.
 @end defun
 
-@defun srecode-dictionary-add-section-dictionary dict name
+@defun srecode-dictionary-add-section-dictionary dict name &optional show-only
 @anchor{srecode-dictionary-add-section-dictionary}
 In dictionary @var{dict}, add a section dictionary for section macro @var{name}.
 Return the new dictionary.
@@ -741,6 +761,21 @@ Return the new dictionary.
 You can add several dictionaries to the same section macro.
 For each dictionary added to a macro, the block of codes in the
 template will be repeated.
+
+If optional argument @var{show-only} is non-@code{nil}, then don't add a new dictionarly
+if there is already one in place.  Also, don't add @var{first}/@var{last} entries.
+These entries are not needed when we are just showing a section.
+
+Each dictionary added will automatically get values for positional macros
+which will enable @var{sections} to be enabled.
+
+ * @var{first} - The first entry in the table.
+ * @var{notfirst} - Not the first entry in the table.
+ * @var{last} - The last entry in the table
+ * @var{notlast} - Not the last entry in the table.
+
+Adding a new dictionary will alter these values in previously
+inserted dictionaries.
 @end defun
 
 @node Compound Dictionary Values
@@ -984,14 +1019,9 @@ comma separated list of arguments, you might do this:
 @end example
 
 Within the section dictionaries for each argument, you will find both
-@var{NAME} and @var{TYPE}, in addition to the section values:
+@var{NAME} and @var{TYPE}, in addition to the automatic section values
+for @var{FIRST}, @var{LAST}, @var{NOTFIRST}, and @var{NOTLAST}.
 
-@table @code
-@item FIRST, NOTFIRST
-If ARG is the first item, or not.
-@item LAST, NOTLAST
-If ARG is the last item, or not.
-@end table
 
 @end table
 
@@ -1009,27 +1039,6 @@ If ARG is the last item, or not.
 @subsubsection Argument :texi
 
 
-
-@node Getting Started
-@chapter Getting Started
-
-The user interface to the @srecode{} template insertion system is very
-basic right now.
-
-@deffn Command global-srecode-minor-mode &optional arg
-@anchor{global-srecode-minor-mode}
-Toggle global use of @srecode{} minor mode.
-If @var{arg} is positive, enable, if it is negative, disable.
-If @var{arg} is @code{nil}, then toggle.
-@end deffn
-
-@deffn Command srecode-insert template-name
-@anchor{srecode-insert}
-Inesrt the template @var{template-name} into the current buffer at point.
-@end deffn
-
-@menu
-@end menu
 
 @node Developing Template Functions
 @chapter Developing Template Functions
@@ -1106,6 +1115,88 @@ start with the main entry point.
 @anchor{srecode-insert-fcn}
 Insert @var{template} using @var{dictionary} into @var{stream}.
 @end defun
+
+@node Template Naming Conventions
+@chapter Template Naming Conventions
+
+For @srecode{} to work across langauges reliably, templates need to
+follow a predictable pattern.  For every language of similar nature
+(OO, functional, doc based) if they all provide the same base
+templates, then an application can be written against the base
+templates, and it will work in each of the supported language.
+
+Having consistent templates also makes it easy to use those templates
+from a user perspective during basic interactive insertion via
+@code{srecode-minor-mode}.
+
+
+NOTES ON THIS CHAPTER:
+
+These conventions are being worked on.  Check w/ CEDET-DEVEL mailing
+list if you want to support a language, or write an application and
+provide your opinions on this topic.  Any help is appreciated.
+
+
+@section Context: File
+
+Each language should support the @code{file:empty} template.  This
+will generally use the default copyright insertion mechanism.
+
+@section Context: Declaration
+
+Functional languages should attempt to support the folowing:
+
+@table @code
+@item function
+A standalone function.  Not a method, external method, or other.
+@item method
+A method belonging to some class declaired outside the textual bounds
+of that class' declaration.
+@item variable
+A global variable.
+@end table
+
+@section Context: Classdef
+
+Inside a class definition.  These are to be inserted inside the
+textual bounds of a class declaration.
+
+@table @code
+@item function
+This would be a method of the class being inserted into.
+@item variable
+This would be a field of the class being inserted into.
+@end table
+
+@section Context: Code
+
+Inside a body of code, such as a function or method body.
+
+ - no conventions yet.
+
+@section Standard Macro Values
+
+For these macros to be useful, standard macro names should be used.
+These values could be provided directly from a Semantic tag, or by an
+application.
+
+@table @var
+@item NAME
+The name of the declaration being created.
+@item PARENT
+If the item belongs to some parent type, it would be the full name of
+that type, including namespaces.
+@item TYPE
+A datatype name for a variable, or the return value of a function.
+@item DOC
+If there is some documentation associated with the item, then DOC
+should contain the value.  (Optional)
+@item ARGS
+The ARGS macro defines a section for 0 or more arguments to a function
+or method.  Each entry in ARGS will follow the rest of these naming
+conventions, such as for NAME and TYPE.
+@end table
+
 
 @node Application Writing
 @chapter Application Writing
