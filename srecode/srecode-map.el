@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.6 2008/02/04 01:44:53 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.7 2008/02/16 01:46:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -204,12 +204,26 @@ Optional argument RESET forces a reset of the current map."
 		(files (cdr ap)))
 	    (princ app)
 	    (princ " :\n")
-	    (srecode-maps-dump-file-list files)))
-	(princ "\n\nUse:\n\n M-x customize-variable RET srecode-map-load-path RET\n")
+	    (srecode-maps-dump-file-list files))
+	  (princ "\n"))
+	(princ "\nUse:\n\n M-x customize-variable RET srecode-map-load-path RET")
 	(princ "\n To change the path where SRecode loads templates from.")
 	)
     ;; Eventually, I want to return many maps to search through.
     (list srecode-current-map)))
+
+;;;###autoload
+(defun srecode-adebug-maps ()
+  "Run ADEBUG on the output of `srecode-get-maps'."
+  (interactive)
+  (require 'semantic-adebug)
+  (let ((start (current-time))
+	(p (srecode-get-maps t)) ;; Time the reset.
+	(end (current-time))
+	(ab (semantic-adebug-new-buffer "*SRECUDE ADEBUG*"))
+	)
+    
+    (semantic-adebug-insert-stuff-list p "*")))
 
 (defun srecode-maps-dump-file-list (flist)
   "Dump a file list FLIST to `standard-output'."
