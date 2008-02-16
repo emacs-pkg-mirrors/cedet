@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-args.el,v 1.5 2008/02/10 02:18:37 zappo Exp $
+;; X-RCS: $Id: srecode-args.el,v 1.6 2008/02/16 01:47:53 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -51,7 +51,7 @@ do not contain any text from preceeding or following text."
 ;; for the current major mode.
 ;;;###autoload
 (defun srecode-semantic-handle-:indent (dict)
-  "Add macros into the dictionary DICT based on the current :user."
+  "Add macros into the dictionary DICT for indentation."
   (srecode-dictionary-set-value dict "INDENT" t)
   )
 
@@ -63,12 +63,16 @@ do not contain any text from preceeding or following text."
 ;; Regions allow a macro to wrap the region text within the
 ;; template bounds.
 ;;
+(defvar srecode-handle-region-when-non-active-flag nil
+  "Non-nil means do region handling w/out the region being active.")
+
 ;;;###autoload
 (defun srecode-semantic-handle-:region (dict)
-  "Add macros into the dictionary DICT based on the current :user."
+  "Add macros into the dictionary DICT based on the current :region."
   ;; Only enable the region section if we can clearly show that
   ;; the user is intending to do something with the region.
-  (when (or (eq last-command 'mouse-drag-region)
+  (when (or srecode-handle-region-when-non-active-flag
+	    (eq last-command 'mouse-drag-region)
 	    (and transient-mark-mode mark-active))
     ;; Show the region section
     (srecode-dictionary-show-section dict "REGION")
