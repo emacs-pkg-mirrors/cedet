@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.16 2008/02/10 02:55:39 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.17 2008/02/16 01:44:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -86,10 +86,11 @@ DICT-ENTRIES are additional dictionary values to add."
     (srecode-insert-method template dictionary)
     ;; Handle specialization of the POINT inserter.
     (when (and (bufferp standard-output)
-	       (slot-boundp 'srecode-template-inserter-point 'point))
+	       (slot-boundp 'srecode-template-inserter-point 'point)
+	       )
       (set-buffer standard-output)
       (setq end-mark (point-marker))
-      (goto-char  (oref 'srecode-template-inserter-point point)))
+      (goto-char  (oref srecode-template-inserter-point point)))
     (oset-default 'srecode-template-inserter-point point eieio-unbound)
     end-mark)
   )
@@ -581,6 +582,14 @@ this template instance."
 	      (setq tmpl (srecode-template-get-table (srecode-table)
 						     templatenamepart
 						     ctxt))
+	      (when (not tmpl)
+		(let ((app (oref (oref (car active) table) application)))
+		  (when app
+		    (setq tmpl (srecode-template-get-table 
+				(srecode-table)
+				templatenamepart
+				ctxt app)))
+		  ))
 	      (setq active (cdr active)))
 	    (when (not tmpl)
 	      ;; If it wasn't in this context, look to see if it
@@ -591,7 +600,7 @@ this template instance."
 	  (oset sti :includedtemplate tmpl)))
 
     (if (not (oref sti includedtemplate))
-	(error "No template %s found for include %s"
+	(error "No template \"%s\" found for include macro `%s'"
 	       templatenamepart (oref sti :object-name)))
     ))
 
