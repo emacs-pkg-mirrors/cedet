@@ -3,7 +3,7 @@
 ;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-template.srt,v 1.6 2008/01/30 03:47:44 zappo Exp $
+;; X-RCS: $Id: srecode-template.srt,v 1.7 2008/02/16 01:59:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -54,7 +54,7 @@ $^$
 ;; end
 ----
 
-template mode-basics
+template mode-basics :srt
 "Fill out a full template including parts for basic new mode stuff."
 sectiondictionary "E"
 set NAME "empty :file :user :time"
@@ -124,9 +124,15 @@ prompt $?NAME$ "$?PROMPT$"
 bind "p"
 
 template priority :blank
-"Insert a prompt."
+"Insert a priority statemept."
 ----
 set priority $^$
+----
+
+template application :blank
+"Insert a priority statemept."
+----
+set application "$^$"
 ----
 
 template context :blank
@@ -184,7 +190,7 @@ $ESCAPE_START$<:$?TEMPLATE$$ESCAPE_END$$^$$ESCAPE_START$/$NAME$$ESCAPE_END$
 ----
 bind "w"
 
-template point
+template point :srt
 ----
 $ESCAPE_START$^$ESCAPE_END$
 ----
@@ -212,42 +218,6 @@ template escape-end-quoted :srt
 $ESCAPE_START$ESCAPE_END$ESCAPE_END$
 ----
 bind "e"
-
-
-;;
-;; These are for testing features of template files.
-;;
-context test
-
-template test :user
-----
-$! This is a comment in the template. $
-;; $AUTHOR$
-;; $AUTHOR:upcase$
-----
-
-template subs
-----
-;; Before Loop
-$#LOOP$
-;;  - loop stuff
-$/LOOP$
-;; After Loop
-$>:function$
-----
-
-
-template wrapsomething :region
-----
-;; Put this line in front:
-$REGIONTEXT$
-;; Put this line at the end:
-----
-
-template gapsomething :blank
-----
-### ALL ALONE ON A LINE ###
-----
 
 
 ;; end
