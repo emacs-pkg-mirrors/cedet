@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.4 2008/01/29 14:20:42 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.5 2008/02/16 01:51:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -38,8 +38,12 @@
 (require 'semantic-tag)
 (require 'senator)
 
-;;; Managing the `current' tag
+
+;;; The SEMANTIC TAG inserter
 ;;
+;; Put a tag into the dictionary that can be used w/ arbitrary
+;; lisp expressions.
+
 (defclass srecode-semantic-tag (srecode-dictionary-compound-value)
   ((prime :initarg :prime
 	  :type semantic-tag
@@ -62,6 +66,9 @@ aspect of the compound value."
     (funcall function (oref cp :prime))
     ))
 
+
+;;; Managing the `current' tag
+;;
 
 (defvar srecode-semantic-selected-tag nil
   "The tag selected by a :tag template argument.
@@ -72,6 +79,9 @@ If this is nil, then `senator-tag-ring' is used.")
   (if (ring-empty-p senator-tag-ring)
       (error "You must use `senator-copy-tag' to provide a tag to this template"))
   (ring-ref senator-tag-ring 0))
+
+
+;;; ARGUMENT HANDLERS
 
 ;;; :tag ARGUMENT HANDLING
 ;;
@@ -107,6 +117,10 @@ Assumes the cursor is in a tag of class type.  If not, throw an error."
      typetag
      dict)))
 
+
+;;; TAG in a DICTIONARY
+;;
+
 (defun srecode-semantic-apply-tag-to-dict (tagobj dict)
   "Insert features of TAGOBJ into dictionary DICT."
   ;; Store the sst into the dictionary.
@@ -133,14 +147,6 @@ Assumes the cursor is in a tag of class type.  If not, throw an error."
 		  (srecode-semantic-tag (semantic-tag-name larg)
 					:prime larg)
 		  subdict)
-		 ;; Is this the first argument?
-		 (if (eq args (semantic-tag-function-arguments tag))
-		     (srecode-dictionary-show-section subdict "FIRST")
-		   (srecode-dictionary-show-section subdict "NOTFIRST"))
-		 ;; Is this argument last?
-		 (if (not (cdr args))
-		     (srecode-dictionary-show-section subdict "LAST")
-		   (srecode-dictionary-show-section subdict "NOTLAST"))
 		 )
 	       ;; Next!
 	       (setq args (cdr args)))))
@@ -149,6 +155,26 @@ Assumes the cursor is in a tag of class type.  If not, throw an error."
 	  )
     ))
 
+
+
+;;; INSERT A TAG API
+;;
+;; Routines that take a tag, and insert into a buffer.
+
+(defun srecode-semantic-insert-tag (tagobj &optional prototype)
+  "Insert TAGOBJ into a buffer useing srecode templates at point.
+Optional PROTOTYPE indicates that if prototype variants of
+a template are available, then those should be used.
+The exact template used is based on the current context.
+The template used is found within the toplevel context as calculated
+by `srecode-calculate-context', such as `declaration', `classdecl',
+or `code'."
+  (let* ((ctxt (srecode-calculate-context))
+	 (top (car ctxt))
+	 (class (semantic-tag-class tagobj))
+	 )
+  
+    ))
 
 (provide 'srecode-semantic)
 
