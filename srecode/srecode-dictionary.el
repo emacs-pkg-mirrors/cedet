@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-dictionary.el,v 1.3 2008/02/04 02:05:08 zappo Exp $
+;; X-RCS: $Id: srecode-dictionary.el,v 1.4 2008/02/16 01:50:15 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -179,7 +179,8 @@ assocated with a buffer or parent."
 
 (defmethod srecode-dictionary-add-template-table ((dict srecode-dictionary)
 						  tpl)
-  "Insert into DICT the variables found in table TPL."
+  "Insert into DICT the variables found in table TPL.
+TPL is an object representing a compiled template file."
   (when tpl
     (let ((tabs (oref tpl :tables)))
       (while tabs
@@ -196,32 +197,80 @@ assocated with a buffer or parent."
   "In dictionary DICT, set NAME to have VALUE."
   ;; Validate inputs
   (if (not (stringp name))
-      (signal 'wrong-type-argument
-	      (list name 'stringp 'srecode-template-inserter)))
+      (signal 'wrong-type-argument (list name 'stringp)))
   ;; Add the value.
   (with-slots (namehash) dict
     (puthash name value namehash))
   )
 
 (defmethod srecode-dictionary-add-section-dictionary ((dict srecode-dictionary)
-						      name)
+						      name &optional show-only)
   "In dictionary DICT, add a section dictionary for section macro NAME.
 Return the new dictionary.
 
 You can add several dictionaries to the same section macro.
 For each dictionary added to a macro, the block of codes in the
-template will be repeated."
+template will be repeated.
+
+If optional argument SHOW-ONLY is non-nil, then don't add a new dictionarly
+if there is already one in place.  Also, don't add FIRST/LAST entries.
+These entries are not needed when we are just showing a section.
+
+Each dictionary added will automatically get values for positional macros
+which will enable SECTIONS to be enabled.
+
+ * FIRST - The first entry in the table.
+ * NOTFIRST - Not the first entry in the table.
+ * LAST - The last entry in the table
+ * NOTLAST - Not the last entry in the table.
+
+Adding a new dictionary will alter these values in previously
+inserted dictionaries."
+  ;; Validate inputs
+  (if (not (stringp name))
+      (signal 'wrong-type-argument (list name 'stringp)))
   (let ((new (srecode-create-dictionary dict))
 	(ov (srecode-dictionary-lookup-name dict name)))
-    (srecode-dictionary-set-value dict name (append ov (list new)))
+
+    (when (not show-only)
+      ;; Setup the FIRST/NOTFIRST and LAST/NOTLAST entries.
+      (if (null ov)
+	  (progn
+	    (srecode-dictionary-show-section new "FIRST")
+	    (srecode-dictionary-show-section new "LAST"))
+	;; Not the very first one.  Lets clean up CAR.
+	(let ((tail (car (last ov))))
+	  (srecode-dictionary-hide-section tail "LAST")
+	  (srecode-dictionary-show-section tail "NOTLAST")
+	  )
+	(srecode-dictionary-show-section new "NOTFIRST")
+	(srecode-dictionary-show-section new "LAST"))
+      )
+
+    (when (or (not show-only) (null ov))
+      (srecode-dictionary-set-value dict name (append ov (list new))))
     ;; Return the new sub-dictionary.
     new))
 
 (defmethod srecode-dictionary-show-section ((dict srecode-dictionary) name)
   "In dictionary DICT, indicate that the section NAME should be exposed."
+  ;; Validate inputs
+  (if (not (stringp name))
+      (signal 'wrong-type-argument (list name 'stringp)))
   ;; Showing a section is just like making a section dictionary, but
   ;; with no dictionary values to add.
-  (srecode-dictionary-add-section-dictionary dict name)
+  (srecode-dictionary-add-section-dictionary dict name t)
+  nil)
+
+(defmethod srecode-dictionary-hide-section ((dict srecode-dictionary) name)
+  "In dictionary DICT, indicate that the section NAME should be hidden."
+  ;; We need to find the has value, and then delete it.
+  ;; Validate inputs
+  (if (not (stringp name))
+      (signal 'wrong-type-argument (list name 'stringp)))
+  ;; Add the value.
+  (with-slots (namehash) dict
+    (remhash name namehash))
   nil)
 
 (defmethod srecode-dictionary-merge ((dict srecode-dictionary) otherdict)
@@ -258,7 +307,8 @@ template will be repeated."
     ;; Get the value of this name from the dictionary
     (or (with-slots (namehash) dict
 	  (gethash name namehash))
-	(and (oref dict parent)
+	(and (not (member name '("FIRST" "LAST" "NOTFIRST" "NOTLAST")))
+	     (oref dict parent)
 	     (srecode-dictionary-lookup-name (oref dict parent) name))
 	)))
 
