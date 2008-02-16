@@ -128,17 +128,18 @@ STATE is the current compilation state."
 				       prompttag)
   "Add PROMPTTAG to the current list of prompts."
   (with-slots (prompts) state
-      (let ((match (assoc (semantic-tag-name prompttag) prompts)))
+      (let ((match (assoc (semantic-tag-name prompttag) prompts))
+	    (newprompts prompts))
 	(when match
-	  (let ((newprompts nil)
-		(tmp prompts))
+	  (let ((tmp prompts))
+	    (setq newprompts nil)
 	    (while tmp
 	      (when (not (string= (car (car tmp))
 				  (car prompttag)))
 		(setq newprompts (cons (car tmp)
 				       newprompts)))
 	      (setq tmp (cdr tmp)))))
-	(setq prompts (cons prompttag prompts)))
+	(setq prompts (cons prompttag newprompts)))
       ))
 
 ;;;  TEMPLATE COMPILER
@@ -325,6 +326,14 @@ STATE is the current compile state as an object `srecode-compile-state'."
 		      :code code)
     ))
 
+(defun srecode-compile-do-hard-newline-p (comp)
+  "Examine COMP to decide if the upcoming newline should be hard.
+It is hard if the previous inserter is a newline object."
+  (while (and comp (stringp (car comp)))
+    (setq comp (cdr comp)))
+  (or (not comp)
+      (srecode-template-inserter-newline-child-p (car comp))))
+
 (defun srecode-compile-split-code (tag str STATE
 				       &optional end-name)
   "Split the code for TAG into something templatable.
@@ -368,8 +377,7 @@ If END-NAME is specified, and the input string"
 		      ;; if the previous entry is also a newline.
 		      ;; Without it, user entered blank lines will be
 		      ;; ignored.
-		      :hard (srecode-template-inserter-newline-child-p
-			     (car comp))
+		      :hard (srecode-compile-do-hard-newline-p comp)
 		      )))
 		;; Trim WHAT back.
 		(setq what (substring what namestart))
