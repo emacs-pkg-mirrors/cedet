@@ -215,6 +215,9 @@ Use PREDICATE is the same as for the `sort' function."
   (princ (object-name-string tab))
   (princ "\nPriority: ")
   (prin1 (oref tab :priority))
+  (when (oref tab :application)
+    (princ "\nApplication: ")
+    (princ (oref tab :application)))
   (princ "\n\nVariables:\n")
   (let ((vars (oref tab variables)))
     (while vars
