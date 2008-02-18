@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.257 2008/02/10 02:17:45 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.258 2008/02/18 16:20:31 zappo Exp $
 
 (defvar speedbar-version "1.0.2"
   "The current version of speedbar.")
@@ -1875,7 +1875,7 @@ matches the user directory ~, then it is replaced with a ~.
 INDEX is not used, but is required by the caller."
   (let* ((tilde (expand-file-name "~/"))
 	 (dd (expand-file-name directory))
-	 (junk (string-match (regexp-quote tilde) dd))
+	 (junk (string-match (concat "^" (regexp-quote tilde)) dd))
 	 (displayme (if junk
 			(concat "~/" (substring dd (match-end 0)))
 		      dd))
