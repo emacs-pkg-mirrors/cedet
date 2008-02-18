@@ -1,8 +1,8 @@
 ;;; semantic-edit.el --- Edit Management for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.35 2007/08/25 17:25:25 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.36 2008/02/18 15:26:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -852,25 +852,42 @@ pre-positioned to a convenient location."
     (if (eq first (car chil))
 	;; First tags in the cache are being deleted.
 	(progn
+	  (when semantic-edits-verbose-flag
+	    (working-temp-message "To Remove First Tag: (%s)"
+				  (semantic-format-tag-name first)))
 	  ;; Find the last tag
 	  (setq cacheend chil)
-	  (while (and chil (not (eq last (car cacheend))))
+	  (while (and cacheend (not (eq last (car cacheend))))
 	    (setq cacheend (cdr cacheend)))
+	  ;; The splicable part is after cacheend.. so move cacheend
+	  ;; one more tag.
+	  (setq cacheend (cdr cacheend))
 	  ;; Splice the found end tag into the cons cell
 	  ;; owned by the current top child.
-	  (setcar chil (car (cdr cacheend)))
-	  (setcdr chil (cdr (cdr cacheend)))
-	  )
-      ;; Find in the cache the preceeding tag
-      (while (and cachestart (not (eq first (car (cdr cachestart)))))
-	(setq cachestart (cdr cachestart)))
-      ;; Find the last tag
-      (setq cacheend cachestart)
-      (while (and cacheend (not (eq last (car cacheend))))
-	(setq cacheend (cdr cacheend)))
-      ;; Splice the end position into the start position.
-      (setcdr cachestart (cdr cacheend))
-      )
+	  (setcar chil (car cacheend))
+	  (setcdr chil (cdr cacheend))
+	  (when (not cacheend)
+	    ;; No cacheend.. then the whole system is empty.
+	    ;; The best way to deal with that is to do a full
+	    ;; reparse
+	    (semantic-parse-changes-failed "Splice-remove failed.  Empty buffer?")
+	    ))
+      (working-temp-message "To Remove Middle Tag: (%s)"
+			    (semantic-format-tag-name first)))
+    ;; Find in the cache the preceeding tag
+    (while (and cachestart (not (eq first (car (cdr cachestart)))))
+      (setq cachestart (cdr cachestart)))
+    ;; Find the last tag
+    (setq cacheend cachestart)
+    (while (and cacheend (not (eq last (car cacheend))))
+      (setq cacheend (cdr cacheend)))
+    ;; Splice the end position into the start position.
+    ;; If there is no start, then this whole section is probably
+    ;; gone.
+    (if cachestart
+	(setcdr cachestart (cdr cacheend))
+      (semantic-parse-changes-failed "Splice-remove failed."))
+
     ;; Remove old overlays of these deleted tags
     (while oldtags
       (semantic--tag-unlink-from-buffer (car oldtags))
