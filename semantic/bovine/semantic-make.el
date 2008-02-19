@@ -1,9 +1,9 @@
 ;;; semantic-make.el --- Makefile parsing rules.
 
-;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.18 2005/09/30 20:22:25 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.19 2008/02/19 03:11:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -52,8 +52,16 @@
     (semantic-lex-push-token
      (semantic-lex-token 'shell-command start (point)))))
 
+(define-lex-regex-analyzer semantic-lex-make-ignore-automake-conditional
+  "An automake conditional seems to really bog down the parser.
+Ignore them."
+  "^@\\(\\w\\|\\s_\\)+@"
+  (setq semantic-lex-end-point (match-end 0)))
+
 (define-lex semantic-make-lexer
   "Lexical analyzer for Makefiles."
+  semantic-lex-beginning-of-line
+  semantic-lex-make-ignore-automake-conditional
   semantic-lex-make-command
   semantic-lex-make-backslash-newline
   semantic-lex-whitespace
@@ -71,11 +79,19 @@
   "Expand TAG into a list of equivalent tags, or nil."
   (let ((name (semantic-tag-name tag))
         xpand)
-    (and (consp name)
-         (memq (semantic-tag-class tag) '(function include))
-         (while name
-           (setq xpand (cons (semantic-tag-clone tag (car name)) xpand)
-                 name  (cdr name))))
+    ;(message "Expanding %S" name)
+    ;(goto-char (semantic-tag-start tag))
+    ;(sit-for 0)
+    (if (and (consp name)
+	     (memq (semantic-tag-class tag) '(function include))
+	     (> (length name) 1))
+	(while name
+	  (setq xpand (cons (semantic-tag-clone tag (car name)) xpand)
+		name  (cdr name)))
+      ;; Else, only a single name.
+      (when (consp name)
+	(setcar tag (car name)))
+      (setq xpand (list tag)))
     xpand))
 
 (define-mode-local-override semantic-get-local-variables
