@@ -1,10 +1,10 @@
 ;;; semantic-dep.el --- Methods for tracking dependencies (include files)
 
-;;; Copyright (C) 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.4 2007/05/17 01:41:20 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.5 2008/02/19 03:24:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -72,7 +72,7 @@ When searching for a file associated with a name found in an tag of
 class include, this path will be inspected for includes of type
 `system'.  Some include tags are agnostic to this setting and will
 check both the project and system directories.")
-(make-variable-buffer-local `semantic-dependency-include-path)
+(make-variable-buffer-local `semantic-dependency-system-include-path)
 
 ;;; PATH MANAGEMENT
 ;;
