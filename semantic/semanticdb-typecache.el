@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.23 2008/02/13 03:56:43 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.24 2008/02/19 18:01:54 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -253,15 +253,17 @@ all included files."
   "Update the typecache for TABLE, and return the merged types from the include tags.
 Include-tags are the tags brought in via includes, all merged together into
 a master list."
-  (let* ((idx (semanticdb-get-table-index table))	 
+  (let* (;; Calc the path first.  This will have a nice side -effect of
+	 ;; getting the cache refreshed if a refresh is needed.  Most of the
+	 ;; time this value is itself cached, so the query is fast.
+	 (incpath (semanticdb-find-translate-path table nil))
+	 (idx (semanticdb-get-table-index table))	 
 	 (cache (semanticdb-get-typecache table))
 	 )
 
     ;; Make sure our file-tags list is up to date.
     (when (not (oref cache includestream))
-      (let ((incstream nil)
-	    (incpath (semanticdb-find-translate-path table nil))
-	    )
+      (let ((incstream nil))
 	;; Get the translated path, and extract all the type tags, then merge
 	;; them all together.
 	(dolist (i incpath)
