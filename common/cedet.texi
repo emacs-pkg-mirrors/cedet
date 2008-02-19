@@ -114,6 +114,7 @@ use the mailing list cedet-devel.net via the URL:
 * Project Management::
 * Code Completion::
 * Code Generation::	
+* C++ Features::	
 * GNU Free Documentation License::  
 * Index::                       
 @end menu
@@ -589,22 +590,6 @@ definitions are.
 For more, read the
 @inforef{Semanticdb Search Configuration, Semantic search configuration, semantic-user}.
 
-For C++, it is likely you will want to use @ede{} to setup a project.
-While @ede{} can be used to create makefiles and such using Automake,
-@ede{} also provides a way to merely describe a project so that tools
-like @semantic{} can find your sources.  For C++, you may want to do
-this:
-
-@example
-(ede-cpp-root-project "SOMENAME" :file "/dir/to/some/file")
-@end example
-
-where SOMENAME is a name for this project, and the file is a file name
-that exists at the root of your project directory.  There are many
-more options for the optimization of finding your header files.
-For more on this option, see
-@inforef{the ede-cpp-root chapter, ede-cpp-root, ede}.
-
 Once you've optimized @semantic{}'s ability to find your sources,
 there are several code completion options.  Please see the
 @inforef{Analyzer, semantic analyzer, semantic-user}.
@@ -630,6 +615,64 @@ Secondly, you will need to configure @srecode{}.  Read
 Once installed, you can jump right in to writing your Lisp and
 @inforef{Template Writing, Template Writing, screcode}.
 
+
+@node C++ Features
+@chapter C++ Features
+
+If you are using CEDET With C++, then there are a few C++ specific
+options you may need to update.
+
+@section Semantic Parser setup
+
+C and C++ use pre-processor directives, and the @semantic parser has
+some basic support for a pre-processor.  As such, you may need to set
+up some macros.  You can do that like this:
+
+@example
+;; Teach the parser about our strange macros.
+(setq semantic-lex-c-preprocessor-symbol-map
+      '( ;; PLATFORM STUFF
+         ( "__cplusplus" . nil )
+       ))
+@end example
+
+To have some macro text be replaced with something else, replace
+@code{nil} above with a string.
+
+@section System Include path
+
+If you want the code-completion to work with C++ system header file,
+you will need to update @code{semantic-dependency-system-include-path} for
+C++ mode.
+
+@example
+(setq-mode-local semantic-dependency-system-include-path
+                 '("/usr/include" "/user/include/c++/1.2.3/"))
+@end example
+
+or you can add them like this:
+
+@example
+(semantic-add-system-include "/usr/include/new" 'c-mode)
+@end example
+
+@section EDE Setup
+
+For large C++ programs, it is important to setup @ede{} for it. 
+While @ede{} can be used to create makefiles and such using Automake,
+@ede{} also provides a way to merely describe a project so that tools
+like @semantic{} can find your sources.  For C++, you may want to do
+this:
+
+@example
+(ede-cpp-root-project "SOMENAME" :file "/dir/to/some/file")
+@end example
+
+where SOMENAME is a name for this project, and the file is a file name
+that exists at the root of your project directory.  There are many
+more options for the optimization of finding your header files.
+For more on this option, see
+@inforef{the ede-cpp-root chapter, ede-cpp-root, ede}.
 
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
