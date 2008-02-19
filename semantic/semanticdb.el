@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.99 2008/02/14 16:42:26 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.100 2008/02/19 18:16:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -346,20 +346,20 @@ If one isn't found, create one."
 
 (defmethod semanticdb-in-buffer-p ((obj semanticdb-table))
   "Return a buffer associated with OBJ.
-If the buffer is in memory, return that buffer.
-If the buffer is not in memory, load it with `find-file-noselect'."
-  (let* ((f (semanticdb-full-filename obj))
-	)
-    (get-file-buffer f)))
-
+If the buffer is in memory, return that buffer."
+  ;; Extract the buffer from the tag structure.
+  ;; This is faster than lots of find-files and other things
+  ;; that mess with the file-system.
+  (let ((tag1 (car (semanticdb-get-tags obj))))
+    (and (semantic-tag-p tag1)
+	 (semantic-tag-in-buffer-p tag1))))
 
 (defmethod semanticdb-get-buffer ((obj semanticdb-table))
   "Return a buffer associated with OBJ.
 If the buffer is in memory, return that buffer.
 If the buffer is not in memory, load it with `find-file-noselect'."
-  (let* ((f (semanticdb-full-filename obj))
-	 (buf (get-file-buffer f)))
-    (or buf (find-file-noselect f t))))
+  (or (semanticdb-in-buffer-p obj)
+      (find-file-noselect (semanticdb-full-filename obj) t)))
 
 (defmethod semanticdb-set-buffer ((obj semanticdb-table))
   "Set the current buffer to be a buffer owned by OBJ.
