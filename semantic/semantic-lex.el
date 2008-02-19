@@ -1,8 +1,8 @@
 ;;; semantic-lex.el --- Lexical Analyzer builder
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.45 2007/08/27 00:45:42 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.46 2008/02/19 03:12:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -566,6 +566,8 @@ Should be set with `add-hook'specifying a LOCAL option.")
 
 ;; Stack of nested blocks.
 (defvar semantic-lex-block-stack nil)
+;;(defvar semantic-lex-timeout 5
+;;  "*Number of sections of lexing before giving up.")
 
 ;;;###autoload
 (defmacro define-lex (name doc &rest analyzers)
@@ -587,7 +589,8 @@ analyzer which might mistake a number for as a symbol."
      ;; Allow specialty reset items.
      (run-hook-with-args 'semantic-lex-reset-hooks start end)
      ;; Lexing state.
-     (let* ((starting-position (point))
+     (let* (;(starttime (current-time))
+	    (starting-position (point))
             (semantic-lex-token-stream nil)
             (semantic-lex-block-stack nil)
 	    (tmp-start start)
@@ -619,6 +622,10 @@ analyzer which might mistake a number for as a symbol."
                     tmp-start (car semantic-lex-token-stream)))
 	   (setq tmp-start semantic-lex-end-point)
            (goto-char semantic-lex-end-point)
+	   ;;(when (> (semantic-elapsed-time starttime (current-time))
+	   ;;	    semantic-lex-timeout)
+	   ;;  (error "Timeout during lex at char %d" (point)))
+	   (semantic-throw-on-input 'lex)
 	   (semantic-lex-debug-break (car semantic-lex-token-stream))
 	   ))
        ;; Check that there is no unterminated block.
