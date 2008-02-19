@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.5 2008/02/16 01:51:12 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.6 2008/02/19 03:34:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -120,8 +120,18 @@ Assumes the cursor is in a tag of class type.  If not, throw an error."
 
 ;;; TAG in a DICTIONARY
 ;;
+;;;###autoload
+(define-overload srecode-semantic-apply-tag-to-dict (tagobj dict)
+  "Insert fewatures of TAGOBJ into the dictionary DICT.
+TAGOBJ is an object of class `srecode-semantic-tag'.  This class
+is a compound inserter value.
+DICT is a dictionary object.
+At a minimum, this function will create dictionary macro for NAME.
+It is also likely to create macros for TYPE (data type), function arguments,
+variable default values, and other things."
+  )
 
-(defun srecode-semantic-apply-tag-to-dict (tagobj dict)
+(defun srecode-semantic-apply-tag-to-dict-default (tagobj dict)
   "Insert features of TAGOBJ into dictionary DICT."
   ;; Store the sst into the dictionary.
   (srecode-dictionary-set-value dict "TAG" tagobj)
@@ -132,27 +142,71 @@ Assumes the cursor is in a tag of class type.  If not, throw an error."
     (srecode-dictionary-set-value dict "NAME" (semantic-tag-name tag))
     (srecode-dictionary-set-value dict "TYPE" (semantic-format-tag-type tag nil))
   
-    (cond ((eq (semantic-tag-class tag) 'function)
-	   (let ((args (semantic-tag-function-arguments tag)))
-	     (while args
-	       (let ((larg (car args))
-		     (subdict (srecode-dictionary-add-section-dictionary
-			       dict "ARGS")))
-		 ;; Clean up elements in the arg list.
-		 (if (stringp larg)
-		     (setq larg (semantic-tag-new-variable
-				 larg nil nil)))
-		 ;; Apply the sub-argument to the subdictionary.
-		 (srecode-semantic-apply-tag-to-dict
-		  (srecode-semantic-tag (semantic-tag-name larg)
-					:prime larg)
-		  subdict)
-		 )
-	       ;; Next!
-	       (setq args (cdr args)))))
-	  ((eq (semantic-tag-class tag) 'variable)
-	   )
-	  )
+    (cond
+     ;;
+     ;; FUNCTION
+     ;;
+     ((eq (semantic-tag-class tag) 'function)
+      (let ((args (semantic-tag-function-arguments tag)))
+	(while args
+	  (let ((larg (car args))
+		(subdict (srecode-dictionary-add-section-dictionary
+			  dict "ARGS")))
+	    ;; Clean up elements in the arg list.
+	    (if (stringp larg)
+		(setq larg (semantic-tag-new-variable
+			    larg nil nil)))
+	    ;; Apply the sub-argument to the subdictionary.
+	    (srecode-semantic-apply-tag-to-dict
+	     (srecode-semantic-tag (semantic-tag-name larg)
+				   :prime larg)
+	     subdict)
+	    )
+	  ;; Next!
+	  (setq args (cdr args))))
+      (let ((p (semantic-tag-function-parent tag)))
+	(when p
+	  (srecode-dictionary-set-value dict "PARENT" p)
+	  ))
+      )
+     ;;
+     ;; VARIABLE
+     ;;
+     ((eq (semantic-tag-class tag) 'variable)
+      (when (semantic-tag-variable-default tag)
+	(let ((subdict (srecode-dictionary-add-section-dictionary
+			dict "DEFAULTVALUE")))
+	  (srecode-dictionary-set-value
+	   dict "VALUE" (semantic-tag-variable-default tag))))
+      )
+     ;;
+     ;; TYPE
+     ;;
+     ((eq (semantic-tag-class tag) 'type)
+      (dolist (p (semantic-tag-type-superclasses tag))
+	(let ((sd (srecode-dictionary-add-section-dictionary
+		   dict "PARENTS")))
+	  (srecode-dictionary-set-value sd "NAME" p)
+	  ))
+      (dolist (i (semantic-tag-type-interfaces tag))
+	(let ((sd (srecode-dictionary-add-section-dictionary
+		   dict "INTERFACES")))
+	  (srecode-dictionary-set-value sd "NAME" i)
+	  ))
+; NOTE : The members are too complicated to do via a template.
+;        do it via the insert-tag solution instead.
+;
+;      (dolist (mem (semantic-tag-type-members tag))
+;	(let ((subdict (srecode-dictionary-add-section-dictionary
+;			dict "MEMBERS")))
+;	  (when (stringp mem)
+;	    (setq mem (semantic-tag-new-variable mem nil nil)))
+;	  (srecode-semantic-apply-tag-to-dict
+;	   (srecode-semantic-tag (semantic-tag-name mem)
+;				 :prime mem)
+;	   subdict)))
+      )
+     )
     ))
 
 
@@ -160,20 +214,193 @@ Assumes the cursor is in a tag of class type.  If not, throw an error."
 ;;; INSERT A TAG API
 ;;
 ;; Routines that take a tag, and insert into a buffer.
+(define-overload srecode-semantic-find-template (class prototype ctxt)
+  "Find a template for a tag of class CLASS based on context.
+PROTOTYPE is non-nil if we want a prototype template instead."
+  )
 
-(defun srecode-semantic-insert-tag (tagobj &optional prototype)
-  "Insert TAGOBJ into a buffer useing srecode templates at point.
-Optional PROTOTYPE indicates that if prototype variants of
-a template are available, then those should be used.
+(defun srecode-semantic-find-template-default (class prototype ctxt)
+  "Find a template for tag CLASS based on context.
+PROTOTYPE is non-nil if we need a prototype.
+CTXT is the pre-calculated context."
+  (let* ((top (car ctxt))
+	 (tname (if (stringp class)
+		    class
+		  (symbol-name class)))
+	 (temp nil)
+	 )
+    ;; Try to find a template.
+    (setq temp (or
+		(when prototype
+		  (srecode-template-get-table (srecode-table)
+					      (concat tname "-tag-prototype")
+					      top))
+		(when prototype
+		  (srecode-template-get-table (srecode-table)
+					      (concat tname "-prototype")
+					      top))
+		(srecode-template-get-table (srecode-table)
+					    (concat tname "-tag")
+					    top)
+		(srecode-template-get-table (srecode-table)
+					    tname
+					    top)
+		(when (and (not (string= top "declaration"))
+			   prototype)
+		  (srecode-template-get-table (srecode-table)
+					      (concat tname "-prototype")
+					      "declaration"))
+		(when (and (not (string= top "declaration"))
+			   prototype)
+		  (srecode-template-get-table (srecode-table)
+					      (concat tname "-tag-prototype")
+					      "declaration"))
+		(when (not (string= top "declaration"))
+		  (srecode-template-get-table (srecode-table)
+					      (concat tname "-tag")
+					      "declaration"))
+		(when (not (string= top "declaration"))
+		  (srecode-template-get-table (srecode-table)
+					      tname
+					      "declaration"))
+		))
+    temp))
+
+;;;###autoload
+(defun srecode-semantic-insert-tag (tag &optional style-option
+					point-insert-fcn
+					&rest dict-entries)
+  "Insert TAG into a buffer useing srecode templates at point.
+
+Optional STYLE-OPTION is a list of minor configuration of styles,
+such as the symbol 'prototype for prototype functions, or
+'system for system includes, and 'doxygen, for a doxygen style
+comment.
+
+Optional third argument POINT-INSERT-FCN is a hook that is run after
+TAG is inserted that allows an opportunity to fill in the body of
+some thing.  This hook function is called with one argument, the TAG
+being inserted.
+
+The rest of the arguments are DICT-ENTRIES.  DICT-ENTRIES
+is of the form ( NAME1 VALUE1 NAME2 VALUE2 ... NAMEn VALUEn).
+
 The exact template used is based on the current context.
 The template used is found within the toplevel context as calculated
 by `srecode-calculate-context', such as `declaration', `classdecl',
-or `code'."
-  (let* ((ctxt (srecode-calculate-context))
+or `code'.
+
+For various conditions, this function looks for a template with
+the name CLASS-tag, where CLASS is the tag class.  If it cannot
+find that, it will look for that template in the
+`declaration'context (if the current context was not `declaration').
+
+If PROTOTYPE is specified, it will first look for templates with
+the name CLASS-tag-prototype, or CLASS-prototype as above.
+
+See `srecode-semantic-apply-tag-to-dict' for details on what is in
+the dictionary when the templates are called.
+
+This function returns to location in the buffer where the
+inserted tag ENDS, and will leave point inside the inserted
+text based on any occurance of a point-inserter.  Templates such
+as `function' will leave point where code might be inserted."
+  (srecode-load-tables-for-mode major-mode)
+  (let* ((tagobj (srecode-semantic-tag (semantic-tag-name tag) :prime tag))
+	 (ctxt (srecode-calculate-context))
 	 (top (car ctxt))
-	 (class (semantic-tag-class tagobj))
+	 (tname (symbol-name (semantic-tag-class tag)))
+	 (dict (srecode-create-dictionary))
+	 (temp nil)
+	 (errtype tname)
+	 (prototype (memq 'prototype style-option))
 	 )
-  
+    ;; Try some special cases.
+    (cond ((and (semantic-tag-of-class-p tag 'function)
+		(semantic-tag-get-attribute tag :constructor))
+	   (setq temp (srecode-semantic-find-template
+		       "constructor" prototype ctxt))
+	   )
+
+	  ((and (semantic-tag-of-class-p tag 'function)
+		(semantic-tag-get-attribute tag :destructor))
+	   (setq temp (srecode-semantic-find-template
+		       "destructor" prototype ctxt))
+	   )
+
+	  ((and (semantic-tag-of-class-p tag 'function)
+		(semantic-tag-function-parent tag))
+	   (setq temp (srecode-semantic-find-template
+		       "method" prototype ctxt))
+	   )
+	  )
+
+    (when (not temp)
+      ;; Try the basics
+      (setq temp (srecode-semantic-find-template
+		  tname prototype ctxt)))
+
+    ;; Try some backup template names.
+    (when (not temp)
+      (cond
+       ;; Types might split things up based on the type's type.
+       ((and (eq (semantic-tag-class tag) 'type)
+	     (semantic-tag-type tag))
+	(setq temp (srecode-semantic-find-template
+		    (semantic-tag-type tag) prototype ctxt))
+	(setq errtype (concat errtype " or " (semantic-tag-type tag)))
+	)
+       ;; A function might be an externally declaired method.
+       ((and (eq (semantic-tag-class tag) 'function)
+	     (semantic-tag-function-parent tag))
+	(setq temp (srecode-semantic-find-template
+		    "method" prototype ctxt)))
+       (t
+	nil)
+       ))
+
+    ;; Can't find one?  Drat!
+    (when (not temp)
+      (error "Cannot find template %s in %s for inserting tag %S"
+	     errtype top (semantic-format-tag-summarize tag)))
+
+    ;; Resolve Arguments
+    (srecode-resolve-arguments temp dict)
+
+    ;; Resolve TAG into the dictionary.
+    (srecode-semantic-apply-tag-to-dict tagobj dict)
+
+    ;; Insert dict-entries into the dictionary LAST so that previous
+    ;; items can be overriden.
+    (let ((entries dict-entries))
+      (while entries
+	(srecode-dictionary-set-value dict
+				      (car entries)
+				      (car (cdr entries)))
+	(setq entries (cdr (cdr entries)))))
+
+    ;; Insert the template.
+    (let ((endpt (srecode-insert-fcn temp dict)))
+
+      (run-hook-with-args 'point-insert-fcn tag)
+      ;;(sit-for 1)
+
+      (cond
+       ((semantic-tag-of-class-p tag 'type)
+	;; Insert all the members at the current insertion point.
+	(dolist (m (semantic-tag-type-members tag))
+	  
+	  (when (stringp m)
+	    (setq m (semantic-tag-new-variable m nil nil)))
+
+	  ;; We do prototypes w/in the class decl?
+	  (let ((me (srecode-semantic-insert-tag m '(prototype))))
+	    (goto-char me))
+
+	  ))
+       )
+
+      endpt)
     ))
 
 (provide 'srecode-semantic)
