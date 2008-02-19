@@ -1070,6 +1070,8 @@ For more on override methods, @inforef{Semantic Overload Mechanism, , lang-suppo
 * Format Tag::                  Converting Tokens into text strings
 * Tag Members::                 Tags in tags
 * Tag Details::                 Arbitrary token detail fetching
+* Tag File Reference::	        Files a tag references.
+* Jump to a Tag::	        Go to a tag's location
 * Making New Methods::          How to add your own methods for a tool
 @end menu
 
@@ -1368,22 +1370,23 @@ This function can be overloaded (see @dfn{define-mode-local-override} for detail
 @obsolete{semantic-tag-static,semantic-tag-static-p}
 @end defun
 
-@defvar semantic-dependency-include-path
-@anchor{semantic-dependency-include-path}
-Defines the include path used when searching for files.
-This should be a list of directories to search which is specific
-to the file being included.
+@node Tag File Reference
+@section Tag File Reference
 
-If @dfn{semantic-dependency-tag-file} is overridden for a given
-language, this path is most likely ignored.
+Some tags refer to some other file.
 
-This function, reguardless of being overriden, caches the located
-dependency file location in the tag property @code{dependency-file}.
-If you override this function, you do not need to implement your
-own cache.  Each time the buffer is fully reparsed, the cache
-will be reset.
+For include files, these options help Semantic find those files:
 
-@var{todo}: use ffap.el to locate such items.
+@defvar semantic-dependency-system-include-path
+@anchor{semantic-dependency-system-include-path}
+Defines the system include path.
+This should be set with either @dfn{defvar-mode-local}, or with
+@dfn{semantic-add-system-include}.
+
+When searching for a file associated with a name found in an tag of
+class include, this path will be inspected for includes of type
+@code{system}.  Some include tags are agnostic to this setting and will
+check both the project and system directories.
 @end defvar
 
 @defun semantic-dependency-tag-file &optional tag
@@ -1396,6 +1399,9 @@ It makes the overload @dfn{semantic-find-dependency} obsolete.
 @obsolete{semantic-find-dependency,semantic-dependency-tag-file}
 @end defun
 
+In languages with prototypes, such as C/C++, you can try to find a
+corresponding file where a prototype to some implementation lives.
+
 @defun semantic-prototype-file buffer
 @anchor{semantic-prototype-file}
 Return a file in which prototypes belonging to @var{buffer} should be placed.
@@ -1404,6 +1410,27 @@ prototype file, or the existence of an @var{ede} variable indicating which
 file prototypes belong in.
 This function can be overloaded (see @dfn{define-mode-local-override} for details).
 @end defun
+
+The semantic support for Texinfo lets you find references to functions
+in doc you might be maintaining.
+
+@defun semantic-texi-find-documentation name &optional type
+@anchor{semantic-texi-find-documentation}
+Find the function or variable @var{name} of @var{type} in the texinfo source.
+@var{name} is a string representing some functional symbol.
+@var{type} is a string, such as ``variable`` or ''Command'' used to find
+the correct definition in case @var{name} qualifies as several things.
+When this function exists, @var{point} is at the definition.
+If the doc was not found, an error is thrown.
+Note: @var{type} not yet implemented.
+@end defun
+
+
+@node Jump to a Tag
+@section Jump to a Tag
+
+Each tag has a file from which it came.  If a tag has been managed
+propertly, you can jump to it with this function:
 
 @defun semantic-go-to-tag tag &optional parent
 @anchor{semantic-go-to-tag}
@@ -1418,16 +1445,10 @@ It makes the overload @dfn{semantic-find-nonterminal} obsolete.
 @obsolete{semantic-find-nonterminal,semantic-go-to-tag}
 @end defun
 
-@defun semantic-texi-find-documentation name &optional type
-@anchor{semantic-texi-find-documentation}
-Find the function or variable @var{name} of @var{type} in the texinfo source.
-@var{name} is a string representing some functional symbol.
-@var{type} is a string, such as ``variable`` or ''Command'' used to find
-the correct definition in case @var{name} qualifies as several things.
-When this function exists, @var{point} is at the definition.
-If the doc was not found, an error is thrown.
-Note: @var{type} not yet implemented.
-@end defun
+When extracting tags from a database via search routines, those tags,
+by default, do not have the necessary information in them.  Be sure
+that when the database results are stripped, you use options that
+force that file information to be kept.
 
 @node Making New Methods
 @section Making New Methods
@@ -2266,8 +2287,13 @@ call to @code{semantic-throw-on-input}.
 @chapter Programming Examples
 
   *** NOTE ***  These examples are for semantic 1.4.
+
 Using the below functions will generate compile time warnings with
 advice on what functions to use in semantic 2.0.
+
+
+
+
 
 
 Here are some simple examples that use different aspects of the
