@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.24 2008/02/14 16:04:33 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.25 2008/02/19 13:47:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -183,7 +183,8 @@ If DIRECTORY doesn't exist, create a new one."
 	  (delete-instance r)
 	  (setq r nil))
 	r)
-    (error (message "Cache Error: %s, Restart" foo)
+    (error (message "Cache Error: [%s] %s, Restart" 
+		    filename foo)
 	   nil)))
 
 ;;;###autoload
