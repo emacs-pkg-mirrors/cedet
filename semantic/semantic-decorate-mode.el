@@ -1,10 +1,10 @@
 ;;; semantic-decorate-mode.el --- Minor mode for decorating tags
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.16 2008/01/09 14:04:24 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.17 2008/02/19 03:24:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -461,16 +461,18 @@ Used by decoration style: `semantic-tag-boundary'."
 
 (defun semantic-tag-boundary-highlight-default (tag)
   "Highlight the first line of TAG as a boundary."
-  (with-current-buffer (semantic-tag-buffer tag)
-    (semantic-decorate-tag
-     tag
-     (semantic-tag-start tag)
-     (save-excursion
-       (goto-char (semantic-tag-start tag))
-       (end-of-line)
-       (forward-char 1)
-       (point))
-     'semantic-tag-boundary-face)))
+  (when (bufferp (semantic-tag-buffer tag))
+    (with-current-buffer (semantic-tag-buffer tag)
+      (semantic-decorate-tag
+       tag
+       (semantic-tag-start tag)
+       (save-excursion
+	 (goto-char (semantic-tag-start tag))
+	 (end-of-line)
+	 (forward-char 1)
+	 (point))
+       'semantic-tag-boundary-face))
+    ))
 
 ;;; Private member highlighting
 ;;
