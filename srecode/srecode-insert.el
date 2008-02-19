@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.17 2008/02/16 01:44:24 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.18 2008/02/19 03:32:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -92,7 +92,7 @@ DICT-ENTRIES are additional dictionary values to add."
       (setq end-mark (point-marker))
       (goto-char  (oref srecode-template-inserter-point point)))
     (oset-default 'srecode-template-inserter-point point eieio-unbound)
-    end-mark)
+    (or end-mark (point)))
   )
 
 ;;; TEMPLATE ARGUMENTS
@@ -207,17 +207,21 @@ by themselves.")
 	  (setq doit nil)))
       (goto-char pm)
       )
+    ;; Do indentation reguardless of the newline.
+    (when (and (eq i t) inbuff)
+      (indent-according-to-mode)
+      (goto-char pm))
+
     (when doit
-      (when (and (eq i t) inbuff)
-	(indent-according-to-mode)
-	(goto-char pm))
       (princ "\n")
       ;; Indent after the newline, particularly for numeric indents.
       (cond ((and (eq i t) (bufferp standard-output))
 	     ;; WARNING - indent according to mode requires that standard-output
 	     ;;           is a buffer!
 	     ;; @todo - how to indent in a string???
-	     (indent-according-to-mode))
+	     (setq pm (point-marker))
+	     (indent-according-to-mode)
+	     (goto-char pm))
 	    ((numberp i)
 	     (princ (make-string i " ")))
 	    ((stringp i)
@@ -250,12 +254,27 @@ When set to 'end it will insert a CR if we are not at 'eol'")
 (defmethod srecode-insert-method ((sti srecode-template-inserter-blank)
 				  dictionary)
   "Make sure there is no text before or after point."
-  (when (bufferp standard-output)
-    (cond ((and (eq (oref sti where) 'begin) (not (bolp)))
-	   (princ "\n"))
-	  ((and (eq (oref sti where) 'end) (not (eolp)))
-	   (princ "\n"))
-	  )))
+  (let ((i (srecode-dictionary-lookup-name dictionary "INDENT"))
+	(inbuff (bufferp standard-output))
+	(pm (point-marker)))
+    (when (and inbuff 
+	       ;; Don't do this if we are not the active template.
+	       (= (length (oref srecode-template active)) 1))
+
+      (when (and (eq i t) inbuff (not (eq (oref sti where) 'begin)))
+	(indent-according-to-mode)
+	(goto-char pm))
+      
+      (cond ((and (eq (oref sti where) 'begin) (not (bolp)))
+	     (princ "\n"))
+	    ((and (eq (oref sti where) 'end) (not (eolp)))
+	     (princ "\n"))
+	    )
+      (setq pm (point-marker))
+      (when (and (eq i t) inbuff (not (eq (oref sti where) 'end)))
+	(indent-according-to-mode)
+	(goto-char pm))
+      )))
 
 (defclass srecode-template-inserter-comment (srecode-template-inserter)
   ((key :initform ?!
@@ -449,7 +468,11 @@ If `srecode-template-inserter-point-override' then this generalized
 marker will do something else.  See `srecode-template-inserter-include-wrap'
 as an example."
   (if srecode-template-inserter-point-override
-      (funcall srecode-template-inserter-point-override dictionary)
+      ;; Disable the old override while we do this.
+      (let ((over srecode-template-inserter-point-override)
+	    (srecode-template-inserter-point-override nil))
+	(funcall over dictionary)
+	)
     (oset sti point (point-marker))
     ))
 
@@ -575,7 +598,7 @@ this template instance."
 	      ctxt)
 	  (when (not tmpl)
 	    ;; If it isn't just available, scan back through
-	    ;; the active tempalte stack, searching for a matching
+	    ;; the active template stack, searching for a matching
 	    ;; context.
 	    (while (and (not tmpl) active)
 	      (setq ctxt (oref (car active) context))
@@ -583,13 +606,14 @@ this template instance."
 						     templatenamepart
 						     ctxt))
 	      (when (not tmpl)
-		(let ((app (oref (oref (car active) table) application)))
-		  (when app
-		    (setq tmpl (srecode-template-get-table 
-				(srecode-table)
-				templatenamepart
-				ctxt app)))
-		  ))
+		(when (slot-boundp (car active) 'table)
+		  (let ((app (oref (oref (car active) table) application)))
+		    (when app
+		      (setq tmpl (srecode-template-get-table 
+				  (srecode-table)
+				  templatenamepart
+				  ctxt app)))
+		    )))
 	      (setq active (cdr active)))
 	    (when (not tmpl)
 	      ;; If it wasn't in this context, look to see if it
