@@ -1,11 +1,11 @@
 ;;; project-am.el --- A project management scheme based on automake files.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2003, 2005, 2007  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2003, 2005, 2007, 2008  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.29 2007/09/02 14:27:26 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.30 2008/02/19 03:20:20 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -173,23 +173,25 @@ OT is the object target.  DIR is the directory to start in."
   (if (= (point-min) (point))
       (re-search-forward (ede-target-name obj))))
 
-(defmethod project-new-target ((proj project-am-makefile))
+(defmethod project-new-target ((proj project-am-makefile)
+			       &optional name type)
   "Create a new target named NAME.
 Argument TYPE is the type of target to insert.  This is a string
 matching something in `project-am-type-alist' or type class symbol.
 Despite the fact that this is a method, it depends on the current
 buffer being in order to provide a smart default target type."
-  (let* ((name (read-string "Name: " ""))
-	 (type (completing-read "Type: "
-				project-am-type-alist
-				nil t
-				(cond ((eq major-mode 'texinfo-mode)
-				       "texinfo")
-				      ((eq major-mode 'nroff-mode)
-				       "man")
-				      ((eq major-mode 'emacs-lisp-mode)
-				       "lisp")
-				      (t "bin"))))
+  (let* ((name (or name (read-string "Name: " "")))
+	 (type (or type
+		   (completing-read "Type: "
+				    project-am-type-alist
+				    nil t
+				    (cond ((eq major-mode 'texinfo-mode)
+					   "texinfo")
+					  ((eq major-mode 'nroff-mode)
+					   "man")
+					  ((eq major-mode 'emacs-lisp-mode)
+					   "lisp")
+					  (t "bin")))))
 	 (ntype (assoc type project-am-type-alist))
 	 (ot nil))
     (setq ot (apply (car (cdr ntype)) name :name name
