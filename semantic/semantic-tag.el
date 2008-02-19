@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.50 2008/02/04 23:00:55 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.51 2008/02/19 03:26:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -171,7 +171,8 @@ That function is for internal use only."
       (semantic--tag-set-overlay tag (vector start end)))))
 
 (defun semantic-tag-in-buffer-p (tag)
-  "Return the buffer TAG resides in IFF tag is already in a buffer."
+  "Return the buffer TAG resides in IFF tag is already in a buffer.
+If a tag is not in a buffer, return nil."
   (let ((o (semantic-tag-overlay tag)))
      ;; TAG is currently linked to a buffer, return it.
     (when (and (semantic-overlay-p o)
@@ -347,9 +348,42 @@ same thing, but may be constructed of different cons cells."
 		(equal (semantic-tag-bounds tag1)
 		       (semantic-tag-bounds tag2))))))
 
+(defun semantic-tag-similar-p (tag1 tag2)
+  "Test to see if TAG1 and TAG2 are similar.
+Two tags are similar if their name, datatype, and various attributes
+are the same.
+
+Similar tags that have sub-tags such as arg lists or type members,
+are similar w/out checking the sub-list of tags."
+  (let* ((A1 (and (equal (semantic-tag-name tag1) (semantic-tag-name tag2))
+		  (semantic-tag-of-class-p tag1 (semantic-tag-class tag2))
+		  (semantic-tag-of-type-p tag1 (semantic-tag-type tag2))))
+	 (attr1 (semantic-tag-attributes tag1))
+	 (A2 (= (length attr1) (length (semantic-tag-attributes tag2))))
+	 (A3 t)
+	 )
+    (while (and A2 attr1 A3)
+      (let ((a (car attr1))
+	    (v (car (cdr attr1))))
+
+	(if (and (listp v) (semantic-tag-p (car v)))
+	    ;; Don't test this
+	    nil
+	  (when (not (equal v (semantic-tag-get-attribute tag2 a)))
+	    (setq A3 nil))
+	  ))
+      (setq attr1 (cdr (cdr attr1))))
+    
+    (and A1 A2 A3)
+    ))
+
 (defun semantic-tag-of-type-p (tag type)
   "Compare TAG's type against TYPE.  Non nil if equivalent.
-TYPE can be a string, or a tag of class 'type."
+TYPE can be a string, or a tag of class 'type.
+This can be complex since some tags might have a :type that is a tag,
+while other tags might just have a string.  This function will also be
+return true of TAG's type is compared directly to the declaration of a
+data type."
   (let* ((tagtype (semantic-tag-type tag))
 	 (tagtypestring (cond ((stringp tagtype)
 			       tagtype)
@@ -396,7 +430,11 @@ Returns the list of tag members if it is compound."
 (defun semantic-tag-faux-p (tag)
   "Return non-nil if TAG is a FAUX tag.
 FAUX tags are created to represent a construct that is
-not known to exist in the code."
+not known to exist in the code.
+
+Example: When the class browser sees methods to a class, but
+cannot find the class, it will create a faux tag to represent the
+class to store those methods."
   (semantic--tag-get-property tag :faux-flag))
 
 ;;; Tag creation
@@ -432,11 +470,11 @@ such as 'variable, or 'function.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
   (list name class (semantic-tag-make-plist attributes) nil nil))
 
-(defsubst semantic-tag-new-variable (name type default-value &rest attributes)
+(defsubst semantic-tag-new-variable (name type &optional default-value &rest attributes)
   "Create a semantic tag of class 'variable.
 NAME is the name of this variable.
 TYPE is a string or semantic tag representing the type of this variable.
-DEFAULT-VALUE is a string representing the default value of this variable.
+Optional DEFAULT-VALUE is a string representing the default value of this variable.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
   (apply 'semantic-tag name 'variable
          :type type
@@ -590,7 +628,11 @@ This function is for internal use only."
 ;;; Common
 ;;
 (defsubst semantic-tag-type (tag)
-  "Return the value of the `:type' attribute of TAG."
+  "Return the value of the `:type' attribute of TAG.
+For a function it would be the data type of the return value.
+For a variable, it is the storage type of that variable.
+For a data type, the type is the style of datatype, such as
+struct or union."
   (semantic-tag-get-attribute tag :type))
 
 (defsubst semantic-tag-modifiers (tag)
