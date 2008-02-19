@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.202 2008/02/13 22:35:24 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.203 2008/02/19 03:08:27 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -315,7 +315,8 @@ to use Semantic, and `semantic-init-hook' is run."
   (condition-case nil
       (if (semantic-parse-tree-needs-update-p)
 	  (semantic-fetch-tags))
-    (error nil)))
+    (error nil))
+  semantic--buffer-cache)
 
 (if (boundp 'eval-defun-hooks)
     (add-hook 'eval-defun-hooks 'semantic-fetch-tags-fast))
@@ -412,13 +413,15 @@ unterminated syntax."
     ;; If there is no table, or it was set to t, then we are here by
     ;; some other mistake.  Do not throw an error deep in the parser.
     (error "No support found to parse buffer %S" (buffer-name)))
-  (when (or (< end start) (> end (point-max)))
-    (error "Invalid parse region bounds %S, %S" start end))
-  (nreverse
-   (semantic-repeat-parse-whole-stream
-    (or (cdr (assq start semantic-lex-block-streams))
-        (semantic-lex start end depth))
-    nonterminal returnonerror)))
+  (save-restriction
+    (widen)
+    (when (or (< end start) (> end (point-max)))
+      (error "Invalid parse region bounds %S, %S" start end))
+    (nreverse
+     (semantic-repeat-parse-whole-stream
+      (or (cdr (assq start semantic-lex-block-streams))
+	  (semantic-lex start end depth))
+      nonterminal returnonerror))))
 
 ;;; Parsing functions
 ;;
