@@ -1,9 +1,9 @@
 ;;; semanticdb-ref.el --- Handle cross-db file references
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-ref.el,v 1.4 2007/09/04 01:10:53 zappo Exp $
+;; X-RCS: $Id: semanticdb-ref.el,v 1.5 2008/02/19 03:22:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -127,7 +127,7 @@ METHOD takes two arguments.
   (METHOD TABLE-TO-NOTIFY DBT)
 TABLE-TO-NOTIFY is a semanticdb-table which is being notified.
 DBT, the second argument is DBT."
-  (mapcar (lambda (R) (funcall method R dbt))
+  (mapc (lambda (R) (funcall method R dbt))
 	  (oref dbt db-refs)))
 
 ;;; DEBUG
