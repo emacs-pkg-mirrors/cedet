@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.25 2008/02/19 13:47:15 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.26 2008/02/19 18:16:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -242,7 +242,7 @@ Live files are either buffers in Emacs, or files existing on the filesystem."
 Restore the overlays after writting.
 Argument OBJ is the object to write."
   (if (semanticdb-live-p obj)
-      (let ((b (get-file-buffer (semanticdb-full-filename obj))))
+      (let ((b (semanticdb-in-buffer-p obj)))
 	(save-excursion
 	  (if b (progn (set-buffer b)
 		       ;; Try to get an accurate unmatched syntax table.
