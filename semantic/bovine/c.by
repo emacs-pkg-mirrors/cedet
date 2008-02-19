@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.37 2008/01/18 18:32:51 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.38 2008/02/19 03:22:09 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -227,47 +227,19 @@ extern-c
     ( nil )
   ;
 
-;; Klaus Berndl: At least one-liner should be parsed correctly!
-;; Multi-line macros (every line ends with a '\') not being one
-;; code-block can not be parsed because \+newline is flexed as nothing
-;; and therefore we can not distinguish if the lines > 1 belong to the
-;; macro or are separated statements! Maybe we need special backslash
-;; recognizing and then better macro-parsing. For the moment it's goog
-;; enough.
-macro-expression-list
-  : expression macro-expression-list SEMICOLON
-    ( nil )
-  | expression
-    ( nil )
-  ;
-
-macro-def
-  : macro-expression-list
-    ( nil )
-  | expression
-    ( nil )
-  | ;;EMPTY
-  ;
-
 macro
-  : spp-macro-def opt-define-arglist macro-def
-    (VARIABLE-TAG $1 nil $3 :constant-flag t )
+  : spp-macro-def
+    (VARIABLE-TAG $1 nil nil :constant-flag t )
   | spp-system-include
     (INCLUDE-TAG $1 t)
   | spp-include
     (INCLUDE-TAG $1 nil)
   ;
 
-opt-define-arglist
-  : semantic-list
-    ( nil )
-  | ;;EMPTY
-  ;
-
 ;; This is used in struct parts.
 define
-  : spp-macro-def opt-define-arglist macro-def
-    (VARIABLE-TAG $1 nil $3 :constant-flag t)
+  : spp-macro-def
+    (VARIABLE-TAG $1 nil nil :constant-flag t)
   | spp-macro-undef
     ( nil )
   ;
