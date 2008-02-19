@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.50 2008/01/20 01:59:35 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.51 2008/02/19 03:19:46 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -197,6 +197,7 @@ in targets.")
 	      :type list
 	      :custom (repeat (cons (string :tag "Name")
 				    (string :tag "Value")))
+	      :group (settings)
 	      :documentation "Variables to set in this Makefile.")
    (configuration-variables
     :initarg :configuration-variables
@@ -206,6 +207,7 @@ in targets.")
 			  (repeat
 			   (cons (string :tag "Name")
 				 (string :tag "Value")))))
+    :group (settings)
     :documentation "Makefile variables to use in different configurations.
 These variables are used in the makefile when a configuration becomes active.")
    (inference-rules :initarg :inference-rules
@@ -340,14 +342,18 @@ Argument TARGET is the project we are completing customization on."
 (defvar ede-proj-target-history nil
   "History when querying for a target type.")
 
-(defmethod project-new-target ((this ede-proj-project))
+(defmethod project-new-target ((this ede-proj-project)
+			       &optional name type autoadd)
   "Create a new target in THIS based on the current buffer."
-  (let* ((name (read-string "Name: " ""))
-	 (type (completing-read "Type: " ede-proj-target-alist
-				nil t nil '(ede-proj-target-history . 1)))
+  (let* ((name (or name (read-string "Name: " "")))
+	 (type (or type 
+		   (completing-read "Type: " ede-proj-target-alist
+				    nil t nil '(ede-proj-target-history . 1))))
 	 (ot nil)
 	 (src (if (and (buffer-file-name)
-		       (y-or-n-p (format "Add %s to %s? " (buffer-name) name)))
+		       (if (and autoadd (stringp autoadd))
+			   (string= autoadd "y")
+			 (y-or-n-p (format "Add %s to %s? " (buffer-name) name))))
 		  (buffer-file-name))))
     (setq ot (funcall (cdr (assoc type ede-proj-target-alist)) name :name name
 		      :path (ede-convert-path this default-directory)
@@ -503,9 +509,10 @@ Converts all symbols into the objects to be used."
 	  (if (listp comp)
 	      (setq comp (mapcar 'symbol-value comp))
 	    (setq comp (list (symbol-value comp))))
-	(let ((avail (mapcar 'symbol-value (oref obj availablecompilers)))
-	      (st (oref obj sourcetype))
-	      (sources (oref obj source)))
+	(let* ((acomp (oref obj availablecompilers))
+	       (avail (mapcar 'symbol-value acomp))
+	       (st (oref obj sourcetype))
+	       (sources (oref obj source)))
 	  ;; COMP is not specified, so generate a list from the available
 	  ;; compilers list.
 	  (while st
@@ -528,11 +535,12 @@ Converts all symbols into the objects to be used."
 	  ;; Now that we have a pre-set linkers to use, convert type symbols
 	  ;; into objects for ease of use
 	  (if (symbolp link)
-	      (setq link (symbol-value link))
+	      (setq link (list (symbol-value link)))
 	    (error ":linker is not a symbol.  Howd you do that?"))
-	(let ((avail (mapcar 'symbol-value (oref obj availablelinkers)))
-	      (st (oref obj sourcetype))
-	      (sources (oref obj source)))
+	(let* ((alink (oref obj availablelinkers))
+	       (avail (mapcar 'symbol-value alink))
+	       (st (oref obj sourcetype))
+	       (sources (oref obj source)))
 	  ;; LINKER is not specified, so generate a list from the available
 	  ;; compilers list.
 	  (while st
