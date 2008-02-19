@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.90 2008/01/11 16:54:16 zappo Exp $
+;; RCS: $Id: ede.el,v 1.91 2008/02/19 03:18:28 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -250,6 +250,13 @@ For Automake based projects, each directory is treated as a project.")
 	    :label "Local Targets"
 	    :group (targets)
 	    :documentation "List of top level targets in this project.")
+   (tool-cache :initarg :tool-cache
+	       :type list
+	       :custom (repeat object)
+	       :label "Tool: "
+	       :group tools
+	       :documentation "List of tool cache configurations in this project.
+This allows any tool to create, manage, and persist project-specific settings.")
    (web-site-url :initarg :web-site-url
 		 :initform ""
 		 :type string
@@ -809,8 +816,9 @@ Argument FILE is the file or directory to load a project from."
       (ede-new file)
     (ede-load-project-file (file-name-directory file))))
 
-(defun ede-new (type)
-  "Create a new project starting of project type TYPE."
+(defun ede-new (type &optional name)
+  "Create a new project starting of project type TYPE.
+Optional argument NAME is the name to give this project."
   (interactive
    (list (completing-read "Project Type: "
 			  (object-assoc-list
@@ -830,7 +838,7 @@ Argument FILE is the file or directory to load a project from."
 		 ;; Make sure this class gets loaded!
 		 (require f)
 		 (make-instance (oref obj class-sym)
-				:name (read-string "Name: ")
+				:name (or name (read-string "Name: "))
 				:file (cond ((stringp pf)
 					     (expand-file-name pf))
 					    ((fboundp pf)
@@ -844,8 +852,10 @@ Argument FILE is the file or directory to load a project from."
     (while inits
       (eieio-oset nobj (car inits) (car (cdr inits)))
       (setq inits (cdr (cdr inits))))
-    (if (ede-parent-project)
-	(ede-add-subproject (ede-parent-project) nobj))
+    (let ((pp (ede-parent-project)))
+      (when pp
+	(ede-add-subproject pp nobj)
+	(ede-commit-project pp)))
     (ede-commit-project nobj))
   ;; Have the menu appear
   (setq ede-minor-mode t)
@@ -886,10 +896,13 @@ ARGS are additional arguments to pass to method sym."
 	(ede-deep-rescan t))
     (project-rescan (ede-load-project-file toppath))))
 
-(defun ede-new-target ()
-  "Create a new target specific to this type of project file."
+(defun ede-new-target (&rest args)
+  "Create a new target specific to this type of project file.
+Different projects accept different arguments ARGS.
+Typically you can specify NAME, target TYPE, and AUTOADD, where AUTOADD is
+a string \"y\" or \"n\", which answers the y/n question done interactively."
   (interactive)
-  (project-new-target (ede-current-project))
+  (apply 'project-new-target (ede-current-project) args)
   (setq ede-object nil)
   (setq ede-object (ede-buffer-object (current-buffer)))
   (ede-apply-object-keymap))
@@ -923,6 +936,11 @@ ARGS are additional arguments to pass to method sym."
 		(let ((ede-object (ede-current-project)))
 		  (ede-invoke-method 'project-interactive-select-target
 				     "Target: "))))
+  (when (stringp target)
+    (let* ((proj (ede-current-project))
+	   (ob (object-assoc-list 'name (oref proj targets))))
+      (setq target (cdr (assoc target ob)))))
+
   (project-add-file target (buffer-file-name))
   (setq ede-object nil)
   (setq ede-object (ede-buffer-object (current-buffer)))
@@ -1128,7 +1146,7 @@ Argument FNND is an argument."
   "Edit the target OT associated w/ this file."
   (find-file (oref (ede-current-project) file)))
 
-(defmethod project-new-target ((proj ede-project))
+(defmethod project-new-target ((proj ede-project) &rest args)
   "Create a new target.  It is up to the project PROJ to get the name."
   (error "new-target not supported by %s" (object-name proj)))
 
