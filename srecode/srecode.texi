@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.7 2008/02/16 01:57:15 zappo Exp $
+@c $Id: srecode.texi,v 1.8 2008/02/19 03:54:42 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -60,6 +60,7 @@ ease.
 * Dictionaries::                How dictionaries work
 * Developing Template Functions:: How to write your own template insert functions.
 * Template Naming Conventions:: Creating a set of core temlates
+* Inserting Tag Lists::	        Inserting Semantic tags via templates
 * Application Writing::         Writing an @srecode{}r application
 * Index::
 @end menu
@@ -1154,7 +1155,24 @@ A method belonging to some class declaired outside the textual bounds
 of that class' declaration.
 @item variable
 A global variable.
+@item type
+A data type.  If the language supports several types of datatypes
+then do not use this, use more specific ones instead.
+@item class
+For OO languages, use this instead of @code{type}.
+@item include
+Include files.
 @end table
+
+For any @semantic{} tag class in your language, you will likely want
+to have a corresponding template.
+
+In order for the @srecode{} function
+@code{srecode-semantic-insert-tag} to work, you can create templates
+similar to those mentioned above, except with @code{-tag} appended to
+the end.  This lets a template like @code{function} have user
+conveniences while referencing @code{function-tag}, while also
+allowing the tag inserter to do it's job with a simpler template.
 
 @section Context: Classdef
 
@@ -1164,6 +1182,9 @@ textual bounds of a class declaration.
 @table @code
 @item function
 This would be a method of the class being inserted into.
+@item constructor
+@itemx destructor
+Like @code{function} but specific to alloc/delete of an object.
 @item variable
 This would be a field of the class being inserted into.
 @end table
@@ -1196,6 +1217,68 @@ The ARGS macro defines a section for 0 or more arguments to a function
 or method.  Each entry in ARGS will follow the rest of these naming
 conventions, such as for NAME and TYPE.
 @end table
+
+For templates used by @code{srecode-semantic-insert-tag}, there is
+also the following useful macro values.
+
+@table @var
+@item TAG
+A special insertion value TAG.  You can use semantic functions to turn
+the tag into a string.
+@item HAVEDEFAULT
+@itemx DEFAULT
+Default value for a variable.
+@end table
+
+@node Inserting Tag Lists
+@chapter Inserting Tag Lists
+
+Since @srecode{} is the @i{Semantic Recoder}, the ultimate goal for
+@srecode{} is to convert lists of tags, as produced by @semantic{}
+back into code.
+
+A single function provides the interface for programs to do this, but
+it requires any particular language to have provided the correct
+templates to make it work.
+
+@defun srecode-semantic-insert-tag tag &optional style-option point-insert-fcn &rest dict-entries
+@anchor{srecode-semantic-insert-tag}
+Insert @var{tag} into a buffer useing srecode templates at point.
+
+Optional @var{style-option} is a list of minor configuration of styles,
+such as the symbol @code{'prototype} for prototype functions, or
+@code{'system} for system includes, and @code{'doxygen}, for a doxygen style
+comment.
+
+Optional third argument @var{point-insert-fcn} is a hook that is run after
+@var{tag} is inserted that allows an opportunity to fill in the body of
+some thing.  This hook function is called with one argument, the @var{tag}
+being inserted.
+
+The rest of the arguments are @var{dict-entries}.  @var{dict-entries}
+is of the form ( @var{name1} @var{value1} @var{name2} @var{value2} @dots{} NAMEn VALUEn).
+
+The exact template used is based on the current context.
+The template used is found within the toplevel context as calculated
+by @dfn{srecode-calculate-context}, such as @code{declaration}, @code{classdecl},
+or @code{code}.
+
+For various conditions, this function looks for a template with
+the name @var{class}-tag, where @var{class} is the tag class.  If it cannot
+find that, it will look for that template in the
+@code{declaration}context (if the current context was not @code{declaration}).
+
+If @var{prototype} is specified, it will first look for templates with
+the name @var{class}-tag-prototype, or @var{class}-prototype as above.
+
+See @dfn{srecode-semantic-apply-tag-to-dict} for details on what is in
+the dictionary when the templates are called.
+
+This function returns to location in the buffer where the
+inserted tag @var{ends}, and will leave point inside the inserted
+text based on any occurance of a point-inserter.  Templates such
+as @dfn{function} will leave point where code might be inserted.
+@end defun
 
 
 @node Application Writing
