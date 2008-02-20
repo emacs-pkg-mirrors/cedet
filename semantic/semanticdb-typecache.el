@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.24 2008/02/19 18:01:54 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.25 2008/02/20 04:26:18 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -44,6 +44,10 @@
 	   :documentation
 	   "The searchable tag stream for this cache.
 NOTE: Can I get rid of this?  Use a hashtable instead?")
+   (dependants :initform nil
+	       :documentation
+	       "Any other object that is dependent on typecache results.
+Said object must support `semantic-reset' methods.")
    ;; @todo - add some sort of fast-hash.
    )
   "Structure for maintaining a typecache.")
@@ -54,12 +58,17 @@ NOTE: Can I get rid of this?  Use a hashtable instead?")
   (oset tc includestream nil)
 
   (oset tc stream nil)
+
+  (mapc 'semantic-reset (oref tc dependants))
+  (oset tc dependants nil)
   )
 
 ;;;###autoload
 (defmethod semanticdb-typecache-notify-reset ((tc semanticdb-typecache))
   "Do a reset from a notify from a table we depend on."
   (oset tc includestream nil)
+  (mapc 'semantic-reset (oref tc dependants))
+  (oset tc dependants nil)
   )
 
 (defmethod semanticdb-partial-synchronize ((tc semanticdb-typecache)
@@ -67,6 +76,8 @@ NOTE: Can I get rid of this?  Use a hashtable instead?")
   "Reset the typecache based on a pratial reparse."
   (when (semantic-find-tags-by-class 'include new-tags)
     (oset tc includestream nil)
+    (mapc 'semantic-reset (oref tc dependants))
+    (oset tc dependants nil)
     )
 
   (when (semantic-find-tags-by-class 'type new-tags)
@@ -77,6 +88,14 @@ NOTE: Can I get rid of this?  Use a hashtable instead?")
 
   ;; NO CODE HERE
   )
+
+(defun semanticdb-typecache-add-dependant (dep)
+  "Add into the local typecache a dependant DEP."
+  (let* ((table semanticdb-current-table)
+	 (idx (semanticdb-get-table-index table))
+	 (cache (semanticdb-get-typecache table))
+	 )
+    (object-add-to-list cache 'dependants dep)))
 
 (defun semanticdb-typecache-length(thing)
   "How long is THING?
