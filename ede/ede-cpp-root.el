@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.4 2008/02/20 14:30:52 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.5 2008/02/20 15:02:22 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -192,7 +192,9 @@ projects, this optimization can save a lot of time.
 
 Directory names in the path can be relative to the current
 buffer's `default-directory' (not starting with a /).  Directories
-that are relative to the project's root should not start with a /.")
+that are relative to the project's root should start with a /, such
+as  \"/include\", meaning the directory `include' off the project root
+directory.")
    (header-match-regexp :initarg :header-match-regexp
 			:initform
 			"\\.\\(h\\(h\\|xx\\|pp\\|\\+\\+\\)?\\|H\\)$\\|\\<\\w+$"
