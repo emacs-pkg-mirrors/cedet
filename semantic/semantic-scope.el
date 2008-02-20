@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.7 2008/02/10 12:31:25 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.8 2008/02/20 04:26:54 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -344,9 +344,13 @@ The class returned from the scope calculation is variable
 	    (oset scopecache fullscope fullscope)
 	    (oset scopecache localvar localvar)
 	    ))
+	;; Make sure we become dependant on the typecache.
+	(semanticdb-typecache-add-dependant scopecache)
+	;; Handy debug output.
 	(when (interactive-p)
 	  (semantic-adebug-show scopecache)
-	  )
+	  )	
+	;; Return ourselves
 	scopecache))))
 
 (defun semantic-scope-find (name &optional class scope-in)
