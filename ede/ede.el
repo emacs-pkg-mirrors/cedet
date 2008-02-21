@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.91 2008/02/19 03:18:28 zappo Exp $
+;; RCS: $Id: ede.el,v 1.92 2008/02/21 23:57:16 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -940,6 +940,9 @@ a string \"y\" or \"n\", which answers the y/n question done interactively."
     (let* ((proj (ede-current-project))
 	   (ob (object-assoc-list 'name (oref proj targets))))
       (setq target (cdr (assoc target ob)))))
+
+  (when (not target)
+    (error "Could not find specified target %S" target))
 
   (project-add-file target (buffer-file-name))
   (setq ede-object nil)
