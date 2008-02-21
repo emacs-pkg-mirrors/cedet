@@ -188,62 +188,74 @@ If ARG is nil, then toggle."
 (defun srecode-minor-mode-templates-menu (menu-def)
   "Create a menu item of cascading filters active for this mode.
 MENU-DEF is the menu to bind this into."
-  (srecode-load-tables-for-mode major-mode)
+  ;; Doing this SEGVs Emacs on windows.
+  ;;(srecode-load-tables-for-mode major-mode)
+
   (let* ((modetable (srecode-get-mode-table major-mode))
-	 (subtab (oref modetable :tables))
-	 (context (car-safe (srecode-calculate-context)))
+	 (subtab (when modetable (oref modetable :tables)))
+	 (context nil)
 	 (active nil)
 	 (ltab nil)
 	 (temp nil)
 	 (alltabs nil)
 	 )
-    (while subtab
-      (setq ltab (oref (car subtab) templates))
-      (while ltab
-	(setq temp (car ltab))
+    (if (not subtab)
+	;; No tables, show a "load the tables" option.
+	(list (vector "Load Mode Tables..."
+		      (lambda ()
+			(interactive)
+			(srecode-load-tables-for-mode major-mode))
+		      ))
+      ;; Build something
+      (setq context (car-safe (srecode-calculate-context)))
+
+      (while subtab
+	(setq ltab (oref (car subtab) templates))
+	(while ltab
+	  (setq temp (car ltab))
 	
-	;; Do something with this template.
+	  ;; Do something with this template.
 
-	(let* ((ctxt (oref temp context))
-	       (ctxtcons (assoc ctxt alltabs))
-	       (bind (if (slot-boundp temp 'binding)
-			 (oref temp binding)))
-	       (name (object-name-string temp)))
+	  (let* ((ctxt (oref temp context))
+		 (ctxtcons (assoc ctxt alltabs))
+		 (bind (if (slot-boundp temp 'binding)
+			   (oref temp binding)))
+		 (name (object-name-string temp)))
 
-	  (when (not ctxtcons)
-	    (if (string= context ctxt)
-		;; If this context is not in the current list of contexts
-		;; is equal to the current context, then manage the
-		;; active list instead
-		(setq active
-		      (setq ctxtcons (or active (cons ctxt nil))))
-	      ;; This is not an active context, add it to alltabs.
-	      (setq ctxtcons (cons ctxt nil))
-	      (setq alltabs (cons ctxtcons alltabs))))
+	    (when (not ctxtcons)
+	      (if (string= context ctxt)
+		  ;; If this context is not in the current list of contexts
+		  ;; is equal to the current context, then manage the
+		  ;; active list instead
+		  (setq active
+			(setq ctxtcons (or active (cons ctxt nil))))
+		;; This is not an active context, add it to alltabs.
+		(setq ctxtcons (cons ctxt nil))
+		(setq alltabs (cons ctxtcons alltabs))))
 
-	  (let ((new (vector
-		      (if bind
-			  (concat name "   (" bind ")")
-			name)
-		      `(lambda () (interactive)
-			 (srecode-insert (concat ,ctxt ":" ,name)))
-		      t)))
+	    (let ((new (vector
+			(if bind
+			    (concat name "   (" bind ")")
+			  name)
+			`(lambda () (interactive)
+			   (srecode-insert (concat ,ctxt ":" ,name)))
+			t)))
 
-	    (setcdr ctxtcons (cons
-			      new
-			      (cdr ctxtcons)))))
+	      (setcdr ctxtcons (cons
+				new
+				(cdr ctxtcons)))))
 
-	(setq ltab (cdr ltab)))
-      (setq subtab (cdr subtab)))
+	  (setq ltab (cdr ltab)))
+	(setq subtab (cdr subtab)))
 
-    ;; Now create the menu
-    (easy-menu-filter-return
-     (easy-menu-create-menu
-      "Semantic Recoder Filters"
-      (append (cdr active)
-	      alltabs)
-      ))
-    ))
+      ;; Now create the menu
+      (easy-menu-filter-return
+       (easy-menu-create-menu
+	"Semantic Recoder Filters"
+	(append (cdr active)
+		alltabs)
+	))
+      )))
 
 ;;; Minor Mode commands
 ;;
