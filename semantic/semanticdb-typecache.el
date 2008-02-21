@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.25 2008/02/20 04:26:18 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.26 2008/02/21 23:58:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -89,6 +89,7 @@ Said object must support `semantic-reset' methods.")
   ;; NO CODE HERE
   )
 
+;;;###autoload
 (defun semanticdb-typecache-add-dependant (dep)
   "Add into the local typecache a dependant DEP."
   (let* ((table semanticdb-current-table)
