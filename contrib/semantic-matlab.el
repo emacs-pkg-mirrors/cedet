@@ -1,9 +1,9 @@
 ;;; semantic-matlab.el --- Semantic details for MATLAB files
 
-;;; Copyright (C) 2004, 2005 Eric M. Ludlam
+;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-matlab.el,v 1.4 2005/09/30 20:15:54 zappo Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.5 2008/02/21 20:00:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,10 +53,8 @@
 ;; the information we need.
 ;;; Code:
 (defvar semantic-matlab-match-function-re
-  "\\(^\\s-*function\\b[ \t\n.]*\\)\\(.*\\)\\(\\sw+\\)("
-  "Expression to match a function start line.
-There are no reliable numeric matches in this expression.
-Know that `match-end' of 0 is the end of the functin name.")
+  "\\(^\\s-*function\\b[ \t\n.]*\\)\\(\\[[^]]+\\]\\|\\)\\s-*\\(\\sw+\\)\\>"
+  "Expression to match a function start line.")
 
 ;; This function may someday be a part of matlab.el.
 ;; It does the raw scan and split for function tags.
