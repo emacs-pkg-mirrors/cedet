@@ -1,9 +1,9 @@
 ;;; semantic-mru-bookmark.el --- Automatic bookmark tracking
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.3 2007/05/31 02:22:24 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.4 2008/02/22 00:27:52 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -153,6 +153,16 @@ to delete some items from the ring when we don't have the data.")
   "The MRU bookmark ring.
 This ring tracks the most recent active tags of interest.")
 
+(defun semantic-mrub-find-nearby-tag (point)
+  "Find a nearby tag to be pushed for this current location.
+Argument POINT is where to find the tag near."
+  (let ((tag (semantic-current-tag)))
+    (when (or (not tag) (semantic-tag-of-class-p tag 'type))
+      (let ((nearby (or (semantic-find-tag-by-overlay-next point)
+			(semantic-find-tag-by-overlay-prev point))))
+	(when nearby (setq tag nearby))))
+    tag))
+
 (defmethod semantic-mrub-push ((sbr semantic-bookmark-ring) point
 			       &optional reason)
   "Add a bookmark to the ring SBR from POINT.
@@ -160,20 +170,22 @@ REASON is why it is being pushed.  See doc for `semantic-bookmark'
 for possible reasons.
 The resulting bookmark is then sorted within the ring."
   (let* ((ring (oref sbr ring))
-	 (tag (semantic-current-tag))
+	 (tag (semantic-mrub-find-nearby-tag (point)))
 	 (elts (ring-elements ring))
-	 (sbm (object-assoc tag 'tag elts)))
-    (if sbm
-	;; Delete the old mark from the ringn
-	(let ((idx (- (length elts) (length (memq sbm elts)))))
-	  (ring-remove ring idx))
+	 (idx 0))
+    (when tag
+      (while (< idx (ring-size ring))
+	(if (semantic-tag-similar-p (oref (ring-ref ring idx) tag)
+				    tag)
+	    (ring-remove ring idx))
+	(setq idx (1+ idx)))
       ;; Create a new mark
       (setq sbm (semantic-bookmark (semantic-tag-name tag)
-		 :tag tag)))
-    ;; Take the mark, and update it for the current state.
-    (ring-insert ring sbm)
-    (semantic-mrub-update sbm point reason)
-    ))
+				   :tag tag))
+      ;; Take the mark, and update it for the current state.
+      (ring-insert ring sbm)
+      (semantic-mrub-update sbm point reason)
+      )))
 
 (defun semantic-mrub-cache-flush-fcn ()
   "Function called in the `semantic-before-toplevel-cache-flush-hook`.
@@ -253,7 +265,7 @@ enabled parse the current buffer if needed.  Return non-nil if the
 minor mode is enabled."
   (if semantic-mru-bookmark-mode
       (if (not (and (featurep 'semantic) (semantic-active-p)))
-          (progn
+	  (progn
             ;; Disable minor mode if semantic stuff not available
             (setq semantic-mru-bookmark-mode nil)
             (error "Buffer %s was not set up for parsing"
