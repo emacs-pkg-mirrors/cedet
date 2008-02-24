@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-cpp.srt,v 1.6 2008/02/19 03:34:40 zappo Exp $
+;; X-RCS: $Id: srecode-cpp.srt,v 1.7 2008/02/24 02:49:32 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -162,10 +162,9 @@ template label :blank :indent
 context classdecl
 
 template constructor-tag :indent :blank
-sectiondictionary "A"
-set TYPE ""
 ----
-{{>A:declaration:function}}
+{{?NAME}}{{>:misc:arglist}}
+{ {{^}} }
 ----
 
 ;; This one really sucks.  How can I finish it?
