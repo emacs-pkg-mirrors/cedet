@@ -45,6 +45,12 @@ Build a DIST file
 After a dist is made:
 --------------------
 
+CEDET integration test
+  * From a CVS area:
+  * cd cedet/tests
+  * emacs -q -l cedet/common/cedet.el -l cedet/tests/cit-load.el -f cedet-integ-test
+  * If it passes: rm -rf /tmp/CEDET_INTEG
+
 CEDET & Common area
 
   * Uncompress/Untar release archive.
@@ -251,6 +257,20 @@ COGRE
 
      - Verify the grpah.  (on parent, some direct children.)
      - Move some blocks around (M-f, M-b, M-n, M-p)
+
+SRecode
+
+   * Run the tests:
+     M-x srecode-utest-template-output RET
+
+   * Verify menu working in SRT, C++, and Emacs Lisp.
+     * Make sure srecode-mode is on.
+
+   * Try inserting file:empty in some modes, and then a function
+     to make sure prompts work.
+
+   * Check the maps:
+     M-x srecode-get-maps RET
 
 GENERAL
 
