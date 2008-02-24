@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-texi.el,v 1.3 2008/01/29 14:22:14 zappo Exp $
+;; X-RCS: $Id: srecode-texi.el,v 1.4 2008/02/24 01:44:37 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -31,10 +31,12 @@
 
 ;;; Code:
 ;;;###autoload
-(defun srecode-texi-add-menu ()
-  "Add an item into the current menu.  Add @node statements as well."
-  (interactive)
+(defun srecode-texi-add-menu (newnode)
+  "Add an item into the current menu.  Add @node statements as well.
+Argument NEWNODE is the name of the new node."
+  (interactive "sName of new node: ")
   (srecode-load-tables-for-mode major-mode)
+  (semantic-fetch-tags)
   (let ((currnode (reverse (semantic-find-tag-by-overlay)))
 	(nodebounds nil))
     (when (not currnode)
@@ -67,7 +69,7 @@
     ;; At this point, we are in a menu... or not.
     ;; If we are, do stuff, else error.
     (when (string= (semantic-texi-current-environment) "menu")
-      (let ((menuname (read-string "Name of new node: "))
+      (let ((menuname newnode)
 	    (returnpoint nil))
 	(srecode-insert "declaration:menuitem" "NAME" menuname)
 	(set-mark (point))
@@ -93,7 +95,9 @@
 	    (goto-char end)
 	    (when (bolp) (forward-char -1))
 	    (insert "\n")
-	    (srecode-insert "declaration:node" "NAME" menuname)
+	    (if (eq (semantic-current-tag) currnode)
+		(srecode-insert "declaration:subnode" "NAME" menuname)
+	      (srecode-insert "declaration:node" "NAME" menuname))
 	    )
 	  )))
     ))
