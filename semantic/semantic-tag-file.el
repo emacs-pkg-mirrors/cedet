@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.19 2008/02/04 23:02:50 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.20 2008/02/24 01:40:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -100,24 +100,6 @@ depended on (see `semantic-dependency-tag-file'."
 ;; A tag which is of type 'include specifies a dependency.
 ;; Dependencies usually represent a file of some sort.
 ;; Find the file described by a dependency.
-;;; Code:
-;;;###autoload
-(defvar semantic-dependency-include-path nil
-  "Defines the include path used when searching for files.
-This should be a list of directories to search which is specific
-to the file being included.
-
-If `semantic-dependency-tag-file' is overridden for a given
-language, this path is most likely ignored.
-
-This function, reguardless of being overriden, caches the located
-dependency file location in the tag property `dependency-file'.
-If you override this function, you do not need to implement your
-own cache.  Each time the buffer is fully reparsed, the cache
-will be reset.
-
-TODO: use ffap.el to locate such items.")
-(make-variable-buffer-local `semantic-dependency-include-path)
 
 ;;;###autoload
 (define-overload semantic-dependency-tag-file (&optional tag)
