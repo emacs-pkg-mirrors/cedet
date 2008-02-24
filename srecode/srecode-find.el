@@ -32,10 +32,11 @@
 ;;
 
 ;;;###autoload
-(defun srecode-table ()
-  "Return the currently active Semantic Recoder table for this buffer."
+(defun srecode-table (&optional mode)
+  "Return the currently active Semantic Recoder table for this buffer.
+Optional argument MODE specifies the mode table to use."
   ;; @todo - Do a better tree for this.
-  (or (srecode-get-mode-table major-mode)
+  (or (srecode-get-mode-table (or mode major-mode))
       (srecode-get-mode-table 'default)))
 
 ;;; TRACKER
