@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-test.el,v 1.1 2008/02/16 01:39:41 zappo Exp $
+;; X-RCS: $Id: srecode-test.el,v 1.2 2008/02/24 18:24:20 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -196,7 +196,7 @@ bind \"a\""
 (defvar srecode-utest-testfile "/tmp/srecode-utest.srt"
   "File used to do testing.")
 
-
+;;;###autoload
 (defun srecode-utest-template-output ()
   "Test various template insertion options."
   (interactive)
