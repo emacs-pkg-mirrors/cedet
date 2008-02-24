@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-texi.srt,v 1.3 2008/01/29 14:30:17 zappo Exp $
+;; X-RCS: $Id: srecode-texi.srt,v 1.4 2008/02/24 02:56:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -36,11 +36,11 @@ template empty :file :user :time
 \input texinfo   @c -*-texinfo-*-
 $#RCS$
 @c
-@c $Id: srecode-texi.srt,v 1.3 2008/01/29 14:30:17 zappo Exp $
+@c $Id: srecode-texi.srt,v 1.4 2008/02/24 02:56:10 zappo Exp $
 @c
 $/RCS$
 @c %**start of header
-@setfilename $FILE$
+@setfilename $FILE$.info
 @set TITLE $?NAME$
 @set AUTHOR $?AUTHOR$
 @settitle @value{TITLE}
@@ -67,6 +67,7 @@ Copyright @copyright{} $YEAR$ $AUTHOR$
 $^$
 
 @menu
+* Index::
 @end menu
 
 
@@ -86,24 +87,40 @@ context declaration
 
 ;; Note to self: It would be cool to replace the junk in
 ;; semantic/document.el with macros from here.
-template function :tag
+template function :blank
 "Import some function tag into texinfo."
 ----
-@deffn $NAME$$#ARGS$ $NAME$$/ARGS$
+
+@defun $NAME$$#ARGS$ $NAME$$/ARGS$
+@anchor{$NAME$}
+$TAG:semantic-documentation-for-tag$
+@end defun
+
+----
+bind "f"
+
+template function-command :blank
+"Import some function tag into texinfo."
+----
+
+@deffn Command $NAME$$#ARGS$ $NAME$$/ARGS$
 @anchor{$NAME$}
 $TAG:semantic-documentation-for-tag$
 @end deffn
+
 ----
 bind "f"
 
 
-template variable :tag
+template variable :blank
 "Import some variable tag into texinfo"
 ----
+
 @defvar $NAME$$#ARGS$ $NAME$$/ARGS$
 @anchor{$NAME$}
 $TAG:semantic-tag-docstring$
-@end deffn
+@end defvar
+
 ----
 bind "v"
 
@@ -112,30 +129,45 @@ prompt NAME "Name of node: "
 template node :texi
 "Insert a node right about here."
 ----
+
 @node $?NAME$
 @$?LEVEL$ $NAME$
 
+$^$
+
+----
+bind "n"
+
+template subnode :texi
+"Insert a node right about here."
+----
+
+@node $?NAME$
+@$?NEXTLEVEL$ $NAME$
+
+$^$
 
 ----
 bind "n"
 
 
-template menu
+template menu :blank
 "Menu items for texinfo."
 ----
+
 @menu
 $^$
 @end menu
+
 ----
 bind "m"
 
 prompt NAME "Menu item: "
 
-template menuitem
+template menuitem :blank
 "Insert a menu item."
 ----
 * $?NAME$::	$^$
-
 ----
 
 
