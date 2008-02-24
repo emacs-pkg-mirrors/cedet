@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.6 2008/02/19 03:34:10 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.7 2008/02/24 01:43:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -317,13 +317,13 @@ as `function' will leave point where code might be inserted."
 	 )
     ;; Try some special cases.
     (cond ((and (semantic-tag-of-class-p tag 'function)
-		(semantic-tag-get-attribute tag :constructor))
+		(semantic-tag-get-attribute tag :constructor-flag))
 	   (setq temp (srecode-semantic-find-template
 		       "constructor" prototype ctxt))
 	   )
 
 	  ((and (semantic-tag-of-class-p tag 'function)
-		(semantic-tag-get-attribute tag :destructor))
+		(semantic-tag-get-attribute tag :destructor-flag))
 	   (setq temp (srecode-semantic-find-template
 		       "destructor" prototype ctxt))
 	   )
@@ -332,6 +332,12 @@ as `function' will leave point where code might be inserted."
 		(semantic-tag-function-parent tag))
 	   (setq temp (srecode-semantic-find-template
 		       "method" prototype ctxt))
+	   )
+
+	  ((and (semantic-tag-of-class-p tag 'variable)
+		(semantic-tag-get-attribute tag :constant-flag))
+	   (setq temp (srecode-semantic-find-template
+		       "variable-const" prototype ctxt))
 	   )
 	  )
 
