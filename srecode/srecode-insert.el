@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.18 2008/02/19 03:32:41 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.19 2008/02/24 01:42:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -80,6 +80,8 @@ DICT-ENTRIES are additional dictionary values to add."
   ;; Perform the insertion.
   (let ((standard-output (or stream (current-buffer)))
 	(end-mark nil))
+    ;; Make sure the semantic tags are up to date.
+    (semantic-fetch-tags)
     ;; Resolve the arguments
     (srecode-resolve-arguments template dictionary)
     ;; Insert
