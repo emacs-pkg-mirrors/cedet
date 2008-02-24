@@ -1,10 +1,10 @@
 ;;; document.el --- Use the semantic parser to generate documentation.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.33 2007/03/17 21:21:01 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.34 2008/02/24 19:02:13 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -113,6 +113,7 @@ To document a function in a source file, use `document-inline'."
 
 ;;; Documentation insertion functions
 ;;
+;;;###autoload
 (defun document-insert-texinfo (tag buffer)
   "Insert texinfo documentation about TAG from BUFFER."
   (let ((tt (semantic-tag-class tag)))
