@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.4 2008/02/22 00:27:52 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.5 2008/02/24 01:35:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -174,7 +174,7 @@ The resulting bookmark is then sorted within the ring."
 	 (elts (ring-elements ring))
 	 (idx 0))
     (when tag
-      (while (< idx (ring-size ring))
+      (while (and (not (ring-empty-p ring)) (< idx (ring-size ring)))
 	(if (semantic-tag-similar-p (oref (ring-ref ring idx) tag)
 				    tag)
 	    (ring-remove ring idx))
