@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-el.el,v 1.1 2008/01/20 02:11:00 zappo Exp $
+;; X-RCS: $Id: srecode-el.el,v 1.2 2008/02/24 01:42:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -75,6 +75,32 @@ Adds the following:
 
     ))
 
+(define-mode-local-override srecode-semantic-apply-tag-to-dict
+  emacs-lisp-mode (tagobj dict)
+  "Apply Emacs Lisp specific features from TAGOBJ into DICT.
+Calls `srecode-semantic-apply-tag-to-dict-default' first."
+  (srecode-semantic-apply-tag-to-dict-default tagobj dict)
+
+  ;; Pull out the tag for the individual pieces.
+  (let* ((tag (oref tagobj :prime))
+	 (doc (semantic-tag-docstring tag)))
+
+    ;; It is much more common to have doc on ELisp.
+    (srecode-dictionary-set-value dict "DOC" doc)
+
+    (cond
+     ;;
+     ;; FUNCTION
+     ;;
+     ((eq (semantic-tag-class tag) 'function)
+      (if (semantic-tag-get-attribute tag :user-visible-flag)
+	  (srecode-dictionary-set-value dict "INTERACTIVE" "  (interactive)\n  ")
+	(srecode-dictionary-set-value dict "INTERACTIVE" ""))
+      )
+     
+      
+     )
+    ))
 
 
 (provide 'srecode-el)
