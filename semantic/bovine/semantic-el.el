@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.42 2008/01/25 19:40:02 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.43 2008/02/24 01:41:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -104,7 +104,9 @@ syntax as specified by the syntax table."
       (cond
        ((stringp (car p))
 	(car p))
-       ((or (symbolp (car p)) (listp (car p)))
+       ((or (symbolp (car p))
+	    (listp (car p))
+	    (numberp (car p)))
 	(format "%S" (car p)))
        (t nil)))))
 
@@ -267,7 +269,6 @@ Return a bovination list to use."
          :user-visible-flag (and doc
                                  (> (length doc) 0)
                                  (= (aref doc 0) ?*))
-         :constant-flag (eq (car form) 'defconst)
          :documentation (semantic-elisp-do-doc doc)
          )))
   defface
@@ -284,7 +285,6 @@ Return a bovination list to use."
          :user-visible-flag (and doc
                                  (> (length doc) 0)
                                  (= (aref doc 0) ?*))
-         :constant-flag (eq (car form) 'defconst)
          :documentation (semantic-elisp-do-doc doc)
          )))
   defimage
