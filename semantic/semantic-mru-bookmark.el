@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.5 2008/02/24 01:35:31 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.6 2008/02/24 14:28:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -382,8 +382,8 @@ Jumps to the tag and highlights it briefly."
 ;;; ADVICE
 ;;
 ;; Advise some commands to help set tag marks.
-(defadvice set-mark-command (around semantic-mru-bookmark activate)
-  "Set this buffer's mark to POS.
+(defadvice push-mark (around semantic-mru-bookmark activate)
+  "Push a mark at LOCATION with NOMSG and ACTIVATE passed to `push-mark'.
 If `semantic-mru-bookmark-mode' is active, also push a tag onto
 the mru bookmark stack."
   (when (and semantic-mru-bookmark-mode (interactive-p))
@@ -391,6 +391,16 @@ the mru bookmark stack."
 			(point)
 			'mark))
   ad-do-it)
+
+;(defadvice set-mark-command (around semantic-mru-bookmark activate)
+;  "Set this buffer's mark to POS.
+;If `semantic-mru-bookmark-mode' is active, also push a tag onto
+;the mru bookmark stack."
+;  (when (and semantic-mru-bookmark-mode (interactive-p))
+;    (semantic-mrub-push semantic-mru-bookmark-ring
+;			(point)
+;			'mark))
+;  ad-do-it)
 
 
 ;;; Debugging
