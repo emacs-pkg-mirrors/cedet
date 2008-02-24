@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.7 2008/02/16 01:46:07 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.8 2008/02/24 18:23:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -240,6 +240,18 @@ Optional argument RESET forces a reset of the current map."
     (princ "\n")
     ))
 
+(defun srecode-map-file-still-valid-p (filename map)
+  "Return t if FILENAME should be in MAP still."
+  (let ((valid nil))
+    (and (file-exists-p filename)
+	 (progn
+	   (dolist (p srecode-map-load-path)
+	     (when (string= p (substring filename 0 (length p)))
+	       (setq valid t))
+	     )
+	   valid))
+    ))
+
 (defun srecode-map-update-map (&optional fast)
   "Update the current map from `srecode-map-load-path'.
 Scans all the files on the path, and makes sure we have entries
@@ -276,10 +288,19 @@ if that file is NEW, otherwise assume the mode has not changed."
   (let ((dirty nil))
     ;; 3) - Purge dead files from the file list.
     (dolist (entry (copy-list (oref srecode-current-map files)))
-      (when (not (file-exists-p (car entry)))
+      (when (not (srecode-map-file-still-valid-p
+		  (car entry) srecode-current-map))
 	(srecode-map-delete-file-entry srecode-current-map (car entry))
 	(setq dirty t)
 	))
+    (dolist (app (copy-list (oref srecode-current-map apps)))
+      (dolist (entry (copy-list (cdr app)))
+	(when (not (srecode-map-file-still-valid-p
+		    (car entry) srecode-current-map))
+	  (srecode-map-delete-file-entry-from-app
+	   srecode-current-map (car entry) (car app))
+	  (setq dirty t)
+	  )))
     ;; 4) - Find new files and add them to the map.
     (dolist (dir srecode-map-load-path)
       (dolist (f (directory-files dir t "\\.srt$"))
