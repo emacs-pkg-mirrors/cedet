@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.51 2008/02/19 03:26:22 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.52 2008/02/24 01:36:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -348,13 +348,14 @@ same thing, but may be constructed of different cons cells."
 		(equal (semantic-tag-bounds tag1)
 		       (semantic-tag-bounds tag2))))))
 
-(defun semantic-tag-similar-p (tag1 tag2)
+(defun semantic-tag-similar-p (tag1 tag2 &rest ignorable-attributes)
   "Test to see if TAG1 and TAG2 are similar.
 Two tags are similar if their name, datatype, and various attributes
 are the same.
 
 Similar tags that have sub-tags such as arg lists or type members,
-are similar w/out checking the sub-list of tags."
+are similar w/out checking the sub-list of tags.
+Optional argument IGNORABLE-ATTRIBUTES are attributes to ignore while comparing similarity."
   (let* ((A1 (and (equal (semantic-tag-name tag1) (semantic-tag-name tag2))
 		  (semantic-tag-of-class-p tag1 (semantic-tag-class tag2))
 		  (semantic-tag-of-type-p tag1 (semantic-tag-type tag2))))
@@ -362,16 +363,26 @@ are similar w/out checking the sub-list of tags."
 	 (A2 (= (length attr1) (length (semantic-tag-attributes tag2))))
 	 (A3 t)
 	 )
+    (when (and (not A2) ignorable-attributes)
+      (setq A2 t))
     (while (and A2 attr1 A3)
       (let ((a (car attr1))
 	    (v (car (cdr attr1))))
 
-	(if (and (listp v) (semantic-tag-p (car v)))
-	    ;; Don't test this
-	    nil
-	  (when (not (equal v (semantic-tag-get-attribute tag2 a)))
-	    (setq A3 nil))
-	  ))
+	(cond ((or (eq a :type) ;; already tested above.
+		   (memq a ignorable-attributes)) ;; Ignore them...
+	       nil)
+
+	      ;; Don't test sublists of tags
+	      ((and (listp v) (semantic-tag-p (car v)))
+	       nil)
+
+	      ;; The attributes are not the same?
+	      ((not (equal v (semantic-tag-get-attribute tag2 a)))
+	       (setq A3 nil))
+	      (t
+	       nil))
+	)
       (setq attr1 (cdr (cdr attr1))))
     
     (and A1 A2 A3)
