@@ -481,7 +481,7 @@ section of the semantic manual for more details about these features.
 @node ECB Target
 @chapter ECB Target
 
-@o{ECB}, or the @i{Emacs Code Browser} depends on @cedet{} for the @semantic{}
+@i{ECB}, or the @i{Emacs Code Browser} depends on @cedet{} for the @semantic{}
 parsing engine, and several other features.  @i{ECB} can display a
 window that shows semantic tag information.
 
@@ -568,17 +568,18 @@ need to start by augmenting the basic @cedet{} install in your
 (semantic-load-enable-code-helpers)
 @end example
 
-or the fancier
+Basic code helpers enable idle parsing and summary mode.  To get
+idle-completions mode, and some more decorative features, use:
 
 @example
 (semantic-load-enable-guady-code-helpers)
 @end example
 
-See the
+For more on configuration
 @inforef{Canned Configuration, Semantic Configuration, semantic}.
 section of the semantic manual for more details about these features.
 
-The basic idea is the Semantic will need to parse your source code and
+The basic idea is that Semantic will need to parse your source code and
 build lookup tables.  The tables are then searched to provide the
 completion you might be looking for.
 
@@ -587,12 +588,15 @@ need to configure a few more things.  This is done mainly by providing
 details on where Semantic can find the source code where your tag
 definitions are.
 
-For more, read the
+For more, 
 @inforef{Semanticdb Search Configuration, Semantic search configuration, semantic-user}.
 
 Once you've optimized @semantic{}'s ability to find your sources,
-there are several code completion options.  Please see the
+there are several code completion options.  For more,
 @inforef{Analyzer, semantic analyzer, semantic-user}.
+
+If code completion doesn't work on your code right away, please read
+the section on @inforef{Smart Completion Debugging, Smart Completion Debugging, semantic-user}.
 
 @node Code Generation
 @chapter Code Generation
