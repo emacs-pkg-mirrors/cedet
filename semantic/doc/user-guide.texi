@@ -101,6 +101,7 @@ from semantic.
 * Idle Scheduler::              The idle Scheduler and related modes
 * Minor Modes::                 Useful minor modes
 * semanticdb::                  Cache your parsed buffers between sessions.
+* Smart Completion Debugging::	How to debug issues w/ smart completion
 * Speed Debug::                 How to debug speed issues.
 * Customizing::                 
 * GNU Free Documentation License::  
@@ -1020,11 +1021,11 @@ the database recently written.
 @section Semanticdb Search Configuration
 
   When different tools such as smart completion or tag jumping needs
-to find a tag, those routines call semanticdb search routines.  Some
-time usually needs to be spent making sure semanticdb can find the
-files your tags are in.
+to find a tag, those routines call semanticdb search routines.
+Getting the search path configured usually takes a little bit of time
+to get right.
 
-The search path should include:
+The search path includes:
 
 @enumerate
 @item
@@ -1048,9 +1049,9 @@ directories specified by your project.  (such as EDE, or the
 system directories
 @end enumerate
 
-In C code, semantic tries to distinguish between project and system
-headers based on @code{""} or @code{<>} delimiters.  Each language can
-distinguish using it's own rules.
+In C/C++ code, @semantic{} tries to distinguish between project and
+system headers based on @code{""} or @code{<>} delimiters.  Each
+language can distinguish using it's own rules.
 
 The system directory is set up via the variable
 @code{semantic-dependency-system-include-path}.  The path is also
@@ -1178,7 +1179,10 @@ To set the throttle, use a command like this:
 		 '(project unloaded system recursive))
 @end example
 
-
+The default value of the throttle is for maximum accuracy at the
+expense of time taken to perform a particular look-up.  The throttle
+is tweaked by @code{semantic-idle-summary-mode} to remove 'unloaded,
+thus removing poor speed at unexpected times.
 
 @node Semanticdb search debugging commands
 @subsection Semanticdb search debugging commands
@@ -1300,6 +1304,171 @@ name for the language the entry is for.  Use completion @kbd{SPC} to
 see the ones available.  The name of the language should be part of
 the class name.
 
+@node Smart Completion Debugging
+@chapter Smart Completion Debugging
+
+If you think you've configured your system correctly, but @semantic{}
+still can't find a definition you are looking for, you may have run
+into either a bug in @semantic{}, an incomplete configuration, or
+somehow gotten @semantic{}'s set of cached tables into a bad state.
+
+This section was written with C/C++ in mind, but should be relevant
+for any typed language.
+
+@section Step 1: Check the context
+
+The first thing to do is check the current context.  You can do this
+with @kbd{M-x semantic-analyze-current-context}.  If you look at the
+Prefix section, you should see a list of tags based on the text from
+under point.  If it shows only a simple string, the Semantic was
+unable to identify what the data type was.
+
+The first item in the list of the prefix is the first lookup failure
+in the chain, and that is the item to focus debugging effort on.
+For more on the analyzer, see @ref{Analyzer}.
+
+
+@example
+Context Type: #<semantic-analyze-context context>
+Bounds: (182 . 185)
+Prefix: Foo* bar
+        int bbb (const char* y)
+Prefix Types: class Foo @{@}
+--------
+-> Local Vars: int argc
+               char** argv
+@end example
+
+In the above example you can see that the prefix has two fully found
+tags.  In the below example, the symbol ``bbb'' is incomplete, and
+could not be found.
+
+@example
+Context Type: #<semantic-analyze-context context>
+Bounds: (182 . 184)
+Prefix: Foo* bar
+        "bb"
+Prefix Classes: 'function
+                'variable
+Prefix Types: class Foo @{@}
+--------
+-> Local Vars: int argc
+               char** argv
+@end example
+
+
+@section Step 2 : Check your include path
+
+Once you know what symbol can't be found, the next thing to check is
+your include path.  Is the header or include file that has the
+definitions you need actually in the list of headers @semantic{} is
+searching through?  To get a basic list, you can use
+@kbd{M-x semanticdb-find-test-translate-path}.
+@refill
+
+This will give you a list of database tables (by name) that semantic
+can find.  This list is in ADEBUG mode.  Use @kbd{SPC} to expand items
+to see if the tag you are looking for is in there.
+
+For C++, check to make sure that your project level include files are
+in ``quotes'', and not in <angle brackets>.  Items in angle brackets
+are system includes.
+
+See @ref{Semanticdb search debugging commands} for more commands.
+
+If items should be loaded but aren't, you may need to update the
+search throttle.  See @ref{Search Throttle}.
+
+If you see some tables that have 0 tags in them, then you you may have
+an incorrectly set throttle.
+
+@example
+*#<semanticdb-table main.cpp (4 tags DIRTY)>
+*#<semanticdb-table foo.hh (0 tags DIRTY)>
+@end example
+
+In the above example, semantic found @file{foo.hh}, but there are 0
+tags.  This may be because the throttle was set to not read in and
+parse files that Emacs has not yet loaded in.  To fix this case, visit
+the file, and let @semantic{} parse and save the tags table.
+
+@section Step 3: Check the local scope
+
+If your data type is somehow abbreviated based on scope, such as from
+a @code{using} statement, you will need to make sure that the symbol
+you want is in the local scope.  Examine the scope with
+@kbd{M-x semantic-calculate-scope}.  The scope structure is displayed
+in ADEBUG mode, so use @kbd{SPC} to expand different elements and
+looking for your symbol.
+
+If your symbol should be in the scope, but you cannot find it, then
+you may have found a language support bug in the local-variable
+parser, or using statement parser.
+
+Calling @kbd{M-x bovinte} should force a reset on the scope in case
+there is merely some bad state.
+
+@example
+ ] Name: Cache
+ ] Class: #'semantic-scope-cache
+ ] :table #<semanticdb-table testsubclass.cpp (13 tags DIRTY)>
+ ] tag createMoose : class moose
+ ] scopetypes 'nil
+ ] parents #<TAG LIST: 1 entries>
+ ] scope #<TAG LIST: 22 entries>
+ ] fullscope #<TAG LIST: 23 entries>
+ ] localvar #<TAG LIST: 6 entries>
+@end example
+
+In the above sample output, the @code{tag} slot specifies where within
+you source this scope is relevant.  @code{Parents} should contain any
+in scope parents, such as the class a method belongs to.
+@code{Localvar} should contain your local variables.  @code{Scope}
+should contain datatypes in scope due to a @code{using} statement or
+the like.
+
+@section Step 4: Check the typecache
+
+For complex typed languages like C++, @semantic{} creates a typecache,
+or an optimized search table with all the various data types in it.
+Elements in the typecache do not obey local scope.  It only contains
+fully qualified names.  You can examine the typecache with
+@kbd{M-x semanticdb-typecache-dump}.
+
+If your data types are not in the typecache, there may be some parsing
+error or other bug.  Calling @kbd{M-x bovinte} should force a reset on
+the typecache in case there is merely some bad state.
+
+@example
+]#<semanticdb-typecache /home/zappo/cedet/semantic/tests/testsubclass.cpp>
+   ] Name: /home/zappo/cedet/semantic/tests/testsubclass.cpp
+   ] Class: #'semanticdb-typecache
+   ] filestream 'nil
+   ] includestream #<TAG LIST: 84 entries>
+   ] stream 'nil
+   ] dependants 'nil
+@end example
+
+In the above example, the output of @kbd{M-x semanticdb-typecache-dump}
+was expanded one level.  The @code{filestream} slot should contain
+datatypes in the current file.  The @code{includestream} should
+contain all the datatypes in all included header files.
+
+The @code{dependants} slot will specify other files that depend on
+this one.
+
+@section Step 5: Check the parser
+
+Go to the location where your unfound tag should be.  You can call
+@kbd{M-x bovinate}, and see a dump of the raw tag structure.  To see a
+navigatable tree, use @kbd{M-x semantic-adebug-bovinate} instead.  You
+can then look to make sure your tag has been properly parsed.
+
+If it has not, then you may have found a parser bug.  To get a feel
+how @semantic{} treats your file, you can enable 
+@kbd{M-x global-semantic-show-unmatched-syntax-mode}.  It will
+underline syntax it cannot parse in red.
+
 @node Speed Debug
 @chapter Debugging Speed Problems
 
@@ -1360,6 +1529,30 @@ Alternately, you can control how these major modes, and other modes
 like them parse alternate files by adjusting
 @code{semanticdb-find-default-throttle}. You can read more
 in @inforef{ DB Search Paths, , semantic-appdev.info}.
+
+@section Profiling
+
+To help identify speed issues with the @semantic{} analyzer, you can
+use the @file{semantic-elp.el} tool.  To use it type:
+
+@example
+M-x semantic-elp-analyze RET
+@end example
+
+It will do a full run for each stage of analysis keeping profiling
+information.  The analysis will be done at point, so be sure to
+position the cursor at the location where the slowdown occurs.
+
+Once done, it will ask you to save the profiler information.  It will
+then show you the profile information in ADEBUG mode, so you can
+navigate through the results.
+
+Use @kbd{SPC} to open sections of the tree.  Use @kbd{SPC} on the sort
+option to change sorting of the results table.
+
+Use @kbd{M-x semantic-elp-load-old-run} to restore an old run and view
+it again.
+
 
 @node Customizing
 @chapter Customizing
