@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.12 2008/02/26 01:41:05 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.13 2008/02/26 01:43:04 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -345,11 +345,13 @@ PREBUTTONTEXT is some text between prefix and the overlay list button."
 (defun semantic-adebug-insert-ring-contents (ring prefix)
   "Insert all the parts of RING.
 PREFIX specifies what to insert at the start of each line."
-  (let ((elts (ring-elements ring))
+  (let ((len (ring-length ring))
+	(idx 0)
 	)
-    (while elts
-      (semantic-adebug-insert-thing (car elts) prefix "")
-      (setq elts (cdr elts)))))
+    (while (< idx len)
+      (semantic-adebug-insert-thing (ring-ref ring idx) prefix "")
+      (setq idx (1+ idx))
+      )))
 
 (defun semantic-adebug-insert-ring-items-from-point (point)
   "Insert the ring found at the ring button at POINT."
