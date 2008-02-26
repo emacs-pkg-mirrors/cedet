@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.11 2008/02/12 01:26:18 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.12 2008/02/26 01:41:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -375,8 +375,11 @@ PREFIX is the text that preceeds the button.
 PREBUTTONTEXT is some text between prefix and the stuff list button."
   (let* ((start (point))
 	 (end nil)
-	 (str (format "#<RING: %d>" (ring-size ring)))
-	 (ringthing (ring-ref ring 0))
+	 (str (format "#<RING: %d, %d max>"
+		      (ring-length ring)
+		      (ring-size ring)))
+	 (ringthing
+	  (if (= (ring-length ring) 0) nil (ring-ref ring 0)))
 	 (tip (format "Ring max-size %d, length %d.  Full of: %S"
 		      (ring-size ring)
 		      (ring-length ring)
