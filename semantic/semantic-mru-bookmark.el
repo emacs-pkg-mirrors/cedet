@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.6 2008/02/24 14:28:45 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.7 2008/02/26 01:39:03 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -99,6 +99,11 @@ Uses `semantic-go-to-tag' and highlighting."
 		    filename)))
 	(set-buffer (find-file-noselect fn))))
     (semantic-go-to-tag (oref sbm tag) (oref sbm parent))
+    ;; Go back to the offset.
+    (condition-case nil
+	(let ((o (oref sbm offset)))
+	  (forward-char o))
+      (error nil))
     ;; make it visible
     (switch-to-buffer (current-buffer))
     (semantic-momentary-highlight-tag tag)
@@ -156,6 +161,7 @@ This ring tracks the most recent active tags of interest.")
 (defun semantic-mrub-find-nearby-tag (point)
   "Find a nearby tag to be pushed for this current location.
 Argument POINT is where to find the tag near."
+  (semantic-fetch-tags) ;; Make sure everything is up-to-date.
   (let ((tag (semantic-current-tag)))
     (when (or (not tag) (semantic-tag-of-class-p tag 'type))
       (let ((nearby (or (semantic-find-tag-by-overlay-next point)
@@ -171,7 +177,6 @@ for possible reasons.
 The resulting bookmark is then sorted within the ring."
   (let* ((ring (oref sbr ring))
 	 (tag (semantic-mrub-find-nearby-tag (point)))
-	 (elts (ring-elements ring))
 	 (idx 0))
     (when tag
       (while (and (not (ring-empty-p ring)) (< idx (ring-size ring)))
@@ -190,10 +195,13 @@ The resulting bookmark is then sorted within the ring."
 (defun semantic-mrub-cache-flush-fcn ()
   "Function called in the `semantic-before-toplevel-cache-flush-hook`.
 Cause tags in the ring to become unlinked."
-  (let ((elts (ring-elements (oref semantic-mru-bookmark-ring ring)))
-	(buf (current-buffer)))
-    (dolist (e elts)
-      (semantic-mrub-preflush e))))
+  (let* ((ring (oref semantic-mru-bookmark-ring ring))
+	 (len (ring-length ring))
+	 (idx 0)
+	 (buf (current-buffer)))
+    (while (< idx len)
+      (semantic-mrub-preflush (ring-ref ring idx))
+      (setq idx (1+ idx)))))
 
 (add-hook 'semantic-before-toplevel-cache-flush-hook
 	  'semantic-mrub-cache-flush-fcn)
@@ -206,7 +214,7 @@ Cause tags in the ring to become unlinked."
 (defun semantic-mru-bookmark-change-hook-fcn (overlay)
   "Function set into `semantic-edits-new/move-change-hook's.
 Argument OVERLAY is the overlay created to mark the change.
-This function will set the face property on this overlay."
+This function pushes tags onto the tag ring."
   ;; Dup?
   (when (not (eq overlay semantic-mrub-last-overlay))
     (setq semantic-mrub-last-overlay overlay)
@@ -323,28 +331,42 @@ minor mode is enabled."
 (defun semantic-mrub-read-history nil
   "History of `semantic-mrub-completing-read'.")
 
+(defun semantic-mrub-ring-to-assoc-list (ring)
+  "Convert RING into an association list for completion."
+  (let ((idx 0)
+	(len (ring-length ring))
+	(al nil))
+    (while (< idx len)
+      (let ((r (ring-ref ring idx)))
+	(setq al (cons (cons (oref r :object-name) r)
+		       al)))
+      (setq idx (1+ idx)))
+    (nreverse al)))
+
 (defun semantic-mrub-completing-read (prompt)
   "Do a `completing-read' on elements from the mru bookmark ring.
 Argument PROMPT is the promot to use when reading."
   (if (ring-empty-p (oref semantic-mru-bookmark-ring ring))
       (error "Semantic Bookmark ring is currently empty"))
-  (let* ((elts (ring-elements (oref semantic-mru-bookmark-ring ring)))
-	 (first (car elts))
+  (let* ((ring (oref semantic-mru-bookmark-ring ring))
 	 (ans nil)
-	 (alist (object-assoc-list :object-name elts))
+	 (alist (semantic-mrub-ring-to-assoc-list ring))
+	 (first (cdr (car alist)))
 	 (semantic-mrub-read-history nil)
 	 )
     ;; Don't include the current tag.. only those that come after.
     (if (semantic-equivalent-tag-p (oref first tag)
 				   (semantic-current-tag))
-	(setq first (car (cdr elts))))
+	(setq first (cdr (car (cdr alist)))))
     ;; Create a fake history list so we don't have to bind
     ;; M-p and M-n to our special cause.
-    (while elts
-      (setq semantic-mrub-read-history (cons (oref (car elts) :object-name)
-					     semantic-mrub-read-history))
-      (setq elts (cdr elts)))
+    (let ((elts (reverse alist)))
+      (while elts
+	(setq semantic-mrub-read-history
+	      (cons (car (car elts)) semantic-mrub-read-history))
+	(setq elts (cdr elts))))
     (setq semantic-mrub-read-history (nreverse semantic-mrub-read-history))
+
     ;; Do the read/prompt
     (let ((prompt (if first (format "%s (%s): " prompt
 				    (semantic-format-tag-name
@@ -386,10 +408,9 @@ Jumps to the tag and highlights it briefly."
   "Push a mark at LOCATION with NOMSG and ACTIVATE passed to `push-mark'.
 If `semantic-mru-bookmark-mode' is active, also push a tag onto
 the mru bookmark stack."
-  (when (and semantic-mru-bookmark-mode (interactive-p))
-    (semantic-mrub-push semantic-mru-bookmark-ring
-			(point)
-			'mark))
+  (semantic-mrub-push semantic-mru-bookmark-ring
+		      (point)
+		      'mark)
   ad-do-it)
 
 ;(defadvice set-mark-command (around semantic-mru-bookmark activate)
