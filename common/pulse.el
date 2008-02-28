@@ -1,9 +1,9 @@
 ;;; pulse.el --- Pulsing Overlays
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.5 2008/01/09 13:53:54 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.6 2008/02/28 15:29:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -94,7 +94,7 @@ Face used for temporary highlighting of tags for effect."
                (not (extent-detached-p o))
                (bufferp (extent-buffer o)))))
       (defalias 'pulse-overlay-put 'set-extent-property)
-      (defalias 'pulse-overlay-get 'get-extent-property)
+      (defalias 'pulse-overlay-get 'extent-property)
       (defalias 'pulse-overlay-delete 'delete-extent)
       (defalias 'pulse-make-overlay 'make-extent)
       )
