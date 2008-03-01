@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.60 2008/02/10 02:54:07 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.61 2008/03/01 16:17:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,6 +64,13 @@ This function does not do any hidden buffer changes."
 ;;-------
 
 ;;; Lexical analysis
+(defvar semantic-lex-c-preprocessor-symbol-map-builtin
+  '( ("__THROW" . "")
+     ("__const" . "const")
+     ("__restrict" . "")
+     )
+  "List of symbols to include by default.")
+
 (defcustom semantic-lex-c-preprocessor-symbol-map nil
   "Table of C Preprocessor keywords used by the Semantic C lexer."
   :group 'c
@@ -837,7 +844,10 @@ DO NOT return the list of tags encompassing point."
   
   (setq semantic-lex-analyzer #'semantic-c-lexer)
   (setq semantic-lex-spp-macro-symbol-obarray
-	(semantic-lex-make-spp-table semantic-lex-c-preprocessor-symbol-map))
+	(semantic-lex-make-spp-table
+	 (append semantic-lex-c-preprocessor-symbol-map-builtin
+		 semantic-lex-c-preprocessor-symbol-map)
+	 ))
   (add-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook nil t)
   )
 
