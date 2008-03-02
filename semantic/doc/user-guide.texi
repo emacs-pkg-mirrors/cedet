@@ -1082,7 +1082,6 @@ for files usually stops within a single project, so specifying these
 roots is important if you want semantic to find tags in other related
 directories.
 
-
 @deffn Option semanticdb-project-roots
 @anchor{semanticdb-project-roots}
 List of directories, where each directory is the root of some project.
@@ -1100,6 +1099,10 @@ must return a string, (the root directory) or a list of strings (multiple
 root directories in a more complex system).  This variable should be used
 by project management programs like @var{ede} or @var{jde}.
 @end defvar
+
+Alternately, you can use @i{EDE} for project management, and EDE will
+then handle search routines as above.  See the
+@inforef{top, EDE Manual, ede} for more.
 
 @node Include paths
 @subsection Include Paths
@@ -1195,7 +1198,12 @@ sure specific tables from the path are discovered correctly.
 
 Alternately, you can get a list of include files @semantic{}
 encountered, but could not find on disk using
-@kbd{M-x semanticdb-find-lost-includes RET}.
+@kbd{M-x semanticdb-find-adebug-lost-includes RET}.
+
+Once you have used the below functions to debug the problem, you may
+need to reconfigure how @semantic{} finds include files.
+See @ref{Semanticdb Search Configuration}.  If the search config is
+ok, you may need to configure the search throttle. See @ref{Search Throttle}.
 
 @deffn Command semanticdb-dump-all-table-summary
 @anchor{semanticdb-dump-all-table-summary}
