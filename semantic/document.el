@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.34 2008/02/24 19:02:13 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.35 2008/03/02 02:10:05 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -41,9 +41,14 @@
 (require 'document-vars)
 
 ;; XEmacs change: needed to define macros at compile time.
-(condition-case nil
-    (require 'ede)
-  (error nil))
+;;(condition-case nil
+;;    (require 'ede)
+;;  (error nil))
+;; Removed above.  It causes some tools to require ede unexpectedly.
+;;
+;; See:
+;; https://sourceforge.net/tracker/index.php?func=detail&aid=1790014&group_id=17886&atid=117886
+
 (require 'semantic)
 (require 'semantic-util)
 
