@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.7 2008/02/26 01:39:03 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.8 2008/03/02 02:12:55 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -161,7 +161,8 @@ This ring tracks the most recent active tags of interest.")
 (defun semantic-mrub-find-nearby-tag (point)
   "Find a nearby tag to be pushed for this current location.
 Argument POINT is where to find the tag near."
-  (semantic-fetch-tags) ;; Make sure everything is up-to-date.
+  ;; I thought this was a good idea, but it is not!
+  ;;(semantic-fetch-tags) ;; Make sure everything is up-to-date.
   (let ((tag (semantic-current-tag)))
     (when (or (not tag) (semantic-tag-of-class-p tag 'type))
       (let ((nearby (or (semantic-find-tag-by-overlay-next point)
