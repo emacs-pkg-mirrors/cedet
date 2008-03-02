@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-load.el,v 1.2 2008/02/10 02:26:00 zappo Exp $
+;; X-RCS: $Id: srecode-load.el,v 1.3 2008/03/02 02:17:53 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,7 +28,8 @@
 
 (require 'srecode)
 
-(global-srecode-minor-mode 1)
+;; This may be desirous, but don't enable by default.
+;;(global-srecode-minor-mode 1)
 
 (provide 'srecode-load)
 
