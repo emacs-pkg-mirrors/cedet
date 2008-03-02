@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.5 2008/02/20 15:02:22 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.6 2008/03/02 16:04:42 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -273,8 +273,9 @@ This knows details about or source tree."
 		  (if (and (not (string= tmp "")) (= (aref tmp 0) ?/))
 		      ;; Check relative to root
 		      (setq tmp (expand-file-name (substring tmp 1)
-						  (ede-project-root-directory proj)))
+						  dir))
 		    (setq tmp (expand-file-name tmp)))
+		  (setq tmp (expand-file-name name tmp))
 		  (if (file-exists-p tmp)
 		      (setq ans tmp))
 		  (setq ip (cdr ip)) ))
