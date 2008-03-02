@@ -13,7 +13,7 @@ tools_LISP=bison-wisent.el
 EMACS=emacs
 wisent_LISP=wisent.el semantic-wisent.el wisent-comp.el wisent-expr.el wisent-grammar.el wisent-debug.el wisent-grammar-macros.el
 LOADPATH= ../../speedbar/ ../../common/ ../bovine/ ../\
-    ../../eieio/
+    ../../ede/ ../../eieio/
 wy_SEMANTIC_GRAMMAR=wisent-java-tags.wy wisent-awk.wy wisent-calc.wy wisent-cim.wy wisent-java.wy wisent-python.wy
 EMACS=emacs
 wy_SEMANTIC_GRAMMAR_EL=wisent-java-tags-wy.el wisent-awk-wy.el wisent-calc-wy.el wisent-cim-wy.el wisent-java-wy.el wisent-python-wy.el
