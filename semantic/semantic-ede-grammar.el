@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.13 2008/02/19 03:24:53 zappo Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.14 2008/03/02 02:11:31 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -150,7 +150,11 @@ Lays claim to all -by.el, and -wy.el files."
   "Insert variables needed by target THIS."
   (ede-proj-makefile-insert-loadpath-items
    (ede-proj-elisp-packages-to-loadpath
-    (list "eieio" "semantic" "inversion")))
+    (list "eieio" "semantic" "inversion" "ede")))
+  ;; eieio for object system needed in ede
+  ;; semantic because it is
+  ;; Inversion for versioning system.
+  ;; ede for project regeneration
   (ede-pmake-insert-variable-shared
       (concat (ede-pmake-varname this) "_SEMANTIC_GRAMMAR_EL")
     (insert
