@@ -1,8 +1,8 @@
 ;;; semantic-fw.el --- Framework for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.57 2007/09/04 01:11:55 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.58 2008/03/02 02:12:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -50,7 +50,11 @@
       (defalias 'semantic-overlay-move            'set-extent-endpoints)
       (defalias 'semantic-overlay-delete          'delete-extent)
       (defalias 'semantic-overlays-at
-        (lambda (pos) (extent-list nil pos pos)))
+        (lambda (pos) 
+	  (condition-case nil
+	      (extent-list nil pos pos)
+	    (error nil))
+	  ))
       (defalias 'semantic-overlays-in
         (lambda (beg end) (extent-list nil beg end)))
       (defalias 'semantic-overlay-buffer          'extent-buffer)
