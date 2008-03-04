@@ -1,10 +1,10 @@
 ;;; semantic-ia.el --- Interactive Analysis functions
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.19 2007/12/08 13:55:24 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.20 2008/03/04 12:12:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -196,12 +196,13 @@ Uses `semantic-analyze-current-context' output to identify an accurate
 origin of the code at point."
   (interactive "d")
   (let* ((ctxt (semantic-analyze-current-context point))
-	 (pf (reverse (oref ctxt prefix)))
+	 (pf (and ctxt (reverse (oref ctxt prefix))))
 	 (first (car pf))
 	 (second (nth 1 pf))
 	 )
     (if (semantic-tag-p first)
 	(progn
+	  ;; @todo - push a tag mark?
 	  (push-mark)
 	  (semantic-go-to-tag first)
 	  (switch-to-buffer (current-buffer)))
