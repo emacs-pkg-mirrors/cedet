@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.20 2008/02/24 01:40:26 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.21 2008/03/04 12:13:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,7 +111,8 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
     (signal 'wrong-type-argument (list tag 'include)))
   (save-excursion
     (let ((result nil)
-	  (default-directory default-directory))
+	  (default-directory default-directory)
+	  (edefind nil))
       (cond ((semantic-tag-in-buffer-p tag)
 	     ;; If the tag has an overlay and buffer associated with it,
 	     ;; switch to that buffer so that we get the right override metohds.
@@ -131,12 +132,10 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
       ;; @ToDo : Move EDE piece into semantic-dep
       (if (and (not (semantic-tag-include-system-p tag))
 	       (fboundp 'ede-expand-filename) ede-minor-mode
-	       (ede-expand-filename (ede-toplevel)
-				    (semantic-tag-name tag)))
-	  (setq result 
-		(ede-expand-filename (ede-toplevel)
-				     (semantic-tag-name tag)))
-	)
+	       (setq edefind
+		     (ede-expand-filename (ede-toplevel)
+					  (semantic-tag-name tag))))
+	  (setq result edefind))
       (if (not result)
 	  (setq result
 		(if (semantic--tag-get-property tag 'dependency-file)
