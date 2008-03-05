@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.8 2008/02/24 18:23:57 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.9 2008/03/05 04:20:13 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -264,13 +264,16 @@ if that file is NEW, otherwise assume the mode has not changed."
   (when (and (not srecode-current-map)
 	     (not (file-exists-p srecode-map-save-file)))
     (when (not (file-exists-p (file-name-directory srecode-map-save-file)))
-      ;; No map, make the dir?
-      (if (y-or-n-p (format "Create dir %s? "
-			    (file-name-directory srecode-map-save-file)))
-	  (make-directory (file-name-directory srecode-map-save-file))
-	;; No make, change save file
-	(customize-variable 'srecode-map-save-file)
-	(error "Change your SRecode map file")))
+      ;; Only bother with this interactively, not during a build
+      ;; or test.
+      (when (not noninteractive)
+	;; No map, make the dir?
+	(if (y-or-n-p (format "Create dir %s? "
+			      (file-name-directory srecode-map-save-file)))
+	    (make-directory (file-name-directory srecode-map-save-file))
+	  ;; No make, change save file
+	  (customize-variable 'srecode-map-save-file)
+	  (error "Change your SRecode map file"))))
     ;; Have a dir.  Make the object.
     (setq srecode-current-map
 	  (srecode-map "SRecode Map"
@@ -303,16 +306,19 @@ if that file is NEW, otherwise assume the mode has not changed."
 	  )))
     ;; 4) - Find new files and add them to the map.
     (dolist (dir srecode-map-load-path)
-      (dolist (f (directory-files dir t "\\.srt$"))
-	(when (and (not (backup-file-name-p f))
-		   (not (auto-save-file-name-p f))
-		   (file-readable-p f))
-	  (setq dirty
-		(or dirty
-		    (srecode-map-validate-file-for-mode f fast))))
+      (when (file-exists-p dir)
+	(dolist (f (directory-files dir t "\\.srt$"))
+	  (when (and (not (backup-file-name-p f))
+		     (not (auto-save-file-name-p f))
+		     (file-readable-p f))
+	    (setq dirty
+		  (or dirty
+		      (srecode-map-validate-file-for-mode f fast))))
 
-	))
-    (when dirty
+	  )))
+    ;; Only do the save if we are dirty, or if we are in an interactive
+    ;; Emacs.
+    (when (and dirty (not noninteractive))
       (eieio-persistent-save srecode-current-map))
     ))
 
