@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.120 2008/02/11 14:02:37 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.121 2008/03/05 04:50:30 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -448,15 +448,21 @@ Uses `semanticdb' when available."
   (let ((tagsa nil)
 	(tagsb nil))
     (if (and (featurep 'semantic-analyze))
-	(setq tagsa (semantic-analyze-possible-completions
-		     (semantic-analyze-current-context))))
-    (setq tagsb
-	  (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-	      ;; semanticdb version returns a list of (DB-TABLE . TAG-LIST)
-	      (semanticdb-deep-find-tags-for-completion prefix)
-	    ;; semantic version returns a TAG-LIST
-	    (semantic-deep-find-tags-for-completion prefix (current-buffer))))
-    (append tagsa (semanticdb-fast-strip-find-results tagsb))))
+	(let ((ctxt (semantic-analyze-current-context)))
+	  (when ctxt
+	    (setq tagsa (semantic-analyze-possible-completions
+			 ctxt)))))
+
+    (if tagsa
+	tagsa
+      ;; If the analyzer fails, then go into boring completion
+      (setq tagsb
+	    (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+		;; semanticdb version returns a list of (DB-TABLE . TAG-LIST)
+		(semanticdb-deep-find-tags-for-completion prefix)
+	      ;; semantic version returns a TAG-LIST
+	      (semantic-deep-find-tags-for-completion prefix (current-buffer))))
+      (semanticdb-fast-strip-find-results tagsb))))
 
 ;;; Senator stream searching functions: no more supported.
 ;;
@@ -757,9 +763,13 @@ Of the form (BUFFER STARTPOS INDEX REGEX COMPLIST...)")
 
 (defsubst senator-current-symbol-start ()
   "Return position of start of the current symbol under point or nil."
-  (condition-case nil
-      (save-excursion (forward-sexp -1) (point))
-    (error nil)))
+  (let* ((sb (semantic-ctxt-current-symbol-and-bounds (point)))
+	 (bounds (nth 2 sb)))
+    (car bounds)))
+
+;;  (condition-case nil
+;;      (save-excursion (forward-sexp -1) (point))
+;;    (error nil)))
 
 ;;;###autoload
 (defun senator-complete-symbol (&optional cycle-once)
@@ -790,7 +800,7 @@ of completions once, doing nothing where there are no more matches."
                                                             0
                                                             regex)
                                                       complst))))
-    ;; Do the completion if apropriate.
+    ;; Do the completion if appropriate.
     (if complst
         (let ((ret   t)
               (index (nth 2 senator-last-completion-stats))
