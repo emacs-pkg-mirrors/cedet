@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.7 2008/02/24 01:43:24 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.8 2008/03/05 04:20:36 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -131,6 +131,7 @@ It is also likely to create macros for TYPE (data type), function arguments,
 variable default values, and other things."
   )
 
+;;;###autoload
 (defun srecode-semantic-apply-tag-to-dict-default (tagobj dict)
   "Insert features of TAGOBJ into dictionary DICT."
   ;; Store the sst into the dictionary.
