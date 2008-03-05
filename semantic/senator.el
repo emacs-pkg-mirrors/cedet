@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.121 2008/03/05 04:50:30 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.122 2008/03/05 04:52:44 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -447,11 +447,13 @@ type context exists at point."
 Uses `semanticdb' when available."
   (let ((tagsa nil)
 	(tagsb nil))
-    (if (and (featurep 'semantic-analyze))
-	(let ((ctxt (semantic-analyze-current-context)))
-	  (when ctxt
-	    (setq tagsa (semantic-analyze-possible-completions
-			 ctxt)))))
+    (when (and (featurep 'semantic-analyze))
+      (let ((ctxt (semantic-analyze-current-context)))
+	(when ctxt
+	  (condition-case nil
+	      (setq tagsa (semantic-analyze-possible-completions
+			   ctxt))
+	    (error nil)))))
 
     (if tagsa
 	tagsa
