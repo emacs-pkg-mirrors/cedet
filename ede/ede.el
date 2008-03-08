@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.92 2008/02/21 23:57:16 zappo Exp $
+;; RCS: $Id: ede.el,v 1.93 2008/03/08 11:16:36 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -823,12 +823,23 @@ Optional argument NAME is the name to give this project."
    (list (completing-read "Project Type: "
 			  (object-assoc-list
 			   'name
-			   (let ((l ede-project-class-files)
-				 (r nil))
+			   (let* ((l ede-project-class-files)
+				  (cp (ede-current-project))
+				  (cs (when cp (object-class cp)))
+				  (r nil))
 			     (while l
-			       (if (oref (car l) new-p)
-				   (setq r (cons (car l) r)))
+			       (if cs
+				   (if (eq (oref (car l) :class-sym)
+					   cs)
+				       (setq r (cons (car l) r)))
+				 (if (oref (car l) new-p)
+				     (setq r (cons (car l) r))))
 			       (setq l (cdr l)))
+			     (when (not r)
+			       (if cs
+				   (error "No valid interactive sub project types for %s"
+					  cs)
+				 (error "EDE error: Can't fin project types to create")))
 			     r)
 			   )
 			  nil t)))
