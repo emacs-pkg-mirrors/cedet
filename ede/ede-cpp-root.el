@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.6 2008/03/02 16:04:42 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.7 2008/03/08 11:17:09 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -117,6 +117,7 @@
 ;; 	     t)
 ;; 
 
+;; @todo - Do not show up in main list.
 
 (require 'ede)
 
@@ -167,7 +168,8 @@ ROOTPROJ is nil, since there is only one project."
 	      :proj-file 'ede-cpp-root-project-file-for-dir
 	      :proj-root 'ede-cpp-root-project-root
 	      :load-type 'ede-cpp-root-load
-	      :class-sym 'ede-cpp-root)
+	      :class-sym 'ede-cpp-root
+	      :new-p nil)
 	     t)
 
 ;;; CLASSES
