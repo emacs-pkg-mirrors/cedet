@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.19 2008/02/19 03:11:11 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.20 2008/03/09 15:28:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,10 +37,18 @@
   )
 
 ;;; Code:
-
-(define-lex-simple-regex-analyzer semantic-lex-make-backslash-newline
-  "A line ending with a \ continues to the next line and is treated as whitespace."
-  "\\(\\\\\n\\s-*\\)" 'whitespace 1)
+(define-lex-analyzer semantic-lex-make-backslash-no-newline
+  "Detect and create a beginning of line token (BOL)."
+  (and (looking-at "\\(\\\\\n\\s-*\\)")
+       ;; We have a \ at eol.  Push it as whitespace, but pretend
+       ;; it never happened so we can skip the BOL tokenizer.
+       (semantic-lex-push-token (semantic-lex-token 'whitespace
+						    (match-beginning 1)
+						    (match-end 1)))
+       (goto-char (match-end 1))
+       nil) ;; CONTINUE
+   ;; We want to skip BOL, so move to the next condition.
+   nil)
 
 (define-lex-regex-analyzer semantic-lex-make-command
   "A command in a Makefile consists of a line starting with TAB, and ending at the newline."
@@ -63,7 +71,7 @@ Ignore them."
   semantic-lex-beginning-of-line
   semantic-lex-make-ignore-automake-conditional
   semantic-lex-make-command
-  semantic-lex-make-backslash-newline
+  semantic-lex-make-backslash-no-newline
   semantic-lex-whitespace
   semantic-lex-newline
   semantic-lex-symbol-or-keyword
