@@ -11,7 +11,7 @@ ede_FILES=Project.ede Makefile
 
 wy_SEMANTIC_GRAMMAR=wisent-dot.wy
 EMACS=emacs
-LOADPATH= ../common/ ../semantic/ ../eieio/\
+LOADPATH= ../ede/ ../common/ ../semantic/ ../eieio/\
     ../semantic/wisent/  ../speedbar/ ../semantic/bovine/
 wy_SEMANTIC_GRAMMAR_EL=wisent-dot-wy.el
 EMACS=emacs
