@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.14 2008/03/02 02:11:31 zappo Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.15 2008/03/11 02:33:33 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -127,10 +127,13 @@ Lays claim to all -by.el, and -wy.el files."
 
 (defmethod project-compile-target ((obj semantic-ede-proj-target-grammar))
   "Compile all sources in a Lisp target OBJ."
-  (let ((cb (current-buffer)))
+  (let ((cb (current-buffer))
+	(default-directory (ede-expand-filename obj ".")))
     (mapc (lambda (src)
 	    (save-excursion
 	      (set-buffer (find-file-noselect src))
+	      (semantic-grammar-create-package)
+	      (save-buffer)
 	      (let ((cf (concat (semantic-grammar-package) ".el")))
 		(if (or (not (file-exists-p cf))
 			(file-newer-than-file-p src cf))
