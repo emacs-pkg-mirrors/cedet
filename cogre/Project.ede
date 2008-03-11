@@ -46,7 +46,7 @@
     :path ""
     :source '("picture-hack.el")
     )
-   (ede-proj-target-elisp "(cogre.el cogre-uml.el uml-create.el)"
+   (ede-proj-target-elisp "COGRE"
     :name "COGRE"
     :path ""
     :source '("cogre.el" "cogre-uml.el" "uml-create.el")
