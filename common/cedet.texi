@@ -391,6 +391,14 @@ or
 make EMACS=<your favorite emacs> MAKEINFO=<substitute, or echo>
 @end example
 
+If you do not have @code{make} installed on your system, or if you
+cannot get the @file{Makefile}s to work, then you can use the all
+Emacs solution in @file{cedet-build.el} which is found in the
+toplevel @cedet directory.
+
+Read the Commentary section of @file{cedet-build.el} for details on
+using this method.
+
 @item Install .emacs hooks
 
 Load @cedet{} in your @file{.emacs} file.  You do not need to install
@@ -643,6 +651,14 @@ up some macros.  You can do that like this:
 To have some macro text be replaced with something else, replace
 @code{nil} above with a string.
 
+If you code in C, it is likely many symbols from your header files
+won't parse by default.  You will need to look in those header files,
+and find symbols that are defined, and add them to the list.  By doing
+this, @semantic{} will then be able to parse your header files.
+
+Some such symbols for @file{stdio.h} as found on Linux are defined in
+@code{semantic-lex-c-preprocessor-symbol-map-builtin}.
+
 @section System Include path
 
 If you want the code-completion to work with C++ system header file,
@@ -669,6 +685,7 @@ like @semantic{} can find your sources.  For C++, you may want to do
 this:
 
 @example
+(global-ede-mode 1) ;; Enable EDE
 (ede-cpp-root-project "SOMENAME" :file "/dir/to/some/file")
 @end example
 
