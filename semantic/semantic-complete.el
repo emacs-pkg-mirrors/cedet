@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.47 2008/03/13 03:31:40 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.48 2008/03/14 02:42:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -507,7 +507,8 @@ If PARTIAL, do partial completion stopping at spaces.
 if INLINE, then completion is happening inline in a buffer."
   (let* ((collector semantic-completion-collector-engine)
 	 (displayor semantic-completion-display-engine)
-	 (contents (semantic-completion-text)))
+	 (contents (semantic-completion-text))
+	 (ans nil))
 
     (save-excursion
       (semantic-collector-calculate-completions collector contents partial))
@@ -516,12 +517,13 @@ if INLINE, then completion is happening inline in a buffer."
        ;; We're all done, but only from a very specific
        ;; area of completion.
        ((eq na 'done)
-	(semantic-completion-message " [Complete]"))
+	(semantic-completion-message " [Complete]")
+	(setq ans 'done))
        ;; Perform completion
        ((or (eq na 'complete)
 	    (eq na 'complete-whitespace))
 	(semantic-complete-try-completion partial)
-	)
+	(setq ans 'complete))
        ;; We need to display the completions.
        ;; Set the completions into the display engine
        ((or (eq na 'display) (eq na 'displayend))
@@ -533,8 +535,7 @@ if INLINE, then completion is happening inline in a buffer."
 	  (semantic-collector-all-completions collector contents))
 	 contents)
 	;; Ask the displayor to display them.
-	(semantic-displayor-show-request displayor)
-	)
+	(semantic-displayor-show-request displayor))
        ((eq na 'scroll)
 	(semantic-displayor-scroll-request displayor)
 	)
@@ -544,7 +545,8 @@ if INLINE, then completion is happening inline in a buffer."
 	)
        ((eq na 'empty)
 	(semantic-completion-message " [No Match]"))
-       (t nil)))))
+       (t nil)))
+    ans))
 
 
 ;;; ------------------------------------------------------------
@@ -562,8 +564,12 @@ if INLINE, then completion is happening inline in a buffer."
     (define-key km "\C-m" 'semantic-complete-inline-done)
     (define-key km "\C-\M-c" 'semantic-complete-inline-exit)
     (define-key km "\C-g" 'semantic-complete-inline-quit)
+    (define-key km "?"
+      (lambda () (interactive)
+	(describe-variable 'semantic-complete-inline-map)))
     km)
-  "Keymap used while performing inline completion..")
+  "Keymap used while performing Semantic inline completion.
+\\{semantic-complete-inline-map}")
 
 (defface semantic-complete-inline-face
   '((((class color) (background dark))
@@ -763,6 +769,7 @@ END is at the end of the current symbol being completed."
   (add-hook 'pre-command-hook 'semantic-complete-pre-command-hook)
   (add-hook 'post-command-hook 'semantic-complete-post-command-hook)
   ;; Go!
+  (semantic-complete-inline-force-display)
   )
 
 ;;; Inline Completion Keymap Functions
@@ -770,7 +777,13 @@ END is at the end of the current symbol being completed."
 (defun semantic-complete-inline-TAB ()
   "Perform inline completion."
   (interactive)
-  (semantic-complete-do-completion nil t)
+  (let ((cmpl (semantic-complete-do-completion nil t)))
+    (cond
+     ((eq cmpl 'complete)
+      (semantic-complete-inline-force-display))
+     ((eq cmpl 'done)
+      (semantic-complete-inline-done))
+     ))
   )
 
 (defun semantic-complete-inline-down()
@@ -1317,7 +1330,7 @@ This object type doesn't do focus, so will never have a focus object."
 Completions are showin in a new buffer and listed with the ability
 to click on the items to aid in completion.")
 
-(defmethod semantic-displayor-show-request ((obj semantic-displayor-abstract))
+(defmethod semantic-displayor-show-request ((obj semantic-displayor-traditional))
   "A request to show the current tags table."
 
   ;; NOTE TO SELF.  Find the character to type next, and emphesize it.
@@ -1637,16 +1650,30 @@ Return a cons cell (X . Y)"
 
 ;;; Ghost Text displayor
 ;;
-(defclass semantic-displayor-ghost (semantic-displayor-traditional
-				    semantic-displayor-focus-abstract)
+(defclass semantic-displayor-ghost (semantic-displayor-focus-abstract)
 				    
   ((ghostoverlay :type overlay
 		 :documentation
 		 "The overlay the ghost text is displayed in.")
+   (first-show :initform t
+	       :documentation
+	       "Non nil if we have not seen our first show request.")
    )
   "Completion displayor using ghost chars after point for focus options.
 Whichever completion is currently in focus will be displayed as ghost
 text using overlay options.")
+
+(defmethod semantic-displayor-next-action ((obj semantic-displayor-ghost))
+  "The next action to take on the inline completion related to display."
+  (let ((ans (call-next-method))
+	(table (when (slot-boundp obj 'table)
+		       (oref obj table))))
+    (if (and (eq ans 'displayend)
+	     table
+	     (= (semanticdb-find-result-length table) 1)
+	     )
+	nil
+      ans)))
 
 (defmethod semantic-displayor-cleanup ((obj semantic-displayor-ghost))
   "Clean up any mess this displayor may have."
@@ -1661,6 +1688,22 @@ text using overlay options.")
 
   (semantic-displayor-cleanup obj)
   )
+
+
+(defmethod semantic-displayor-show-request ((obj semantic-displayor-ghost))
+  "A request to show the current tags table."
+;  (if (oref obj first-show)
+;      (progn
+;	(oset obj first-show nil)
+	(semantic-displayor-focus-next obj)
+	(semantic-displayor-focus-request obj)
+;	)
+    ;; Only do the traditional thing if the first show request
+    ;; has been seen.  Use the first one to start doing the ghost
+    ;; text display.
+;    (call-next-method)
+;    )
+)
 
 (defmethod semantic-displayor-focus-request
   ((obj semantic-displayor-ghost))
@@ -1693,10 +1736,12 @@ completion text in ghost text."
 	)
       ;; Calculate text difference between contents and the focus item.
       (let* ((mbc (semantic-completion-text))
-	     (ftn (semantic-tag-name tag))
-	     (diff (substring ftn (length mbc))))
+	     (ftn (concat (semantic-tag-name tag)))
+	     )
+	(put-text-property (length mbc) (length ftn) 'face
+			   'bold ftn)
 	(semantic-completion-message
-	 (format "%s [%d of %d matches]" diff (1+ (oref obj focus)) tablelength)))
+	 (format "%s [%d of %d matches]" ftn (1+ (oref obj focus)) tablelength)))
       )))
 
 
