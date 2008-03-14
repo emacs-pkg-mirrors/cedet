@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.26 2008/02/19 18:16:48 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.27 2008/03/14 22:44:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -341,8 +341,8 @@ The returned path is related to DIRECTORY."
   "For DBCLASS, return a file to a cache file belonging to PATH.
 This could be a cache file in the current directory, or an encoded file
 name in a secondary directory."
-  (concat (semanticdb-file-name-directory dbclass path)
-	  (semanticdb-file-name-non-directory dbclass)))
+  (expand-file-name (semanticdb-file-name-non-directory dbclass)
+		    (semanticdb-file-name-directory dbclass path)))
 
 ;;;###autoload
 (defmethod semanticdb-full-filename ((obj semanticdb-project-database-file))
