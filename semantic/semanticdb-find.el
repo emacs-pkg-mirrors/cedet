@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.58 2008/02/13 03:20:49 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.59 2008/03/14 22:45:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -341,6 +341,31 @@ Default action as described in `semanticdb-find-translate-path'."
       )
     ans))
 
+(defun semanticdb-find-need-cache-update-p (table)
+  "Non nil if the semanticdb TABLE cache needs to be updated."
+  ;; If we were passed in something related to a TABLE,
+  ;; do a caching lookup.
+  (let* ((index (semanticdb-get-table-index table))
+	 (cache (when index (oref index include-path)))
+	 (incom (semanticdb-find-incomplete-cache-entries-p cache))
+	 (unl (semanticdb-find-throttle-active-p 'unloaded))
+	 )
+    (if (and
+	 cache ;; Must have a cache
+	 (or
+	  ;; If all entries are "full", or if 'unloaded
+	  ;; OR
+	  ;; is not in the throttle, it is ok to use the cache.
+	  (not incom) (not unl)
+	  ))
+	nil
+      ;;cache
+      ;; ELSE
+      ;;
+      ;; We need an update.
+      t))
+  )
+
 (defun semanticdb-find-translate-path-includes-default (path)
   "Translate PATH into a list of semantic tables.
 Default action as described in `semanticdb-find-translate-path'."
@@ -352,28 +377,20 @@ Default action as described in `semanticdb-find-translate-path'."
     (if table
 	;; If we were passed in something related to a TABLE,
 	;; do a caching lookup.
-	(let* ((index (semanticdb-get-table-index table))
-	       (cache (when index (oref index include-path)))
-	       (incom (semanticdb-find-incomplete-cache-entries-p cache))
-	       (unl (semanticdb-find-throttle-active-p 'unloaded))
-	       )
-	  (if (and
-	       cache ;; Must have a cache
-	       (or
-		;; If all entries are "full", or if 'unloaded
-		;; OR
-		;; is not in the throttle, it is ok to use the cache.
-		(not incom) (not unl)
-		))
-	      cache
-	    ;; Lets go look up our indicies
-	    (let ((ans (semanticdb-find-translate-path-includes--internal path)))
-	      (oset index include-path ans)
-	      ;; Once we have our new indicies set up, notify those
-	      ;; who depend on us if we found something for them to
-	      ;; depend on.
-	      (when ans (semanticdb-refresh-references table))
-	      ans)))
+	(let ((index (semanticdb-get-table-index table)))
+	  (if (semanticdb-find-need-cache-update-p table)
+	      ;; Lets go look up our indicies
+	      (let ((ans (semanticdb-find-translate-path-includes--internal path)))
+		(oset index include-path ans)
+		;; Once we have our new indicies set up, notify those
+		;; who depend on us if we found something for them to
+		;; depend on.
+		(when ans (semanticdb-refresh-references table))
+		ans)
+	    ;; ELSE
+	    ;;
+	    ;; Just return the cache.
+	    (oref index include-path)))
       ;; If we were passed in something like a tag list, or other boring
       ;; searchable item, then instead do the regular thing without caching.
       (semanticdb-find-translate-path-includes--internal path))))
