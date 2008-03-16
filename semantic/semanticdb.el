@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.100 2008/02/19 18:16:12 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.101 2008/03/16 19:44:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -782,17 +782,21 @@ If ARG is nil, then toggle."
 	  (setq arg -1)
 	(setq arg 1)))
   (let ((fn 'add-hook)
-	(h semanticdb-hooks))
+	(h semanticdb-hooks)
+	(changed nil))
     (if (< arg 0)
-	(setq semanticdb-global-mode nil
+	(setq changed semanticdb-global-mode
+	      semanticdb-global-mode nil
               fn 'remove-hook)
-      (setq semanticdb-global-mode t))
+      (setq changed (not semanticdb-global-mode)
+	    semanticdb-global-mode t))
     ;(message "ARG = %d" arg)
-    (while h
-      (funcall fn (car (cdr (car h))) (car (car h)))
-      (setq h (cdr h)))
-    ;; Call a hook
-    (run-hooks 'semanticdb-mode-hooks)
+    (when changed
+      (while h
+	(funcall fn (car (cdr (car h))) (car (car h)))
+	(setq h (cdr h)))
+      ;; Call a hook
+      (run-hooks 'semanticdb-mode-hooks))
     ))
 
 (defun semanticdb-toggle-global-mode ()
