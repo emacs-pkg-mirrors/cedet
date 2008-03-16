@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.38 2008/02/13 16:43:22 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.39 2008/03/16 17:16:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -657,20 +657,25 @@ current tag to display information."
 
 (defun semantic-idle-completion-list-default ()
   "Calculate and display a list of completions."
-  (if (or (not (featurep 'tooltip)) tooltip-use-echo-area)
-      ;; If tooltips aren't available, turn this off.
-      (global-semantic-idle-completions-mode -1)
-    (when (semantic-idle-summary-useful-context-p)
-      ;; This mode can be fragile.  Ignore problems.
-      ;; If something doesn't do what you expect, run
-      ;; the below command by hand instead.
-      (condition-case nil
-	  (progn
-	    (semantic-complete-analyze-inline)
-	    (when (semantic-completion-inline-active-p)
-	      (semantic-complete-inline-force-display)))
-	(error nil))
-      )))
+  (when (semantic-idle-summary-useful-context-p)
+    ;; This mode can be fragile.  Ignore problems.
+    ;; If something doesn't do what you expect, run
+    ;; the below command by hand instead.
+    (condition-case nil
+	(let (
+	      ;; Don't go loading in oodles of header libraries in
+	      ;; IDLE time.
+	      (semanticdb-find-default-throttle
+	       (if (featurep 'semanticdb-find)
+		   (remq 'unloaded semanticdb-find-default-throttle)
+		 nil))
+	      )
+	  (semantic-complete-analyze-inline)
+	  ;;(when (semantic-completion-inline-active-p)
+	  ;;  (semantic-complete-inline-force-display))
+	  )
+      (error nil))
+    ))
 
 (define-semantic-idle-service semantic-idle-completions
   "Display a list of possible completions in a tooltip."
