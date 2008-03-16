@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.17 2008/02/19 03:24:01 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.18 2008/03/16 19:49:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,7 +116,8 @@ Return DECO."
 (defun semantic-decorate-tag (tag begin end &optional face)
   "Add a new decoration on TAG on the region between BEGIN and END.
 If optional argument FACE is non-nil, set the decoration's face to
-FACE."
+FACE.
+Return the overlay that makes up the new decoration."
   (let ((deco (semantic-tag-create-secondary-overlay tag)))
     ;; We do not use the unlink property because we do not want to
     ;; save the highlighting information in the DB.
@@ -537,6 +538,13 @@ Use a primary decoration."
 Used by the decoration style: `semantic-decoration-on-unknown-includes'."
   :group 'semantic-faces)
 
+(defvar semantic-decoration-on-unknown-include-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km [ mouse-1 ] 'semantic-decoration-unknown-include-describe)
+    (define-key km [ mouse-2 ] 'semantic-decoration-unknown-include-describe)
+    km)
+  "Keymap used on unparsed includes.")
+
 (define-semantic-decoration-style semantic-decoration-on-unknown-includes
   "Highlight class members that are includes that can't be found.
 This highlighting indicates a problem with the configuration of Semantic.
@@ -555,11 +563,205 @@ find the file will resolve the issue."
 
 (defun semantic-decoration-on-unknown-includes-highlight-default (tag)
   "Highlight the include TAG to show that semantic can't find it."
-  (semantic-decorate-tag tag (semantic-tag-start tag) (semantic-tag-end tag)
-			 'semantic-decoration-on-unknown-includes)
-  ;;(semantic-set-tag-face tag 'semantic-decoration-on-unknown-includes)
-  )
+  (let ((ol (semantic-decorate-tag
+	     tag (semantic-tag-start tag) (semantic-tag-end tag)
+	     'semantic-decoration-on-unknown-includes)))
+    ;; Rig up the include to have a mouse face to encourage a user to
+    ;; click, and learn how to "fix" this problem.
+    (semantic-overlay-put ol 'mouse-face 'region)
+    (semantic-overlay-put ol 'keymap semantic-decoration-on-unknown-include-map)
+    ))
 
+
+(defun semantic-decoration-unknown-include-describe (event)
+  "Describe what unknown includes are in the current buffer.
+Argument EVENT is the mouse clicked event."
+  (interactive "e")
+  (let ((tag (semantic-current-tag))
+	(mm major-mode))
+    (with-output-to-temp-buffer "*Help*"
+      (princ "Include File: ")
+      (princ (semantic-format-tag-name tag nil t))
+      (princ "\n\n")
+      (princ "This header file has been marked \"Unknown\".
+This means that Semantic has not been able to locate this file on disk.
+
+When Semantic cannot find an include file, this means that the
+idle summary mode and idle completion modes cannot use the contents of
+that file to provide coding assistance.
+
+If this is a system header and you want it excluded from Semantic's
+searches (which may be desirable for speed reasons) then you can
+safely ignore this state.
+
+If this is a system header, and you want to include it in Semantic's
+searches, then you will need to use:
+
+M-x semantic-add-system-include RET /path/to/includes RET
+
+or, in your .emacs file do:
+
+  (semantic-add-system-include \"/path/to/include\" '")
+      (princ (symbol-name mm))
+      (princ ")
+
+to add the path to Semantic's search.
+
+If this is an include file that belongs to your project, then you may
+need to update `semanticdb-project-roots' or better yet, use `ede'
+to manage your project.  See the ede manual for projects that will
+wrap existing project code for Semantic's benifit.
+")
+
+      (when (or (eq mm 'c++-mode) (eq mm 'c-mode))
+	(princ "
+For C/C++ includes located within a a project, you can use a special
+EDE project that will wrap an existing build system.  You can do that
+like this in your .emacs file:
+
+  (ede-cpp-root-project \"NAME\" :file \"FILENAME\" :locate-fcn 'MYFCN)
+
+See the CEDET manual, the EDE manual, or the commentary in
+ede-cpp-root.el for more.
+
+If you think this header tag is marked in error, you may need to do:
+
+C-u M-x bovinate RET
+
+to refresh the tags in this buffer, and recalculate the state."))
+
+      (princ "
+See the Semantic manual node on SemanticDB for more about search paths.")
+      )))
+
+;;; Includes that need to be parsed.
+;;
+(defface semantic-decoration-on-unparsed-includes
+  '((((class color) (background dark))
+     (:background "#555500"))
+    (((class color) (background light))
+     (:background "#ffff55")))
+  "*Face used to show includes that cannot be found.
+Used by the decoration style: `semantic-decoration-on-unparsed-includes'."
+  :group 'semantic-faces)
+
+(defvar semantic-decoration-on-unparse-include-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km [ mouse-1 ] 'semantic-decoration-unparsed-include-describe)
+    (define-key km [ mouse-2 ] 'semantic-decoration-unparsed-include-describe)
+    km)
+  "Keymap used on unparsed includes.")
+
+(define-semantic-decoration-style semantic-decoration-on-unparsed-includes
+  "Highlight class members that are includes that can't be found.
+This highlighting indicates a problem with the configuration of Semantic.
+Updating that modes include path, or setting up an EDE project to help
+find the file will resolve the issue."
+  :enabled t)
+
+(defun semantic-decoration-on-unparsed-includes-p-default (tag)
+  "Return non-nil if TAG has is an includes that can't be found."
+  (if (semantic-tag-of-class-p tag 'include)
+      (let* ((file (semantic-dependency-tag-file tag))
+	     (table (when file
+		      (semanticdb-file-table-object file t)))
+	     )
+	(if file
+	    (prog1
+		(not (number-or-marker-p (oref table pointmax)))
+	      ;; Create a hook into the synchronization process.
+	      (semanticdb-cache-get
+	       table 'semantic-decoration-unparsed-include-cache))
+	  ;; Else
+	  nil))
+    nil))
+
+(defun semantic-decoration-on-unparsed-includes-highlight-default (tag)
+  "Highlight the include TAG to show that semantic can't find it."
+  (let ((ol (semantic-decorate-tag
+	     tag (semantic-tag-start tag) (semantic-tag-end tag)
+	     'semantic-decoration-on-unparsed-includes))
+	)
+    ;; Rig up the include to have a mouse face to encourage a user to
+    ;; click, and learn how to "fix" this problem.
+    (semantic-overlay-put ol 'mouse-face 'region)
+    (semantic-overlay-put ol 'keymap
+			  semantic-decoration-on-unparse-include-map)
+    ;; Now that we've been decorated, lets make sure we've put a
+    ;; reference against the unloaded database.
+    (let ((table semanticdb-current-table))
+      (semanticdb-add-reference table tag))
+    ))
+
+(defun semantic-decoration-unparsed-include-describe (event)
+  "Describe what unparsed includes are in the current buffer.
+Argument EVENT is the mouse clicked event."
+  (interactive "e")
+  (let ((tag (semantic-current-tag)))
+    (with-output-to-temp-buffer "*Help*"
+      (princ "Include File: ")
+      (princ (semantic-format-tag-name tag nil t))
+      (princ "\n\n")
+      (princ "This header file has been marked \"Unparsed\".
+This means that Semantic has located this header file on disk
+but has not yet opened and parsed this file.
+
+So long as this header file is unparsed, idle summary and completion
+will not be able to reference the details in this header.  To resolve
+this problem, you can call a summary or completion command by hand
+and wait for Semantic to finish parsing all your headers.
+
+Alternately, you can call:
+
+M-x semanticdb-find-test-translate-path RET
+
+to analyze to search path Semantic uses to perform completion.
+
+If you think this header tag is marked in error, you may need to do:
+
+C-u M-x bovinate RET
+
+to refresh the tags in this buffer, and recalculate the state.")
+      )))
+
+(defclass semantic-decoration-unparsed-include-cache (semanticdb-abstract-cache)
+  ()
+  "Class used to reset decorated includes.
+When an include's referring file is parsed, we need to undecorate
+any decorated referring includes.")
+
+
+(defmethod semantic-reset ((obj semantic-decoration-unparsed-include-cache))
+  "Reset OBJ back to it's empty settings."
+  (let ((table (oref obj table)))
+    ;; This is a hack.  Add in something better?
+    (semanticdb-notify-references
+     table (lambda (tab me)
+	     (semantic-decoration-unparsed-include-refrence-reset tab)
+	     ))
+    ))
+
+(defmethod semanticdb-partial-synchronize ((cache semantic-decoration-unparsed-include-cache)
+					   new-tags)
+  "Synchronize CACHE with some NEW-TAGS."
+  (if (semantic-find-tags-by-class 'include new-tags)
+      (semantic-reset cache)))
+
+(defmethod semanticdb-synchronize ((cache semantic-decoration-unparsed-include-cache)
+				   new-tags)
+  "Synchronize a CACHE with some NEW-TAGS."
+  (semantic-reset cache))
+
+(defun semantic-decoration-unparsed-include-refrence-reset (table)
+  "Refresh any highlighting in buffers referred to by TABLE.
+If TABLE is not in a buffer, do nothing."
+  (let ((buf (get-file-buffer (semanticdb-full-filename table))))
+    (when buf
+      (let ((allinc (semantic-find-tags-included buf)))
+	;; This will do everything, but it should be speedy since it
+	;; would have been done once already.
+	(semantic-decorate-add-decorations allinc)
+	))))
 
 (provide 'semantic-decorate-mode)
 
