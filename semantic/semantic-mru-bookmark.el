@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.8 2008/03/02 02:12:55 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.9 2008/03/16 19:45:39 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -124,7 +124,8 @@ REASON is a symbol.  See slot `reason' on `semantic-bookmark'."
   "Method called on a tag before the current buffer list of tags is flushed.
 If there is a buffer match, unlink the tag."
   (let ((tag (oref sbm tag))
-	(parent (oref sbm parent)))
+	(parent (when (slot-boundp sbm 'parent)
+		  (oref sbm parent))))
     (let ((b (semantic-tag-buffer tag)))
       (when (and b (eq b (current-buffer)))
 	(semantic--tag-unlink-from-buffer tag)))
