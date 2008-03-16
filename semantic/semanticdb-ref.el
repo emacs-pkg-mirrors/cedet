@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-ref.el,v 1.5 2008/02/19 03:22:43 zappo Exp $
+;; X-RCS: $Id: semanticdb-ref.el,v 1.6 2008/03/16 17:13:36 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -45,9 +45,13 @@ DBT is the database table that owns the INCLUDE-TAG.  The reference
 will be added to the database that INCLUDE-TAG refers to."
   ;; NOTE: I should add a check to make sure include-tag is in DB.
   ;;       but I'm too lazy.
-  (let ((refdbt (semanticdb-find-table-for-include include-tag dbt))
-	;;(fullfile (semanticdb-full-filename dbt))
-	)
+  (let* ((semanticdb-find-default-throttle
+	       (if (featurep 'semanticdb-find)
+		   (remq 'unloaded semanticdb-find-default-throttle)
+		 nil))
+	 (refdbt (semanticdb-find-table-for-include include-tag dbt))
+	 ;;(fullfile (semanticdb-full-filename dbt))
+	 )
     (when refdbt
       ;; Add our filename (full path)
       ;; (object-add-to-list refdbt 'file-refs fullfile)
@@ -110,9 +114,6 @@ refers to DBT will be removed."
 	)
     (while refs
       (if (semanticdb-add-reference dbt (car refs))
-	  ;; If we fail, perhaps we can colorize the include tag in
-	  ;; some pleasant way.
-	  ;; NOTE: I added a new mode to semantic-decorate-mode.el
 	  nil
 	;; If we succeeded, then do... nothing?
 	nil
