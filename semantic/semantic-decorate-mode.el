@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.18 2008/03/16 19:49:03 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.19 2008/03/17 12:28:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -724,6 +724,8 @@ C-u M-x bovinate RET
 to refresh the tags in this buffer, and recalculate the state.")
       )))
 
+(require 'semanticdb)
+
 (defclass semantic-decoration-unparsed-include-cache (semanticdb-abstract-cache)
   ()
   "Class used to reset decorated includes.
@@ -755,6 +757,13 @@ any decorated referring includes.")
 (defun semantic-decoration-unparsed-include-refrence-reset (table)
   "Refresh any highlighting in buffers referred to by TABLE.
 If TABLE is not in a buffer, do nothing."
+  ;; This cache removal may seem odd in that we are "creating one", but
+  ;; since we cant get in the fcn unless one exists, this ought to be
+  ;; ok.
+  (let ((c (semanticdb-cache-get
+	    table 'semantic-decoration-unparsed-include-cache)))
+    (semanticdb-cache-remove table c))
+
   (let ((buf (get-file-buffer (semanticdb-full-filename table))))
     (when buf
       (let ((allinc (semantic-find-tags-included buf)))
