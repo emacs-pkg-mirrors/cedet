@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.8 2008/02/20 04:26:54 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.9 2008/03/17 02:23:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -306,6 +306,7 @@ The class returned from the scope calculation is variable
   (if (not (and (featurep 'semanticdb) semanticdb-current-database))
       nil ;; Don't do anything...
     (if (not point) (setq point (point)))
+    (when (interactive-p) (semantic-fetch-tags))
     (save-excursion
       (goto-char point)
       (let* ((TAG  (semantic-current-tag))
@@ -322,7 +323,7 @@ The class returned from the scope calculation is variable
 	    (condition-case nil
 		(oset scopecache localvar (semantic-get-all-local-variables))
 	      (error nil))
-
+	  
 	  (let*
 	      (
 	       ;; Step 1:
@@ -349,7 +350,7 @@ The class returned from the scope calculation is variable
 	;; Handy debug output.
 	(when (interactive-p)
 	  (semantic-adebug-show scopecache)
-	  )	
+	  )
 	;; Return ourselves
 	scopecache))))
 
