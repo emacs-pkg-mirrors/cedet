@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.68 2008/02/13 03:56:20 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.69 2008/03/17 02:24:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -389,6 +389,7 @@ When overriding this function, your override will be called while
 cursor is at POSITION.  In addition, your function will not be called
 if a cached copy of the return object is found."
   (interactive "d")
+  (when (interactive-p) (semantic-fetch-tags))
   (if (not position) (setq position (point)))
   (save-excursion
     (goto-char position)
@@ -405,8 +406,8 @@ if a cached copy of the return object is found."
 					     'current-context
 					     'exit-cache-zone))
 	    ;; Check for interactivity
-	    (if (interactive-p)
-		(semantic-analyze-pop-to-context answer))))
+	    (when (interactive-p)
+	      (semantic-analyze-pop-to-context answer))))
       
 	answer))))
 
