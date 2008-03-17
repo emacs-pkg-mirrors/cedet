@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.101 2008/03/16 19:44:02 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.102 2008/03/17 12:27:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -216,6 +216,11 @@ other than :table."
       (setq obj (funcall desired-class "Cache" :table table))
       (object-add-to-list table 'cache obj)
       obj)))
+
+(defmethod semanticdb-cache-remove ((table semanticdb-abstract-table)
+				    cache)
+  "Remove from TABLE the cache object CACHE."
+  (object-remove-from-list table 'cache cache))
 
 (defmethod semanticdb-synchronize ((cache semanticdb-abstract-cache)
 				   new-tags)
@@ -684,7 +689,7 @@ If there is no database for the table to live in, create one."
       (when idx (semanticdb-synchronize idx new-tags))))
 
   ;; Synchronize application caches.
-  (let ((caches (oref table cache)))
+  (let ((caches (copy-list (oref table cache))))
     (while caches
       (semanticdb-synchronize (car caches) new-tags)
       (setq caches (cdr caches))))
