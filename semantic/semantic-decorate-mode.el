@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.19 2008/03/17 12:28:10 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.20 2008/03/18 18:04:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -369,7 +369,7 @@ IGNORE any input arguments."
   (or semantic-decoration-menu-cache
       (setq semantic-decoration-menu-cache
 	    (mapcar 'semantic-decoration-build-style-menu
-		    semantic-decoration-styles)
+		    (reverse semantic-decoration-styles))
 	    )))
 
 
@@ -533,7 +533,7 @@ Use a primary decoration."
   '((((class color) (background dark))
      (:background "#900000"))
     (((class color) (background light))
-     (:background "#ff9090")))
+     (:background "#ff5050")))
   "*Face used to show includes that cannot be found.
 Used by the decoration style: `semantic-decoration-on-unknown-includes'."
   :group 'semantic-faces)
@@ -573,10 +573,10 @@ find the file will resolve the issue."
     ))
 
 
-(defun semantic-decoration-unknown-include-describe (event)
+(defun semantic-decoration-unknown-include-describe ()
   "Describe what unknown includes are in the current buffer.
 Argument EVENT is the mouse clicked event."
-  (interactive "e")
+  (interactive)
   (let ((tag (semantic-current-tag))
 	(mm major-mode))
     (with-output-to-temp-buffer "*Help*"
@@ -693,15 +693,18 @@ find the file will resolve the issue."
       (semanticdb-add-reference table tag))
     ))
 
-(defun semantic-decoration-unparsed-include-describe (event)
+(defun semantic-decoration-unparsed-include-describe ()
   "Describe what unparsed includes are in the current buffer.
 Argument EVENT is the mouse clicked event."
-  (interactive "e")
+  (interactive)
   (let ((tag (semantic-current-tag)))
     (with-output-to-temp-buffer "*Help*"
       (princ "Include File: ")
       (princ (semantic-format-tag-name tag nil t))
-      (princ "\n\n")
+      (princ "\n")
+      (princ "This include file was found at:\n  ")
+      (princ (semantic-dependency-tag-file tag))
+      (princ "\n")
       (princ "This header file has been marked \"Unparsed\".
 This means that Semantic has located this header file on disk
 but has not yet opened and parsed this file.
@@ -715,7 +718,7 @@ Alternately, you can call:
 
 M-x semanticdb-find-test-translate-path RET
 
-to analyze to search path Semantic uses to perform completion.
+to search path Semantic uses to perform completion.
 
 If you think this header tag is marked in error, you may need to do:
 
@@ -764,7 +767,7 @@ If TABLE is not in a buffer, do nothing."
 	    table 'semantic-decoration-unparsed-include-cache)))
     (semanticdb-cache-remove table c))
 
-  (let ((buf (get-file-buffer (semanticdb-full-filename table))))
+  (let ((buf (semanticdb-get-buffer table)))
     (when buf
       (let ((allinc (semantic-find-tags-included buf)))
 	;; This will do everything, but it should be speedy since it
