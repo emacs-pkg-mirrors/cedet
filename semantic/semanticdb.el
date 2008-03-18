@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.103 2008/03/18 17:43:25 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.104 2008/03/18 18:31:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -845,22 +845,27 @@ DONTLOAD does not affect the creation of new database objects."
 	;; We must load the file.
 	(if (not dontload)
 	    (save-excursion
-	      (set-buffer (find-file-noselect file t))
-	      ;; Find file should automatically do this for us.
-	      ;; Sometimes the DB table doesn't contains tags and needs
-	      ;; a refresh.  For example, when the file is loaded for
-	      ;; the first time, and the idle scheduler didn't get a
-	      ;; chance to trigger a parse before the file buffer is
-	      ;; killed.
-	      (when (and
-		     semanticdb-current-table
-		     (semanticdb-needs-refresh-p semanticdb-current-table))
-		(semanticdb-refresh-table semanticdb-current-table))
-	      (prog1
-		  semanticdb-current-table
-		;; If we had to find the file, then we should kill it
-		;; to keep the master buffer list clean.
-		(kill-buffer (current-buffer))))
+	      (let ((buffer-to-kill (find-file-noselect file t))
+		    ;; This is a brave statement.  Don't waste time loading in
+		    ;; lots of modes.  Especially decoration mode can waste a lot
+		    ;; of time for a buffer we intend to kill.
+		    (semantic-init-hooks nil))
+		(set-buffer buffer-to-kill)
+		;; Find file should automatically do this for us.
+		;; Sometimes the DB table doesn't contains tags and needs
+		;; a refresh.  For example, when the file is loaded for
+		;; the first time, and the idle scheduler didn't get a
+		;; chance to trigger a parse before the file buffer is
+		;; killed.
+		(when (and
+		       semanticdb-current-table
+		       (semanticdb-needs-refresh-p semanticdb-current-table))
+		  (semanticdb-refresh-table semanticdb-current-table))
+		(prog1
+		    semanticdb-current-table
+		  ;; If we had to find the file, then we should kill it
+		  ;; to keep the master buffer list clean.
+		  (kill-buffer buffer-to-kill))))
 
 	  ;; We were asked not to load the file in and parse it.
 	  ;; Instead just create a database table with no tags
