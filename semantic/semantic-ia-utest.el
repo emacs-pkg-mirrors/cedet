@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.6 2008/02/12 03:47:37 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.7 2008/03/18 17:46:20 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -51,7 +51,7 @@
 
       (while fl
 
-	(let ((fb (get-file-buffer (car fl)))
+	(let ((fb (find-buffer-visiting (car fl)))
 	      (b (find-file-noselect (car fl) t)))
 
 	  ;; Run the test on it.
