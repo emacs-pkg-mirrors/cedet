@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-debug.el,v 1.2 2008/02/12 17:35:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-debug.el,v 1.3 2008/03/18 17:42:56 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -103,7 +103,7 @@
   (interactive)
   (if (not table) (setq table semanticdb-current-table))
   (let* ((full-filename (semanticdb-full-filename table))
-	 (buff (get-file-buffer full-filename)))
+	 (buff (find-buffer-visiting full-filename)))
     (if buff
 	(save-excursion
 	  (set-buffer buff)
