@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.134 2008/02/04 23:06:17 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.135 2008/03/18 17:46:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,9 +66,9 @@ If FILE is not loaded, check to see if `semanticdb' feature exists,
    and use it to get tags from files not in memory.
 If FILE is not loaded, and semanticdb is not available, find the file
    and parse it."
-  (if (get-file-buffer file)
+  (if (find-buffer-visiting file)
       (save-excursion
-	(set-buffer (get-file-buffer file))
+	(set-buffer (find-buffer-visiting file))
 	(semantic-fetch-tags))
     ;; File not loaded
     (if (and (fboundp 'semanticdb-minor-mode-p)
