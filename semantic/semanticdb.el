@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.102 2008/03/17 12:27:13 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.103 2008/03/18 17:43:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -383,7 +383,7 @@ them to convert TAG into a more complete form."
   "If the tag list associated with OBJ is loaded, refresh it.
 This will call `semantic-fetch-tags' if that file is in memory."
   (let ((ff (semanticdb-full-filename obj)))
-    (if (get-file-buffer ff)
+    (if (find-buffer-visiting ff)
 	(save-excursion
 	  (semanticdb-set-buffer obj)
 	  (semantic-fetch-tags)))))
@@ -391,7 +391,7 @@ This will call `semantic-fetch-tags' if that file is in memory."
 (defmethod semanticdb-needs-refresh-p ((obj semanticdb-table))
   "Return non-nil of OBJ's tag list is out of date.
 The file associated with OBJ does not need to be in a buffer."
-  (let ((buff (get-file-buffer (semanticdb-full-filename obj)))
+  (let ((buff (find-buffer-visiting (semanticdb-full-filename obj)))
 	)
     (if buff
 	(save-excursion
