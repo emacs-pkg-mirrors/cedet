@@ -1,10 +1,10 @@
 ;;; semanticdb-system.el --- Build a file DB for some system files.
 
-;;; Copyright (C) 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.11 2008/02/24 19:08:56 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.12 2008/03/18 17:45:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,7 +232,7 @@ and parsed. After the database is created, save it, and return the DB."
 	;; 1) Skip if loaded
 	(unless (and table (oref table tags))
 	  ;; 3) load the file.
-	  (let ((b (get-file-buffer (car files))))
+	  (let ((b (find-buffer-visiting (car files))))
 	    (save-excursion
 	      (set-buffer (find-file-noselect (car files)))
 	      ;; 4) Force a reparse
