@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.28 2008/03/17 02:29:26 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.29 2008/03/18 17:43:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -234,7 +234,7 @@ Live databases are objects associated with existing directories."
   "Return non-nil if the file associated with OBJ is live.
 Live files are either buffers in Emacs, or files existing on the filesystem."
   (let ((full-filename (semanticdb-full-filename obj)))
-    (or (get-file-buffer full-filename)
+    (or (find-buffer-visiting full-filename)
 	(file-exists-p full-filename))))
 
 (defmethod object-write ((obj semanticdb-table))
