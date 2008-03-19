@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.39 2008/03/16 17:16:35 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.40 2008/03/19 14:55:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -341,7 +341,8 @@ Does nothing if the current buffer doesn't need reparsing."
    ((semantic-parse-tree-up-to-date-p)
     t)
    (t
-    ;; If these cases are true, then don't do any additional work.
+    ;; If the buffer might need a reparse and it is safe to do so,
+    ;; give it a try.
     (let* ((semantic-working-type nil)
 	   (inhibit-quit nil)
 	   (working-use-echo-area-p
@@ -385,7 +386,12 @@ Does nothing if the current buffer doesn't need reparsing."
 	    (run-hooks 'semantic-after-idle-scheduler-reparse-hooks)
 	  (error (setq semantic-after-idle-scheduler-reparse-hooks nil))))
       ;; Return if we are lexically safe
-      lexically-safe))))
+      lexically-safe)))
+  
+  ;; After updating the tags, handle any pending decorations for this
+  ;; buffer.
+  (semantic-decorate-flush-pending-decorations (current-buffer))
+  )
 
 
 ;;; IDLE SERVICES
