@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.20 2008/03/18 18:04:03 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.21 2008/03/19 14:57:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -168,10 +168,13 @@ Also make sure old decorations in the area are completely flushed."
   (dolist (tag tag-list)
     ;; Cleanup old decorations.
     (when (semantic-decorate-tag-decoration tag)
+      ;; Note on below comment.   This happens more as decorations are refreshed
+      ;; mid-way through their use.  Remove the message.
+
       ;; It would be nice if this never happened, but it still does
       ;; once in a while.  Print a message to help flush these
       ;; situations
-      (message "Decorations still on %s" (semantic-format-tag-name tag))
+      ;;(message "Decorations still on %s" (semantic-format-tag-name tag))
       (semantic-decorate-clear-tag tag))
     ;; Add new decorations.
     (dolist (style semantic-decoration-styles)
@@ -185,6 +188,35 @@ Also make sure old decorations in the area are completely flushed."
     ;; Recurse on the children of all tags
     (semantic-decorate-add-decorations
      (semantic-tag-components-with-overlays tag))))
+
+;;; PENDING DECORATIONS
+;;
+;; Activities in Emacs may cause a decoration to change state.  Any
+;; such identified change ought to be setup as PENDING.  This means
+;; that the next idle step will do the decoration change, but at the
+;; time of the state change, minimal work would be done.
+(defvar semantic-decorate-pending-decoration-hooks nil
+  "Functions to call with pending decoration changes.")
+
+(defun semantic-decorate-add-pending-decoration (fcn &optional buffer)
+  "Add a pending decoration change represented by FCN.
+Applies only to the current BUFFER.
+The setting of FCN will be removed after it is run."
+  (save-excursion
+    (when buffer (set-buffer buffer))
+    (semantic-make-local-hook 'semantic-decorate-flush-pending-decorations)
+    (add-hook 'semantic-decorate-pending-decoration-hooks fcn nil t)))
+
+;;;###autoload
+(defun semantic-decorate-flush-pending-decorations (&optional buffer)
+  "Flush any pending decorations for BUFFER.
+Flush functions from `semantic-decorate-pending-decoration-hooks'."
+  (save-excursion
+    (when buffer (set-buffer buffer))
+    (run-hooks 'semantic-decorate-pending-decoration-hooks)
+    ;; Always reset the hooks
+    (setq semantic-decorate-pending-decoration-hooks nil)))
+  
 
 ;;; DECORATION MODE
 ;;
@@ -769,11 +801,18 @@ If TABLE is not in a buffer, do nothing."
 
   (let ((buf (semanticdb-get-buffer table)))
     (when buf
-      (let ((allinc (semantic-find-tags-included buf)))
-	;; This will do everything, but it should be speedy since it
-	;; would have been done once already.
-	(semantic-decorate-add-decorations allinc)
-	))))
+      (semantic-decorate-add-pending-decoration
+       'semantic-decoration-unparsed-include-do-reset
+       buf)
+      )))
+
+(defun semantic-decoration-unparsed-include-do-reset ()
+  "Do a reset of unparsed includes in the current buffer."
+  (let ((allinc (semantic-find-tags-included (current-buffer))))
+    ;; This will do everything, but it should be speedy since it
+    ;; would have been done once already.
+    (semantic-decorate-add-decorations allinc)
+    ))
 
 (provide 'semantic-decorate-mode)
 
