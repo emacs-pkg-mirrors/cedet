@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.8 2008/02/13 16:42:47 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.9 2008/03/20 15:00:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -171,7 +171,7 @@ types might be found.  This can be nil."
 	     )
 	;; We have an anonymous type for TAG with children.
 	;; Use this type directly.
-	(semantic-analyze-dereference-metatype ttype scope)
+	(semantic-analyze-dereference-metatype-stack ttype scope)
 
       ;; Not an anonymous type.  Look up the name of this type
       ;; elsewhere, and report back.
@@ -195,7 +195,21 @@ types might be found.  This can be nil."
 	)
 
       ;; We now have a tag associated with the type.
-      (semantic-analyze-dereference-metatype typetag scope))))
+      (semantic-analyze-dereference-metatype-stack typetag scope))))
+
+(defun semantic-analyze-dereference-metatype-stack (type scope)
+  "Call `semantic-analyze-dereference-metatype' repeatedly until we hit a real TYPE.
+Argument SCOPE is the scope object with additional items in which to search."
+  (let ((lasttype type)
+	(nexttype (semantic-analyze-dereference-metatype type scope))
+	(idx 0))
+    (while (not (eq nexttype lasttype))
+      (setq lasttype nexttype)
+      (setq nexttype (semantic-analyze-dereference-metatype lasttype scope))
+      (setq idx (1+ idx))
+      (when (> idx 20) (error "Possible metatype recursion?"))
+      )
+    lasttype))
 
 (define-overload semantic-analyze-dereference-metatype (type scope)
   ;; todo - move into typecahe!!
