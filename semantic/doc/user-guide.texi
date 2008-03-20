@@ -1477,6 +1477,19 @@ how @semantic{} treats your file, you can enable
 @kbd{M-x global-semantic-show-unmatched-syntax-mode}.  It will
 underline syntax it cannot parse in red.
 
+If your type is not parsable, it could be for several reasons.
+
+@enumerate
+@item Parser Incorrect
+Perhaps the parser needs to be fixed.
+@item C/C++ MACROs
+If there is a MACRO keyword used in the definition of the type, then
+you may need to update the
+@code{semantic-lex-c-preprocessor-symbol-map}
+to account for it.
+@end enumerate
+
+
 @node Speed Debug
 @chapter Debugging Speed Problems
 
