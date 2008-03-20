@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.21 2008/03/04 12:13:04 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.22 2008/03/20 01:22:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -138,23 +138,27 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 	  (setq result edefind))
       (if (not result)
 	  (setq result
-		(if (semantic--tag-get-property tag 'dependency-file)
-		    (semantic--tag-get-property tag 'dependency-file)
-		  (:override
-		   (save-excursion
-		     (let* ((name (semantic-tag-name tag)))
-		       (semantic-dependency-find-file-on-path
-			name (semantic-tag-include-system-p tag)))))
-		  )))
-	(if (stringp result)
-	    (progn
-	      (semantic--tag-put-property tag 'dependency-file result)
-	      result)
-	  ;; @todo: Do something to make this get flushed w/
-	  ;;        when the path is changed.
-	  (semantic--tag-put-property tag 'dependency-file 'none)
-	  nil)
-	)))
+		;; I don't have a plan for refreshing tags with a dependency
+		;; stuck on them somehow.  I'm thinking that putting a cache
+		;; onto the dependancy finding with a hash table might be best.
+		;;(if (semantic--tag-get-property tag 'dependency-file)
+		;;  (semantic--tag-get-property tag 'dependency-file)
+		(:override
+		 (save-excursion
+		   (let* ((name (semantic-tag-name tag)))
+		     (semantic-dependency-find-file-on-path
+		      name (semantic-tag-include-system-p tag)))))
+		;; )
+		))
+      (if (stringp result)
+	  (progn
+	    (semantic--tag-put-property tag 'dependency-file result)
+	    result)
+	;; @todo: Do something to make this get flushed w/
+	;;        when the path is changed.
+	(semantic--tag-put-property tag 'dependency-file 'none)
+	nil)
+      )))
 
 (make-obsolete-overload 'semantic-find-dependency
                         'semantic-dependency-tag-file)
