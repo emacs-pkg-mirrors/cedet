@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.94 2008/03/20 15:53:45 zappo Exp $
+;; RCS: $Id: ede.el,v 1.95 2008/03/20 22:34:58 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -877,14 +877,16 @@ Optional argument NAME is the name to give this project."
   "Add into PROJ-A, the subproject PROJ-B."
   (oset proj-a subproj (cons proj-b (oref proj-a subproj))))
 
-(defmethod ede-subproject-relative-path ((proj ede-project))
-  "Get a path name for PROJ which is relative to the parent project."
-  (let* ((parent (ede-parent-project proj))
+(defmethod ede-subproject-relative-path ((proj ede-project) &optional parent-in)
+  "Get a path name for PROJ which is relative to the parent project.
+If PARENT is specified, then be relative to the PARENT project.
+Specifying PARENT is useful for sub-sub projects relative to the root project."
+  (let* ((parent (or parent-in (ede-parent-project proj)))
 	 (pdir nil)
 	 (dir (file-name-directory (oref proj file))))
     (if parent
 	(file-relative-name dir (file-name-directory (oref parent file)))
-      dir)))
+      "")))
 
 (defmethod ede-subproject-p ((proj ede-project))
   "Return non-nil if PROJ is a sub project."
