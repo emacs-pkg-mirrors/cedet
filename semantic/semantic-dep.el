@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.5 2008/02/19 03:24:26 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.6 2008/03/20 01:54:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -80,9 +80,10 @@ check both the project and system directories.")
 ;;;###autoload
 (defun semantic-add-system-include (dir &optional mode)
   "Add a system include DIR to path for MODE.
-Modifies a mode-local version of
-`semantic-dependency-system-include-path'."
-  (interactive "DDirectory: ")
+Modifies a mode-local version of `semantic-dependency-system-include-path'.
+
+Changes made by this function are not persistent."
+  (interactive "DNew Include Directory: ")
   (if (not mode) (setq mode major-mode))
   (let ((dirtmp (file-name-as-directory dir))
 	(value
@@ -96,11 +97,12 @@ Modifies a mode-local version of
 ;;;###autoload
 (defun semantic-remove-system-include (dir &optional mode)
   "Add a system include DIR to path for MODE.
-Modifies a mode-local version of
-`semantic-dependency-system-include-path'."
+Modifies a mode-local version of`semantic-dependency-system-include-path'.
+
+Changes made by this function are not persistent."
   (interactive (list
 		 (completing-read
-		  "Directory to Remove: "
+		  "Include Directory to Remove: "
 		  semantic-dependency-system-include-path))
 	       )
   (if (not mode) (setq mode major-mode))
