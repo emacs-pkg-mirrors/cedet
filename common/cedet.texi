@@ -636,7 +636,7 @@ options you may need to update.
 
 @section Semantic Parser setup
 
-C and C++ use pre-processor directives, and the @semantic parser has
+C and C++ use pre-processor directives, and the @semantic{} parser has
 some basic support for a pre-processor.  As such, you may need to set
 up some macros.  You can do that like this:
 
