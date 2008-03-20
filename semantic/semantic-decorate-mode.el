@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.21 2008/03/19 14:57:48 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.22 2008/03/20 01:48:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -559,6 +559,51 @@ Use a primary decoration."
   (semantic-set-tag-face
    tag 'semantic-decoration-on-protected-members-face))
 
+
+
+;;; INCLUDE DECO
+
+;;; Includes that that are in a happy state!
+;;
+(defface semantic-decoration-on-includes
+  nil
+  "*Overlay Face used on includes that are not in some other state.
+Used by the decoration style: `semantic-decoration-on-includes'."
+  :group 'semantic-faces)
+
+(defvar semantic-decoration-on-include-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km [ mouse-3 ] 'semantic-decoration-include-menu)
+    km)
+  "Keymap used on includes.")
+
+
+(defvar semantic-decoration-on-include-menu nil
+  "Menu used for include headers.")
+
+(easy-menu-define
+  semantic-decoration-on-include-menu
+  semantic-decoration-on-include-map
+  "Include Menu"
+  '("Include" :visible (progn nil)
+    ["What Is This?" semantic-decoration-include-describe
+     :active t
+     :help "Describe why this include has been marked this way." ]
+    ["Visit This Include" semantic-decoration-include-visit
+     :active t
+     :help "Visit this include file." ]
+    "---"
+    ["Add a System Include Path" semantic-add-system-include
+     :active t
+     :help "Add an include path for this session." ]
+    ["Remove a System Include Path" semantic-remove-system-include
+     :active t
+     :help "Add an include path for this session." ]
+    ;;["" semantic-decoration-include- 
+    ;; :active t
+    ;; :help "" ]
+    ))
+
 ;;; Unknown Includes!
 ;;
 (defface semantic-decoration-on-unknown-includes
@@ -572,39 +617,180 @@ Used by the decoration style: `semantic-decoration-on-unknown-includes'."
 
 (defvar semantic-decoration-on-unknown-include-map
   (let ((km (make-sparse-keymap)))
-    (define-key km [ mouse-1 ] 'semantic-decoration-unknown-include-describe)
-    (define-key km [ mouse-2 ] 'semantic-decoration-unknown-include-describe)
+    ;(define-key km [ mouse-2 ] 'semantic-decoration-unknown-include-describe)
+    (define-key km [ mouse-3 ] 'semantic-decoration-unknown-include-menu)
     km)
   "Keymap used on unparsed includes.")
 
-(define-semantic-decoration-style semantic-decoration-on-unknown-includes
-  "Highlight class members that are includes that can't be found.
-This highlighting indicates a problem with the configuration of Semantic.
-Updating that modes include path, or setting up an EDE project to help
-find the file will resolve the issue."
-  :enabled t)
+(defvar semantic-decoration-on-unknown-include-menu nil
+  "Menu used for unparsed include headers.")
 
-(defun semantic-decoration-on-unknown-includes-p-default (tag)
-  "Return non-nil if TAG has is an includes that can't be found."
-  (and (semantic-tag-of-class-p tag 'include)
-       (not (semantic-dependency-tag-file tag))))
-;; This does a little too much.  If we find the file, then
-;; we are ok.  If we find the table, but the user set the db find
-;; throttle too low, then they have asked not to do the below work.
-;;       (not (semanticdb-find-table-for-include tag))))
-
-(defun semantic-decoration-on-unknown-includes-highlight-default (tag)
-  "Highlight the include TAG to show that semantic can't find it."
-  (let ((ol (semantic-decorate-tag
-	     tag (semantic-tag-start tag) (semantic-tag-end tag)
-	     'semantic-decoration-on-unknown-includes)))
-    ;; Rig up the include to have a mouse face to encourage a user to
-    ;; click, and learn how to "fix" this problem.
-    (semantic-overlay-put ol 'mouse-face 'region)
-    (semantic-overlay-put ol 'keymap semantic-decoration-on-unknown-include-map)
+(easy-menu-define
+  semantic-decoration-on-unknown-include-menu
+  semantic-decoration-on-unknown-include-map
+  "Unknown Include Menu"
+  '("Unknown Include" :visible (progn nil)
+    ["What Is This?" semantic-decoration-unknown-include-describe
+     :active t
+     :help "Describe why this include has been marked this way." ]
+    ["Add a System Include Path" semantic-add-system-include
+     :active t
+     :help "Add an include path for this session." ]
+    ["Remove a System Include Path" semantic-remove-system-include
+     :active t
+     :help "Add an include path for this session." ]
     ))
 
+
+;;; Includes that need to be parsed.
+;;
+(defface semantic-decoration-on-unparsed-includes
+  '((((class color) (background dark))
+     (:background "#555500"))
+    (((class color) (background light))
+     (:background "#ffff55")))
+  "*Face used to show includes that have not yet been parsed.
+Used by the decoration style: `semantic-decoration-on-unparsed-includes'."
+  :group 'semantic-faces)
 
+(defvar semantic-decoration-on-unparsed-include-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km [ mouse-3 ] 'semantic-decoration-unparsed-include-menu)
+    km)
+  "Keymap used on unparsed includes.")
+
+
+(defvar semantic-decoration-on-unparsed-include-menu nil
+  "Menu used for unparsed include headers.")
+
+(easy-menu-define
+  semantic-decoration-on-unparsed-include-menu
+  semantic-decoration-on-unparsed-include-map
+  "Unparsed Include Menu"
+  '("Unparsed Include" :visible (progn nil)
+    ["What Is This?" semantic-decoration-unparsed-include-describe
+     :active t
+     :help "Describe why this include has been marked this way." ]
+    ["Visit This Include" semantic-decoration-include-visit
+     :active t
+     :help "Visit this include file so that header file's tags can be used." ]
+    ["Parse This Include" semantic-decoration-unparsed-include-parse-include
+     :active t
+     :help "Parse this include file so that header file's tags can be used." ]
+    ["Parse All Includes" semantic-decoration-unparsed-include-parse-all-includes
+     :active t
+     :help "Parse all the includes so the contents can be used." ]
+    "---"
+    ["Add a System Include Path" semantic-add-system-include
+     :active t
+     :help "Add an include path for this session." ]
+    ["Remove a System Include Path" semantic-remove-system-include
+     :active t
+     :help "Add an include path for this session." ]
+    ;;["" semantic-decoration-unparsed-include- 
+    ;; :active t
+    ;; :help "" ]
+    ))
+
+;;; Include Decorate Mode
+;;
+
+(define-semantic-decoration-style semantic-decoration-on-includes
+  "Highlight class members that are includes.
+This mode provides a nice context menu on the include statements."
+  :enabled t)
+
+(defun semantic-decoration-on-includes-p-default (tag)
+  "Return non-nil if TAG has is an includes that can't be found."
+  (semantic-tag-of-class-p tag 'include))
+
+(defun semantic-decoration-on-includes-highlight-default (tag)
+  "Highlight the include TAG to show that semantic can't find it."
+  (let* ((file (semantic-dependency-tag-file tag))
+	 (table (when file
+		  (semanticdb-file-table-object file t)))
+	 (face nil)
+	 (map nil)
+	 )
+    (cond
+     ((not file)
+      ;; Cannot find this header.
+      (setq face 'semantic-decoration-on-unknown-includes
+	    map semantic-decoration-on-unknown-include-map)
+      )
+     ((number-or-marker-p (oref table pointmax))
+      ;; A found and parsed file.
+      (setq face 'semantic-decoration-on-includes
+	    map semantic-decoration-on-include-map)
+      )
+     (t
+      ;; An unparsed file.
+      (setq face 'semantic-decoration-on-unparsed-includes
+	    map semantic-decoration-on-unparsed-include-map)
+      ;; Set ourselves up for synchronization
+      (semanticdb-cache-get
+       table 'semantic-decoration-unparsed-include-cache)
+      ;; Add a dependancy.
+      (let ((table semanticdb-current-table))
+	(semanticdb-add-reference table tag))
+      ))
+
+    (let ((ol (semantic-decorate-tag tag
+				     (semantic-tag-start tag)
+				     (semantic-tag-end tag)
+				     face))
+	  )
+      (semantic-overlay-put ol 'mouse-face 'region)
+      (semantic-overlay-put ol 'keymap map)
+      (semantic-overlay-put ol 'help-echo
+			    "Header File : mouse-3 - Context menu")
+      )))
+
+;;; Regular Include Functions
+;;
+(defun semantic-decoration-include-describe ()
+  "Describe what unparsed includes are in the current buffer.
+Argument EVENT is the mouse clicked event."
+  (interactive)
+  (let ((tag (semantic-current-tag)))
+    (with-output-to-temp-buffer "*Help*"
+      (princ "Include File: ")
+      (princ (semantic-format-tag-name tag nil t))
+      (princ "\n")
+      (princ "This include file was found at:\n  ")
+      (princ (semantic-dependency-tag-file tag))
+      (princ "\n\n")
+      (princ "Semantic knows where this include file is, and has parsed
+it's contents.
+")
+      )))
+
+(defun semantic-decoration-include-visit ()
+  "Visit the included file at point."
+  (interactive)
+  (semantic-go-to-tag (semantic-current-tag))
+  (switch-to-buffer (current-buffer))
+  )
+
+(defun semantic-decoration-include-menu (event)
+  "Popup a menu that can help a user understand unparsed includes.
+Argument EVENT describes the event that caused this function to be called."
+  (interactive "e")
+  (let* ((startwin (selected-window))
+	 (win (car (car (cdr event))))
+	 (eb (window-buffer win))
+	 )
+    (select-window win t)
+    (save-excursion
+      ;(goto-char (window-start win))
+      (mouse-set-point event)
+      (sit-for 0)
+      (popup-menu semantic-decoration-on-include-menu)
+      )
+    (select-window startwin)))
+
+;;; Unknown Include functions
+;;
 (defun semantic-decoration-unknown-include-describe ()
   "Describe what unknown includes are in the current buffer.
 Argument EVENT is the mouse clicked event."
@@ -666,99 +852,25 @@ to refresh the tags in this buffer, and recalculate the state."))
 See the Semantic manual node on SemanticDB for more about search paths.")
       )))
 
-;;; Includes that need to be parsed.
+(defun semantic-decoration-unknown-include-menu (event)
+  "Popup a menu that can help a user understand unparsed includes.
+Argument EVENT describes the event that caused this function to be called."
+  (interactive "e")
+  (let* ((startwin (selected-window))
+	 (win (car (car (cdr event))))
+	 (eb (window-buffer win))
+	 )
+    (select-window win t)
+    (save-excursion
+      ;(goto-char (window-start win))
+      (mouse-set-point event)
+      (sit-for 0)
+      (popup-menu semantic-decoration-on-unknown-include-menu)
+      )
+    (select-window startwin)))
+
+;;; Unparsed Include Features
 ;;
-(defface semantic-decoration-on-unparsed-includes
-  '((((class color) (background dark))
-     (:background "#555500"))
-    (((class color) (background light))
-     (:background "#ffff55")))
-  "*Face used to show includes that cannot be found.
-Used by the decoration style: `semantic-decoration-on-unparsed-includes'."
-  :group 'semantic-faces)
-
-(defvar semantic-decoration-on-unparse-include-map
-  (let ((km (make-sparse-keymap)))
-    (define-key km [ mouse-1 ] 'semantic-decoration-unparsed-include-describe)
-    (define-key km [ mouse-2 ] 'semantic-decoration-unparsed-include-describe)
-    km)
-  "Keymap used on unparsed includes.")
-
-(define-semantic-decoration-style semantic-decoration-on-unparsed-includes
-  "Highlight class members that are includes that can't be found.
-This highlighting indicates a problem with the configuration of Semantic.
-Updating that modes include path, or setting up an EDE project to help
-find the file will resolve the issue."
-  :enabled t)
-
-(defun semantic-decoration-on-unparsed-includes-p-default (tag)
-  "Return non-nil if TAG has is an includes that can't be found."
-  (if (semantic-tag-of-class-p tag 'include)
-      (let* ((file (semantic-dependency-tag-file tag))
-	     (table (when file
-		      (semanticdb-file-table-object file t)))
-	     )
-	(if file
-	    (prog1
-		(not (number-or-marker-p (oref table pointmax)))
-	      ;; Create a hook into the synchronization process.
-	      (semanticdb-cache-get
-	       table 'semantic-decoration-unparsed-include-cache))
-	  ;; Else
-	  nil))
-    nil))
-
-(defun semantic-decoration-on-unparsed-includes-highlight-default (tag)
-  "Highlight the include TAG to show that semantic can't find it."
-  (let ((ol (semantic-decorate-tag
-	     tag (semantic-tag-start tag) (semantic-tag-end tag)
-	     'semantic-decoration-on-unparsed-includes))
-	)
-    ;; Rig up the include to have a mouse face to encourage a user to
-    ;; click, and learn how to "fix" this problem.
-    (semantic-overlay-put ol 'mouse-face 'region)
-    (semantic-overlay-put ol 'keymap
-			  semantic-decoration-on-unparse-include-map)
-    ;; Now that we've been decorated, lets make sure we've put a
-    ;; reference against the unloaded database.
-    (let ((table semanticdb-current-table))
-      (semanticdb-add-reference table tag))
-    ))
-
-(defun semantic-decoration-unparsed-include-describe ()
-  "Describe what unparsed includes are in the current buffer.
-Argument EVENT is the mouse clicked event."
-  (interactive)
-  (let ((tag (semantic-current-tag)))
-    (with-output-to-temp-buffer "*Help*"
-      (princ "Include File: ")
-      (princ (semantic-format-tag-name tag nil t))
-      (princ "\n")
-      (princ "This include file was found at:\n  ")
-      (princ (semantic-dependency-tag-file tag))
-      (princ "\n")
-      (princ "This header file has been marked \"Unparsed\".
-This means that Semantic has located this header file on disk
-but has not yet opened and parsed this file.
-
-So long as this header file is unparsed, idle summary and completion
-will not be able to reference the details in this header.  To resolve
-this problem, you can call a summary or completion command by hand
-and wait for Semantic to finish parsing all your headers.
-
-Alternately, you can call:
-
-M-x semanticdb-find-test-translate-path RET
-
-to search path Semantic uses to perform completion.
-
-If you think this header tag is marked in error, you may need to do:
-
-C-u M-x bovinate RET
-
-to refresh the tags in this buffer, and recalculate the state.")
-      )))
-
 (require 'semanticdb)
 
 (defclass semantic-decoration-unparsed-include-cache (semanticdb-abstract-cache)
@@ -814,6 +926,82 @@ If TABLE is not in a buffer, do nothing."
     (semantic-decorate-add-decorations allinc)
     ))
 
+;;; Interactive parts of unparsed includes
+
+(defun semantic-decoration-unparsed-include-describe ()
+  "Describe what unparsed includes are in the current buffer.
+Argument EVENT is the mouse clicked event."
+  (interactive)
+  (let ((tag (semantic-current-tag)))
+    (with-output-to-temp-buffer "*Help*"
+      (princ "Include File: ")
+      (princ (semantic-format-tag-name tag nil t))
+      (princ "\n")
+      (princ "This include file was found at:\n  ")
+      (princ (semantic-dependency-tag-file tag))
+      (princ "\n\n")
+      (princ "This header file has been marked \"Unparsed\".
+This means that Semantic has located this header file on disk
+but has not yet opened and parsed this file.
+
+So long as this header file is unparsed, idle summary and
+idle completion will not be able to reference the details in this
+header.
+
+To resolve this, use the context menu to parse this include file,
+or all include files referred to in ")
+      (princ (buffer-name))
+      (princ ".
+This can take a while in large projects.
+
+Alternately, you can call:
+
+M-x semanticdb-find-test-translate-path RET
+
+to search path Semantic uses to perform completion.
+
+
+If you think this header tag is marked in error, you may need to do:
+
+C-u M-x bovinate RET
+
+to refresh the tags in this buffer, and recalculate the state.
+If you find a repeatable case where a header is marked in error,
+report it to cedet-devel@lists.sf.net.") )))
+
+
+(defun semantic-decoration-unparsed-include-menu (event)
+  "Popup a menu that can help a user understand unparsed includes.
+Argument EVENT describes the event that caused this function to be called."
+  (interactive "e")
+  (let* ((startwin (selected-window))
+	 (win (car (car (cdr event))))
+	 (eb (window-buffer win))
+	 )
+    (select-window win t)
+    (save-excursion
+      ;(goto-char (window-start win))
+      (mouse-set-point event)
+      (sit-for 0)
+      (popup-menu semantic-decoration-on-unparsed-include-menu)
+      )
+    (select-window startwin)))
+
+(defun semantic-decoration-unparsed-include-parse-include ()
+  "Parse the include file the user menu-selected from."
+  (interactive)
+  (let* ((file (semantic-dependency-tag-file (semantic-current-tag))))
+    (semanticdb-file-table-object file)
+    (semantic-decoration-unparsed-include-do-reset)))
+
+
+(defun semantic-decoration-unparsed-include-parse-all-includes ()
+  "Parse the include file the user menu-selected from."
+  (interactive)
+  (semanticdb-find-translate-path nil nil)
+  )
+
 (provide 'semantic-decorate-mode)
 
 ;;; semantic-decorate-mode.el ends here
+
