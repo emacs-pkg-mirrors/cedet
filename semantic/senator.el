@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.122 2008/03/05 04:52:44 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.123 2008/03/20 01:50:13 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1704,6 +1704,7 @@ minor mode entry."
    )
  '((semantic-idle-scheduler-idle-time)
    (semantic-idle-scheduler-max-buffer-size)
+   (semantic-idle-scheduler-verbose-flag)
    )
  )
 
@@ -1716,6 +1717,8 @@ minor mode entry."
    :help "Show tag summaries in idle time in all buffers."
    :save global-semantic-idle-summary-mode
    )
+ '((semantic-idle-summary-function)
+   )
  )
 
 (senator-register-mode-menu-entry
@@ -1726,6 +1729,8 @@ minor mode entry."
  '(global-semantic-idle-completions-mode
    :help "Show completion tips in idle time in all buffers."
    :save global-semantic-idle-completions-mode
+   )
+ '((semantic-complete-inline-analyzer-displayor-class)
    )
  )
 
@@ -1872,9 +1877,9 @@ This is a buffer local variable.")
       ])
     (senator-menu-item
      ["Jump to any tag..."
-      semantic-complete-jump-local
+      semantic-complete-jump
       :active t
-      :help "Jump to a semantic symbol"
+      :help "Jump to any semantic symbol in this project"
       ])
     (senator-menu-item
      ["Narrow to tag"
