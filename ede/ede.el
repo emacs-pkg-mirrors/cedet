@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.93 2008/03/08 11:16:36 zappo Exp $
+;; RCS: $Id: ede.el,v 1.94 2008/03/20 15:53:45 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -1685,8 +1685,24 @@ This includes buffers controlled by a specific target of PROJECT."
 
 ;; other types of mapping
 (defmethod ede-map-subprojects ((this ede-project) proc)
-  "For object THIS, execute PROC on all subprojects."
+  "For object THIS, execute PROC on all direct subprojects.
+This function does not apply PROC to sub-sub projects.
+See also `ede-map-all-subprojects'."
   (mapcar proc (oref this subproj)))
+
+(defmethod ede-map-all-subprojects ((this ede-project) allproc)
+  "For object THIS, execute PROC on THIS and  all subprojects.
+This function also applies PROC to sub-sub projects.
+See also `ede-map-subprojects'."
+  (apply 'append 
+	 (list (funcall allproc this))
+	 (ede-map-subprojects
+	  this
+	  (lambda (sp)
+	    (ede-map-all-subprojects sp allproc))
+	  )))
+
+;; (ede-map-all-subprojects (ede-load-project-file "../semantic/") (lambda (sp) (oref sp file)))
 
 (defmethod ede-map-targets ((this ede-project) proc)
   "For object THIS, execute PROC on all targets."
