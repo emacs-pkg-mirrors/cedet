@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.11 2008/03/21 15:08:09 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.12 2008/03/21 17:50:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -159,8 +159,8 @@ Return non-nil if it matches"
       (string-match regex value))
     ))
 
-(defun semantic-lex-spp-string-to-macro-stream (val beg end)
-  "Convert string VAL into a macro expansion stream.
+(defun semantic-lex-spp-macro-to-macro-stream (val beg end)
+  "Convert lexical macro contents VAL into a macro expansion stream.
 Argument VAL is the value of some macro to be converted into a stream.
 BEG and END are the token bounds of the macro to be expanded
 that will somehow gain a much longer token stream."
@@ -245,12 +245,44 @@ If BUFFER is not provided, use the current buffer."
 	       (val (symbol-value sym)))
 	  (if (not val)
 	      (setq semantic-lex-end-point end)
-	    (semantic-lex-spp-string-to-macro-stream val beg end)
+	    (semantic-lex-spp-macro-to-macro-stream val beg end)
 	    ))
       ;; A regular keyword.
       (semantic-lex-push-token
        (semantic-lex-token (or (semantic-lex-keyword-p str) 'symbol)
 			   beg end)))))
+
+
+(defun semantic-lex-spp-one-token-and-move-for-macro (max)
+  "Lex up one token, and move to end of that token.
+Don't go past MAX."
+  (let ((ans (semantic-lex (point) max 0 0)))
+    (if (not ans)
+	(progn (goto-char max)
+	       nil)
+      (goto-char (semantic-lex-token-end (car ans)))
+      (car ans))
+    ))
+
+(defun semantic-lex-spp-stream-for-macro (eos)
+  "Lex up a stream of tokens for a #define statement.
+Parsing starts at the current point location.
+EOS is the end of the stream to lex for this macro."
+  (let ((stream nil))
+    (while (< (point) eos)
+      (let* ((tok (semantic-lex-spp-one-token-and-move-for-macro eos))
+	     (str (when tok (semantic-lex-token-text tok))))
+	(if str
+	    (push (semantic-lex-token (semantic-lex-token-class tok)
+				      (semantic-lex-token-start tok)
+				      (semantic-lex-token-end tok)
+				      str)
+		  stream)
+	  ;; Nothing to push.
+	  nil)))
+    (goto-char eos)
+    (nreverse stream))
+  )
 
 (defmacro define-lex-spp-macro-declaration-analyzer (name doc regexp tokidx
 							  &rest valform)
@@ -261,7 +293,9 @@ REGEXP is a regular expression for the analyzer to match.
 See `define-lex-regex-analyzer' for more on regexp.
 TOKIDX is an index into REGEXP for which a new lexical token
 of type `spp-macro-def' is to be created.
-VALFORM are forms that return the value to be saved for this macro, or nil."
+VALFORM are forms that return the value to be saved for this macro, or nil.
+When implementing a macro, you can use `semantic-lex-spp-stream-for-macro'
+to convert text into a lexical stream for storage in the macro."
   (let ((start (make-symbol "start"))
 	(end (make-symbol "end"))
 	(val (make-symbol "val"))
