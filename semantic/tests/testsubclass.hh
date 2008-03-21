@@ -5,7 +5,7 @@
  */
 
 #include <cmath>
-#include <stdio.h>
+// #include <stdio.h>
 
 #ifndef TESTSUBCLASS_HH
 #define TESTSUBCLASS_HH
