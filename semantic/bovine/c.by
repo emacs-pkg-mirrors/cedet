@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.38 2008/02/19 03:22:09 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.39 2008/03/21 15:09:03 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -105,6 +105,8 @@
 
 %token NEW "new"
 %put NEW summary "new <classname>();"
+%token DELETE "delete"
+%put DELETE summary "delete <object>;"
 
 ;; Despite this, this parser can find templates by ignoring the TEMPLATE
 ;; keyword, and finding the class/method being templateized.
