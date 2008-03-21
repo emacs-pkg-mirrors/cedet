@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.61 2008/03/01 16:17:58 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.62 2008/03/21 15:09:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -78,6 +78,37 @@ This function does not do any hidden buffer changes."
 		       (string :tag "Replacement")))
   )
 
+(defun semantic-c-lex-one-token-and-move (max)
+  "Lex up one token, and move to end of that token.
+Don't go past MAX."
+  (let ((ans (semantic-lex (point) max 0 0)))
+    (if (not ans)
+	(progn (goto-char max)
+	       nil)
+      (goto-char (semantic-lex-token-end (car ans)))
+      (car ans))
+    ))
+
+(defun semantic-c-lex-stream-for-macro ()
+  "Lex up a stream of tokens for a #define statement."
+  (let ((stream nil)
+	(eos (save-excursion (semantic-c-end-of-macro)
+			     (point))))
+    (while (< (point) eos)
+      (let* ((tok (semantic-c-lex-one-token-and-move eos))
+	     (str (when tok (semantic-lex-token-text tok))))
+	(if str
+	    (push (semantic-lex-token (semantic-lex-token-class tok)
+				      (semantic-lex-token-start tok)
+				      (semantic-lex-token-end tok)
+				      str)
+		  stream)
+	  ;; Nothing to push.
+	  nil)))
+    (goto-char eos)
+    (nreverse stream))
+  )
+
 ;;; Code:
 (define-lex-spp-macro-declaration-analyzer semantic-lex-cpp-define
   "A #define of a symbol with some value.
@@ -89,14 +120,7 @@ Return the the defined symbol as a special spp lex token."
   (if (eolp)
       nil
     (prog1
-	(buffer-substring-no-properties (point)
-					(progn
-					  ;; NOTE: THIS SHOULD BE
-					  ;; END OF MACRO!!!
-					  (forward-word 1)
-					  (point)))
-      ;; Move the lexical end after the value.
-      (semantic-c-end-of-macro)
+	(semantic-c-lex-stream-for-macro)
       ;; Magical spp variable for end point.
       (setq semantic-lex-end-point (point))
       )))
