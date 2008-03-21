@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.10 2008/02/04 19:59:16 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.11 2008/03/21 15:08:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -74,11 +74,11 @@ step.")
       (setq semantic-lex-spp-dynamic-macro-symbol-obarray
 	    (make-vector 13 0))))
 
-(defsubst semantic-lex-spp-symbol-set (name value &optional obarray)
+(defun semantic-lex-spp-symbol-set (name value &optional obarray)
   "Set value of spp symbol with NAME to VALUE and return VALUE.
 If optional OBARRAY is non-nil, then use that obarray instead of
 the dynamic map."
-  (if (string= value "") (setq value nil))
+  (if (and (stringp value) (string= value "")) (setq value nil))
   (set (intern name (or obarray
 			(semantic-lex-spp-dynamic-map)))
        value))
@@ -147,23 +147,64 @@ END is not used."
 
 ;;; MACRO EXPANSION PARSING
 ;;
+(defun semantic-lex-spp-extract-regex-and-compare (analyzer value)
+  "Extract a regexp from an ANALYZER and use to match VALUE.
+Return non-nil if it matches"
+  (let* ((condition (car analyzer))
+	 (regex (cond ((eq (car condition) 'looking-at)
+		       (nth 1 condition))
+		      (t
+		       nil))))
+    (when regex
+      (string-match regex value))
+    ))
+
 (defun semantic-lex-spp-string-to-macro-stream (val beg end)
   "Convert string VAL into a macro expansion stream.
 Argument VAL is the value of some macro to be converted into a stream.
 BEG and END are the token bounds of the macro to be expanded
 that will somehow gain a much longer token stream."
-  ;; NOTE: Must write this function!!!!!
+  (cond
+   ;; If it is a token, then return that token rebuilt.
+   ((and (listp val) (symbolp (car val)))
+    (semantic-lex-push-token
+     (semantic-lex-token (car val) beg end (car (cdr val)))
+     ))
+   ;; If it is a list of tokens, then push each token one at a time.
+   ((and (listp val) (listp (car val)) (symbolp (car (car val))))
+    (dolist (v val)
+      (semantic-lex-push-token
+       (semantic-lex-token (car v) beg end (car (cdr v))))
+      ))
+   ;; We perform a replacement.  Technically, this should
+   ;; be a full lexical step over the "val" string, but take
+   ;; a guess that its just a keyword or existing symbol.
+   ;;
+   ;; Probably a really bad idea.  See how it goes.
+   ((semantic-lex-spp-extract-regex-and-compare
+     semantic-lex-symbol-or-keyword val)
+    (semantic-lex-push-token
+     (semantic-lex-token (or (semantic-lex-keyword-p val) 'symbol)
+			 beg end
+			 val)))
 
-  ;; We perform a replacement.  Technically, this should
-  ;; be a full lexical step over the "val" string, but take
-  ;; a guess that its just a keyword or existing symbol.
-  ;;
-  ;; Probably a really bad idea.  See how it goes.
-  (semantic-lex-push-token
-   (semantic-lex-token (or (semantic-lex-keyword-p val) 'symbol)
-		       beg end
-		       val))
-  )
+   ;; Ok, the rest of these are various types of syntax.
+   ;; This is a poor solution.  We should really have some sort of
+   ;; stream merging.
+   ((semantic-lex-spp-extract-regex-and-compare
+     semantic-lex-punctuation val)
+    (semantic-lex-token 'punctuation beg end val))
+   ((semantic-lex-spp-extract-regex-and-compare
+     semantic-lex-number val)
+    (semantic-lex-token 'number beg end val))
+   ((semantic-lex-spp-extract-regex-and-compare
+     semantic-lex-paren-or-list val)
+    (semantic-lex-token 'semantic-list beg end val))
+   ((semantic-lex-spp-extract-regex-and-compare
+     semantic-lex-string val)
+    (semantic-lex-token 'string beg end val))
+   (t nil)
+   ))
 
 
 ;;; MACRO TABLE DEBUG
