@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.96 2008/03/20 22:38:12 zappo Exp $
+;; RCS: $Id: ede.el,v 1.97 2008/03/22 19:15:43 zappo Exp $
 (defconst ede-version "1.0pre4"
   "Current version of the Emacs EDE.")
 
@@ -1716,6 +1716,28 @@ Return the first non-nil value returned by PROC."
   (ede-or (ede-map-targets this proc)))
 
 
+;;; Some language specific methods.
+;;
+;; These items are needed by ede-cpp-root to add better support for
+;; configuring items for Semantic.
+
+(defmethod ede-system-include-path ((this ede-project))
+  "Get the system include path used by project THIS."
+  nil)
+  
+(defmethod ede-preprocessor-map ((this ede-project))
+  "Get the pre-processor map for project THIS."
+  nil)
+
+(defmethod ede-system-include-path ((this ede-target))
+  "Get the system include path used by project THIS."
+  nil)
+  
+(defmethod ede-preprocessor-map ((this ede-target))
+  "Get the pre-processor map for project THIS."
+  nil)
+
+
 ;;; Project-local variables
 ;;
 (defun ede-make-project-local-variable (variable &optional project)
@@ -1730,7 +1752,7 @@ Return the first non-nil value returned by PROC."
 			  (make-local-variable variable)))
 	    (ede-project-buffers project))))
 
-(defun ede-set-project-variables (project &optional buffer)
+(defmethod ede-set-project-variables ((project ede-project) &optional buffer)
   "Set variables local to PROJECT in BUFFER."
   (if (not buffer) (setq buffer (current-buffer)))
   (save-excursion
@@ -1782,6 +1804,20 @@ If VARIABLE is not project local, just use set."
     (setq arg (cdr arg)))
   arg)
 
+
+;;; Debugging.
+;;
+;;;###autoload
+(defun ede-adebug-project ()
+  "Run adebug against the current ede project.
+Display the results as a debug list."
+  (interactive)
+  (require 'semantic-adebug)
+  (let ((ab nil))
+    (when (ede-current-project)
+      (setq ab (semantic-adebug-new-buffer "*Analyzer ADEBUG*"))
+      (semantic-adebug-insert-object-fields (ede-current-project) "")
+      )))
 
 ;;; Hooks & Autoloads
 ;;
