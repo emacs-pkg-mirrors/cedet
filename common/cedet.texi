@@ -692,7 +692,8 @@ this:
 where SOMENAME is a name for this project, and the file is a file name
 that exists at the root of your project directory.  There are many
 more options for the optimization of finding your header files.
-For more on this option, see
+For more on this option, including include path setting, and providing
+macro to the C pre-processor, see
 @inforef{the ede-cpp-root chapter, ede-cpp-root, ede}.
 
 @node GNU Free Documentation License
