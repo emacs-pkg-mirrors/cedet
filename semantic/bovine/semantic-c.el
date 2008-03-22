@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.63 2008/03/21 17:51:21 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.64 2008/03/22 19:55:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -72,7 +72,31 @@ This function does not do any hidden buffer changes."
   "List of symbols to include by default.")
 
 (defcustom semantic-lex-c-preprocessor-symbol-map nil
-  "Table of C Preprocessor keywords used by the Semantic C lexer."
+  "Table of C Preprocessor keywords used by the Semantic C lexer.
+Each entry is a cons cell like this:
+  ( \"KEYWORD\" . \"REPLACEMENT\" )
+Where KEYWORD is the macro that gets replaced in the lexical phase,
+and REPLACEMENT is a string that is inserted in it's place.  Empty string
+implies that the lexical analyzer will discard KEYWORD when it is encountered.
+
+Alternately, it can be of the form:
+  ( \"KEYWORD\" ( LEXSYM1 \"str\" 1 1 ) ... ( LEXSYMN \"str\" 1 1 ) )
+where LEXSYM is a symbol that would normally be produced by the
+lexical analyzer, such as `symbol' or `string'.  The string in the
+second position is the text that makes up the replacement.  This is
+the way to have multiple lexical symbols in a replacement.  Using the
+first way to specify text like \"foo::bar\" would not work, because :
+is a sepearate lexical symbol.
+
+A quick way to see what you would need to insert is to place a
+definition such as:
+
+#define MYSYM foo::bar
+
+into a C file, and do this:
+M-x semantic-lex-spp-describe RET
+
+The output table will describe the symbols needed."
   :group 'c
   :type '(repeat (cons (string :tag "Keyword")
 		       (string :tag "Replacement")))
