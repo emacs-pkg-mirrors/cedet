@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.6 2008/03/20 01:54:05 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.7 2008/03/22 19:17:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -150,6 +150,9 @@ provided mode, not from the current major mode."
   (if (not mode) (setq mode major-mode))
   (let ((sysp (mode-local-value
 	       mode 'semantic-dependency-system-include-path))
+	(edesys (when (and (featurep 'ede) ede-minor-mode
+			   ede-object)
+		  (ede-system-include-path ede-object)))
 	(locp (mode-local-value
 	       mode 'semantic-dependency-include-path))
 	(found nil))
@@ -157,6 +160,8 @@ provided mode, not from the current major mode."
       (setq found file))
     (when (and (not found) (not systemp))
       (setq found (semantic--dependency-find-file-on-path file locp)))
+    (when (and (not found) edesys)
+      (setq found (semantic--dependency-find-file-on-path file edesys)))
     (when (not found)
       (setq found (semantic--dependency-find-file-on-path file sysp)))
     (if found (expand-file-name found))))
