@@ -10,8 +10,8 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH= ../common/ ../common/ ./ ../eieio/\
-    ../ede/  wisent/ bovine/  ../speedbar/
+LOADPATH= ../common/  ../ede/ ./ ../eieio/\
+    wisent/ bovine/  ../speedbar/
 LOADDEFS=semantic-loaddefs.el
 LOADDIRS=. bovine wisent
 metagrammar_SEMANTIC_GRAMMAR=semantic-grammar.wy
@@ -26,7 +26,7 @@ semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el sema
 Languages_LISP=semantic-texi.el semantic-html.el
 tools_LISP=semantic-imenu.el semantic-sb.el semanticdb.el document.el document-vars.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el semantic-idle.el semantic-decorate-mode.el semanticdb-ebrowse.el semantic-adebug.el semantic-adebug-eieio.el semantic-mru-bookmark.el semanticdb-ref.el semanticdb-typecache.el semantic-analyze-fcn.el semantic-analyze-complete.el semantic-scope.el semantic-elp.el semanticdb-debug.el
 senator_LISP=senator.el
-tests_LISP=semantic-ia-utest.el semantic-utest.el
+tests_LISP=semantic-ia-utest.el semantic-utest.el semantic-utest-c.el
 misc_AUX=INSTALL NEWS ChangeLog AUTHORS ONEWS renamelist.txt
 VERSION=2.0pre4
 DISTDIR=$(top)semantic-$(VERSION)
