@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.12 2008/03/21 17:50:25 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.13 2008/03/22 04:36:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,6 +116,19 @@ REPLACEMENT a string that would be substituted in for NAME."
        semantic-lex-spp-macro-symbol-obarray))
     semantic-lex-spp-macro-symbol-obarray))
 
+(defun semantic-lex-spp-save-table ()
+  "Return a list of spp macros and values.
+The return list is meant to be saved in a semanticdb table."
+  (let (macros)
+    (when (arrayp semantic-lex-spp-dynamic-macro-symbol-obarray)
+      (mapatoms
+       #'(lambda (symbol)
+	   (setq macros (cons (cons (symbol-name symbol)
+				    (symbol-value symbol))
+			      macros)))
+       semantic-lex-spp-dynamic-macro-symbol-obarray))
+    macros))
+
 (defun semantic-lex-spp-macros ()
   "Return a list of spp macros as Lisp symbols.
 The value of each symbol is the replacement stream."
@@ -131,6 +144,13 @@ The value of each symbol is the replacement stream."
 	   (setq macros (cons symbol macros)))
        semantic-lex-spp-dynamic-macro-symbol-obarray))
     macros))
+
+(defun semantic-lex-spp-set-dynamic-table (new-entries)
+  "Set the dynamic symbol table to NEW-ENTRIES.
+Fore use with semanticdb restoration of state."
+  (dolist (e new-entries)
+    ;; Default obarray for below is the dynamic map.
+    (semantic-lex-spp-symbol-set (car e) (cdr e))))
 
 (defun semantic-lex-spp-reset-dynamic-table ()
   "Reset the dynamic spp symbol table.
