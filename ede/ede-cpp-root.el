@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.7 2008/03/08 11:17:09 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.8 2008/03/22 19:19:58 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -54,8 +54,11 @@
 ;; Semantic completion, having a short include path is key.  You can
 ;; override the include path like this:
 ;;
-;; (ede-cpp-root-project "NAME" :file "FILENAME" :include-path
-;;     '( "/include" "../include" "/c/include" ))
+;; (ede-cpp-root-project "NAME" :file "FILENAME"
+;;     :include-path '( "/include" "../include" "/c/include" )
+;;     :system-include-path '( "/usr/include/c++/3.2.2/" )
+;;     :spp-table '( ("MOOSE" . "")
+;;                   ("CONST" . "const") ) )
 ;;
 ;;  In this case each item in the include path list is searched.  If
 ;;  the directory starts with "/", then that expands to the project
@@ -65,6 +68,14 @@
 ;;
 ;;  The include path only affects C/C++ header files.  Use the slot
 ;;  :header-match-regexp to change it.
+;;
+;;  The :system-include-path allows you to specify full directory
+;;  names to include directories where system header files can be
+;;  found.  These will be applied to files in this project only.
+;;
+;;  The :spp-table provides a list of project specific #define style
+;;  macros that are unique to this project, passed in to the compiler
+;;  on the command line, or are in special headers.
 ;;
 ;; If you want to override the file-finding tool with your own
 ;; function you can do this:
@@ -95,7 +106,7 @@
 ;;   )
 ;;
 ;; (defun MY-ROOT-FCN ()
-;;   "Return the root fcn for `default-directory'"
+;;   "Return the root directory for `default-directory'"
 ;;   ;; You might be able to use `ede-cpp-root-project-root'.
 ;;   )
 ;; 
@@ -197,6 +208,23 @@ buffer's `default-directory' (not starting with a /).  Directories
 that are relative to the project's root should start with a /, such
 as  \"/include\", meaning the directory `include' off the project root
 directory.")
+   (system-include-path :initarg :system-include-path
+			:initform nil
+			:type list
+			:documentation
+			"The system include path for files in this project.
+C files initialized in an ede-cpp-root-project have their semantic
+system include path set to this value.  If this is nil, then the
+semantic path is not modified.")
+   (spp-table :initarg :spp-table
+	      :initform nil
+	      :type list
+	      :documentation
+	      "C Preprocessor macros for your files.
+These macros might be passed in through the command line compiler, or
+are critical symbols derived from header files.  Providing header files
+macro values through this slot improves accuracy and performance.
+See `semantic-lex-c-preprocessor-symbol-map' for more.")
    (header-match-regexp :initarg :header-match-regexp
 			:initform
 			"\\.\\(h\\(h\\|xx\\|pp\\|\\+\\+\\)?\\|H\\)$\\|\\<\\w+$"
@@ -293,6 +321,36 @@ This knows details about or source tree."
 (defmethod ede-project-root-directory ((this ede-cpp-root-project))
   "Return my root."
   (file-name-directory (oref this file)))
+
+;;; Special Init
+;;
+(defmethod ede-set-project-variables ((project ede-cpp-root-project) &optional buffer)
+  "Set variables local to PROJECT in BUFFER.
+Also set up the lexical preprocessor map."
+  (call-next-method)
+  (when (and (featurep 'semantic-c) (featurep 'semantic-lex-spp))
+    (setq semantic-lex-spp-project-macro-symbol-obarray
+	  (semantic-lex-make-spp-table (oref project spp-table)))
+    ))  
+
+;;; C++ special options.
+;;
+
+(defmethod ede-system-include-path ((this ede-cpp-root-project))
+  "Get the system include path used by project THIS."
+  (oref this system-include-path))
+  
+(defmethod ede-preprocessor-map ((this ede-cpp-root-project))
+  "Get the pre-processor map for project THIS."
+  (oref this spp-table))
+
+(defmethod ede-system-include-path ((this ede-cpp-root-target))
+  "Get the system include path used by project THIS."
+  (ede-system-include-path (ede-target-parent this)))
+  
+(defmethod ede-preprocessor-map ((this ede-cpp-root-target))
+  "Get the pre-processor map for project THIS."
+  (ede-preprocessor-map  (ede-target-parent this)))
 
 
 (provide 'ede-cpp-root)
