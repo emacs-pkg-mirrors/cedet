@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.14 2008/02/10 16:33:14 zappo Exp $
+@c $Id: ede.texi,v 1.15 2008/03/22 19:54:00 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -77,42 +77,6 @@ to learn and adopt the GNU ways of doing things.
 * Targets::                     
 * Sourcecode::                  
 * Compilers::                   
-
-@detailmenu
- --- The Detailed Node Listing ---
-
-Modifying your project
-
-* Add/Remove target::           
-* Add/Remove files::            
-* Customize Features::          
-* EDE Project Features::        
-
-@ede{} Project Features
-
-* Changing Compilers and Flags::  
-* Configurations::              
-
-Project types
-
-* Make and Automake projects::  Project types of @samp{ede-project}
-* Automake direct projects::    Project interface on hand-written automake files.
-
-Extending @ede{}
-
-* User interface methods::      Methods associated with keybindings
-* Base project methods::        The most basic methods on @ede{} objects.
-* Sourcecode objects::          Defining new sourcecode classes.
-* Compiler and Linker objects::  Defining new compilers and linkers.
-
-Class hierarchies
-
-* Project    :: The different project types.
-* Targets    :: The different target types.
-* Sourcecode :: Source Code management types.
-* Compilers  :: Compiler management types.
-
-@end detailmenu
 @end menu
 
 @node EDE Project Concepts, EDE Mode, top, top
@@ -497,11 +461,14 @@ The most likely reason to create this project, is to speed up
 searching for includes files, or to simplify bootstrapping @semantic{}'s
 ability to find files without much user interaction.  In conjunction
 with @semantic{} completion, having a short include path is key.  You can
-override the default include path like this:
+override the default include path and system include path like this:
 
 @example
-(ede-cpp-root-project "NAME" :file "FILENAME" :include-path
-    '( "/include" "../include" "/c/include" ))
+(ede-cpp-root-project "NAME" :file "FILENAME"
+    :include-path '( "/include" "../include" "/c/include" )
+    :system-include-path '( "/usr/include/c++/3.2.2/" )
+    :spp-table '( ("MOOSE" . "")
+                  ("CONST" . "const") ) )
 @end example
 
  In this case each item in the include path list is searched.  If the
@@ -511,7 +478,17 @@ relative to the default-directory of the current buffer when the file
 name is expanded.
 
  The include path only affects C/C++ header files.  Use the slot
-@code{ :header-match-regexp} to change it.
+@code{:header-match-regexp} to change it.
+
+The @code{:system-include-path} allows you to specify full directory
+names to include directories where system header files can be found.
+These will be applied to files in this project only.
+
+The @code{:spp-table} provides a list of project specific #define
+style macros that are unique to this project, passed in to the
+compiler on the command line, or are in special headers.
+See the @code{semantic-lex-c-preprocessor-symbol-map} for more
+on how to format this entry.
 
 If you want to override the file-finding tool with your own
 function you can do this:
