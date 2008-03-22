@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.104 2008/03/18 18:31:14 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.105 2008/03/22 04:40:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,6 +36,8 @@
   (inversion-require 'eieio "1.0"))
 (require 'eieio-base)
 (require 'semantic)
+(eval-when-compile
+  (require 'semantic-lex-spp))
 
 ;;; Variables:
 (defgroup semanticdb nil
@@ -100,14 +102,6 @@ same major mode as the current buffer.")
    (tags :initarg :tags
 	 :accessor semanticdb-get-tags
 	 :documentation "The tags belonging to this table.")
-   (dirty :initform nil
-	  :documentation
-	  "Non nil if this table needs to be `Saved'.")
-   (db-refs :initform nil
-	    :documentation
-	    "List of `semanticdb-table' objects refering to this one.
-These aren't saved, but are instead recalculated after load.
-See the file semanticdb-ref.el for how this slot is used.")
    (index :type semanticdb-abstract-search-index
 	  :documentation "The search index.
 Used by semanticdb-find to store additional information about
@@ -240,6 +234,14 @@ other than :table."
   ((file :initarg :file
 	 :documentation "File name relative to the parent database.
 This is for the file whose tags are stored in this TABLE object.")
+   (dirty :initform nil
+	  :documentation
+	  "Non nil if this table needs to be `Saved'.")
+   (db-refs :initform nil
+	    :documentation
+	    "List of `semanticdb-table' objects refering to this one.
+These aren't saved, but are instead recalculated after load.
+See the file semanticdb-ref.el for how this slot is used.")
    (pointmax :initarg :pointmax
 	     :initform nil
 	     :documentation "Size of buffer when written to disk.
@@ -249,6 +251,12 @@ Checked on retrieval to make sure the file is the same.")
    (unmatched-syntax :initarg :unmatched-syntax
 		     :documentation
 		     "List of vectors specifying unmatched syntax.")
+
+   (lexical-table :initarg :lexical-table
+		  :initform nil
+		  :documentation
+		  "Table that might be needed by the lexical analyzer.
+For C/C++, the C preprocessor macros can be saved here.")
    )
   "A single table of tags derived from file.")
 
@@ -258,7 +266,7 @@ Checked on retrieval to make sure the file is the same.")
   )
 
 (defmethod object-print ((obj semanticdb-table) &rest strings)
-  "Pretty printer extension for `semanticdb-abstract-table'.
+  "Pretty printer extension for `semanticdb-table'.
 Adds the number of tags in this file to the object print name."
   (apply 'call-next-method obj
 	 (cons (format " (%d tags%s)"
@@ -414,6 +422,10 @@ The file associated with OBJ does not need to be in a buffer."
 	))))
 
 (defmethod semanticdb-dirty-p ((obj semanticdb-abstract-table))
+  "Return non-nil if OBJ is 'dirty'."
+  nil)
+
+(defmethod semanticdb-dirty-p ((obj semanticdb-table))
   "Return non-nil if OBJ is 'dirty'."
   (oref obj dirty))
 
@@ -645,6 +657,7 @@ Sets up the semanticdb environment."
 	      (/= (or (oref ctbl pointmax) 0) (point-max))
 	      )
 	  (semantic-clear-toplevel-cache)
+	;; Unmatched syntax
 	(condition-case nil
 	    (semantic-set-unmatched-syntax-cache
 	     (oref ctbl unmatched-syntax))
@@ -655,8 +668,19 @@ Sets up the semanticdb environment."
 	   ;; Make sure it has a value.
 	   (oset ctbl unmatched-syntax nil)
 	   ))
+	;; Keep lexical tables up to date.  Don't load
+	;; semantic-spp if it isn't needed.
+	(let ((lt (oref ctbl lexical-table)))
+	  (when lt
+	    (require 'semantic-lex-spp)
+	    (semantic-lex-spp-set-dynamic-table lt)))
+	;; Set the main tag cache.
+	;; This must happen after setting up buffer local variables
+	;; since this will turn around and re-save those variables.
 	(semantic--set-buffer-cache (oref ctbl tags))
+	;; Don't need it to be dirty.  Set dirty due to hooks from above.
 	(oset ctbl dirty nil) ;; Special case here.
+	;; Bind into the buffer.
 	(semantic--tag-link-cache-to-buffer)
 	)
       )))
@@ -681,6 +705,12 @@ If there is no database for the table to live in, create one."
   "Synchronize the table TABLE with some NEW-TAGS."
   (oset table tags new-tags)
   (oset table pointmax (point-max))
+  ;; Assume it is now up to date.
+  (oset table unmatched-syntax semantic-unmatched-syntax-cache)
+  ;; The lexical table should be good too.
+  (when (featurep 'semantic-lex-spp)
+    (oset table lexical-table (semantic-lex-spp-save-table)))
+  ;; this implies dirtyness
   (semanticdb-set-dirty table)
 
   ;; Synchronize the index
@@ -706,6 +736,9 @@ If there is no database for the table to live in, create one."
   ;;(oset table tags new-tags)
   ;; We do need to mark ourselves dirty.
   (semanticdb-set-dirty table)
+
+  ;; Incremental parser doesn't mokey around with this.
+  (oset table unmatched-syntax semantic-unmatched-syntax-cache)
 
   ;; Synchronize the index
   (when (slot-boundp table 'index)
