@@ -64,7 +64,7 @@
    (ede-proj-target-elisp "tests"
     :name "tests"
     :path ""
-    :source '("semantic-ia-utest.el" "semantic-utest.el")
+    :source '("semantic-ia-utest.el" "semantic-utest.el" "semantic-utest-c.el")
     )
    (ede-proj-target-aux "misc"
     :name "misc"
