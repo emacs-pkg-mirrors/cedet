@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.13 2008/03/22 04:36:57 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.14 2008/03/22 19:18:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,6 +46,10 @@
   "Table of macro keywords used by the Semantic Macro.")
 (make-variable-buffer-local 'semantic-lex-spp-macro-symbol-obarray)
 
+(defvar semantic-lex-spp-project-macro-symbol-obarray nil
+  "Table of macro keywords for this project used by the Semantic Macro.")
+(make-variable-buffer-local 'semantic-lex-spp-project-macro-symbol-obarray)
+
 (defvar semantic-lex-spp-dynamic-macro-symbol-obarray nil
   "Table of macro keywords found during lexical analysis.
 This table is then used by the macro during the lexical analysis
@@ -58,10 +62,18 @@ step.")
   "Return spp symbol with NAME or nil if not found."
   (and
    (stringp name)
-   (or (and (arrayp semantic-lex-spp-dynamic-macro-symbol-obarray)
-	    (intern-soft name semantic-lex-spp-dynamic-macro-symbol-obarray))
-       (and (arrayp semantic-lex-spp-macro-symbol-obarray)
-	    (intern-soft name semantic-lex-spp-macro-symbol-obarray)))))
+   (or
+    ;; DYNAMIC
+    (and (arrayp semantic-lex-spp-dynamic-macro-symbol-obarray)
+	 (intern-soft name semantic-lex-spp-dynamic-macro-symbol-obarray))
+    ;; PROJECT
+    (and (arrayp semantic-lex-spp-project-macro-symbol-obarray)
+	 (intern-soft name semantic-lex-spp-project-macro-symbol-obarray))
+    ;; SYSTEM
+    (and (arrayp semantic-lex-spp-macro-symbol-obarray)
+	 (intern-soft name semantic-lex-spp-macro-symbol-obarray))
+    ;; ...
+    )))
 
 (defsubst semantic-lex-spp-symbol-p (name)
   "Return non-nil if a keyword with NAME exists in any keyword table."
@@ -138,6 +150,11 @@ The value of each symbol is the replacement stream."
        #'(lambda (symbol)
 	   (setq macros (cons symbol macros)))
        semantic-lex-spp-macro-symbol-obarray))
+    (when (arrayp semantic-lex-spp-project-macro-symbol-obarray)
+      (mapatoms
+       #'(lambda (symbol)
+	   (setq macros (cons symbol macros)))
+       semantic-lex-spp-project-macro-symbol-obarray))
     (when (arrayp semantic-lex-spp-dynamic-macro-symbol-obarray)
       (mapatoms
        #'(lambda (symbol)
@@ -163,7 +180,8 @@ In this case, reset the dynamic macro symbol table if
 START recons the entire buffer.
 END is not used."
   (if (= start (point-min))
-      (setq semantic-lex-spp-dynamic-macro-symbol-obarray nil)))
+      (setq semantic-lex-spp-dynamic-macro-symbol-obarray nil))
+  )
 
 ;;; MACRO EXPANSION PARSING
 ;;
