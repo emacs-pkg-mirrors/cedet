@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.1 2008/03/23 14:17:41 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.2 2008/03/23 20:03:44 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -62,6 +62,19 @@ Used by the decoration style: `semantic-decoration-on-includes'."
      :active t
      :help "Visit this include file." ]
     "---"
+    ["Summarize includes current buffer" semantic-decoration-all-include-summary
+     :active t
+     :help "Show a summary for the current buffer containing this include." ]
+    ["List found includes (load unparsed)" semanticdb-find-test-translate-path
+     :active t
+     :help "List all includes found for this file, and parse unparsed files." ]
+    ["List found includes (no loading)" semanticdb-find-test-translate-path-no-loading
+     :active t
+     :help "List all includes found for this file, do not parse unparsed files." ]
+    ["List all unknown includes" semanticdb-find-adebug-lost-includes
+     :active t
+     :help "Show a list of all includes semantic cannot find for this file." ]
+    "---"
     ["Add a System Include Path" semantic-add-system-include
      :active t
      :help "Add an include path for this session." ]
@@ -102,6 +115,20 @@ Used by the decoration style: `semantic-decoration-on-unknown-includes'."
     ["What Is This?" semantic-decoration-unknown-include-describe
      :active t
      :help "Describe why this include has been marked this way." ]
+    ["List all unknown includes" semanticdb-find-adebug-lost-includes
+     :active t
+     :help "Show a list of all includes semantic cannot find for this file." ]
+    "---"
+    ["Summarize includes current buffer" semantic-decoration-all-include-summary
+     :active t
+     :help "Show a summary for the current buffer containing this include." ]
+    ["List found includes (load unparsed)" semanticdb-find-test-translate-path
+     :active t
+     :help "List all includes found for this file, and parse unparsed files." ]
+    ["List found includes (no loading)" semanticdb-find-test-translate-path-no-loading
+     :active t
+     :help "List all includes found for this file, do not parse unparsed files." ]
+    "---"
     ["Add a System Include Path" semantic-add-system-include
      :active t
      :help "Add an include path for this session." ]
@@ -148,6 +175,19 @@ Used by the decoration style: `semantic-decoration-on-unparsed-includes'."
     ["Parse All Includes" semantic-decoration-unparsed-include-parse-all-includes
      :active t
      :help "Parse all the includes so the contents can be used." ]
+    "---"
+    ["Summarize includes current buffer" semantic-decoration-all-include-summary
+     :active t
+     :help "Show a summary for the current buffer containing this include." ]
+    ["List found includes (load unparsed)" semanticdb-find-test-translate-path
+     :active t
+     :help "List all includes found for this file, and parse unparsed files." ]
+    ["List found includes (no loading)" semanticdb-find-test-translate-path-no-loading
+     :active t
+     :help "List all includes found for this file, do not parse unparsed files." ]
+    ["List all unknown includes" semanticdb-find-adebug-lost-includes
+     :active t
+     :help "Show a list of all includes semantic cannot find for this file." ]
     "---"
     ["Add a System Include Path" semantic-add-system-include
      :active t
@@ -224,7 +264,10 @@ This mode provides a nice context menu on the include statements."
   "Describe what unparsed includes are in the current buffer.
 Argument EVENT is the mouse clicked event."
   (interactive)
-  (let ((tag (semantic-current-tag)))
+  (let* ((tag (semantic-current-tag))
+	 (file (semantic-dependency-tag-file tag))
+	 (table (when file
+		  (semanticdb-file-table-object file t))))
     (with-output-to-temp-buffer "*Help*"
       (princ "Include File: ")
       (princ (semantic-format-tag-name tag nil t))
@@ -236,28 +279,48 @@ Argument EVENT is the mouse clicked event."
 it's contents.
 
 ")
-      ;; Get the semanticdb statement, and display it's contents.
-      (let* ((file (semantic-dependency-tag-file tag))
-	     (table (when file
-		      (semanticdb-file-table-object file t))))
-	(princ "Details for header file...\n")
-	(princ "\nMajor Mode:          ")
-	(princ (oref table :major-mode))
-	(princ "\nTags:                ")
-	(princ (format "%s entries" (length (oref table :tags))))
-	(princ "\nFile Size:           ")
-	(princ (format "%s chars" (oref table :pointmax)))
-	(princ "\nSave State:          ")
-	(cond ((oref table dirty)
-	       (princ "Table needs to be saved."))
-	      (t
-	       (princ "Table is saved on disk."))
-	      )
-	(princ "\nExternal References:")
-	(dolist (r (oref table db-refs))
-	  (princ "\n    ")
-	  (princ (oref r file)))
+      (let ((inc (semantic-find-tags-by-class 'include table))
+	    (ok 0)
+	    (unknown 0)
+	    (unparsed 0)
+	    (all 0))
+	(dolist (i inc)
+	  (let* ((fileinner (semantic-dependency-tag-file i))
+		 (tableinner (when fileinner
+			       (semanticdb-file-table-object fileinner t))))
+	    (cond ((not fileinner)
+		   (setq unknown (1+ unknown)))
+		  ((number-or-marker-p (oref table pointmax))
+		   (setq ok (1+ ok)))
+		  (t
+		   (setq unparsed (1+ unparsed))))))
+	(setq all (+ ok unknown unparsed))
+	(if (= 0 all)
+	    (princ "There are no other includes in this file.\n")
+	  (princ (format "There are %d more includes in this file.\n"
+			 all))
+	  (princ (format "   Unknown Includes:  %d\n" unknown))
+	  (princ (format "   Unparsed Includes: %d\n" unparsed))
+	  (princ (format "   Parsed Includes:   %d\n" ok)))
 	)
+      ;; Get the semanticdb statement, and display it's contents.
+      (princ "\nDetails for header file...\n")
+      (princ "\nMajor Mode:          ")
+      (princ (oref table :major-mode))
+      (princ "\nTags:                ")
+      (princ (format "%s entries" (length (oref table :tags))))
+      (princ "\nFile Size:           ")
+      (princ (format "%s chars" (oref table :pointmax)))
+      (princ "\nSave State:          ")
+      (cond ((oref table dirty)
+	     (princ "Table needs to be saved."))
+	    (t
+	     (princ "Table is saved on disk."))
+	    )
+      (princ "\nExternal References:")
+      (dolist (r (oref table db-refs))
+	(princ "\n    ")
+	(princ (oref r file)))
       )))
 
 (defun semantic-decoration-include-visit ()
@@ -440,6 +503,78 @@ Argument EVENT describes the event that caused this function to be called."
   (interactive)
   (semanticdb-find-translate-path nil nil)
   )
+
+
+;;; General Includes Information
+;;
+(defun semantic-decoration-all-include-summary ()
+  "Provide a general summary for the state of all includes."
+  (interactive)
+  
+  (let* ((table semanticdb-current-table)
+	 (tags (semantic-fetch-tags))
+	 (inc (semantic-find-tags-by-class 'include table))
+	 )
+    (with-output-to-temp-buffer "*Help*"
+      (princ "Include Summary for File: ")
+      (princ (file-truename (buffer-file-name)))
+      (princ "\n\n")
+      (princ (format "This file contains %d tags, %d of which are includes.\n"
+		     (length tags) (length inc)))
+      (let ((ok 0)
+	    (unknown 0)
+	    (unparsed 0)
+	    (all 0))
+	(dolist (i inc)
+	  (let* ((fileinner (semantic-dependency-tag-file i))
+		 (tableinner (when fileinner
+			       (semanticdb-file-table-object fileinner t))))
+	    (cond ((not fileinner)
+		   (setq unknown (1+ unknown)))
+		  ((number-or-marker-p (oref table pointmax))
+		   (setq ok (1+ ok)))
+		  (t
+		   (setq unparsed (1+ unparsed))))))
+	(setq all (+ ok unknown unparsed))
+	(when (not (= 0 all))
+	  (princ (format "   Unknown Includes:  %d\n" unknown))
+	  (princ (format "   Unparsed Includes: %d\n" unparsed))
+	  (princ (format "   Parsed Includes:   %d\n" ok)))
+	)
+
+      (let* ((semanticdb-find-default-throttle
+	      (if (featurep 'semanticdb-find)
+		  (remq 'unloaded semanticdb-find-default-throttle)
+		nil))
+	     (path (semanticdb-find-translate-path nil nil)))
+	(if (<= (length path) (length inc))
+	    (princ "\nThere are currently no includes found recursively.\n")
+	  ;; List the full include list.
+	  (princ "\nSummary of all includes needed by ")
+	  (princ (buffer-name))
+	  (dolist (p path)
+	    (princ (format "\n  %s :\t%d tags, %d are includes. %s"
+			   (object-name-string p)
+			   (length (oref p tags))
+			   (length (semantic-find-tags-by-class
+				    'include p))
+			   (cond
+			    ((condition-case nil
+				 (oref p dirty)
+			       (error nil))
+			     " dirty.")
+			    ((not (number-or-marker-p (oref table pointmax)))
+			     "  Needs to be parsed.")
+			    (t ""))))
+	    )))
+
+      (when (oref table db-refs)
+	(princ "\nExternal References:")
+	(dolist (r (oref table db-refs))
+	  (princ "\n    ")
+	  (princ (oref r file)))
+	))))
+  
 
 
 ;;; Unparsed Include Features
