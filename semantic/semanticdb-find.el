@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.59 2008/03/14 22:45:39 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.60 2008/03/23 20:05:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -647,6 +647,28 @@ for details on how this list is derived."
 	(end (current-time))
 	(ab (semantic-adebug-new-buffer "*SEMANTICDB FTP ADEBUG*"))
 	)
+    (message "Search of tags took %.2f seconds."
+	     (semantic-elapsed-time start end))
+    
+    (semantic-adebug-insert-stuff-list p "*")))
+
+(defun semanticdb-find-test-translate-path-no-loading (&optional arg)
+  "Call and output results of `semanticdb-find-translate-path'.
+With ARG non-nil, specify a BRUTISH translation.
+See `semanticdb-find-default-throttle' and `semanticdb-project-roots'
+for details on how this list is derived."
+  (interactive "P")
+  (semantic-fetch-tags)
+  (require 'semantic-adebug)
+  (let* ((semanticdb-find-default-throttle
+	  (if (featurep 'semanticdb-find)
+	      (remq 'unloaded semanticdb-find-default-throttle)
+	    nil))
+	 (start (current-time))
+	 (p (semanticdb-find-translate-path nil arg))
+	 (end (current-time))
+	 (ab (semantic-adebug-new-buffer "*SEMANTICDB FTP ADEBUG*"))
+	 )
     (message "Search of tags took %.2f seconds."
 	     (semantic-elapsed-time start end))
     
