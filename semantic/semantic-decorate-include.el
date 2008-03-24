@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.3 2008/03/24 13:26:44 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.4 2008/03/24 14:55:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -533,7 +533,7 @@ Argument EVENT describes the event that caused this function to be called."
 			       (semanticdb-file-table-object fileinner t))))
 	    (cond ((not fileinner)
 		   (setq unknown (1+ unknown)))
-		  ((number-or-marker-p (oref table pointmax))
+		  ((number-or-marker-p (oref tableinner pointmax))
 		   (setq ok (1+ ok)))
 		  (t
 		   (setq unparsed (1+ unparsed))))))
@@ -555,19 +555,22 @@ Argument EVENT describes the event that caused this function to be called."
 	  (princ "\nSummary of all includes needed by ")
 	  (princ (buffer-name))
 	  (dolist (p path)
-	    (princ (format "\n  %s :\t%d tags, %d are includes. %s"
-			   (object-name-string p)
-			   (length (oref p tags))
-			   (length (semantic-find-tags-by-class
-				    'include p))
-			   (cond
-			    ((condition-case nil
-				 (oref p dirty)
-			       (error nil))
-			     " dirty.")
-			    ((not (number-or-marker-p (oref table pointmax)))
-			     "  Needs to be parsed.")
-			    (t ""))))
+	    (if (slot-boundp p 'tags)
+		(princ (format "\n  %s :\t%d tags, %d are includes. %s"
+			       (object-name-string p)
+			       (length (oref p tags))
+			       (length (semantic-find-tags-by-class
+					'include p))
+			       (cond
+				((condition-case nil
+				     (oref p dirty)
+				   (error nil))
+				 " dirty.")
+				((not (number-or-marker-p (oref table pointmax)))
+				 "  Needs to be parsed.")
+				(t ""))))
+	      (princ (format "\n  %s :\tUnparsed"
+			     (object-name-string p))))
 	    )))
 
       (when (oref table db-refs)
