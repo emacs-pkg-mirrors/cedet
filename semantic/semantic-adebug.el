@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.13 2008/02/26 01:43:04 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.14 2008/03/24 11:24:55 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -623,7 +623,7 @@ If PARENT is non-nil, it is somehow related as a parent to thing."
 (defun semantic-adebug-new-buffer (name)
   "Create a new adebug buffer with NAME."
   (let ((b (get-buffer-create name)))
-    (switch-to-buffer b)
+    (pop-to-buffer b)
     (set-buffer b)
     (erase-buffer)
     (semantic-adebug-mode)
