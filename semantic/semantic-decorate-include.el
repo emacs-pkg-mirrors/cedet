@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.2 2008/03/23 20:03:44 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.3 2008/03/24 13:26:44 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -27,6 +27,8 @@
 ;; as 'what is this?" and get the info they need to fix problems that
 ;; are otherwises transparent when trying to get smart completion
 ;; working.
+
+(require 'semantic-decorate-mode)
 
 ;;; Code:
 
