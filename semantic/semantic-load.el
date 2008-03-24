@@ -1,9 +1,9 @@
 ;;; semantic-load.el --- Autoload definitions for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.56 2007/05/31 02:25:55 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.57 2008/03/24 13:27:34 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -135,6 +135,7 @@ This includes `semantic-load-enable-code-helpers'.
   (interactive)
 
   (global-semantic-decoration-mode 1)
+  (require 'semantic-decorate-include)
 
   (when (boundp 'header-line-format)
     (global-semantic-stickyfunc-mode 1))
