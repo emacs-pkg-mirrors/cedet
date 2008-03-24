@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.26 2008/02/21 23:58:07 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.27 2008/03/24 13:26:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -49,6 +49,8 @@ NOTE: Can I get rid of this?  Use a hashtable instead?")
 	       "Any other object that is dependent on typecache results.
 Said object must support `semantic-reset' methods.")
    ;; @todo - add some sort of fast-hash.
+   ;; @note - Rebuilds in large projects already take a while, and the
+   ;;     actual searches are pretty fast.  Really needed?
    )
   "Structure for maintaining a typecache.")
 
@@ -166,7 +168,6 @@ Adds a filename if the tags are not in a buffer."
      (semanticdb-full-filename table)
      tags)))
 
-;; @todo - This should go into semantic-sort.el
 ;;;###autoload
 (defun semanticdb-typecache-merge-streams (cache1 cache2)
   "Merge into CACHE1 and CACHE2 together.  The Caches will be merged in place."
@@ -234,8 +235,7 @@ Adds a filename if the tags are not in a buffer."
 		(setcar ans next)
 		)
 	       (t
-		;; @todo - comment out this debug statement.
-					;(message "Don't know how to merge %s.  Keeping first entry." (semantic-tag-name next))
+		;;(message "Don't know how to merge %s.  Keeping first entry." (semantic-tag-name next))
 		))
 	    ;; Not same class... but same name
 					;(message "Same name, different type: %s, %s!=%s"
