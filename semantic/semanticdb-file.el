@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.29 2008/03/18 17:43:45 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.30 2008/03/24 13:25:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,8 +28,9 @@
 ;; A set of semanticdb classes for persistently saving caches on disk.
 ;;
 
-(require 'semanticdb)
 (require 'inversion)
+(require 'semantic)
+(require 'semanticdb)
 (require 'cedet-files)
 
 (defvar semanticdb-file-version semantic-version

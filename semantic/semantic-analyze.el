@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.69 2008/03/17 02:24:01 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.70 2008/03/24 13:25:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -70,6 +70,7 @@
 (require 'inversion)
 (eval-and-compile
   (inversion-require 'eieio "1.0"))
+(require 'semantic)
 (require 'semantic-format)
 (require 'semantic-ctxt)
 (require 'semantic-sort)
@@ -246,7 +247,6 @@ are found in SEQUENCE."
 	(fname nil)
 	)
     ;; First order check.  Is this wholely contained in the typecache?
-    ;; @TODO - EXPERIMENTAL - do we loose anything?
     (setq tmp (semanticdb-typecache-find sequence))
 
     (if tmp
