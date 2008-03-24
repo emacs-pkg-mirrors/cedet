@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.23 2008/03/23 14:19:13 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.24 2008/03/24 13:27:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -558,9 +558,6 @@ Used by the decoration style: `semantic-decoration-on-protected-members'."
 Use a primary decoration."
   (semantic-set-tag-face
    tag 'semantic-decoration-on-protected-members-face))
-
-;; Bring in some more decorations.
-(require 'semantic-decorate-include)
 
 (provide 'semantic-decorate-mode)
 
