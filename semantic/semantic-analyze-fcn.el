@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.9 2008/03/20 15:00:24 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.10 2008/03/24 13:25:29 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -258,6 +258,8 @@ databases which have this type as a property."
 	;; a part of this class.
 	
 	;; @TODO - is this line needed??  Try w/out for a while
+	;; @note - I think C++ says no.  elisp might, but methods
+	;;         look like defuns, so it makes no difference.
 	(extmeth nil) ; (semantic-tag-external-member-children type t))
 
 	;; INHERITED are tags found in classes that our TYPE tag
