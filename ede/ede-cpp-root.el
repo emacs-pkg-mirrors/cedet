@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.8 2008/03/22 19:19:58 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.9 2008/03/25 01:26:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -127,8 +127,6 @@
 ;; 	      :class-sym 'ede-cpp-root)
 ;; 	     t)
 ;; 
-
-;; @todo - Do not show up in main list.
 
 (require 'ede)
 
