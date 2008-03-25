@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.7 2008/03/18 17:46:20 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.8 2008/03/25 01:29:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -105,7 +105,11 @@
 
 	(goto-char p)
 	
-	(let ((acomp  (semantic-analyze-possible-completions nil)))
+	(let* ((ctxt (semantic-analyze-current-context))
+	       (acomp
+		(condition-case nil
+		    (semantic-analyze-possible-completions ctxt)
+		  (error nil))))
 	  (setq actual (mapcar 'semantic-tag-name acomp)))
 	
 	(goto-char a)
