@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.10 2008/03/24 23:00:47 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.11 2008/03/25 01:10:40 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -196,21 +196,20 @@ are from nesting data types."
 	;; an analyze that stack of tags.
 	(when (and pparent (semantic-tag-with-position-p pparent))
 	  (semantic-go-to-tag pparent)
-	  (setq stack (reverse (semantic-find-tag-by-overlay (point))))
-	  ;; Add things to STACK until we cease finding tags of class type.
-	  (while (and stack (eq (semantic-tag-class (car stack)) 'type))
-	    (if (string= (semantic-tag-type (car stack)) "namespace")
-		;; If (car stack) is a namespace, we need to get the merged
-		;; version from the typecache.
-		(let ((tc (semanticdb-typecache-find
-			   (semantic-tag-name (car stack)))))
-		  (if tc
-		      (setq returnlist (cons tc returnlist))
-		    (setq returnlist (car stack))))
-	      ;; Otherwise, just add this to the returnlist.
-	      (setq returnlist (cons (car stack) returnlist)))
-	    (setq stack (cdr stack))
-	    ))
+	  (setq stack (semantic-find-tag-by-overlay (point)))
+	  ;; Step one, find the merged version of stack in the typecache.
+	  (let ((tc (semanticdb-typecache-find
+		     (mapcar 'semantic-tag-name stack))))
+	    (if tc
+		(setq returnlist (list tc))
+	      ;; Else, just use these tags right here.
+	      (setq stack (reverse stack))
+	      ;; Add things to STACK until we cease finding tags of class type.
+	      (while (and stack (eq (semantic-tag-class (car stack)) 'type))
+		;; Otherwise, just add this to the returnlist.
+		(setq returnlist (cons (car stack) returnlist))
+		(setq stack (cdr stack)))))
+	  )
 	(setq returnlist (nreverse returnlist))
 	;; Step 2:
 	;;   If the function tag itself has a "parent" by name, then that
