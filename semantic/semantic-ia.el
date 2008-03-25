@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.20 2008/03/04 12:12:24 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.21 2008/03/25 01:29:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -75,7 +75,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
     ;; Complete this symbol.
     (if (null syms)
 	(progn
-	  (message "No smart completions found.  Trying senator-complete-symbol.")
+	  ;(message "No smart completions found.  Trying senator-complete-symbol.")
 	  (if (semantic-analyze-context-p a)
 	      (senator-complete-symbol)
 	      ))
@@ -257,7 +257,7 @@ origin of the code at point."
 
 ;;;###autoload
 (defun semantic-ia-describe-class (typename)
-  "Display as all known parts for the datatype TYPENAME.
+  "Display all known parts for the datatype TYPENAME.
 If the type in question is a class, all methods and other accessible
 parts of the parent classes are displayed."
   ;; @todo - use a fancy completing reader.
