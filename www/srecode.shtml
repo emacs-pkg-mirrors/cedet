@@ -37,10 +37,12 @@
   create an object system via UML and then write it out into most
   languages that have SRecode template support.
 
-<p>SRecode is currently only available via CEDET/CVS and is not yet in
-  releasable form.  SRecode is is slowly becoming more useful, and the
-  SReocde minor mode makes it easy to use SRecode templates in a
-  simple way.  If you want to use SRecode for an application, be sure
+<p>SRecode is currently only available via CEDET/CVS and will be part
+  of CEDET 1.0pre5 when that is made availab.  SRecode is already
+  powerful enough to build compilable C, ELisp, and Texi programs from
+  a simple list of Semantic tags with no other user interaction.
+
+  If you want to use SRecode for an application, be sure
   to susbscribe to the cedet-devel mailing list to get help when the
   info manual doesn't answer your questions.
 
