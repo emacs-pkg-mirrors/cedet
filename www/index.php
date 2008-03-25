@@ -70,6 +70,7 @@
      <li>inversion - Package level versioning system.
      <li>ezimage - Simple way to declare and display images in all
        versions of Emacs.
+     <li>pulse - Fancy overlay color pulsing.
      <li>pprint - Pretty printer for Emacs Lisp values.
    </ul>
 </p>
@@ -101,18 +102,6 @@
 <?php
   include ("download.php")
 ?>
-</p>
-
-<table width=100% class=BAR><tr><td>
-<h3>Tools In Progress:</h3>
-</td></tr></table>
-
-<P><a href="srecode.shtml"><b>The Semantic Recoder</b></a><br>
-  SReocde is a Template manager and code writing system.
-  It takes managing large sets of complex templates to a new level of
-  sophistication.  With templates based loosely on Google ctemplate, and
-  the power of the Semantic tag system to provide values for the macros,
-  SRecode can write complex code for any language.
 </p>
 
 <table width=100% class=BAR><tr><td>
