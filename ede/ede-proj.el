@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.51 2008/02/19 03:19:46 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.52 2008/03/25 01:26:58 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -367,8 +367,9 @@ Argument TARGET is the project we are completing customization on."
     ;; Add it to the project object
     ;;(oset this targets (cons ot (oref this targets)))
     ;; New form: Add to the end using fancy eieio function.
-    ;; @todo - Some targets probably want to be in the front.
-    ;;         How to do that?
+    ;; @todone - Some targets probably want to be in the front.
+    ;;           How to do that?
+    ;; @ans - See elisp autoloads for answer
     (object-add-to-list this 'targets ot t)
     ;; And save
     (ede-proj-save this)))
