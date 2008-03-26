@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.64 2008/03/22 19:55:52 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.65 2008/03/26 02:37:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -306,6 +306,32 @@ Go to the next line."
   semantic-lex-ignore-comments
   semantic-lex-punctuation
   semantic-lex-default-action)
+
+(define-mode-local-override semantic-parse-region c-mode 
+  (start end &optional nonterminal depth returnonerror)
+  "Calls 'semantic-parse-region-default', except in a macro expansion.
+MACRO expansion mode is handled through the nature of Emacs's non-lexical
+binding of variables.
+START, END, NONTERMINAL, DEPTH, and RETURNONERRORS are the same
+as for the parent."
+  (if (and (/= start 1) (/= end (point-max)))
+      (let* ((last-lexical-token lse)
+	     (macroexpand (stringp (car (cdr last-lexical-token)))))
+	(if macroexpand
+	    ;; It is a macro expansion.  Do something special.
+	    ;; @todo - implement something smart, like creating a
+	    ;;      new buffer, inserting the text, and parsing that.
+	    (message "%S %S, %S : %S" start end nonterminal lse)
+	  ;; Not a macro expansion.  the old thing.
+	  (semantic-parse-region-default start end 
+					 nonterminal depth
+					 returnonerror)
+	  ))
+    ;; Else, do the old thing.
+    (semantic-parse-region-default start end nonterminal
+				   depth returnonerror)
+    ))
+
 
 (defun semantic-expand-c-tag (tag)
   "Expand TAG into a list of equivalent tags, or nil."
