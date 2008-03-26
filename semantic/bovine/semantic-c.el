@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.65 2008/03/26 02:37:50 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.66 2008/03/26 21:30:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -314,7 +314,7 @@ MACRO expansion mode is handled through the nature of Emacs's non-lexical
 binding of variables.
 START, END, NONTERMINAL, DEPTH, and RETURNONERRORS are the same
 as for the parent."
-  (if (and (/= start 1) (/= end (point-max)))
+  (if (and (boundp 'lse) (or (/= start 1) (/= end (point-max))))
       (let* ((last-lexical-token lse)
 	     (macroexpand (stringp (car (cdr last-lexical-token)))))
 	(if macroexpand
