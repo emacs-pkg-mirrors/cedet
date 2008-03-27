@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.9 2008/03/05 04:20:13 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.10 2008/03/27 03:00:02 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -220,10 +220,10 @@ Optional argument RESET forces a reset of the current map."
   (let ((start (current-time))
 	(p (srecode-get-maps t)) ;; Time the reset.
 	(end (current-time))
-	(ab (semantic-adebug-new-buffer "*SRECUDE ADEBUG*"))
+	(ab (data-debug-new-buffer "*SRECUDE ADEBUG*"))
 	)
     
-    (semantic-adebug-insert-stuff-list p "*")))
+    (data-debug-insert-stuff-list p "*")))
 
 (defun srecode-maps-dump-file-list (flist)
   "Dump a file list FLIST to `standard-output'."
