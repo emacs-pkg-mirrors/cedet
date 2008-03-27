@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.9 2008/03/16 19:45:39 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.10 2008/03/27 02:56:42 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -433,10 +433,9 @@ the mru bookmark stack."
 Useful for debugging mrub problems."
   (interactive)
   (let* ((out semantic-mru-bookmark-ring)
-	 (ab (semantic-adebug-new-buffer "*TAG RING ADEBUG*"))
+	 (ab (data-debug-new-buffer "*TAG RING ADEBUG*"))
 	 )
-
-    (semantic-adebug-insert-object-fields out "]")
+    (data-debug-insert-object-fields out "]")
     ))
 
 
