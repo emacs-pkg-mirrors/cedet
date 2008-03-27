@@ -1,10 +1,10 @@
 ;;; semanticdb-ebrowse.el --- Semanticdb backend using ebrowse.
 
-;;; Copyright (C) 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.17 2007/08/23 02:47:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.18 2008/03/27 02:52:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -658,8 +658,8 @@ run the test again..")
 	(ab nil))
     (while db
       (when (semanticdb-project-database-ebrowse-p (car db))
-	(setq ab (semantic-adebug-new-buffer "*EBROWSE Database*"))
-	(semantic-adebug-insert-thing (car db) "*" "")
+	(setq ab (data-debug-new-buffer "*EBROWSE Database*"))
+	(data-debug-insert-thing (car db) "*" "")
 	(setq db nil)
 	)
       (setq db (cdr db)))))
