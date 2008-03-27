@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.14 2008/03/24 11:24:55 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.15 2008/03/27 01:16:30 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -471,6 +471,44 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
     )
   )
 
+;;; String
+(defun semantic-adebug-insert-string (thing prefix prebuttontext)
+  "Insert one symbol THING.
+A Symbol is a simple thing, but this provides some face and prefix rules.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the thing."
+  (insert prefix prebuttontext)
+  (let ((start (point))
+	(end nil))
+    (insert (format "\"%s\"" thing))
+    (setq end (point))
+    (insert "\n" )
+    (put-text-property start end 'face font-lock-string-face)
+    ))
+
+;;; Symbol
+(defun semantic-adebug-insert-symbol (thing prefix prebuttontext)
+  "Insert one symbol THING.
+A Symbol is a simple thing, but this provides some face and prefix rules.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the thing."
+  (cond ((fboundp thing)
+	 (semantic-adebug-insert-simple-thing
+	  thing prefix (concat prebuttontext "#'")
+	  'font-lock-function-name-face)
+	 )
+	((boundp thing)
+	 (semantic-adebug-insert-simple-thing
+	  thing prefix (concat prebuttontext "'")
+	  'font-lock-variable-name-face))
+	(t
+	 (semantic-adebug-insert-simple-thing
+	  thing prefix (concat prebuttontext "'")
+	  nil)
+	 )
+	)
+  )
+
 ;;; simple thing
 (defun semantic-adebug-insert-simple-thing (thing prefix prebuttontext face)
   "Insert one simple THING with a face.
@@ -486,80 +524,79 @@ FACE is the face to use."
     (put-text-property start end 'face face)
     ))
 
+;;; simple thing
+(defun semantic-adebug-insert-custom (thingstring prefix prebuttontext face)
+  "Insert one simple THINGSTRING with a face.
+Use for simple items that need a custom insert.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the thing.
+FACE is the face to use."
+  (insert prefix prebuttontext)
+  (let ((start (point))
+	(end nil))
+    (insert thingstring)
+    (setq end (point))
+    (insert "\n" )
+    (put-text-property start end 'face face)
+    ))
+
+
+(defvar semantic-adebug-thing-alist
+  '(
+    ;; eieio object
+    ((lambda (thing) (object-p thing)) . semantic-adebug-insert-object-button)
+
+    ;; tag
+    (semantic-tag-p . semantic-adebug-insert-tag)
+
+    ;; taglist
+    ((lambda (thing) (and (listp thing) (semantic-tag-p (car thing)))) .
+     semantic-adebug-insert-tag-list-button)
+
+    ;; find results
+    (semanticdb-find-results-p . semantic-adebug-insert-find-results-button)
+   
+    ;; Overlay
+    (semantic-overlay-p . semantic-adebug-insert-overlay-button)
+
+    ;; overlay list
+    ((lambda (thing) (and (listp thing) (semantic-overlay-p (car thing)))) .
+     semantic-adebug-insert-overlay-list-button)
+
+    ;; String
+    (stringp . semantic-adebug-insert-string)
+
+    ;; Symbol
+    (symbolp . semantic-adebug-insert-symbol)
+
+    ;; Ring
+    (ring-p . semantic-adebug-insert-ring-button)
+
+    ;; List of stuff
+    (listp . semantic-adebug-insert-stuff-list-button)
+    )
+  "Alist of methods used to insert things into an ADebug buffer.")
+
 ;; uber insert method
 (defun semantic-adebug-insert-thing (thing prefix prebuttontext &optional parent)
   "Insert THING with PREFIX.
 PREBUTTONTEXT is some text to insert between prefix and the thing
 that is not included in the indentation calculation of any children.
 If PARENT is non-nil, it is somehow related as a parent to thing."
-  (cond
-   ;; eieio object
-   ((object-p thing)
-    (semantic-adebug-insert-object-button
-     thing prefix prebuttontext))
-
-   ;; tag
-   ((semantic-tag-p thing)
-    (semantic-adebug-insert-tag
-     thing prefix prebuttontext parent))
-
-   ;; taglist
-   ((and (listp thing) (semantic-tag-p (car thing)))
-    (semantic-adebug-insert-tag-list-button
-     thing prefix prebuttontext parent))
-
-   ;; find results
-   ((semanticdb-find-results-p thing)
-    (semantic-adebug-insert-find-results-button
-     thing prefix prebuttontext))
-   
-   ;; Overlay
-   ((semantic-overlay-p thing)
-    (semantic-adebug-insert-overlay-button thing prefix prebuttontext)
-    )
-   ((and (listp thing) (semantic-overlay-p (car thing)))
-    (semantic-adebug-insert-overlay-list-button thing prefix prebuttontext)
-    )
-
-   ;; String
-   ((stringp thing)
-    (semantic-adebug-insert-simple-thing thing prefix prebuttontext
-					 'font-lock-string-face)
-    )
-
-   ;; Symbol
-   ((symbolp thing)
-    (cond ((fboundp thing)
-	   (semantic-adebug-insert-simple-thing
-	    thing prefix (concat prebuttontext "#'")
-	    'font-lock-function-name-face)
-	   )
-	  ((boundp thing)
-	   (semantic-adebug-insert-simple-thing
-	    thing prefix (concat prebuttontext "'")
-	    'font-lock-variable-name-face))
-	  (t
-	   (semantic-adebug-insert-simple-thing
-	    thing prefix (concat prebuttontext "'")
-	    nil)
-	   )
-	  ))
-
-   ;; Ring
-   ((ring-p thing)
-    (semantic-adebug-insert-ring-button thing prefix prebuttontext))
-
-   ;; List of stuff
-   ((listp thing)
-    (semantic-adebug-insert-stuff-list-button thing prefix prebuttontext))
-
-   (t
+  (when (catch 'done
+	  (dolist (test semantic-adebug-thing-alist)
+	    (when (funcall (car test) thing)
+	      (condition-case nil
+		  (funcall (cdr test) thing prefix prebuttontext parent)
+		(error
+		 (funcall (cdr test) thing prefix prebuttontext)))
+	      (throw 'done nil))
+	    )
+	  nil)
     (semantic-adebug-insert-simple-thing (format "%S" thing)
 					 prefix
 					 prebuttontext
-					 'bold))
-   )
-  )
+					 'bold)))
 
 ;;; MAJOR MODE
 ;;
