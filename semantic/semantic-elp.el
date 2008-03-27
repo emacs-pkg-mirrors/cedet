@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.6 2008/02/12 01:29:50 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.7 2008/03/27 02:55:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -335,7 +335,7 @@ Recorded outside of ELP.")
 (defun semantic-elp-goto-function (point)
   "Goto the function from the ELP data.
 Argument POINT is where to get the data from."
-  (let* ((data (get-text-property point 'adebug))
+  (let* ((data (get-text-property point 'ddebug))
 	 )
     (find-function (intern-soft (aref data 3)))
     ))
@@ -346,44 +346,44 @@ Argument POINT is where to get the data from."
   (let* ((elpd (oref data sorted))
 	 (spaces (make-string (- (length prefix) 2) ? ))
 	 )
-    (semantic-adebug-insert-simple-thing 
+    (data-debug-insert-simple-thing 
      "Calls\t Total Time\t Avg Time/Call\tName"
      spaces " " 'underline)
     (dolist (d elpd)
       (when (> (aref d 0) 0) ;; We had some calls
 	(let ((start (point))
 	      (end nil))
-	  (semantic-adebug-insert-simple-thing 
+	  (data-debug-insert-simple-thing 
 	   (format " % 4d\t% 2.7f\t% 2.7f\t%s"
 		   (aref d 0) (aref d 1) (aref d 2) (aref d 3))
 	   spaces " " nil)
 	  (setq end (1- (point)))
-	  (put-text-property start end 'adebug d)
-	  (put-text-property start end 'adebug-noexpand t)
-	  (put-text-property start end 'adebug-function
+	  (put-text-property start end 'ddebug d)
+	  (put-text-property start end 'ddebug-noexpand t)
+	  (put-text-property start end 'ddebug-function
 			     'semantic-elp-goto-function)
 	  )
 	))
     )
   )
 
-(defmethod semantic-adebug/eieio-insert-fields ((data semantic-elp-data)
-						prefix)
+(defmethod data-debug/eieio-insert-fields ((data semantic-elp-data)
+					   prefix)
   "Show the fields of ELP data in an adebug buffer.
 Ignore the usual, and format a nice table."
-  (semantic-adebug-insert-thing (object-name-string data)
-				prefix
-				"Name: ")
+  (data-debug-insert-thing (object-name-string data)
+			   prefix
+			   "Name: ")
   (let* ((cl (object-class data))
 	 (cv (class-v cl)))
-    (semantic-adebug-insert-thing (class-constructor cl)
-				  prefix
-				  "Class: ")
+    (data-debug-insert-thing (class-constructor cl)
+			     prefix
+			     "Class: ")
     )
 
-  (semantic-adebug-insert-thing (oref data :total)
-				prefix
-				"Total Time Spent: ")
+  (data-debug-insert-thing (oref data :total)
+			   prefix
+			   "Total Time Spent: ")
   
   (let ((s (oref data sort))
 	)
@@ -393,12 +393,12 @@ Ignore the usual, and format a nice table."
 	  )
       (insert prefix "Sort Method: " (symbol-name s))
       (setq end (point))
-      ;; (semantic-adebug-insert-thing s prefix "Sort Method: ")
-      (put-text-property start end 'adebug data)
-      (put-text-property start end 'adebug-noexpand t)
-      (put-text-property start end 'adebug-indent(length prefix))
-      (put-text-property start end 'adebug-prefix prefix)
-      (put-text-property start end 'adebug-function
+      ;; (data-debug-insert-thing s prefix "Sort Method: ")
+      (put-text-property start end 'ddebug data)
+      (put-text-property start end 'ddebug-noexpand t)
+      (put-text-property start end 'ddebug-indent(length prefix))
+      (put-text-property start end 'ddebug-prefix prefix)
+      (put-text-property start end 'ddebug-function
 			 'semantic-elp-change-sort-adebug)
       (put-text-property start end 'help-echo
 			 "Change the Sort by selecting twice.")
@@ -414,11 +414,11 @@ Ignore the usual, and format a nice table."
 (defun semantic-elp-change-sort-adebug (point)
   "Change the sort function here.  Redisplay.
 Argument POINT is where the text is."
-  (let* ((data (get-text-property point 'adebug))
-	 (prefix (get-text-property point 'adebug-prefix))
+  (let* ((data (get-text-property point 'ddebug))
+	 (prefix (get-text-property point 'ddebug-prefix))
 	 )
     ;; Get rid of the old table.
-    (semantic-adebug-contract-current-line)
+    (data-debug-contract-current-line)
     ;; Change it
     (semantic-elp-change-sort data 'rotate)
     (end-of-line)
@@ -572,7 +572,7 @@ Argument NAME is the name to give the ELP data object."
 		   :ctxttime	   ctxttime
 		   :completiontime completiontime
 		   )))
-      (semantic-adebug-show elpobj)
+      (data-debug-show elpobj)
       (setq semantic-elp-last-run elpobj)
       (let ((saveas (read-file-name "Save Profile to: " (expand-file-name "~/")
 				    "semantic.elp" nil "semantic.elp")))
@@ -586,7 +586,7 @@ Argument NAME is the name to give the ELP data object."
   (interactive)
   (when (not semantic-elp-last-run)
     (error "No last run to show"))
-  (semantic-adebug-show semantic-elp-last-run))
+  (data-debug-show semantic-elp-last-run))
 
 ;;;###autoload
 (defun semantic-elp-load-old-run (file)
@@ -594,7 +594,7 @@ Argument NAME is the name to give the ELP data object."
   (interactive "fLast Run File: ")
   (setq semantic-elp-last-run
 	(eieio-persistent-read file))
-  (semantic-adebug-show semantic-elp-last-run))
+  (data-debug-show semantic-elp-last-run))
 
 (provide 'semantic-elp)
 ;;; semantic-elp.el ends here
