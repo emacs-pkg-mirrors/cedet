@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.11 2008/03/25 01:10:40 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.12 2008/03/27 02:57:09 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -357,7 +357,7 @@ The class returned from the scope calculation is variable
 	(semanticdb-typecache-add-dependant scopecache)
 	;; Handy debug output.
 	(when (interactive-p)
-	  (semantic-adebug-show scopecache)
+	  (data-debug-show scopecache)
 	  )
 	;; Return ourselves
 	scopecache))))
