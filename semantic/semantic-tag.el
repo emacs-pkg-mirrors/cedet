@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.52 2008/02/24 01:36:46 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.53 2008/03/27 02:57:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -310,6 +310,7 @@ If TAG is unlinked, but has a :filename property, then that is used."
 
 ;;; Tag tests and comparisons.
 ;;
+;;;###autoload
 (defsubst semantic-tag-p (tag)
   "Return non-nil if TAG is most likely a semantic tag."
   (condition-case nil
