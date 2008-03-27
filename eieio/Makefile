@@ -10,12 +10,12 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH=../common/ ../speedbar/ 
+LOADPATH= ../common/  ../speedbar/
 LOADDEFS=eieio-loaddefs.el
 LOADDIRS=.
 init_LISP=eieio-load.el
 EMACS=emacs
-eieio_LISP=eieio.el eieio-comp.el eieio-opt.el eieio-custom.el eieio-doc.el eieio-base.el
+eieio_LISP=eieio.el eieio-comp.el eieio-opt.el eieio-custom.el eieio-doc.el eieio-base.el eieio-datadebug.el
 examples_LISP=tree.el call-tree.el chart.el eieio-speedbar.el linemark.el lmcompile.el
 eieio_info_TEXINFOS=eieio.texi
 MAKEINFO=makeinfo
