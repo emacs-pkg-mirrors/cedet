@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.60 2008/03/23 20:05:16 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.61 2008/03/27 02:53:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -641,16 +641,16 @@ See `semanticdb-find-default-throttle' and `semanticdb-project-roots'
 for details on how this list is derived."
   (interactive "P")
   (semantic-fetch-tags)
-  (require 'semantic-adebug)
+  (require 'data-debug)
   (let ((start (current-time))
 	(p (semanticdb-find-translate-path nil arg))
 	(end (current-time))
-	(ab (semantic-adebug-new-buffer "*SEMANTICDB FTP ADEBUG*"))
+	(ab (data-debug-new-buffer "*SEMANTICDB FTP ADEBUG*"))
 	)
     (message "Search of tags took %.2f seconds."
 	     (semantic-elapsed-time start end))
     
-    (semantic-adebug-insert-stuff-list p "*")))
+    (data-debug-insert-stuff-list p "*")))
 
 (defun semanticdb-find-test-translate-path-no-loading (&optional arg)
   "Call and output results of `semanticdb-find-translate-path'.
@@ -659,7 +659,7 @@ See `semanticdb-find-default-throttle' and `semanticdb-project-roots'
 for details on how this list is derived."
   (interactive "P")
   (semantic-fetch-tags)
-  (require 'semantic-adebug)
+  (require 'data-debug)
   (let* ((semanticdb-find-default-throttle
 	  (if (featurep 'semanticdb-find)
 	      (remq 'unloaded semanticdb-find-default-throttle)
@@ -667,18 +667,18 @@ for details on how this list is derived."
 	 (start (current-time))
 	 (p (semanticdb-find-translate-path nil arg))
 	 (end (current-time))
-	 (ab (semantic-adebug-new-buffer "*SEMANTICDB FTP ADEBUG*"))
+	 (ab (data-debug-new-buffer "*SEMANTICDB FTP ADEBUG*"))
 	 )
     (message "Search of tags took %.2f seconds."
 	     (semantic-elapsed-time start end))
     
-    (semantic-adebug-insert-stuff-list p "*")))
+    (data-debug-insert-stuff-list p "*")))
 
 (defun semanticdb-find-adebug-lost-includes ()
   "Translate the current path, then display the lost includes.
 Examines the variable `semanticdb-find-lost-includes'."
   (interactive)
-  (require 'semantic-adebug)
+  (require 'data-debug)
   (let ((p (semanticdb-find-translate-path nil nil))
 	(lost semanticdb-find-lost-includes)
 	ab)
@@ -687,8 +687,8 @@ Examines the variable `semanticdb-find-lost-includes'."
 	(message "There are no unknown includes for %s"
 		 (buffer-name))
     
-      (setq ab (semantic-adebug-new-buffer "*SEMANTICDB lost-includes ADEBUG*"))
-      (semantic-adebug-insert-tag-list lost "*")
+      (setq ab (data-debug-new-buffer "*SEMANTICDB lost-includes ADEBUG*"))
+      (data-debug-insert-tag-list lost "*")
       )))
   
 
