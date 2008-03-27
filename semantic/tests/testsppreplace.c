@@ -34,3 +34,8 @@ INT_FCN(increment) {
   return in+1;
 }
 #endif
+
+// TEST: for bad macro.
+#define BAD(a) struct a { }
+
+BAD(moose);
