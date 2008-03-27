@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.27 2008/03/24 13:26:24 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.28 2008/03/27 02:53:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -430,13 +430,13 @@ found tag to be loaded."
 		  (semanticdb-typecache-file-tags tab)
 		  (semanticdb-typecache-include-tags tab)))
 	 (end (current-time))
-	 (ab (semantic-adebug-new-buffer "*TypeCache ADEBUG*"))
+	 (ab (data-debug-new-buffer "*TypeCache ADEBUG*"))
 	 )
     
     (message "Calculating Cache took %.2f seconds."
 	     (semantic-elapsed-time start end))
 
-    (semantic-adebug-insert-thing tc "]" "")
+    (data-debug-insert-thing tc "]" "")
 
     ))
 
