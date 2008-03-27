@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.156 2008/02/14 16:20:36 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.157 2008/03/27 02:45:38 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0"
   "Current version of EIEIO.")
@@ -206,6 +206,7 @@ robust."
        (eq (aref (class-v ,class) 0) 'defclass)
      (error nil)))
 
+;;;###autoload
 (defmacro object-p (obj) "Return t if OBJ is an object vector."
   `(condition-case nil
        (let ((tobj ,obj))
