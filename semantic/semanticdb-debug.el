@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-debug.el,v 1.3 2008/03/18 17:42:56 zappo Exp $
+;; X-RCS: $Id: semanticdb-debug.el,v 1.4 2008/03/27 02:51:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -33,10 +33,10 @@
 (defun semanticdb-dump-all-table-summary ()
   "Dump a list of all databases in Emacs memory."
   (interactive)
-  (require 'semantic-adebug)
-  (let ((ab (semantic-adebug-new-buffer "*SEMANTICDB*"))
+  (require 'data-debug)
+  (let ((ab (data-debug-new-buffer "*SEMANTICDB*"))
 	(db semanticdb-database-list))
-    (semantic-adebug-insert-stuff-list db "*")))
+    (data-debug-insert-stuff-list db "*")))
 
 ;;;###autoload
 (defalias 'semanticdb-adebug-database-list 'semanticdb-dump-all-table-summary)
@@ -45,41 +45,41 @@
 (defun semanticdb-adebug-current-database ()
   "Run ADEBUG on the current database."
   (interactive)
-  (require 'semantic-adebug)
+  (require 'data-debug)
   (let ((start (current-time))
 	(p semanticdb-current-database)
 	(end (current-time))
-	(ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
+	(ab (data-debug-new-buffer "*SEMANTICDB ADEBUG*"))
 	)
     
-    (semantic-adebug-insert-stuff-list p "*")))
+    (data-debug-insert-stuff-list p "*")))
 
 ;;;###autoload
 (defun semanticdb-adebug-current-table ()
   "Run ADEBUG on the current database."
   (interactive)
-  (require 'semantic-adebug)
+  (require 'data-debug)
   (let ((start (current-time))
 	(p semanticdb-current-table)
 	(end (current-time))
-	(ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
+	(ab (data-debug-new-buffer "*SEMANTICDB ADEBUG*"))
 	)
     
-    (semantic-adebug-insert-stuff-list p "*")))
+    (data-debug-insert-stuff-list p "*")))
 
 
 ;;;###autoload
 (defun semanticdb-adebug-project-database-list ()
   "Run ADEBUG on the current database."
   (interactive)
-  (require 'semantic-adebug)
+  (require 'data-debug)
   (let ((start (current-time))
 	(p (semanticdb-current-database-list))
 	(end (current-time))
-	(ab (semantic-adebug-new-buffer "*SEMANTICDB ADEBUG*"))
+	(ab (data-debug-new-buffer "*SEMANTICDB ADEBUG*"))
 	)
     
-    (semantic-adebug-insert-stuff-list p "*")))
+    (data-debug-insert-stuff-list p "*")))
 
 
 
