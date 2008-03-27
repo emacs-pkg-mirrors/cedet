@@ -1,10 +1,10 @@
 ;;; semantic-cb.el --- Manage and maintain a Class Browser database
 
-;;; Copyright (C) 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.20 2007/08/22 14:04:59 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.21 2008/03/27 02:50:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,7 +41,7 @@
 (require 'semantic-sort)
 (require 'eieio-speedbar)
 (require 'eieio-base)
-(require 'semantic-adebug)
+(require 'data-debug)
 
 ;;; Code:
 (defclass semantic-cb-project ()
@@ -330,8 +330,8 @@ With universla argument CLEAR, reset the current browser project."
 	 (end  (current-time)))
     (message "Retrieving CLASS BROWSER data took %.2f seconds."
 	     (semantic-elapsed-time start end))
-    (setq ab (semantic-adebug-new-buffer "*CLASS BROWSER ADEBUG*"))
-    (semantic-adebug-insert-thing cb "@" "")
+    (setq ab (data-debug-new-buffer "*CLASS BROWSER ADEBUG*"))
+    (data-debug-insert-thing cb "@" "")
     ))
 
 
