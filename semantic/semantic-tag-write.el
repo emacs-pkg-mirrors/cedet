@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-tag-write.el,v 1.1 2008/03/28 17:55:36 zappo Exp $
+;; X-RCS: $Id: semantic-tag-write.el,v 1.2 2008/03/29 15:32:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -151,7 +151,7 @@ Items that are long lists of tags may need their own line."
       (if (= (aref str 0) ?#)
 	  (progn
 	    (princ "nil")
-	    (messagae "Warning: Value %s not writable in tag." str))
+	    (message "Warning: Value %s not writable in tag." str))
 	(princ str)))))
   )
 ;;; EIEIO USAGE
