@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.105 2008/03/22 04:40:51 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.106 2008/03/29 15:30:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,6 +101,7 @@ Sometimes it is important for a program to know if a given table has the
 same major mode as the current buffer.")
    (tags :initarg :tags
 	 :accessor semanticdb-get-tags
+	 :printer semantic-tag-write-list-slot-value
 	 :documentation "The tags belonging to this table.")
    (index :type semanticdb-abstract-search-index
 	  :documentation "The search index.
@@ -461,6 +462,16 @@ form."
   (mapc 'semanticdb-save-db semanticdb-database-list)
   (message "Saving tag summaries...done"))
 
+(defun semanticdb-save-all-db-idle ()
+  "Save all semantic tag databases from idle time.
+Exit the save between databases if there is user input."
+  (message "Saving tag summaries...")
+  (semantic-exit-on-input 'semanticdb-idle-save
+      (mapc (lambda (db)
+	      (semantic-throw-on-input 'semanticdb-idle-save)
+	      (semanticdb-save-db db))
+	    semanticdb-database-list))
+  (message "Saving tag summaries...done"))
 
 ;;; Directory Project support
 ;;
@@ -800,6 +811,7 @@ Save all the databases."
     (semanticdb-kill-hook kill-buffer-hook)
     (semanticdb-kill-hook change-major-mode-hook) ;; Not really a kill, but we need the same effect.
     (semanticdb-kill-emacs-hook kill-emacs-hook)
+    (semanticdb-save-all-db-idle auto-save-hook)
     )
   "List of hooks and values to add/remove when configuring semanticdb.")
 
