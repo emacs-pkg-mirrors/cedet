@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.70 2008/03/24 13:25:10 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.71 2008/03/29 15:29:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -389,7 +389,10 @@ When overriding this function, your override will be called while
 cursor is at POSITION.  In addition, your function will not be called
 if a cached copy of the return object is found."
   (interactive "d")
-  (when (interactive-p) (semantic-fetch-tags))
+  ;; Always refresh out tags in a safe way before doing the
+  ;; context.
+  (semantic-refresh-tags-safe)
+  ;; Do the rest of the analysis.
   (if (not position) (setq position (point)))
   (save-excursion
     (goto-char position)
