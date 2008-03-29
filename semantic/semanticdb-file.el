@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.30 2008/03/24 13:25:55 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.31 2008/03/29 15:31:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -242,43 +242,34 @@ Live files are either buffers in Emacs, or files existing on the filesystem."
   "When writing a table, we have to make sure we deoverlay it first.
 Restore the overlays after writting.
 Argument OBJ is the object to write."
-  (if (semanticdb-live-p obj)
-      (let ((b (semanticdb-in-buffer-p obj)))
-	(save-excursion
-	  (if b (progn (set-buffer b)
-		       ;; Try to get an accurate unmatched syntax table.
-		       (when (and (boundp semantic-show-unmatched-syntax-mode)
-				  semantic-show-unmatched-syntax-mode)
-			 ;; Only do this if the user runs unmatched syntax
-			 ;; mode display enties.
-			 (oset obj unmatched-syntax
-			       (semantic-show-unmatched-lex-tokens-fetch))
-			 )
-		       ;; Unlink the cache.  When there are arrors,
-		       ;; reset the master cache.
-		       (condition-case nil
-			   (semantic--tag-unlink-cache-from-buffer)
-			 (error
-			  (condition-case nil
-			      (semantic-clear-toplevel-cache)
-			    (error
-			     (semantic--set-buffer-cache nil)))))
-		       (oset obj pointmax (point-max)))))
-	(call-next-method)
-	(save-excursion
-	  (if b (progn 
-		  (set-buffer b)
-		  (semantic--tag-link-cache-to-buffer)
-		  ;; This will re-decorate our tags.
-		  ;; Don't do this for now, it messes up the dirty thing.
-		  ;;(run-hook-with-args
-		  ;; 'semantic-after-toplevel-cache-change-hook
-		  ;; semantic--buffer-cache)
-		  ))
-	  (oset obj unmatched-syntax nil))
-	;; Clear the dirty bit.
-	(oset obj dirty nil)
-	)))
+  (when (semanticdb-live-p obj)
+    (when (semanticdb-in-buffer-p obj)
+      (save-excursion
+	(set-buffer (semanticdb-in-buffer-p obj))
+
+	;; Make sure all our tag lists are up to date.
+	(semantic-fetch-tags)
+
+	;; Try to get an accurate unmatched syntax table.
+	(when (and (boundp semantic-show-unmatched-syntax-mode)
+		   semantic-show-unmatched-syntax-mode)
+	  ;; Only do this if the user runs unmatched syntax
+	  ;; mode display enties.
+	  (oset obj unmatched-syntax
+		(semantic-show-unmatched-lex-tokens-fetch))
+	  )
+		       
+	;; Make sure pointmax is up to date
+	(oset obj pointmax (point-max))
+	;; @todo - add date of file modification.
+	))
+    
+    ;; Do it!
+    (call-next-method)
+
+    ;; Clear the dirty bit.
+    (oset obj dirty nil)
+    ))
 
 ;;; State queries
 ;;
