@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-complete.el,v 1.5 2008/03/17 02:24:22 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-complete.el,v 1.6 2008/03/29 15:29:58 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -91,7 +91,9 @@ Context type matching can identify the following:
 When called interactively, displays the list of possible completions
 in a buffer."
   (interactive "d")
-  (when (interactive-p) (semantic-fetch-tags))
+  ;; In theory, we don't need the below since the context will
+  ;; do it for us.
+  ;;(semantic-refresh-tags-safe)
   (with-syntax-table semantic-lex-syntax-table
     (let* ((context (if (semantic-analyze-context-child-p context)
                         context
