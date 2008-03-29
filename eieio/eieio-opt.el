@@ -1,9 +1,9 @@
 ;;; eieio-opt.el -- eieio optional functions (debug, printing, speedbar)
 
-;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.26 2005/09/30 20:18:11 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.27 2008/03/29 15:27:27 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -166,6 +166,7 @@ Outputs to the standard output."
 	 (names  (aref cv class-public-a))
 	 (deflt  (aref cv class-public-d))
 	 (types  (aref cv class-public-type))
+	 (publp (aref cv class-public-printer))
 	 (i      0)
 	 (prot   (aref cv class-protection))
 	 )
@@ -182,6 +183,9 @@ Outputs to the standard output."
       (unless (eq (car deflt) eieio-unbound)
 	(princ "    default = ")
 	(prin1 (car deflt)))
+      (when (car publp)
+	(princ "    printer = ")
+	(prin1 (car publp)))
       (when (car docs)
 	(terpri)
 	(princ "  ")
@@ -191,6 +195,7 @@ Outputs to the standard output."
       (setq names (cdr names)
 	    docs (cdr docs)
 	    deflt (cdr deflt)
+	    publp (cdr publp)
 	    prot (cdr prot)
 	    i (1+ i)))
     (setq docs  (aref cv class-class-allocation-doc)
