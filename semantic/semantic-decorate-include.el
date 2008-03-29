@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.4 2008/03/24 14:55:35 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.5 2008/03/29 16:02:18 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -627,7 +627,7 @@ If TABLE is not in a buffer, do nothing."
 	    table 'semantic-decoration-unparsed-include-cache)))
     (semanticdb-cache-remove table c))
 
-  (let ((buf (semanticdb-get-buffer table)))
+  (let ((buf (semanticdb-in-buffer-p table)))
     (when buf
       (semantic-decorate-add-pending-decoration
        'semantic-decoration-unparsed-include-do-reset
