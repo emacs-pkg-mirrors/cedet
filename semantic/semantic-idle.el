@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.40 2008/03/19 14:55:24 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.41 2008/03/29 15:32:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -329,69 +329,70 @@ reparse.
 
 Does nothing if the current buffer doesn't need reparsing."
 
-  ;; These checks actually occur in `semantic-fetch-tags', but if we
-  ;; do them here, then all the bovination hooks are not run, and
-  ;; we save lots of time.
-  (cond
-   ;; If the buffer was previously marked unparseable,
-   ;; then don't waste our time.
-   ((semantic-parse-tree-unparseable-p)
-    nil)
-   ;; The parse tree is already ok.
-   ((semantic-parse-tree-up-to-date-p)
-    t)
-   (t
-    ;; If the buffer might need a reparse and it is safe to do so,
-    ;; give it a try.
-    (let* ((semantic-working-type nil)
-	   (inhibit-quit nil)
-	   (working-use-echo-area-p
-	    (not semantic-idle-scheduler-working-in-modeline-flag))
-	   (working-status-dynamic-type
-	    (if semantic-idle-scheduler-no-working-message
-		nil
-	      working-status-dynamic-type))
-	   (working-status-percentage-type
-	    (if semantic-idle-scheduler-no-working-message
-		nil
-	      working-status-percentage-type))
-	   (lexically-safe t)
-	   )
-      ;; Let people hook into this, but don't let them hose
-      ;; us over!
-      (condition-case nil
-	  (run-hooks 'semantic-before-idle-scheduler-reparse-hooks)
-	(error (setq semantic-before-idle-scheduler-reparse-hooks nil)))
+  (prog1
+      ;; These checks actually occur in `semantic-fetch-tags', but if we
+      ;; do them here, then all the bovination hooks are not run, and
+      ;; we save lots of time.
+      (cond
+       ;; If the buffer was previously marked unparseable,
+       ;; then don't waste our time.
+       ((semantic-parse-tree-unparseable-p)
+	nil)
+       ;; The parse tree is already ok.
+       ((semantic-parse-tree-up-to-date-p)
+	t)
+       (t
+	;; If the buffer might need a reparse and it is safe to do so,
+	;; give it a try.
+	(let* ((semantic-working-type nil)
+	       (inhibit-quit nil)
+	       (working-use-echo-area-p
+		(not semantic-idle-scheduler-working-in-modeline-flag))
+	       (working-status-dynamic-type
+		(if semantic-idle-scheduler-no-working-message
+		    nil
+		  working-status-dynamic-type))
+	       (working-status-percentage-type
+		(if semantic-idle-scheduler-no-working-message
+		    nil
+		  working-status-percentage-type))
+	       (lexically-safe t)
+	       )
+	  ;; Let people hook into this, but don't let them hose
+	  ;; us over!
+	  (condition-case nil
+	      (run-hooks 'semantic-before-idle-scheduler-reparse-hooks)
+	    (error (setq semantic-before-idle-scheduler-reparse-hooks nil)))
 
-      (unwind-protect
-	  ;; Perform the parsing.
-	  (progn
-	    (when semantic-idle-scheduler-verbose-flag
-	      (working-temp-message "IDLE: reparse %s..." (buffer-name)))
-	    (when (semantic-lex-catch-errors idle-scheduler
-		    (save-excursion (semantic-fetch-tags))
-		    nil)
-	      ;; If we are here, it is because the lexical step failed,
-	      ;; proably due to unterminated lists or something like that.
+	  (unwind-protect
+	      ;; Perform the parsing.
+	      (progn
+		(when semantic-idle-scheduler-verbose-flag
+		  (working-temp-message "IDLE: reparse %s..." (buffer-name)))
+		(when (semantic-lex-catch-errors idle-scheduler
+			(save-excursion (semantic-fetch-tags))
+			nil)
+		  ;; If we are here, it is because the lexical step failed,
+		  ;; proably due to unterminated lists or something like that.
 	    
-	      ;; We do nothing, and just wait for the next idle timer
-	      ;; to go off.  In the meantime, remember this, and make sure
-	      ;; no other idle services can get executed.
-	      (setq lexically-safe nil))
-	    (when semantic-idle-scheduler-verbose-flag
-	      (working-temp-message "IDLE: reparse %s...done" (buffer-name))))
-	;; Let people hook into this, but don't let them hose
-	;; us over!
-	(condition-case nil
-	    (run-hooks 'semantic-after-idle-scheduler-reparse-hooks)
-	  (error (setq semantic-after-idle-scheduler-reparse-hooks nil))))
-      ;; Return if we are lexically safe
-      lexically-safe)))
+		  ;; We do nothing, and just wait for the next idle timer
+		  ;; to go off.  In the meantime, remember this, and make sure
+		  ;; no other idle services can get executed.
+		  (setq lexically-safe nil))
+		(when semantic-idle-scheduler-verbose-flag
+		  (working-temp-message "IDLE: reparse %s...done" (buffer-name))))
+	    ;; Let people hook into this, but don't let them hose
+	    ;; us over!
+	    (condition-case nil
+		(run-hooks 'semantic-after-idle-scheduler-reparse-hooks)
+	      (error (setq semantic-after-idle-scheduler-reparse-hooks nil))))
+	  ;; Return if we are lexically safe (from prog1)
+	  lexically-safe)))
   
-  ;; After updating the tags, handle any pending decorations for this
-  ;; buffer.
-  (semantic-decorate-flush-pending-decorations (current-buffer))
-  )
+    ;; After updating the tags, handle any pending decorations for this
+    ;; buffer.
+    (semantic-decorate-flush-pending-decorations (current-buffer))
+    ))
 
 
 ;;; IDLE SERVICES
