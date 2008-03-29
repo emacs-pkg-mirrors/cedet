@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.106 2008/03/29 15:30:43 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.107 2008/03/29 16:01:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -125,6 +125,10 @@ Note: This index will not be saved in a persistent file.")
 This table is the root of tables, and contains the minimum needed
 for a new table not associated with a buffer."
   :abstract t)
+
+(defmethod semanticdb-in-buffer-p ((obj semanticdb-abstract-table))
+  "Return a nil, meaning abstract table OBJ is not in a buffer."
+  nil)
 
 (defmethod semanticdb-get-buffer ((obj semanticdb-abstract-table))
   "Return a buffer associated with OBJ.
