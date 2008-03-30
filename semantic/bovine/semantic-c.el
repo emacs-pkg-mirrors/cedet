@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.66 2008/03/26 21:30:54 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.67 2008/03/30 11:45:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,12 +94,21 @@ definition such as:
 #define MYSYM foo::bar
 
 into a C file, and do this:
-M-x semantic-lex-spp-describe RET
+ M-x semantic-lex-spp-describe RET
 
 The output table will describe the symbols needed."
   :group 'c
   :type '(repeat (cons (string :tag "Keyword")
-		       (string :tag "Replacement")))
+		       (sexp :tag "Replacement")))
+  :set (lambda (sym value)
+	 (set-default sym value)
+	 (setq-mode-local 
+	  c-mode
+	  semantic-lex-spp-macro-symbol-obarray
+	  (semantic-lex-make-spp-table
+	   (append semantic-lex-c-preprocessor-symbol-map-builtin
+		   semantic-lex-c-preprocessor-symbol-map)
+	   )))
   )
 
 ;;; Code:
@@ -542,8 +551,25 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 
 ;;; Override methods & Variables
 ;;
-(defvar-mode-local c-mode semantic-dependency-system-include-path
+(defcustom semantic-c-dependency-system-include-path
   '("/usr/include" "/usr/dt/include" "/usr/X11R6/include")
+  "The system include path used by the C langauge."
+  :group 'c
+  :group 'semantic
+  :type '(repeat (string :tag "Path"))
+  :set (lambda (sym val)
+	 (set-default sym val)
+	 (setq-mode-local c-mode
+			  semantic-dependency-system-include-path
+			  val)
+	 (mode-local-map-mode-buffers
+	  'semantic-decoration-unparsed-include-do-reset
+	  '(c-mode c++-mode))
+	 )
+  )
+
+(defvar-mode-local c-mode semantic-dependency-system-include-path
+  semantic-c-dependency-system-include-path
   "System path to search for include files.")
 
 (defcustom semantic-default-c-path nil
@@ -911,7 +937,9 @@ DO NOT return the list of tags encompassing point."
   (setq-mode-local c-mode
 		   semantic-lex-spp-macro-symbol-obarray
 		   (semantic-lex-make-spp-table
-		    semantic-lex-c-preprocessor-symbol-map)))
+		    (append semantic-lex-c-preprocessor-symbol-map-builtin
+			    semantic-lex-c-preprocessor-symbol-map))
+		   ))
 
 ;;;###autoload
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
