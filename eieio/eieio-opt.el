@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.27 2008/03/29 15:27:27 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.28 2008/03/30 19:50:45 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -227,6 +227,7 @@ Outputs to the standard output."
 	    prot (cdr prot)
 	    i (1+ i)))))
 
+;;;###autoload
 (defun eieio-build-class-alist (&optional class instantiable-only buildlist)
   "Return an alist of all currently active classes for completion purposes.
 Optional argument CLASS is the class to start with.
@@ -251,7 +252,8 @@ Optional argument BUILDLIST is more list to attach and is used internally."
 Optional argument HISTVAR is a variable to use as history.
 If INSTANTIABLE-ONLY is non nil, only allow names of classes which
 are not abstract."
-  (intern (completing-read prompt (eieio-build-class-alist) nil t nil
+  (intern (completing-read prompt (eieio-build-class-alist nil instantiable-only)
+			   nil t nil
 			   (or histvar 'eieio-read-class))))
 
 (defun eieio-read-subclass (prompt class &optional histvar instantiable-only)
