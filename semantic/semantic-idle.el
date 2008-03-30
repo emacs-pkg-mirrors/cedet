@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.41 2008/03/29 15:32:30 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.42 2008/03/30 18:39:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -677,9 +677,8 @@ current tag to display information."
 		   (remq 'unloaded semanticdb-find-default-throttle)
 		 nil))
 	      )
-	  (semantic-complete-analyze-inline)
-	  ;;(when (semantic-completion-inline-active-p)
-	  ;;  (semantic-complete-inline-force-display))
+	  ;; Use idle version.
+	  (semantic-complete-analyze-inline-idle)
 	  )
       (error nil))
     ))
