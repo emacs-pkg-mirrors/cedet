@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.49 2008/03/30 18:38:43 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.50 2008/03/30 19:51:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1844,9 +1844,6 @@ prompts.  these are calculated from the CONTEXT variable passed in."
      inp
      history)))
 
-
-
-;;;###autoload
 (defvar semantic-complete-inline-custom-type
   (append '(radio)
 	  (mapcar
