@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.48 2008/03/14 02:42:24 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.49 2008/03/30 18:38:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -607,8 +607,16 @@ Similar to `minibuffer-contents' when completing in the minibuffer."
 	  (semantic-complete-inline-exit))
       
       ;; Get whatever binding RET usually has.
-      (let ((fcn (lookup-key (current-active-maps) (this-command-keys))))
-	(funcall fcn))
+      (let ((fcn
+	     (condition-case nil
+		 (lookup-key (current-active-maps) (this-command-keys))
+	       (error
+		;; I don't know why, but for some reason the above
+		;; throws an error sometimes.
+		(lookup-key (current-global-map) (this-command-keys))
+		))))
+	(when fcn
+	  (funcall fcn)))
       )))
 
 (defun semantic-complete-inline-quit ()
@@ -1269,7 +1277,8 @@ inserted into the current context.")
 		:protection :protected
 		:documentation "Prefix associated with slot `table'")
    )
-  "Manages the display of some number of tags.
+  "Abstract displayor baseclass.
+Manages the display of some number of tags.
 Provides the basics for a displayor, including interacting with
 a collector, and tracking tables of completion to display."
   :abstract t)
@@ -1326,7 +1335,8 @@ This object type doesn't do focus, so will never have a focus object."
 
 (defclass semantic-displayor-traditional (semantic-displayor-abstract)
   ()
-  "Traditional display mechanism for a list of possible completions.
+  "Display options in *Completions* buffer.
+Traditional display mechanism for a list of possible completions.
 Completions are showin in a new buffer and listed with the ability
 to click on the items to aid in completion.")
 
@@ -1355,7 +1365,8 @@ given tag, by highlighting its location.")
     :documentation
     "Non-nil if focusing requires a tag's buffer be in memory.")
    )
-  "A displayor which has the ability to focus in on one tag.
+  "Abstract displayor supporting `focus'.
+A displayor which has the ability to focus in on one tag.
 Focusing is a way of differentiationg between multiple tags
 which have the same name."
   :abstract t)
@@ -1436,7 +1447,8 @@ Not meaningful return value."
 (defclass semantic-displayor-traditional-with-focus-highlight
   (semantic-displayor-traditional semantic-displayor-focus-abstract)
   ((find-file-focus :initform t))
-  "A traditional displayor which can focus on a tag by showing it.
+  "Display completions in *Completions* buffer, with focus highlight.
+A traditional displayor which can focus on a tag by showing it.
 Same as `semantic-displayor-traditional', but with selection between
 multiple tags with the same name done by 'focusing' on the source
 location of the different tags to differentiate them.")
@@ -1536,7 +1548,8 @@ if `force-show' is 0, this value is always ignored.")
 		 :documentation
 		 "Flag representing whether tags is shown once or not.")
    )
-  "Display mechanism using tooltip for a list of possible completions.")
+  "Display completions options in a tooltip.
+Display mechanism using tooltip for a list of possible completions.")
 
 (defmethod initialize-instance :AFTER ((obj semantic-displayor-tooltip) &rest args)
   "Make sure we have tooltips required."
@@ -1659,7 +1672,8 @@ Return a cons cell (X . Y)"
 	       :documentation
 	       "Non nil if we have not seen our first show request.")
    )
-  "Completion displayor using ghost chars after point for focus options.
+  "Cycle completions inline with ghost text.
+Completion displayor using ghost chars after point for focus options.
 Whichever completion is currently in focus will be displayed as ghost
 text using overlay options.")
 
@@ -1830,21 +1844,33 @@ prompts.  these are calculated from the CONTEXT variable passed in."
      inp
      history)))
 
+
+
+;;;###autoload
+(defvar semantic-complete-inline-custom-type
+  (append '(radio)
+	  (mapcar
+	   (lambda (class)
+	     (let* ((C (intern (car class)))
+		    (doc (documentation-property C 'variable-documentation))
+		    (doc1 (car (split-string doc "\n")))
+		    )
+	       (list 'const
+		     :tag doc1
+		     C)))
+	   (eieio-build-class-alist semantic-displayor-abstract t))
+	  )
+  "Possible options for inlince completion displayors.
+Use this to enable custom editing.")
+  
 ;;;###autoload
 (defcustom semantic-complete-inline-analyzer-displayor-class
-  'semantic-displayor-ghost
-  "*Class for displayor to use with inline completion.
-Good values are:
-  'semantic-displayor-tooltip - show options in a tooltip.
-  'semantic-displayor-ghost - Show focus options as trailing ghost-text.
-  'semantic-displayor-traditional - In a buffer."
+  'semantic-displayor-traditional
+  "*Class for displayor to use with inline completion."
   :group 'semantic
-  :type '(radio (const :tag "Ghost Text" semantic-displayor-ghost)
-		(const :tag "Tooltip" semantic-displayor-tooltip)
-		(const :tag "Traditional" semantic-displayor-traditional)
-		(const :tag "Traditional with Focus"
-		       semantic-displayor-traditional-with-focus-highlight))
+  :type semantic-complete-inline-custom-type
   )
+
 
 ;;;###autoload
 (defun semantic-complete-inline-analyzer (context)
@@ -1853,6 +1879,9 @@ This is similar to `semantic-complete-read-tag-analyze', except
 that the completion interaction is in the buffer where the context
 was calculated from.
 CONTEXT is the semantic analyzer context to start with.
+Customize `semantic-complete-inline-analyzer-displayor-class'
+to control how completion options are displayed.
+
 See `semantic-complete-inline-tag-engine' for details on how
 completion works."
   (if (not context) (setq context (semantic-analyze-current-context (point))))
@@ -1892,6 +1921,32 @@ completion works."
 	   (cdr (oref context bounds))
 	   ))
       )))
+
+  
+;;;###autoload
+(defcustom semantic-complete-inline-analyzer-idle-displayor-class
+  'semantic-displayor-ghost
+  "*Class for displayor to use with inline completion at idle time."
+  :group 'semantic
+  :type semantic-complete-inline-custom-type
+  )
+
+;;;###autoload
+(defun semantic-complete-inline-analyzer-idle (context)
+  "Complete a symbol name by name based on the current context for idle time.
+CONTEXT is the semantic analyzer context to start with.
+This function is used from `semantic-idle-completions-mode'.
+
+This is the same as `semantic-complete-inline-analyzer', except that
+it uses `semantic-complete-inline-analyzer-idle-displayor-class'
+to control how completions are displayed.
+
+See `semantic-complete-inline-tag-engine' for details on how
+completion works."
+  (let ((semantic-complete-inline-analyzer-displayor-class
+	 semantic-complete-inline-analyzer-idle-displayor-class))
+    (semantic-complete-inline-analyzer context)
+    ))
 
 
 ;;; ------------------------------------------------------------
@@ -1960,6 +2015,24 @@ will perform the completion."
   ;; Only do this if we are not already completing something.
   (if (not (semantic-completion-inline-active-p))
       (semantic-complete-inline-analyzer
+       (semantic-analyze-current-context (point))))
+  ;; Report a message if things didn't startup.
+  (if (and (interactive-p)
+	   (not (semantic-completion-inline-active-p)))
+      (message "Inline completion not needed."))
+  )
+
+;;;###autoload
+(defun semantic-complete-analyze-inline-idle ()
+  "Perform prompt completion to do in buffer completion.
+`semantic-analyze-possible-completions' is used to determine the
+possible values.
+The function returns immediately, leaving the buffer in a mode that
+will perform the completion."
+  (interactive)
+  ;; Only do this if we are not already completing something.
+  (if (not (semantic-completion-inline-active-p))
+      (semantic-complete-inline-analyzer-idle
        (semantic-analyze-current-context (point))))
   ;; Report a message if things didn't startup.
   (if (and (interactive-p)
