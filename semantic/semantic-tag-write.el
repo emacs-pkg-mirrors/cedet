@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-tag-write.el,v 1.2 2008/03/29 15:32:45 zappo Exp $
+;; X-RCS: $Id: semantic-tag-write.el,v 1.3 2008/03/31 18:19:18 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -109,7 +109,12 @@ If optional DONTADDNEWLINE is non-nil, then don't add a newline."
       (princ (make-string indent ? ))))
   (princ "( ")
   (while tlist
-    (semantic-tag-write-one-tag (car tlist) (+ indent 2))
+    (if (semantic-tag-p (car tlist))
+	(semantic-tag-write-one-tag (car tlist) (+ indent 2))
+      ;; If we don't have a tag in the tag list, use the below hack, and hope
+      ;; it doesn't contain anything bad.  If we find something bad, go back here
+      ;; and start extending what's expected here.
+      (princ (format "%S" (car tlist))))
     (setq tlist (cdr tlist))
     (when tlist
       (princ "\n")
