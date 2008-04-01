@@ -138,6 +138,9 @@ Any specialty search routine that claims to use a function that is an
 overload method will need to execute in a buffer of the same mode as
 the tags being searched.
 
+If you are looking for a search across multiple files, see
+@ref{Semantic Database}.
+
 @menu
 * Breadth Search::              Searching only one level of tags.
 * Deep Search::                 Deep searches into types or argument lists.
@@ -1880,7 +1883,6 @@ everything.  Omniscience databases are found in
 @end defvar
 
 
-
 You can use the command @code{semanticdb-find-test-translate-path} to
 interactively test out how the path translator is working.  The path
 translation routines are:
@@ -1931,6 +1933,29 @@ where the tag came from.  @var{table} is optional if @var{includetag} has an
 overlay of @code{:filename} attribute.
 This function can be overloaded (see @dfn{define-mode-local-override} for details).
 @end defun
+
+
+TODO : Make this next part show up somewhere better.
+
+
+Each major mode should define their local include path with
+@code{defcustom-mode-local-semantic-dependency-system-include-path}.
+This macro builds a customizable variable that is kept in sync with
+the mode-local variable, and any include decorations that are active.
+
+@defun defcustom-mode-local-semantic-dependency-system-include-path mode name value &optional docstring
+@anchor{defcustom-mode-local-semantic-dependency-system-include-path}
+Create a mode-local value of the system-dependency include path.
+@var{mode} is the @code{major-mode} this name/value pairs is for.
+@var{name} is the name of the customizable value users will use.
+@var{value} is the path to add.
+@var{docstring} is a documentation string applied to the variable @var{name}
+users will customize.
+
+Creates a customizable variable users can customize that will
+keep semantic data structures up to date.
+@end defun
+
 
 @node DB Basic Name Search
 @subsection DB Basic Name Search
@@ -2729,29 +2754,29 @@ Perform @dfn{semantic-analyze-current-context}.
 Display the results as a debug list.
 @end deffn
 
-@section adebug-mode
+@section data-debug mode
 
-The semantic debugger mode provides a simple user facing UI for
-looking into the data structures.
+The semantic adebug API now sits on @code{data-debug} mode, which
+provides a simple user facing UI for looking into the data structures.
 
-@deffn Command semantic-adebug-mode
+@deffn Command data-debug-mode
 @anchor{semantic-adebug-mode}
-Major-mode for the Analyzer debugger.
+Major-mode for the Data Debugging.
 
 Keybindings:
 @table @kbd
 @item spc
-semantic-adebug-expand-or-contract
+Expand or contract
+@item N
+Next entry, and expand/contract.
+@item P
+Previous entry, and expand/contract.
 @item n
-semantic-adebug-next-expando
+Next entry
 @item p
-semantic-adebug-prev-expando
-@item n
-semantic-adebug-next
-@item p
-semantic-adebug-prev
+Next entry
 @item <mouse-2>
-semantic-adebug-expand-or-contract-mouse
+Expand/Contract entries.
 @end table
 
 @end deffn
@@ -2763,15 +2788,24 @@ First, get a datastructure you need to analyze.
 
 The first function to call is:
 
-@defun semantic-adebug-new-buffer name
+@defun data-debug-new-buffer name
 @anchor{semantic-adebug-new-buffer}
-Create a new adebug buffer with @var{name}.
+Create a new ddebug buffer with @var{name}.
 @end defun
 
 Next, you need to find the correct function for inserting your
 datastructure.  All adebug insertion functions are of the form
-@code{semantic-adebug-insert-THING}, where @var{thing} is whatever you
-object is.  Use Emacs help to pick something out.
+@code{data-debug-insert-THING}, where @var{thing} is either the word
+@code{thing}, or whatever your object is.  Use Emacs help to pick
+something out.
+
+@defun data-debug-insert-thing thing prefix prebuttontext &optional parent
+@anchor{data-debug-insert-thing}
+Insert @var{thing} with @var{prefix}.
+@var{prebuttontext} is some text to insert between prefix and the thing
+that is not included in the indentation calculation of any children.
+If @var{parent} is non-@code{nil}, it is somehow related as a parent to thing.
+@end defun
 
 
 @node GNU Free Documentation License
