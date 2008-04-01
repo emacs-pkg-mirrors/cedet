@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.107 2008/03/29 16:01:51 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.108 2008/04/01 13:38:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -469,13 +469,12 @@ form."
 (defun semanticdb-save-all-db-idle ()
   "Save all semantic tag databases from idle time.
 Exit the save between databases if there is user input."
-  (message "Saving tag summaries...")
   (semantic-exit-on-input 'semanticdb-idle-save
       (mapc (lambda (db)
 	      (semantic-throw-on-input 'semanticdb-idle-save)
 	      (semanticdb-save-db db))
 	    semanticdb-database-list))
-  (message "Saving tag summaries...done"))
+  )
 
 ;;; Directory Project support
 ;;
