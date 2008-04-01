@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.7 2008/03/22 19:17:05 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.8 2008/04/01 01:48:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -68,11 +68,53 @@ NOTE: Obsolete this, or use as special user")
 This should be set with either `defvar-mode-local', or with
 `semantic-add-system-include'.
 
+For mode authors, use
+`defcustom-mode-local-semantic-dependency-system-include-path'
+to create a mode-specific variable to control this.
+
 When searching for a file associated with a name found in an tag of
 class include, this path will be inspected for includes of type
 `system'.  Some include tags are agnostic to this setting and will
 check both the project and system directories.")
 (make-variable-buffer-local `semantic-dependency-system-include-path)
+
+;;;###autoload
+(defmacro defcustom-mode-local-semantic-dependency-system-include-path
+  (mode name value &optional docstring)
+  "Create a mode-local value of the system-dependency include path.
+MODE is the `major-mode' this name/value pairs is for.
+NAME is the name of the customizable value users will use.
+VALUE is the path to add.
+DOCSTRING is a documentation string applied to the variable NAME
+users will customize.
+
+Creates a customizable variable users can customize that will
+keep semantic data structures up to date."
+  `(progn
+     ;; Create a variable users can customize.
+     (defcustom ,name ,value
+       ,docstring
+       :group (quote ,(intern (car (split-string (symbol-name mode) "-"))))
+       :group 'semantic
+       :type '(repeat (directory :tag "Directory"))
+       :set (lambda (sym val)
+	      (set-default sym val)
+	      (setq-mode-local ,mode
+			       semantic-dependency-system-include-path
+			       val)
+	      (mode-local-map-mode-buffers
+	       'semantic-decoration-unparsed-include-do-reset
+	       (quote ,mode)))
+       )
+     ;; Set the variable to the default value.
+     (defvar-mode-local ,mode semantic-dependency-system-include-path
+       ,name
+       "System path to search for include files.")
+     ;; Bind NAME onto our variable so tools can customize it
+     ;; without knowing about it.
+     (put 'semantic-dependency-system-include-path
+	  (quote ,mode) (quote ,name))
+     ))
 
 ;;; PATH MANAGEMENT
 ;;
