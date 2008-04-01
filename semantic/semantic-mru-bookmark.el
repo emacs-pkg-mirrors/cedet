@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.10 2008/03/27 02:56:42 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.11 2008/04/01 01:49:39 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -187,11 +187,11 @@ The resulting bookmark is then sorted within the ring."
 	    (ring-remove ring idx))
 	(setq idx (1+ idx)))
       ;; Create a new mark
-      (setq sbm (semantic-bookmark (semantic-tag-name tag)
-				   :tag tag))
-      ;; Take the mark, and update it for the current state.
-      (ring-insert ring sbm)
-      (semantic-mrub-update sbm point reason)
+      (let ((sbm (semantic-bookmark (semantic-tag-name tag)
+				    :tag tag)))
+	;; Take the mark, and update it for the current state.
+	(ring-insert ring sbm)
+	(semantic-mrub-update sbm point reason))
       )))
 
 (defun semantic-mrub-cache-flush-fcn ()
