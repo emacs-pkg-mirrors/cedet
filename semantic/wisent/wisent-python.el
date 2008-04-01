@@ -1,13 +1,13 @@
 ;;; wisent-python.el --- Semantic support for Python
 ;;
-;; Copyright (C) 2002, 2004, 2006, 2007 Richard Kim
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2002, 2004, 2006 Richard Kim
 ;;
 ;; Author: Richard Kim <ryk@dspwiz.com>
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.52 2008/04/01 02:09:21 zappo Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.53 2008/04/01 02:11:02 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -287,7 +287,7 @@ To be implemented for python!  For now just return nil."
 (defcustom-mode-local-semantic-dependency-system-include-path
   python-mode semantic-python-dependency-system-include-path
   nil
-  "The system include path used by Java langauge.")
+  "The system include path used by Python langauge.")
 
 ;;; Enable Semantic in `python-mode'.
 ;;
