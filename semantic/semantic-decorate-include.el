@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.6 2008/03/30 11:48:26 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.7 2008/04/01 02:08:34 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -77,6 +77,9 @@ Used by the decoration style: `semantic-decoration-on-includes'."
      :active t
      :help "Show a list of all includes semantic cannot find for this file." ]
     "---"
+    ["Customize System Include Path" semantic-decoration-customize-include-path
+     :active (get 'semantic-dependency-system-include-path major-mode)
+     :help "Run customize for the system include path for this major mode." ]
     ["Add a System Include Path" semantic-add-system-include
      :active t
      :help "Add an include path for this session." ]
@@ -119,7 +122,7 @@ Used by the decoration style: `semantic-decoration-on-unknown-includes'."
      :help "Describe why this include has been marked this way." ]
     ["List all unknown includes" semanticdb-find-adebug-lost-includes
      :active t
-     :help "Show a list of all includes semantic cannot find for this file." ]
+     :Help "Show a list of all includes semantic cannot find for this file." ]
     "---"
     ["Summarize includes current buffer" semantic-decoration-all-include-summary
      :active t
@@ -131,6 +134,9 @@ Used by the decoration style: `semantic-decoration-on-unknown-includes'."
      :active t
      :help "List all includes found for this file, do not parse unparsed files." ]
     "---"
+    ["Customize System Include Path" semantic-decoration-customize-include-path
+     :active (get 'semantic-dependency-system-include-path major-mode)
+     :help "Run customize for the system include path for this major mode." ]
     ["Add a System Include Path" semantic-add-system-include
      :active t
      :help "Add an include path for this session." ]
@@ -191,6 +197,9 @@ Used by the decoration style: `semantic-decoration-on-unparsed-includes'."
      :active t
      :help "Show a list of all includes semantic cannot find for this file." ]
     "---"
+    ["Customize System Include Path" semantic-decoration-customize-include-path
+     :active (get 'semantic-dependency-system-include-path major-mode)
+     :help "Run customize for the system include path for this major mode." ]
     ["Add a System Include Path" semantic-add-system-include
      :active t
      :help "Add an include path for this session." ]
@@ -579,7 +588,17 @@ Argument EVENT describes the event that caused this function to be called."
 	  (princ "\n    ")
 	  (princ (oref r file)))
 	))))
-  
+
+(defun semantic-decoration-customize-include-path ()
+  "Customize the include path for this `major-mode'."
+  (interactive)
+  (let ((ips (get 'semantic-dependency-system-include-path major-mode)))
+    ;; Do we have one?
+    (when (not ips)
+      (error "There is no customizable includepath variable for %s"
+	     major-mode))
+    ;; Customize it.
+    (customize-variable ips)))
 
 
 ;;; Unparsed Include Features
