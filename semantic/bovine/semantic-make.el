@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.20 2008/03/09 15:28:24 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.21 2008/04/01 01:51:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -201,6 +201,10 @@ Uses default implementation, and also gets a list of filenames."
       (append normal filetags)
       )))
 
+(defcustom-mode-local-semantic-dependency-system-include-path
+  makefile-mode semantic-makefile-dependency-system-include-path
+  nil
+  "The system include path used by Makefiles langauge.")
 
 ;;;###autoload
 (defun semantic-default-make-setup ()
