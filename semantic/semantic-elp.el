@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.7 2008/03/27 02:55:43 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.8 2008/04/01 01:49:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -25,6 +25,7 @@
 ;; Provide fast ways to profile various (often slow) Semantic processes.
 
 (require 'elp)
+(require 'data-debug)
 (require 'semantic-tag-ls)
 (require 'semantic-tag-file)
 (require 'semanticdb)
