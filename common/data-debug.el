@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.1 2008/03/27 02:43:55 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.2 2008/04/01 01:07:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -38,11 +38,13 @@
 ;;; Compatibility
 ;;
 (if (featurep 'xemacs)
-    (progn
+    (eval-and-compile
       (defalias 'data-debug-overlay-properties 'extent-properties)
       )
   ;; Regular Emacs
-  (defalias 'data-debug-overlay-overlay-properties 'overlay-properties)
+  (eval-and-compile
+    (defalias 'data-debug-overlay-overlay-properties 'overlay-properties)
+    )
   )
 
 ;;; GENERIC STUFF
@@ -586,12 +588,19 @@ Do nothing if already expanded."
     (data-debug-expand-current-line))
   (skip-chars-forward " *-><[]" (point-at-eol)))
 
-(defun data-debug-expand-or-contract-mouse (e)
-  "Expand or contract anything at event E."
+(defun data-debug-expand-or-contract-mouse (event)
+  "Expand or contract anything at event EVENT."
   (interactive "e")
-  (goto-char (posn-point (event-start e)))
-  (data-debug-expand-or-contract)
-  )
+  (let* ((startwin (selected-window))
+	 (win (car (car (cdr event))))
+	 (eb (window-buffer win))
+	 )
+    (select-window win t)
+    (save-excursion
+      ;(goto-char (window-start win))
+      (mouse-set-point event)
+      (data-debug-expand-or-contract))
+    ))
 
 ;;; DEBUG COMMANDS
 ;;
