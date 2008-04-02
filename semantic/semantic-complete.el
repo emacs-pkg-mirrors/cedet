@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.50 2008/03/30 19:51:20 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.51 2008/04/02 16:32:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1860,7 +1860,6 @@ prompts.  these are calculated from the CONTEXT variable passed in."
   "Possible options for inlince completion displayors.
 Use this to enable custom editing.")
   
-;;;###autoload
 (defcustom semantic-complete-inline-analyzer-displayor-class
   'semantic-displayor-traditional
   "*Class for displayor to use with inline completion."
@@ -1919,8 +1918,6 @@ completion works."
 	   ))
       )))
 
-  
-;;;###autoload
 (defcustom semantic-complete-inline-analyzer-idle-displayor-class
   'semantic-displayor-ghost
   "*Class for displayor to use with inline completion at idle time."
