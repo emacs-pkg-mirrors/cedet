@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.68 2008/04/01 01:50:30 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.69 2008/04/03 21:02:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -327,10 +327,12 @@ as for the parent."
       (let* ((last-lexical-token lse)
 	     (macroexpand (stringp (car (cdr last-lexical-token)))))
 	(if macroexpand
-	    ;; It is a macro expansion.  Do something special.
-	    ;; @todo - implement something smart, like creating a
-	    ;;      new buffer, inserting the text, and parsing that.
-	    (message "%S %S, %S : %S" start end nonterminal lse)
+	    (progn
+	      ;; It is a macro expansion.  Do something special.
+	      ;(message "MOOSE %S %S, %S : %S" start end nonterminal lse)
+	      (semantic-c-parse-lexical-token
+	       lse nonterminal depth returnonerror)
+	      )
 	  ;; Not a macro expansion.  the old thing.
 	  (semantic-parse-region-default start end 
 					 nonterminal depth
@@ -341,6 +343,47 @@ as for the parent."
 				   depth returnonerror)
     ))
 
+(defun semantic-c-parse-lexical-token (lexicaltoken nonterminal depth
+						    returnonerror)
+  "Do a region parse on the contents of LEXICALTOKEN.
+Presumably, this token has a string in it from a macro.
+The text of the token is inserted into a different buffer, and
+parsed there.
+Argument NONTERMINAL, DEPTH, and RETURNONERROR are passed into
+the regular parser."
+  (let ((buf (get-buffer-create " *C parse hack*"))
+	(mode major-mode)
+	(spp-syms semantic-lex-spp-dynamic-macro-symbol-obarray)
+	(stream nil)
+	(start (semantic-lex-token-start lexicaltoken))
+	(end (semantic-lex-token-end lexicaltoken))
+	)
+    (save-excursion
+      (set-buffer buf)
+      (erase-buffer)
+      (setq semantic-lex-spp-dynamic-macro-symbol-obarray spp-syms)
+      (when (not (eq major-mode mode))
+	(funcall mode)
+	;; CHEATER!  The following 3 lines are from
+	;; `semantic-new-buffer-fcn', but we don't want to turn
+	;; on all the other annoying modes for this little task.
+	(setq semantic-new-buffer-fcn-was-run t)
+	(semantic-lex-init)
+	(semantic-clear-toplevel-cache)
+	)
+      (insert (semantic-lex-token-text lexicaltoken))
+      (setq stream
+	    (semantic-parse-region-default
+	     (point-min) (point-max) nonterminal depth returnonerror))
+      ;; Convert the text of the stream.
+      (dolist (tag stream)
+	;; Only do two levels here 'cause I'm lazy.
+	(semantic--tag-set-overlay tag (list start end))
+	(dolist (stag (semantic-tag-components-with-overlays tag))
+	  (semantic--tag-set-overlay stag (list start end))
+	  ))
+      )
+    stream))
 
 (defun semantic-expand-c-tag (tag)
   "Expand TAG into a list of equivalent tags, or nil."
