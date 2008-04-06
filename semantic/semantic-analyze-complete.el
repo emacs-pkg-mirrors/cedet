@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-complete.el,v 1.6 2008/03/29 15:29:58 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-complete.el,v 1.7 2008/04/06 18:05:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -234,21 +234,21 @@ Argument CONTEXT is an object specifying the locally derived context."
 	(setq origc (cdr origc)))
 
       (when desired-type
-      ;; Some types, like the enum in C, have special constant values that
-      ;; we could complete with.  Thus, if the target is an enum, we can
-      ;; find possible symbol values to fill in that value.
-      (let ((constants
-	     (semantic-analyze-type-constants desired-type)))
-	(if constants
-	    (progn
-	      ;; Filter
-	      (setq constants
-		    (semantic-find-tags-by-name-regexp
-		     (concat "^" completetext)
-		     constants))
-	      ;; Add to the list
-	      (setq c (nconc c constants)))
-	  )))
+	;; Some types, like the enum in C, have special constant values that
+	;; we could complete with.  Thus, if the target is an enum, we can
+	;; find possible symbol values to fill in that value.
+	(let ((constants
+	       (semantic-analyze-type-constants desired-type)))
+	  (if constants
+	      (progn
+		;; Filter
+		(setq constants
+		      (semantic-find-tags-by-name-regexp
+		       (concat "^" completetext)
+		       constants))
+		;; Add to the list
+		(setq c (nconc c constants)))
+	    )))
       )
 
     (when desired-class
