@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.8 2008/04/01 01:48:43 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.9 2008/04/06 18:03:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -168,6 +168,20 @@ Modifies a mode-local version of
 			  nil))
   )
 
+;;;###autoload
+(defun semantic-customize-system-include-path (&optional mode)
+  "Customize the include path for this `major-mode'.
+To create a customizable include path for a major MODE, use the
+macro `defcustom-mode-local-semantic-dependency-system-include-path'."
+  (interactive)
+  (let ((ips (get 'semantic-dependency-system-include-path
+		  (or mode major-mode))))
+    ;; Do we have one?
+    (when (not ips)
+      (error "There is no customizable includepath variable for %s"
+	     (or mode major-mode)))
+    ;; Customize it.
+    (customize-variable ips)))
 
 ;;; PATH SEARCH
 ;;
