@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-debug.el,v 1.1 2008/04/06 18:05:59 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-debug.el,v 1.2 2008/04/07 02:09:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -44,7 +44,7 @@
       ;; Debug our context.
       )
     (or (semantic-analyzer-debug-test-local-context)
-	(semantic-analyzer-debug-found-prefix ctxt)
+	(and ctxt (semantic-analyzer-debug-found-prefix ctxt))
 	)
 
     ))
@@ -265,8 +265,7 @@ type constraint looking for the type ")
     (when (and (or (not prefixandbounds)
 		   (not prefix)
 		   (not bounds))
-	       (y-or-n-p
-		"Local Context parser failed to parse text at point.  Debug? "))
+	       )
       (with-output-to-temp-buffer (help-buffer)
 	(with-current-buffer standard-output
 	  (princ "Local Context Parser Failed.
@@ -283,9 +282,8 @@ or implementing a version specific to ")
 	      (princ (symbol-name major-mode))
 	      )
 	    (princ ".\n"))
-	  t)
-	(semantic-analyzer-debug-add-buttons)
-	))
+	  (semantic-analyzer-debug-add-buttons)
+	t)))
     ))
 
 ;;; General Inserters with help
