@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-build.el,v 1.2 2008/03/11 02:24:03 zappo Exp $
+;; X-RCS: $Id: cedet-build.el,v 1.3 2008/04/09 01:20:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,7 +28,14 @@
 ;;
 ;; Step 1:  Start emacs like this:
 ;;
-;;     emacs -q -l cedet-build.el -f cedet-build
+;;     emacs -Q -l cedet-build.el -f cedet-build
+;;
+;;   or
+;;
+;;     Eval this buffer and then start compilation:
+;;
+;;     M-x eval-buffer
+;;     M-x cedet-build-in-default-emacs
 ;;
 ;; Step 2: Check Output.
 ;;
@@ -41,6 +48,14 @@
     ;; (add-to-list 'load-path dir)
     dir)
   "Root of the CEDET tree.")
+
+(defun cedet-build-in-default-emacs()
+  "Build CEDET in a new Emacs instance started with -Q."
+  (interactive)
+  (let ((default-directory cedet-build-location))
+    (call-process (concat exec-directory "emacs") nil 0 nil
+                  "-Q" "-l" "cedet-build.el" "-f" "cedet-build")
+    (message "Started new Emacs instance to build CEDET ...")))
 
 
 (defun cedet-build-msg (fmt &rest args)
