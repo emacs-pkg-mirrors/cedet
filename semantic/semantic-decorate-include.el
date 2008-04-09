@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.8 2008/04/06 18:04:38 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.9 2008/04/09 11:48:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -651,6 +651,7 @@ If TABLE is not in a buffer, do nothing."
        buf)
       )))
 
+;;;###autoload
 (defun semantic-decoration-unparsed-include-do-reset ()
   "Do a reset of unparsed includes in the current buffer."
   (let* ((style (assoc "semantic-decoration-on-includes"
