@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.9 2008/04/06 18:03:30 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.10 2008/04/11 20:02:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -102,9 +102,11 @@ keep semantic data structures up to date."
 	      (setq-mode-local ,mode
 			       semantic-dependency-system-include-path
 			       val)
-	      (mode-local-map-mode-buffers
-	       'semantic-decoration-unparsed-include-do-reset
-	       (quote ,mode)))
+	      (when (fboundp 
+		     'semantic-decoration-unparsed-include-do-reset)
+		(mode-local-map-mode-buffers
+		 'semantic-decoration-unparsed-include-do-reset
+		 (quote ,mode))))
        )
      ;; Set the variable to the default value.
      (defvar-mode-local ,mode semantic-dependency-system-include-path
