@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.69 2008/04/03 21:02:16 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.70 2008/04/12 00:11:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -230,24 +230,6 @@ case, we must skip it since it is the ELSE part."
   (semantic-c-end-of-macro)
   (setq semantic-lex-end-point (point))
   nil)
-
-(define-lex-analyzer semantic-lex-c-include-system-old
-  "Identify system include strings, and return special tokens."
-  (and (looking-at "<[^\n>]+>")
-       (save-excursion
-	 (beginning-of-line)
-	 (looking-at "\\s-*#\\s-*include\\s-+<"))
-       (= (match-end 0) (1+ (point))))
-  ;; We found a system include.
-  (let ((start (point)))
-    ;; This should always pass
-    (re-search-forward ">")
-    ;; We have the whole thing.
-    (semantic-lex-push-token
-     (semantic-lex-token 'system-include start (point)))
-    )
-  )
-
 
 (define-lex-spp-include-analyzer semantic-lex-c-include-system
   "Identify include strings, and return special tokens."
