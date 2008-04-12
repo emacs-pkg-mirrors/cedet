@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.70 2008/04/12 00:11:30 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.71 2008/04/12 03:27:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -121,12 +121,19 @@ Return the the defined symbol as a special spp lex token."
   (skip-chars-forward " \t")
   (if (eolp)
       nil
-    (prog1
-	(semantic-lex-spp-stream-for-macro (save-excursion
-					     (semantic-c-end-of-macro)
-					     (point)))
+    (let ((raw-stream
+	   (semantic-lex-spp-stream-for-macro (save-excursion
+						(semantic-c-end-of-macro)
+						(point))))
+	  )
+
+      (semantic-lex-spp-first-token-arg-list (car raw-stream))
+
       ;; Magical spp variable for end point.
       (setq semantic-lex-end-point (point))
+
+      ;; Return the stream.
+      raw-stream
       )))
 
 (define-lex-spp-macro-undeclaration-analyzer semantic-lex-cpp-undef
@@ -273,10 +280,20 @@ Go to the next line."
 	(point))
       ))))
 
+(define-lex-regex-analyzer semantic-c-lex-ignore-newline
+  "Detect and ignore newline tokens.
+Use this ONLY if newlines are not whitespace characters (such as when
+they are comment end characters)."
+  ;; Just like semantic-lex-ignore-newline, but also ignores
+  ;; trailing \.
+  "\\s-*\\\\?\\s-*\\(\n\\|\\s>\\)"
+  (setq semantic-lex-end-point (match-end 0)))
+
+
 (define-lex semantic-c-lexer
   "Lexical Analyzer for C code."
   semantic-lex-ignore-whitespace
-  semantic-lex-ignore-newline
+  semantic-c-lex-ignore-newline
   ;; C preprocessor features
   semantic-lex-cpp-define
   semantic-lex-cpp-undef
@@ -343,9 +360,10 @@ the regular parser."
     (save-excursion
       (set-buffer buf)
       (erase-buffer)
-      (setq semantic-lex-spp-dynamic-macro-symbol-obarray spp-syms)
       (when (not (eq major-mode mode))
 	(funcall mode)
+	;; Hack in mode-local
+	(activate-mode-local-bindings)
 	;; CHEATER!  The following 3 lines are from
 	;; `semantic-new-buffer-fcn', but we don't want to turn
 	;; on all the other annoying modes for this little task.
@@ -353,6 +371,7 @@ the regular parser."
 	(semantic-lex-init)
 	(semantic-clear-toplevel-cache)
 	)
+      (setq semantic-lex-spp-dynamic-macro-symbol-obarray spp-syms)
       (insert (semantic-lex-token-text lexicaltoken))
       (setq stream
 	    (semantic-parse-region-default
