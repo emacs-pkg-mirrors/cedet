@@ -26,16 +26,20 @@ int SUPER baz ()
 {
 }
 
-/* TEST: Macro replacement  -- NOT IMPLEMENTED YET. */
-#if 0
+/* TEST: Macro replacement. */
 #define INT_FCN(name) int name (int in)
 
 INT_FCN(increment) {
   return in+1;
 }
-#endif
 
-// TEST: for bad macro.
-#define BAD(a) struct a { }
+/* TEST: Macro replacement with complex args */
+#define P_(proto) ()
 
-BAD(moose);
+int myFcn1 P_((a,b));
+
+#define P__(proto) proto
+
+int myFcn2 P__((int a, int b));
+int myFcn3 (int a, int b);
+
