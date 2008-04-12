@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.108 2008/04/01 13:38:18 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.109 2008/04/12 03:21:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -782,22 +782,47 @@ Argument NEW-TABLE is the new table of tags."
   (when semanticdb-current-table
     (semanticdb-partial-synchronize semanticdb-current-table new-table)))
 
+(defun semanticdb-revert-hook ()
+  "Hook run before a revert buffer.
+We can't track incremental changes due to a revert, so just clear the cache.
+This will prevent the next batch of hooks from wasting time parsing things
+that don't need to be parsed."
+  (if (and (semantic-active-p)
+	   semantic--buffer-cache
+	   semanticdb-current-table)
+      (semantic-clear-toplevel-cache)))
+
 (defun semanticdb-kill-hook ()
   "Function run when a buffer is killed.
 If there is a semantic cache, slurp out the overlays, and store
 it in our database.  If that buffer has no cache, ignore it, we'll
 handle it later if need be."
-  (if (and (semantic-active-p)
-	   semantic--buffer-cache
-	   semanticdb-current-table)
-      (progn
-	(oset semanticdb-current-table pointmax (point-max))
-	(condition-case nil
+  (when (and (semantic-active-p)
+	     semantic--buffer-cache
+	     semanticdb-current-table)
+      
+    ;; Try to get a fast update.
+    (semantic-fetch-tags-fast)
+
+    ;; If the buffer is in a bad state, don't save anything...
+    (if (semantic-parse-tree-needs-rebuild-p)
+	;; If this is the case, don't save anything.
+	(progn
+	  (semantic-clear-toplevel-cache)
+	  (oset semanticdb-current-table pointmax 0)
+	  )
+      ;; We have a clean buffer, save it off.
+      (condition-case nil
+	  (progn
 	    (semantic--tag-unlink-cache-from-buffer)
-	  ;; If this messes up, just clear the system
-	  (error
-	   (semantic-clear-toplevel-cache)
-	   (message "semanticdb: Failed to deoverlay tag cache."))))
+	    ;; Set pointmax only if we had some success in the unlink.
+	    (oset semanticdb-current-table pointmax (point-max))
+	    )
+	;; If this messes up, just clear the system
+	(error
+	 (semantic-clear-toplevel-cache)
+	 (message "semanticdb: Failed to deoverlay tag cache.")))
+      )
     ))
 
 (defun semanticdb-kill-emacs-hook ()
@@ -811,6 +836,7 @@ Save all the databases."
   '((semanticdb-semantic-init-hook-fcn semantic-init-db-hooks)
     (semanticdb-synchronize-table semantic-after-toplevel-cache-change-hook)
     (semanticdb-partial-synchronize-table semantic-after-partial-cache-change-hook)
+    (semanticdb-revert-hook before-revert-hook)
     (semanticdb-kill-hook kill-buffer-hook)
     (semanticdb-kill-hook change-major-mode-hook) ;; Not really a kill, but we need the same effect.
     (semanticdb-kill-emacs-hook kill-emacs-hook)
