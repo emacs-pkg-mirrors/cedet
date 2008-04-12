@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.14 2008/03/22 19:18:18 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.15 2008/04/12 03:25:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -197,11 +197,17 @@ Return non-nil if it matches"
       (string-match regex value))
     ))
 
-(defun semantic-lex-spp-macro-to-macro-stream (val beg end)
+(defun semantic-lex-spp-macro-with-args (val)
+  "If the macro value VAL has an arglist, return the arglist."
+  (when (and val (listp val) (eq 'spp-arg-list (car (car val))))
+    (car (cdr (car val)))))
+
+(defun semantic-lex-spp-macro-to-macro-stream (val beg end argvalues)
   "Convert lexical macro contents VAL into a macro expansion stream.
 Argument VAL is the value of some macro to be converted into a stream.
 BEG and END are the token bounds of the macro to be expanded
-that will somehow gain a much longer token stream."
+that will somehow gain a much longer token stream.
+ARGVALUES are values for any arg list, or nil."
   (cond
    ;; If it is a token, then return that token rebuilt.
    ((and (listp val) (symbolp (car val)))
@@ -210,9 +216,40 @@ that will somehow gain a much longer token stream."
      ))
    ;; If it is a list of tokens, then push each token one at a time.
    ((and (listp val) (listp (car val)) (symbolp (car (car val))))
-    (dolist (v val)
-      (semantic-lex-push-token
-       (semantic-lex-token (car v) beg end (car (cdr v))))
+    (let ((arglist (semantic-lex-spp-macro-with-args val))
+	  )
+      ;; Skip the arg list.
+      (when arglist (setq val (cdr val)))
+
+      ;; Push args into the replacement list.
+      (dolist (A arglist)
+	(semantic-lex-spp-symbol-set A (car argvalues))
+	(setq argvalues (cdr argvalues)))
+
+      ;; Push everything else onto the list.
+      (dolist (v val)
+	(let ((txt (car (cdr v)))
+	      (sym nil)
+	      )
+	  (if (and (eq (car v) 'symbol)
+		   (setq sym (semantic-lex-spp-symbol txt)))
+
+	      (progn
+		;; Special arg symbol
+		(semantic-lex-spp-macro-to-macro-stream
+		 (symbol-value sym)
+		 beg end nil)
+		)
+	    ;; Nothing new.
+	    (semantic-lex-push-token
+	     (semantic-lex-token (car v) beg end txt))
+	    )
+	  ))
+
+      ;; Remove args from the replacement list.
+      (dolist (A arglist)
+	(semantic-lex-spp-symbol-remove A))
+
       ))
    ;; We perform a replacement.  Technically, this should
    ;; be a full lexical step over the "val" string, but take
@@ -280,16 +317,48 @@ If BUFFER is not provided, use the current buffer."
     (if (semantic-lex-spp-symbol-p str)
 	;; It is a macro.  Prepare for a replacement.
 	(let* ((sym (semantic-lex-spp-symbol str))
-	       (val (symbol-value sym)))
+	       (val (symbol-value sym))
+	       (arg-in nil)
+	       (arg-parsed nil)
+	       (arg-split nil)
+	       )
 	  (if (not val)
 	      (setq semantic-lex-end-point end)
-	    (semantic-lex-spp-macro-to-macro-stream val beg end)
+	    ;; Check for arguments.
+	    (setq arg-in (semantic-lex-spp-macro-with-args val))
+
+	    (save-excursion
+	      (goto-char end)
+	      (setq arg-parsed
+		    (semantic-lex-spp-one-token-and-move-for-macro
+		     (point-at-eol)))
+	      (when (and (listp arg-parsed)
+			 (eq (car arg-parsed) 'semantic-list))
+		(setq arg-split 
+		      ;; Ok, we need to lex it up.  Ick!
+		      (semantic-lex-spp-stream-for-arglist arg-parsed)
+		      )
+		(setq end (semantic-lex-token-end arg-parsed))))
+
+	    ;; Do macro replacement.
+	    (semantic-lex-spp-macro-to-macro-stream val beg end arg-split)
 	    ))
       ;; A regular keyword.
       (semantic-lex-push-token
        (semantic-lex-token (or (semantic-lex-keyword-p str) 'symbol)
 			   beg end)))))
 
+(defun semantic-lex-spp-first-token-arg-list (token)
+  "If TOKEN is a semantic-list, turn it into a an SPP ARG LIST."
+  (when (and (consp token)
+	     (symbolp (car token))
+	     (eq 'semantic-list (car token)))
+    ;; Convert TOKEN in place.
+    (let ((argsplit (split-string (semantic-lex-token-text token)
+				  "[(), ]" t)))
+      (setcar token 'spp-arg-list)
+      (setcar (nthcdr 1 token) argsplit))
+    ))
 
 (defun semantic-lex-spp-one-token-and-move-for-macro (max)
   "Lex up one token, and move to end of that token.
@@ -301,6 +370,17 @@ Don't go past MAX."
       (goto-char (semantic-lex-token-end (car ans)))
       (car ans))
     ))
+
+(defun semantic-lex-spp-stream-for-arglist (token)
+  "Lex up the contents of the arglist TOKEN.
+Parsing starts inside the parens, and ends at the end of TOKEN."
+  (save-excursion
+    (let ((end (semantic-lex-token-end token)))
+      (goto-char (semantic-lex-token-start token))
+      ;; A cheat for going into the semantic list.
+      (forward-char 1)
+      (semantic-lex-spp-stream-for-macro (1- end))
+    )))
 
 (defun semantic-lex-spp-stream-for-macro (eos)
   "Lex up a stream of tokens for a #define statement.
