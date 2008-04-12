@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.46 2008/02/19 03:12:24 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.47 2008/04/12 03:22:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -484,16 +484,25 @@ If universal argument ARG, then try the whole buffer."
 		  (point-max)))
 	 (end (current-time)))
     (message "Elapsed Time: %.2f seconds."
-	     (semantic-elapsed-time start end)))
-  )
+	     (semantic-elapsed-time start end))
+    (pop-to-buffer "*Lexer Output*")
+    (require 'pp)
+    (erase-buffer)
+    (insert (pp-to-string result))
+    (goto-char (point-min))
+    ))
 
 (defun semantic-lex-test-region (beg end)
   "Test the semantic lexer in the current buffer.
 Analyze the area between BEG and END."
   (interactive "r")
   (let ((result (semantic-lex beg end)))
-    (message "%s: %S" semantic-lex-analyzer result))
-  )
+    (pop-to-buffer "*Lexer Output*")
+    (require 'pp)
+    (erase-buffer)
+    (insert (pp-to-string result))
+    (goto-char (point-min))
+    ))
 
 (defvar semantic-lex-debug nil
   "When non-nil, debug the local lexical analyzer.")
@@ -776,7 +785,7 @@ See also the function `semantic-lex-token'."
 (defsubst semantic-lex-token-bounds (token)
   "Fetch the start and end locations of the lexical token TOKEN.
 Return a pair (START . END)."
-  (if (stringp (car (cdr token)))
+  (if (not (numberp (car (cdr token))))
       (cdr (cdr token))
     (cdr token)))
 
@@ -1056,7 +1065,7 @@ they are comment end characters) AND when you want whitespace tokens."
       'whitespace (match-beginning 0) (match-end 0)))))
 
 (define-lex-regex-analyzer semantic-lex-ignore-newline
-  "Detect and create newline tokens.
+  "Detect and ignore newline tokens.
 Use this ONLY if newlines are not whitespace characters (such as when
 they are comment end characters)."
   "\\s-*\\(\n\\|\\s>\\)"
