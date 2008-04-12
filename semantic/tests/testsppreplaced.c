@@ -20,3 +20,15 @@ int foo::bar ()
 int mysuper::baz ()
 {
 }
+
+/* TEST: Macro replacement. */
+int increment (int in) {
+  return in+1;
+}
+
+/* TEST: Macro replacement with complex args */
+int myFcn1 ();
+
+int myFcn2 (int a, int b);
+int myFcn3 (int a, int b);
+
