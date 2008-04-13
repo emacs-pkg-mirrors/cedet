@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.71 2008/04/12 03:27:29 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.72 2008/04/13 14:34:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,7 +94,7 @@ definition such as:
 #define MYSYM foo::bar
 
 into a C file, and do this:
- M-x semantic-lex-spp-describe RET
+  \\[semantic-lex-spp-describe]
 
 The output table will describe the symbols needed."
   :group 'c
@@ -102,13 +102,22 @@ The output table will describe the symbols needed."
 		       (sexp :tag "Replacement")))
   :set (lambda (sym value)
 	 (set-default sym value)
-	 (setq-mode-local 
-	  c-mode
-	  semantic-lex-spp-macro-symbol-obarray
-	  (semantic-lex-make-spp-table
-	   (append semantic-lex-c-preprocessor-symbol-map-builtin
-		   semantic-lex-c-preprocessor-symbol-map)
-	   )))
+	 (semantic-c-reset-preprocessor-symbol-map)
+	 )
+  )
+
+(defcustom semantic-lex-c-preprocessor-symbol-file nil
+  "List of C/C++ files that contain preprocessor macros for the C lexer.
+Each entry is a filename and each file is parsed, and those macros
+are included in every C/C++ file parsed by semantic.
+You can use this variable instead of `semantic-lex-c-preprocessor-symbol-map'
+to store your global macros in a more natural way."
+  :group 'c
+  :type '(repeat (file :tag "File"))
+  :set (lambda (sym value)
+	 (set-default sym value)
+	 (semantic-c-reset-preprocessor-symbol-map)
+	 )
   )
 
 ;;; Code:
@@ -932,6 +941,27 @@ DO NOT return the list of tags encompassing point."
 (defvar-mode-local c-mode senator-step-at-tag-classes '(function variable)
   "Tag classes where senator will stop at the end.")
 
+
+(defun semantic-c-reset-preprocessor-symbol-map ()
+  "Reset the C preprocessor symbol map based on all input variables."
+  (let ((filemap nil))
+    (dolist (sf semantic-lex-c-preprocessor-symbol-file)
+      ;; Global map entries
+      (let* ((table (semanticdb-file-table-object sf)))
+	(when table
+	  (setq filemap (append filemap (oref table lexical-table)))
+	  )
+	))
+
+    (setq-mode-local c-mode
+		     semantic-lex-spp-macro-symbol-obarray
+		     (semantic-lex-make-spp-table
+		      (append semantic-lex-c-preprocessor-symbol-map-builtin
+			      semantic-lex-c-preprocessor-symbol-map
+			      filemap))
+		     )
+    ))
+
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
@@ -942,11 +972,6 @@ DO NOT return the list of tags encompassing point."
         )
   
   (setq semantic-lex-analyzer #'semantic-c-lexer)
-  (setq semantic-lex-spp-macro-symbol-obarray
-	(semantic-lex-make-spp-table
-	 (append semantic-lex-c-preprocessor-symbol-map-builtin
-		 semantic-lex-c-preprocessor-symbol-map)
-	 ))
   (add-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook nil t)
   )
 
@@ -962,12 +987,9 @@ DO NOT return the list of tags encompassing point."
       (setq semantic-lex-c-preprocessor-symbol-map
 	    (cons  (cons sym replacement)
 		   semantic-lex-c-preprocessor-symbol-map))))
-  (setq-mode-local c-mode
-		   semantic-lex-spp-macro-symbol-obarray
-		   (semantic-lex-make-spp-table
-		    (append semantic-lex-c-preprocessor-symbol-map-builtin
-			    semantic-lex-c-preprocessor-symbol-map))
-		   ))
+
+  (semantic-c-reset-preprocessor-symbol-map)
+  )
 
 ;;;###autoload
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
