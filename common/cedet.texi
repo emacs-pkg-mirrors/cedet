@@ -638,23 +638,52 @@ options you may need to update.
 
 C and C++ use pre-processor directives, and the @semantic{} parser has
 some basic support for a pre-processor.  As such, you may need to set
-up some macros.  You can do that like this:
+up some macros.  You can do that in two ways.
 
-@example
-;; Teach the parser about our strange macros.
-(setq semantic-lex-c-preprocessor-symbol-map
-      '( ;; PLATFORM STUFF
-         ( "__cplusplus" . nil )
-       ))
-@end example
+The first option is to create your own symbol map in Emacs Lisp.  You
+can customize the preprocessor symbol map.
 
-To have some macro text be replaced with something else, replace
-@code{nil} above with a string.
+@defvar semantic-lex-c-preprocessor-symbol-map
+@anchor{semantic-lex-c-preprocessor-symbol-map}
+Table of @var{c} Preprocessor keywords used by the Semantic @var{c} lexer.
+Each entry is a cons cell like this:
+  ( ``@var{keyword}`` . ''REPLACEMENT'' )
+Where @var{keyword} is the macro that gets replaced in the lexical phase,
+and @var{replacement} is a string that is inserted in it's place.  Empty string
+implies that the lexical analyzer will discard @var{keyword} when it is encountered.
 
-If you code in C, it is likely many symbols from your header files
-won't parse by default.  You will need to look in those header files,
-and find symbols that are defined, and add them to the list.  By doing
-this, @semantic{} will then be able to parse your header files.
+Alternately, it can be of the form:
+  ( ``@var{keyword}`` ( @var{lexsym1} ``str'' @var{1} @var{1} ) @dots{} ( @var{lexsymn} ''str'' @var{1} @var{1} ) )
+where @var{lexsym} is a symbol that would normally be produced by the
+lexical analyzer, such as @code{symbol} or @dfn{string}.  The string in the
+second position is the text that makes up the replacement.  This is
+the way to have multiple lexical symbols in a replacement.  Using the
+first way to specify text like ``foo::bar'' would not work, because :
+is a sepearate lexical symbol.
+
+A quick way to see what you would need to insert is to place a
+definition such as:
+
+#define @var{mysym} foo::bar
+
+into a @var{c} file, and do this:
+  @kbd{M-x} semantic-lex-spp-describe
+
+The output table will describe the symbols needed.
+@end defvar
+
+Alternatly, you can use an existing C header file, or write your own
+custom C header file, and use the ma cros in that to initialize the
+preprocessor list.
+
+@defvar semantic-lex-c-preprocessor-symbol-file
+@anchor{semantic-lex-c-preprocessor-symbol-file}
+List of @var{c}/@var{c}++ files that contain preprocessor macros for the @var{c} lexer.
+Each entry is a filename and each file is parsed, and those macros
+are included in every @var{c}/@var{c}++ file parsed by semantic.
+You can use this variable instead of @code{semantic-lex-c-preprocessor-symbol-map}
+to store your global macros in a more natural way.
+@end defvar
 
 Some such symbols for @file{stdio.h} as found on Linux are defined in
 @code{semantic-lex-c-preprocessor-symbol-map-builtin}.
@@ -666,15 +695,12 @@ you will need to update @code{semantic-dependency-system-include-path} for
 C++ mode.
 
 @example
-(setq-mode-local semantic-dependency-system-include-path
-                 '("/usr/include" "/user/include/c++/1.2.3/"))
+M-x customize-variable RET semantic-c-dependency-system-include-path RET
 @end example
 
-or you can add them like this:
 
-@example
-(semantic-add-system-include "/usr/include/new" 'c-mode)
-@end example
+Customizing this variable will allow you to setup your system include path
+and will update all files when you use custom to do it.
 
 @section EDE Setup
 
