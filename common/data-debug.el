@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.2 2008/04/01 01:07:45 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.3 2008/04/14 15:05:54 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -400,6 +400,7 @@ FACE is the face to use."
   "Alist of methods used to insert things into an Ddebug buffer.")
 
 ;; uber insert method
+;;;###autoload
 (defun data-debug-insert-thing (thing prefix prebuttontext &optional parent)
   "Insert THING with PREFIX.
 PREBUTTONTEXT is some text to insert between prefix and the thing
