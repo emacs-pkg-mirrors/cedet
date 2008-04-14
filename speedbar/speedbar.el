@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.258 2008/02/18 16:20:31 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.259 2008/04/14 15:07:12 zappo Exp $
 
 (defvar speedbar-version "1.0.2"
   "The current version of speedbar.")
@@ -2734,7 +2734,8 @@ updated."
 	  ;; It is important to select the frame, otherwise the window
 	  ;; we want the cursor to move in will not be updated by the
 	  ;; search-forward command.
-	  (select-frame (speedbar-current-frame))
+	  (let ((current-frame (speedbar-current-frame)))
+	    (when current-frame (select-frame current-frame)))
 	  ;; Remove the old file...
 	  (speedbar-clear-current-file)
 	  ;; now highlight the new one.
