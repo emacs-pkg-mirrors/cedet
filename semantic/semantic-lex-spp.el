@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.15 2008/04/12 03:25:31 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.16 2008/04/14 17:57:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -247,6 +247,8 @@ ARGVALUES are values for any arg list, or nil."
 	  ))
 
       ;; Remove args from the replacement list.
+      ;; @TODO - These can't be removed until the parser is done parsing through
+      ;;         semantic lists.
       (dolist (A arglist)
 	(semantic-lex-spp-symbol-remove A))
 
@@ -308,6 +310,42 @@ If BUFFER is not provided, use the current buffer."
 
 ;;; Analyzers
 ;;
+(defun semantic-lex-spp-anlyzer-do-replace (sym val beg end)
+  "Do the lexical replacement for SYM with VAL.
+Argument BEG and END specify the bounds of SYM in the buffer."
+  (if (not val)
+      (setq semantic-lex-end-point end)
+    (let ((arg-in nil)
+	  (arg-parsed nil)
+	  (arg-split nil)
+	  (val-rest val))
+
+      ;; Check for arguments.
+      (setq arg-in (semantic-lex-spp-macro-with-args val))
+
+      (when arg-in
+	(let ((new-end nil))
+	  (setq val-rest (cdr val))
+	  (save-excursion
+	    (goto-char end)
+	    (setq arg-parsed
+		  (semantic-lex-spp-one-token-and-move-for-macro
+		   (point-at-eol)))
+	    (setq end (semantic-lex-token-end arg-parsed))
+
+	    (when (and (listp arg-parsed) (eq (car arg-parsed) 'semantic-list))
+	      (setq arg-split
+		    ;; Use lex to split up the contents of the argument list.
+		    (semantic-lex-spp-stream-for-arglist arg-parsed)
+		    ))
+	    )))
+
+      ;; if we have something to sub in, then do it.
+      (semantic-lex-spp-macro-to-macro-stream val beg end arg-split)
+      (setq semantic-lex-end-point end)
+      )
+    ))
+
 (define-lex-regex-analyzer semantic-lex-spp-replace-or-symbol-or-keyword
   "Like 'semantic-lex-symbol-or-keyword' plus preprocessor macro replacement."
   "\\(\\sw\\|\\s_\\)+"
@@ -318,31 +356,8 @@ If BUFFER is not provided, use the current buffer."
 	;; It is a macro.  Prepare for a replacement.
 	(let* ((sym (semantic-lex-spp-symbol str))
 	       (val (symbol-value sym))
-	       (arg-in nil)
-	       (arg-parsed nil)
-	       (arg-split nil)
 	       )
-	  (if (not val)
-	      (setq semantic-lex-end-point end)
-	    ;; Check for arguments.
-	    (setq arg-in (semantic-lex-spp-macro-with-args val))
-
-	    (save-excursion
-	      (goto-char end)
-	      (setq arg-parsed
-		    (semantic-lex-spp-one-token-and-move-for-macro
-		     (point-at-eol)))
-	      (when (and (listp arg-parsed)
-			 (eq (car arg-parsed) 'semantic-list))
-		(setq arg-split 
-		      ;; Ok, we need to lex it up.  Ick!
-		      (semantic-lex-spp-stream-for-arglist arg-parsed)
-		      )
-		(setq end (semantic-lex-token-end arg-parsed))))
-
-	    ;; Do macro replacement.
-	    (semantic-lex-spp-macro-to-macro-stream val beg end arg-split)
-	    ))
+	  (semantic-lex-spp-anlyzer-do-replace sym val beg end))
       ;; A regular keyword.
       (semantic-lex-push-token
        (semantic-lex-token (or (semantic-lex-keyword-p str) 'symbol)
@@ -375,12 +390,18 @@ Don't go past MAX."
   "Lex up the contents of the arglist TOKEN.
 Parsing starts inside the parens, and ends at the end of TOKEN."
   (save-excursion
-    (let ((end (semantic-lex-token-end token)))
+    (let ((end (semantic-lex-token-end token))
+	  (fresh-toks nil)
+	  (toks nil))
       (goto-char (semantic-lex-token-start token))
       ;; A cheat for going into the semantic list.
       (forward-char 1)
-      (semantic-lex-spp-stream-for-macro (1- end))
-    )))
+      (setq fresh-toks (semantic-lex-spp-stream-for-macro (1- end)))
+      (dolist (tok fresh-toks)
+	(when (eq (semantic-lex-token-class tok) 'symbol)
+	  (setq toks (cons tok toks))))
+      (nreverse toks))
+    ))
 
 (defun semantic-lex-spp-stream-for-macro (eos)
   "Lex up a stream of tokens for a #define statement.
