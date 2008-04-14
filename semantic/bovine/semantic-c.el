@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.73 2008/04/14 12:15:53 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.74 2008/04/14 17:56:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -62,6 +62,26 @@ This function does not do any hidden buffer changes."
                t))))
   )
 ;;-------
+
+(defun semantic-c-reset-preprocessor-symbol-map ()
+  "Reset the C preprocessor symbol map based on all input variables."
+  (let ((filemap nil))
+    (dolist (sf semantic-lex-c-preprocessor-symbol-file)
+      ;; Global map entries
+      (let* ((table (semanticdb-file-table-object sf)))
+	(when table
+	  (setq filemap (append filemap (oref table lexical-table)))
+	  )
+	))
+
+    (setq-mode-local c-mode
+		     semantic-lex-spp-macro-symbol-obarray
+		     (semantic-lex-make-spp-table
+		      (append semantic-lex-c-preprocessor-symbol-map-builtin
+			      semantic-lex-c-preprocessor-symbol-map
+			      filemap))
+		     )
+    ))
 
 ;;; Lexical analysis
 (defvar semantic-lex-c-preprocessor-symbol-map-builtin
@@ -942,27 +962,6 @@ DO NOT return the list of tags encompassing point."
 
 (defvar-mode-local c-mode senator-step-at-tag-classes '(function variable)
   "Tag classes where senator will stop at the end.")
-
-
-(defun semantic-c-reset-preprocessor-symbol-map ()
-  "Reset the C preprocessor symbol map based on all input variables."
-  (let ((filemap nil))
-    (dolist (sf semantic-lex-c-preprocessor-symbol-file)
-      ;; Global map entries
-      (let* ((table (semanticdb-file-table-object sf)))
-	(when table
-	  (setq filemap (append filemap (oref table lexical-table)))
-	  )
-	))
-
-    (setq-mode-local c-mode
-		     semantic-lex-spp-macro-symbol-obarray
-		     (semantic-lex-make-spp-table
-		      (append semantic-lex-c-preprocessor-symbol-map-builtin
-			      semantic-lex-c-preprocessor-symbol-map
-			      filemap))
-		     )
-    ))
 
 ;;;###autoload
 (defun semantic-default-c-setup ()
