@@ -146,6 +146,9 @@ Semantic
       M-x load-library semantic-utest.el
       M-x semantic-utest-main RET
 
+      M-x load-library semantic-utest-c.el
+      M-x semantic-utest-c RET
+
       M-x load-library semantic-ai-utest.el+
       M-x semantic-ia-utest RET
 
