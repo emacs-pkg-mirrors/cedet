@@ -10,7 +10,7 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH= ../common/ ../common/ ../semantic/ ../eieio/\
+LOADPATH= ../common/  ../ede/ ../semantic/ ../eieio/\
     ../speedbar/ ../semantic/bovine/ ../semantic/wisent/
 LOADDEFS=srecode-loaddefs.el
 LOADDIRS=.
