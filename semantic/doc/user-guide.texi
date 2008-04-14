@@ -1066,6 +1066,12 @@ M-x semantic-add-system-include RET /some/path
 
   to add more paths interactively into the current mode's path.  This
 will allow semantic to find more files w/out using system databases.
+To customize the system include path for a particular major mode, use
+the command:
+
+@example
+M-x semantic-customize-system-include-path RET
+@end example
 
 @menu
 * Semanticdb Roots::    Specifying the root of different projects
@@ -1122,6 +1128,13 @@ Modifies a mode-local version of
 Add a system include @var{dir} to path for @var{mode}.
 Modifies a mode-local version of
 @code{semantic-dependency-system-include-path}.
+@end deffn
+
+@deffn Command semantic-customize-system-include-path &optional mode
+@anchor{semantic-customize-system-include-path}
+Customize the include path for this @code{major-mode}.
+To create a customizable include path for a major @var{mode}, use the
+macro @dfn{defcustom-mode-local-semantic-dependency-system-include-path}.
 @end deffn
 
 For a bit more on include paths, see the
