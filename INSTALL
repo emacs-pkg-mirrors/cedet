@@ -108,6 +108,16 @@ install scripts:
   installation.  Read contrib/INSTALL for specifics on those extra
   packages.
 
+3.1) INSTALL INFO
+
+Installing the info files can be done with:
+
+  make install-info
+
+or, if you need to specify:
+
+  make PREFIX=/prefix/to/install/to install-info
+
 4) CONFIGURE:
 
    You can configure how the individual packages loaded in the above
