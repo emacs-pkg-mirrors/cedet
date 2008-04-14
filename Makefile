@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.15 2008/01/29 14:38:51 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.16 2008/04/14 15:51:53 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -47,6 +47,13 @@ EMACS=emacs
 ## Path to your find and rm commands
 FIND=find
 #RM = rm -f
+
+## INSTALL PATHS
+PREFIX=/usr/local
+
+INFO_DIR=$(PREFIX)/share/info
+
+INSTALL_INFO=ginstall-info
 
 ############### Internal part of the Makefile ###############
 CEDET_VERSION=$(shell grep "defconst cedet-version" common/cedet.el | cut -d " " -f 3)
@@ -121,6 +128,28 @@ clean:
 	-print -exec $(RM) {} \;
 
 clean-all: clean clean-elc clean-info clean-grammars clean-autoloads
+
+### Install info files
+## Thanks Stefano Sabatini for the info install patch.
+INFO_FILES=$(shell $(FIND) $(CEDET_HOME) -type f -name '*.info')
+
+.PHONY: install-info
+install-info:
+	for file in $(INFO_FILES); do \
+	    cp $$file $(INFO_DIR); \
+	    $(INSTALL_INFO) $$file $(INFO_DIR)/dir ;\
+	done 
+
+## Uninstall info files 
+INSTALLED_INFO_FILES=$(shell find . -name *.info | sed -e 's|.*/\(.*\.info$$\)|$(INFO_DIR)/\1|')
+
+.PHONY: uninstall-info
+uninstall-info:
+	for file in $(INSTALLED_INFO_FILES); do \
+	    $(INSTALL_INFO) --delete $$file $(INFO_DIR)/dir ;\
+	    rm -f $$file;\
+	done
+
 
 ## Build a distribution file.
 dist: # $(CEDET_PACKAGES)
