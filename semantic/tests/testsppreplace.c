@@ -43,3 +43,15 @@ int myFcn1 P_((a,b));
 int myFcn2 P__((int a, int b));
 int myFcn3 (int a, int b);
 
+/* TEST: Multiple args to a macro. */
+#define MULTI_ARGS(name, field1, field2, field3) struct name { int field1; int field2; int field3; }
+
+MULTI_ARGS(ma_struct, moose, penguin, emu);
+
+/* TEST: Macro w/ args, but no body. */
+#define NO_BODY(name)
+
+NO_BODY(Moose);
+
+
+/* END */
