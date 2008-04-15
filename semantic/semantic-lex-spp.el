@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.16 2008/04/14 17:57:08 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.17 2008/04/15 03:52:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -199,7 +199,8 @@ Return non-nil if it matches"
 
 (defun semantic-lex-spp-macro-with-args (val)
   "If the macro value VAL has an arglist, return the arglist."
-  (when (and val (listp val) (eq 'spp-arg-list (car (car val))))
+  (when (and val (consp val) (consp (car val))
+	     (eq 'spp-arg-list (car (car val))))
     (car (cdr (car val)))))
 
 (defun semantic-lex-spp-macro-to-macro-stream (val beg end argvalues)
@@ -209,14 +210,19 @@ BEG and END are the token bounds of the macro to be expanded
 that will somehow gain a much longer token stream.
 ARGVALUES are values for any arg list, or nil."
   (cond
+   ;; If val is nil, then just skip it.
+   ((null val)
+    nil)
    ;; If it is a token, then return that token rebuilt.
-   ((and (listp val) (symbolp (car val)))
+   ((and (consp val) (car val) (symbolp (car val)))
     (semantic-lex-push-token
-     (semantic-lex-token (car val) beg end (car (cdr val)))
-     ))
+     (semantic-lex-token (car val) beg end (semantic-lex-token-text val)))
+    )
    ;; If it is a list of tokens, then push each token one at a time.
-   ((and (listp val) (listp (car val)) (symbolp (car (car val))))
+   ((and (consp val) (consp (car val)) (car (car val))
+	 (symbolp (car (car val))))
     (let ((arglist (semantic-lex-spp-macro-with-args val))
+	  (argalist nil)
 	  )
       ;; Skip the arg list.
       (when arglist (setq val (cdr val)))
@@ -224,6 +230,7 @@ ARGVALUES are values for any arg list, or nil."
       ;; Push args into the replacement list.
       (dolist (A arglist)
 	(semantic-lex-spp-symbol-set A (car argvalues))
+	(setq argalist (cons (cons A (car argvalues)) argalist))
 	(setq argvalues (cdr argvalues)))
 
       ;; Push everything else onto the list.
@@ -231,24 +238,28 @@ ARGVALUES are values for any arg list, or nil."
 	(let ((txt (car (cdr v)))
 	      (sym nil)
 	      )
-	  (if (and (eq (car v) 'symbol)
-		   (setq sym (semantic-lex-spp-symbol txt)))
-
-	      (progn
-		;; Special arg symbol
-		(semantic-lex-spp-macro-to-macro-stream
-		 (symbol-value sym)
-		 beg end nil)
-		)
+	  (cond
+	   ((and (eq (car v) 'symbol) (setq sym (semantic-lex-spp-symbol txt)))
+	    ;; Special arg symbol
+	    (semantic-lex-spp-macro-to-macro-stream
+	     (symbol-value sym)
+	     beg end nil)
+	    )
+	   ((eq (car v) 'semantic-list)
+	    ;; Push our arg list onto the semantic list.
+	    (when argalist
+	      (setq txt (concat txt))
+	      (put-text-property 0 1 'macros argalist txt))
+	    (semantic-lex-push-token
+	     (semantic-lex-token (car v) beg end txt))
+	    )
+	   (t
 	    ;; Nothing new.
 	    (semantic-lex-push-token
 	     (semantic-lex-token (car v) beg end txt))
 	    )
-	  ))
-
-      ;; Remove args from the replacement list.
-      ;; @TODO - These can't be removed until the parser is done parsing through
-      ;;         semantic lists.
+	   )))
+      
       (dolist (A arglist)
 	(semantic-lex-spp-symbol-remove A))
 
