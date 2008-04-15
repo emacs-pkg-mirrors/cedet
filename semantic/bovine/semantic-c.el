@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.74 2008/04/14 17:56:01 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.75 2008/04/15 03:53:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -381,13 +381,15 @@ The text of the token is inserted into a different buffer, and
 parsed there.
 Argument NONTERMINAL, DEPTH, and RETURNONERROR are passed into
 the regular parser."
-  (let ((buf (get-buffer-create " *C parse hack*"))
-	(mode major-mode)
-	(spp-syms semantic-lex-spp-dynamic-macro-symbol-obarray)
-	(stream nil)
-	(start (semantic-lex-token-start lexicaltoken))
-	(end (semantic-lex-token-end lexicaltoken))
-	)
+  (let* ((buf (get-buffer-create " *C parse hack*"))
+	 (mode major-mode)
+	 (spp-syms semantic-lex-spp-dynamic-macro-symbol-obarray)
+	 (stream nil)
+	 (start (semantic-lex-token-start lexicaltoken))
+	 (end (semantic-lex-token-end lexicaltoken))
+	 (symtext (semantic-lex-token-text lexicaltoken))
+	 (macros (get-text-property 0 'macros symtext))
+	 )
     (save-excursion
       (set-buffer buf)
       (erase-buffer)
@@ -401,12 +403,25 @@ the regular parser."
 	(setq semantic-new-buffer-fcn-was-run t)
 	(semantic-lex-init)
 	(semantic-clear-toplevel-cache)
+	(remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
+		     t)
 	)
+      ;; Get the macro symbol table right.
       (setq semantic-lex-spp-dynamic-macro-symbol-obarray spp-syms)
-      (insert (semantic-lex-token-text lexicaltoken))
+      (message "%S" macros)
+      (dolist (sym macros)
+	(semantic-lex-spp-symbol-set (car sym) (cdr sym)))
+
+      (insert symtext)
+
       (setq stream
 	    (semantic-parse-region-default
 	     (point-min) (point-max) nonterminal depth returnonerror))
+
+      ;; Clean up macro symbols
+      (dolist (sym macros)
+	(semantic-lex-spp-symbol-remove (car sym)))
+
       ;; Convert the text of the stream.
       (dolist (tag stream)
 	;; Only do two levels here 'cause I'm lazy.
