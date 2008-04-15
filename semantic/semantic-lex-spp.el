@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.17 2008/04/15 03:52:52 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.18 2008/04/15 04:08:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -409,7 +409,7 @@ Parsing starts inside the parens, and ends at the end of TOKEN."
       (forward-char 1)
       (setq fresh-toks (semantic-lex-spp-stream-for-macro (1- end)))
       (dolist (tok fresh-toks)
-	(when (eq (semantic-lex-token-class tok) 'symbol)
+	(when (memq (semantic-lex-token-class tok) '(symbol semantic-list))
 	  (setq toks (cons tok toks))))
       (nreverse toks))
     ))
