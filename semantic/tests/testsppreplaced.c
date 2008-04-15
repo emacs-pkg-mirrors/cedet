@@ -32,3 +32,7 @@ int myFcn1 ();
 int myFcn2 (int a, int b);
 int myFcn3 (int a, int b);
 
+/* TEST: Multiple args to a macro. */
+struct ma_struct { int moose; int penguin; int emu; };
+
+/* TEST: Macro w/ args, but no body. */
