@@ -634,7 +634,7 @@ Once installed, you can jump right in to writing your Lisp and
 If you are using CEDET With C++, then there are a few C++ specific
 options you may need to update.
 
-@section Semantic Parser setup
+@section C Pre-processor
 
 C and C++ use pre-processor directives, and the @semantic{} parser has
 some basic support for a pre-processor.  As such, you may need to set
@@ -687,6 +687,15 @@ to store your global macros in a more natural way.
 
 Some such symbols for @file{stdio.h} as found on Linux are defined in
 @code{semantic-lex-c-preprocessor-symbol-map-builtin}.
+
+Lastly, you could just opt to ignore conditional parsing.
+
+@deffn Option semantic-c-obey-conditional-section-parsing-flag
+@anchor{semantic-c-obey-conditional-section-parsing-flag}
+Non-@code{nil} means to interpret preprocessor #if sections.
+This implies that some blocks of code will not be parsed based on the
+values of the conditions in the #if blocks.
+@end deffn
 
 @section System Include path
 
