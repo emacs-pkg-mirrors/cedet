@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.75 2008/04/15 03:53:32 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.76 2008/04/20 11:58:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,8 +61,11 @@ This function does not do any hidden buffer changes."
                (forward-char)
                t))))
   )
-;;-------
 
+;;; Code:
+
+;;; Pre-processor maps
+;;
 (defun semantic-c-reset-preprocessor-symbol-map ()
   "Reset the C preprocessor symbol map based on all input variables."
   (let ((filemap nil))
@@ -142,7 +145,6 @@ to store your global macros in a more natural way."
 	 )
   )
 
-;;; Code:
 (define-lex-spp-macro-declaration-analyzer semantic-lex-cpp-define
   "A #define of a symbol with some value.
 Record the symbol in the semantic preprocessor.
@@ -173,6 +175,16 @@ Remove the symbol from the semantic preprocessor.
 Return the the defined symbol as a special spp lex token."
   "^\\s-*#\\s-*undef\\s-+\\(\\(\\sw\\|\\s_\\)+\\)" 1)
 
+
+;;; Conditional Skipping
+;;
+(defcustom semantic-c-obey-conditional-section-parsing-flag t
+  "*Non-nil means to interpret preprocessor #if sections.
+This implies that some blocks of code will not be parsed based on the
+values of the conditions in the #if blocks."
+  :group 'c
+  :type 'boolean)
+
 (defun semantic-c-skip-conditional-section ()
   "Skip one section of a conditional.
 Moves forward to a matching #elif, #else, or #endif.
@@ -181,8 +193,11 @@ Movers completely over balanced #if blocks."
     ;; (if (looking-at "^\\s-*#if")
     ;; (semantic-lex-spp-push-if (point))
     (end-of-line)
-    (while (and (not done)
-		(re-search-forward "^\\s-*#\\(if\\(n?def\\)?\\|el\\(if\\|se\\)\\|endif\\)\\>" nil t))
+    (while (and semantic-c-obey-conditional-section-parsing-flag
+		(and (not done)
+		     (re-search-forward
+		      "^\\s-*#\\(if\\(n?def\\)?\\|el\\(if\\|se\\)\\|endif\\)\\>"
+		      nil t)))
       (goto-char (match-beginning 0))
       (cond
        ((looking-at "^\\s-*#if")
