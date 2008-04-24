@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.76 2008/04/20 11:58:14 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.77 2008/04/24 01:02:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -975,7 +975,7 @@ DO NOT return the list of tags encompassing point."
   "Imenu index function for C.")
 
 (defvar-mode-local c-mode semantic-type-relation-separator-character 
-  '("." "->")
+  '("." "->" "::")
   "Separator characters between something of a given type, and a field.")
 
 (defvar-mode-local c-mode semantic-command-separation-character ";"
