@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.48 2008/01/06 02:11:32 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.49 2008/04/24 01:02:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -401,6 +401,7 @@ Depends on `semantic-type-relation-separator-character'."
 	  (error nil)))
       symlist)))
 
+
 (define-overload semantic-ctxt-current-symbol-and-bounds (&optional point)
   "Return the current symbol and bounds the cursor is on at POINT.
 The symbol should be the same as returned by `semantic-ctxt-current-symbol'.
@@ -521,13 +522,15 @@ Assume a functional typed language.  Uses very simple rules."
     (if point (goto-char point))
 
     (let ((tag (semantic-current-tag)))
-      (when tag
-	(cond ((semantic-tag-of-class-p tag 'function)
-	       '(function variable))
-	      ((or (semantic-tag-of-class-p tag 'type)
-		   (semantic-tag-of-class-p tag 'variable))
-	       '(type))
-	      (t nil))))))
+      (if tag
+	  (cond ((semantic-tag-of-class-p tag 'function)
+		 '(function variable type))
+		((or (semantic-tag-of-class-p tag 'type)
+		     (semantic-tag-of-class-p tag 'variable))
+		 '(type))
+		(t nil))
+	'(type)
+	))))
 
 (define-overload semantic-ctxt-current-mode (&optional point)
   "Return the major mode active at POINT.
