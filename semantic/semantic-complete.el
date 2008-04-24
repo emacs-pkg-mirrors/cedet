@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.51 2008/04/02 16:32:22 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.52 2008/04/24 01:16:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1626,30 +1626,27 @@ Display mechanism using tooltip for a list of possible completions.")
 (defun semantic-displayor-point-position ()
   "Return the location of POINT as positioned on the selected frame.
 Return a cons cell (X . Y)"
-  (let* ((w (selected-window))
-	 (f (selected-frame))
-	 (edges (semantic-displayor-window-edges w))
-	 (col (current-column))
-	 (row (count-lines (window-start w) (point)))
-	 (x (+ (car edges) col))
-	 (y (+ (car (cdr edges)) row)))
-    (cons x y))
-  )
+  (let* ((frame (selected-frame))
+	 (left (frame-parameter frame 'left))
+	 (top (frame-parameter frame 'top))
+	 (point-pix-pos (posn-x-y (posn-at-point)))
+	 (edges (window-inside-pixel-edges (selected-window))))
+    (cons (+ (car point-pix-pos) (car edges) left)
+          (+ (cdr point-pix-pos) (cadr edges) top))))
+
 
 (defun semantic-displayor-tooltip-show (text)
   "Display a tooltip with TEXT near cursor."
-  (let* ((P (semantic-displayor-point-position))
-	 (frame (selected-frame))
-	 (x (car P))
-	 (y (cdr P))
-	 (oP (mouse-pixel-position))
-	 (tooltip-x-offset 0)
-	 (tooltip-y-offset -40)
-	 )
-    (set-mouse-position frame x y)
-    (tooltip-show text)
-    (set-mouse-pixel-position (nth 0 oP) (nth 1 oP) (nthcdr 2 oP))
-    ))
+  (let ((point-pix-pos (semantic-displayor-point-position))
+	(tooltip-frame-parameters
+	 (append tooltip-frame-parameters nil)))
+    (push
+     (cons 'left (+ (car point-pix-pos) (frame-char-width)))
+     tooltip-frame-parameters)
+    (push
+     (cons 'top (+ (cdr point-pix-pos) (frame-char-height)))
+     tooltip-frame-parameters)
+    (tooltip-show text)))
 
 (defmethod semantic-displayor-scroll-request ((obj semantic-displayor-tooltip))
   "A request to for the displayor to scroll the completion list (if needed)."
@@ -1881,6 +1878,7 @@ to control how completion options are displayed.
 See `semantic-complete-inline-tag-engine' for details on how
 completion works."
   (if (not context) (setq context (semantic-analyze-current-context (point))))
+  (if (not context) (error "Nothing to complete on here"))
   (let* ((collector (semantic-collector-analyze-completions
 		     "inline"
 		     :buffer (oref context buffer)
