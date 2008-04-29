@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.12 2008/03/18 17:45:17 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.13 2008/04/29 18:27:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,15 +94,16 @@ If a database for DIRECTORY has already been loaded, return it.
 If a database for DIRECTORY exists, then load that database, and return it.
 If DIRECTORY doesn't exist, create a new one."
   ;; System databases span directories.  Be smart about creation.
-  (or semanticdb-database-being-created
-      (call-next-method))
-  ;; Add system paths for this mode
-  (let ((m (oref-default dbc major-modes)))
-    (while m
-      (semantic-add-system-include directory (car m))
-      (message "Adding %s to system include for %s" directory (car m))
-      (setq m (cdr m))))
-  )
+  (let ((new (or semanticdb-database-being-created
+		 (call-next-method))))
+    ;; Add system paths for this mode
+    (let ((m (oref-default dbc major-modes)))
+      (while m
+	(semantic-add-system-include directory (car m))
+	(message "Adding %s to system include for %s" directory (car m))
+	(setq m (cdr m))))
+    ;; Return it.
+    new))
 
 (defmethod semanticdb-write-directory-p
   ((obj semanticdb-project-database-system))
@@ -230,7 +231,7 @@ and parsed. After the database is created, save it, and return the DB."
       (let ((table (semanticdb-file-table sysdb (car files)))
 	    )
 	;; 1) Skip if loaded
-	(unless (and table (oref table tags))
+	(unless (and table (or (not (slot-boundp table 'tags)) (oref table tags)))
 	  ;; 3) load the file.
 	  (let ((b (find-buffer-visiting (car files))))
 	    (save-excursion
