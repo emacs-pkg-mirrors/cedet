@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.30 2008/02/19 03:20:20 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.31 2008/04/29 17:50:23 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -388,13 +388,13 @@ Optional ROOTPROJ is the root EDE project."
       amo)
     ))
 
-(defun project-am-find-topmost-level (path)
-  "Find the topmost automakefile starting with PATH."
-  (let ((newpath path))
-    (while (file-exists-p (concat newpath "Makefile.am"))
-      (setq path newpath newpath
-	    (file-name-directory (substring path 0 (1- (length path))))))
-    (expand-file-name path)))
+(defun project-am-find-topmost-level (dir)
+  "Find the topmost automakefile starting with DIR."
+  (let ((newdir dir))
+    (while (file-exists-p (concat newdir "Makefile.am"))
+      (setq dir newdir newdir
+	    (file-name-directory (directory-file-name newdir))))
+    (expand-file-name dir)))
 
 (defun project-am-load-makefile (path)
   "Converts PATH into a project Makefile, and return it's object object.
@@ -597,9 +597,9 @@ nil means that this buffer belongs to no-one."
   (member (file-name-nondirectory (buffer-file-name buffer))
 	  (oref this :lisp)))
 
-(defmethod project-am-subtree ((ampf project-am-makefile) subpath)
-  "Return the sub project in AMPF specified by SUBPATH."
-  (object-assoc (expand-file-name subpath) 'file (oref ampf subproj)))
+(defmethod project-am-subtree ((ampf project-am-makefile) subdir)
+  "Return the sub project in AMPF specified by SUBDIR."
+  (object-assoc (expand-file-name subdir) 'file (oref ampf subproj)))
 
 (defmethod project-compile-target-command ((this project-am-target))
   "Default target to use when compiling a given target."
@@ -623,9 +623,11 @@ nil means that this buffer belongs to no-one."
 (defun project-am-last-dir (file)
   "Return the last part of a directory name.
 Argument FILE is the file to extract the end directory name from."
-  (let ((s (file-name-directory file)))
-    (string-match "/\\([a-zA-Z0-9_]+\\)/$" s)
-    (match-string 1 s)))
+  (let* ((s (file-name-directory file))
+	 (d (directory-file-name s))
+	 )
+    (file-name-nondirectory d))
+  )
 
 (defun project-am-preferred-target-type (file)
   "For FILE, return the preferred type for that file."
