@@ -35,4 +35,9 @@ int myFcn3 (int a, int b);
 /* TEST: Multiple args to a macro. */
 struct ma_struct { int moose; int penguin; int emu; };
 
+/* TEST: Not a macro with args, but close. */
+int not_with_args_fcn (moose)
+{
+}
+
 /* TEST: Macro w/ args, but no body. */
