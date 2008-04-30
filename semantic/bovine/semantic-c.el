@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.77 2008/04/24 01:02:56 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.78 2008/04/30 03:01:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -154,13 +154,19 @@ Return the the defined symbol as a special spp lex token."
   (skip-chars-forward " \t")
   (if (eolp)
       nil
-    (let ((raw-stream
+    (let ((with-args (save-excursion
+		       (goto-char (match-end 0))
+		       (looking-at "(")))
+	  (raw-stream
 	   (semantic-lex-spp-stream-for-macro (save-excursion
 						(semantic-c-end-of-macro)
 						(point))))
 	  )
 
-      (semantic-lex-spp-first-token-arg-list (car raw-stream))
+      ;; Only do argument checking if the paren was immediatly after
+      ;; the macro name.
+      (if with-args
+	  (semantic-lex-spp-first-token-arg-list (car raw-stream)))
 
       ;; Magical spp variable for end point.
       (setq semantic-lex-end-point (point))
