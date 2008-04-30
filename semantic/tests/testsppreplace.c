@@ -53,5 +53,11 @@ MULTI_ARGS(ma_struct, moose, penguin, emu);
 
 NO_BODY(Moose);
 
+/* TEST: Not a macro with args, but close. */
+#define NOT_WITH_ARGS     (moose)
+
+int not_with_args_fcn NOT_WITH_ARGS
+{
+}
 
 /* END */
