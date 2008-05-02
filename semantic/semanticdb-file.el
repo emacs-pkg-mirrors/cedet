@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.31 2008/03/29 15:31:29 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.32 2008/05/02 01:33:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -200,10 +200,10 @@ If DB is not specified, then use the current database."
     (when (and (semanticdb-live-p DB)
 	       (semanticdb-write-directory-p DB)
 	       (semanticdb-dirty-p DB))
-      (message "Saving tag summary for %s..." objname)
+      ;;(message "Saving tag summary for %s..." objname)
       (condition-case foo
 	  (eieio-persistent-save (or DB semanticdb-current-database))
-	(file-error ; System error saving?  Ignore it.
+	(file-error		    ; System error saving?  Ignore it.
 	 (message "Error saving %s" objname))
 	(error
 	 (cond
@@ -216,12 +216,15 @@ If DB is not specified, then use the current database."
 		(string-match "no such directory" (nth 1 foo)))
 	   (message (nth 1 foo)))
 	  (t
-	   (if (y-or-n-p (format "Skip Error: %S ?" (car (cdr foo))))
+	   ;; @todo - It should ask if we are not called from a hook.
+	   ;;         How?
+	   (if nil ; (y-or-n-p (format "Skip Error: %S ?" (car (cdr foo))))
 	       nil
 	     (error "%S" (car (cdr foo))))))))
       (run-hook-with-args 'semanticdb-save-database-hooks
 			  (or DB semanticdb-current-database))
-      (message "Saving tag summary for %s...done" objname))
+      ;;(message "Saving tag summary for %s...done" objname)
+      )
     ))
 
 ;;;###autoload
