@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.36 2008/02/18 15:26:22 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.37 2008/05/03 14:23:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,6 +53,10 @@
 ;; 1. Changes in the whitespace between tags could extend a
 ;;    following tag.  These will be marked as merely unmatched
 ;;    syntax instead.
+;;
+;; 2. Incremental parsing while a new function is being typed in
+;;    somtimes gets a chance only when lists are incomplete,
+;;    preventing correct context identification.
 
 ;;
 (require 'semantic)
