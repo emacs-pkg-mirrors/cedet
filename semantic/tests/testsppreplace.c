@@ -60,4 +60,16 @@ int not_with_args_fcn NOT_WITH_ARGS
 {
 }
 
+/* TEST: macro w/ continuation. */
+#define WITH_CONT \
+  continuation_symbol
+
+int WITH_CONT () { };
+
+/* TEST: macros in a macro - tail processing */
+#define tail_with_args_and_long_name(a) (int a)
+#define int_arg tail_with_args_and_long_name
+
+int tail int_arg(q) {}
+
 /* END */
