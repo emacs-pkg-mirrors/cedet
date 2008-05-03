@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.53 2008/03/27 02:57:28 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.54 2008/05/03 14:23:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -388,6 +388,35 @@ Optional argument IGNORABLE-ATTRIBUTES are attributes to ignore while comparing 
     
     (and A1 A2 A3)
     ))
+
+(defun semantic-tag-similar-with-subtags-p (tag1 tag2 &rest ignorable-attributes)
+  "Test to see if TAG1 and TAG2 are similar.
+Uses `semantic-tag-similar-p' but also recurses through sub-tags, such
+as argument lists and type members.
+Optional argument IGNORABLE-ATTRIBUTES is passed down to
+`semantic-tag-similar-p'."
+  (let ((C1 (semantic-tag-components tag1))
+	(C2 (semantic-tag-components tag2))
+	)
+    (if (or (/= (length C1) (length C2))
+	    (not (semantic-tag-similar-p tag1 tag2 ignorable-attributes))
+	    )
+	;; Basic test fails.
+	nil
+      ;; Else, check component lists.
+      (catch 'component-dissimilar
+	(while C1
+
+	  (if (not (semantic-tag-similar-with-subtags-p
+		    (car C1) (car C2) ignorable-attributes))
+	      (throw 'component-dissimilar nil))
+
+	  (setq C1 (cdr C1))
+	  (setq C2 (cdr C2))
+	  )
+	;; If we made it this far, we are ok.
+	t) )))
+  
 
 (defun semantic-tag-of-type-p (tag type)
   "Compare TAG's type against TYPE.  Non nil if equivalent.
@@ -991,6 +1020,7 @@ This function is for internal use only."
   "Convert all tags in the current cache to use overlay proxys.
 This function is for internal use only."
   (semantic--tag-unlink-list-from-buffer
+   ;; @todo- use fetch-tags-fast?
    (semantic-fetch-tags)))
 
 (defun semantic--tag-link-cache-to-buffer ()
