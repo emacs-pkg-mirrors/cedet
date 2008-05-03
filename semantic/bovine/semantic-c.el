@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.78 2008/04/30 03:01:29 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.79 2008/05/03 14:21:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -154,14 +154,24 @@ Return the the defined symbol as a special spp lex token."
   (skip-chars-forward " \t")
   (if (eolp)
       nil
-    (let ((with-args (save-excursion
-		       (goto-char (match-end 0))
-		       (looking-at "(")))
-	  (raw-stream
-	   (semantic-lex-spp-stream-for-macro (save-excursion
-						(semantic-c-end-of-macro)
-						(point))))
-	  )
+    (let* ((with-args (save-excursion
+			(goto-char (match-end 0))
+			(looking-at "(")))
+	   (semantic-lex-spp-replacements-enabled nil)
+	   (raw-stream
+	    (semantic-lex-spp-stream-for-macro (save-excursion
+						 (semantic-c-end-of-macro)
+						 (point))))
+	   )
+
+      ;; If this symbol refers to some other symbol, do a replacement.
+      ;; @todo - This really needs to handle the case of multiple
+      ;;         macros, but we'll see if we get any reports on that.
+      (when (and (consp raw-stream) (consp (car raw-stream))
+		 (eq (car (car raw-stream)) 'spp-replace-replace))
+
+	;; extract the replacement.
+	(setq raw-stream (car (cdr (car raw-stream)))))
 
       ;; Only do argument checking if the paren was immediatly after
       ;; the macro name.
