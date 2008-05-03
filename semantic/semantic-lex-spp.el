@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.18 2008/04/15 04:08:03 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.19 2008/05/03 14:20:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -357,22 +357,53 @@ Argument BEG and END specify the bounds of SYM in the buffer."
       )
     ))
 
+(defvar semantic-lex-spp-replacements-enabled t
+  "Non-nil means do replacements when finding keywords.
+Disable this only to prevent recursive expansion issues.")
+
+(defun semantix-lex-spp-analyzer-push-tokens-for-symbol (str beg end)
+  "Push lexical tokens for the symbol or keyword STR.
+STR occurs in the current buffer between BEG and END."
+  (let (sym val)
+    (cond
+     ;;
+     ;; It is a macro.  Prepare for a replacement.
+     ((and semantic-lex-spp-replacements-enabled
+	   (semantic-lex-spp-symbol-p str))
+      (setq sym (semantic-lex-spp-symbol str)
+	    val (symbol-value sym))
+      (semantic-lex-spp-anlyzer-do-replace sym val beg end))
+     ;;
+     ;; A macro that needs a raw replacement, not a full textual replacemnet.
+     ((and (not semantic-lex-spp-replacements-enabled)
+	   (semantic-lex-spp-symbol-p str)
+	   ;; Get sym values
+	   (setq sym (semantic-lex-spp-symbol str))
+	   (setq val (symbol-value sym))
+	   ;; Is it a list of lex tags?
+	   (consp val) (consp (car val))
+	   )
+      ;; We are inside a stream for assignment into another lexical
+      ;; symbol.  Push a magic keyword.
+      ;;(message "push %S" val)
+      (semantic-lex-push-token
+       (semantic-lex-token 'spp-replace-replace start end val))
+      )
+     ;; Anything else.
+     (t
+      ;; A regular keyword.
+      (semantic-lex-push-token
+       (semantic-lex-token (or (semantic-lex-keyword-p str) 'symbol)
+			   beg end))))
+    ))
+
 (define-lex-regex-analyzer semantic-lex-spp-replace-or-symbol-or-keyword
   "Like 'semantic-lex-symbol-or-keyword' plus preprocessor macro replacement."
   "\\(\\sw\\|\\s_\\)+"
   (let ((str (match-string 0))
 	(beg (match-beginning 0))
 	(end (match-end 0)))
-    (if (semantic-lex-spp-symbol-p str)
-	;; It is a macro.  Prepare for a replacement.
-	(let* ((sym (semantic-lex-spp-symbol str))
-	       (val (symbol-value sym))
-	       )
-	  (semantic-lex-spp-anlyzer-do-replace sym val beg end))
-      ;; A regular keyword.
-      (semantic-lex-push-token
-       (semantic-lex-token (or (semantic-lex-keyword-p str) 'symbol)
-			   beg end)))))
+    (semantix-lex-spp-analyzer-push-tokens-for-symbol str beg end)))
 
 (defun semantic-lex-spp-first-token-arg-list (token)
   "If TOKEN is a semantic-list, turn it into a an SPP ARG LIST."
@@ -421,7 +452,14 @@ EOS is the end of the stream to lex for this macro."
   (let ((stream nil))
     (while (< (point) eos)
       (let* ((tok (semantic-lex-spp-one-token-and-move-for-macro eos))
-	     (str (when tok (semantic-lex-token-text tok))))
+	     (str (when tok
+		    (cond
+		     ((eq (semantic-lex-token-class tok) 'spp-replace-replace)
+		      (car (cdr tok))
+		      )
+		     (t
+		      (semantic-lex-token-text tok)))))
+	     )
 	(if str
 	    (push (semantic-lex-token (semantic-lex-token-class tok)
 				      (semantic-lex-token-start tok)
@@ -431,8 +469,9 @@ EOS is the end of the stream to lex for this macro."
 	  ;; Nothing to push.
 	  nil)))
     (goto-char eos)
-    (nreverse stream))
-  )
+    ;; Fix the order
+    (nreverse stream)
+    ))
 
 (defmacro define-lex-spp-macro-declaration-analyzer (name doc regexp tokidx
 							  &rest valform)
