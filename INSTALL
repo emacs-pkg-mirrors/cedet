@@ -12,9 +12,10 @@ includeing:
 
 REQUIREMENTS:
 
-   The CEDET suite requires either Emacs 21.3 or XEmacs 21.3 or better
-   for all features to work.  Older versions of either will also work
-   with fewer CEDET features being available.
+   The full CEDET suite requires Emacs 22.1 or newer.
+   CEDET works well with either Emacs 21.3 or XEmacs 21.3.
+   Older versions of either will also work with fewer CEDET
+   features being available.
 
    If you use a binary install of Emacs, you may need the .el
    files for Emacs available for some aspects of the build.
@@ -28,9 +29,9 @@ install scripts:
 
 2) Byte compile
 
-   a) make
+   There are several ways to get CEDET compiled:
 
-   -OR-
+   a) make
 
    b) make EMACS=<your favorite emacs>
 
@@ -69,8 +70,9 @@ install scripts:
   Makefiles, (such as the version on AIX) you will need to download and
   install GNU Make to use with these Makefiles.
 
-3) Install load hooks into your .emacs file.  The following snippet
-   should get you going for basic code-completion.
+3) Install load hooks into your .emacs file.  For more detail on
+   any topic, see the info file common/cedet.info for more details on
+   installaiton.
 
 -----------
 ;; Load CEDET.
@@ -108,15 +110,21 @@ install scripts:
   installation.  Read contrib/INSTALL for specifics on those extra
   packages.
 
-3.1) INSTALL INFO
+3.1) CODE COMPLETION
 
-Installing the info files can be done with:
+  If you are installing CEDET to get code completion, see the info
+  manual in common/cedet.info for more specifically about code
+  completion.
 
-  make install-info
+3.2) INSTALL INFO
 
-or, if you need to specify:
+   Installing the info files can be done with:
 
-  make PREFIX=/prefix/to/install/to install-info
+     make install-info
+
+   or, if you need to specify:
+
+     make PREFIX=/prefix/to/install/to install-info
 
 4) CONFIGURE:
 
@@ -147,8 +155,9 @@ or, if you need to specify:
 
    http://lists.sourceforge.net/lists/listinfo/cedet-eieio
 
-   For general discussions on development of these tools, use the
-   mailing list cedet-devel@sourceforge.net via the URL:
+   For general discussions on development of these tools, and get learn
+   when minor updates are added to CVS, use the mailing list
+   cedet-devel@sourceforge.net via the URL:
 
    http://lists.sourceforge.net/lists/listinfo/cedet-devel
 
