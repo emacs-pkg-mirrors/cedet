@@ -7,7 +7,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.25 2008/02/08 20:59:04 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.26 2008/05/04 12:50:41 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -79,7 +79,7 @@
   (require 'cl)
   )
 
-(defconst cedet-version "1.0pre4"
+(defconst cedet-version "1.0pre5"
   "Current version of CEDET.")
 
 (defconst cedet-emacs-min-version "21.1"
@@ -91,13 +91,13 @@
   `(
     ;;PACKAGE   MIN-VERSION      INSTALLDIR DOCDIR
     (cedet         ,cedet-version "common"  "common" 	   )
-    (cogre         "0.5"           nil      "cogre"  	   )
-    (ede           "1.0pre4"       nil      "ede"    	   )    
-    (eieio         "1.0"           nil      "eieio"        )
-    (semantic      "2.0pre4"       nil      "semantic/doc" )
-    (speedbar      "1.0.1"         nil      "speedbar"     )
+    (cogre         "0.6"           nil      "cogre"  	   )
+    (ede           "1.0pre5"       nil      "ede"    	   )    
+    (eieio         "1.0.1"         nil      "eieio"        )
+    (semantic      "2.0pre5"       nil      "semantic/doc" )
+    (speedbar      "1.0.2"         nil      "speedbar"     )
     (srecode       "0.1"           nil      "srecode"      ) 
-    (cedet-contrib "1.0pre4"      "contrib"  nil           )
+    (cedet-contrib "1.0pre5"      "contrib"  nil           )
     )
   "Table of CEDET packages to install.")
 
