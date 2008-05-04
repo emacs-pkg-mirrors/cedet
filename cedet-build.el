@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-build.el,v 1.3 2008/04/09 01:20:24 zappo Exp $
+;; X-RCS: $Id: cedet-build.el,v 1.4 2008/05/04 15:28:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -26,7 +26,7 @@
 ;;
 ;;; USAGE:
 ;;
-;; Step 1:  Start emacs like this:
+;; Step 1:  Compile CEDET in a fresh Emacs:
 ;;
 ;;     emacs -Q -l cedet-build.el -f cedet-build
 ;;
@@ -36,6 +36,16 @@
 ;;
 ;;     M-x eval-buffer
 ;;     M-x cedet-build-in-default-emacs
+;;
+;;   or
+;;
+;;     if this is an incremental build, you can do:
+;;
+;;     M-x eval-buffer
+;;     M-x cedet-build-in-this-emacs
+;;
+;;     If EIEIO needs recompile, it will switch to compiling in
+;;     a subprocess with `cedet-build-in-default-emacs'.
 ;;
 ;; Step 2: Check Output.
 ;;
@@ -57,6 +67,15 @@
                   "-Q" "-l" "cedet-build.el" "-f" "cedet-build")
     (message "Started new Emacs instance to build CEDET ...")))
 
+(defun cedet-build-in-this-emacs ()
+  "Build CEDET in this version of Emacs.
+This only works if EIEIO does not need to be compiled."
+  (interactive)
+  (let ((src "eieio/eieio.el") (dst "eieio/eieio.elc"))
+    (if (file-newer-than-file-p src dst)
+	(when (y-or-n-p "EIEIO needs to be recompiled.  Use subprocess? ")
+	  (cedet-build-in-default-emacs))
+      (cedet-build t))))
 
 (defun cedet-build-msg (fmt &rest args)
   "Show a build message."
@@ -65,16 +84,19 @@
   (insert (apply 'format fmt args))
   (sit-for 0))
 
-(defun cedet-build ()
-  "Build CEDET via EDE."
+(defun cedet-build (&optional override-check)
+  "Build CEDET via EDE.
+OVERRIDE-CHECK to override cedet short-cicuit."
   (setq inhibit-splash-screen t)
-  ;; Make sure CEDET is loaded
-  (if (featurep 'cedet)
+
+  ;; Make sure CEDET is not loaded
+  (if (and (not override-check) (featurep 'cedet))
       (error "To use cedet-build, start Emacs with -q"))
 
   ;; Setup a logging buffer
   (switch-to-buffer "*CEDET BYTECOMPILE*")
   (delete-other-windows)
+  (erase-buffer)
   (cedet-build-msg "CEDET BYTE COMPILATION STATUS:\n\n")
   (cedet-build-msg "STEP 1: Byte compile EIEIO...")
 
@@ -82,9 +104,15 @@
   (save-excursion
     (load-file "common/inversion.el")
     (load-file "eieio/eieio-comp.el")
-    (byte-compile-file "eieio/eieio.el")
+    (let ((src "eieio/eieio.el") (dst "eieio/eieio.elc"))
+      (if (file-newer-than-file-p src dst)
+	  (progn
+	    (when (featurep 'eieio)
+	      (error "You should not recompile EIEIO after it has been loaded"))
+	    (byte-compile-file src)
+	    (cedet-build-msg "done\n"))
+	(cedet-build-msg "not needed\n")))
     )
-  (cedet-build-msg "done\n")
 
   (load-file "common/cedet-autogen.el")
 
@@ -118,7 +146,7 @@
   (let ((buf (get-buffer-create "CEDET MAKE"))
 	(pkgs nil)
 	(subdirs nil)
-	)  
+	)
     (cedet-build-msg "Step 6: Scan Makefile for targets...")
     (save-excursion
       (set-buffer buf)
@@ -146,7 +174,7 @@
 					  d cedet-build-location))))
 	    )
 	(dolist (proj (cons Tproj (oref Tproj subproj)))
-	  (cedet-build-msg "  Project: %s\n" (object-name proj))
+	  (cedet-build-msg "  Project: %s\n" (object-name-string proj))
 	  (dolist (targ (oref proj targets))
 	    (when (and (or (ede-proj-target-elisp-p targ)
 			   (ede-proj-target-elisp-autoloads-p targ)
@@ -155,7 +183,9 @@
 			   (oref targ :partofall)
 			 (error nil)))
 
-	      (cedet-build-msg "   Target %s..." (object-name targ))
+	      (let ((ns (object-name-string targ)))
+		(cedet-build-msg "   Target %s...%s" ns
+				 (make-string (- 20 (length ns)) ? )))
 
 	      ;; If it is an autoload or elisp target, then
 	      ;; do that work here.
