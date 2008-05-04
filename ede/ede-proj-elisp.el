@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.31 2008/03/11 02:32:01 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.32 2008/05/04 15:25:00 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -122,7 +122,7 @@ Bonus: Return a cons cell: (COMPILED . UPTODATE)."
 		     )
 		(set-buffer cb)
 		(if (or (not (file-exists-p elc))
-			(file-newer-than-file-p src elc))
+			(file-newer-than-file-p fsrc elc))
 		    (progn
 		      (setq comp (1+ comp))
 		      (byte-compile-file fsrc))
