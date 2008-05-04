@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.98 2008/04/14 15:58:57 zappo Exp $
+;; RCS: $Id: ede.el,v 1.99 2008/05/04 15:39:21 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -860,6 +860,9 @@ Optional argument NAME is the name to give this project."
 					      pf)))
 				:targets nil)))
 	 (inits (oref obj initializers)))
+    ;; Force the name to match for new objects.
+    (object-set-name-string nobj (oref nobj :name))
+    ;; Handle init args.
     (while inits
       (eieio-oset nobj (car inits) (car (cdr inits)))
       (setq inits (cdr (cdr inits))))
