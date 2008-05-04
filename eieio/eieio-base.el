@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.24 2008/02/13 03:17:55 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.25 2008/05/04 02:02:02 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -253,7 +253,15 @@ instance."
 		      (file-name-nondirectory cfn)))
 	      (object-write this (oref this file-header-line)))
 	    (let ((backup-inhibited (not (oref this do-backups))))
-	      (write-file cfn nil)))
+	      ;; Old way - write file.  Leaves message behind.
+	      ;;(write-file cfn nil)
+	      
+	      ;; New way - Avoid the vast quantities of error checking
+	      ;; just so I can get at the special flags that disable
+	      ;; displaying random messages.
+	      (write-region (point-min) (point-max)
+			    cfn nil 1)
+	      ))
 	;; Restore :file, and kill the tmp buffer
 	(oset this file cfn)
 	(setq buffer-file-name nil)
