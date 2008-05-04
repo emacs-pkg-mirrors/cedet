@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.61 2008/03/27 02:53:01 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.62 2008/05/04 11:44:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -236,9 +236,9 @@ This class will cache data derived during various searches.")
 	 (lambda (tab me)
 	   (let ((tab-idx (semanticdb-get-table-index tab)))
 	     ;; Not a full reset?
-	     (when (oref tab-idx typecache)
+	     (when (oref tab-idx type-cache)
 	       (semanticdb-typecache-notify-reset
-		(oref tab-idx typecache)))
+		(oref tab-idx type-cache)))
 	     )))
 	))
   ))
@@ -851,6 +851,19 @@ is still made current."
     (if anstable (semanticdb-set-buffer anstable))
     ;; Return the tag.
     ans))
+
+;;;###autoload
+(defun semanticdb-find-result-mapc (fcn result)
+  "Apply FCN to each element of find RESULT for side-effects only.
+FCN takes two arguments.  The first is a TAG, and the
+second is a DB from wence TAG originated.
+Returns result."
+  (mapc (lambda (sublst)
+	  (mapc (lambda (tag)
+		  (funcall fcn tag (car sublst)))
+		(cdr sublst)))
+	result)
+  result)
 
 ;;; Search Logging
 ;;
