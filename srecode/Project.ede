@@ -1,6 +1,6 @@
 ;; Object ede-proj-project
 ;; EDE project file.
-(ede-proj-project "ede-proj-project"
+(ede-proj-project "SRecode"
   :name "srecode"
   :version "0.1"
   :file "Project.ede"
