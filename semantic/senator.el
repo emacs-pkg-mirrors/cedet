@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.124 2008/04/07 02:10:24 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.125 2008/05/05 19:35:47 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2047,12 +2047,6 @@ This is a buffer local variable.")
        semantic-complete-analyze-inline
        :active t
        :help "Complete the symbol in the current buffer."
-       ])
-    (senator-menu-item
-     [ "Speedbar Class Browser"
-       semantic-cb-speedbar-mode
-       :active t
-       :help "Start speedbar in Class Broswer mode showing inheritance"
        ])
     (senator-menu-item
      [ "Speedbar Analyzer Mode"
