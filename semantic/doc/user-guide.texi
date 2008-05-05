@@ -95,7 +95,6 @@ from semantic.
 * imenu::                       Special support for Imenu.
 * senator::                     The Semantic Navigator
 * Analyzer::                    Analyze local context
-* Class Browser::               Class hierarchy browser
 * Document::                    Document generation functions
 * Charts::                      Charting code statistics
 * Idle Scheduler::              The idle Scheduler and related modes
@@ -133,8 +132,7 @@ functions.
 If you use @file{semantic-load.el}, you do not need to add the above
 lines in your @file{.emacs} file.
 
-Two additional speedbar modes are described in @ref{Speedbar Analysis}, and
-@ref{Class Browser}.
+Two additional speedbar modes are described in @ref{Speedbar Analysis}
 
 @node ECB
 @chapter ECB
@@ -604,39 +602,6 @@ list of possible completions.
 
 You can also enter speedbar analyzer mode by selecting ``Analyze''
 from the ``Display'' menu item on speedbar's menu.
-
-@node Class Browser
-@chapter Class Browser
-@cindex Class Browser
-
-The semantic class browser is a library that can covert a project
-file group into an object structure that contains links between
-structures so that the inheritance links between semantic tags can
-be easily navigated.
-
-The core to this library is one function in @file{semantic-cb.el}.
-
-@defun semantic-cb-new-class-browser
-Create an object representing this project's organization.
-The object returned is of type @dfn{semantic-cb-project}, which contains
-the slot `:types', a list of all top-level types.  Each element is a
-class of type @dfn{semantic-cb-token}, or @dfn{semantic-cb-type}.
-@end defun
-
-Use the Emacs function @dfn{describe-class} to learn more about these
-classes.
-
-You can access the class inheritance structure through a speedbar
-interface.  You can choose the ``Class Browser'' option from
-Speedbar's ``Display'' menu item, or use the following command:
-
-@deffn Command semantic-cb-speedbar-mode
-Bring speedbar up, and put it into Class Browser mode.
-This will use the Class Browser logic applied to the current Semantic
-project database to build the available relations.  The structure of
-the class hierarchy can then be navigated using traditional speedbar
-interactions.
-@end deffn
 
 @node Document
 @chapter Document
