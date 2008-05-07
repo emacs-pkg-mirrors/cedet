@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.42 2008/03/30 18:39:08 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.43 2008/05/07 14:11:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -237,7 +237,11 @@ And also manages services that depend on tag values."
         (save-excursion
           ;; First, reparse the current buffer.
           (setq mode major-mode
-                safe (semantic-idle-scheduler-refresh-tags))
+                safe (semantic-safe "Idle Parse Error: %S"
+		       ;(error "Goofy error 1")
+		       (semantic-idle-scheduler-refresh-tags)
+		       )
+		)
           ;; Now loop over other buffers with same major mode, trying to
           ;; update them as well.  Stop on keypress.
           (dolist (b buffers)
@@ -245,7 +249,9 @@ And also manages services that depend on tag values."
             (with-current-buffer b
               (if (eq major-mode mode)
                   (and (semantic-idle-scheduler-enabled-p)
-                       (semantic-idle-scheduler-refresh-tags))
+		       (semantic-safe "Idle Parse Error: %S"
+			 ;(error "Goofy error")
+			 (semantic-idle-scheduler-refresh-tags)))
                 (push (current-buffer) others))))
           (setq buffers others))
         ;; If re-parse of current buffer completed, evaluate all other
@@ -262,7 +268,8 @@ And also manages services that depend on tag values."
               (semantic-throw-on-input 'idle-queue)
 	      (when semantic-idle-scheduler-verbose-flag
 		(working-temp-message "IDLE: execture service %s..." service))
-              (funcall service)
+	      (semantic-safe (format "Idle Service Error %s: %%S" service)
+		(funcall service))
 	      (when semantic-idle-scheduler-verbose-flag
 		(working-temp-message "IDLE: execture service %s...done" service))
 	      )))
@@ -279,15 +286,20 @@ And also manages services that depend on tag values."
   (when semantic-idle-scheduler-verbose-flag
     (working-temp-message "IDLE: Core handler...done")))
 
+(defun semantic-debug-idle-function ()
+  "Run the Semantic idle function with debugging turned on."
+  (interactive)
+  (let ((debug-on-error t))
+    (semantic-idle-core-handler)
+    ))
+  
 (defun semantic-idle-scheduler-function ()
   "Function run when after `semantic-idle-scheduler-idle-time'.
 This function will reparse the current buffer, and if successful,
 call additional functions registered with the timer calls."
   (when (zerop (recursion-depth))
-    (unwind-protect
-        (semantic-safe "idle error: %S"
-          ;; Handle re-parsing and other scheduled services
-          (save-match-data (semantic-idle-core-handler)))
+    (let ((debug-on-error nil))
+      (save-match-data (semantic-idle-core-handler))
       )))
 
 ;;; REPARSING
