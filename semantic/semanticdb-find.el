@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.62 2008/05/04 11:44:03 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.63 2008/05/10 16:46:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -283,7 +283,14 @@ specific include tags into a semanticdb table.
 Note: When searching using a non-brutish method, the list of
 included files will be cached between runs.  Database-references
 are used to track which files need to have their include lists
-refreshed when things change.  See `semanticdb-ref-test'."
+refreshed when things change.  See `semanticdb-ref-test'.
+
+Note for overloading:  If you opt to overload this function for your
+major mode, and your routine takes a long time, be sure to call
+
+ (semantic-throw-on-input 'your-symbol-here)
+
+so that it can be called from the idle work handler."
   )
 
 ;;;###autoload
@@ -318,6 +325,9 @@ Default action as described in `semanticdb-find-translate-path'."
 	  ;; Only return tables of the same language (major-mode)
 	  ;; as the current search environment.
 	  (while tabs
+
+	    (semantic-throw-on-input 'translate-path-brutish)
+
 	    (if (semanticdb-equivalent-mode-for-search (car tabs)
 						       (current-buffer))
 		(setq ret (cons (car tabs) ret)))
@@ -415,6 +425,10 @@ a new path from the provided PATH."
 	  ((semanticdb-table-p path)
 	   (setq includetags (semantic-find-tags-included (semanticdb-get-tags path))
 		 curtable path))
+	  ((bufferp path)
+	   (setq includetags (semantic-find-tags-included path)
+		 curtable (save-excursion (set-buffer path)
+					  semanticdb-current-table)))
 	  (t
 	   (setq includetags (semantic-find-tags-included path))
 	   (when includetags
@@ -422,7 +436,8 @@ a new path from the provided PATH."
 	     ;; else we will do nothing, so the table is useless.
 	     
 	     ;; @todo - derive some tables
-	     (message "Need to derive tables in `semanticdb-find-translate-path-includes--default'.")
+	     (message "Need to derive tables for %S in translate-path-includes--default."
+		      path)
 	   )))
 
     ;; Loop over all include tags adding to matchedtables
@@ -453,6 +468,8 @@ a new path from the provided PATH."
 
 	;; Queue new includes to list
 	(if (semanticdb-find-throttle-active-p 'recursive)
+	    ;; @todo - recursive includes need to have the originating
+	    ;;         buffer's location added to the path.
 	    (let ((newtags
 		   (cond
 		    ((semanticdb-table-p nexttable)
