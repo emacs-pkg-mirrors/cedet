@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.32 2008/05/02 01:33:36 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.33 2008/05/10 22:36:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -193,7 +193,9 @@ If DIRECTORY doesn't exist, create a new one."
   "Return the project belonging to FILENAME if it was already loaded."
   (eieio-instance-tracker-find filename 'file 'semanticdb-database-list))
 
-(defmethod semanticdb-save-db ((DB semanticdb-project-database-file))
+(defmethod semanticdb-save-db ((DB semanticdb-project-database-file)
+			       &optional
+			       supress-questions)
   "Write out the database DB to its file.
 If DB is not specified, then use the current database."
   (let ((objname (oref DB file)))
@@ -204,7 +206,7 @@ If DB is not specified, then use the current database."
       (condition-case foo
 	  (eieio-persistent-save (or DB semanticdb-current-database))
 	(file-error		    ; System error saving?  Ignore it.
-	 (message "Error saving %s" objname))
+	 (message "%S: %s" foo objname))
 	(error
 	 (cond
 	  ((and (listp foo)
@@ -218,8 +220,10 @@ If DB is not specified, then use the current database."
 	  (t
 	   ;; @todo - It should ask if we are not called from a hook.
 	   ;;         How?
-	   (if nil ; (y-or-n-p (format "Skip Error: %S ?" (car (cdr foo))))
-	       nil
+	   (if (or supress-questions
+		   (y-or-n-p (format "Skip Error: %S ?" (car (cdr foo)))))
+	       (message "Save Error: %S: %s" (car (cdr foo))
+			objname)
 	     (error "%S" (car (cdr foo))))))))
       (run-hook-with-args 'semanticdb-save-database-hooks
 			  (or DB semanticdb-current-database))
