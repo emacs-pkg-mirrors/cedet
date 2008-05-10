@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.79 2008/05/03 14:21:26 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.80 2008/05/10 16:51:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -439,7 +439,7 @@ the regular parser."
 	)
       ;; Get the macro symbol table right.
       (setq semantic-lex-spp-dynamic-macro-symbol-obarray spp-syms)
-      (message "%S" macros)
+      ;; (message "%S" macros)
       (dolist (sym macros)
 	(semantic-lex-spp-symbol-set (car sym) (cdr sym)))
 
