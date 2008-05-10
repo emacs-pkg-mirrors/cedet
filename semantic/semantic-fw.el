@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.58 2008/03/02 02:12:11 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.59 2008/05/10 16:50:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -400,6 +400,7 @@ calling this one."
 		 "semantic-alias-obsolete"
 		 "semantic-varalias-obsolete"
 		 "semantic-make-obsolete-overload"
+		 "defcustom-mode-local-semantic-dependency-system-include-path"
 		 ))
            (kf (if vf (regexp-opt vf t) ""))
            ;; Regexp depths
@@ -440,7 +441,7 @@ calling this one."
  #'(lambda ()
 
      (def-edebug-spec semantic-exit-on-input
-       (symbolp def-body)
+       (quote def-body)
        )
 
      ))
