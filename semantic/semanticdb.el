@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.109 2008/04/12 03:21:52 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.110 2008/05/10 16:45:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -181,58 +181,6 @@ If one doesn't exist, create it."
   )
 
 
-;;; Cache Cache.
-;;
-(defclass semanticdb-abstract-cache ()
-  ((table :initarg :table
-	  :type semanticdb-abstract-table
-	  :documentation
-	  "Cross reference to the table this belongs to.")
-   )
-  "Abstract baseclass for tools to use to cache information in semanticdb.
-Tools needing a per-file cache must subclass this, and then get one as
-needed.  Cache objects are identified in semanticdb by subclass.
-In order to keep your cache up to date, be sure to implement
-`semanticdb-synchronize', and `semanticdb-partial-synchronize'.
-See the file semantic-scope.el for an example."
-  :abstract t)
-
-(defmethod semanticdb-cache-get ((table semanticdb-abstract-table)
-				 desired-class)
-  "Get a cache object on TABLE of class DESIRED-CLASS.
-This method will create one if none exists with no init arguments
-other than :table."
-  (assert (child-of-class-p desired-class 'semanticdb-abstract-cache))
-  (let ((cache (oref table cache))
-	(obj nil))
-    (while (and (not obj) cache)
-      (if (eq (object-class-fast (car cache)) desired-class)
-	  (setq obj (car cache)))
-      (setq cache (cdr cache)))
-    (if obj
-	obj ;; Just return it.
-      ;; No object, lets create a new one and return that.
-      (setq obj (funcall desired-class "Cache" :table table))
-      (object-add-to-list table 'cache obj)
-      obj)))
-
-(defmethod semanticdb-cache-remove ((table semanticdb-abstract-table)
-				    cache)
-  "Remove from TABLE the cache object CACHE."
-  (object-remove-from-list table 'cache cache))
-
-(defmethod semanticdb-synchronize ((cache semanticdb-abstract-cache)
-				   new-tags)
-  "Synchronize a CACHE with some NEW-TAGS."
-  ;; The abstract class will do... NOTHING!
-  )
-
-(defmethod semanticdb-partial-synchronize ((cache semanticdb-abstract-cache)
-					   new-tags)
-  "Synchronize a CACHE with some changed NEW-TAGS."
-  ;; The abstract class will do... NOTHING!
-  )
-
 ;;; CONCRETE CLASSES
 ;;
 (defclass semanticdb-table (semanticdb-abstract-table)
@@ -281,6 +229,8 @@ Adds the number of tags in this file to the object print name."
 		       )
 	       strings)))
 
+;;; DATABASE
+
 (defclass semanticdb-project-database (eieio-instance-tracker)
   ((tracking-symbol :initform semanticdb-database-list)
    (reference-directory :type string
@@ -291,6 +241,16 @@ this database contains symbols for.")
 		    :type class
 		    :documentation
 		    "New tables created for this database are of this class.")
+   (cache :type list
+	  :initform nil
+	  :documentation "List of cache information for tools.
+Any particular tool can cache data to a database at runtime
+with `semanticdb-cache-get'.
+
+Using a semanticdb cache does not save any information to a file,
+so your cache will need to be recalculated at runtime.
+
+Note: This index will not be saved in a persistent file.")
    (tables :initarg :tables
 	   :type list
 	   ;; Need this protection so apps don't try to access
@@ -391,6 +351,111 @@ Some databases may default to searching and providing simplified tags
 based on whichever technique used.  This method provides a hook for
 them to convert TAG into a more complete form."
   tags)
+
+;;; Cache Cache.
+;;
+(defclass semanticdb-abstract-cache ()
+  ((table :initarg :table
+	  :type semanticdb-abstract-table
+	  :documentation
+	  "Cross reference to the table this belongs to.")
+   )
+  "Abstract baseclass for tools to use to cache information in semanticdb.
+Tools needing a per-file cache must subclass this, and then get one as
+needed.  Cache objects are identified in semanticdb by subclass.
+In order to keep your cache up to date, be sure to implement
+`semanticdb-synchronize', and `semanticdb-partial-synchronize'.
+See the file semantic-scope.el for an example."
+  :abstract t)
+
+(defmethod semanticdb-cache-get ((table semanticdb-abstract-table)
+				 desired-class)
+  "Get a cache object on TABLE of class DESIRED-CLASS.
+This method will create one if none exists with no init arguments
+other than :table."
+  (assert (child-of-class-p desired-class 'semanticdb-abstract-cache))
+  (let ((cache (oref table cache))
+	(obj nil))
+    (while (and (not obj) cache)
+      (if (eq (object-class-fast (car cache)) desired-class)
+	  (setq obj (car cache)))
+      (setq cache (cdr cache)))
+    (if obj
+	obj ;; Just return it.
+      ;; No object, lets create a new one and return that.
+      (setq obj (funcall desired-class "Cache" :table table))
+      (object-add-to-list table 'cache obj)
+      obj)))
+
+(defmethod semanticdb-cache-remove ((table semanticdb-abstract-table)
+				    cache)
+  "Remove from TABLE the cache object CACHE."
+  (object-remove-from-list table 'cache cache))
+
+(defmethod semanticdb-synchronize ((cache semanticdb-abstract-cache)
+				   new-tags)
+  "Synchronize a CACHE with some NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
+
+(defmethod semanticdb-partial-synchronize ((cache semanticdb-abstract-cache)
+					   new-tags)
+  "Synchronize a CACHE with some changed NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
+
+(defclass semanticdb-abstract-db-cache ()
+  ((db :initarg :db
+       :type semanticdb-project-database
+       :documentation
+       "Cross reference to the database this belongs to.")
+   )
+  "Abstract baseclass for tools to use to cache information in semanticdb.
+Tools needing a database cache must subclass this, and then get one as
+needed.  Cache objects are identified in semanticdb by subclass.
+In order to keep your cache up to date, be sure to implement
+`semanticdb-synchronize', and `semanticdb-partial-synchronize'.
+See the file semantic-scope.el for an example."
+  :abstract t)
+
+(defmethod semanticdb-cache-get ((db semanticdb-project-database)
+				 desired-class)
+  "Get a cache object on DB of class DESIRED-CLASS.
+This method will create one if none exists with no init arguments
+other than :table."
+  (assert (child-of-class-p desired-class 'semanticdb-abstract-db-cache))
+  (let ((cache (oref db cache))
+	(obj nil))
+    (while (and (not obj) cache)
+      (if (eq (object-class-fast (car cache)) desired-class)
+	  (setq obj (car cache)))
+      (setq cache (cdr cache)))
+    (if obj
+	obj ;; Just return it.
+      ;; No object, lets create a new one and return that.
+      (setq obj (funcall desired-class "Cache" :db db))
+      (object-add-to-list db 'cache obj)
+      obj)))
+
+(defmethod semanticdb-cache-remove ((db semanticdb-project-database)
+				    cache)
+  "Remove from TABLE the cache object CACHE."
+  (object-remove-from-list db 'cache cache))
+
+
+(defmethod semanticdb-synchronize ((cache semanticdb-abstract-db-cache)
+				   new-tags)
+  "Synchronize a CACHE with some NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
+
+(defmethod semanticdb-partial-synchronize ((cache semanticdb-abstract-db-cache)
+					   new-tags)
+  "Synchronize a CACHE with some changed NEW-TAGS."
+  ;; The abstract class will do... NOTHING!
+  )
+
+;;; REFRESH
 
 (defmethod semanticdb-refresh-table ((obj semanticdb-table))
   "If the tag list associated with OBJ is loaded, refresh it.
