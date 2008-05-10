@@ -72,4 +72,9 @@ int WITH_CONT () { };
 
 int tail int_arg(q) {}
 
+/* TEST: macros used impropertly. */
+#define tail_fail tail_with_args_and_long_name(q)
+
+int tail_fcn tail_fail(q)
+
 /* END */
