@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.11 2008/01/25 19:33:30 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.12 2008/05/10 16:32:29 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -507,7 +507,7 @@ See also the function `define-overload'."
         (list (mode-local--override name args body))
       result)))
 
-(defmacro define-overload (name args docstring &rest body)
+(defmacro define-overloadable-function (name args docstring &rest body)
   "Define a new function, as with `defun' which can be overloaded.
 NAME is the name of the function to create.
 ARGS are the arguments to the function.
@@ -537,6 +537,8 @@ OVERARGS is a list of arguments passed to the override and
        ,@(mode-local--overload-body name args body))
      (put ',name 'mode-local-overload t)))
 (put :override-with-args 'lisp-indent-function 1)
+
+(defalias 'define-overload 'define-overloadable-function)
 
 (defsubst function-overload-p (symbol)
   "Return non-nil if SYMBOL is a function which can be overloaded."
