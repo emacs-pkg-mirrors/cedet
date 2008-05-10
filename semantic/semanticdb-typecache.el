@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.28 2008/03/27 02:53:31 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.29 2008/05/10 16:50:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -32,6 +32,9 @@
 (require 'semanticdb)
 
 ;;; Code:
+
+
+;;; TABLE TYPECACHE
 ;;;###autoload
 (defclass semanticdb-typecache ()
   ((filestream :initform nil
@@ -135,7 +138,48 @@ If there is no table, create one, and fill it in."
   "Return non-nil (the typecache) if TABLE has a pre-calculated typecache."
   (let* ((idx (semanticdb-get-table-index table)))
     (oref idx type-cache)))
+
 
+;;; DATABASE TYPECACHE
+;;
+;; A full database can cache the types across its files.
+;;
+;; Unlike file based caches, this one is a bit simpler, and just needs
+;; to get reset when a table gets updated.
+
+;;;###autoload
+(defclass semanticdb-database-typecache (semanticdb-abstract-db-cache)
+  ((stream :initform nil
+	   :documentation
+	   "The searchable tag stream for this cache.")
+   )
+  "Structure for maintaining a typecache.")
+
+(defmethod semantic-reset ((tc semanticdb-database-typecache))
+  "Reset the object IDX."
+  (oset tc stream nil)
+  )
+
+(defmethod semanticdb-synchronize ((cache semanticdb-database-typecache)
+				   new-tags)
+  "Synchronize a CACHE with some NEW-TAGS."
+  )
+
+(defmethod semanticdb-partial-synchronize ((cache semanticdb-database-typecache)
+					   new-tags)
+  "Synchronize a CACHE with some changed NEW-TAGS."
+  )
+
+;;;###autoload
+(defmethod semanticdb-get-typecache ((db semanticdb-project-database))
+  "Retrieve the typecache from the semantic database DB.
+If there is no table, create one, and fill it in."
+  (semanticdb-cache-get db semanticdb-database-typecache)
+  )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;; MERGING
 ;;
 ;; Managing long streams of tags representing data types.
@@ -311,6 +355,8 @@ a master list."
     ))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;; Search Routines
 ;;
 ;;;###autoload
@@ -414,21 +460,73 @@ found tag to be loaded."
       )
     
     ans))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; BRUTISH Typecache
+;;
+;; Routines for a typecache that crosses all tables in a given database
+;; for a matching major-mode.
+(defmethod semanticdb-typecache-for-database ((db semanticdb-project-database)
+					      &optional mode)
+  "Return the typecache for the project database DB.
+If there isn't one, create it.
+"
+  (let ((lmode (or mode major-mode))
+	(cache (semanticdb-get-typecache db))
+	(stream nil)
+	)
+    (dolist (table (semanticdb-get-database-tables db))
+      (when (eq lmode (oref table :major-mode))
+	(setq stream 
+	      (semanticdb-typecache-merge-streams
+	       stream
+	       (copy-sequence
+		(semanticdb-typecache-file-tags table))))
+	))
+    (oset cache stream stream)
+    cache))
+
+(defun semanticdb-typecache-refresh-for-buffer (buffer)
+  "Refresh the typecache for BUFFER."
+  (save-excursion
+    (set-buffer buffer)
+    (let* ((tab semanticdb-current-table)
+	   (idx (semanticdb-get-table-index tab))
+	   (tc (semanticdb-get-typecache tab)))
+      (semanticdb-typecache-file-tags tab)
+      (semanticdb-typecache-include-tags tab)
+      tc)))
+
+
 ;;; DEBUG
 ;;
 ;;;###autoload
 (defun semanticdb-typecache-dump ()
   "Dump the typecache for the current buffer."
   (interactive)
+  (let* ((start (current-time))
+	 (tc (semanticdb-typecache-refresh-for-buffer (current-buffer)))
+	 (end (current-time))
+	 (ab (data-debug-new-buffer "*TypeCache ADEBUG*"))
+	 )
+    
+    (message "Calculating Cache took %.2f seconds."
+	     (semantic-elapsed-time start end))
+
+    (data-debug-insert-thing tc "]" "")
+
+    ))
+
+;;;###autoload
+(defun semanticdb-db-typecache-dump ()
+  "Dump the typecache for the current buffer's database."
+  (interactive)
   (let* ((tab semanticdb-current-table)
 	 (idx (semanticdb-get-table-index tab))
 	 (junk (oset idx type-cache nil)) ;; flush!
 	 (start (current-time))
-	 (tc (semanticdb-get-typecache tab))
-	 (junk2 (progn
-		  (semanticdb-typecache-file-tags tab)
-		  (semanticdb-typecache-include-tags tab)))
+	 (tc (semanticdb-typecache-for-database (oref tab parent-db)))
 	 (end (current-time))
 	 (ab (data-debug-new-buffer "*TypeCache ADEBUG*"))
 	 )
