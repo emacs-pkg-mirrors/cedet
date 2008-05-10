@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.159 2008/04/14 16:04:28 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.160 2008/05/10 16:39:25 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "1.0.1"
   "Current version of EIEIO.")
@@ -2023,11 +2023,9 @@ This is usually a symbol that starts with `:'."
 
 (defclass eieio-default-superclass nil
   nil
-  "Default class used as parent class for superclasses.
-Its fields are automatically adopted by such superclasses but not
-stored in the `parent' field.  When searching for attributes or
-methods, when the last parent is found, the search will recurse to
-this class."
+  "Default class used as parent class for orphaned classes.
+Its fields are automatically adopted by classes with no specified
+parents.  This class is not stored in the `parent' field of a class vector."
   :abstract t)
 
 (defalias 'standard-class 'eieio-default-superclass)
@@ -2126,7 +2124,7 @@ return value of `call-next-method'."
 )
 
 (defmethod clone ((obj eieio-default-superclass) &rest params)
-  "Make a deep copy of OBJ, and then apply PARAMS.
+  "Make a copy of OBJ, and then apply PARAMS.
 PARAMS is a parameter list of the same form as INITIALIZE-INSTANCE
 which are applied to change the object.  When overloading `clone', be
 sure to call `call-next-method' first and modify the returned object."
