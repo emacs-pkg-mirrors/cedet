@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.80 2008/05/10 16:51:19 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.81 2008/05/10 16:52:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,6 +66,14 @@ This function does not do any hidden buffer changes."
 
 ;;; Pre-processor maps
 ;;
+;;; Lexical analysis
+(defvar semantic-lex-c-preprocessor-symbol-map-builtin
+  '( ("__THROW" . "")
+     ("__const" . "const")
+     ("__restrict" . "")
+     )
+  "List of symbols to include by default.")
+
 (defun semantic-c-reset-preprocessor-symbol-map ()
   "Reset the C preprocessor symbol map based on all input variables."
   (let ((filemap nil))
@@ -85,14 +93,6 @@ This function does not do any hidden buffer changes."
 			      filemap))
 		     )
     ))
-
-;;; Lexical analysis
-(defvar semantic-lex-c-preprocessor-symbol-map-builtin
-  '( ("__THROW" . "")
-     ("__const" . "const")
-     ("__restrict" . "")
-     )
-  "List of symbols to include by default.")
 
 ;;;###autoload
 (defcustom semantic-lex-c-preprocessor-symbol-map nil
