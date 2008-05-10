@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.43 2008/05/07 14:11:27 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.44 2008/05/10 16:31:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -49,6 +49,9 @@
 (defvar semantic-idle-scheduler-timer nil
   "Timer used to schedule tasks in idle time.")
 
+(defvar semantic-idle-scheduler-work-timer nil
+  "Timer used to schedule tasks in idle time that may take a while.")
+
 (defcustom semantic-idle-scheduler-verbose-flag nil
   "*Non-nil means that the idle scheduler should provide debug messages.
 Use this setting to debug idle activities."
@@ -66,16 +69,35 @@ run as soon as Emacs is idle."
          (when (timerp semantic-idle-scheduler-timer)
            (cancel-timer semantic-idle-scheduler-timer)
            (setq semantic-idle-scheduler-timer nil)
-           (semantic-idle-scheduler-setup-timer))))
+           (semantic-idle-scheduler-setup-timers))))
 
-(defun semantic-idle-scheduler-setup-timer ()
+(defcustom semantic-idle-scheduler-work-idle-time 60
+  "*Time in seconds of idle before scheduling big work.
+This time should be long enough that once any big work is started, it is
+unlikely the user would be ready to type again right away."
+  :group 'semantic
+  :type 'number
+  :set (lambda (sym val)
+         (set-default sym val)
+         (when (timerp semantic-idle-scheduler-timer)
+           (cancel-timer semantic-idle-scheduler-timer)
+           (setq semantic-idle-scheduler-timer nil)
+           (semantic-idle-scheduler-setup-timers))))
+
+(defun semantic-idle-scheduler-setup-timers ()
   "Lazy initialization of the auto parse idle timer."
   ;; REFRESH THIS FUNCTION for XEMACS FOIBLES
   (or (timerp semantic-idle-scheduler-timer)
       (setq semantic-idle-scheduler-timer
             (run-with-idle-timer
              semantic-idle-scheduler-idle-time t
-             #'semantic-idle-scheduler-function))))
+             #'semantic-idle-scheduler-function)))
+  (or (timerp semantic-idle-scheduler-work-timer)
+      (setq semantic-idle-scheduler-work-timer
+            (run-with-idle-timer
+             semantic-idle-scheduler-work-idle-time t
+             #'semantic-idle-scheduler-work-function)))
+  )
 
 (defun semantic-idle-scheduler-kill-timer ()
   "Kill the auto parse idle timer."
@@ -153,7 +175,7 @@ minor mode is enabled."
             (setq semantic-idle-scheduler-mode nil)
             (error "Buffer %s was not set up idle time scheduling"
                    (buffer-name)))
-        (semantic-idle-scheduler-setup-timer)))
+        (semantic-idle-scheduler-setup-timers)))
   semantic-idle-scheduler-mode)
 
 ;;;###autoload
@@ -301,6 +323,102 @@ call additional functions registered with the timer calls."
     (let ((debug-on-error nil))
       (save-match-data (semantic-idle-core-handler))
       )))
+
+
+;;; WORK FUNCTION
+;;
+;; Unlike the shorter timer, the WORK timer will kick of tasks that
+;; may take a long time to complete.
+(defun semantic-idle-work-for-one-buffer (buffer)
+  "Do long-processing work for for BUFFER.
+Uses `semantic-safe' and returns the output.
+Returns t of all processing succeeded."
+  (save-excursion
+    (set-buffer buffer)
+    (not (and
+	  ;; Just in case
+	  (semantic-safe "Idle Work Parse Error: %S"
+	    (semantic-idle-scheduler-refresh-tags)
+	    t)
+
+	  (semantic-safe "Idle Work Including Error: %S"
+	    ;; Get the include related path.
+	    (semanticdb-find-translate-path buffer nil)
+	    t)
+
+	  (semantic-safe "Idle Work Typecaching Error: %S"
+	    (semanticdb-typecache-refresh-for-buffer buffer)
+	    t)
+
+	  )) ))
+
+(defun semantic-idle-work-core-handler ()
+  "Core handler for idle work processing of long running tasks.
+Visits semantic controlled buffers, and makes sure all needed
+include files have been parsed, and that the typecache is up to date.
+Uses `semantic-idle-work-for-on-buffer' to do the work."
+  (let ((errbuf nil)
+	(interrupted
+	 (semantic-exit-on-input 'idle-work-timer
+	   (let* ((inhibit-quit nil)
+		  (buffers (delq (current-buffer)
+				 (delq nil
+				       (mapcar #'(lambda (b)
+						   (and (buffer-file-name b)
+							b))
+					       (buffer-list)))))
+		  mode safe errbuf)
+	     ;; First, handle long tasks in the current buffer.
+	     (when (semantic-idle-scheduler-enabled-p)
+	       (save-excursion
+		 (setq mode major-mode
+		       safe (semantic-idle-work-for-one-buffer (current-buffer))
+		       )))
+	     (when (not safe) (push (current-buffer) errbuf))
+
+	     ;; Now loop over other buffers with same major mode, trying to
+	     ;; update them as well.  Stop on keypress.
+	     (dolist (b buffers)
+	       (semantic-throw-on-input 'parsing-mode-buffers)
+	       (with-current-buffer b
+		 (when (semantic-idle-scheduler-enabled-p)
+		   (and (semantic-idle-scheduler-enabled-p)
+			(unless (semantic-idle-work-for-one-buffer (current-buffer))
+			  (push (current-buffer) errbuf)))
+		   ))
+	       )
+
+	     ;; Done w/ processing
+	     nil))))
+
+    ;; Done
+    (if interrupted
+	"Interrupted"
+      (cond ((not errbuf)
+	     "done")
+	    ((not (cdr errbuf))
+	     (format "done with 1 error in %s" (car errbuf)))
+	    (t
+	     (format "done with errors in %d buffers."
+		     (length errbuf)))))))
+
+(defun semantic-debug-idle-work-function ()
+  "Run the Semantic idle function with debugging turned on."
+  (interactive)
+  (let ((debug-on-error t))
+    (semantic-idle-work-core-handler)
+    ))
+
+(defun semantic-idle-scheduler-work-function ()
+  "Function run when after `semantic-idle-scheduler-work-idle-time'.
+This routine handles difficult tasks that require a lot of parsing, such as
+parsing all the header files used by our active sources, or building up complex
+datasets."
+  (message "Long Work Idle Timer...")
+  (let ((exit-type (save-match-data
+		     (semantic-idle-work-core-handler))))
+    (message "Long Work Idle Timer...%s" exit-type))
+  )
 
 ;;; REPARSING
 ;;
