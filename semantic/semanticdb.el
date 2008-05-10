@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.110 2008/05/10 16:45:43 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.111 2008/05/10 22:35:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -510,7 +510,8 @@ where it may need to resynchronize with some persistent storage."
       (setq tabs (cdr tabs)))
     dirty))
 
-(defmethod semanticdb-save-db ((DB semanticdb-project-database))
+(defmethod semanticdb-save-db ((DB semanticdb-project-database)
+			       &optional supress-questions)
   "Cause a database to save itself.
 The database base class does not save itself persistently.
 Subclasses could save themselves to a file, or to a database, or other
@@ -534,12 +535,13 @@ form."
 (defun semanticdb-save-all-db-idle ()
   "Save all semantic tag databases from idle time.
 Exit the save between databases if there is user input."
-  (semantic-exit-on-input 'semanticdb-idle-save
+  (semantic-safe "Auto-DB Save: %S"
+    (semantic-exit-on-input 'semanticdb-idle-save
       (mapc (lambda (db)
 	      (semantic-throw-on-input 'semanticdb-idle-save)
-	      (semanticdb-save-db db))
+	      (semanticdb-save-db db t))
 	    semanticdb-database-list))
-  )
+    ))
 
 ;;; Directory Project support
 ;;
