@@ -115,7 +115,7 @@ developer needs to know to perform all of the tasks just listed.
 * Idle Scheduling::             Scheduling jobs in idle time.
 * Example Programs::            Simple programming examples.
 * Current Context::             Local context analysis.
-* App Debugger::                Application Debugger
+* Data Debugger::               Application Debugger
 * GNU Free Documentation License::  
 * Index::                       
 @end menu
@@ -1048,12 +1048,12 @@ from under point.
 @node Override Methods
 @chapter Override Methods
 
-These functions are called `override methods' because they provide
-generic behaviors, which a given language can override.  For example,
-finding a dependency file in Emacs lisp can be done with the
-`locate-library' command (which overrides the default behavior.)  In C,
-a dependency can be found by searching a generic search path which can
-be passed in via a variable.
+@dfn{Override methods} provide generic behaviors, which a given
+language can override.  For example, finding a dependency (required
+file) file in Emacs lisp can be done with the @code{locate-library}
+command (which overrides the default behavior.)  In C, a dependency
+(include file) can be found by searching a generic search path which
+can be passed in via a variable.
 
 If you plan to use one of these functions from a buffer that is not
 of the same major-mode as the original tag, you can use this form to
@@ -1075,7 +1075,7 @@ For more on override methods, @inforef{Semantic Overload Mechanism, , lang-suppo
 * Tag Details::                 Arbitrary token detail fetching
 * Tag File Reference::	        Files a tag references.
 * Jump to a Tag::	        Go to a tag's location
-* Making New Methods::          How to add your own methods for a tool
+* Making New Methods::          How to add your own methods for your own tool
 @end menu
 
 @node Format Tag
@@ -1456,15 +1456,18 @@ force that file information to be kept.
 @node Making New Methods
 @section Making New Methods
 
+The infrastructure for creating overridable methods base on major mode
+is handled by @file{mode-local.el} which is independent of @semantic{}.
+
 To create your own application specific mode local function, you
-should use @dfn{define-overload}.  This function creates the
-framework needed for different mode-authors to customize your
+should use @dfn{define-overloadable-function}.  This function creates
+the framework needed for different mode-authors to customize your
 applications.
 
 Once a function has been defined as mode-local, you should use
 @dfn{define-mode-local-override} to add a mode specific feature.
 
-@defun define-overload name args docstring &rest body
+@defun define-overloadable-function name args docstring &rest body
 @anchor{define-overload}
 Define a new function, as with @dfn{defun} which can be overloaded.
 @var{name} is the name of the function to create.
@@ -1481,8 +1484,8 @@ arguments.
 run for both default and overridden implementations.
 An override form is one of:
 
-  @var{1}. (:override [@var{overbody}])
-  @var{2}. (:override-with-args @var{overargs} [@var{overbody}])
+  1. @code{(:override [OVERBODY])}
+  2. @code{(:override-with-args OVERARGS [OVERBODY])}
 
 @var{overbody} is the code that would be run when there is no override
 defined.  The default is to call the function @code{NAME-default} with the
@@ -1501,6 +1504,37 @@ named function created with @dfn{define-overload}.
 @var{docstring} is the documentation string.
 @var{body} is the implementation of this function.
 @obsolete{define-mode-overload-implementation,define-mode-local-override}
+@end defun
+
+
+You can also create variable values that are mode local.
+
+@defun defvar-mode-local mode sym val &optional docstring
+@anchor{defvar-mode-local}
+Define @var{mode} local variable @var{sym} with value @var{val}.
+@var{docstring} is optional.
+@end defun
+
+@defun defconst-mode-local mode sym val &optional docstring
+@anchor{defconst-mode-local}
+Define @var{mode} local constant @var{sym} with value @var{val}.
+@var{docstring} is optional.
+@end defun
+
+Mode local variables are implemented as buffer local.  Special hooks
+enable mode-local to set these variables for the mode specified.  To
+set a value as in code, you can use a special setq form.
+
+@defun setq-mode-local mode &rest args
+@anchor{setq-mode-local}
+Assign new values to variables local in @var{mode}.
+@var{mode} must be a major mode symbol.
+@var{args} is a list (@var{sym} @var{val} @var{sym} @var{val} @dots{}).
+The symbols @var{sym} are variables; they are literal (not evaluated).
+The values @var{val} are expressions; they are evaluated.
+Set each @var{sym} to the value of its @var{val}, locally in buffers already in
+@var{mode}, or in buffers switched to that mode.
+Return the value of the last @var{val}.
 @end defun
 
 @node Parser Features
@@ -1831,6 +1865,14 @@ Like @dfn{semanticdb-find-result-nth}, except that only the @var{tag}
 is returned, and the buffer it is found it will be made current.
 If the result tag has no position information, the originating buffer
 is still made current.
+@end defun
+
+@defun semanticdb-find-result-mapc fcn result
+@anchor{semanticdb-find-result-mapc}
+Apply @var{fcn} to each element of find @var{result} for side-effects only.
+@var{fcn} takes two arguments.  The first is a @var{tag}, and the
+second is a @var{db} from wence @var{tag} originated.
+Returns result.
 @end defun
 
 @node DB Search Paths
@@ -2311,120 +2353,7 @@ call to @code{semantic-throw-on-input}.
 @node Example Programs
 @chapter Programming Examples
 
-  *** NOTE ***  These examples are for semantic 1.4.
-
-Using the below functions will generate compile time warnings with
-advice on what functions to use in semantic 2.0.
-
-
-
-
-
-
-Here are some simple examples that use different aspects of the
-semantic library APIs.  For fully functional example programs with
-lots of comments, see the file @file{semantic-examples.el}.
-
-@heading Interactively querying for a token name
-
-If you need a command that asks the user for a token name, you can
-get full range completion using the query functions
-@ref{Tag Completion}.
-
-@example
-(interactive (list (semantic-read-symbol "Symbol: ")))
-@end example
-
-@heading Finding a symbol in a buffer
-
-If you have the name of a function or variable, and need to find its
-location in a buffer, you need a search function.  There is a wide
-range of searches you can perform @ref{Searching Tag Tables}.
-
-@example
-(semantic-find-nonterminal-by-name
- "some-name"
- (current-buffer)
- t    ;; look inside structures and classes for these symbols
- nil) ;; do not look inside header files.
-@end example
-
-@heading Finding a symbol in a project
-
-If you have the name of a function or variable, and need to find its
-location somewhere in a project, you need to use the Semantic Database
-@inforef{semanticdb, , semanticdb}.  There are many search functions similar to the
-ones found in @ref{Searching Tag Tables}.
-
-The Semantic Database is interesting in that the return structure is
-not
-
-@heading Locating a token in a buffer
-
-If you have a nonterminal token, or a list of them, you may want to
-find their position in a buffer.
-
-@example
-(semanticdb-find-nonterminal-by-name
- "symbol"
- nil   ;; Defaults to the current project's database list.
- t     ;; Search inside types
- nil   ;; Do not search include files
- nil   ;; Only search files in the same mode (all C files)
- t     ;; When a token is found, make sure it is loaded in a buffer.
- )
-@end example
-
-Of interesting note above, semanticdb can find symbols in files that
-are not loaded into an Emacs buffer.  These tokens do not have an
-associated overlay, and the function @dfn{semantic-token-buffer} will
-fail.
-
-The last parameter's tells the search function to
-@dfn{find-file-noselect} any file in which a matching token was
-found.  This will allow you to merge all the tokens into a completion
-list, or other flat list needed by most functions that use
-association lists.
-
-If you do not ask semanticdb to load those files, you will need to
-explicitly request the database object (found in the @code{car} of
-each sublist) get the file loaded.  It is useful to not auto find all
-files if you don't need to jump to that token.
-
-@heading Converting a token into a human readable string.
-
-A tag is a rather unpleasant Lisp structure when trying
-to decipher what is going on.  As such, there is a wide range of
-functions available that can convert a token into a human readable,
-and colorful string @ref{Format Tag}.
-
-If you program interfaces with lots of users, you will probably want
-to have your program define a configurable variable that will let
-users change the visible portion of your program.
-
-@example
-(defcustom my-summary-function 'semantic-uml-prototype-nonterminal
-  "*Function to use when showing info about my tag."
-  :group 'my-program
-  :type semantic-format-tag-custom-list)
-@end example
-
-Note the special type provided by Semantic.
-
-Next, you can call this function to create a string.
-
-@example
-(funcall my-summary-function tag
-                             tag-parent
-                             t ; use color
-                             )
-@end example
-
-In this case, @var{tag-parent} is an optional argument.  In many
-cases, parent is not used by the outputting function.  The parent must
-be a tag whose @code{semantic-tag-componenets} contains @var{tag}, or
-nil for top-level definitions.  In particular, C++ needs the parent to
-correctly calculate the protection of each method.
+  *** NOTE ***  This section needs to be written
 
 
 @node Current Context
@@ -2685,14 +2614,20 @@ If you call this function interactively, it will popup a buffer with
 a summary of the return value.  This is useful when debugging.
 
 @example
-+--------+   +----------------+   +----------------------------+
-| Buffer |---| Context Parser |---| Local Context Synax Result |
-+--------+   +----------------+   +----------------------------+
++--------+   +----------------+      +-----------------+
+| Buffer |---| Context Parser |------|   Scope Object  |
++--------+   +----------------+      +-----------------+
     |                                        |
 +--------+   +-----------+                   |
-| Parser |---| Tag Table |------------+      |
-+--------+   +-----------+            |      |
-                                      V      V
+| Parser |---| Tag Table |---------------+   |
++--------+   +-----------+               |   |
+                                         |   |
+                                         |   |
+             +-----------+               |   |
+         +-->| Typecache |-----------+   |   |
+         |   +-----------+           |   |   |
+         |                           |   |   |
+         |                           V   V   V
 +-------------+                     +-------------------+
 | Semantic DB |-------------------->| Semantic Analyzer |
 +-------------+                     +-------------------+
@@ -2715,27 +2650,44 @@ a summary of the return value.  This is useful when debugging.
 
 @c (progn (require 'semantic-analyze) (eieiodoc-class semantic-analyze-context "analyze"))
 
+NOTE: Need to regenerate this section
 
 @c END OF ANALZE OBJECT SECTION
 
 @node Completion Overview
 @subsection Completion Overview
 
+NOTE: Need to write this section too.
 
-@node App Debugger
-@chapter Application level Data structure debugger
+@node Data Debugger
+@chapter Data structure debugger
 
-The data structures that Semantic provides can be complex, and
+The data structures that @semantic{} provides can be complex, and
 figuring out why some level of application API performs incorrectly
 can be difficult.
 
-The semantic Application debugger provides a way to look inside the
+The data debugger is provided by @file{data-debug.el} which is
+independent of @semantic{}, though @semantic{} extends it for tag
+structures and objects it provides.
+
+The data debugger provides a way to look inside the
 various data structures of Semantic in a structures and complete way
 to help identify what a problem may be.
 
+When using @code{edebug} to interactively debug a function, the key
+@kbd{E} is bound to @code{data-debug-edebug-expr}, which will provide
+a buffer with the evaluated expression shown in it.
+
+@deffn Command data-debug-edebug-expr expr
+@anchor{data-debug-edebug-expr}
+Dump out the contets of some expression @var{expr} in edebug with ddebug.
+@end deffn
+
 @section App Debugger Entry Points
 
-There are a few basic functions that enter into the debugger:
+There are a few basic functions that enter into the debugger.  For
+historical reasons, the @semantic{} functions use the name
+@code{adebug} to specify functions that use the data debugger.
 
 @deffn Command semantic-adebug-bovinate
 @anchor{semantic-adebug-bovinate}
