@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.204 2008/04/14 16:05:20 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.205 2008/05/11 20:38:03 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -251,7 +251,7 @@ The parse tree must be rebuilt by `semantic-parse-region'."
 ;;; Interfacing with the system
 ;;
 (defcustom semantic-inhibit-functions nil
-  "List of functions to call with no arguments before to setup Semantic.
+  "List of functions to call with no arguments before Semantic is setup.
 If any of these functions returns non-nil, the current buffer is not
 setup to use Semantic."
   :group 'semantic
