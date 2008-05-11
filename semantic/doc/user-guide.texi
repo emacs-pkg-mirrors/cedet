@@ -85,9 +85,11 @@ Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
 @top @value{TITLE}
 
 This chapter describes how to use @b{applications} enabled by
-semantic.
-Many of these come with semantic, but others are distributed apart
-from semantic.
+semantic.  Many of these come with @semantic{}, but others are
+distributed apart from @semantic{}.
+
+For basics of configuring @semantic{} and the parts that go into it
+read the @inforef{Top, Semantic manual, semantic.info}.
 
 @menu
 * speedbar::                    How to use Semantic speedbar support
@@ -100,9 +102,7 @@ from semantic.
 * Idle Scheduler::              The idle Scheduler and related modes
 * Minor Modes::                 Useful minor modes
 * semanticdb::                  Cache your parsed buffers between sessions.
-* Smart Completion Debugging::	How to debug issues w/ smart completion
-* Speed Debug::                 How to debug speed issues.
-* Customizing::                 
+* Debugging::                   How to debug speed or accuracy issues.
 * GNU Free Documentation License::  
 * Index::                       
 @end menu
@@ -483,6 +483,7 @@ in a buffer.
 * Smart Summary::          Routines for displaying help on a symbol
 * Smart Jump::             Routines for jumping to tag origins
 * Speedbar Analysis::      Speedbar provided completion
+* Smart Completion Debugging:: How to debug analyzer issues.
 @end menu
 
 @node Smart Completion
@@ -602,6 +603,185 @@ list of possible completions.
 
 You can also enter speedbar analyzer mode by selecting ``Analyze''
 from the ``Display'' menu item on speedbar's menu.
+
+@node Smart Completion Debugging
+@section Smart Completion Debugging
+
+If you think you've configured your system correctly, but @semantic{}
+still can't find a definition you are looking for, you may have run
+into either a bug in @semantic{}, an incomplete configuration, or
+somehow gotten @semantic{}'s set of cached tables into a bad state.
+
+This section was written with C/C++ in mind, but should be relevant
+for any typed language.
+
+@section Step 1: Check the context
+
+The first thing to do is check the current context.  You can do this
+with @kbd{M-x semantic-analyze-current-context}.  If you look at the
+Prefix section, you should see a list of tags based on the text from
+under point.  If it shows only a simple string, the Semantic was
+unable to identify what the data type was.
+
+The first item in the list of the prefix is the first lookup failure
+in the chain, and that is the item to focus debugging effort on.
+For more on the analyzer, see @ref{Analyzer}.
+
+
+@example
+Context Type: #<semantic-analyze-context context>
+Bounds: (182 . 185)
+Prefix: Foo* bar
+        int bbb (const char* y)
+Prefix Types: class Foo @{@}
+--------
+-> Local Vars: int argc
+               char** argv
+@end example
+
+In the above example you can see that the prefix has two fully found
+tags.  In the below example, the symbol ``bbb'' is incomplete, and
+could not be found.
+
+@example
+Context Type: #<semantic-analyze-context context>
+Bounds: (182 . 184)
+Prefix: Foo* bar
+        "bb"
+Prefix Classes: 'function
+                'variable
+Prefix Types: class Foo @{@}
+--------
+-> Local Vars: int argc
+               char** argv
+@end example
+
+
+@section Step 2 : Check your include path
+
+Once you know what symbol can't be found, the next thing to check is
+your include path.  Is the header or include file that has the
+definitions you need actually in the list of headers @semantic{} is
+searching through?  To get a basic list, you can use
+@kbd{M-x semanticdb-find-test-translate-path}.
+@refill
+
+This will give you a list of database tables (by name) that semantic
+can find.  This list is in ADEBUG mode.  Use @kbd{SPC} to expand items
+to see if the tag you are looking for is in there.
+
+For C++, check to make sure that your project level include files are
+in ``quotes'', and not in <angle brackets>.  Items in angle brackets
+are system includes.
+
+See @ref{Semanticdb search debugging commands} for more commands.
+
+If items should be loaded but aren't, you may need to update the
+search throttle.  See @ref{Search Throttle}.
+
+If you see some tables that have 0 tags in them, then you you may have
+an incorrectly set throttle.
+
+@example
+*#<semanticdb-table main.cpp (4 tags DIRTY)>
+*#<semanticdb-table foo.hh (0 tags DIRTY)>
+@end example
+
+In the above example, semantic found @file{foo.hh}, but there are 0
+tags.  This may be because the throttle was set to not read in and
+parse files that Emacs has not yet loaded in.  To fix this case, visit
+the file, and let @semantic{} parse and save the tags table.
+
+@section Step 3: Check the local scope
+
+If your data type is somehow abbreviated based on scope, such as from
+a @code{using} statement, you will need to make sure that the symbol
+you want is in the local scope.  Examine the scope with
+@kbd{M-x semantic-calculate-scope}.  The scope structure is displayed
+in ADEBUG mode, so use @kbd{SPC} to expand different elements and
+looking for your symbol.
+
+If your symbol should be in the scope, but you cannot find it, then
+you may have found a language support bug in the local-variable
+parser, or using statement parser.
+
+Calling @kbd{M-x bovinte} should force a reset on the scope in case
+there is merely some bad state.
+
+@example
+ ] Name: Cache
+ ] Class: #'semantic-scope-cache
+ ] :table #<semanticdb-table testsubclass.cpp (13 tags DIRTY)>
+ ] tag createMoose : class moose
+ ] scopetypes 'nil
+ ] parents #<TAG LIST: 1 entries>
+ ] scope #<TAG LIST: 22 entries>
+ ] fullscope #<TAG LIST: 23 entries>
+ ] localvar #<TAG LIST: 6 entries>
+@end example
+
+In the above sample output, the @code{tag} slot specifies where within
+you source this scope is relevant.  @code{Parents} should contain any
+in scope parents, such as the class a method belongs to.
+@code{Localvar} should contain your local variables.  @code{Scope}
+should contain datatypes in scope due to a @code{using} statement or
+the like.
+
+@section Step 4: Check the typecache
+
+For complex typed languages like C++, @semantic{} creates a typecache,
+or an optimized search table with all the various data types in it.
+Elements in the typecache do not obey local scope.  It only contains
+fully qualified names.  You can examine the typecache with
+@kbd{M-x semanticdb-typecache-dump}.
+
+If your data types are not in the typecache, there may be some parsing
+error or other bug.  Calling @kbd{M-x bovinte} should force a reset on
+the typecache in case there is merely some bad state.
+
+@example
+]#<semanticdb-typecache /home/zappo/cedet/semantic/tests/testsubclass.cpp>
+   ] Name: /home/zappo/cedet/semantic/tests/testsubclass.cpp
+   ] Class: #'semanticdb-typecache
+   ] filestream 'nil
+   ] includestream #<TAG LIST: 84 entries>
+   ] stream 'nil
+   ] dependants 'nil
+@end example
+
+In the above example, the output of @kbd{M-x semanticdb-typecache-dump}
+was expanded one level.  The @code{filestream} slot should contain
+datatypes in the current file.  The @code{includestream} should
+contain all the datatypes in all included header files.
+
+The @code{dependants} slot will specify other files that depend on
+this one.
+
+@section Step 5: Check the parser
+
+Go to the location where your unfound tag should be.  You can call
+@kbd{M-x bovinate}, and see a dump of the raw tag structure.  To see a
+navigatable tree, use @kbd{M-x semantic-adebug-bovinate} instead.  You
+can then look to make sure your tag has been properly parsed.
+
+If it has not, then you may have found a parser bug.  To get a feel
+how @semantic{} treats your file, you can enable 
+@kbd{M-x global-semantic-show-unmatched-syntax-mode}.  It will
+underline syntax it cannot parse in red.
+
+If your type is not parsable, it could be for several reasons.
+
+@enumerate
+@item Parser Incorrect
+Perhaps the parser needs to be fixed.
+@item C/C++ MACROs
+If there is a MACRO keyword used in the definition of the type, then
+you may need to update the
+@code{semantic-lex-c-preprocessor-symbol-map}
+to account for it.
+@end enumerate
+
+
 
 @node Document
 @chapter Document
@@ -747,9 +927,22 @@ This time should be short enough to ensure that idle-scheduler will be
 run as soon as Emacs is idle.
 @end deffn
 
+@deffn Option semantic-idle-scheduler-work-idle-time
+@anchor{semantic-idle-scheduler-work-idle-time}
+Time in seconds of idle before scheduling big work.
+This time should be long enough that once any big work is started, it is
+unlikely the user would be ready to type again right away.
+@end deffn
+
 @deffn Option semantic-idle-scheduler-mode-hook
 @anchor{semantic-idle-scheduler-mode-hook}
 Hook run at the end of function @dfn{semantic-idle-scheduler-mode}.
+@end deffn
+
+@deffn Option semantic-idle-scheduler-verbose-flag
+@anchor{semantic-idle-scheduler-verbose-flag}
+Non-@code{nil} means that the idle scheduler should provide debug messages.
+Use this setting to debug idle activities.
 @end deffn
 
 You can add new functionality to the idle scheduler by reading the
@@ -758,8 +951,8 @@ Application Developers Guide
 
 @menu
 * Reparsing Options::           
-* Idle Summary Mode::           
-* Idle Completions Mode::
+* Idle Summary Mode::           Display prototype of symbol under cursor
+* Idle Completions Mode::       Smart completion pop-up help.
 @end menu
 
 @node Reparsing Options
@@ -811,8 +1004,10 @@ This hook is not protected from lexical errors.
 @node Idle Summary Mode
 @section Idle Summary Mode
 
-A summary describes a tag in a useful way.  These can be displayed
-for the lexical token under the cursor in idle time using this mode.
+Similar to the Emacs Lisp facility eldoc,
+@code{semantic-idle-summary-mode} will display the prototype, or other
+helpful doc about the symbol currently under point.
+
 
 @deffn semantic-idle-summary-mode &optional arg
 @anchor{semantic-idle-summary-mode}
@@ -834,15 +1029,36 @@ Function to use when displaying tag information during idle time.
 Some useful functions are found in @code{semantic-format-tag-functions}.
 @end deffn
 
+@defvar semantic-idle-summary-out-of-context-faces
+@anchor{semantic-idle-summary-out-of-context-faces}
+List of font-lock faces that indicate a useless summary context.
+Those are generally faces used to highlight comments or strings.
+
+It might be useful to override this variable to add comment faces
+specific to a major mode.  For example, in jde mode:
+
+@example
+(defvar-mode-local jde-mode semantic-idle-summary-out-of-context-faces
+   (append (default-value 'semantic-idle-summary-out-of-context-faces)
+	   '(jde-java-font-lock-doc-tag-face
+	     jde-java-font-lock-link-face
+	     jde-java-font-lock-bold-face
+	     jde-java-font-lock-underline-face
+	     jde-java-font-lock-pre-face
+	     jde-java-font-lock-code-face)))
+@end example
+
+@end defvar
+
 @node Idle Completions Mode
 @section Idle Completions Mode
 
-The definition of completion lists is described in the Analyzer
+The definition of smart completion is described in the Analyzer
 section @ref{Analyzer}.
 
 The Idle Completions mode will calculate the list of possible
-completions in idle time, and display them in a popup list, and also
-highlight the symbol that needs completion.
+completions in idle time, and display them in a popup list, or other
+inline completion mechanism.
 
 @deffn semantic-idle-completions-mode &optional arg
 @anchor{semantic-idle-completions-mode}
@@ -858,6 +1074,27 @@ minor mode is enabled
 
 This mode operates by using the command
 @code{semantic-complete-inline-analyzer}.
+
+Idle completion uses the completion function
+@code{emantic-complete-analyze-inline-idle}.  Changing the behavior of
+the idle completion popups should be done through those utilities.
+
+@deffn Command semantic-complete-analyze-inline-idle
+@anchor{semantic-complete-analyze-inline-idle}
+Perform prompt completion to do in buffer completion.
+@dfn{semantic-analyze-possible-completions} is used to determine the
+possible values.
+The function returns immediately, leaving the buffer in a mode that
+will perform the completion.
+@end deffn
+
+@deffn Option semantic-complete-inline-analyzer-idle-displayor-class
+@anchor{semantic-complete-inline-analyzer-idle-displayor-class}
+Class for displayor to use with inline completion at idle time.
+
+Customize this variable to get a list of options, such as popup
+tooltips, ghosting text, or traditional completion tools.
+@end deffn
 
 @node Minor Modes
 @chapter Minor Modes
@@ -1211,6 +1448,9 @@ Display the results as a debug list.
 @node Semanticdb System Backends
 @section Semanticdb System Backends
 
+These variables should be set up automatically when you choose to use
+different system databases.
+
 @defvar semanticdb-project-system-databases
 @anchor{semanticdb-project-system-databases}
 List of databases containing system library information.
@@ -1239,6 +1479,10 @@ If you want to use some other form of backend, you can use this
 variable to choose which back end class to use for your general tag
 storage.
 
+The default is to save databases in flat files.  Alternativly, you
+could write a new database backend that stores tags into a database,
+or other storage system.
+
 @defvar semanticdb-new-database-class
 @anchor{semanticdb-new-database-class}
 The default type of database created for new files.
@@ -1257,6 +1501,8 @@ will create a cache file for you.
 @example
 $ semanticdb.sh *.el
 @end example
+
+To use these generated tables, you would likely need to restart Emacs.
 
 @node Create System Databases
 @section Create System Databases
@@ -1290,186 +1536,8 @@ name for the language the entry is for.  Use completion @kbd{SPC} to
 see the ones available.  The name of the language should be part of
 the class name.
 
-@node Smart Completion Debugging
-@chapter Smart Completion Debugging
-
-If you think you've configured your system correctly, but @semantic{}
-still can't find a definition you are looking for, you may have run
-into either a bug in @semantic{}, an incomplete configuration, or
-somehow gotten @semantic{}'s set of cached tables into a bad state.
-
-This section was written with C/C++ in mind, but should be relevant
-for any typed language.
-
-@section Step 1: Check the context
-
-The first thing to do is check the current context.  You can do this
-with @kbd{M-x semantic-analyze-current-context}.  If you look at the
-Prefix section, you should see a list of tags based on the text from
-under point.  If it shows only a simple string, the Semantic was
-unable to identify what the data type was.
-
-The first item in the list of the prefix is the first lookup failure
-in the chain, and that is the item to focus debugging effort on.
-For more on the analyzer, see @ref{Analyzer}.
-
-
-@example
-Context Type: #<semantic-analyze-context context>
-Bounds: (182 . 185)
-Prefix: Foo* bar
-        int bbb (const char* y)
-Prefix Types: class Foo @{@}
---------
--> Local Vars: int argc
-               char** argv
-@end example
-
-In the above example you can see that the prefix has two fully found
-tags.  In the below example, the symbol ``bbb'' is incomplete, and
-could not be found.
-
-@example
-Context Type: #<semantic-analyze-context context>
-Bounds: (182 . 184)
-Prefix: Foo* bar
-        "bb"
-Prefix Classes: 'function
-                'variable
-Prefix Types: class Foo @{@}
---------
--> Local Vars: int argc
-               char** argv
-@end example
-
-
-@section Step 2 : Check your include path
-
-Once you know what symbol can't be found, the next thing to check is
-your include path.  Is the header or include file that has the
-definitions you need actually in the list of headers @semantic{} is
-searching through?  To get a basic list, you can use
-@kbd{M-x semanticdb-find-test-translate-path}.
-@refill
-
-This will give you a list of database tables (by name) that semantic
-can find.  This list is in ADEBUG mode.  Use @kbd{SPC} to expand items
-to see if the tag you are looking for is in there.
-
-For C++, check to make sure that your project level include files are
-in ``quotes'', and not in <angle brackets>.  Items in angle brackets
-are system includes.
-
-See @ref{Semanticdb search debugging commands} for more commands.
-
-If items should be loaded but aren't, you may need to update the
-search throttle.  See @ref{Search Throttle}.
-
-If you see some tables that have 0 tags in them, then you you may have
-an incorrectly set throttle.
-
-@example
-*#<semanticdb-table main.cpp (4 tags DIRTY)>
-*#<semanticdb-table foo.hh (0 tags DIRTY)>
-@end example
-
-In the above example, semantic found @file{foo.hh}, but there are 0
-tags.  This may be because the throttle was set to not read in and
-parse files that Emacs has not yet loaded in.  To fix this case, visit
-the file, and let @semantic{} parse and save the tags table.
-
-@section Step 3: Check the local scope
-
-If your data type is somehow abbreviated based on scope, such as from
-a @code{using} statement, you will need to make sure that the symbol
-you want is in the local scope.  Examine the scope with
-@kbd{M-x semantic-calculate-scope}.  The scope structure is displayed
-in ADEBUG mode, so use @kbd{SPC} to expand different elements and
-looking for your symbol.
-
-If your symbol should be in the scope, but you cannot find it, then
-you may have found a language support bug in the local-variable
-parser, or using statement parser.
-
-Calling @kbd{M-x bovinte} should force a reset on the scope in case
-there is merely some bad state.
-
-@example
- ] Name: Cache
- ] Class: #'semantic-scope-cache
- ] :table #<semanticdb-table testsubclass.cpp (13 tags DIRTY)>
- ] tag createMoose : class moose
- ] scopetypes 'nil
- ] parents #<TAG LIST: 1 entries>
- ] scope #<TAG LIST: 22 entries>
- ] fullscope #<TAG LIST: 23 entries>
- ] localvar #<TAG LIST: 6 entries>
-@end example
-
-In the above sample output, the @code{tag} slot specifies where within
-you source this scope is relevant.  @code{Parents} should contain any
-in scope parents, such as the class a method belongs to.
-@code{Localvar} should contain your local variables.  @code{Scope}
-should contain datatypes in scope due to a @code{using} statement or
-the like.
-
-@section Step 4: Check the typecache
-
-For complex typed languages like C++, @semantic{} creates a typecache,
-or an optimized search table with all the various data types in it.
-Elements in the typecache do not obey local scope.  It only contains
-fully qualified names.  You can examine the typecache with
-@kbd{M-x semanticdb-typecache-dump}.
-
-If your data types are not in the typecache, there may be some parsing
-error or other bug.  Calling @kbd{M-x bovinte} should force a reset on
-the typecache in case there is merely some bad state.
-
-@example
-]#<semanticdb-typecache /home/zappo/cedet/semantic/tests/testsubclass.cpp>
-   ] Name: /home/zappo/cedet/semantic/tests/testsubclass.cpp
-   ] Class: #'semanticdb-typecache
-   ] filestream 'nil
-   ] includestream #<TAG LIST: 84 entries>
-   ] stream 'nil
-   ] dependants 'nil
-@end example
-
-In the above example, the output of @kbd{M-x semanticdb-typecache-dump}
-was expanded one level.  The @code{filestream} slot should contain
-datatypes in the current file.  The @code{includestream} should
-contain all the datatypes in all included header files.
-
-The @code{dependants} slot will specify other files that depend on
-this one.
-
-@section Step 5: Check the parser
-
-Go to the location where your unfound tag should be.  You can call
-@kbd{M-x bovinate}, and see a dump of the raw tag structure.  To see a
-navigatable tree, use @kbd{M-x semantic-adebug-bovinate} instead.  You
-can then look to make sure your tag has been properly parsed.
-
-If it has not, then you may have found a parser bug.  To get a feel
-how @semantic{} treats your file, you can enable 
-@kbd{M-x global-semantic-show-unmatched-syntax-mode}.  It will
-underline syntax it cannot parse in red.
-
-If your type is not parsable, it could be for several reasons.
-
-@enumerate
-@item Parser Incorrect
-Perhaps the parser needs to be fixed.
-@item C/C++ MACROs
-If there is a MACRO keyword used in the definition of the type, then
-you may need to update the
-@code{semantic-lex-c-preprocessor-symbol-map}
-to account for it.
-@end enumerate
-
-
-@node Speed Debug
-@chapter Debugging Speed Problems
+@node Debugging
+@chapter Debugging speed and accuracy issues
 
 If aspects of semantic cause your Emacs to slow down or block
 editing, there are several things that may be happening.  The most
@@ -1485,6 +1553,42 @@ semantic mode functions will likely show up in that stack trace.
 From a simple standpoint, your next action might be to use the the
 Senator menu under @kbd{Modes} and just toggle suspected modes on and
 off.
+
+@section Idle function errors
+
+If the idle scheduler starts reporting errors, then you can run the
+command @kbd{M-x semantic-debug-idle-function RET} to get a stacktrace
+to report.
+
+If this doesn't report an issue, then you may have found a bug in the
+idle work function, where longer tasks are scheduled.  To debug that,
+use the command @kbd{M-x semantic-debug-idle-work-function RET}.
+
+@section Analyzer debugging
+
+When the semantic analyzer provides bad or non-existant completions,
+then you will need to debug the analyzer.  Place the cursor where the
+problem is, and then use the command
+@kbd{M-x semantic-analyze-debug-assist RET}.
+
+This will perform an analysis, and then offer suggestions on what
+might be wrong, and how to reconfigure @semantic{} to solve the problem.
+
+@section Symbol lookup
+
+There are many minor modes that have special behaviors tied into the
+current parser state, with the most complex modes being the summary
+and completion modes.  These modes can initiate parsing not only in
+the current buffer, but in other buffers that are referred to in the
+current source by some form of include statement.
+
+If they turn out not to be useful in the language mode you are
+operating in, then it may be best to disable them.
+
+Alternately, you can control how these major modes, and other modes
+like them parse alternate files by adjusting
+@code{semanticdb-find-default-throttle}. You can read more
+in @inforef{ DB Search Paths, , semantic-appdev.info}.
 
 @section Interruptibility
 
@@ -1513,22 +1617,6 @@ identify possible problem areas by enabling highlight edits mode and
 show parser state mode 
 @inforef{Incremental Parser Debugging, ,semantic-langdev.info}
 
-@section Symbol lookup
-
-There are many minor modes that have special behaviors tied into the
-current parser state, with the most complex modes being the summary
-and completion modes.  These modes can initiate parsing not only in
-the current buffer, but in other buffers that are referred to in the
-current source by some form of include statement.
-
-If they turn out not to be useful in the language mode you are
-operating in, then it may be best to disable them.
-
-Alternately, you can control how these major modes, and other modes
-like them parse alternate files by adjusting
-@code{semanticdb-find-default-throttle}. You can read more
-in @inforef{ DB Search Paths, , semantic-appdev.info}.
-
 @section Profiling
 
 To help identify speed issues with the @semantic{} analyzer, you can
@@ -1551,15 +1639,6 @@ option to change sorting of the results table.
 
 Use @kbd{M-x semantic-elp-load-old-run} to restore an old run and view
 it again.
-
-
-@node Customizing
-@chapter Customizing
-@cindex customizing
-
-Customizations can be divided into two categories.
-* M-x customize
-* Low level hooks.
 
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
