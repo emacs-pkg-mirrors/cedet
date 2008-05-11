@@ -115,7 +115,6 @@ use the mailing list cedet-devel.net via the URL:
 * Code Completion::
 * Code Generation::	
 * C++ Features::	
-* Bug Reporting::
 * GNU Free Documentation License::  
 * Index::                       
 @end menu
@@ -733,35 +732,6 @@ more options for the optimization of finding your header files.
 For more on this option, including include path setting, and providing
 macro to the C pre-processor, see
 @inforef{the ede-cpp-root chapter, ede-cpp-root, ede}.
-
-
-@node Bug Reporting
-@chapter Bug Reporting
-
-TODO - write this section to be more descriptive/complete
-
-Sign up on the mailing list at cedet.sf.net
-
-Use @kbd{M-x toggle-debug-on-error RET} to create stack traces of
-errors to send.
-
-If you get an idle timer error from semantic, use
-@kbd{M-x semantic-debug-idle-function RET}
-to create a stacktrace to send.
-
-If you have tags in your code that are not parsed by @semantic{}, then
-use @kbd{M-x global-semantic-highlight-edits-mode RET} to see the
-parsing errors.  Then create a small sample file with the unparsed
-syntax in it to send.
-
-If smart completion isn't finding the items you expect, then use the
-analyzer debugger with @kbd{M-x semantic-analyze-debug-assist RET}.
-If it doesn't help you solve the problem, try to create a simple test
-case that reproduces the problem.
-
-If you see errors from the secondary idle work timer, you can use
-@kbd{M-x semantic-debug-idle-work-function RET}
-to get a stacktrace.
 
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
