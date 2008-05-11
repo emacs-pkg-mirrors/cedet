@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.44 2008/05/10 16:31:38 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.45 2008/05/11 00:13:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -347,7 +347,8 @@ Returns t of all processing succeeded."
 	    t)
 
 	  (semantic-safe "Idle Work Typecaching Error: %S"
-	    (semanticdb-typecache-refresh-for-buffer buffer)
+	    (when (featurep 'semanticdb-typecache)
+	      (semanticdb-typecache-refresh-for-buffer buffer))
 	    t)
 
 	  )) ))
@@ -388,6 +389,9 @@ Uses `semantic-idle-work-for-on-buffer' to do the work."
 		   ))
 	       )
 
+	     ;; Save everything.
+	     (semanticdb-save-all-db-idle)
+
 	     ;; Done w/ processing
 	     nil))))
 
@@ -414,10 +418,12 @@ Uses `semantic-idle-work-for-on-buffer' to do the work."
 This routine handles difficult tasks that require a lot of parsing, such as
 parsing all the header files used by our active sources, or building up complex
 datasets."
-  (message "Long Work Idle Timer...")
+  (when semantic-idle-scheduler-verbose-flag
+    (message "Long Work Idle Timer..."))
   (let ((exit-type (save-match-data
 		     (semantic-idle-work-core-handler))))
-    (message "Long Work Idle Timer...%s" exit-type))
+    (when semantic-idle-scheduler-verbose-flag
+      (message "Long Work Idle Timer...%s" exit-type)))
   )
 
 ;;; REPARSING
