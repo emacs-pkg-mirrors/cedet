@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.29 2008/05/10 16:50:10 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.30 2008/05/11 00:12:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -487,6 +487,7 @@ If there isn't one, create it.
     (oset cache stream stream)
     cache))
 
+;;;###autoload
 (defun semanticdb-typecache-refresh-for-buffer (buffer)
   "Refresh the typecache for BUFFER."
   (save-excursion
