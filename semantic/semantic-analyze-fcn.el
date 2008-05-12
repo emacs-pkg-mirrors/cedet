@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.10 2008/03/24 13:25:29 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.11 2008/05/12 16:20:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -246,7 +246,7 @@ SCOPE is the scope object with additional items in which to search for names."
 	    ans))
 	))))
 
-(defun semantic-analyze-type-parts (type &optional scope)
+(defun semantic-analyze-type-parts (type &optional scope noinherit)
   "Return all parts of TYPE, a tag representing a TYPE declaration.
 SCOPE include additional tags which are in scope.
 This includes both the TYPE parts, and all functions found in all
@@ -263,8 +263,9 @@ databases which have this type as a property."
 	(extmeth nil) ; (semantic-tag-external-member-children type t))
 
 	;; INHERITED are tags found in classes that our TYPE tag
-	;; inherits from.
-	(inherited (semantic-analyze-inherited-tags type scope))
+	;; inherits from.  Do not do this if it was not requested.
+	(inherited (when (not noinherit)
+		     (semantic-analyze-inherited-tags type scope)))
 	)
     (when (not (semantic-tag-in-buffer-p type))
       (dolist (tag slots)
@@ -310,7 +311,9 @@ it should strip out those not accessable by methods of TYPE."
 	;;
 	(when (and oneparent (semantic-tag-p oneparent))
 	  ;; Get tags from this parent.
-	  (let* ((alltags (semantic-analyze-type-parts oneparent))
+	  (let* ((alltags
+		  ;; Do not pull in inherited parts here.
+		  (semantic-analyze-type-parts oneparent scope t))
 		 (accessabletags (nconc
 				  ;; @todo: Is there a better way to ask
 				  ;;        this question than two full
