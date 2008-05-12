@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.11 2008/05/12 16:20:27 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.12 2008/05/12 17:29:39 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -280,9 +280,6 @@ Argument SCOPE specify additional tags that are in scope
 whose tags can be searched when needed, OR it may be a scope object.
 For langauges with protection on specific methods or slots,
 it should strip out those not accessable by methods of TYPE."
-  (if (semantic-scope-cache-child-p scope)
-      ;; If we got an object, extract the types we want.
-      (setq scope (oref scope scopetypes)))
   (let (;; PARENTS specifies only the superclasses and not
 	;; interfaces.  Inheriting from an interfaces implies
 	;; you have a copy of all methods locally.  I think.
