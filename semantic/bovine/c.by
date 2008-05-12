@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.39 2008/03/21 15:09:03 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.40 2008/05/12 14:42:21 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1097,6 +1097,8 @@ expression
   | function-call
     ( (identity start) (identity end) )
   | NEW function-call
+    ( (identity start) (identity end) )
+  | NEW namespace-symbol
     ( (identity start) (identity end) )
  ;; Klaus Berndl: symbol -> namespace-symbol!
   | namespace-symbol
