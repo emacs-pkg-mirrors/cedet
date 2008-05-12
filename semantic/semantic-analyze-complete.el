@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-complete.el,v 1.7 2008/04/06 18:05:08 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-complete.el,v 1.8 2008/05/12 22:50:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -159,8 +159,7 @@ Argument CONTEXT is an object specifying the locally derived context."
 
 	(setq c (semantic-find-tags-by-name-regexp
 		 (concat "^" completetext)
-		 (semantic-analyze-type-parts completetexttype
-					      (oref a scope))
+		 (semantic-analyze-type-parts completetexttype scope)
 		 ))
 	      
       (let ((expr (concat "^" completetext)))
