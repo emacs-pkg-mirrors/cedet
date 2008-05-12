@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.8 2008/02/19 03:54:42 zappo Exp $
+@c $Id: srecode.texi,v 1.9 2008/05/12 01:39:59 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -28,6 +28,10 @@ Copyright @copyright{} 2007, 2008 Eric M. Ludlam
 @i{semantic}
 @end macro
 
+@macro EIEIO{}
+@i{EIEIO}
+@end macro
+
 @macro srecode{}
 @i{SRecode}
 @end macro
@@ -40,10 +44,9 @@ source files into lists of tags, the @i{Semantic Recoder} will aid in
 converting @semantic{} tags and various other information back into
 various types of code.
 
-While the @srecode{} tool provides a nice template language, a nice
-set of base templates for several languages, and even a sequence of
-hueristics in the form of a minor-mode that aid the user in choosing
-the correct template to insert, this is not the main goal of
+While the @srecode{} tool provides a template language, templates for
+several languages, and even a sequence of hueristics that aid the user
+in choosing a template to insert, this is not the main goal of
 @srecode{}.
 
 The goal of @srecode{} is to provide an application framewhere where
@@ -69,7 +72,8 @@ ease.
 @node Quick Start
 @chapter Quick Start
 
-When you intall CEDET, an @code{SRecoder} menu item should appear.
+When you intall CEDET and enable @srecode{}, an @code{SRecoder} menu
+item should appear.
 
 To toggle @srecode{} minor mode on and off use:
 
@@ -285,6 +289,10 @@ Variables can be set up and used in templates.  Many variables you may
 use are set up via template arguments, but some may be preferences a
 user can set up that are used in system templates.
 
+When expanding a template, variables are stored in a @dfn{dictionary}.
+Dictionary entries are variables.  Variables defined in templates can
+have string like values.
+
 A variable can be set like this:
 @example
 set VARNAME "some value"
@@ -292,9 +300,11 @@ set VARNAME "some value"
 
 @menu
 * String Values::       Basic Variable values
-* Compound Values::     Complex variable values
+* Multi-string Values::     Complex variable values
 * Section Show::        Enabling the display of a named section.
 * Special Variables::   Variables with special names
+* Automatic Loop Variables:: Variables automatically set in section loops.
+* Compound Variable Values:: Compound Variable Values
 @end menu
 
 @node String Values
@@ -304,18 +314,18 @@ Variables can be set to strings.  Strings may contain newlines or any
 other characters.  Strings are interpreted by the Emacs Lisp reader so
 @code{\n}, @code{\t}, and @code{\"} work.
 
-When a string is inserted as part of a template, nothing withing the
+When a string is inserted as part of a template, nothing within the
 string is interperted, such as template escape characters.
 
-@node Compound Values
-@subsection Compound Values
+@node Multi-string Values
+@subsection Multi-string Values
 
-A variable can be set to a compound value.  A compound value is
+A variable can be set to multiple strings.  A compound value is
 usually used when you want to use dictionary entries as part of a
 variable later on.
 
-Compound variable values are set like string values except there are
-more than one.  For example
+Multi-string variable values are set like string values except there
+are more than one.  For example
 
 @example
 set NAME "this" "-mode"
@@ -345,6 +355,10 @@ show NAME
 
 This will enable that section.
 
+
+NOTE: May 11, 2008 - I haven't used this yet, so I don't know if it works.
+
+
 @node Special Variables
 @subsection Special Variables
 
@@ -372,13 +386,20 @@ templates default to small priority numbers.  You can specify the
 priority of your template to insert it anywhere in the template search
 list.
 
+If there are multiple templates with the same context and name, the
+template with the lowest priority number will be used.
+
 If multiple files have the same priority, then then sort order is
 unpredictable.  If no template names match, then it doesn't matter.
+
 @item application
 If a template file contains templates only needed for a particular
 application, then specify an application.  Template files for an
 application are stored in the template repository, but are not used in
 the generic template insertion case.
+
+The application with a particular name will access these templates
+from Lisp code.
 @end table
 
 If you want to insert the characters that belong to the variables
@@ -390,6 +411,34 @@ set escape_start "$"
 set escape_end "$"
 set DOLLAR "$"
 @end example
+
+@node Automatic Loop Variables
+@subsection Automatic Loop Variables
+
+When section macros are used, that section is repeated for each
+subdictionary bound to the loop variable.
+
+Each dictionary added will automatically get values for positional
+macros which will enable @var{sections} to be enabled.  The automatic
+section variables are.
+
+@itemize @bullet
+@item @var{first} - The first entry in the table.
+@item @var{notfirst} - Not the first entry in the table.
+@item @var{last} - The last entry in the table
+@item @var{notlast} - Not the last entry in the table.
+@end itemize
+
+@node Compound Variable Values
+@subsection Compound Variable Values
+
+A variable can also have a compound value.  This means the value of
+the variable is an @EIEIO{} object, which is a subclass of
+@code{srecode-dictionary-compound-value}.
+
+Compound variables can only be setup from Lisp code.  See
+@ref{Compound Dictionary Values} for details on setting up compound
+variables from Lisp.
 
 @node Templates
 @section Templates
@@ -447,7 +496,7 @@ This is particularly useful while using an include macro to pull in a
 second template.  In this way, you can pass values known from one
 template to a subordinate template where some value is not know.
 
-From the Elisp default template file, a syntax table is just a
+From the Emacs Lisp default template file, a syntax table is just a
 variable with a specialized value.
 
 If a variable is declared like this:
@@ -586,13 +635,15 @@ Another way to include another template is with the includewrap
 insertion method, such as:
 
 @example
-@{@{>FOO:defun@}@}Handy Text goes here@{@{/FOO@}@}
+@{@{<FOO:defun@}@}Handy Text goes here@{@{/FOO@}@}
 @end example
 
 In this case, @code{defun} is included just as above.  If the
 @code{defun} template has a @{@{^@}@} macro in it, then the
 section text ``Handy Text goes here'' will be inserted at that point,
 and that location will not be saved as the cursor location.
+
+If there is no @{@{^@}@}, then the text will not be inserted.
 
 @node Contexts
 @section Context
@@ -604,7 +655,7 @@ context, it defaults to @code{declaration}.
 You can change context like this:
 
 @example
-context name
+context NAME
 @end example
 
 where @var{name} is some symbol that represents any context.
@@ -643,7 +694,7 @@ Some templates use promtping macro insertion.  A macro that needs a
 prompt looks like this:
 
 @example
-$?NAME$
+@{@{?NAME@}@}
 @end example
 
 where ? comes after the first escape character.
@@ -668,8 +719,10 @@ Now, if you put this in a template:
 
 @example
 template variable
-(defvar $?VARNAME$ nil
+----
+(defvar @{@{?VARNAME@}@} nil
    "")
+----
 @end example
 
 when VARNAME is encountered, it will use the nice prompt.
@@ -712,11 +765,16 @@ Dictionaries contain sets of macros.  The values associated with the
 macro names could be anything, but how it is handled is dependent on
 the type of macro being inserted.
 
+Most of this chapter is for writing Lisp programs that use @srecode{}.
+If you only want to write template files, then you only need to read
+the @ref{Template Argument Dictionary Entries} section.
+
 @menu
 * Create a Dictionary::	
 * Setting Dictionary Values::	Basic dictionary values
 * Compound Dictionary Values::	Complex dictionary values
 * Argument Resolution::	        Automatic argument resolution
+* Creating new Arguments::      Create new arguments for use in templates
 * Template Argument Dictionary Entries:: Catalog of arguments
 @end menu
 
@@ -790,8 +848,9 @@ arbitrary data in a macro.
 @deffn Type srecode-dictionary-compound-value
 @anchor{srecode-dictionary-compound-value}
 A compound dictionary value.
-Values stored in a dictionary must be a @var{string}
-or perhaps a dictionary for the case of sections.
+Values stored in a dictionary must be a @var{string},
+a dictionary for showing sections, or an instance of a subclass
+of this class.
 
 Compound dictionary values derive from this class, and must
 provide a sequence of method implementations to convert into
@@ -846,17 +905,40 @@ aspect of the compound value."
 @node Argument Resolution
 @section Argument Resolution
 
-Additional dictionary modifiers involve adding a set of predefined
-macro values into the dictionary.
+Additional dictionary entries can be set via template arguments in the
+template declaration.  You can resolve an argument list into a
+dictionary with this routine:
 
-The create routines add a few.  Template specified arguments can also
-add dictionary values.
 
 @defun srecode-resolve-arguments temp dict
 @anchor{srecode-resolve-arguments}
 Resolve all the arguments needed by the template @var{temp}.
 Apply anything learned to the dictionary @var{dict}.
 @end defun
+
+@node Creating new Arguments
+@section Creating new Arguments
+
+You can create new arguments for use in template files by writing new
+Emacs Lisp functions.  Doing so is easy.  Here is an example for the
+@code{:blank} argument:
+
+@example
+(defun srecode-semantic-handle-:blank (dict)
+  "Add macros into the dictionary DICT specifying blank line spacing.
+The wrapgap means make sure the first and last lines of the macro
+do not contain any text from preceeding or following text."
+  (srecode-dictionary-set-value dict "BLANK" t)
+  )
+@end example
+
+In this case, a function with the name prefix
+@code{srecode-semantic-handle-} that ends in @code{:blank} creates a
+new argument @code{:blank} that can be used in a template.
+
+Your argument handler must take one argument @var{dict}, which is the
+dictionary to fill in.  Inside your function, you can do whatever you
+want, but adding dictionary values is the right thing.
 
 @node Template Argument Dictionary Entries
 @section Template Argument Dictionary Entries 
@@ -889,12 +971,13 @@ The following built-in simple arguments are available:
 @subsubsection Argument :indent
 
 Supplies the @code{INDENT} macro.  When @code{INDENT} is non-nil, then
-each line is individually indented during macro processing.
+each line is individually indented with
+@code{indent-according-to-mode} during macro processing.
 
 @subsection Argument :blank
 
 Specifying this argument adds a special @code{:blank} handler at the
-beginning and end of the tmplate.  This handler will insert @code{\n}
+beginning and end of the template.  This handler will insert @code{\n}
 if the insertion point is not on a line by itself.
 
 @subsubsection Argument :region
@@ -907,9 +990,11 @@ and that region of text will be ``killed'' from the current buffer.
 
 If standard-output is NOT the current buffer, then the region will not
 be deleted.  In this way, you can safely use @code{:region} using
-templtes in arbitrary output streams.
+templates in arbitrary output streams.
 
 @subsubsection Argument :user
+
+Sets up variables about the current user.
 
 @table @code
 @item AUTHOR
@@ -926,6 +1011,8 @@ I'm not sure when this is handy, but it is this Emacs sessions' init file.
 
 @subsubsection Argument :time
 
+Sets up variables with the current date and time.
+
 @table @code
 @item YEAR
 The current year.
@@ -940,6 +1027,8 @@ The Locale supported time format (%X).
 @end table
 
 @subsubsection Argument :file
+
+Sets up variables with details about the current file.
 
 @table @code
 @item FILENAME
@@ -960,6 +1049,8 @@ Show the section RCS if there is a CVS or RCS directory here.
 @end table
 
 @subsubsection Argument :system
+
+Sets up variables with computer system information.
 
 @table @code
 @item SYSTEMCONF
@@ -991,7 +1082,8 @@ The fourth item in the kill ring.
 @subsubsection Argument :tag
 
 The :tag argument is filled in with information from Semantic.
-The tag in question is queried from the senator tag ring.
+The tag in question is queried from the senator tag ring, or pressed
+in from @srecode{} utilities that use tags in templates.
 
 @table @code
 @item TAG
@@ -1011,6 +1103,12 @@ of the tag.
 The name of the tag as a string.
 @item TYPE
 The data type of the tag as a string.
+@end table
+
+If @var{tag} is a function, you will get these additional dictionary
+entries.
+
+@table @code
 @item ARGS
 A Loop macro value.  Each argument is inserted in ARGS.  To create a
 comma separated list of arguments, you might do this:
@@ -1022,9 +1120,36 @@ comma separated list of arguments, you might do this:
 Within the section dictionaries for each argument, you will find both
 @var{NAME} and @var{TYPE}, in addition to the automatic section values
 for @var{FIRST}, @var{LAST}, @var{NOTFIRST}, and @var{NOTLAST}.
-
-
+@item PARENT
+The string name of the parent of this function, if the function is a
+method of some class.
 @end table
+
+If @var{tag} is a variable, you will get these dictionary entries.
+
+@table @code
+@item DEFAULTVALUE
+Enabled if there is a @var{VALUE}.
+@item VALUE
+An entry in the @var{DEFAULTVALUE} subdictionary that represents the
+textual representation of the default value of this variable.
+@end table
+
+If @var{tag} is a datatype, you will get these dictionary entries.
+
+@table @code
+@item PARENTS
+Section dictionaries for the parents of this class.  Each parent will
+have a @var{NAME}.
+@item INTERFACES
+Section dictionaries for all the implemented interfaces of this
+class.  Each interface will have a @var{NAME}.
+@end table
+
+Note that data type templates should always have a @code{@{@{^@}@}}
+macro in it where the core contents of that type will go.  This is why
+data types don't have subdictionaries full of the slots in the classes
+or structs.
 
 @node Language Arguments
 @subsection language Arguments
@@ -1082,7 +1207,8 @@ For example:
     ;; Add in several items over a loop
     (let ((my-stuff (get-my-stuff-list)))
        (while my-stuff
-          (let ((subdict (srecode-dictionary-add-section-dictionary "LOOP")))
+          (let ((subdict (srecode-dictionary-add-section-dictionary
+                             newdict "LOOP")))
              (srecode-dictionary-set-value subdict "NAME" (nth 0 my-stuff))
              (srecode-dictionary-set-value subdict "ARG" (nth 1 my-stuff))
              (srecode-dictionary-set-value subdict "MOOSE" (nth 2 my-stuff))
@@ -1115,6 +1241,7 @@ start with the main entry point.
 @defun srecode-insert-fcn template dictionary &optional stream
 @anchor{srecode-insert-fcn}
 Insert @var{template} using @var{dictionary} into @var{stream}.
+If @var{stream} is nil, then use the current buffer.
 @end defun
 
 @node Template Naming Conventions
