@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.40 2008/05/12 14:42:21 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.41 2008/05/13 18:24:47 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -49,7 +49,6 @@
 %token <punctuation>   MOD        "\\`[%]\\'"
 %token <punctuation>   HAT        "\\`\\^\\'"
 %token <punctuation>   OR         "\\`[|]\\'"
-%token <punctuation>   OPSTART    "[-+*/%^|&]"
 %token <string>        C          "\"C\""
 %token <number>        ZERO       "^0$"
 %token <symbol>        RESTRICT   "\\<\\(__\\)?restrict\\>"
@@ -1089,6 +1088,13 @@ string-seq
     ( $1 )
   ;
 
+expr-start 
+  : MINUS
+  | PLUS
+  | STAR
+  | AMPERSAND
+  ;
+
 ;; Use expression for parsing only.  Don't actually return anything
 ;; for now.  Hopefully we can fix this later.
 expression
@@ -1109,9 +1115,12 @@ expression
     ( (identity start) (identity end) )
   | type-cast expression  ;; A cast to some other type
     ( (identity start) (identity end) )
+ ;; Casting the results of one expression to something else.
+  | semantic-list expression
+    ( (identity start) (identity end) )
   | semantic-list
     ( (identity start) (identity end) )
-  | OPSTART expression
+  | expr-start expression
     ( (identity start) (identity end) )
   ;
 
