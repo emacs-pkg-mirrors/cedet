@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.82 2008/05/12 22:52:43 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.83 2008/05/13 22:04:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,6 +94,7 @@ This function does not do any hidden buffer changes."
 		     )
     ))
 
+;;;###autoload
 (defcustom semantic-lex-c-preprocessor-symbol-map nil
   "Table of C Preprocessor keywords used by the Semantic C lexer.
 Each entry is a cons cell like this:
@@ -129,6 +130,7 @@ The output table will describe the symbols needed."
 	 )
   )
 
+;;;###autoload
 (defcustom semantic-lex-c-preprocessor-symbol-file nil
   "List of C/C++ files that contain preprocessor macros for the C lexer.
 Each entry is a filename and each file is parsed, and those macros
