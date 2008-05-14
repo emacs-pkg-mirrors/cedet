@@ -279,6 +279,8 @@ to the current key."
 (defun srecode-edit (template-name)
   "Switch to the template buffer for TEMPLATE-NAME.
 Template is chosen based on the mode of the starting buffer."
+  ;; @todo - Get a template stack from the last run template, and show
+  ;; those too!
   (interactive (list (srecode-read-template-name
 		      "Template Name: "
 		      (car srecode-read-template-name-history))))
