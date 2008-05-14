@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-ref.el,v 1.7 2008/03/27 02:53:17 zappo Exp $
+;; X-RCS: $Id: semanticdb-ref.el,v 1.8 2008/05/14 02:32:55 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -37,7 +37,7 @@
 
 
 ;;; Code:
-
+;;;###autoload
 (defmethod semanticdb-add-reference ((dbt semanticdb-abstract-table)
 				     include-tag)
   "Add a reference for the database table DBT based on INCLUDE-TAG.
