@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-dictionary.el,v 1.4 2008/02/16 01:50:15 zappo Exp $
+;; X-RCS: $Id: srecode-dictionary.el,v 1.5 2008/05/14 02:34:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -53,8 +53,9 @@ templates to decide what to do with those symbols.")
 (defclass srecode-dictionary-compound-value ()
   ()
   "A compound dictionary value.
-Values stored in a dictionary must be a STRING
-or perhaps a dictionary for the case of sections.
+Values stored in a dictionary must be a STRING,
+a dictionary for showing sections, or an instance of a subclass
+of this class.
 
 Compound dictionary values derive from this class, and must
 provide a sequence of method implementations to convert into
