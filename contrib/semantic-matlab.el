@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-matlab.el,v 1.5 2008/02/21 20:00:18 zappo Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.6 2008/05/14 23:24:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,7 +53,7 @@
 ;; the information we need.
 ;;; Code:
 (defvar semantic-matlab-match-function-re
-  "\\(^\\s-*function\\b[ \t\n.]*\\)\\(\\[[^]]+\\]\\|\\)\\s-*\\(\\sw+\\)\\>"
+  "\\(^\\s-*function\\b[ \t\n.]*\\)\\(\\[[^]]+\\]\\s-*=\\|\\)\\s-*\\(\\sw+\\)\\>"
   "Expression to match a function start line.")
 
 ;; This function may someday be a part of matlab.el.
@@ -82,14 +82,18 @@ Return argument is:
 	      end (save-excursion
 		    (goto-char start)
 		    (if matlab-functions-have-end
-			(matlab-forward-sexp)
+			(condition-case nil
+			    ;; If we get a failure, we should at least
+			    ;; return whatever we got so far.
+			    (matlab-forward-sexp)
+			  (error (point-max)))
 		      (matlab-end-of-defun))
 		    (point)))
 	(setq taglist
 	      (cons (list start end
-			  (split-string ret "[][,=. \t\n]+")
+			  (split-string ret "[][,=. \t\n]+" t)
 			  fn
-			  (split-string arg "[(), \n\t.]+")
+			  (split-string arg "[(), \n\t.]+" t)
 			  )
 		    taglist))
 	)
@@ -102,8 +106,11 @@ Return argument is:
 IGNORE any arguments which specify a subregion to parse.
 Each tag returned is a semantic FUNCTION tag.  See
 `semantic-tag-new-function'."
-  (mapcar 'semantic-matlab-expand-tag
-	  (semantic-matlab-parse-functions)))
+  (let ((raw (condition-case nil
+		 ;; Errors from here ought not to be propagated.
+		 (semantic-matlab-parse-functions)
+	       (error nil))))
+    (mapcar 'semantic-matlab-expand-tag raw)))
 
 (defun semantic-matlab-parse-changes ()
   "Parse all changes for the current MATLAB buffer."
