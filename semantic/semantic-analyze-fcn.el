@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.12 2008/05/12 17:29:39 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.13 2008/05/16 02:41:37 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -198,12 +198,13 @@ types might be found.  This can be nil."
       (semantic-analyze-dereference-metatype-stack typetag scope))))
 
 (defun semantic-analyze-dereference-metatype-stack (type scope)
-  "Call `semantic-analyze-dereference-metatype' repeatedly until we hit a real TYPE.
+  "Dereference metatypes repeatedly until we hit a real TYPE.
+Uses `semantic-analyze-dereference-metatype'.
 Argument SCOPE is the scope object with additional items in which to search."
   (let ((lasttype type)
 	(nexttype (semantic-analyze-dereference-metatype type scope))
 	(idx 0))
-    (while (not (eq nexttype lasttype))
+    (while (and nexttype (not (eq nexttype lasttype)))
       (setq lasttype nexttype)
       (setq nexttype (semantic-analyze-dereference-metatype lasttype scope))
       (setq idx (1+ idx))
@@ -231,7 +232,8 @@ SCOPE is the scope object with additional items in which to search for names."
       ;; need to do some more work to look it up.
       (if (stringp ans)
 	  ;; The metatype is just a string... look it up.
-	  (or (and scope (semantic-scope-find ans 'type scope))
+	  (or (and scope (car-safe
+			  (semantic-scope-find ans 'type scope)))
 	      (semanticdb-typecache-find ans))
 	(when (and (semantic-tag-p ans)
 		   (eq (semantic-tag-class ans) 'type))
@@ -239,8 +241,9 @@ SCOPE is the scope object with additional items in which to search for names."
 	  (if (semantic-analyze-tag-prototype-p ans)
 	      ;; It is a prototype.. find the real one.
 	      (or (and scope 
-		       (semantic-scope-find (semantic-tag-name ans)
-					    'type scope))
+		       (car-safe
+			(semantic-scope-find (semantic-tag-name ans)
+					     'type scope)))
 		  (semanticdb-typecache-find (semantic-tag-name ans)))
 	    ;; We have a tag, and it is not a prototype.
 	    ans))
