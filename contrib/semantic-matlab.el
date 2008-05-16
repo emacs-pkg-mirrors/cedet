@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-matlab.el,v 1.6 2008/05/14 23:24:50 zappo Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.7 2008/05/16 15:52:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,7 +53,7 @@
 ;; the information we need.
 ;;; Code:
 (defvar semantic-matlab-match-function-re
-  "\\(^\\s-*function\\b[ \t\n.]*\\)\\(\\[[^]]+\\]\\s-*=\\|\\)\\s-*\\(\\sw+\\)\\>"
+  "\\(^\\s-*function\\b[ \t\n.]*\\)\\(\\[[^]]+\\]\\s-*=\\|\\w+\\s-*=\\|\\)\\s-*\\(\\sw+\\)\\>"
   "Expression to match a function start line.")
 
 ;; This function may someday be a part of matlab.el.
