@@ -1,7 +1,7 @@
 /* Special test file for Semantic Analyzer and complex C++ inheritance.
  */
 
-#include <iostream>
+//#include <iostream>
 #include "testsubclass.hh"
 
 void animal::moose::setFeet(int numfeet)
