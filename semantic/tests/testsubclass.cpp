@@ -137,3 +137,34 @@ int someFunction(int mPickle)
   }
 
 }
+
+// Thanks Ming-Wei Chang for this next example.
+
+namespace pub_priv {
+
+  class A{
+  private:
+    void private_a(){}
+  public: 
+    void public_a();
+  };
+
+  void A::public_a() {
+    A other_a;
+
+    other_a.p// -7-
+      // #7# ( "private_a" "public_a" )
+      ;
+  }
+
+  int some_regular_function(){
+    A a;
+    a.p// -8-
+      // #8# ( "public_a" )
+      ;
+    return 0;
+  }
+
+}
+
+
