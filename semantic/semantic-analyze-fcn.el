@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.13 2008/05/16 02:41:37 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.14 2008/05/17 20:05:41 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -233,6 +233,7 @@ SCOPE is the scope object with additional items in which to search for names."
       (if (stringp ans)
 	  ;; The metatype is just a string... look it up.
 	  (or (and scope (car-safe
+			  ;; @todo - should this be `find the best one'?
 			  (semantic-scope-find ans 'type scope)))
 	      (semanticdb-typecache-find ans))
 	(when (and (semantic-tag-p ans)
@@ -248,89 +249,6 @@ SCOPE is the scope object with additional items in which to search for names."
 	    ;; We have a tag, and it is not a prototype.
 	    ans))
 	))))
-
-(defun semantic-analyze-type-parts (type &optional scope noinherit)
-  "Return all parts of TYPE, a tag representing a TYPE declaration.
-SCOPE include additional tags which are in scope.
-This includes both the TYPE parts, and all functions found in all
-databases which have this type as a property."
-  (let (;; SLOTS are the slots directly a part of TYPE.
-	(slots (semantic-tag-components type))
-	(fname (semantic-tag-file-name type))
-	;; EXTMETH are externally defined methods that are still
-	;; a part of this class.
-	
-	;; @TODO - is this line needed??  Try w/out for a while
-	;; @note - I think C++ says no.  elisp might, but methods
-	;;         look like defuns, so it makes no difference.
-	(extmeth nil) ; (semantic-tag-external-member-children type t))
-
-	;; INHERITED are tags found in classes that our TYPE tag
-	;; inherits from.  Do not do this if it was not requested.
-	(inherited (when (not noinherit)
-		     (semantic-analyze-inherited-tags type scope)))
-	)
-    (when (not (semantic-tag-in-buffer-p type))
-      (dolist (tag slots)
-	(semantic--tag-put-property tag :filename fname)))
-    ;; Flatten the database output.
-    (append slots extmeth inherited)
-    ))
-
-(defun semantic-analyze-inherited-tags (type scope)
-  "Return all tags that TYPE inherits from.
-Argument SCOPE specify additional tags that are in scope
-whose tags can be searched when needed, OR it may be a scope object.
-For langauges with protection on specific methods or slots,
-it should strip out those not accessable by methods of TYPE."
-  (let (;; PARENTS specifies only the superclasses and not
-	;; interfaces.  Inheriting from an interfaces implies
-	;; you have a copy of all methods locally.  I think.
-	(parents (semantic-tag-type-superclasses type))
-	(p nil)
-	(ret nil)
-	)
-    (while parents
-      (setq p (car parents))
-      ;; Get this parent
-      (let ((oneparent
-	     (condition-case nil
-		 ;; This routine can throw justified errors if the text
-		 ;; is bad, or the DBs aren't set up right.  Don't let that
-		 ;; befuddle a simpler routine.
-		 (semantic-analyze-find-tag
-		  (cond ((stringp p) p)
-			((semantic-tag-p p) (semantic-tag-name p))
-			((and (listp p) (stringp (car p)))
-			 (car p)))
-		  'type scope)
-	       (error nil))))
-	;;
-	;; The below only works on oneparent is a tag.  If it is a string
-	;; then the parent wasn't found in our searches.  Where might it be?
-	;;
-	(when (and oneparent (semantic-tag-p oneparent))
-	  ;; Get tags from this parent.
-	  (let* ((alltags
-		  ;; Do not pull in inherited parts here.
-		  (semantic-analyze-type-parts oneparent scope t))
-		 (accessabletags (nconc
-				  ;; @todo: Is there a better way to ask
-				  ;;        this question than two full
-				  ;;        searches?
-				  (semantic-find-tags-by-scope-protection
-				   'public oneparent alltags)
-				  (semantic-find-tags-by-scope-protection
-				   'protected oneparent alltags))))
-	    (setq ret (nconc ret accessabletags)))
-	  ;; is this right?
-	  (setq ret (nconc ret (semantic-analyze-inherited-tags
-				oneparent scope)))
-	  ))
-	;; Continue on
-      (setq parents (cdr parents)))
-    ret))
-
 
 (provide 'semantic-analyze-fcn)
 ;;; semantic-analyze-fcn.el ends here
