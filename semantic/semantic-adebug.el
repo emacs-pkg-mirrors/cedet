@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.16 2008/03/27 02:49:14 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.17 2008/05/17 19:55:33 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -126,11 +126,15 @@ Add text properties needed to allow tag expansion later."
 (defun data-debug-insert-tag-list (taglist prefix &optional parent)
   "Insert the tag list TAGLIST with PREFIX.
 Optional argument PARENT specifies the part of TAGLIST."
-  (while taglist
-    (if (semantic-tag-p (car taglist))
-	(data-debug-insert-tag (car taglist) prefix "" parent)
-      (data-debug-insert-thing (car taglist) prefix "" parent))
-    (setq taglist (cdr taglist))))
+  (condition-case nil
+      (while taglist
+	(cond ((and (consp taglist) (semantic-tag-p (car taglist)))
+	       (data-debug-insert-tag (car taglist) prefix "" parent))
+	      ((consp taglist)
+	       (data-debug-insert-thing (car taglist) prefix "" parent))
+	      (t (data-debug-insert-thing taglist prefix "" parent)))
+	(setq taglist (cdr taglist)))
+    (error nil)))
 
 (defun data-debug-insert-taglist-from-point (point)
   "Insert the taglist found at the taglist button at POINT."
@@ -159,7 +163,7 @@ PREBUTTONTEXT is some text between PREFIX and the taglist button.
 PARENT is the tag that represents the parent of all the tags."
   (let ((start (point))
 	(end nil)
-	(str (format "#<TAG LIST: %d entries>" (length taglist)))
+	(str (format "#<TAG LIST: %d entries>" (safe-length taglist)))
 	(tip nil))
     (insert prefix prebuttontext str)
     (setq end (point))
