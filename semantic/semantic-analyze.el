@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.71 2008/03/29 15:29:32 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.72 2008/05/17 20:04:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -294,7 +294,7 @@ are found in SEQUENCE."
 	     (slots nil))
 	
 	;; Get the children
-	(setq slots (semantic-analyze-type-parts tmptype))
+	(setq slots (semantic-analyze-scoped-type-parts tmptype))
 
 	;; find (car s) in the list o slots
 	(setq tmp (semantic-find-tags-by-name (car s) slots))
@@ -335,7 +335,8 @@ find.
 This is a wrapper on top of semanticdb, semanticdb-typecache,
 semantic-scope, and semantic search functions.  Almost all
 searches use the same arguments."
-  (let ((namelst (semantic-analyze-split-name name)))
+  (let ((namelst (if (consp name) name ;; test if pre-split.
+		   (semantic-analyze-split-name name))))
     (cond
      ;; If the splitter gives us a list, use the sequence finder
      ;; to get the list.  Since this routine is expected to return
