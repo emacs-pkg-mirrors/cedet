@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.9 2008/05/16 02:54:55 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.10 2008/05/17 20:09:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -50,6 +50,8 @@
 
     (let ((fl semantic-ia-utest-file-list))
 
+      (semantic-ia-utest-start-log)
+
       (while fl
 
 	(let ((fb (find-buffer-visiting (car fl)))
@@ -64,7 +66,13 @@
 	  (when (not fb)
 	    (kill-buffer b))
 	  )
-	(setq fl (cdr fl))))))
+	(setq fl (cdr fl)))))
+  (pop-to-buffer "*UTEST LOG*" t t)
+  (goto-char (point-max))
+  (search-backward "semantic-ia-utest")
+  (beginning-of-line)
+  (recenter 1)
+  )
 
 (defun semantic-ia-utest-buffer ()
   "Run a unit-test pass in the current buffer."
@@ -120,8 +128,9 @@
 	(if (equal actual desired)
 	    (setq pass (cons idx pass))
 	  (setq fail (cons idx fail))
-	  (message "Failed %d.  Desired: %S Actual %S"
-		   idx desired actual)
+	  (semantic-ia-utest-log
+	   "Failed %d.  Desired: %S Actual %S"
+	   idx desired actual)
 	  )
 	)
 
@@ -129,12 +138,38 @@
       (setq idx (1+ idx)))
     
     (if fail
-	(error "Unit tests in %s failed tests %S" (buffer-name) fail)
-      (message "Unit tests in %s passed (%d total)" (buffer-name)
-	       (- idx 1)))
+	(progn
+	  (semantic-ia-utest-log
+	   "Unit tests in %s failed tests %S"
+	   (buffer-name) (reverse fail))
+	  )
+      (semantic-ia-utest-log "Unit tests in %s passed (%d total)"
+			     (buffer-name)
+			     (- idx 1)))
 
     ))
 
+(defun semantic-ia-utest-start-log ()
+  "Start up a testlog for a run."
+  (let ((b (get-buffer-create "*UTEST LOG*"))
+	)
+    (save-excursion
+      (set-buffer b)
+      (goto-char (point-max))
+      (insert "\n\nsemantic-ia-utest log at ")
+      (insert (current-time-string))
+      (insert "\n\n"))))
+
+(defun semantic-ia-utest-log (&rest args)
+  "Log some test results.
+Pass ARGS to format to create the log message."
+  (let ((b (get-buffer-create "*UTEST LOG*"))
+	)
+    (set-buffer b)
+    (goto-char (point-max))
+    (insert (apply 'format args))
+    (insert "\n")
+    ))
 
 (provide 'semantic-ia-utest)
 ;;; semantic-ia-utest.el ends here
