@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.45 2008/05/11 00:13:50 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.46 2008/05/17 20:08:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -343,7 +343,11 @@ Returns t of all processing succeeded."
 
 	  (semantic-safe "Idle Work Including Error: %S"
 	    ;; Get the include related path.
-	    (semanticdb-find-translate-path buffer nil)
+	    (when (and (featurep 'semanticdb)
+		       (semanticdb-minor-mode-p))
+	      (require 'semanticdb-find)
+	      (semanticdb-find-translate-path buffer nil)
+	      )
 	    t)
 
 	  (semantic-safe "Idle Work Typecaching Error: %S"
