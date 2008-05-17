@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.12 2008/05/10 16:32:29 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.13 2008/05/17 13:00:24 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -753,6 +753,7 @@ invoked interactively."
                   "define-mode-local-override"
                   "define-child-mode"
                   "define-overload"
+                  "define-overloadable-function"
                   ;;"make-obsolete-overload"
                   "with-mode-local"
                   ) t))
