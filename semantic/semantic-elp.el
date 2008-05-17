@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.8 2008/04/01 01:49:07 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.9 2008/05/17 20:06:58 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -212,7 +212,7 @@ You may also need `semantic-elp-include-path-list'.")
     semantic-analyze-scoped-types
     semantic-analyze-scoped-types
     semantic-analyze-tag-prototype-p
-    semantic-analyze-type-parts
+    semantic-analyze-scoped-type-parts
     semantic-calculate-scope
     semantic-ctxt-scoped-types
     semantic-get-all-local-variables
@@ -243,7 +243,7 @@ You may also need `semantic-elp-include-path-list'.")
     semantic-analyze-tag-type
     semantic-analyze-tag-type-to-name
     semantic-analyze-type-constraint
-    semantic-analyze-type-parts
+    semantic-analyze-scoped-type-parts
     semantic-cache-data-to-buffer
     )
   "List of analyzer calculation functions for profiling.")
