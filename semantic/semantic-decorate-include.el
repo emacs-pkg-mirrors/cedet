@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.10 2008/04/12 00:12:00 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.11 2008/05/17 20:06:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -29,6 +29,9 @@
 ;; working.
 
 (require 'semantic-decorate-mode)
+(require 'semanticdb)
+(require 'semanticdb-ref)
+(require 'semanticdb-find)
 
 ;;; Code:
 
@@ -604,7 +607,6 @@ Argument EVENT describes the event that caused this function to be called."
 ;; This section handles changing states of unparsed include
 ;; decorations base on what happens in other files.
 ;;
-(require 'semanticdb)
 
 (defclass semantic-decoration-unparsed-include-cache (semanticdb-abstract-cache)
   ()
