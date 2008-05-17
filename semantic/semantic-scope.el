@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.12 2008/03/27 02:57:09 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.13 2008/05/17 20:03:16 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -67,6 +67,10 @@ anything labled by a `using' statement.")
 	    "List of parents in scope w/in the body of this function.
 Presumably, the members of these parent classes are available for access
 based on private:, or public: style statements.")
+   (parentinheritance :initform nil
+		      :documentation "Alist of parents by inheritance.
+Each entry is ( PARENT . PROTECTION ), where PARENT is a type, and
+PROTECTION is a symbol representing the level of inheritance, such as 'private, or 'protected.")
    (scope :initform nil
 	  :documentation
 	  "Items in scope due to the scopetypes or parents.")
@@ -89,6 +93,7 @@ Saves scoping information between runs of the analyzer.")
   (oset obj tag nil)
   (oset obj scopetypes nil)
   (oset obj parents nil)
+  (oset obj parentinheritance nil)
   (oset obj scope nil)
   (oset obj fullscope nil)
   (oset obj localvar nil)
@@ -123,7 +128,7 @@ Saves scoping information between runs of the analyzer.")
 ;; Functions that do the main scope calculations
 
 
-(define-overload semantic-analyze-scoped-types (position)
+(define-overloadable-function semantic-analyze-scoped-types (position)
   "Return a list of types currently in scope at POSITION.
 This is based on what tags exist at POSITION, and any associated
 types available.")
@@ -163,8 +168,7 @@ Use `semantic-ctxt-scoped-types' to find types."
       )))
 
 ;;------------------------------------------------------------
-
-(define-overload semantic-analyze-scope-nested-tags (position scopedtypes)
+(define-overloadable-function semantic-analyze-scope-nested-tags (position scopedtypes)
   "Return a list of types in order of nesting for the context of POSITION.
 If POSITION is in a method with a named parent, find that parent, and
 identify it's scope via overlay instead.
@@ -185,12 +189,14 @@ are from nesting data types."
 	   (tag (car stack))
 	   (pparent (car (cdr stack)))
 	   (returnlist nil)
+	   (miniscope (semantic-scope-cache "mini"))
 	   )
       ;; Only do this level of analysis for functions.
       (when (eq (semantic-tag-class tag) 'function)
 	;; Step 1:
 	;;    Analyze the stack of tags we are nested in as parents.
 	;;
+	;; @todo - Is step 1 useful for non-function blocks?
 
 	;; If we have a pparent tag, lets go there
 	;; an analyze that stack of tags.
@@ -198,19 +204,26 @@ are from nesting data types."
 	  (semantic-go-to-tag pparent)
 	  (setq stack (semantic-find-tag-by-overlay (point)))
 	  ;; Step one, find the merged version of stack in the typecache.
-	  (let ((tc (semanticdb-typecache-find
-		     (mapcar 'semantic-tag-name stack))))
-	    (if tc
-		(setq returnlist (list tc))
-	      ;; Else, just use these tags right here.
+	  (let* ((stacknames (reverse (mapcar 'semantic-tag-name stack)))
+		 (tc nil)
+		 )
+	    (while (and stacknames
+			(setq tc (semanticdb-typecache-find
+				  (reverse stacknames))))
+	      (setq returnlist (cons tc returnlist)
+		    stacknames (cdr stacknames)))
+	    (when (not returnlist)
+	      ;; When there was nothing from the typecache, then just
+	      ;; use what's right here.
 	      (setq stack (reverse stack))
 	      ;; Add things to STACK until we cease finding tags of class type.
 	      (while (and stack (eq (semantic-tag-class (car stack)) 'type))
 		;; Otherwise, just add this to the returnlist.
 		(setq returnlist (cons (car stack) returnlist))
-		(setq stack (cdr stack)))))
+		(setq stack (cdr stack)))
+	      (setq returnlist (nreverse returnlist))))
 	  )
-	(setq returnlist (nreverse returnlist))
+	
 	;; Step 2:
 	;;   If the function tag itself has a "parent" by name, then that
 	;;   parent will exist in the scope we just calculated, so look it
@@ -219,53 +232,109 @@ are from nesting data types."
 	(let ((p (semantic-tag-function-parent tag)))
 	  (when p
 	    ;; We have a parent, search for it.
-	    (let* ((searchname (cond ((stringp p) p)
-				     ((semantic-tag-p p)
-				      (semantic-tag-name p))
-				     ((and (listp p) (stringp (car p)))
-				      (car p))))
-		   (fullsearchname
-		    (append (nreverse (mapcar 'semantic-tag-name returnlist))
-			    (list searchname)))
-		   (rawscope (apply 'append
-				    (mapcar 'semantic-tag-type-members
-					    (cons (car returnlist) scopetypes)
-					    )))
-		   (ptag
-		    (or
-		     ;; fullsearchname contains all containing
-		     ;; type or namespace patterns.  This allows us
-		     ;; to use the typecache.
-		     (semanticdb-typecache-find fullsearchname)
-		     (semantic-analyze-find-tag searchname 'type
-						rawscope)
-		     )))
-	      (when ptag
-		(when (and (not (semantic-tag-p ptag))
-			   (semantic-tag-p (car ptag)))
-		  (setq ptag (car ptag)))
-		(setq returnlist (cons ptag returnlist)))
+	    (let* ((searchnameraw (cond ((stringp p) p)
+					((semantic-tag-p p)
+					 (semantic-tag-name p))
+					((and (listp p) (stringp (car p)))
+					 (car p))))
+		   (searchname (semantic-analyze-split-name searchnameraw))
+		   (snlist (if (consp searchname)
+			       searchname
+			     (list searchname)))
+		   (fullsearchname nil)
+		   
+		   (miniscope (semantic-scope-cache "mini"))
+		   ptag)
+
+	      ;; Find the next entry in the refereneced type for
+	      ;; our function, and append to return list till our
+	      ;; returnlist is empty.
+	      (while snlist
+		(setq fullsearchname
+		      (append (mapcar 'semantic-tag-name returnlist)
+			      (list (car snlist)))) ;; Next one
+		(setq ptag
+		      (semanticdb-typecache-find fullsearchname))
+
+		(when (or (not ptag)
+			  (not (semantic-tag-of-class-p ptag 'type)))
+		  (let ((rawscope
+			 (apply 'append
+				(mapcar 'semantic-tag-type-members
+					(cons (car returnlist) scopetypes)
+					)))
+			)
+		    (oset miniscope parents returnlist) ;; Not really accurate, but close
+		    (oset miniscope scope rawscope)
+		    (oset miniscope fullscope rawscope)
+		    (setq ptag
+			  (semantic-analyze-find-tag searchnameraw
+						     'type
+						     miniscope
+						     ))
+		    ))
+
+		(when ptag
+		  (when (and (not (semantic-tag-p ptag))
+			     (semantic-tag-p (car ptag)))
+		    (setq ptag (car ptag)))
+		  (setq returnlist (cons ptag returnlist))
+		  )
+
+		(setq snlist (cdr snlist)))
 	      )))
 	
 	(nreverse returnlist)))))
 
+(define-overloadable-function semantic-analyze-scope-lineage-tags (parents scopedtypes)
+  "Return the full lineage of tags from PARENTS.
+The return list is of the form ( TAG . PROTECTION ), where TAG is a tag,
+and PROTECTION is the level of protection offered by the relationship.
+Optional SCOPETYPES are additional scoped entities in which our parent might
+be found.")
+
+(defun semantic-analyze-scope-lineage-tags-default (parents scopetypes)
+  "Return the full lineage of tags from PARENTS.
+The return list is of the form ( TAG . PROTECTION ), where TAG is a tag,
+and PROTECTION is the level of protection offered by the relationship.
+Optional SCOPETYPES are additional scoped entities in which our parent might
+be found."
+  (let ((lineage nil)
+	(miniscope (semantic-scope-cache "mini"))
+	)
+    (oset miniscope parents parents)
+    (oset miniscope scope scopetypes)
+    (oset miniscope fullscope scopetypes)
+
+    (dolist (p parents)
+      (semantic-analyze-scoped-inherited-tag-map
+       p (lambda (newparent) (push (cons newparent 'protected) lineage))
+       miniscope))
+
+    lineage))
+
+
 ;;------------------------------------------------------------
 
-(define-overload semantic-analyze-scoped-tags (typelist parentlist)
+(define-overloadable-function semantic-analyze-scoped-tags (typelist parentlist)
   "Return accessable tags when TYPELIST and PARENTLIST is in scope.
 Tags returned are not in the global name space, but are instead
 scoped inside a class or namespace.  Such items can be referenced
 without use of \"object.function()\" style syntax due to an
 implicit \"object\".")
 
-(defun semantic-analyze-scoped-tags-default (typelist parentlist)
-  "Return accessable tags when TYPELIST and PARENTLIST is in scope.
+(defun semantic-analyze-scoped-tags-default (typelist halfscope)
+  "Return accessable tags when TYPELIST and HALFSCOPE is in scope.
+HALFSCOPE is the current scope partially initialized.
 Tags returned are not in the global name space, but are instead
 scoped inside a class or namespace.  Such items can be referenced
 without use of \"object.function()\" style syntax due to an
 implicit \"object\"."
   (let ((typelist2 nil)
-	(currentscope nil))
+	(currentscope nil)
+	(parentlist (oref halfscope parents))
+	(miniscope halfscope)
+	)
     ;; Loop over typelist, and find and merge all namespaces matching
     ;; the names in typelist.
     (while typelist
@@ -281,9 +350,11 @@ implicit \"object\"."
     ;; adding to the scopelist as we go, and using the scopelist
     ;; for additional searching!
     (while typelist2
+      (oset miniscope scope currentscope)
+      (oset miniscope fullscope currentscope)
       (setq currentscope (append
-			  (semantic-analyze-type-parts (car typelist2)
-						       currentscope)
+			  (semantic-analyze-scoped-type-parts (car typelist2)
+							      miniscope)
 			  currentscope))
       (setq typelist2 (cdr typelist2)))
 
@@ -292,13 +363,126 @@ implicit \"object\"."
     ;; delclared in using statements, or the like.
     ;; Get the PARENTS including nesting scope for this location.
     (while parentlist
+      (oset miniscope scope currentscope)
+      (oset miniscope fullscope currentscope)
       (setq currentscope (append
-			  (semantic-analyze-type-parts (car parentlist)
-						       currentscope)
+			  (semantic-analyze-scoped-type-parts (car parentlist)
+							      miniscope)
 			  currentscope))
       (setq parentlist (cdr parentlist)))
 
     currentscope))
+
+;;------------------------------------------------------------
+(define-overloadable-function  semantic-analyze-scope-calculate-access (type scope)
+  "Calculate the access class for TYPE as defined by the current SCOPE.
+Access is related to the :parents in SCOPE.  If type is a member of SCOPE 
+then access would be 'private.  If TYPE is inherited by a member of SCOPE,
+the access would be 'protected.  Otherwise, access is 'public")
+
+(defun semantic-analyze-scope-calculate-access-default (type scope)
+  "Calculate the access class for TYPE as defined by the current SCOPE."
+  (cond ((semantic-scope-cache-p scope)
+	 (let ((parents (oref scope parents))
+	       (parentsi (oref scope parentinheritance))
+	       (prot 'public)
+	       )
+	   (catch 'moose
+	     ;; Investigate the parent, and see how it relates to type.
+	     ;; If these tags are basically the same, then we have full access.
+	     (dolist (p parents)
+	       (when (semantic-tag-similar-p type p)
+		 (throw 'moose 'private))
+	       )
+	     ;; Look to see if type is in our list of inherited parents.
+	     (dolist (pi parentsi)
+	       ;; pi is a cons cell ( PARENT . protection)
+	       (let ((pip (car pi))
+		     (piprot (cdr pi)))
+		 (when (semantic-tag-similar-p type pip)
+		   (throw 'moose piprot)))
+	       )
+	     ;; Found nothing, return public
+	     'public)
+	   ))
+	(t 'public)))
+
+(defun semantic-analyze-scoped-type-parts (type &optional scope noinherit)
+  "Return all parts of TYPE, a tag representing a TYPE declaration.
+SCOPE is the scope object.
+NOINHERIT turns off searching of inherited tags."
+  (let* ((protection (semantic-analyze-scope-calculate-access type scope))
+	 ;; SLOTS are the slots directly a part of TYPE.
+	(allslots (semantic-tag-components type))
+	(slots (semantic-find-tags-by-scope-protection
+		 protection type allslots))
+	(fname (semantic-tag-file-name type))
+	;; EXTMETH are externally defined methods that are still
+	;; a part of this class.
+	
+	;; @TODO - is this line needed??  Try w/out for a while
+	;; @note - I think C++ says no.  elisp might, but methods
+	;;         look like defuns, so it makes no difference.
+	(extmeth nil) ; (semantic-tag-external-member-children type t))
+
+	;; INHERITED are tags found in classes that our TYPE tag
+	;; inherits from.  Do not do this if it was not requested.
+	(inherited (when (not noinherit)
+		     (semantic-analyze-scoped-inherited-tags type scope)))
+	)
+    (when (not (semantic-tag-in-buffer-p type))
+      (dolist (tag slots)
+	(semantic--tag-put-property tag :filename fname)))
+    ;; Flatten the database output.
+    (append slots extmeth inherited)
+    ))
+
+(defun semantic-analyze-scoped-inherited-tags (type scope)
+  "Return all tags that TYPE inherits from.
+Argument SCOPE specify additional tags that are in scope
+whose tags can be searched when needed, OR it may be a scope object.
+PROTECTION is the level of protection we filter on child supplied tags.
+For langauges with protection on specific methods or slots,
+it should strip out those not accessable by methods of TYPE."
+  (let (;; PARENTS specifies only the superclasses and not
+	;; interfaces.  Inheriting from an interfaces implies
+	;; you have a copy of all methods locally.  I think.
+	(parents (semantic-tag-type-superclasses type))
+	(ret nil)
+	)
+    (semantic-analyze-scoped-inherited-tag-map
+     type (lambda (p)
+	    (let* ((accessabletags
+		    ;; Do not pull in inherited parts here.
+		    (semantic-analyze-scoped-type-parts p scope t))
+		   )
+	      (setq ret (nconc ret accessabletags))))
+     scope)
+    ret))
+
+(defun semantic-analyze-scoped-inherited-tag-map (type fcn scope)
+  "Map all parents of TYPE to FCN.  Return tags of all the types.
+Argument SCOPE specify additional tags that are in scope
+whose tags can be searched when needed, OR it may be a scope object."
+  (let* (;; PARENTS specifies only the superclasses and not
+	 ;; interfaces.  Inheriting from an interfaces implies
+	 ;; you have a copy of all methods locally.  I think.
+	 (parents (semantic-tag-type-superclasses type))
+	 ps pt
+	 )
+    (dolist (p parents)
+      (setq ps (cond ((stringp p) p)
+		     ((and (semantic-tag-p p) (semantic-tag-prototype-p p))
+		      (semantic-tag-name p))
+		     ((and (listp p) (stringp (car p)))
+		      p))
+	    pt (condition-case nil
+		   (semantic-analyze-find-tag ps 'type scope)
+		 (error nil)))
+      (when pt
+	(funcall fcn pt)
+	(semantic-analyze-scoped-inherited-tag-map pt fcn scope)))
+    nil))
 
 ;;; ANALYZER
 ;;
@@ -314,13 +498,17 @@ The class returned from the scope calculation is variable
   (if (not (and (featurep 'semanticdb) semanticdb-current-database))
       nil ;; Don't do anything...
     (if (not point) (setq point (point)))
-    (when (interactive-p) (semantic-fetch-tags))
+    (when (interactive-p)
+      (semantic-fetch-tags)
+      (semantic-scope-reset-cache)
+      )
     (save-excursion
       (goto-char point)
       (let* ((TAG  (semantic-current-tag))
 	     (scopecache
 	      (semanticdb-cache-get semanticdb-current-table
 				    semantic-scope-cache))
+	     (scope nil)
 	     )
 	(when (not (semantic-equivalent-tag-p TAG (oref scopecache tag)))
 	  (semantic-reset scopecache))
@@ -332,27 +520,31 @@ The class returned from the scope calculation is variable
 		(oset scopecache localvar (semantic-get-all-local-variables))
 	      (error nil))
 	  
-	  (let*
-	      (
-	       ;; Step 1:
-	       (scopetypes (semantic-analyze-scoped-types point))
-	       (parents (semantic-analyze-scope-nested-tags point scopetypes))
-	       ;; Step 2:
-	       (scope (if (or scopetypes parents)
-			  (semantic-analyze-scoped-tags scopetypes parents)))
-	       (fullscope (append scopetypes scope parents))
-	       ;; Step 3:
-	       (localvar (condition-case nil
-			     (semantic-get-all-local-variables)
-			   (error nil)))
-	       )
+	  (let* (;; Step 1:
+		 (scopetypes (semantic-analyze-scoped-types point))
+		 (parents (semantic-analyze-scope-nested-tags point scopetypes))
+		 (parentinherited (semantic-analyze-scope-lineage-tags
+				   parents scopetypes))
+		 )
 	    (oset scopecache tag TAG)
 	    (oset scopecache scopetypes scopetypes)
 	    (oset scopecache parents parents)
-	    (oset scopecache scope scope)
-	    (oset scopecache fullscope fullscope)
-	    (oset scopecache localvar localvar)
-	    ))
+	    (oset scopecache parentinheritance parentinherited)
+
+	    (let* (;; Step 2:
+		   (scope (when (or scopetypes parents)
+			    (semantic-analyze-scoped-tags scopetypes scopecache))
+			  )
+		   (fullscope (append scopetypes scope parents))
+		   ;; Step 3:
+		   (localvar (condition-case nil
+				 (semantic-get-all-local-variables)
+			       (error nil)))
+		   )
+	      (oset scopecache scope scope)
+	      (oset scopecache fullscope fullscope)
+	      (oset scopecache localvar localvar)
+	      )))
 	;; Make sure we become dependant on the typecache.
 	(semanticdb-typecache-add-dependant scopecache)
 	;; Handy debug output.
