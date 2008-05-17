@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.52 2008/04/24 01:16:23 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.53 2008/05/17 11:40:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -240,6 +240,8 @@ HISTORY is a symbol representing a variable to story the history in."
       ;; is available as a possibility, but I'm too lazy right
       ;; now.
       ;;
+
+      ;; @todo - move from () to into the editable area
       (if (string-match ":" prompt)
 	  (setq prompt (concat
 			(substring prompt 0 (match-beginning 0))
@@ -1808,6 +1810,54 @@ HISTORY is a symbol representing a variable to store the history in."
   )
 
 ;;;###autoload
+(defun semantic-complete-inline-tag-project ()
+  "Complete a symbol name by name from within the current project.
+This is similar to `semantic-complete-read-tag-project', except
+that the completion interaction is in the buffer where the context
+was calculated from.
+Customize `semantic-complete-inline-analyzer-displayor-class'
+to control how completion options are displayed.
+See `semantic-complete-inline-tag-engine' for details on how
+completion works."
+  (let* ((collector (semantic-collector-project-brutish
+		     "inline"
+		     :buffer (current-buffer)
+		     :path (current-buffer)))
+	 (sbounds (semantic-ctxt-current-symbol-and-bounds))
+	 (syms (car sbounds))
+	 (start (car (nth 2 sbounds)))
+	 (end (cdr (nth 2 sbounds)))
+	 (rsym (reverse syms))
+	 (thissym (nth 1 sbounds))
+	 (nextsym (car-safe (cdr rsym)))
+	 (complst nil))
+    (when (and thissym (or (not (string= thissym ""))
+			   nextsym))
+      ;; Do a quick calcuation of completions.
+      (semantic-collector-calculate-completions
+       collector thissym nil)
+      ;; Get the master list
+      (setq complst (semanticdb-strip-find-results
+		     (semantic-collector-all-completions collector thissym)))
+      ;; Shorten by name
+      (setq complst (semantic-unique-tag-table-by-name complst))
+      (if (or (and (= (length complst) 1)
+		   ;; Check to see if it is the same as what is there.
+		   ;; if so, we can offer to complete.
+		   (let ((compname (semantic-tag-name (car complst))))
+		     (not (string= compname thissym))))
+	      (> (length complst) 1))
+	  ;; There are several options.  Do the completion.
+	  (semantic-complete-inline-tag-engine
+	   collector
+	   (funcall semantic-complete-inline-analyzer-displayor-class
+		    "inline displayor")
+	   ;;(semantic-displayor-tooltip "simple")
+	   (current-buffer)
+	   start end))
+      )))
+
+;;;###autoload
 (defun semantic-complete-read-tag-analyzer (prompt &optional
 						   context
 						   history)
@@ -2044,6 +2094,23 @@ use `semantic-complete-analyze-inline' to complete."
     (semantic-complete-analyze-inline)
     ))
 
+
+;;;###autoload
+(defun semantic-complete-inline-project ()
+  "Perform prompt completion to do in buffer completion.
+`semantic-analyze-possible-completions' is used to determine the
+possible values.
+The function returns immediately, leaving the buffer in a mode that
+will perform the completion."
+  (interactive)
+  ;; Only do this if we are not already completing something.
+  (if (not (semantic-completion-inline-active-p))
+      (semantic-complete-inline-tag-project))
+  ;; Report a message if things didn't startup.
+  (if (and (interactive-p)
+	   (not (semantic-completion-inline-active-p)))
+      (message "Inline completion not needed."))
+  )
 ;; End
 (provide 'semantic-complete)
 
