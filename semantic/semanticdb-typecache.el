@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.30 2008/05/11 00:12:25 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.31 2008/05/17 19:57:55 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,6 +30,7 @@
 ;; It is likely this feature will only be needed for C/C++.
 
 (require 'semanticdb)
+(require 'semanticdb-find)
 
 ;;; Code:
 
@@ -225,7 +226,7 @@ Adds a filename if the tags are not in a buffer."
       ;; then just return the cache, and skip all this merging stuff.
       (or cache1 cache2)
 
-    ;; Assume we always have datatypes, as this typecache isn'nt really
+    ;; Assume we always have datatypes, as this typecache isn't really
     ;; useful without a typed language.
     (let ((S (semantic-sort-tags-by-name-then-type-increasing
 	      ;; I used to use append, but it copied cache1 but not cache2.
@@ -376,7 +377,15 @@ found tag to be loaded.  NOTE: Not Impl'd yet
 Call directly to `semanticdb-typecache-find-method'."
   (semanticdb-typecache-find-method (or path semanticdb-current-table)
 				    type find-file-match))
-    
+
+(defun semanticdb-typecache-find-by-name-helper (name table)
+  "Find the tag with NAME in TABLE, which is from a typecache.
+If more than one tag has NAME in TABLE, we will prefer the tag that
+is of class 'type."
+  (let* ((names (semantic-find-tags-by-name name table))
+	 (types (semantic-find-tags-by-class 'type names)))
+    (or (car-safe types) (car-safe names))))
+
 (defmethod semanticdb-typecache-find-method ((table semanticdb-abstract-table)
 					     type find-file-match)
   "Search the typecache in TABLE for the datatype TYPE.
@@ -410,7 +419,8 @@ found tag to be loaded."
 	  ;; This trick merges the two identified tags, making sure our lists are
 	  ;; complete.  The second find then gets the new 'master' from the list of 2.
 	  (setq ans (semanticdb-typecache-merge-streams (list f-ans) (list i-ans)))
-	  (setq ans (semantic-find-first-tag-by-name (car type) ans)))
+	  (setq ans (semantic-find-first-tag-by-name (car type) ans))
+	  )
 
       ;; The answers are already sorted and merged, so if one misses,
       ;; no need to do any special work.
@@ -422,21 +432,22 @@ found tag to be loaded."
       ;; For pass > 1, stream will be non-nil, so do a search, otherwise
       ;; ans is from outside the loop.
       (when stream
-	(setq ans (semantic-find-first-tag-by-name (car type) stream)))
+	(setq ans (semanticdb-typecache-find-by-name-helper (car type) stream))
 
-      ;; NOTE: The below test to make sure we get a type is only relevant
-      ;;       for the SECOND pass or later.  The first pass can only ever
-      ;;       find a type/namespace because everything else is excluded.
+	;; NOTE: The below test to make sure we get a type is only relevant
+	;;       for the SECOND pass or later.  The first pass can only ever
+	;;       find a type/namespace because everything else is excluded.
 
-      ;; If this is not the last entry from the list, then it
-      ;; must be a type or a namespace.  Lets double check.
-      (when (and stream 
-		 (null (cdr type))
-		 (not (semantic-tag-of-class-p ans 'type)))
+	;; If this is not the last entry from the list, then it
+	;; must be a type or a namespace.  Lets double check.
+	(when (cdr type)
 
-	(setq ans (semantic-find-tags-by-class 'type stream))
-	;; Same basic query as above with non types stripped out.
-	(setq ans (semantic-find-first-tag-by-name (car type) ans)))
+	  ;; From above, there is only one tag in ans, and we prefer
+	  ;; types.
+	  (when (not (semantic-tag-of-class-p ans 'type))
+
+	    (setq ans nil)))
+	)
 
       ;; Track most recent file.
       (setq thisfile (semantic-tag-file-name ans))
