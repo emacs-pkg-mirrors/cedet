@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.21 2008/03/25 01:29:02 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.22 2008/05/17 20:07:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -270,7 +270,7 @@ parts of the parent classes are displayed."
       (princ (semantic-format-tag-summarize class))
       (princ "\n")
       (princ "  Type Members:\n")
-      (let ((parts (semantic-analyze-type-parts class)))
+      (let ((parts (semantic-analyze-scoped-type-parts class)))
 	(while parts
 	  (princ "    ")
 	  (princ (semantic-format-tag-summarize (car parts)))
