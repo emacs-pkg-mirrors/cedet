@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.43 2008/02/24 01:41:48 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.44 2008/05/17 20:09:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,13 +232,15 @@ Return a bovination list to use."
        (semantic-elisp-desymbolify (nth 2 form))
        :user-visible-flag (eq (car-safe (nth 4 form)) 'interactive)
        :documentation (semantic-elisp-do-doc (nth 3 form))
-       :overloadable (eq (car form) 'define-overload)
+       :overloadable (or (eq (car form) 'define-overload)
+			 (eq (car form) 'define-overloadable-function))
        ))
   defun
   defun*
   defsubst
   defmacro
-  define-overload
+  define-overload ;; @todo - remove after cleaning up semantic.
+  define-overloadable-function
   )
 
 (semantic-elisp-setup-form-parser
