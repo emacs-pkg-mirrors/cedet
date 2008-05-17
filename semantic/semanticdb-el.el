@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.27 2008/03/14 22:44:17 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.28 2008/05/17 11:59:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,7 +43,7 @@
 ;;; Code:
 
 ;;; Classes:
-(defclass semanticdb-table-emacs-lisp (semanticdb-search-results-table)
+(defclass semanticdb-table-emacs-lisp (semanticdb-abstract-table)
   ((major-mode :initform emacs-lisp-mode)
    )
   "A table for returning search results from Emacs.")
