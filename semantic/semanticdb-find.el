@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.63 2008/05/10 16:46:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.64 2008/05/17 11:58:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1142,38 +1142,38 @@ associated with that tag should be loaded into a buffer."
 ;; Override these with system databases to as new types of back ends.
 
 ;;; Top level Searches
-(defmethod semanticdb-find-tags-by-name-method ((table semanticdb-table) name &optional tags)
+(defmethod semanticdb-find-tags-by-name-method ((table semanticdb-abstract-table) name &optional tags)
   "In TABLE, find all occurances of tags with NAME.
 Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
   (semantic-find-tags-by-name name (or tags (semanticdb-get-tags table))))
 
-(defmethod semanticdb-find-tags-by-name-regexp-method ((table semanticdb-table) regexp &optional tags)
+(defmethod semanticdb-find-tags-by-name-regexp-method ((table semanticdb-abstract-table) regexp &optional tags)
   "In TABLE, find all occurances of tags matching REGEXP.
 Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
   (semantic-find-tags-by-name-regexp regexp (or tags (semanticdb-get-tags table))))
 
-(defmethod semanticdb-find-tags-for-completion-method ((table semanticdb-table) prefix &optional tags)
+(defmethod semanticdb-find-tags-for-completion-method ((table semanticdb-abstract-table) prefix &optional tags)
   "In TABLE, find all occurances of tags matching PREFIX.
 Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
   (semantic-find-tags-for-completion prefix (or tags (semanticdb-get-tags table))))
 
-(defmethod semanticdb-find-tags-by-class-method ((table semanticdb-table) class &optional tags)
+(defmethod semanticdb-find-tags-by-class-method ((table semanticdb-abstract-table) class &optional tags)
   "In TABLE, find all occurances of tags of CLASS.
 Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
   (semantic-find-tags-by-class class (or tags (semanticdb-get-tags table))))
 
-(defmethod semanticdb-find-tags-external-children-of-type-method ((table semanticdb-table) parent &optional tags)
+(defmethod semanticdb-find-tags-external-children-of-type-method ((table semanticdb-abstract-table) parent &optional tags)
    "In TABLE, find all occurances of tags whose TYPE is PARENT.
 Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
    (semantic-find-tags-external-children-of-type parent (or tags (semanticdb-get-tags table))))
 
 ;;; Deep Searches
-(defmethod semanticdb-deep-find-tags-by-name-method ((table semanticdb-table) name &optional tags)
+(defmethod semanticdb-deep-find-tags-by-name-method ((table semanticdb-abstract-table) name &optional tags)
   "In TABLE, find all occurances of tags with NAME.
 Search in all tags in TABLE, and all components of top level tags in
 TABLE.
@@ -1181,7 +1181,7 @@ Optional argument TAGS is a list of tags to search.
 Return a table of all matching tags."
   (semantic-find-tags-by-name name (semantic-flatten-tags-table (or tags (semanticdb-get-tags table)))))
 
-(defmethod semanticdb-deep-find-tags-by-name-regexp-method ((table semanticdb-table) regexp &optional tags)
+(defmethod semanticdb-deep-find-tags-by-name-regexp-method ((table semanticdb-abstract-table) regexp &optional tags)
   "In TABLE, find all occurances of tags matching REGEXP.
 Search in all tags in TABLE, and all components of top level tags in
 TABLE.
@@ -1189,7 +1189,7 @@ Optional argument TAGS is a list of tags to search.
 Return a table of all matching tags."
   (semantic-find-tags-by-name-regexp regexp (semantic-flatten-tags-table (or tags (semanticdb-get-tags table)))))
 
-(defmethod semanticdb-deep-find-tags-for-completion-method ((table semanticdb-table) prefix &optional tags)
+(defmethod semanticdb-deep-find-tags-for-completion-method ((table semanticdb-abstract-table) prefix &optional tags)
   "In TABLE, find all occurances of tags matching PREFIX.
 Search in all tags in TABLE, and all components of top level tags in
 TABLE.
