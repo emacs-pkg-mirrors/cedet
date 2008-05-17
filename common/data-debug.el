@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.3 2008/04/14 15:05:54 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.4 2008/05/17 19:54:34 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -67,7 +67,7 @@ The attributes belong to the tag PARENT."
 (defun data-debug-insert-overlay-props (overlay prefix)
   "Insert all the parts of OVERLAY.
 PREFIX specifies what to insert at the start of each line."
-  (let ((attrprefix (concat (make-string (length prefix) ? ) "# "))
+  (let ((attrprefix (concat (make-string (safe-length prefix) ? ) "# "))
 	(proplist (data-debug-overlay-properties overlay)))
     (data-debug-insert-property-list
      proplist attrprefix)
@@ -245,7 +245,7 @@ PREFIX specifies what to insert at the start of each line."
      "")
     (setq stufflist
 	  (if (listp stufflist)
-	      (cdr stufflist)
+	      (cdr-safe stufflist)
 	    nil))))
 
 (defun data-debug-insert-stuff-list-from-point (point)
@@ -274,7 +274,7 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
 	(end nil)
 	(str
 	 (condition-case nil
-	     (format "#<list o' stuff: %d entries>" (length stufflist))
+	     (format "#<list o' stuff: %d entries>" (safe-length stufflist))
 	   (error "#<list o' stuff>")))
 	(tip (if (or (listp (car stufflist))
 		     (vectorp (car stufflist)))
@@ -284,7 +284,7 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
     (setq end (point))
     (put-text-property (- end (length str)) end 'face 'font-lock-variable-name-face)
     (put-text-property start end 'ddebug stufflist)
-    (put-text-property start end 'ddebug-indent(length prefix))
+    (put-text-property start end 'ddebug-indent (length prefix))
     (put-text-property start end 'ddebug-prefix prefix)
     (put-text-property start end 'help-echo tip)
     (put-text-property start end 'ddebug-function
@@ -303,6 +303,21 @@ PREBUTTONTEXT is some text between prefix and the thing."
   (let ((start (point))
 	(end nil))
     (insert (format "\"%s\"" thing))
+    (setq end (point))
+    (insert "\n" )
+    (put-text-property start end 'face font-lock-string-face)
+    ))
+
+;;; String
+(defun data-debug-insert-number (thing prefix prebuttontext)
+  "Insert one symbol THING.
+A Symbol is a simple thing, but this provides some face and prefix rules.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the thing."
+  (insert prefix prebuttontext)
+  (let ((start (point))
+	(end nil))
+    (insert (format "%S" thing))
     (setq end (point))
     (insert "\n" )
     (put-text-property start end 'face font-lock-string-face)
@@ -387,6 +402,9 @@ FACE is the face to use."
 
     ;; String
     (stringp . data-debug-insert-string)
+
+    ;; Numbers
+    (numberp . data-debug-insert-number)
 
     ;; Symbol
     (symbolp . data-debug-insert-symbol)
