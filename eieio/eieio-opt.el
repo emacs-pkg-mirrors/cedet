@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.28 2008/03/30 19:50:45 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.29 2008/05/18 13:01:41 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -216,6 +216,11 @@ Outputs to the standard output."
       (unless (eq (aref types i) t)
 	(princ "    type = ")
 	(prin1 (aref types i)))
+      (condition-case nil
+	  (let ((value (eieio-oref class (car names))))
+	    (princ "   value = ")
+	    (prin1 value))
+	  (error nil))
       (when (car docs)
 	(terpri)
 	(princ "  ")
