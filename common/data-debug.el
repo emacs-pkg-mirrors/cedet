@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.4 2008/05/17 19:54:34 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.5 2008/05/18 12:34:19 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -40,10 +40,12 @@
 (if (featurep 'xemacs)
     (eval-and-compile
       (defalias 'data-debug-overlay-properties 'extent-properties)
+      (defalias 'data-debug-overlay-p 'extentp)
       )
   ;; Regular Emacs
   (eval-and-compile
-    (defalias 'data-debug-overlay-overlay-properties 'overlay-properties)
+    (defalias 'data-debug-overlay-properties 'overlay-properties)
+    (defalias 'data-debug-overlay-p 'overlayp)
     )
   )
 
@@ -67,7 +69,7 @@ The attributes belong to the tag PARENT."
 (defun data-debug-insert-overlay-props (overlay prefix)
   "Insert all the parts of OVERLAY.
 PREFIX specifies what to insert at the start of each line."
-  (let ((attrprefix (concat (make-string (safe-length prefix) ? ) "# "))
+  (let ((attrprefix (concat (make-string (length prefix) ? ) "# "))
 	(proplist (data-debug-overlay-properties overlay)))
     (data-debug-insert-property-list
      proplist attrprefix)
@@ -157,6 +159,55 @@ PREBUTTONTEXT is some text between prefix and the overlay list button."
     (put-text-property start end 'help-echo tip)
     (put-text-property start end 'ddebug-function
 		       'data-debug-insert-overlay-list-from-point)
+    (insert "\n")
+    )
+  )
+
+;;; processes
+;;
+(defun data-debug-insert-process-props (process prefix)
+  "Insert all the parts of PROCESS.
+PREFIX specifies what to insert at the start of each line."
+  (let ((attrprefix (concat (make-string (length prefix) ? ) "# "))
+	(proplist (process-plist process)))
+    (data-debug-insert-property-list
+     proplist attrprefix)
+    )
+  )
+
+(defun data-debug-insert-process-from-point (point)
+  "Insert the process found at the process button at POINT."
+  (let ((process (get-text-property point 'ddebug))
+	(indent (get-text-property point 'ddebug-indent))
+	start end
+	)
+    (end-of-line)
+    (setq start (point))
+    (forward-char 1)
+    (data-debug-insert-process-props process
+				     (concat (make-string indent ? )
+					     "| "))
+    (setq end (point))
+    (goto-char start)
+    ))
+
+(defun data-debug-insert-process-button (process prefix prebuttontext)
+  "Insert a button representing PROCESS.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the process button."
+  (let ((start (point))
+	(end nil)
+	(str (format "%S" process))
+	(tip nil))
+    (insert prefix prebuttontext str)
+    (setq end (point))
+    (put-text-property (- end (length str)) end 'face 'font-lock-comment-face)
+    (put-text-property start end 'ddebug process)
+    (put-text-property start end 'ddebug-indent(length prefix))
+    (put-text-property start end 'ddebug-prefix prefix)
+    (put-text-property start end 'help-echo tip)
+    (put-text-property start end 'ddebug-function
+		       'data-debug-insert-process-from-point)
     (insert "\n")
     )
   )
@@ -394,11 +445,14 @@ FACE is the face to use."
     (semanticdb-find-results-p . data-debug-insert-find-results-button)
    
     ;; Overlay
-    (semantic-overlay-p . data-debug-insert-overlay-button)
+    (data-debug-overlay-p . data-debug-insert-overlay-button)
 
     ;; overlay list
     ((lambda (thing) (and (listp thing) (semantic-overlay-p (car thing)))) .
      data-debug-insert-overlay-list-button)
+
+    ;; process
+    (processp . data-debug-insert-process-button)
 
     ;; String
     (stringp . data-debug-insert-string)
