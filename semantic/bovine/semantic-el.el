@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.44 2008/05/17 20:09:52 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.45 2008/05/19 15:06:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -452,9 +452,10 @@ Return a bovination list to use."
 (define-mode-local-override semantic-dependency-tag-file
   emacs-lisp-mode (tag)
   "Find the file BUFFER depends on described by TAG."
-  (let ((f (file-name-sans-extension
-	    (locate-library (semantic-tag-name tag)))))
-    (concat f ".el")))
+  (let ((lib (locate-library (semantic-tag-name tag)))
+	)
+    (when lib
+      (concat (file-name-sans-extension lib) ".el"))))
 
 (defun semantic-emacs-lisp-overridable-doc (tag)
   "Return the documentation string generated for overloadable functions.
