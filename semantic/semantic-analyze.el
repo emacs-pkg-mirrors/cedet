@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.72 2008/05/17 20:04:54 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.73 2008/05/21 03:10:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -324,7 +324,7 @@ are found in SEQUENCE."
     ;; Return the mess
     (nreverse tag)))
 
- (defun semantic-analyze-find-tag (name &optional tagclass scope)
+(defun semantic-analyze-find-tag (name &optional tagclass scope)
   "Return the first tag found with NAME or nil if not found.
 Optional argument TAGCLASS specifies the class of tag to return, such
 as 'function or 'variable.
@@ -353,12 +353,14 @@ searches use the same arguments."
 	  ;; Ok, not there, try the usual...
 	  (let ((seq (semantic-analyze-find-tag-sequence
 		      namelst scope nil)))
-	    (car (nreverse seq)))))
+	    (semantic-analyze-select-best-tag seq tagclass)
+	    )))
      ;; If NAME is solo, then do our searches for it here.
      ((stringp namelst)
       (let ((retlist (and scope (semantic-scope-find name tagclass scope))))
 	(if retlist
-	    retlist
+	    (semantic-analyze-select-best-tag
+	     retlist tagclass)
 	  (if (eq tagclass 'type)
 	      (semanticdb-typecache-find name)
 	    ;; Search in the typecache.  First entries in a sequence are
