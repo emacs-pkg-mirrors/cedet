@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.14 2008/05/17 20:05:41 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.15 2008/05/21 03:09:59 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -74,6 +74,10 @@ If SEQUENCE has some items w/ no type information, find the one with a type.
 If SEQUENCE is all prototypes, or has no prototypes, get the first one.
 Optional TAGCLASS indicates to restrict the return to only
 tags of TAGCLASS."
+
+  ;; If there is a srew up and we get just one tag.. massage over it.
+  (when (semantic-tag-p sequence)
+    (setq sequence (list sequence)))    
 
   ;; Filter out anything not of TAGCLASS
   (when tagclass
