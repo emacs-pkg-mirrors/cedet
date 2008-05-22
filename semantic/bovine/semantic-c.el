@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.83 2008/05/13 22:04:11 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.84 2008/05/22 01:42:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -967,6 +967,29 @@ DO NOT return the list of tags encompassing point."
       ;; No parent, just return the usual
       origvar)
     ))
+
+(define-mode-local-override semantic-idle-summary-current-symbol-info
+  c-mode ()
+  "Handle the SPP keywords, then use the default mechanism."
+  (let* ((sym (car (semantic-ctxt-current-thing)))
+	 (spp-sym (semantic-lex-spp-symbol sym)))
+    (if spp-sym
+	(let* ((txt (concat "Macro: " sym))
+	       (sv  (symbol-value spp-sym))
+	       (arg (semantic-lex-spp-macro-with-args sv))
+	       )
+	  (when arg
+	    (setq txt (concat txt (format "%S" arg)))
+	    (setq sv (cdr sv)))
+
+	  ;; This is optional, and potentially fraught w/ errors.
+	  (condition-case nil
+	      (dolist (lt sv)
+		(setq txt (concat txt " " (semantic-lex-token-text lt))))
+	    (error (setq txt (concat txt "  #error in summary fcn"))))
+
+	  txt)
+      (semantic-idle-summary-current-symbol-info-default))))
 
 (defvar-mode-local c-mode semantic-orphaned-member-metaparent-type "struct"
   "When lost memberes are found in the class hierarchy generator, use a struct.")
