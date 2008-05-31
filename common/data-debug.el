@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.5 2008/05/18 12:34:19 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.6 2008/05/31 01:40:29 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -22,15 +22,9 @@
 
 ;;; Commentary:
 ;;
-;; Semantic datastructures are massive.  A simple structured way
-;; to browse through those structures is critical for analyzing
-;; what's going on.
+;; Provide a simple way to investigate particularly large and complex
+;; data structures.
 ;;
-;; Goals:
-;;
-;; Inspect all known details any complex list or data.
-;;
-;; Allow interactive navigation of the analysis process, tags, etc.
 
 (require 'font-lock)
 ;;; Code:
@@ -169,9 +163,17 @@ PREBUTTONTEXT is some text between prefix and the overlay list button."
   "Insert all the parts of PROCESS.
 PREFIX specifies what to insert at the start of each line."
   (let ((attrprefix (concat (make-string (length prefix) ? ) "# "))
+	(id (process-id process))
+	(tty (process-tty-name process))
+	(pcontact (process-contact process t))
 	(proplist (process-plist process)))
     (data-debug-insert-property-list
-     proplist attrprefix)
+     (append
+      (if id (list 'id id))
+      (if tty (list 'tty tty))
+      (if pcontact pcontact)
+      proplist)
+     attrprefix)
     )
   )
 
@@ -197,7 +199,7 @@ PREFIX is the text that preceeds the button.
 PREBUTTONTEXT is some text between prefix and the process button."
   (let ((start (point))
 	(end nil)
-	(str (format "%S" process))
+	(str (format "%S : %s" process (process-status process)))
 	(tip nil))
     (insert prefix prebuttontext str)
     (setq end (point))
