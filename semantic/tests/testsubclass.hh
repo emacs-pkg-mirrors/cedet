@@ -32,12 +32,27 @@ namespace animal {
     int fFeet; // Usually 2 or 4.
     bool fIsPrivateBool;
     
+  }; // moose
+
+  int two_prototypes();
+  int two_prototypes();
+
+  class quadruped {
+  public:
+    quadruped(int a) : fQuadPrivate(a)
+    { }
+
+    int fQuadPublic;
+
+  protected:
+    int fQuadProtected;
+
+  private:
+    int fQuadPrivate;
+
   };
 
-  int two_prototypes();
-  int two_prototypes();
-
-} // moose
+}
 
 
 namespace deer {
@@ -89,4 +104,68 @@ namespace deer {
   };
 
 };
+
+// A third namespace with classes that does protected and private inheritance.
+namespace sneaky {
+
+  class antelope : public animal::quadruped {
+
+  public:
+    antelope(int a) : animal::quadruped(),
+		      fAntyProtected(a)
+    {}
+
+    int fAntyPublic;
+
+    bool testAccess();
+
+  protected:
+    int fAntyProtected;
+
+  private :
+    int fAntyPrivate;
+
+  };
+
+  class jackalope : protected animal::quadruped {
+
+  public:
+    jackalope(int a) : animal::quadruped(),
+		       fBunny(a)
+    {}
+
+    int fBunnyPublic;
+
+    bool testAccess();
+
+  protected:
+    bool fBunnyProtected;
+
+  private :
+    bool fBunnyPrivate;
+
+  };
+
+  // Nothing specified means private.
+  class bugalope : /* private*/  animal::quadruped {
+
+  public:
+    bugalope(int a) : animal::quadruped(),
+		       fBug(a)
+    {}
+
+    int fBugPublic;
+
+    bool testAccess();
+  protected:
+    bool fBugProtected;
+
+  private :
+    bool fBugPrivate;
+
+  };
+
+
+};
+
 #endif
