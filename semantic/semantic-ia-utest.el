@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.10 2008/05/17 20:09:07 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.11 2008/06/01 02:50:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -123,7 +123,11 @@
 	
 	(goto-char a)
 
-	(setq desired (read (buffer-substring (point) (point-at-eol))))
+	(let ((bss (buffer-substring-no-properties (point) (point-at-eol))))
+	  (condition-case nil
+	      (setq desired (read bss))
+	    (error (setq desired (format "FAILED TO PARSE: %S"
+					 bss)))))
 
 	(if (equal actual desired)
 	    (setq pass (cons idx pass))
