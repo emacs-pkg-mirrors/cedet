@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.54 2008/05/03 14:23:44 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.55 2008/06/01 02:52:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -708,15 +708,50 @@ That is the value of the `:members' attribute."
   (semantic-tag-get-attribute tag :members))
 
 (defun semantic-tag-type-superclasses (tag)
-  "Return the list of superclasses of the type that TAG describes."
+  "Return the list of superclass names of the type that TAG describes."
   (let ((supers (semantic-tag-get-attribute tag :superclasses)))
     (cond ((stringp supers)
+	   ;; If we have a string, make it a list.
 	   (list supers))
-	  ((listp supers)
+	  ((semantic-tag-p supers)
+	   ;; If we have one tag, return just the name.
+	   (list (semantic-tag-name supers)))
+	  ((and (consp supers) (semantic-tag-p (car supers)))
+	   ;; If we have a tag list, then return the names.
+	   (mapcar (lambda (s) (semantic-tag-name s))
+		   supers))
+	  ((consp supers)
+	   ;; A list of something, return it.
 	   supers))))
+
+(defun semantic-tag-type-superclass-protection (tag parentstring)
+  "Return the inheritance protection in TAG from PARENTSTRING.
+PARENTSTRING is the name of the parent being inherited.
+The return protection is a symbol, 'public, 'protection, and 'private."
+  (let ((supers (semantic-tag-get-attribute tag :superclasses)))
+    (cond ((stringp supers)
+	   'public)
+	  ((semantic-tag-p supers)
+	   (let ((prot (semantic-tag-get-attribute supers :protection)))
+	     (or (cdr (assoc prot '(("public" . public)
+				    ("protected" . protected)
+				    ("private" . private))))
+		 'public)))
+	  ((and (consp supers) (stringp (car supers)))
+	   'public)
+	  ((and (consp supers) (semantic-tag-p (car supers)))
+	   (let* ((stag (semantic-find-first-tag-by-name parentstring))
+		  (prot (when stag
+			  (semantic-tag-get-attribute stag :protection))))
+	     (or (cdr (assoc prot '(("public" . public)
+				    ("protected" . protected)
+				    ("private" . private))))
+		 'public))))
+    ))
 
 (defsubst semantic-tag-type-interfaces (tag)
   "Return the list of interfaces of the type that TAG describes."
+  ;; @todo - make this as robust as the above.
   (semantic-tag-get-attribute tag :interfaces))
 
 ;;; Tags of class `function'
@@ -767,7 +802,7 @@ That is the value of the attribute `:constant-flag'."
 That is the value of the attribute `:system-flag'."
   (semantic-tag-get-attribute tag :system-flag))
 
-(define-overload semantic-tag-include-filename (tag)
+(define-overloadable-function semantic-tag-include-filename (tag)
   "Return a filename representation of TAG.
 The default action is to return the `semantic-tag-name'.
 Some languages do not use full filenames in their include statements.
@@ -807,7 +842,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
   (semantic-tag-get-attribute tag :aliasclass))
 
 ;;;###autoload
-(define-overload semantic-tag-alias-definition (tag)
+(define-overloadable-function semantic-tag-alias-definition (tag)
   "Return the definition TAG is an alias.
 The returned value is a tag of the class that
 `semantic-tag-alias-class' returns for TAG.
@@ -820,7 +855,7 @@ Return nil if TAG is not of class 'alias."
 ;;; Language Specific Tag access via overload
 ;;
 ;;;###autoload
-(define-overload semantic-tag-components (tag)
+(define-overloadable-function semantic-tag-components (tag)
   "Return a list of components for TAG.
 A Component is a part of TAG which itself may be a TAG.
 Examples include the elements of a structure in a 
@@ -838,7 +873,7 @@ Perform the described task in `semantic-tag-components'."
 	(t nil)))
 
 ;;;###autoload
-(define-overload semantic-tag-components-with-overlays (tag)
+(define-overloadable-function semantic-tag-components-with-overlays (tag)
   "Return the list of top level components belonging to TAG.
 Children are any sub-tags which contain overlays.
 
@@ -1109,11 +1144,13 @@ This function is for internal use only."
        (debug tag)
        nil))
     
-    ;; Compatibility code to be removed in future versions.
-    (unless semantic-tag-expand-function
-      ;; This line throws a byte compiler warning.
-      (setq semantic-tag-expand-function semantic-expand-nonterminal)
-      )
+;;    @todo - I think we've waited long enough.  Lets find out.
+;;
+;;    ;; Compatibility code to be removed in future versions.
+;;    (unless semantic-tag-expand-function
+;;      ;; This line throws a byte compiler warning.
+;;      (setq semantic-tag-expand-function semantic-expand-nonterminal)
+;;      )
     
     ;; Expand based on local configuration
     (if semantic-tag-expand-function
@@ -1157,7 +1194,7 @@ See also `semantic-foreign-tag-p'."
 ;; High level obtain/insert foreign tag overloads
 ;;
 ;;;###autoload
-(define-overload semantic-obtain-foreign-tag (&optional tag)
+(define-overloadable-function semantic-obtain-foreign-tag (&optional tag)
   "Obtain a foreign tag from TAG.
 TAG defaults to the tag at point in current buffer.
 Return the obtained foreign tag or nil if failed."
@@ -1172,7 +1209,7 @@ and attempts to insert a prototype/function call."
   (insert (semantic-format-tag-prototype foreign-tag)))
 
 ;;;###autoload
-(define-overload semantic-insert-foreign-tag (foreign-tag)
+(define-overloadable-function semantic-insert-foreign-tag (foreign-tag)
   "Insert FOREIGN-TAG into the current buffer.
 Signal an error if FOREIGN-TAG is not a valid foreign tag.
 This function is overridable with the symbol `insert-foreign-tag'."
