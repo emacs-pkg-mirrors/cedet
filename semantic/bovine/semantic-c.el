@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.84 2008/05/22 01:42:16 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.85 2008/06/01 02:59:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -771,10 +771,10 @@ and collecting tags based on the labels we see along the way."
       ans)))
 
 (define-mode-local-override semantic-tag-protection
-  c-mode (token &optional parent)
-  "Return the protection of TOKEN in PARENT.
+  c-mode (tag &optional parent)
+  "Return the protection of TAG in PARENT.
 Override function for `semantic-tag-protection'."
-  (let ((mods (semantic-tag-modifiers token))
+  (let ((mods (semantic-tag-modifiers tag))
 	(prot nil))
     ;; Check the modifiers for protection if we are not a child
     ;; of some class type.
@@ -792,7 +792,7 @@ Override function for `semantic-tag-protection'."
     ;; If we have a typed parent, look for :public style labels.
     (when (and parent (eq (semantic-tag-class parent) 'type))
       (let ((pp (semantic-tag-type-members parent)))
-	(while (and pp (not (semantic-equivalent-tag-p (car pp) token)))
+	(while (and pp (not (semantic-equivalent-tag-p (car pp) tag)))
 	  (when (eq (semantic-tag-class (car pp)) 'label)
 	    (setq prot
 		  (cond ((string= (semantic-tag-name (car pp)) "public")
