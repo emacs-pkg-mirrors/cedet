@@ -118,7 +118,7 @@ moose deer::alces::createMoose()
 int someFunction(int mPickle)
 {
   moose mMoose = deer::alces::createMoose();
-
+  
   if (mPickle == 1) {
 
     int mOption1 = 2;
@@ -167,4 +167,50 @@ namespace pub_priv {
 
 }
 
+
+/** Test Scope w/in a function (non-method) with classes using
+ * different levels of inheritance.
+ */
+int otherFunction()
+{
+  sneaky::antelope Antelope(1);
+  sneaky::jackalope Jackalope(1);
+  sneaky::bugalope Bugalope(1);
+
+  Antelope.// -9-
+    // #9# ( "fAntyPublic" "fQuadPublic" "testAccess")
+    ;
+
+  Jackalope.// -10-
+    // #10# ( "fBunnyPublic" "testAccess")
+    ;
+
+  Bugalope.// -11-
+    // #11# ( "fBugPublic" "testAccess")
+    ;
+}
+
+/** Test methods within each class for types of access to the baseclass.
+ */
+
+bool sneaky::antelope::testAccess()
+{
+  this.// -12-
+    // #12# ( "fAntyPrivate" "fAntyProtected" "fAntyPublic" "fQuadProtected" "fQuadPublic" "testAccess" )
+    ;
+}
+
+bool sneaky::jackalope::testAccess()
+{
+  this.// -13-
+    // #13# ( "fBunnyPrivate" "fBunnyProtected" "fBunnyPublic" "fQuadProtected" "fQuadPublic" "testAccess" )
+    ;
+}
+
+bool sneaky::bugalope::testAccess()
+{
+  this.// -14-
+    // #14# ( "fBugPrivate" "fBugProtected" "fBugPublic" "fQuadPublic" "testAccess" )
+    ;
+}
 
