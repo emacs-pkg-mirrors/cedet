@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.13 2008/05/17 20:03:16 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.14 2008/06/01 02:57:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -306,9 +306,16 @@ be found."
     (oset miniscope scope scopetypes)
     (oset miniscope fullscope scopetypes)
 
-    (dolist (p parents)
+    (dolist (slp parents)
       (semantic-analyze-scoped-inherited-tag-map
-       p (lambda (newparent) (push (cons newparent 'protected) lineage))
+       slp (lambda (newparent)
+	   (let* ((prot (semantic-tag-type-superclass-protection slp newparent))
+		  (effectiveprot (cond ((eq prot 'public)
+					;; doesn't provide access to private slots?
+					'protected)
+				       (t prot))))
+	     (push (cons newparent effectiveprot) lineage)
+	     ))
        miniscope))
 
     lineage))
@@ -400,36 +407,46 @@ the access would be 'protected.  Otherwise, access is 'public")
 	       (let ((pip (car pi))
 		     (piprot (cdr pi)))
 		 (when (semantic-tag-similar-p type pip)
-		   (throw 'moose piprot)))
+		   (throw 'moose
+			  ;; protection via inheritance means to pull out different
+			  ;; bits based on protection labels in an opposite way.
+			  (cdr (assoc piprot
+				      '((public . private)
+					(protected . protected)
+					(private . public))))
+			  )))
 	       )
 	     ;; Found nothing, return public
 	     'public)
 	   ))
 	(t 'public)))
 
-(defun semantic-analyze-scoped-type-parts (type &optional scope noinherit)
+(defun semantic-analyze-scoped-type-parts (type &optional scope noinherit protection)
   "Return all parts of TYPE, a tag representing a TYPE declaration.
 SCOPE is the scope object.
-NOINHERIT turns off searching of inherited tags."
-  (let* ((protection (semantic-analyze-scope-calculate-access type scope))
+NOINHERIT turns off searching of inherited tags.
+PROTECTION specifies the type of access requested, such as 'public or 'private."
+  (let* ((access (semantic-analyze-scope-calculate-access type scope))
 	 ;; SLOTS are the slots directly a part of TYPE.
-	(allslots (semantic-tag-components type))
-	(slots (semantic-find-tags-by-scope-protection
-		 protection type allslots))
-	(fname (semantic-tag-file-name type))
-	;; EXTMETH are externally defined methods that are still
-	;; a part of this class.
+	 (allslots (semantic-tag-components type))
+	 (slots (semantic-find-tags-by-scope-protection
+		 access
+		 type allslots))
+	 (fname (semantic-tag-file-name type))
+	 ;; EXTMETH are externally defined methods that are still
+	 ;; a part of this class.
 	
-	;; @TODO - is this line needed??  Try w/out for a while
-	;; @note - I think C++ says no.  elisp might, but methods
-	;;         look like defuns, so it makes no difference.
-	(extmeth nil) ; (semantic-tag-external-member-children type t))
+	 ;; @TODO - is this line needed??  Try w/out for a while
+	 ;; @note - I think C++ says no.  elisp might, but methods
+	 ;;         look like defuns, so it makes no difference.
+	 (extmeth nil) ; (semantic-tag-external-member-children type t))
 
-	;; INHERITED are tags found in classes that our TYPE tag
-	;; inherits from.  Do not do this if it was not requested.
-	(inherited (when (not noinherit)
-		     (semantic-analyze-scoped-inherited-tags type scope)))
-	)
+	 ;; INHERITED are tags found in classes that our TYPE tag
+	 ;; inherits from.  Do not do this if it was not requested.
+	 (inherited (when (not noinherit)
+		      (semantic-analyze-scoped-inherited-tags type scope
+							      access)))
+	 )
     (when (not (semantic-tag-in-buffer-p type))
       (dolist (tag slots)
 	(semantic--tag-put-property tag :filename fname)))
@@ -437,26 +454,31 @@ NOINHERIT turns off searching of inherited tags."
     (append slots extmeth inherited)
     ))
 
-(defun semantic-analyze-scoped-inherited-tags (type scope)
+(defun semantic-analyze-scoped-inherited-tags (type scope access)
   "Return all tags that TYPE inherits from.
 Argument SCOPE specify additional tags that are in scope
 whose tags can be searched when needed, OR it may be a scope object.
-PROTECTION is the level of protection we filter on child supplied tags.
+ACCESS is the level of access we filter on child supplied tags.
 For langauges with protection on specific methods or slots,
-it should strip out those not accessable by methods of TYPE."
-  (let (;; PARENTS specifies only the superclasses and not
-	;; interfaces.  Inheriting from an interfaces implies
-	;; you have a copy of all methods locally.  I think.
-	(parents (semantic-tag-type-superclasses type))
-	(ret nil)
-	)
+it should strip out those not accessable by methods of TYPE.
+An ACCESS of 'public means not in a method of a subclass of type.
+A value of 'private means we can access private parts of the originating
+type."
+  (let ((ret nil))
     (semantic-analyze-scoped-inherited-tag-map
      type (lambda (p)
-	    (let* ((accessabletags
-		    ;; Do not pull in inherited parts here.
-		    (semantic-analyze-scoped-type-parts p scope t))
+	    (let* ((protection (semantic-tag-type-superclass-protection type p))
 		   )
-	      (setq ret (nconc ret accessabletags))))
+	      (if (and (eq access 'public) (not (eq protection 'public)))
+		  nil ;; Don't do it.
+
+		;; We can get some parts of this type.
+		(setq ret (nconc ret
+				 ;; Do not pull in inherited parts here.  Those
+				 ;; will come via the inherited-tag-map fcn
+				 (semantic-analyze-scoped-type-parts
+				  p scope t protection))
+		      ))))
      scope)
     ret))
 
