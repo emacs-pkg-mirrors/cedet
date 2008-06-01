@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.73 2008/05/21 03:10:35 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.74 2008/06/01 02:50:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -294,7 +294,7 @@ are found in SEQUENCE."
 	     (slots nil))
 	
 	;; Get the children
-	(setq slots (semantic-analyze-scoped-type-parts tmptype))
+	(setq slots (semantic-analyze-scoped-type-parts tmptype scope))
 
 	;; find (car s) in the list o slots
 	(setq tmp (semantic-find-tags-by-name (car s) slots))
