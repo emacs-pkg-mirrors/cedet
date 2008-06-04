@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.49 2008/04/24 01:02:31 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.50 2008/06/04 23:36:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -343,7 +343,8 @@ This will include a list of type/field names when applicable.")
 This will include a list of type/field names when applicable.
 Depends on `semantic-type-relation-separator-character'."
   (if point (goto-char point))
-  (let* ((fieldsep1 (mapconcat (lambda (a) (regexp-quote a))
+  (let* ((start (point))
+	 (fieldsep1 (mapconcat (lambda (a) (regexp-quote a))
 			       semantic-type-relation-separator-character
 			       "\\|"))
 	 ;; NOTE: The [ \n] expression below should used \\s-, but that
@@ -355,24 +356,30 @@ Depends on `semantic-type-relation-separator-character'."
 	 end)
     (with-syntax-table semantic-lex-syntax-table
       (save-excursion
-	(if (looking-at "\\w\\|\\s_")
-	    (forward-sexp 1)
-	  ;; Not on a sym, are we at a separator char with no field
-	  ;; specified yet?
-	  (when (or (looking-at fieldsep1)
-		    (save-excursion
-		      (and (condition-case nil
-			       (progn (forward-sexp -1)
-				      (forward-sexp 1)
-				      t)
-			     (error nil))
-			   (looking-at fieldsep1))))
-	    (setq symlist (list ""))
-	    (forward-sexp -1)
-	    ;; Skip array expressions.
-	    (while (looking-at "\\s(") (forward-sexp -1))
-	    (forward-sexp 1)))
+	(cond ((looking-at "\\w\\|\\s_")
+	       ;; In the middle of a symbol, move to the end.
+	       (forward-sexp 1))
+	      ((looking-at fieldsep1)
+	       ;; We are in a find spot.. do nothing.
+	       nil
+	       )
+	      ((save-excursion
+		 (and (condition-case nil
+			  (progn (forward-sexp -1)
+				 (forward-sexp 1)
+				 t)
+			(error nil))
+		      (looking-at fieldsep1)))
+	       (setq symlist (list ""))
+	       (forward-sexp -1)
+	       ;; Skip array expressions.
+	       (while (looking-at "\\s(") (forward-sexp -1))
+	       (forward-sexp 1))
+	      )
+	;; Set our end point.
 	(setq end (point))
+
+	;; Now that we have gotten started, lets do the rest.
 	(condition-case nil
 	    (while (save-excursion
 		     (forward-char -1)
