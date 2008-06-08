@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-cpp.srt,v 1.7 2008/02/24 02:49:32 zappo Exp $
+;; X-RCS: $Id: srecode-cpp.srt,v 1.8 2008/06/08 16:23:26 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -180,17 +180,36 @@ template destructor-tag :indent :blank
 { {{^}} }
 ----
 
+;;; Base Comment functions for overriding.
+context classdecl
+
+template comment-function-group-start :indent :blank
+"Used for putting comments in front of a functional group of declarations.
+Override this with your own preference to avoid using doxygen."
+----
+{{>A:classdecl:doxygen-function-group-start}}
+----
+
+template comment-function-group-end :indent :blank
+"Used for putting comments in front of a functional group of declarations.
+Override this with your own preference to avoid using doxygen."
+----
+{{>A:classdecl:doxygen-function-group-end}}
+----
+
+context declaration
+
+template comment-function :indent :blank
+"Used to put a nice comment in front of a function.
+Override this with your own preference to avoid using doxygen"
+----
+{{>A:declaration:doxygen-function}}
+----
+
 ;;; DOXYGEN FEATURES
 ;; 
 ;;
-template doxygen-function :indent :blank
-----
-/**
- * @name - {{NAME}} - $^${{#ARGS}}
- * @param {{NAME}} -{{/ARGS}}
- * @return {{TYPE}}
- */
-----
+context classdecl
 
 prompt GROUPNAME "Name of declaration group: "
 
@@ -210,5 +229,17 @@ template doxygen-function-group-end :indent :blank
  */
 
 ----
+
+context declaration
+
+template doxygen-function :indent :blank
+----
+/**
+ * @name - {{NAME}} - $^${{#ARGS}}
+ * @param {{NAME}} -{{/ARGS}}
+ * @return {{TYPE}}
+ */
+----
+
 
 ;; end
