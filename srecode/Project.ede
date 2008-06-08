@@ -1,4 +1,4 @@
-;; Object ede-proj-project
+;; Object SRecode
 ;; EDE project file.
 (ede-proj-project "SRecode"
   :name "srecode"
@@ -30,7 +30,7 @@
    (ede-proj-target-elisp "tests"
     :name "tests"
     :path ""
-    :source '("srecode-test.el")
+    :source '("srecode-test.el" "srecode-test-getset.el")
     )
    )
   :metasubproject 't
