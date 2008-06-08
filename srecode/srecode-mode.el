@@ -1,4 +1,4 @@
-;;; srecode-mode.el --- Minor-mode for inserting templates into other files.
+;;; srecode-mode.el --- Minor-mode for managing and using SRecode templates
 
 ;; This file is not part of GNU Emacs.
 
@@ -19,7 +19,9 @@
 
 ;;; Commentary:
 ;;
-;; This uses a bunch of semantic conveniences for making a minor mode.
+;; Minor mode for working with SRecode template files.
+;;
+;; Depends on Semantic for minor-mode convenience functions.
 
 (require 'srecode)
 (require 'srecode-insert)
@@ -64,8 +66,6 @@
       (while (<= k ?z)
 	(define-key km (format "%c" k) 'srecode-bind-insert)
 	(setq k (1+ k))))
-    ;; Template applications
-    (define-key km "G" 'srecode-insert-getset)
     km)
   "Keymap used behind the srecode prefix key in in srecode minor mode.")
 
@@ -92,6 +92,7 @@
      ])
    "---"
    '( "Insert ..." :filter srecode-minor-mode-templates-menu )
+   `( "Generate ..." :filter srecode-minor-mode-generate-menu )
    "---"
     (senator-menu-item
      ["Customize..."
@@ -257,6 +258,29 @@ MENU-DEF is the menu to bind this into."
 	))
       )))
 
+(defvar srecode-minor-mode-generators nil
+  "List of code generators to be displayed in the srecoder menu.")
+
+(defun srecode-minor-mode-generate-menu (menu-def)
+  "Create a menu item of cascading filters active for this mode.
+MENU-DEF is the menu to bind this into."
+  ;; Doing this SEGVs Emacs on windows.
+  ;;(srecode-load-tables-for-mode major-mode)
+  (let ((allgeneratorapps nil))
+    
+    (dolist (gen srecode-minor-mode-generators)
+      (setq allgeneratorapps
+	    (cons (vector (cdr gen) (car gen))
+		  allgeneratorapps))
+      (message "Adding %S to srecode menu" (car gen))
+      )
+
+    (easy-menu-filter-return
+     (easy-menu-create-menu
+      "Semantic Recoder Generate Filters"
+      allgeneratorapps)))
+  )
+
 ;;; Minor Mode commands
 ;;
 (defun srecode-bind-insert ()
@@ -318,7 +342,48 @@ Template is chosen based on the mode of the starting buffer."
 	      (t (error "Can't find template %s" template-name)))
 	)))
 
-  
+(defun srecode-add-code-generator (function name &optional binding)
+  "Add the srecoder code generator FUNCTION with NAME to the menu.
+Optional BINDING specifies the keybinding to use in the srecoder map.
+BINDING should be a capital letter.  Lower case letters are reserved
+for individual templates.
+Optional MODE specifies a major mode this function applies to.
+Do not specify a mode if this function could be applied to most
+programming modes."
+  ;; Update the menu generating part.
+  (let ((remloop nil))
+    (while (setq remloop (assoc function srecode-minor-mode-generators))
+      (setq srecode-minor-mode-generators
+	    (remove remloop srecode-minor-mode-generators))))
+
+  (add-to-list 'srecode-minor-mode-generators
+	       (cons function name))
+
+  ;; Remove this function from any old bindings.
+  (when binding
+    (let ((oldkey (where-is-internal function
+				      (list srecode-prefix-map)
+				      t t t)))
+      (if (or (not oldkey)
+	      (and (= (length oldkey) 1)
+		   (= (length binding) 1)
+		   (= (aref oldkey 0) (aref binding 0))))
+	  ;; Its the same.
+	  nil
+	;; Remove the old binding
+	(define-key srecode-prefix-map oldkey nil)
+	)))
+
+  ;; Update Keybings
+  (let ((oldbinding (lookup-key srecode-prefix-map binding)))
+    (if (not oldbinding)
+	(define-key srecode-prefix-map binding function)
+      (if (eq function oldbinding)
+	  nil
+	;; Not the same.
+	(message "Conflict binding %S binding to srecode map."
+		 binding))))
+  )
 
 (provide 'srecode-mode)
 
