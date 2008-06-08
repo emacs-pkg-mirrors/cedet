@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.11 2008/05/17 20:06:28 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.12 2008/06/08 00:44:32 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -532,8 +532,16 @@ Argument EVENT describes the event that caused this function to be called."
     (with-output-to-temp-buffer "*Help*"
       (princ "Include Summary for File: ")
       (princ (file-truename (buffer-file-name)))
-      (princ "\n\n")
-      (princ (format "This file contains %d tags, %d of which are includes.\n"
+      (princ "\n")
+
+      (when (oref table db-refs)
+	(princ "\nExternal Database References to this buffer:")
+	(dolist (r (oref table db-refs))
+	  (princ "\n    ")
+	  (princ (oref r file)))
+	)
+
+      (princ (format "\nThis file contains %d tags, %d of which are includes.\n"
 		     (length tags) (length inc)))
       (let ((ok 0)
 	    (unknown 0)
@@ -555,6 +563,20 @@ Argument EVENT describes the event that caused this function to be called."
 	  (princ (format "   Unparsed Includes: %d\n" unparsed))
 	  (princ (format "   Parsed Includes:   %d\n" ok)))
 	)
+
+      (princ "\nInclude Path Summary:\n\n")
+      (when ede-object
+	(princ "  This file's project include is handled by the EDE object:\n")
+	(princ "    ")
+	(princ (object-print ede-object))
+	(princ "\n")
+	)
+
+      (princ "\n  This file's system include path is:\n")
+      (dolist (dir semantic-dependency-system-include-path)
+	(princ "    ")
+	(princ dir)
+	(princ "\n"))
 
       (let ((unk semanticdb-find-lost-includes))
 	(when unk
@@ -593,13 +615,7 @@ Argument EVENT describes the event that caused this function to be called."
 	      (princ (format "\n  %s :\tUnparsed"
 			     (object-name-string p))))
 	    )))
-
-      (when (oref table db-refs)
-	(princ "\nExternal References:")
-	(dolist (r (oref table db-refs))
-	  (princ "\n    ")
-	  (princ (oref r file)))
-	))))
+      )))
 
 
 ;;; Unparsed Include Features
