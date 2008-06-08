@@ -21,7 +21,7 @@ srecode_LISP=srecode.el srecode-mode.el srecode-compile.el srecode-insert.el sre
 EMACS=emacs
 doc_TEXINFOS=srecode.texi
 MAKEINFO=makeinfo
-tests_LISP=srecode-test.el
+tests_LISP=srecode-test.el srecode-test-getset.el
 VERSION=0.1
 DISTDIR=$(top)srecode-$(VERSION)
 
