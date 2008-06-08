@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.99 2008/05/04 15:39:21 zappo Exp $
+;; RCS: $Id: ede.el,v 1.100 2008/06/08 00:46:14 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1285,6 +1285,7 @@ FILENAME should be just a filename which occurs in a directory controlled
 by this project.
 Optional argument FORCE forces the default filename to be provided even if it
 doesn't exist."
+  ;; @todo - Can Id utils do this?
   (let ((path (file-name-directory (oref this file)))
 	(proj (oref this subproj))
 	(found nil))
@@ -1480,6 +1481,7 @@ nil is returned if the current directory is not a part ofa project."
 ;;;###autoload
 (defun ede-load-project-file (file)
   "Project file independent way to read in FILE."
+  ;;(message "EDE LOAD : %S" file)
   (let* ((path (expand-file-name (file-name-directory file)))
 	 (pfc (ede-directory-project-p path))
 	 (toppath nil)
@@ -1815,11 +1817,11 @@ If VARIABLE is not project local, just use set."
   "Run adebug against the current ede project.
 Display the results as a debug list."
   (interactive)
-  (require 'semantic-adebug)
+  (require 'data-debug)
   (let ((ab nil))
     (when (ede-current-project)
-      (setq ab (semantic-adebug-new-buffer "*Analyzer ADEBUG*"))
-      (semantic-adebug-insert-object-fields (ede-current-project) "")
+      (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
+      (data-debug-insert-object-fields (ede-current-project) "")
       )))
 
 ;;; Hooks & Autoloads
