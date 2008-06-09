@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.111 2008/05/10 22:35:52 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.112 2008/06/09 22:28:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -199,8 +199,16 @@ See the file semanticdb-ref.el for how this slot is used.")
 	     :initform nil
 	     :documentation "Size of buffer when written to disk.
 Checked on retrieval to make sure the file is the same.")
-   ;; @TODO - ADD A FILE LAST MODIFIED DATE ALSO.  See suggestion from
-   ;; "John Yates" on mailing list (June 18, 2007)
+   (fsize :initarg :fsize
+	  :initform nil
+	  :documentation "Size of the file when it was last referenced.
+Checked when deciding if a loaded table needs updating from changes
+outside of Semantic's control.")
+   (lastmodtime :initarg :lastmodtime
+		:initform nil
+		:documentation "Last modification time of the file referenced.
+Checked when deciding if a loaded table needs updating from changes outside of
+Semantic's control.")
    (unmatched-syntax :initarg :unmatched-syntax
 		     :documentation
 		     "List of vectors specifying unmatched syntax.")
@@ -469,8 +477,9 @@ This will call `semantic-fetch-tags' if that file is in memory."
 (defmethod semanticdb-needs-refresh-p ((obj semanticdb-table))
   "Return non-nil of OBJ's tag list is out of date.
 The file associated with OBJ does not need to be in a buffer."
-  (let ((buff (find-buffer-visiting (semanticdb-full-filename obj)))
-	)
+  (let* ((ff (semanticdb-full-filename obj))
+	 (buff (find-buffer-visiting ff))
+	 )
     (if buff
 	(save-excursion
 	  (set-buffer buff)
@@ -482,12 +491,16 @@ The file associated with OBJ does not need to be in a buffer."
 	  )
       ;; Buffer isn't loaded.  The only clue we have is if the file
       ;; is somehow different from our mark in the semanticdb table.
-      (let* ((stats (file-attributes (semanticdb-full-filename obj)))
-	     (actualmax (nth 7 stats)))
+      (let* ((stats (file-attributes ff 'integer))
+	     (actualsize (nth 7 stats))
+	     (actualmod (nth 5 stats))
+	     )
 
 	(or (not (slot-boundp obj 'tags))
 	    (not (oref obj tags))
-	    (/= (or (oref obj pointmax) 0) actualmax)
+	    ;; @TODO - use fsize instead
+	    (/= (or (oref obj fsize) 0) actualsize)
+	    (not (equal (oref obj lastmodtime) actualmod))
 	    )
 	))))
 
@@ -786,6 +799,12 @@ If there is no database for the table to live in, create one."
   "Synchronize the table TABLE with some NEW-TAGS."
   (oset table tags new-tags)
   (oset table pointmax (point-max))
+  (let ((fattr (file-attributes
+		(semanticdb-full-filename table)
+		'integer)))
+    (oset table fsize (nth 7 fattr))
+    (oset table lastmodtime (nth 5 fattr))
+    )
   ;; Assume it is now up to date.
   (oset table unmatched-syntax semantic-unmatched-syntax-cache)
   ;; The lexical table should be good too.
@@ -877,6 +896,8 @@ handle it later if need be."
 	(progn
 	  (semantic-clear-toplevel-cache)
 	  (oset semanticdb-current-table pointmax 0)
+	  (oset semanticdb-current-table fsize 0)
+	  (oset semanticdb-current-table lastmodtime nil)
 	  )
       ;; We have a clean buffer, save it off.
       (condition-case nil
@@ -884,7 +905,13 @@ handle it later if need be."
 	    (semantic--tag-unlink-cache-from-buffer)
 	    ;; Set pointmax only if we had some success in the unlink.
 	    (oset semanticdb-current-table pointmax (point-max))
-	    )
+	    (let ((fattr (file-attributes
+			  (semanticdb-full-filename
+			   semanticdb-current-table)
+			  'integer)))
+	      (oset semanticdb-current-table fsize (nth 7 fattr))
+	      (oset semanticdb-current-table lastmodtime (nth 5 fattr))
+	      ))
 	;; If this messes up, just clear the system
 	(error
 	 (semantic-clear-toplevel-cache)
@@ -963,12 +990,13 @@ Update the environment of Semantic enabled buffers accordingly."
 
 ;;;###autoload
 (defun semanticdb-file-table-object (file &optional dontload)
-  "Return a semanticdb table belonging to FILE.
+  "Return a semanticdb table belonging to FILE, make it up to date.
 If file has database tags available in the database, return it.
 If file does not have tags available, and DONTLOAD is nil,
 then load the tags for FILE, and create a new table object for it.
 DONTLOAD does not affect the creation of new database objects."
   (setq file (file-truename file))
+  ;; (message "Object Translate: %s" file)
   (when (file-exists-p file)
     (let* ((default-directory (file-name-directory file))
 	   (db (or
@@ -978,47 +1006,61 @@ DONTLOAD does not affect the creation of new database objects."
 		(semanticdb-get-database default-directory)))
 	   (tab (semanticdb-file-table db file))
 	   )
-      (if (and tab
-	       ;; Is table fully loaded, or just a proxy?
-	       (number-or-marker-p (oref tab pointmax)))
-	  tab
-	;; ELSE
-	;; We must load the file.
-	(if (not dontload)
-	    (save-excursion
-	      (let ((buffer-to-kill (find-file-noselect file t))
-		    ;; This is a brave statement.  Don't waste time loading in
-		    ;; lots of modes.  Especially decoration mode can waste a lot
-		    ;; of time for a buffer we intend to kill.
-		    (semantic-init-hooks nil))
-		(set-buffer buffer-to-kill)
-		;; Find file should automatically do this for us.
-		;; Sometimes the DB table doesn't contains tags and needs
-		;; a refresh.  For example, when the file is loaded for
-		;; the first time, and the idle scheduler didn't get a
-		;; chance to trigger a parse before the file buffer is
-		;; killed.
-		(when (and
-		       semanticdb-current-table
-		       (semanticdb-needs-refresh-p semanticdb-current-table))
-		  (semanticdb-refresh-table semanticdb-current-table))
-		(prog1
-		    semanticdb-current-table
-		  ;; If we had to find the file, then we should kill it
-		  ;; to keep the master buffer list clean.
-		  (kill-buffer buffer-to-kill))))
-
-	  ;; We were asked not to load the file in and parse it.
-	  ;; Instead just create a database table with no tags
-	  ;; and a claim of being empty.
-	  ;;
-	  ;; This will give us a starting point for storing
-	  ;; database cross-references so when it is loaded,
-	  ;; the cross-references will fire and caches will
-	  ;; be cleaned.
-	  (let ((ans (semanticdb-create-table-for-file file)))
-	    (cdr ans))
-	  ))
+      (cond
+       ((and tab
+	     ;; Is this in a buffer?
+	     (find-buffer-visiting (semanticdb-full-filename tab))
+	     )
+	(save-excursion
+	  (set-buffer (find-buffer-visiting (semanticdb-full-filename tab)))
+	  (semantic-fetch-tags)
+	  ;; Return the table.
+	  tab))
+       ((and tab dontload)
+	;; If we have table, and we don't want to load it, just return it.
+	tab)
+       ((and tab
+	     ;; Is table fully loaded, or just a proxy?
+	     (number-or-marker-p (oref tab pointmax))
+	     ;; Is this table up to date with the file?
+	     (not (semanticdb-needs-refresh-p tab)))
+	;; A-ok!
+	tab)
+       ((not dontload) ;; We must load the file.
+	(save-excursion
+	  (let (;; This is a brave statement.  Don't waste time loading in
+		;; lots of modes.  Especially decoration mode can waste a lot
+		;; of time for a buffer we intend to kill.
+		(semantic-init-hooks nil)
+		(buffer-to-kill (find-file-noselect file t)))
+	    (set-buffer buffer-to-kill)
+	    ;; Find file should automatically do this for us.
+	    ;; Sometimes the DB table doesn't contains tags and needs
+	    ;; a refresh.  For example, when the file is loaded for
+	    ;; the first time, and the idle scheduler didn't get a
+	    ;; chance to trigger a parse before the file buffer is
+	    ;; killed.
+	    (when semanticdb-current-table
+	      (semantic-fetch-tags))
+	    (prog1
+		semanticdb-current-table
+	      ;; If we had to find the file, then we should kill it
+	      ;; to keep the master buffer list clean.
+	      (kill-buffer buffer-to-kill))))
+	)
+       (t
+	;; We were asked not to load the file in and parse it.
+	;; Instead just create a database table with no tags
+	;; and a claim of being empty.
+	;;
+	;; This will give us a starting point for storing
+	;; database cross-references so when it is loaded,
+	;; the cross-references will fire and caches will
+	;; be cleaned.
+	(let ((ans (semanticdb-create-table-for-file file)))
+	  (cdr ans))
+	)
+       )
       )))
 
 ;;;###autoload
