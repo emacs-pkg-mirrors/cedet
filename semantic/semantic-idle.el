@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.46 2008/05/17 20:08:05 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.47 2008/06/09 22:33:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -341,6 +341,9 @@ Returns t of all processing succeeded."
 	    (semantic-idle-scheduler-refresh-tags)
 	    t)
 
+	  ;; Force all our include files to get read in so we
+	  ;; are ready to provide good smart completion and idle
+	  ;; summary information
 	  (semantic-safe "Idle Work Including Error: %S"
 	    ;; Get the include related path.
 	    (when (and (featurep 'semanticdb)
@@ -350,12 +353,13 @@ Returns t of all processing succeeded."
 	      )
 	    t)
 
+	  ;; Pre-build the typecaches as needed.
 	  (semantic-safe "Idle Work Typecaching Error: %S"
 	    (when (featurep 'semanticdb-typecache)
 	      (semanticdb-typecache-refresh-for-buffer buffer))
 	    t)
-
-	  )) ))
+	  ))
+    ))
 
 (defun semantic-idle-work-core-handler ()
   "Core handler for idle work processing of long running tasks.
@@ -366,6 +370,7 @@ Uses `semantic-idle-work-for-on-buffer' to do the work."
 	(interrupted
 	 (semantic-exit-on-input 'idle-work-timer
 	   (let* ((inhibit-quit nil)
+		  (cb (current-buffer))
 		  (buffers (delq (current-buffer)
 				 (delq nil
 				       (mapcar #'(lambda (b)
@@ -395,6 +400,14 @@ Uses `semantic-idle-work-for-on-buffer' to do the work."
 
 	     ;; Save everything.
 	     (semanticdb-save-all-db-idle)
+
+	     ;; Parse up files near our active buffer
+	     (semantic-safe "Idle Work Parse Neighboring Files: %S"
+	       (when (and (featurep 'semanticdb)
+			  (semanticdb-minor-mode-p))
+		 (set-buffer cb)
+		 (semantic-idle-scheduler-work-parse-neighboring-files))
+	       t)
 
 	     ;; Done w/ processing
 	     nil))))
@@ -429,6 +442,29 @@ datasets."
     (when semantic-idle-scheduler-verbose-flag
       (message "Long Work Idle Timer...%s" exit-type)))
   )
+
+(defun semantic-idle-scheduler-work-parse-neighboring-files ()
+  "Parse all the files in similar directories to buffers being edited."
+  ;; Lets check to see if EDE matters.
+  (let ((ede-auto-add-method 'never))
+    (dolist (a auto-mode-alist)
+      (when (eq (cdr a) major-mode)
+	(dolist (file (directory-files default-directory t (car a) t))
+	  (semantic-throw-on-input 'parsing-mode-buffers)
+	  (save-excursion
+	    (semanticdb-file-table-object file)
+	    ))))
+    ))
+
+(defun semantic-idle-pnf-test ()
+  "Test `semantic-idle-scheduler-work-parse-neighboring-files' and time it."
+  (interactive)
+  (let ((start (current-time))
+	(junk (semantic-idle-scheduler-work-parse-neighboring-files))
+	(end (current-time)))
+    (message "Work took %.2f seconds." (semantic-elapsed-time start end)))
+  )
+
 
 ;;; REPARSING
 ;;
