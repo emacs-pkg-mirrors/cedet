@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.33 2008/05/10 22:36:43 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.34 2008/06/09 22:29:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -27,6 +27,8 @@
 ;;
 ;; A set of semanticdb classes for persistently saving caches on disk.
 ;;
+
+;; @todo - create .semanticdb if it doesn't exist.
 
 (require 'inversion)
 (require 'semantic)
@@ -268,8 +270,14 @@ Argument OBJ is the object to write."
 		       
 	;; Make sure pointmax is up to date
 	(oset obj pointmax (point-max))
-	;; @todo - add date of file modification.
 	))
+
+    ;; Make sure that the file size and other attributes are
+    ;; up to date.
+    (let ((fattr (file-attributes (semanticdb-full-filename obj) 'integer)))
+      (oset obj fsize (nth 7 fattr))
+      (oset obj lastmodtime (nth 5 fattr))
+      )
     
     ;; Do it!
     (call-next-method)
@@ -352,9 +360,8 @@ name in a secondary directory."
 
 (defmethod semanticdb-full-filename ((obj semanticdb-table))
   "Fetch the full filename that OBJ refers to."
-  (concat (file-name-as-directory
-	   (oref (oref obj parent-db) reference-directory))
-	  (oref obj file)))
+  (expand-file-name (oref obj file)
+		    (oref (oref obj parent-db) reference-directory)))
 
 ;;; Compatibility
 ;;
