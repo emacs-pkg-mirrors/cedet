@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.9 2008/05/17 20:06:58 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.10 2008/06/09 22:32:04 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -45,6 +45,7 @@
     file-exists-p
     file-name-directory
     file-name-nondirectory
+    file-attributes
     length
     nconc
     nreverse
@@ -137,6 +138,10 @@
     semanticdb-get-table-index
     semanticdb-refresh-references
     semanticdb-refresh-table
+    semanticdb-needs-refresh-p
+    semanticdb-directory-loaded-p
+    semanticdb-full-filename
+    semanticdb-create-table-for-file
     )
   "List of core Semanticdb functions for profiling.")
 
@@ -433,13 +438,24 @@ Argument POINT is where the text is."
       (semantic-elp-dump-table data prefix))
     ))
 
-(defclass semantic-elp-object (eieio-persistent)
+(defclass semantic-elp-object-base (eieio-persistent)
   ((file-header-line :initform ";; SEMANTIC ELP Profiling Save File")
    (total :initarg :total
 	  :type number
 	  :documentation
 	  "Amount of time spent during the entire collection.")
-   (pathtime :initarg :pathtime
+   )
+  "Base elp object.")
+
+(defclass semantic-elp-object (semantic-elp-object-base)
+  ((time :initarg :time
+	 :type semantic-elp-data
+	 :documentation
+	 "Times for calculating something."))
+  "Simple elp object for remembering one analysis run.")
+
+(defclass semantic-elp-object-analyze (semantic-elp-object-base)
+  ((pathtime :initarg :pathtime
 	     :type semantic-elp-data
 	     :documentation
 	     "Times for calculating the include path.")
@@ -564,7 +580,7 @@ Argument NAME is the name to give the ELP data object."
     ;; Finish it
     (setq totalstop (current-time))
     ;; build it
-    (let ((elpobj (semantic-elp-object
+    (let ((elpobj (semantic-elp-object-analyze
 		   "ELP"
 		   :total          (semantic-elapsed-time totalstart totalstop)
 		   :pathtime	   pathtime
@@ -581,6 +597,37 @@ Argument NAME is the name to give the ELP data object."
 	(eieio-persistent-save elpobj)
 	)
       )))
+
+(defun semantic-elp-idle-work ()
+  "Run the idle work scheduler, using ELP to measure performance."
+  (interactive)
+  (let ((elp-recycle-buffers-p nil)
+	(totalstart nil)
+	(totalstop nil)
+	ans time
+	)
+    ;; Path translation
+    (semantic-elp-core-enable)
+    (setq totalstart (current-time))
+    (semantic-idle-scheduler-work-parse-neighboring-files)
+    (setq totalstop (current-time))
+    (semantic-elp-results "")
+    (setq time semantic-elp-last-results)
+    (oset time :total (semantic-elapsed-time totalstart totalstop))
+    ;; build it
+    (let ((elpobj (semantic-elp-object
+		   "ELP"
+		   :total          (semantic-elapsed-time totalstart totalstop)
+		   :time	   time)))
+      (data-debug-show elpobj)
+      (setq semantic-elp-last-run elpobj)
+      (let ((saveas (read-file-name "Save Profile to: " (expand-file-name "~/")
+				    "semantic.elp" nil "semantic.elp")))
+	(oset elpobj :file saveas)
+	(eieio-persistent-save elpobj)
+	)
+      )))
+
 
 (defun semantic-elp-show-last-run ()
   "Show the last elp run."
