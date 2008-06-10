@@ -18,6 +18,7 @@ more about how @semantic{} works.
 * Semanticdb ::         Code used in the semantic database
 * Analyzer ::           Code used in the code analyzer
 * Tools ::              Code used in user tools.
+* Tests ::              Code used for testing.
 @end menu
 
 @node Parser code
@@ -284,9 +285,26 @@ Draw some charts from stats generated from parsing.
 Profiler for helping to optimize the @semantic{} analyzer.
 
 
-
-
 @end table
 
+@node Tests
+@section Tests
+
+@table @file
+
+@item semantic-utest.el
+Basic testing of parsing and incremental parsing for most supported
+languages.
+
+@item semantic-ia-utest.el
+Test the semantic analyzer's ability to provide smart completions.
+
+@item semantic-utest-c.el
+Tests for the C parser's lexical pre-processor.
+
+@item semantic-regtest.el
+Regression tests from the older Semantic 1.x API.
+
+@end table
 
 @c  LocalWords:  Cscope JDEE BeanShell JavaScript MySQL Semanticdb
