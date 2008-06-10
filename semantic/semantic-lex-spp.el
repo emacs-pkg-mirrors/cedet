@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.19 2008/05/03 14:20:36 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.20 2008/06/10 15:28:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -595,6 +595,54 @@ where a valid symbol is 'system, or nil."
 		    (/= ,endpnt semantic-lex-end-point))
 	   (setq semantic-lex-end-point ,endpnt))
 	 ))))
+
+;;; EIEIO USAGE
+(defvar semantic-lex-spp-macro-max-length-to-save 200
+  "*Maximum length of an SPP macro before we opt to not save it.")
+
+;;;###autoload
+(defun semantic-lex-spp-table-write-slot-value (value)
+  "Write out the VALUE of a slot for EIEIO.
+The VALUE is a spp lexical table."
+  (if (not value)
+      (princ "nil")
+    (princ "\n        '(")
+    ;(princ value)
+    (dolist (sym value)
+      (princ "(")
+      (prin1 (car sym))
+      (let* ((first (car (cdr sym)))
+	     (rest (cdr sym)))
+	(when (eq (car first) 'spp-arg-list)
+	  (princ " ")
+	  (prin1 first)
+	  (setq rest (cdr rest))
+	  )
+
+	(when rest
+	  (princ " . ")
+	  (let ((len (length (cdr rest))))
+	    (cond ((< len 2)
+		   (prin1 rest))
+		  ((< len semantic-lex-spp-macro-max-length-to-save)
+		   (princ "\n              ")
+		   (prin1 rest))
+		  (t ;; Too Long!
+		   (princ ";; Too Long!\n          ")
+		   ))))
+	)
+      (princ ")\n          ")
+      )
+    (princ ")\n"))
+)
+
+(defun semantic-lex-spp-write-test ()
+  "Test the semantic tag writer against the tag under point."
+  (interactive)
+  (with-output-to-temp-buffer "*SPP Write Test*"
+    (semantic-lex-spp-table-write-slot-value
+     (semantic-lex-spp-save-table))))
+
 
 ;;; EDEBUG Handlers
 ;;
