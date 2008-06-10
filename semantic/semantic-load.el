@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.59 2008/05/12 22:51:04 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.60 2008/06/10 00:51:54 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -64,7 +64,6 @@ Prevent this load system from loading files in twice.")
 This includes:
  `semantic-idle-scheduler-mode' - Keeps a buffer's parse tree up to date.
  `semanticdb-minor-mode' - Stores tags when a buffer is not in memory.
- `semanticdb-load-system-caches' - Loads any systemdbs created earlier.
  `semanticdb-load-ebrowse-caches' - Loads any ebrowse dbs created earlier."
   (interactive)
 
@@ -78,10 +77,6 @@ This includes:
     ;; This loads any created system databases which get linked into
     ;; any searches performed.
     (setq semantic-load-system-cache-loaded t)
-    (when (and (boundp 'semanticdb-default-system-save-directory)
-	       (stringp semanticdb-default-system-save-directory)
-	       (file-exists-p semanticdb-default-system-save-directory))
-      (semanticdb-load-system-caches))
 
     ;; This loads any created ebrowse databases which get linked into
     ;; any searches performed.
