@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.13 2008/04/29 18:27:13 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.14 2008/06/10 00:51:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,7 +33,6 @@
 (require 'semanticdb-file)
 (require 'eieio-opt)
 
-;;;###autoload
 (defcustom semanticdb-default-system-save-directory
   ;; Leave this obvious for now.  Maybe hide it later.
   (expand-file-name "~/.semanticdb")
@@ -46,7 +45,6 @@ write permission to such paths."
                  (const :tag "Use current directory" :value nil)
                  (directory)))
 
-;;;###autoload
 (defcustom semanticdb-default-system-file-name "semantic.syscache"
   "*File name of the semantic tag cache."
   :group 'semanticdb
@@ -133,7 +131,6 @@ name in a secondary directory."
 (defvar semanticdb-system-database-query-history nil
   "History variable when asking for a type of system database.")
 
-;;;###autoload
 (defun semanticdb-create-system-database (path &optional class)
   "Create a system database starting at PATH.
 PATH should be a top level directory for a series of files containing
@@ -169,7 +166,6 @@ of symbol `semanticdb-project-database-system' are accepted."
     (semanticdb-load-system-database class path)
     ))
 
-;;;###autoload
 (defun semanticdb-load-system-caches ()
   "Load all system databases that were previously saved."
   (interactive)
