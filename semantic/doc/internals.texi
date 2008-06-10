@@ -153,16 +153,6 @@ Provides a subclass of the basic table so that it can be saved to
 disk.  Implements all the code needed to unbind/rebind tags to a
 buffer and writing them to a file.
 
-@item semanticdb-system.el
-Subclass @code{semanticdb-file}.  Supports creating a @acronym{DB} in
-a directory you do not have write-access to, and saving the cache in
-your home directory.  Also implements a @acronym{C}/@acronym{C++}
-subclass which can be used for caching @file{/usr/include}.  (A rather
-slow process.)
-
-NOTE: Thinking of removing this from @semantic{}.
-
-
 @item semanticdb-el.el
 Implements a special kind of @dfn{system} database that uses Emacs
 internals to perform queries.
@@ -172,7 +162,6 @@ Implements a system database that uses Ebrowse to parse files into a
 table that can be queried for tag names.  Successful tag hits during a
 find causes @semantic{} to pick up and parse the reference files to
 get the full details.
-
 
 @item semanticdb-find.el
 Infrastructure for searching groups @semantic{} databases, and dealing
