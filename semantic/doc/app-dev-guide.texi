@@ -2205,25 +2205,6 @@ The database file is stored in ~/.semanticdb, or whichever directory
 is specified by @code{semanticdb-default-system-save-directory}.
 @end deffn
 
-@subsection Semantic Parsed System Databases
-
-Another kind of system database is one created by the semantic tools,
-but saved in a special way.  These databases are created with a
-script, or at some other convenient time.  They can then be searched
-normally.  They will appear on the same list of system databases as
-back ends that refer to object files indirectly.
-
-A simple way to create one from Emacs is with this function:
-
-@deffn Command semanticdb-create-system-database path &optional class
-@anchor{semanticdb-create-system-database}
-Create a system database starting at @var{path}.
-@var{path} should be a top level directory for a series of files containing
-declarations for @var{system} files.  In @var{c}, this would be header filaes.
-@var{class} is the class for the database to create.  Only child classes
-of symbol @dfn{semanticdb-project-database-system} are accepted.
-@end deffn
-
 @node Semanticdb references
 @section Semanticdb References
 
