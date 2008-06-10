@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.23 2008/02/10 02:52:41 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.24 2008/06/10 00:43:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -339,7 +339,7 @@ Used in completion."
     ,table))
 
 ;;;###autoload
-(define-overload semantic-find-tags-by-scope-protection (scopeprotection parent &optional table)
+(define-overloadable-function semantic-find-tags-by-scope-protection (scopeprotection parent &optional table)
   "Find all tags accessable by SCOPEPROTECTION.
 SCOPEPROTECTION is a symbol which can be returned by the method
 `semantic-tag-protection'.  A hard-coded order is used to determine a match.

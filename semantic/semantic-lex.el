@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.47 2008/04/12 03:22:54 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.48 2008/06/10 00:43:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -823,7 +823,7 @@ See also the function `semantic-lex-token'."
      (car mod) (nth 1 mod) semantic-lex-syntax-table)))
 
 ;;;###autoload
-(define-overload semantic-lex (start end &optional depth length)
+(define-overloadable-function semantic-lex (start end &optional depth length)
   "Lexically analyze text in the current buffer between START and END.
 Optional argument DEPTH indicates at what level to scan over entire
 lists.  The last argument, LENGTH specifies that `semantic-lex'

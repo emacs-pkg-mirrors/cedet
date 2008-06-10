@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.25 2008/02/06 04:04:56 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.26 2008/06/10 00:43:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -485,7 +485,7 @@ buckets with the bucket function."
 ;; to enable the feature.
 ;;
 ;;;###autoload
-(define-overload semantic-tag-external-member-parent (tag)
+(define-overloadable-function semantic-tag-external-member-parent (tag)
   "Return a parent for TAG when TAG is an external member.
 TAG is an external member if it is defined at a toplevel and
 has some sort of label defining a parent.  The parent return will
@@ -513,7 +513,7 @@ include the default behavior, and merely extend your own."
 			 'semantic-tag-external-member-parent)
 
 ;;;###autoload
-(define-overload semantic-tag-external-member-p (parent tag)
+(define-overloadable-function semantic-tag-external-member-p (parent tag)
   "Return non-nil if PARENT is the parent of TAG.
 TAG is an external member of PARENT when it is somehow tagged
 as having PARENT as it's parent.
@@ -541,7 +541,7 @@ include the default behavior, and merely extend your own."
 			 'semantic-tag-external-member-p)
 
 ;;;###autoload
-(define-overload semantic-tag-external-member-children (tag &optional usedb)
+(define-overloadable-function semantic-tag-external-member-children (tag &optional usedb)
   "Return the list of children which are not *in* TAG.
 If optional argument USEDB is non-nil, then also search files in
 the Semantic Database.  If USEDB is a list of databases, search those
@@ -581,7 +581,7 @@ See `semantic-tag-external-member-children' for details."
     ))
 
 ;;;###autoload
-(define-overload semantic-tag-external-class (tag)
+(define-overloadable-function semantic-tag-external-class (tag)
   "Return a list of real tags that faux TAG might represent.
 
 In some languages, a method can be defined on an object which is

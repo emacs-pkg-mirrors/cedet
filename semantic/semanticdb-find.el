@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.64 2008/05/17 11:58:43 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.65 2008/06/10 00:42:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -251,7 +251,7 @@ This class will cache data derived during various searches.")
 ;; These routines needed to be overloaded by specific language modes.
 ;; They are needed for translating an INCLUDE tag into a semanticdb
 ;; TABLE object.
-(define-overload semanticdb-find-translate-path (path brutish)
+(define-overloadable-function semanticdb-find-translate-path (path brutish)
   "Translate PATH into a list of semantic tables.
 Path translation involves identifying the PATH input argument
 in one of the following ways:
@@ -508,7 +508,7 @@ a new path from the provided PATH."
       )
     (nreverse matchedtables)))
 
-(define-overload semanticdb-find-load-unloaded (filename)
+(define-overloadable-function semanticdb-find-load-unloaded (filename)
   "Create a database table for FILENAME if it hasn't been parsed yet.
 Assumes that FILENAME exists as a source file.
 Assumes that a preexisting table does not exist, even if it
@@ -522,7 +522,7 @@ isn't in memory yet."
   (semanticdb-file-table-object filename))
 
 ;;;###autoload
-(define-overload semanticdb-find-table-for-include (includetag &optional table)
+(define-overloadable-function semanticdb-find-table-for-include (includetag &optional table)
   "For a single INCLUDETAG found in TABLE, find a `semanticdb-table' object
 INCLUDETAG is a semantic TAG of class 'include.
 TABLE as defined by `semantic-something-to-tag-table' to identify

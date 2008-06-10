@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-doc.el,v 1.7 2008/01/29 13:56:25 zappo Exp $
+;; X-RCS: $Id: semantic-doc.el,v 1.8 2008/06/10 00:42:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,7 +36,7 @@
 ;;; Code:
 
 ;;;###autoload
-(define-overload semantic-documentation-for-tag (&optional tag nosnarf)
+(define-overloadable-function semantic-documentation-for-tag (&optional tag nosnarf)
   "Find documentation from TAG and return it as a clean string.
 TAG might have DOCUMENTATION set in it already.  If not, there may be
 some documentation in a comment preceding TAG's definition which we

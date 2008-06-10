@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.50 2008/06/04 23:36:16 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.51 2008/06/10 00:42:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -52,7 +52,7 @@ Used for identifying arguments to functions.")
 
 ;;; Local variable parsing.
 ;;
-(define-overload semantic-up-context (&optional point bounds-type)
+(define-overloadable-function semantic-up-context (&optional point bounds-type)
   "Move point up one context from POINT.
 Return non-nil if there are no more context levels.
 Overloaded functions using `up-context' take no parameters.
@@ -80,7 +80,7 @@ Works with languages that use parenthetical grouping."
 	nil)
     (error t)))
 
-(define-overload semantic-beginning-of-context (&optional point)
+(define-overloadable-function semantic-beginning-of-context (&optional point)
   "Move POINT to the beginning of the current context.
 Return non-nil if there is no upper context.
 The default behavior uses `semantic-up-context'.")
@@ -94,7 +94,7 @@ Return non-nil if there is no upper context."
     (forward-char 1)
     nil))
 
-(define-overload semantic-end-of-context (&optional point)
+(define-overloadable-function semantic-end-of-context (&optional point)
   "Move POINT to the end of the current context.
 Return non-nil if there is no upper context.
 Be default, this uses `semantic-up-context', and assumes parenthetical
@@ -149,7 +149,7 @@ Return non-nil if there is no upper context."
 	    (def-edebug-spec semantic-with-buffer-narrowed-to-context
 	      (def-body))))
 
-(define-overload semantic-get-local-variables (&optional point)
+(define-overloadable-function semantic-get-local-variables (&optional point)
   "Get the local variables based on POINT's context.
 Local variables are returned in Semantic tag format.
 This can be overriden with `get-local-variables'."
@@ -198,7 +198,7 @@ to collect tags, such as local variables or prototypes."
 	(setq vars2 (cdr vars2)))
       vars)))
 
-(define-overload semantic-get-local-arguments (&optional point)
+(define-overloadable-function semantic-get-local-arguments (&optional point)
   "Get arguments (variables) from the current context at POINT.
 Parameters are available if the point is in a function or method.
 Return a list of tags unlinked from the originating buffer.
@@ -236,7 +236,7 @@ Parameters are available if the point is in a function or method."
     (if (and tag (semantic-tag-of-class-p tag 'function))
 	(semantic-tag-function-arguments tag))))
 
-(define-overload semantic-get-all-local-variables (&optional point)
+(define-overloadable-function semantic-get-all-local-variables (&optional point)
   "Get all local variables for this context, and parent contexts.
 Local variables are returned in Semantic tag format.
 Be default, this gets local variables, and local arguments.
@@ -268,7 +268,7 @@ That is a cons (LOCAL-ARGUMENTS . LOCAL-VARIABLES) where:
 ;; argument     - The index to the argument the cursor is on.
 ;;
 ;;
-(define-overload semantic-end-of-command ()
+(define-overloadable-function semantic-end-of-command ()
   "Move to the end of the current command.
 Be default, uses `semantic-command-separation-character'.")
 
@@ -287,7 +287,7 @@ beginning and end of a command."
 	  ;; command, and we are incomplete.
 	  (goto-char (point-max)))))))
 
-(define-overload semantic-beginning-of-command ()
+(define-overloadable-function semantic-beginning-of-command ()
   "Move to the beginning of the current command.
 Be default, uses `semantic-command-separation-character'.")
 
@@ -334,7 +334,7 @@ beginning and end of a command."
 	      (def-body))))
 
 
-(define-overload semantic-ctxt-current-symbol (&optional point)
+(define-overloadable-function semantic-ctxt-current-symbol (&optional point)
   "Return the current symbol the cursor is on at POINT in a list.
 This will include a list of type/field names when applicable.")
 
@@ -409,7 +409,7 @@ Depends on `semantic-type-relation-separator-character'."
       symlist)))
 
 
-(define-overload semantic-ctxt-current-symbol-and-bounds (&optional point)
+(define-overloadable-function semantic-ctxt-current-symbol-and-bounds (&optional point)
   "Return the current symbol and bounds the cursor is on at POINT.
 The symbol should be the same as returned by `semantic-ctxt-current-symbol'.
 Return (PREFIX ENDSYM BOUNDS).")
@@ -442,7 +442,7 @@ Return (PREFIX ENDSYM BOUNDS)."
 	   )
       (list prefix endsym bounds))))
 
-(define-overload semantic-ctxt-current-assignment (&optional point)
+(define-overloadable-function semantic-ctxt-current-assignment (&optional point)
   "Return the current assignment near the cursor at POINT.
 Return a list as per `semantic-ctxt-current-symbol'.
 Return nil if there is nothing relevant.")
@@ -465,7 +465,7 @@ By default, assume that \"=\" indicates an assignment."
 	      (semantic-ctxt-current-symbol)))
 	(error nil)))))
 
-(define-overload semantic-ctxt-current-function (&optional point)
+(define-overloadable-function semantic-ctxt-current-function (&optional point)
   "Return the current function call the cursor is in at POINT.
 The function returned is the one accepting the arguments that
 the cursor is currently in.  It will not return function symbol if the
@@ -484,7 +484,7 @@ The call will be identifed for C like langauges with the form
 	  (semantic-ctxt-current-symbol))))
     ))
 
-(define-overload semantic-ctxt-current-argument (&optional point)
+(define-overloadable-function semantic-ctxt-current-argument (&optional point)
   "Return the index of the argument position the cursor is on at POINT.")
 
 (defun semantic-ctxt-current-argument-default (&optional point)
@@ -515,7 +515,7 @@ for details on the return value."
       (semantic-ctxt-current-function)
       (semantic-ctxt-current-assignment)))
 
-(define-overload semantic-ctxt-current-class-list (&optional point)
+(define-overloadable-function semantic-ctxt-current-class-list (&optional point)
   "Return a list of tag classes that are allowed at POINT.
 If POINT is nil, the current buffer location is used.
 For example, in Emacs Lisp, the symbol after a ( is most likely
@@ -539,7 +539,7 @@ Assume a functional typed language.  Uses very simple rules."
 	'(type)
 	))))
 
-(define-overload semantic-ctxt-current-mode (&optional point)
+(define-overloadable-function semantic-ctxt-current-mode (&optional point)
   "Return the major mode active at POINT.
 POINT defaults to the value of point in current buffer.
 You should override this function in multiple mode buffers to
@@ -555,7 +555,7 @@ This default implementation returns the current major mode."
 ;;
 ;; Scoped types are types that the current code would have access to.
 ;; The come from the global namespace or from special commands such as "using"
-(define-overload semantic-ctxt-scoped-types (&optional point)
+(define-overloadable-function semantic-ctxt-scoped-types (&optional point)
   "Return a list of type names currently in scope at POINT.
 The return value can be a mixed list of either strings (names of
 types that are in scope) or actual tags (type declared locally

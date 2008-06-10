@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.59 2008/02/04 22:59:58 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.60 2008/06/10 00:43:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,7 +94,7 @@ Restore the old current buffer when completed."
 ;;
 ;;  +>  -> click to see additional information
 
-(define-overload semantic-sb-tag-children-to-expand (tag)
+(define-overloadable-function semantic-sb-tag-children-to-expand (tag)
   "For TAG, return a list of children that TAG expands to.
 If this returns a value, then a +> icon is created.
 If it returns nil, then a => icon is created.")

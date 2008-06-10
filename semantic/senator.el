@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.125 2008/05/05 19:35:47 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.126 2008/06/10 00:43:44 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1303,7 +1303,7 @@ Some tags such as includes have other reference features."
       (switch-to-buffer (current-buffer))
       (semantic-momentary-highlight-tag newtag))))
 
-(define-overload semantic-up-reference (tag)
+(define-overloadable-function semantic-up-reference (tag)
   "Return a tag that is referredto by TAG.
 A \"reference\" could be any interesting feature of TAG.
 In C++, a function may have a 'parent' which is non-local.

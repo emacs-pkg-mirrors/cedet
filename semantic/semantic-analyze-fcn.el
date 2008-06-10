@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.15 2008/05/21 03:09:59 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.16 2008/06/10 00:42:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,7 +30,7 @@
 ;;
 ;; These queries allow a major mode to help the analyzer make decisions.
 ;;
-(define-overload semantic-analyze-tag-prototype-p (tag)
+(define-overloadable-function semantic-analyze-tag-prototype-p (tag)
   "Non-nil if TAG is a prototype."
   )
 
@@ -49,7 +49,7 @@
 
 ;;------------------------------------------------------------
 
-(define-overload semantic-analyze-split-name (name)
+(define-overloadable-function semantic-analyze-split-name (name)
   "Split a tag NAME into a sequence.
 Sometimes NAMES are gathered from the parser that are compounded,
 such as in C++ where foo::bar means:
@@ -216,7 +216,7 @@ Argument SCOPE is the scope object with additional items in which to search."
       )
     lasttype))
 
-(define-overload semantic-analyze-dereference-metatype (type scope)
+(define-overloadable-function semantic-analyze-dereference-metatype (type scope)
   ;; todo - move into typecahe!!
   "Return a concrete type tag based on input TYPE tag.
 A concrete type is an actual declaration of a memory description,

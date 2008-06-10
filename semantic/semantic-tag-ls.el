@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.14 2008/02/10 02:53:42 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.15 2008/06/10 00:43:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,7 +42,7 @@
 ;; leaf, etc.  Learn about UML to catch onto the lingo.
 
 ;;;###autoload
-(define-overload semantic-tag-calculate-parent (tag)
+(define-overloadable-function semantic-tag-calculate-parent (tag)
   "Attempt to calculate the parent of TAG.
 The default behavior (if not overriden with `tag-calculate-parent')
 is to search a buffer found with TAG, and if externally defined,
@@ -59,7 +59,7 @@ search locally, then semanticdb for that tag (when enabled.)")
       )))
 
 ;;;###autoload
-(define-overload semantic-tag-protection (tag &optional parent)
+(define-overloadable-function semantic-tag-protection (tag &optional parent)
   "Return protection information about TAG with optional PARENT.
 This function returns on of the following symbols:
    nil        - No special protection.  Language dependent.
@@ -133,7 +133,7 @@ For these PROTECTIONs, true is returned if TAG is:
     ))
 
 ;;;###autoload
-(define-overload semantic-tag-abstract-p (tag &optional parent)
+(define-overloadable-function semantic-tag-abstract-p (tag &optional parent)
   "Return non nil if TAG is abstract.
 Optional PARENT is the parent tag of TAG.
 In UML, abstract methods and classes have special meaning and behavior
@@ -158,7 +158,7 @@ See `semantic-tag-abstract-p'."
     abs))
 
 ;;;###autoload
-(define-overload semantic-tag-leaf-p (tag &optional parent)
+(define-overloadable-function semantic-tag-leaf-p (tag &optional parent)
   "Return non nil if TAG is leaf.
 Optional PARENT is the parent tag of TAG.
 In UML, leaf methods and classes have special meaning and behavior.
@@ -183,7 +183,7 @@ See `semantic-tag-leaf-p'."
     leaf))
 
 ;;;###autoload
-(define-overload semantic-tag-static-p (tag &optional parent)
+(define-overloadable-function semantic-tag-static-p (tag &optional parent)
   "Return non nil if TAG is static.
 Optional PARENT is the parent tag of TAG.
 In UML, static methods and attributes mean that they are allocated
@@ -202,7 +202,7 @@ See `semantic-tag-static-p'."
     static))
 
 ;;;###autoload
-(define-overload semantic-tag-prototype-p (tag)
+(define-overloadable-function semantic-tag-prototype-p (tag)
   "Return non nil if TAG is a prototype.
 For some laguages, such as C, a prototype is a declaration of
 something without an implementation."
@@ -229,7 +229,7 @@ something without an implementation."
 ;; will contain the info needed to determine the full name.
 
 ;;;###autoload
-(define-overload semantic-tag-full-name (tag &optional stream-or-buffer)
+(define-overloadable-function semantic-tag-full-name (tag &optional stream-or-buffer)
   "Return the fully qualified name of TAG in the package hierarchy.
 STREAM-OR-BUFFER can be anything convertable by `semantic-something-to-stream',
 but must be a toplevel semantic tag stream that contains TAG.

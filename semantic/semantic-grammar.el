@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.74 2008/02/02 02:44:43 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.75 2008/06/10 00:43:15 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -436,7 +436,7 @@ Also load the specified macro libraries."
       ',keywords
       ',(semantic-grammar-keyword-properties keywords))))
 
-(define-overload semantic-grammar-keywordtable-builder ()
+(define-overloadable-function semantic-grammar-keywordtable-builder ()
   "Return the keyword table table value.")
 
 ;;; Token table builder
@@ -448,7 +448,7 @@ Also load the specified macro libraries."
       ',tokens
       ',(semantic-grammar-token-properties tokens))))
 
-(define-overload semantic-grammar-tokentable-builder ()
+(define-overloadable-function semantic-grammar-tokentable-builder ()
   "Return the value of the table of lexical tokens.")
 
 ;;; Parser table builder
@@ -457,7 +457,7 @@ Also load the specified macro libraries."
   "Return the default value of the parse table."
   (error "`semantic-grammar-parsetable-builder' not defined"))
 
-(define-overload semantic-grammar-parsetable-builder ()
+(define-overloadable-function semantic-grammar-parsetable-builder ()
   "Return the parser table value.")
 
 ;;; Parser setup code builder
@@ -466,7 +466,7 @@ Also load the specified macro libraries."
   "Return the default value of the setup code form."
   (error "`semantic-grammar-setupcode-builder' not defined"))
 
-(define-overload semantic-grammar-setupcode-builder ()
+(define-overloadable-function semantic-grammar-setupcode-builder ()
   "Return the parser setup code form.")
 
 ;;;;

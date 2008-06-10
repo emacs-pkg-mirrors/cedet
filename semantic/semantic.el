@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.205 2008/05/11 20:38:03 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.206 2008/06/10 00:43:03 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -361,7 +361,7 @@ the output buffer."
 ;;
 ;; Overload these functions to create new types of parsers.
 ;;
-(define-overload semantic-parse-stream (stream nonterminal)
+(define-overloadable-function semantic-parse-stream (stream nonterminal)
   "Parse STREAM, starting at the first NONTERMINAL rule.
 For bovine and wisent based parsers, STREAM is from the output of
 `semantic-lex', and NONTERMINAL is a rule in the apropriate language
@@ -373,13 +373,13 @@ Must return a list: (STREAM TAGS) where STREAM is the unused elements
 from STREAM, and TAGS is the list of semantic tags found, usually only
 one tag is returned with the exception of compound statements")
 
-(define-overload semantic-parse-changes ()
+(define-overloadable-function semantic-parse-changes ()
   "Reparse changes in the current buffer.
 The list of changes are tracked as a series of overlays in the buffer.
 When overloading this function, use `semantic-changes-in-region' to
 analyze.")
 
-(define-overload semantic-parse-region
+(define-overloadable-function semantic-parse-region
   (start end &optional nonterminal depth returnonerror)
   "Parse the area between START and END, and return any tags found.
 If END needs to be extended due to a lexical token being too large, it

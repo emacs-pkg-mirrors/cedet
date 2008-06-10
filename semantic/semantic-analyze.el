@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.74 2008/06/01 02:50:20 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.75 2008/06/10 00:42:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -221,7 +221,7 @@ Optional argument DESIRED-TYPE may be a non-type tag to analyze."
 ;; by an application that doesn't need to calculate the full
 ;; context.
 
-(define-overload semantic-analyze-find-tag-sequence (sequence &optional
+(define-overloadable-function semantic-analyze-find-tag-sequence (sequence &optional
 							      scope typereturn)
   "Attempt to find all tags in SEQUENCE.
 Optional argument LOCALVAR is the list of local variables to use when
@@ -381,7 +381,7 @@ searches use the same arguments."
 ;; Create a full-up context analysis.
 ;;
 ;;;###autoload
-(define-overload semantic-analyze-current-context (&optional position)
+(define-overloadable-function semantic-analyze-current-context (&optional position)
   "Analyze the current context at optional POSITION.
 If called interactively, display interesting information about POSITION
 in a separate buffer.

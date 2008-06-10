@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.23 2008/03/24 13:27:59 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.24 2008/06/10 00:43:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,7 +35,7 @@
 ;;; Location a TAG came from.
 ;;
 ;;;###autoload
-(define-overload semantic-go-to-tag (tag &optional parent)
+(define-overloadable-function semantic-go-to-tag (tag &optional parent)
   "Go to the location of TAG.
 TAG may be a stripped element, in which case PARENT specifies a
 parent tag that has position information.
@@ -102,7 +102,7 @@ depended on (see `semantic-dependency-tag-file'."
 ;; Find the file described by a dependency.
 
 ;;;###autoload
-(define-overload semantic-dependency-tag-file (&optional tag)
+(define-overloadable-function semantic-dependency-tag-file (&optional tag)
   "Find the filename represented from TAG.
 Depends on `semantic-dependency-include-path' for searching.  Always searches
 `.' first, then searches additional paths."
@@ -170,7 +170,7 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 ;; prototype file a given source file would be associated with.
 ;; This can be used by prototype manager programs.
 ;;;###autoload
-(define-overload semantic-prototype-file (buffer)
+(define-overloadable-function semantic-prototype-file (buffer)
   "Return a file in which prototypes belonging to BUFFER should be placed.
 Default behavior (if not overridden) looks for a token specifying the
 prototype file, or the existence of an EDE variable indicating which

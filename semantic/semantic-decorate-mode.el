@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.24 2008/03/24 13:27:06 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.25 2008/06/10 00:42:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -441,12 +441,12 @@ decoration API found in this library."
        (setq semantic-decoration-menu-cache nil)
        ;; Create an override method to specify if a given tag belongs
        ;; to this type of decoration
-       (define-overload ,predicate (tag)
+       (define-overloadable-function ,predicate (tag)
          ,(format "Return non-nil to decorate TAG with `%s' style.\n%s"
                   name doc))
        ;; Create an override method that will perform the highlight
        ;; operation if the -p method returns non-nil.
-       (define-overload ,highlighter (tag)
+       (define-overloadable-function ,highlighter (tag)
          ,(format "Decorate TAG with `%s' style.\n%s"
                   name doc))
        ;; Add this to the list of primary decoration modes.

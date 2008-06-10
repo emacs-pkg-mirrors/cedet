@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-complete.el,v 1.9 2008/05/17 20:04:16 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-complete.el,v 1.10 2008/06/10 00:42:26 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -38,7 +38,7 @@
 ;;; Helper Fcns
 ;;
 ;;
-(define-overload semantic-analyze-type-constants (type)
+(define-overloadable-function semantic-analyze-type-constants (type)
   "For the tag TYPE, return any constant symbols of TYPE.
 Used as options when completing."
   (let ((ans
@@ -74,7 +74,7 @@ Used as options when completing."
 ;;
 ;;
 ;;;###autoload
-(define-overload semantic-analyze-possible-completions (context)
+(define-overloadable-function semantic-analyze-possible-completions (context)
   "Return a list of semantic tags which are possible completions.
 CONTEXT is either a position (such as point), or a precalculated
 context.  Passing in a context is useful if the caller also needs

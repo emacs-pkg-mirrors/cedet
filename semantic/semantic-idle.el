@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.47 2008/06/09 22:33:28 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.48 2008/06/10 00:43:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -802,7 +802,7 @@ specific to a major mode.  For example, in jde mode:
       nil
     t))
 
-(define-overload semantic-idle-summary-current-symbol-info ()
+(define-overloadable-function semantic-idle-summary-current-symbol-info ()
   "Return a string message describing the current context.")
 
 (make-obsolete-overload 'semantic-eldoc-current-symbol-info

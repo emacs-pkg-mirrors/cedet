@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.31 2008/05/17 19:57:55 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.32 2008/06/10 00:42:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -361,7 +361,7 @@ a master list."
 ;;; Search Routines
 ;;
 ;;;###autoload
-(define-overload semanticdb-typecache-find (type &optional path find-file-match)
+(define-overloadable-function semanticdb-typecache-find (type &optional path find-file-match)
   "Search the typecache for TYPE in PATH.
 If type is a string, split the string, and search for the parts.
 If type is a list, treat the type as a pre-split string.
