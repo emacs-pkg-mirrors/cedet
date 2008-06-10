@@ -1,11 +1,11 @@
 ;;; cedet-autogen.el --- Generate autoloads for CEDET libraries
 
-;; Copyright (C) 2003, 2004 David Ponce
+;; Copyright (C) 2003, 2004, 2008 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: 22 Aug 2003
 ;; Keywords: maint
-;; X-CVS: $Id: cedet-autogen.el,v 1.6 2005/09/30 20:07:14 zappo Exp $
+;; X-CVS: $Id: cedet-autogen.el,v 1.7 2008/06/10 13:21:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -74,7 +74,8 @@ the true `make-autoload' function."
              name args doc
              )
         (cond
-         ((eq car 'define-overload)
+         ((or (eq car 'define-overload)
+	      (eq car 'define-overloadable-function))
           (setcar form 'defun)
           )
          ((eq car 'defmethod)
