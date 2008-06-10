@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.112 2008/06/09 22:28:57 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.113 2008/06/10 15:29:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -215,6 +215,7 @@ Semantic's control.")
 
    (lexical-table :initarg :lexical-table
 		  :initform nil
+		  :printer semantic-lex-spp-table-write-slot-value
 		  :documentation
 		  "Table that might be needed by the lexical analyzer.
 For C/C++, the C preprocessor macros can be saved here.")
