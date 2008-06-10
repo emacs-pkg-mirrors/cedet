@@ -1512,29 +1512,12 @@ available parsable source code, you can pre-generate database files
 for them once, which will be used over and over for tools such as
 summary-mode, or the analyzer.
 
-Use the following command to create new system databases:
-
-@deffn Command semanticdb-create-system-database path &optional class
-@anchor{semanticdb-create-system-database}
-Create a system database starting at @var{path}.
-@var{path} should be a top level directory for a series of files containing
-declarations for @var{system} files.  In @var{c}, this would be header filaes.
-@var{class} is the class for the database to create.  Only child classes
-of symbol @dfn{semanticdb-project-database-system} are accepted.
-@end deffn
-
-
 @deffn Command semanticdb-create-ebrowse-database dir
 @anchor{semanticdb-create-ebrowse-database}
 Create an @var{ebrose} database for directory @var{dir}.
 The database file is stored in ~/.semanticdb, or whichever directory
 is specified by @code{semanticdb-default-system-save-directory}.
 @end deffn
-
-The CLASS requested here is a bit of archana representing the class
-name for the language the entry is for.  Use completion @kbd{SPC} to
-see the ones available.  The name of the language should be part of
-the class name.
 
 @node Debugging
 @chapter Debugging speed and accuracy issues
