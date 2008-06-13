@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.48 2008/06/10 00:43:19 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.49 2008/06/13 12:14:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -329,6 +329,13 @@ call additional functions registered with the timer calls."
 ;;
 ;; Unlike the shorter timer, the WORK timer will kick of tasks that
 ;; may take a long time to complete.
+(defcustom semantic-idle-work-parse-neighboring-files-flag t
+  "*Non-nil means to parse files in the same dir as the current buffer.
+Disable to prevent lots of excessive parsing in idle time."
+  :group 'semantic
+  :type 'boolean)
+
+
 (defun semantic-idle-work-for-one-buffer (buffer)
   "Do long-processing work for for BUFFER.
 Uses `semantic-safe' and returns the output.
@@ -402,12 +409,17 @@ Uses `semantic-idle-work-for-on-buffer' to do the work."
 	     (semanticdb-save-all-db-idle)
 
 	     ;; Parse up files near our active buffer
-	     (semantic-safe "Idle Work Parse Neighboring Files: %S"
-	       (when (and (featurep 'semanticdb)
-			  (semanticdb-minor-mode-p))
-		 (set-buffer cb)
-		 (semantic-idle-scheduler-work-parse-neighboring-files))
-	       t)
+	     (when semantic-idle-work-parse-neighboring-files-flag
+	       (semantic-safe "Idle Work Parse Neighboring Files: %S"
+		 (when (and (featurep 'semanticdb)
+			    (semanticdb-minor-mode-p))
+		   (set-buffer cb)
+		   (semantic-idle-scheduler-work-parse-neighboring-files))
+		 t)
+	       )
+
+	     ;; Save everything... again
+	     (semanticdb-save-all-db-idle)
 
 	     ;; Done w/ processing
 	     nil))))
