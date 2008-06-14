@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.65 2008/06/10 00:42:44 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.66 2008/06/14 22:10:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -418,17 +418,23 @@ a new path from the provided PATH."
 	(matchedtables (list semanticdb-current-table))
 	(matchedincludes nil)
 	(lostincludes nil)
+	(incfname nil)
 	nexttable)
     (cond ((null path)
 	   (setq includetags (semantic-find-tags-included (current-buffer))
-		 curtable semanticdb-current-table))
+		 curtable semanticdb-current-table
+		 incfname (buffer-file-name))
+	   )
 	  ((semanticdb-table-p path)
 	   (setq includetags (semantic-find-tags-included (semanticdb-get-tags path))
-		 curtable path))
+		 curtable path
+		 incfname (semanticdb-full-filename path))
+	   )
 	  ((bufferp path)
 	   (setq includetags (semantic-find-tags-included path)
 		 curtable (save-excursion (set-buffer path)
-					  semanticdb-current-table)))
+					  semanticdb-current-table)
+		 incfname (buffer-file-name path)))
 	  (t
 	   (setq includetags (semantic-find-tags-included path))
 	   (when includetags
@@ -439,6 +445,12 @@ a new path from the provided PATH."
 	     (message "Need to derive tables for %S in translate-path-includes--default."
 		      path)
 	   )))
+    
+    ;; Make sure each found include tag has an originating file name associated
+    ;; with it.
+    (when incfname
+      (dolist (it includetags)
+	(semantic--tag-put-property it :filename incfname)))
 
     ;; Loop over all include tags adding to matchedtables
     (while includetags
@@ -477,11 +489,20 @@ a new path from the provided PATH."
 		     ;; into ourselves here.
 		     (semanticdb-find-tags-by-class-method
 		      nexttable 'include))
-		    (t
+		    (t ;; @todo - is this ever possible???
+		     (message "semanticdb-ftp - how did you do that?")
 		     (semantic-find-tags-included
 		      (semanticdb-get-tags nexttable)))
-		    )))
-	      (setq includetags (nconc includetags newtags)))))
+		    ))
+		  (newincfname (semanticdb-full-filename nexttable))
+		  )
+	      ;; Setup new tags so we know where they are.
+	      (dolist (it newtags)
+		(semantic--tag-put-property it :filename
+					    newincfname))
+
+	      (setq includetags (nconc includetags newtags))))
+	)
       (setq includetags (cdr includetags)))
 
     (setq semanticdb-find-lost-includes lostincludes)
@@ -553,14 +574,8 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
     ;; and must set our current buffer eto the origin of includetag
     ;; or nothing may work.
     (setq originfiledir
-	  (cond ((semantic-tag-in-buffer-p includetag)
-		 ;; If the tag has an overlay and buffer associated with it,
-		 ;; switch to that buffer so that we get the right override metohds.
-		 (file-name-directory (buffer-file-name (semantic-tag-buffer includetag))))
-		((semantic-tag-file-name includetag)
-		 ;; If it didn't have a buffer, but does have a file
-		 ;; name, then we need to get to that file so the tag
-		 ;; location is made accurate.
+	  (cond ((semantic-tag-file-name includetag)
+		 ;; A tag may have a buffer, or a :filename property.
 		 (file-name-directory (semantic-tag-file-name includetag)))
 		(table
 		 (file-name-directory (semanticdb-full-filename table)))
@@ -947,10 +962,21 @@ Returns result."
 ;;;###autoload
 (defun semanticdb-find-tags-collector (function &optional path find-file-match
 						brutish)
-  "Search for all tags returned by FUNCTION over PATH.
+  "Collect all tags returned by FUNCTION over PATH.
+The FUNCTION must take two arguments.  The first is TABLE,
+which is a semanticdb table containing tags.  The second argument
+to FUNCTION is TAGS.  TAGS may be a list of tags.  If TAGS is non-nil, then
+FUNCTION should search the TAG list, not through TABLE.
+
 See `semanticdb-find-translate-path' for details on PATH.
 FIND-FILE-MATCH indicates that any time a match is found, the file
 associated with that tag should be loaded into a buffer.
+
+Note: You should leave FIND-FILE-MATCH as nil.  It is far more
+efficient to take the results from any search and use
+`semanticdb-strip-find-results' instead.  This argument is here
+for backward compatibility.
+
 If optional argument BRUTISH is non-nil, then ignore include statements,
 and search all tables in this project tree."
   (let (found match)
