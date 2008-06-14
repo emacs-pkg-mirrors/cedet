@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.206 2008/06/10 00:43:03 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.207 2008/06/14 22:10:59 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -191,7 +191,7 @@ associated with this buffer.
 For language specific hooks, make sure you define this as a local hook.")
 
 (defvar semantic-before-toplevel-cache-flush-hook nil
-  "Hooks run before the toplevel nonterminal cache is flushed.
+  "Hooks run before the toplevel tag cache is flushed.
 For language specific hooks, make sure you define this as a local
 hook.  This hook is called before a corresponding
 `semantic-after-toplevel-cache-change-hook' which is also called
