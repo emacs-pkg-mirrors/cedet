@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.66 2008/06/14 22:10:06 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.67 2008/06/15 14:38:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -409,6 +409,14 @@ Default action as described in `semanticdb-find-translate-path'."
   "Include files that we cannot find associated with this buffer.")
 (make-variable-buffer-local 'semanticdb-find-lost-includes)
 
+(defvar semanticdb-find-scanned-include-tags nil
+  "All include tags scanned, plus action taken on the tag.
+Each entry is an alist:
+  (ACTION . TAG)
+where ACTION is one of 'scanned, 'duplicate, 'lost.
+and TAG is a clone of the include tag that was found.")
+(make-variable-buffer-local 'semanticdb-find-scanned-include-tags)
+
 (defun semanticdb-find-translate-path-includes--internal (path)
   "Internal implementation of `semanticdb-find-translate-path-includes-default'.
 This routine does not depend on the cache, but will always derive
@@ -418,6 +426,7 @@ a new path from the provided PATH."
 	(matchedtables (list semanticdb-current-table))
 	(matchedincludes nil)
 	(lostincludes nil)
+	(scannedincludes nil)
 	(incfname nil)
 	nexttable)
     (cond ((null path)
@@ -458,11 +467,18 @@ a new path from the provided PATH."
 
       ;; If we've seen this include string before, lets skip it.
       (if (member (semantic-tag-name (car includetags)) matchedincludes)
-	  (setq nexttable nil)
+	  (progn
+	    (setq nexttable nil)
+	    (push (cons 'duplicate (semantic-tag-clone (car includetags)))
+		  scannedincludes)
+	    )
 	(setq nexttable (semanticdb-find-table-for-include (car includetags) curtable))
 	(when (not nexttable)
 	  ;; Save the lost include.
-	  (push (car includetags) lostincludes))
+	  (push (car includetags) lostincludes)
+	  (push (cons 'lost (semantic-tag-clone (car includetags)))
+		scannedincludes)
+	  )
 	)
 
       ;; Push the include file, so if we can't find it, we only
@@ -496,16 +512,26 @@ a new path from the provided PATH."
 		    ))
 		  (newincfname (semanticdb-full-filename nexttable))
 		  )
+
+	      (push (cons 'scanned (semantic-tag-clone (car includetags)))
+		    scannedincludes)
+
 	      ;; Setup new tags so we know where they are.
 	      (dolist (it newtags)
 		(semantic--tag-put-property it :filename
 					    newincfname))
 
-	      (setq includetags (nconc includetags newtags))))
+	      (setq includetags (nconc includetags newtags)))
+	  ;; ELSE - not recursive throttle
+	  (push (cons 'scanned-no-recurse
+		      (semantic-tag-clone (car includetags)))
+		scannedincludes)
+	  )
 	)
       (setq includetags (cdr includetags)))
 
     (setq semanticdb-find-lost-includes lostincludes)
+    (setq semanticdb-find-scanned-include-tags (reverse scannedincludes))
 
     ;; Find all the omniscient databases for this major mode, and
     ;; add them if needed
@@ -715,15 +741,75 @@ Examines the variable `semanticdb-find-lost-includes'."
 	(lost semanticdb-find-lost-includes)
 	ab)
 
-    (if (not semanticdb-find-lost-includes)
+    (if (not lost)
 	(message "There are no unknown includes for %s"
 		 (buffer-name))
     
       (setq ab (data-debug-new-buffer "*SEMANTICDB lost-includes ADEBUG*"))
       (data-debug-insert-tag-list lost "*")
       )))
-  
 
+(defun semanticdb-find-adebug-insert-scanned-tag-cons (consdata prefix prebuttontext)
+  "Insert a button representing scanned include CONSDATA.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the overlay button."
+  (let* ((start (point))
+	 (end nil)
+	 (mode (car consdata))
+	 (tag (cdr consdata))
+	 (name (semantic-tag-name tag))
+	 (file (semantic-tag-file-name tag))
+	 (str1 (format "%S %s" mode name))
+	 (str2 (format " : %s" file))
+	 (tip nil))
+    (insert prefix prebuttontext str1)
+    (setq end (point))
+    (insert str2)
+    (put-text-property start end 'face
+		       (cond ((eq mode 'scanned)
+			      'font-lock-function-name-face)
+			     ((eq mode 'duplicate)
+			      'font-lock-comment-face)
+			     ((eq mode 'lost)
+			      'font-lock-variable-name-face)
+			     ((eq mode 'scanned-no-recurse)
+			      'font-lock-type-face)))
+    (put-text-property start end 'ddebug (cdr consdata))
+    (put-text-property start end 'ddebug-indent(length prefix))
+    (put-text-property start end 'ddebug-prefix prefix)
+    (put-text-property start end 'help-echo tip)
+    (put-text-property start end 'ddebug-function
+		       'data-debug-insert-tag-parts-from-point)
+    (insert "\n")
+    )
+  )
+
+;;;###autoload
+(defun semanticdb-find-adebug-scanned-includes ()
+  "Translate the current path, then display the lost includes.
+Examines the variable `semanticdb-find-lost-includes'."
+  (interactive)
+  (require 'data-debug)
+  (let ((p (semanticdb-find-translate-path nil nil))
+	(scanned semanticdb-find-scanned-include-tags)
+	(data-debug-thing-alist
+	 (cons
+	  '((lambda (thing) (and (consp thing)
+				 (symbolp (car thing))
+				 (memq (car thing)
+				       '(scanned scanned-no-recurse
+						 lost duplicate))))
+	    . semanticdb-find-adebug-insert-scanned-tag-cons)
+	  data-debug-thing-alist))
+	ab)
+
+    (if (not scanned)
+	(message "There are no includes scanned %s"
+		 (buffer-name))
+    
+      (setq ab (data-debug-new-buffer "*SEMANTICDB scanned-includes ADEBUG*"))
+      (data-debug-insert-stuff-list scanned "*")
+      )))
 
 ;;; FIND results and edebug
 ;;
