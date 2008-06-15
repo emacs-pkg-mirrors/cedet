@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.16 2008/06/10 00:42:35 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.17 2008/06/15 14:40:16 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -154,14 +154,16 @@ or a string, or a non-positional tag."
 	   (car tt))
 	  (t nil))))
 
-(defun semantic-analyze-tag-type (tag &optional scope)
+(defun semantic-analyze-tag-type (tag &optional scope nometaderef)
   "Return the semantic tag for a type within the type of TAG.
 TAG can be a variable, function or other type of tag.
 The type of tag (such as a class or struct) is a name.
 Lookup this name in database, and return all slots/fields
 within that types field.  Also handles anonymous types.
 Optional SCOPE represents a calculated scope in which the
-types might be found.  This can be nil."
+types might be found.  This can be nil.
+If NOMETADEREF, then do not dereference metatypes.  This is
+used by the analyzer debugger."
   (let ((ttype (semantic-tag-type tag))
 	(name nil)
 	(typetag nil)
@@ -175,7 +177,9 @@ types might be found.  This can be nil."
 	     )
 	;; We have an anonymous type for TAG with children.
 	;; Use this type directly.
-	(semantic-analyze-dereference-metatype-stack ttype scope)
+	(if nometaderef
+	    ttype
+	  (semantic-analyze-dereference-metatype-stack ttype scope))
 
       ;; Not an anonymous type.  Look up the name of this type
       ;; elsewhere, and report back.
@@ -199,7 +203,9 @@ types might be found.  This can be nil."
 	)
 
       ;; We now have a tag associated with the type.
-      (semantic-analyze-dereference-metatype-stack typetag scope))))
+      (if nometaderef
+	  typetag
+	(semantic-analyze-dereference-metatype-stack typetag scope)))))
 
 (defun semantic-analyze-dereference-metatype-stack (type scope)
   "Dereference metatypes repeatedly until we hit a real TYPE.
@@ -232,27 +238,34 @@ SCOPE is the scope object with additional items in which to search for names."
     (let ((ans (:override
                 ;; Nothing fancy, just return type be default.
                 (throw 'default-behavior type))))
-      ;; If ANS is a string, or if ANS is a short tag, we
-      ;; need to do some more work to look it up.
-      (if (stringp ans)
-	  ;; The metatype is just a string... look it up.
-	  (or (and scope (car-safe
-			  ;; @todo - should this be `find the best one'?
-			  (semantic-scope-find ans 'type scope)))
-	      (semanticdb-typecache-find ans))
-	(when (and (semantic-tag-p ans)
-		   (eq (semantic-tag-class ans) 'type))
-	  ;; We have a tag.
-	  (if (semantic-analyze-tag-prototype-p ans)
-	      ;; It is a prototype.. find the real one.
-	      (or (and scope 
-		       (car-safe
-			(semantic-scope-find (semantic-tag-name ans)
-					     'type scope)))
-		  (semanticdb-typecache-find (semantic-tag-name ans)))
-	    ;; We have a tag, and it is not a prototype.
-	    ans))
-	))))
+      (semantic-analyze-dereference-metatype-1 ans scope)
+      )))
+
+(defun semantic-analyze-dereference-metatype-1 (ans scope)
+  "Do extra work after dereferencing a metatype.
+ANS is the answer from the the language specific query.
+SCOPE is the current scope."
+  ;; If ANS is a string, or if ANS is a short tag, we
+  ;; need to do some more work to look it up.
+  (if (stringp ans)
+      ;; The metatype is just a string... look it up.
+      (or (and scope (car-safe
+		      ;; @todo - should this be `find the best one'?
+		      (semantic-scope-find ans 'type scope)))
+	  (semanticdb-typecache-find ans))
+    (when (and (semantic-tag-p ans)
+	       (eq (semantic-tag-class ans) 'type))
+      ;; We have a tag.
+      (if (semantic-analyze-tag-prototype-p ans)
+	  ;; It is a prototype.. find the real one.
+	  (or (and scope
+		   (car-safe
+		    (semantic-scope-find (semantic-tag-name ans)
+					 'type scope)))
+	      (semanticdb-typecache-find (semantic-tag-name ans)))
+	;; We have a tag, and it is not a prototype.
+	ans))
+    ))
 
 (provide 'semantic-analyze-fcn)
 ;;; semantic-analyze-fcn.el ends here
