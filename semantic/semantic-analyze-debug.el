@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-debug.el,v 1.2 2008/04/07 02:09:35 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-debug.el,v 1.3 2008/06/15 02:31:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -173,10 +173,16 @@ path may be incorrect.  ")
 We need to see if we have possible completions against the entry before
 being too vocal about it.
 Argument COMP are possible completions here."
-  (let ((prefixitem (nth idx (oref ctxt prefix)))
-	(dt (nth (1- idx) (oref ctxt prefixtypes)))
-	(desired-type (semantic-analyze-type-constraint ctxt))
-	)
+  (let* ((prefixitem (nth idx (oref ctxt prefix)))
+	 (prevprefix (nth (1- idx) (oref ctxt prefix)))
+	 (dt (nth (1- idx) (oref ctxt prefixtypes)))
+	 (desired-type (semantic-analyze-type-constraint ctxt))
+	 (orig-buffer (current-buffer))
+	 (ots (semantic-analyze-tag-type prevprefix
+					 (oref ctxt scope)
+					 t ; Don't deref
+					 ))
+	 )
     (when (not dt) (error "Missing Innertype debugger is confused"))
     (with-output-to-temp-buffer (help-buffer)
       (with-current-buffer standard-output
@@ -207,20 +213,60 @@ with the command:
 	 (t
 	  (princ "\nSemantic has found the datatype ")
 	  (semantic-analyzer-debug-insert-tag dt)
-	  (princ "\nand its list of members.")
+	  (if (or (not (eq ots dt))
+		  (not (save-excursion
+			 (set-buffer orig-buffer)
+			 (semantic-analyze-dereference-metatype
+			  ots (oref ctxt scope)))))
+	      (let ((lasttype ots)
+		    (nexttype (save-excursion
+				(set-buffer orig-buffer)
+				(semantic-analyze-dereference-metatype
+				 ots (oref ctxt scope)))))
+		(when (eq nexttype lasttype)
+		  (error "Debugger errorr trying to help with metatypes"))
+		
+		(if (eq ots dt)
+		    (princ "\nwhich is a metatype")
+		  (princ "\nwhich is derived from metatype ")
+		  (semantic-analyzer-debug-insert-tag lasttype))
+		(princ ".\nThe Metatype stack is:\n")
+		(princ "   ")
+		(semantic-analyzer-debug-insert-tag lasttype)
+		(princ "\n")
+		(while (and nexttype
+			    (not (eq nexttype lasttype)))
+		  (princ "   ")
+		  (semantic-analyzer-debug-insert-tag nexttype)
+		  (princ "\n")
+		  (setq lasttype nexttype
+			nexttype
+			(save-excursion
+			  (set-buffer orig-buffer)
+			  (semantic-analyze-dereference-metatype
+			   nexttype (oref ctxt scope))))
+		  )
+		(when (not nexttype)
+		  (princ "   nil\n\n")
+		  (princ
+		   "Last metatype is nil.  This means that semantic cannot derive
+the list of members because the type referred to cannot be found.\n")
+		  )
+		)
+	    (princ "\nand its list of members.")
 
-	  (if (not comp)
-	      (progn
-		(princ "  Semantic does not know what
+	    (if (not comp)
+		(progn
+		  (princ "  Semantic does not know what
 possible completions there are for \"")
-		(princ prefixitem)
-		(princ "\".  Examine the known
+		  (princ prefixitem)
+		  (princ "\".  Examine the known
 members below for more."))
-	    (princ "  Semantic knows of some
+	      (princ "  Semantic knows of some
 possible completions for \"")
-	    (princ prefixitem)
-	    (princ "\".")))
-
+	      (princ prefixitem)
+	      (princ "\".")))
+	  )
 	 ;; end cond
 	 )
 
@@ -458,8 +504,9 @@ PARENT is a possible parent (by nesting) tag."
 			    (goto-char pnt)
 			    (pulse-line-hook-function)))
 		       )
-			      
-      (princ str))
+      (princ "\"")
+      (princ str)
+      (princ "\""))
     ))
 
 (defvar semantic-analyzer-debug-orig nil
