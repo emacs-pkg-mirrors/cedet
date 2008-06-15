@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.17 2008/05/17 19:55:33 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.18 2008/06/15 14:36:06 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -79,6 +79,7 @@ PARENT specifires any parent tag."
 
   )
 
+;;;###autoload
 (defun data-debug-insert-tag-parts-from-point (point)
   "Call `data-debug-insert-tag-parts' based on text properties at POINT."
   (let ((tag (get-text-property point 'ddebug))
