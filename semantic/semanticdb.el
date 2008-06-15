@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.113 2008/06/10 15:29:25 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.114 2008/06/15 12:21:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1029,11 +1029,18 @@ DONTLOAD does not affect the creation of new database objects."
 	tab)
        ((not dontload) ;; We must load the file.
 	(save-excursion
-	  (let (;; This is a brave statement.  Don't waste time loading in
-		;; lots of modes.  Especially decoration mode can waste a lot
-		;; of time for a buffer we intend to kill.
-		(semantic-init-hooks nil)
-		(buffer-to-kill (find-file-noselect file t)))
+	  (let* ( ;; This is a brave statement.  Don't waste time loading in
+		 ;; lots of modes.  Especially decoration mode can waste a lot
+		 ;; of time for a buffer we intend to kill.
+		 (semantic-init-hooks nil)
+		 ;; This disables the part of EDE that asks questions
+		 (ede-auto-add-method 'never)
+		 ;; Ask font-lock to not colorize these buffers, nor to
+		 ;; whine about it either.
+		 (font-lock-maximum-size 0)
+		 (font-lock-verbose nil)
+		 ;; Remember the buffer to kill
+		 (buffer-to-kill (find-file-noselect file t)))
 	    (set-buffer buffer-to-kill)
 	    ;; Find file should automatically do this for us.
 	    ;; Sometimes the DB table doesn't contains tags and needs
