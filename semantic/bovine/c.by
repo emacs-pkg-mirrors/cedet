@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.43 2008/06/01 02:58:27 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.44 2008/06/17 03:59:23 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -303,7 +303,7 @@ class-parents
   : one-class-parent COMA class-parents
     ( ,(cons ,$1 $3 ) )
   | one-class-parent
-    ( ,$1 )
+    ( $1 )
   ;
 
 opt-class-declmods
