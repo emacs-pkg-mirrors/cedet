@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.44 2008/06/17 03:59:23 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.45 2008/06/17 16:23:37 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -271,6 +271,7 @@ opt-symbol
   | ;;EMPTY
   ;
 
+;; @todo - support 'friend' construct.
 classsubparts
   : LBRACE
     ( nil )
@@ -1128,5 +1129,11 @@ expression
   | expr-start expression
     ( (identity start) (identity end) )
   ;
+
+;; From Michael Reiher: Subject: completion of members for struct-pointers
+;;   ClassA xyz = abc().def();
+;;   ClassA xyz = abc().def;
+;;   ClassA xyz = abc.def;
+
 
 ;;; c.by ends here
