@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.18 2008/06/15 14:36:06 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.19 2008/06/17 01:21:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -299,6 +299,95 @@ Optional argument CTXT is the context to show."
       (setq ab (data-debug-new-buffer "*expression ADEBUG*"))
       (data-debug-insert-thing v "?" "")
       )))
+
+;;;###autoload
+(defun semanticdb-debug-file-tag-check (startfile)
+  "Report debug info for checking STARTFILE for up-to-date tags."
+  (interactive "FFile to Check (default = current-buffer): ")
+  (let* ((file (file-truename startfile))
+	 (default-directory (file-name-directory file))
+	 (db (or
+	      ;; This line will pick up system databases.
+	      (semanticdb-directory-loaded-p default-directory)
+	      ;; this line will make a new one if needed.
+	      (semanticdb-get-database default-directory)))
+	 (tab (semanticdb-file-table db file))
+	 )
+    (with-output-to-temp-buffer "*DEBUG STUFF*"
+      (princ "Starting file is: ")
+      (princ startfile)
+      (princ "\nTrueName is: ")
+      (princ file)
+      (when (not (file-exists-p file))
+	(princ "\nFile does not exist!"))
+      (princ "\nDirectory Part is: ")
+      (princ default-directory)
+      (princ "\nFound Database is: ")
+      (princ (object-print db))
+      (princ "\nFound Table is: ")
+      (if tab (princ (object-print tab)) (princ "nil"))
+      (princ "\n\nAction Summary: ")
+      (cond
+       ((and tab
+	     ;; Is this in a buffer?
+	     (find-buffer-visiting (semanticdb-full-filename tab))
+	     )
+	(princ "Found Buffer: ")
+	(prin1 (find-buffer-visiting (semanticdb-full-filename tab)))
+	)
+       ((and tab
+	     ;; Is table fully loaded, or just a proxy?
+	     (number-or-marker-p (oref tab pointmax))
+	     ;; Is this table up to date with the file?
+	     (not (semanticdb-needs-refresh-p tab)))
+	(princ "Found table, no refresh needed.\n   Pointmax is: ")
+	(prin1 (oref tab pointmax))
+	)
+       (t
+	(princ "Found table that needs refresh.")
+	(if (not tab)
+	    (princ "\n   No Saved Point.")
+	  (princ "\n  Saved pointmax: ")
+	  (prin1 (oref tab pointmax))
+	  (princ "  Needs Refresh: ")
+	  (prin1 (semanticdb-needs-refresh-p tab))
+	  )
+	))
+      ;; Buffer isn't loaded.  The only clue we have is if the file
+      ;; is somehow different from our mark in the semanticdb table.
+      (let* ((stats (file-attributes file 'integer))
+	     (actualsize (nth 7 stats))
+	     (actualmod (nth 5 stats))
+	     )
+
+	(if (or  (not tab)
+		 (not (slot-boundp tab 'tags))
+		 (not (oref tab tags)))
+	    (princ "\n   No tags in table.")
+	  (princ "\n   Number of known tags: ")
+	  (prin1 (length (oref tab tags))))
+
+	(princ "\n   File Size is: ")
+	(prin1 actualsize)
+	(princ "\n   File Mod Time is: ")
+	(princ (format-time-string "%Y-%m-%d %T" actualmod))
+	(when tab
+	  (princ "\n   Saved file size is: ")
+	  (prin1 (oref tab fsize))
+	  (princ "\n   Saved Mod time is: ")
+	  (princ (format-time-string "%Y-%m-%d %T"
+				     (oref tab lastmodtime)))
+	  )
+	)
+      )
+    ;; Force load
+    (semanticdb-file-table-object file)
+    nil
+    ))
+
+;; (semanticdb-debug-file-tag-check "/usr/lib/gcc/i486-linux-gnu/4.2/include/stddef.h")
+;; (semanticdb-debug-file-tag-check "/usr/include/stdlib.h")
+
   
 
 (provide 'semantic-adebug)
