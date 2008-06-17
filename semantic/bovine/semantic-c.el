@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.85 2008/06/01 02:59:35 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.86 2008/06/17 04:00:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -913,7 +913,9 @@ handled.  A class is abstract iff it's destructor is virtual."
 If TYPE is a typedef, get TYPE's type by name or tag, and return."
   (if (and (eq (semantic-tag-class type) 'type)
 	   (string= (semantic-tag-type type) "typedef"))
-      (semantic-tag-get-attribute type :typedef)
+      (let ((dt (semantic-tag-get-attribute type :typedef)))
+	(cond ((stringp dt) dt)
+	      ((consp dt) (car dt))))
     type))
 
 (define-mode-local-override semantic-analyze-type-constants c-mode (type)
