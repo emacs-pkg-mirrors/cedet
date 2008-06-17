@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.17 2008/06/15 14:40:16 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.18 2008/06/17 03:58:58 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -167,6 +167,7 @@ used by the analyzer debugger."
   (let ((ttype (semantic-tag-type tag))
 	(name nil)
 	(typetag nil)
+	(typecache-scope nil)
 	)
 
     ;; Is it an anonymous type?
@@ -191,7 +192,8 @@ used by the analyzer debugger."
 	    (setq typetag (and scope (semantic-scope-find name 'type scope)))
 	    ;; If no typetag, try the typecache
 	    (when (not typetag)
-	      (setq typetag (semanticdb-typecache-find name))))
+	      (setq typetag (semanticdb-typecache-find name nil nil
+						       'typecache-scope))))
 
 	;; No name to look stuff up with.
 	(error "Semantic tag %S has no type information"
@@ -202,10 +204,16 @@ used by the analyzer debugger."
 	(setq typetag (semantic-analyze-select-best-tag typetag 'type))
 	)
 
-      ;; We now have a tag associated with the type.
+      ;; We now have a tag associated with the type.  We need to deref it.
+      ;;
+      ;; If we were asked not to (ie - debugger) push the typecache anyway.
+      (semantic-scope-set-typecache scope typecache-scope)
       (if nometaderef
 	  typetag
-	(semantic-analyze-dereference-metatype-stack typetag scope)))))
+	(unwind-protect
+	    (semantic-analyze-dereference-metatype-stack typetag scope)
+	  (semantic-scope-set-typecache scope nil)
+	  )))))
 
 (defun semantic-analyze-dereference-metatype-stack (type scope)
   "Dereference metatypes repeatedly until we hit a real TYPE.
@@ -241,6 +249,8 @@ SCOPE is the scope object with additional items in which to search for names."
       (semantic-analyze-dereference-metatype-1 ans scope)
       )))
 
+;; @ TODO - the typecache can also return a stack of scope names.
+
 (defun semantic-analyze-dereference-metatype-1 (ans scope)
   "Do extra work after dereferencing a metatype.
 ANS is the answer from the the language specific query.
@@ -252,7 +262,14 @@ SCOPE is the current scope."
       (or (and scope (car-safe
 		      ;; @todo - should this be `find the best one'?
 		      (semantic-scope-find ans 'type scope)))
-	  (semanticdb-typecache-find ans))
+	  (let ((tcs nil))
+	    (prog1
+		(semanticdb-typecache-find ans nil nil 'tcs)
+	      ;; While going through the metatype, if we have
+	      ;; a scope, push our new cache in.
+	      (when scope
+		(semantic-scope-set-typecache scope tcs)))
+	    ))
     (when (and (semantic-tag-p ans)
 	       (eq (semantic-tag-class ans) 'type))
       ;; We have a tag.
@@ -262,7 +279,14 @@ SCOPE is the current scope."
 		   (car-safe
 		    (semantic-scope-find (semantic-tag-name ans)
 					 'type scope)))
-	      (semanticdb-typecache-find (semantic-tag-name ans)))
+	      (let ((tcs nil))
+		(prog1
+		    (semanticdb-typecache-find (semantic-tag-name ans)
+					       nil nil 'tcs)
+		  ;; While going through the metatype, if we have
+		  ;; a scope, push our new cache in.
+		  (when scope
+		    (semantic-scope-set-typecache scope tcs)))))
 	;; We have a tag, and it is not a prototype.
 	ans))
     ))
