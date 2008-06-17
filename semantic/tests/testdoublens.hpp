@@ -19,5 +19,12 @@ namespace Name1 {
       Mumble* pMumble;
     };
 
+    typedef Foo stage1_Foo;
+
   } // namespace Name2
+
+  typedef Name2::stage1_Foo stage2_Foo;
+
 } // namespace Name1
+
+typedef Name1::stage2_Foo stage3_Foo;
