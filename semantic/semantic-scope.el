@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.14 2008/06/01 02:57:07 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.15 2008/06/17 03:55:13 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -80,6 +80,9 @@ PROTECTION is a symbol representing the level of inheritance, such as 'private, 
    (localvar :initform nil
 	     :documentation
 	     "The local variables, function arguments, etc.")
+   (typescope :initform nil
+	      :documentation
+	      "Slot to save intermediate scope while metatypes are dereferenced.")
    )
   "Cache used for storage of the current scope by the Semantic Analyzer.
 Saves scoping information between runs of the analyzer.")
@@ -97,6 +100,7 @@ Saves scoping information between runs of the analyzer.")
   (oset obj scope nil)
   (oset obj fullscope nil)
   (oset obj localvar nil)
+  (oset obj typescope nil)
   )
 
 (defmethod semanticdb-synchronize ((cache semantic-scope-cache)
@@ -122,6 +126,21 @@ Saves scoping information between runs of the analyzer.")
     (let ((co (semanticdb-cache-get semanticdb-current-table
 				    semantic-scope-cache)))
       (semantic-reset co))))
+
+(defmethod semantic-scope-set-typecache ((cache semantic-scope-cache)
+					 types-in-scope)
+  "Set the :typescope property on CACHE to some types.
+TYPES-IN-SCOPE is a list of type tags whos members are
+currently in scope.  For each type in TYPES-IN-SCOPE,
+add those members to the types list.
+If nil, then the typescope is reset."
+  (let ((newts nil)) ;; New Type Scope
+    (dolist (onetype types-in-scope)
+      (setq newts (append (semantic-tag-type-members onetype)
+			  newts))
+      )
+    (oset cache typescope newts)))
+
 
 ;;; SCOPE UTILITIES
 ;;
@@ -580,7 +599,8 @@ The class returned from the scope calculation is variable
   "Find the tag with NAME, and optinal CLASS in the current SCOPE-IN.
 Searches various elements of the scope for NAME.  Return ALL the
 hits in order, with the first tag being in the closest scope."
-  (let ((scope (or scope-in (semantic-calculate-scope))))
+  (let ((scope (or scope-in (semantic-calculate-scope)))
+	(ans nil))
     ;; Is the passed in scope really a scope?  if so, look through
     ;; the options in that scope.
     (if (semantic-scope-cache-p scope)
@@ -588,15 +608,40 @@ hits in order, with the first tag being in the closest scope."
 		;; This should be first, but bugs in the
 		;; C parser will turn function calls into
 		;; assumed int return function prototypes.  Yuck!
-		(semantic-find-tags-by-name name  (oref scope localvar)))
+		(semantic-find-tags-by-name name (oref scope localvar)))
 	       (sc
 		(semantic-find-tags-by-name name (oref scope fullscope)))
+	       (typescoperaw  (oref scope typescope))
+	       (tsc
+		(semantic-find-tags-by-name name typescoperaw))
 	       )
-	  (if class
-	      ;; Scan out things not of the right class.
-	      (semantic-find-tags-by-class class (append lv sc))
-	    (append lv sc))
-	  )
+	  (setq ans
+		(if class
+		    ;; Scan out things not of the right class.
+		    (semantic-find-tags-by-class class (append lv sc tsc))
+		  (append lv sc tsc))
+		)
+
+	  (when (and (not ans) (oref scope typescope))
+	    (let ((namesplit (semantic-analyze-split-name name)))
+	      (when (consp namesplit)
+		;; It may be we need to hack our way through type typescope.
+		(while namesplit
+		  (setq ans (semantic-find-tags-by-name (car namesplit)
+							typescoperaw))
+		  (if (not ans)
+		      (setq typescoperaw nil)
+		    (when (cdr namesplit)
+		      (setq typescoperaw (semantic-tag-type-members
+					  (car ans)))))
+		  
+		  (setq namesplit (cdr namesplit)))
+		;; Once done, store the current typecache lookup
+		(oset scope typescope
+		      (append typescoperaw (oref scope typescope)))
+		)))
+	  ;; Return it.
+	  ans)
       ;; Not a real scope.  Our scope calculation analyze parts of
       ;; what it finds, and needs to pass lists through to do it's work.
       ;; Tread that list as a singly entry.
