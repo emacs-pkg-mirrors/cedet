@@ -33,6 +33,15 @@ namespace Name1 {
   } // namespace Name2
 } // namespace Name1
 
+// Test multiple levels of metatype expansion
+int test_fcn () {
+  stage3_Foo MyFoo;
+
+  MyFoo.// -3-
+    // #3# ( "Mumble" "get" )
+    ;
+}
+
 
 // Second test from Ravikiran Rajagopal
 
@@ -53,8 +62,8 @@ namespace A {
 
   void bar::xx()
   {
-    myFoo.// -3- <--- cursor is here after the dot
-      // #3# ( "aa" "bb" )
+    myFoo.// -4- <--- cursor is here after the dot
+      // #4# ( "aa" "bb" )
       ;
   }
 }
