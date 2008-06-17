@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.114 2008/06/15 12:21:43 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.115 2008/06/17 16:30:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -209,6 +209,8 @@ outside of Semantic's control.")
 		:documentation "Last modification time of the file referenced.
 Checked when deciding if a loaded table needs updating from changes outside of
 Semantic's control.")
+   ;; @todo - need to add `last parsed time', so we can also have
+   ;; refresh checks if spp tables or the parser gets rebuilt.
    (unmatched-syntax :initarg :unmatched-syntax
 		     :documentation
 		     "List of vectors specifying unmatched syntax.")
@@ -498,8 +500,7 @@ The file associated with OBJ does not need to be in a buffer."
 	     )
 
 	(or (not (slot-boundp obj 'tags))
-	    (not (oref obj tags))
-	    ;; @TODO - use fsize instead
+	    ;; (not (oref obj tags)) -->  not needed anymore?
 	    (/= (or (oref obj fsize) 0) actualsize)
 	    (not (equal (oref obj lastmodtime) actualmod))
 	    )
