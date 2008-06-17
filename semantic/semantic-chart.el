@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.11 2008/02/05 15:13:01 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.12 2008/06/17 03:55:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,9 +61,9 @@ TAGTABLE is passedto `semantic-something-to-tag-table'."
 ;;;###autoload
 (defun semantic-chart-database-size (&optional tagtable)
   "Create a bar chart representing the size of each file in semanticdb.
-Each bar represents how many toplevel nonterminals in TAGTABLE
+Each bar represents how many toplevel tags in TAGTABLE
 exist in each database entry.
-TAGTABLE is passedto `semantic-something-to-tag-table'."
+TAGTABLE is passed to `semantic-something-to-tag-table'."
   (interactive)
   (if (or (not (fboundp 'semanticdb-minor-mode-p))
 	  (not (semanticdb-minor-mode-p)))
@@ -106,11 +106,11 @@ TAGTABLE is passedto `semantic-something-to-tag-table'."
 ;;;###autoload
 (defun semantic-chart-tag-complexity
   (&optional class tagtable)
-  "Create a bar chart representing the complexity of some tokens.
-Complexity is calculated for tokens with a tag of CLASS.  Each bar
-represents the complexity of some nonterminal in TAGTABLE.
-Only the most complex items are charted.
-TAGTABLE is passedto `semantic-something-to-tag-table'."
+  "Create a bar chart representing the complexity of some tags.
+Complexity is calculated for tags of CLASS.  Each bar represents
+the complexity of some tag in TAGTABLE.  Only the most complex
+items are charted.  TAGTABLE is passedto
+`semantic-something-to-tag-table'."
   (interactive)
   (let* ((sym (if (not class) 'function))
 	 (stream
