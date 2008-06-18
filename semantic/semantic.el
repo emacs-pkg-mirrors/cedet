@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.207 2008/06/14 22:10:59 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.208 2008/06/18 23:32:21 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -62,8 +62,12 @@ introduced."
 			  (when beta (concat "beta" beta)))))
 
 (defgroup semantic nil
-  "Parser Generator/Parser."
+  "Parser Generator and parser framework."
   :group 'lisp)
+
+(defgroup semantic-faces nil
+  "Faces used for Semantic enabled tools."
+  :group 'semantic)
 
 (require 'semantic-fw)
 
