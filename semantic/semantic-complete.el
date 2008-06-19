@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.53 2008/05/17 11:40:51 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.54 2008/06/19 02:23:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -580,7 +580,7 @@ if INLINE, then completion is happening inline in a buffer."
      (:underline "brown")))
   "*Face used to show the region being completed inline.
 The face is used in `semantic-complete-inline-tag-engine'."
-  :group 'semantic)
+  :group 'semantic-faces)
 
 (defun semantic-complete-inline-text ()
   "Return the text that is being completed inline.
