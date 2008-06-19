@@ -4,7 +4,7 @@
 # DO NOT MODIFY THIS FILE OR YOUR CHANGES MAY BE LOST.
 # EDE is the Emacs Development Environment.
 # http://cedet.sourceforge.net/ede.shtml
-# 
+#
 
 top=
 ede_FILES=Project.ede Makefile
@@ -21,7 +21,7 @@ eieio_info_TEXINFOS=eieio.texi
 MAKEINFO=makeinfo
 test_LISP=eieio-tests.el eieio-test-methodinvoke.el
 Misc_MISC=INSTALL ChangeLog NEWS
-VERSION=1.0.1
+VERSION=1.1
 DISTDIR=$(top)eieio-$(VERSION)
 
 
