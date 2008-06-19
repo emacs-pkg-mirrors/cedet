@@ -5,10 +5,12 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.160 2008/05/10 16:39:25 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.161 2008/06/19 02:04:10 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "1.0.1"
+
+(defvar eieio-version "1.1"
   "Current version of EIEIO.")
+
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1021,11 +1023,29 @@ reference to all implementations of METHOD."
 
 (defmacro defmethod (method &rest args)
   "Create a new METHOD through `defgeneric' with ARGS.
-ARGS lists any keys (such as :BEFORE, :PRIMARY, :AFTER, or :STATIC),
-the arglst, and doc string, and eventually the body, such as:
 
- (defmethod mymethod [:BEFORE | :PRIMARY | :AFTER | :STATIC] (args)
-    doc-string body)"
+The second optional argument KEY is a specifier that
+modifies how the method is called, including:
+   :BEFORE - Method will be called before the :PRIMARY
+   :PRIMARY - The default if not specified.
+   :AFTER - Method will be called after the :PRIMARY
+   :STATIC - First arg could be an object or class
+The next argument is the ARGLIST.  The ARGLIST specifies the arguments
+to the method as with `defun'.  The first argument can have a type
+specifier, such as:
+  ((VARNAME CLASS) ARG2 ...)
+where VARNAME is the name of the local variable for the method being
+created.  The CLASS is a class symbol for a class made with `defclass'.
+A DOCSTRING comes after the ARGLIST, and is optional.
+All the rest of the args are the BODY of the method.  A method will
+return the value of the last form in the BODY.
+
+Summary:
+
+ (defmethod mymethod [:BEFORE | :PRIMARY | :AFTER | :STATIC]
+                     ((typearg class-name) arg2 &optional opt &rest rest)
+    \"doc-string\"
+     body)"
   `(eieio-defmethod (quote ,method) (quote ,args)))
 
 (defun eieio-defmethod (method args)
@@ -1357,16 +1377,26 @@ If EXTRA, include that in the string returned to represent the symbol."
 (defmacro class-parents-fast (class) "Return parent classes to CLASS with no check."
   `(aref (class-v ,class) class-parent))
 
-(defun class-parents (class) "Return parent classes to CLASS.  (overload of variable)."
+(defun class-parents (class)
+  "Return parent classes to CLASS.  (overload of variable).
+
+The CLOS function `class-direct-superclasses' is aliased to this function."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (class-parents-fast class))
 
 (defmacro class-children-fast (class) "Return child classes to CLASS with no check."
   `(aref (class-v ,class) class-children))
 
-(defun class-children (class) "Return child classses to CLASS."
+(defun class-children (class)
+"Return child classses to CLASS.
+
+The CLOS function `class-direct-subclasses' is aliased to this function."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (class-children-fast class))
+
+;; Official CLOS functions.
+(defalias 'class-direct-superclasses 'class-parents)
+(defalias 'class-direct-subclasses 'class-children)
 
 (defmacro class-parent-fast (class) "Return first parent class to CLASS with no check."
   `(car (class-parents-fast ,class)))
@@ -1715,7 +1745,7 @@ This should only be called from a generic function."
 	      keys (cdr keys)))
       (if (not found)
 	  (if (object-p (car args))
-	      (setq rval (no-applicable-method (car args) method)
+	      (setq rval (apply 'no-applicable-method (car args) method args)
 		    rvalever t)
 	    (signal
 	     'no-method-definition
@@ -1771,7 +1801,7 @@ are the arguments passed in at the top level."
 	(returnval nil)
 	)
     (if (or (not next) (not (car next)))
-	(no-next-method (car newargs))
+	(apply 'no-next-method (car newargs) (cdr newargs))
       (let* ((eieio-generic-call-next-method-list
 	      (cdr eieio-generic-call-next-method-list))
 	     (scoped-class (cdr next))
@@ -2101,14 +2131,18 @@ class of OBJECT, and SLOT-NAME is the offending slot.  This function
 throws the signal `unbound-slot'.  You can overload this function and
 return the value to use in place of the unbound value.
 Argument FN is the function signaling this error.
-Use `slot-boundp' to determine if a slot is bound or not."
+Use `slot-boundp' to determine if a slot is bound or not.
+
+In CLOS, the argument list is (CLASS OBJECT SLOT-NAME), but
+EIEIO can only dispatch on the first argument, so the first two are swapped."
   (signal 'unbound-slot (list (class-name class) (object-name object)
 			      slot-name fn)))
 
 (defmethod no-applicable-method ((object eieio-default-superclass)
-				 method)
+				 method &rest args)
   "Called if there are no implementations for OBJECT in METHOD.
-OBJECT is the object which has no method implementation."
+OBJECT is the object which has no method implementation.
+ARGS are the arguments that were passed to METHOD."
   (signal 'no-method-definition (list method (object-name object)))
   )
 
@@ -2117,7 +2151,7 @@ OBJECT is the object which has no method implementation."
   "Called from `call-next-method' when no additional methods are available.
 OBJECT is othe object being called on `call-next-method'.
 ARGS are the  arguments it is called by.
-This method throws `no-next-method' by default.  Override this
+This method signals `no-next-method' by default.  Override this
 method to not throw an error, and it's return value becomes the
 return value of `call-next-method'."
   (signal 'no-next-method (list (object-name object) args))
