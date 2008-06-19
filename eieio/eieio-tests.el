@@ -1,10 +1,10 @@
 ;;; eieio-tests.el -- eieio tests routines
 
 ;;;
-;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.41 2008/01/09 14:01:39 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.42 2008/06/19 02:05:48 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -213,7 +213,7 @@ Argument A is object of type symbol `class-a'."
   (call-next-method)
   )
 
-(defmethod no-next-method ((a class-a))
+(defmethod no-next-method ((a class-a) &rest args)
   "Override signal throwing for variable `class-a'.
 Argument A is the object of class variable `class-a'."
   'moose)
@@ -223,7 +223,7 @@ Argument A is the object of class variable `class-a'."
   (error "no-next-method return value failure."))
 
 ;; Non-existing methods.
-(defmethod no-applicable-method ((b class-b) method)
+(defmethod no-applicable-method ((b class-b) method &rest args)
   "No need.
 Argument B is for booger.
 METHOD is the method that was attempting to be called."
