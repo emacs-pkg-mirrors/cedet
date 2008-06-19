@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-srt.el,v 1.3 2008/01/30 03:43:05 zappo Exp $
+;; X-RCS: $Id: srecode-srt.el,v 1.4 2008/06/19 02:21:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -50,6 +50,22 @@ DEFAULT is the default if RET is hit."
 		       (or hist 'srecode-read-variable-name-history)
 		       default))
     ))
+
+(defvar srecode-read-major-mode-history nil
+  "History for `srecode-read-variable-name'.")
+
+;;;###autoload
+(defun srecode-read-major-mode-name (prompt &optional initial hist default)
+  "Read in the name of a desired `major-mode'.
+PROMPT is the prompt to use.
+INITIAL is the initial string.
+HIST is the history value, otherwise `srecode-read-variable-name-history'
+     is used.
+DEFAULT is the default if RET is hit."
+  (completing-read prompt obarray
+		   (lambda (s) (string-match "-mode$" (symbol-name s)))
+		   nil initial (or hist 'srecode-read-major-mode-history))
+  )
 
 ;;;###autoload
 (defun srecode-semantic-handle-:srt (dict)
