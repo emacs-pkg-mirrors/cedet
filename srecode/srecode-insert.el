@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.19 2008/02/24 01:42:48 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.20 2008/06/19 02:21:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -626,6 +626,7 @@ this template instance."
 	  (oset sti :includedtemplate tmpl)))
 
     (if (not (oref sti includedtemplate))
+	;; @todo - Call into a debugger to help find the template in question.
 	(error "No template \"%s\" found for include macro `%s'"
 	       templatenamepart (oref sti :object-name)))
     ))
