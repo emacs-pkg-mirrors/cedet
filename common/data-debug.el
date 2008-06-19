@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.6 2008/05/31 01:40:29 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.7 2008/06/19 01:37:49 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -551,6 +551,7 @@ If PARENT is non-nil, it is somehow related as a parent to thing."
   (set-syntax-table data-debug-mode-syntax-table)
   (use-local-map data-debug-map)
   (run-hooks 'data-debug-hook)
+  (font-lock-mode -1)
   )
 
 ;;;###autoload
