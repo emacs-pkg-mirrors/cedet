@@ -7,7 +7,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.26 2008/05/04 12:50:41 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.27 2008/06/19 02:06:55 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -93,7 +93,7 @@
     (cedet         ,cedet-version "common"  "common" 	   )
     (cogre         "0.6"           nil      "cogre"  	   )
     (ede           "1.0pre5"       nil      "ede"    	   )    
-    (eieio         "1.0.1"         nil      "eieio"        )
+    (eieio         "1.1"           nil      "eieio"        )
     (semantic      "2.0pre5"       nil      "semantic/doc" )
     (speedbar      "1.0.2"         nil      "speedbar"     )
     (srecode       "0.1"           nil      "srecode"      ) 
