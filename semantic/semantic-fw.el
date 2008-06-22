@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.59 2008/05/10 16:50:57 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.60 2008/06/22 14:23:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -353,7 +353,8 @@ If FORMS completes, then the return value is the same as `progn'."
 FROM is an indication of where this function is called from as a value
 to pass to `throw'.  It is recommended to use the name of the function
 calling this one."
-  `(when (and semantic-current-input-throw-symbol (input-pending-p))
+  `(when (and semantic-current-input-throw-symbol
+              (or (input-pending-p) (accept-process-output)))
      (throw semantic-current-input-throw-symbol ,from)))
 
 (defun semantic-test-throw-on-input ()
