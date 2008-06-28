@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.12 2008/06/08 00:44:32 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.13 2008/06/28 14:36:59 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -290,7 +290,7 @@ Argument EVENT is the mouse clicked event."
       (princ (semantic-dependency-tag-file tag))
       (princ "\n\n")
       (princ "Semantic knows where this include file is, and has parsed
-it's contents.
+its contents.
 
 ")
       (let ((inc (semantic-find-tags-by-class 'include table))
