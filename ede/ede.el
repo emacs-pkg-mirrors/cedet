@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.100 2008/06/08 00:46:14 zappo Exp $
+;; RCS: $Id: ede.el,v 1.101 2008/06/28 15:10:17 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1541,7 +1541,7 @@ Optional argument SUBPROJ indicates a subproject to start from
 instead of the current project."
   (let* ((cp (or subproj (ede-current-project)))
 	 )
-    (or (ede-project-root cp)
+    (or (and cp (ede-project-root cp))
 	(progn
 	  (while (ede-parent-project cp)
 	    (setq cp (ede-parent-project cp)))
