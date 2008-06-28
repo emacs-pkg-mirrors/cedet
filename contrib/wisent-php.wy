@@ -1,11 +1,10 @@
-;;; wisent-php-tags.wy -- Semantic LALR grammar for Php
+;;; wisent-php.wy -- Semantic LALR grammar for Php
 ;;
-;; Copyright (C) 2008 FSF
+;; Copyright (C) 2008 Free Software Foundation
 ;;
 ;; Author: Original code for Java by David Ponce <david@dponce.com>
-;; Created: 25 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-php.wy,v 1.1 2008/06/26 01:35:10 zappo Exp $
+;; X-RCS: $Id: wisent-php.wy,v 1.2 2008/06/28 14:21:41 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -24,7 +23,7 @@
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
-;;%package wisent-php-tags-wy
+;;%package wisent-php-wy
 
 %languagemode  php-mode
 
@@ -829,7 +828,7 @@ FLOATING_POINT_LITERAL:
       t)))
 
 ;; Define the lexer for this grammar
-(define-lex wisent-php-tags-lexer
+(define-lex wisent-php-lexer
   "Lexical analyzer that handles php buffers.
 It ignores whitespaces, newlines and comments."
   semantic-lex-ignore-whitespace
@@ -849,4 +848,4 @@ It ignores whitespaces, newlines and comments."
   ;;;;
   semantic-lex-default-action)
 
-;;; wisent-php-tags.wy ends here
+;;; wisent-php.wy ends here
