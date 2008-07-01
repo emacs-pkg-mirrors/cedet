@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.18 2008/06/17 03:58:58 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.19 2008/07/01 02:52:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -192,8 +192,7 @@ used by the analyzer debugger."
 	    (setq typetag (and scope (semantic-scope-find name 'type scope)))
 	    ;; If no typetag, try the typecache
 	    (when (not typetag)
-	      (setq typetag (semanticdb-typecache-find name nil nil
-						       'typecache-scope))))
+	      (setq typetag (semanticdb-typecache-find name))))
 
 	;; No name to look stuff up with.
 	(error "Semantic tag %S has no type information"
@@ -207,11 +206,14 @@ used by the analyzer debugger."
       ;; We now have a tag associated with the type.  We need to deref it.
       ;;
       ;; If we were asked not to (ie - debugger) push the typecache anyway.
-      (semantic-scope-set-typecache scope typecache-scope)
       (if nometaderef
 	  typetag
 	(unwind-protect
-	    (semantic-analyze-dereference-metatype-stack typetag scope)
+	    (progn
+	      (semantic-scope-set-typecache
+	       scope (semantic-scope-tag-get-scope typetag))
+	      (semantic-analyze-dereference-metatype-stack typetag scope)
+	      )
 	  (semantic-scope-set-typecache scope nil)
 	  )))))
 
@@ -262,13 +264,16 @@ SCOPE is the current scope."
       (or (and scope (car-safe
 		      ;; @todo - should this be `find the best one'?
 		      (semantic-scope-find ans 'type scope)))
-	  (let ((tcs nil))
+	  (let ((tcsans nil))
 	    (prog1
-		(semanticdb-typecache-find ans nil nil 'tcs)
+		(setq tcsans
+		      (semanticdb-typecache-find ans))
 	      ;; While going through the metatype, if we have
 	      ;; a scope, push our new cache in.
 	      (when scope
-		(semantic-scope-set-typecache scope tcs)))
+		(semantic-scope-set-typecache
+		 scope (semantic-scope-tag-get-scope tcsans))
+		))
 	    ))
     (when (and (semantic-tag-p ans)
 	       (eq (semantic-tag-class ans) 'type))
@@ -279,14 +284,16 @@ SCOPE is the current scope."
 		   (car-safe
 		    (semantic-scope-find (semantic-tag-name ans)
 					 'type scope)))
-	      (let ((tcs nil))
+	      (let ((tcsans nil))
 		(prog1
-		    (semanticdb-typecache-find (semantic-tag-name ans)
-					       nil nil 'tcs)
+		    (setq tcsans
+			  (semanticdb-typecache-find (semantic-tag-name ans)))
 		  ;; While going through the metatype, if we have
 		  ;; a scope, push our new cache in.
 		  (when scope
-		    (semantic-scope-set-typecache scope tcs)))))
+		    (semantic-scope-set-typecache
+		     scope (semantic-scope-tag-get-scope tcsans))
+		    ))))
 	;; We have a tag, and it is not a prototype.
 	ans))
     ))
