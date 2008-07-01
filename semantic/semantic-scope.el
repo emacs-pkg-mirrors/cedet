@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.15 2008/06/17 03:55:13 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.16 2008/07/01 02:48:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -141,6 +141,25 @@ If nil, then the typescope is reset."
       )
     (oset cache typescope newts)))
 
+;;; TAG SCOPES
+;;
+;; These fcns should be used by search routines that return a single
+;; tag which, in turn, may have come from a deep scope.  The scope
+;; will be attached to the tag.  Thus, in future scope based calls, a
+;; tag can be passed in and a scope derived from it.
+
+;;;###autoload
+(defun semantic-scope-tag-clone-with-scope (tag scopetags)
+  "Close TAG, and return it.  Add SCOPETAGS as a tag-local scope.
+Stores the SCOPETAGS as a set of tag properties on the cloned tag."
+  (let ((clone (semantic-tag-clone tag))
+	)
+    (semantic--tag-put-property clone 'scope scopetags)
+    ))
+
+(defun semantic-scope-tag-get-scope (tag)
+  "Get from TAG the list of tags comprising the scope from TAG."
+  (semantic--tag-get-property tag 'scope))
 
 ;;; SCOPE UTILITIES
 ;;
@@ -226,6 +245,8 @@ are from nesting data types."
 	  (let* ((stacknames (reverse (mapcar 'semantic-tag-name stack)))
 		 (tc nil)
 		 )
+	    ;; @todo - can we use the typecache ability to
+	    ;;         put a scope into a tag to do this?
 	    (while (and stacknames
 			(setq tc (semanticdb-typecache-find
 				  (reverse stacknames))))
