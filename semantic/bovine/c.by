@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.45 2008/06/17 16:23:37 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.46 2008/07/01 20:39:02 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -126,6 +126,7 @@
 %token PRIVATE "private"
 %token PROTECTED "protected"
 %token FRIEND "friend"
+%put FRIEND summary "friend class <CLASSNAME>"
 
 ;; These aren't used for parsing, but is a useful place to describe the keywords.
 %token IF "if"
@@ -279,9 +280,13 @@ classsubparts
     ( nil )
   | class-protection opt-symbol COLON
  ;; For QT, they may put a `slot' keyword between the protection
- ;; and the COLON.
+ ;; and the COLON.  @todo - Have the QT stuff use macros.
     (TAG (car $1) 'label)
   | var-or-fun
+  | FRIEND func-decl
+    (TAG (car $2) 'friend)
+  | FRIEND CLASS symbol
+    (TAG $3 'friend)
   | type
   | define
   | template
