@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.16 2008/07/01 02:48:57 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.17 2008/07/01 21:08:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -456,6 +456,13 @@ the access would be 'protected.  Otherwise, access is 'public")
 					(private . public))))
 			  )))
 	       )
+	     ;; Not in our parentage.  Is type a FRIEND?
+	     (let ((friends (semantic-find-tags-by-class 'friend (semantic-tag-type-members type))))
+	       (dolist (F friends)
+		 (dolist (pi parents)
+		   (if (string= (semantic-tag-name F) (semantic-tag-name pi))
+		       (throw 'moose 'private))
+		   )))
 	     ;; Found nothing, return public
 	     'public)
 	   ))
