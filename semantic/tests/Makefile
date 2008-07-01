@@ -4,12 +4,12 @@
 # DO NOT MODIFY THIS FILE OR YOUR CHANGES MAY BE LOST.
 # EDE is the Emacs Development Environment.
 # http://cedet.sourceforge.net/ede.shtml
-# 
+#
 
 top=../
 ede_FILES=Project.ede Makefile
 
-Tests_MISC=test.c test.cpp templates.cpp test.make scopetest.cpp scopetest.java testdoublens.cpp testdoublens.hpp testsubclass.cpp testsubclass.hh testspp.c testsppreplace.c testsppreplaced.c testtypedefs.cpp
+Tests_MISC=test.c test.cpp templates.cpp test.make scopetest.cpp scopetest.java testdoublens.cpp testdoublens.hpp testsubclass.cpp testsubclass.hh testspp.c testsppreplace.c testsppreplaced.c testtypedefs.cpp testfriends.cpp
 VERSION=2.0pre5
 DISTDIR=$(top)semantic-$(VERSION)/tests
 
