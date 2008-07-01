@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.33 2008/06/17 03:53:05 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.34 2008/07/01 02:53:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -361,26 +361,21 @@ a master list."
 ;;; Search Routines
 ;;
 ;;;###autoload
-(define-overloadable-function semanticdb-typecache-find (type &optional path find-file-match scopereturn)
+(define-overloadable-function semanticdb-typecache-find (type &optional path find-file-match)
   "Search the typecache for TYPE in PATH.
 If type is a string, split the string, and search for the parts.
 If type is a list, treat the type as a pre-split string.
 PATH can be nil for the current buffer, or a semanticdb table.
-FIND-FILE-MATCH is non-nil to force all found tags to be loaded into a buffer.
-SCOPERETURN is a symbol.  When non-nil, return the stack of tags
-that the found tag is in.")
+FIND-FILE-MATCH is non-nil to force all found tags to be loaded into a buffer.")
 
-(defun semanticdb-typecache-find-default (type &optional path find-file-match scopereturn)
+(defun semanticdb-typecache-find-default (type &optional path find-file-match)
   "Default implementation of `semanticdb-typecache-find'.
 TYPE is the datatype to find.
 PATH is the search path.. which should be one table object.
 If FIND-FILE-MATCH is non-nil, then force the file belonging to the
-found tag to be loaded.
-SCOPERETURN is a symbol.  When non-nil, return the stack of tags
-that the found tag is in."
+found tag to be loaded."
   (semanticdb-typecache-find-method (or path semanticdb-current-table)
-				    type find-file-match
-				    scopereturn))
+				    type find-file-match))
 
 (defun semanticdb-typecache-find-by-name-helper (name table)
   "Find the tag with NAME in TABLE, which is from a typecache.
@@ -391,15 +386,12 @@ is of class 'type."
     (or (car-safe types) (car-safe names))))
 
 (defmethod semanticdb-typecache-find-method ((table semanticdb-abstract-table)
-					     type find-file-match
-					     scopereturn)
+					     type find-file-match)
   "Search the typecache in TABLE for the datatype TYPE.
 If type is a string, split the string, and search for the parts.
 If type is a list, treat the type as a pre-split string.
 If FIND-FILE-MATCH is non-nil, then force the file belonging to the
-found tag to be loaded.
-SCOPERETURN is a symbol.  When non-nil, return the stack of tags
-that the found tag is in."
+found tag to be loaded."
   ;; convert string to a list.
   (when (stringp type) (setq type (semantic-analyze-split-name type)))
   (when (stringp type) (setq type (list type)))
@@ -480,10 +472,15 @@ that the found tag is in."
       (semantic--tag-put-property ans :filename lastfile)
       )
 
-    (when scopereturn
-      (set scopereturn (reverse (cdr calculated-scope))))
-    
-    ans))
+    (if (and ans calculated-scope)
+
+	;; Put our discovered scope into the tag if we have a tag
+	(semantic-scope-tag-clone-with-scope
+	 ans (reverse (cdr calculated-scope)))
+
+      ;; Else, just return
+      ans
+      )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
