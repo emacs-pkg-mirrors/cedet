@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.9 2008/03/25 01:26:31 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.10 2008/07/02 14:23:55 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -238,7 +238,10 @@ See `semantic-lex-c-preprocessor-symbol-map' for more.")
 to use specialized local routines instead of the EDE routines.
 The function symbol must take two arguments:
   NAME - The name of the file to find.
-  DIR - The directory root for this cpp-root project."
+  DIR - The directory root for this cpp-root project.
+
+It should return the fully qualified file name passed in from NAME.  If that file does not
+exist, it should return nil."
 	       )
    )
   "EDE cpp-root project class.
