@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.161 2008/06/19 02:04:10 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.162 2008/07/02 14:16:45 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -1765,7 +1765,7 @@ CLASS is the starting class to search from in the method tree."
       (when (car mclass)
 	;; lookup the form to use for the PRIMARY object for the next level
 	(let ((tmpl (eieio-generic-form method key (car mclass))))
-	  (when (or (not lambdas) 
+	  (when (or (not lambdas)
 		    ;; This prevents duplicates coming out of the
 		    ;; class method optimizer.  Perhaps we should
 		    ;; just not optimize before/afters?
@@ -1773,8 +1773,11 @@ CLASS is the starting class to search from in the method tree."
 	    (setq lambdas (cons tmpl lambdas))
 	    (if (null (car lambdas))
 		(setq lambdas (cdr lambdas))))))
-      ;; Add new classes to mclass
-      (setq mclass (append (cdr mclass) (eieiomt-next (car mclass))))
+      ;; Add new classes to mclass.  Since our input might not be a class
+      ;; protect against that.
+      (if (car mclass)
+	  (setq mclass (append (cdr mclass) (eieiomt-next (car mclass))))
+	(setq mclass (cdr mclass)))
       )
     (if (eq key method-after)
 	lambdas
