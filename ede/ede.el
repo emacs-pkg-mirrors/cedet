@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.101 2008/06/28 15:10:17 zappo Exp $
+;; RCS: $Id: ede.el,v 1.102 2008/07/03 02:05:07 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -727,6 +727,7 @@ mode.  nil means to toggle the mode."
 	(if (not (interactive-p))
 	    (setq ede-minor-mode nil))))))
   
+;;;###autoload
 (defun global-ede-mode (arg)
   "Turn on variable `ede-minor-mode' mode when ARG is positive.
 If ARG is negative, disable.  Toggle otherwise."
