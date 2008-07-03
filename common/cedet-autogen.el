@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: 22 Aug 2003
 ;; Keywords: maint
-;; X-CVS: $Id: cedet-autogen.el,v 1.7 2008/06/10 13:21:11 zappo Exp $
+;; X-CVS: $Id: cedet-autogen.el,v 1.8 2008/07/03 02:06:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -70,6 +70,7 @@ replaced with side effect by an equivalent known form before calling
 the true `make-autoload' function."
   (if (consp (ad-get-arg 0))
       (let* ((form (ad-get-arg 0))
+	     (file (ad-get-arg 1))
              (car (car-safe form))
              name args doc
              )
@@ -92,8 +93,11 @@ the true `make-autoload' function."
           (setq name (nth 1 form)
                 args (nth 2 form)
                 doc  (nth 4 form))
-          (setcar form 'defun)
-          (setcdr form (list name args (if (stringp doc) doc)))
+	  ;; @todo - use eieio-defclass-autoload instead.
+          ;(setcar form 'defun)
+          ;(setcdr form (list name args (if (stringp doc) doc)))
+	  (setcar form 'eieio-defclass-autoload)
+	  (setcdr form (list (list 'quote name) (list 'quote args) file doc))
           ))
         )))
 
