@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.60 2008/06/22 14:23:56 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.61 2008/07/03 01:44:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -260,6 +260,7 @@ will throw a warning when it encounters this symbol."
 ;;
 ;; Load semantic-loaddefs after compatibility code, to allow to use it
 ;; in autoloads without infinite recursive load problems.
+(require 'eieio)
 (load "semantic-loaddefs" nil t)
 
 ;;; Help debugging
