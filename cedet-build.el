@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-build.el,v 1.4 2008/05/04 15:28:48 zappo Exp $
+;; X-RCS: $Id: cedet-build.el,v 1.5 2008/07/03 01:38:58 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -130,12 +130,19 @@ OVERRIDE-CHECK to override cedet short-cicuit."
       (cedet-update-autoloads "semantic-loaddefs.el" "." "bovine" "wisent")))
   (cedet-build-msg "done.\n")
 
+  ;; Get SRecode autoloads built...
+  (cedet-build-msg "Step 4: SRecode Autloads...")
+  (save-excursion
+    (let ((default-directory (expand-file-name "srecode")))
+      (cedet-update-autoloads "srecode-loaddefs.el" ".")))
+  (cedet-build-msg "done.\n")
+
   ;; Fire up CEDET and EDE
-  (cedet-build-msg "Step 4: Load common/cedet.el ...")
+  (cedet-build-msg "Step 5: Load common/cedet.el ...")
   (save-excursion
     (load-file (expand-file-name "common/cedet.el" cedet-build-location)))
 
-  (cedet-build-msg "done\nStep 5: Turning on EDE ...")
+  (cedet-build-msg "done\nStep 6: Turning on EDE ...")
   (save-excursion
     (global-ede-mode 1)
     (require 'semantic-ede-grammar)
@@ -147,7 +154,7 @@ OVERRIDE-CHECK to override cedet short-cicuit."
 	(pkgs nil)
 	(subdirs nil)
 	)
-    (cedet-build-msg "Step 6: Scan Makefile for targets...")
+    (cedet-build-msg "Step 7: Scan Makefile for targets...")
     (save-excursion
       (set-buffer buf)
       (insert-file-contents "Makefile" nil)
