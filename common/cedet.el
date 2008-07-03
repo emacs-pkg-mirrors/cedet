@@ -7,7 +7,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.27 2008/06/19 02:06:55 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.28 2008/07/03 01:37:53 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -91,12 +91,12 @@
   `(
     ;;PACKAGE   MIN-VERSION      INSTALLDIR DOCDIR
     (cedet         ,cedet-version "common"  "common" 	   )
-    (cogre         "0.6"           nil      "cogre"  	   )
-    (ede           "1.0pre5"       nil      "ede"    	   )    
     (eieio         "1.1"           nil      "eieio"        )
     (semantic      "2.0pre5"       nil      "semantic/doc" )
-    (speedbar      "1.0.2"         nil      "speedbar"     )
     (srecode       "0.1"           nil      "srecode"      ) 
+    (ede           "1.0pre5"       nil      "ede"    	   )    
+    (speedbar      "1.0.2"         nil      "speedbar"     )
+    (cogre         "0.6"           nil      "cogre"  	   )
     (cedet-contrib "1.0pre5"      "contrib"  nil           )
     )
   "Table of CEDET packages to install.")
@@ -141,6 +141,9 @@
 	      (add-to-list 'Info-directory-list fulldocpath)
 	    (add-to-list 'Info-default-directory-list fulldocpath))
 	  )))
+
+    ;; Force EIEIO to load so that the autoloads work.
+    (require 'eieio)
 
     ;; Then run every package setup.
     (dolist (package-spec cedet-packages)
