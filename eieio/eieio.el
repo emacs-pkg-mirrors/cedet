@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.162 2008/07/02 14:16:45 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.163 2008/07/03 02:03:50 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -300,6 +300,80 @@ wish, and reference them using the function `class-option'."
   `(eval-and-compile
      (eieio-defclass ',name ',superclass ',fields ',options-and-doc)))
 
+(defvar eieio-defclass-autoload-map (make-vector 7 nil)
+  "Symbol map of superclasses we find in autoloads.")
+
+;;;###autoload
+(defun eieio-defclass-autoload (cname superclasses filename doc)
+  "Create autoload symbols for the EIEIO class CNAME.
+SUPERCLASSES are the superclasses that CNAME inherites from.
+DOC is the docstring for CNAME.
+This function creates a mock-class for  CNAME and adds it into SUPERCLASSES as children.
+It creates an autoload function for CNAME's constructor."
+  ;; Assume we've already debugged inputs.
+
+  (let* ((oldc (when (class-p cname) (class-v cname)))
+	 (newc (make-vector class-num-fields nil))
+	 )
+    (if oldc
+	nil ;; Do nothing if we already have this class.
+
+      ;; Create the class in NEWC, but don't fill anything else in.
+      (aset newc 0 'defclass)
+      (aset newc class-symbol cname)
+
+      (let ((clear-parent nil))
+	;; No parents?
+	(when (not superclasses)
+	  (setq superclasses '(eieio-default-superclass)
+		clear-parent t)
+	  )
+
+	;; Hook our new class into the existing structures so we can autoload it later.
+	(dolist (SC superclasses)
+	  ;; Does our parent exist?
+	  (if (not (class-p SC))
+	    
+	      ;; Create a symbol for this parent, and then store this parent on that symbol.
+	      (let ((sym (intern (symbol-name SC) eieio-defclass-autoload-map)))
+		(if (not (boundp sym))
+		    (set sym (list cname))
+		  (add-to-list sym cname))
+		)
+
+	    ;; We have a parent, save the child in there.
+	    (when (not (member cname (aref (class-v SC) class-children)))
+	      (aset (class-v SC) class-children
+		    (cons cname (aref (class-v SC) class-children)))))
+
+	  ;; save parent in child
+	  (aset newc class-parent (cons SC (aref newc class-parent)))
+	  )
+
+	;; turn this into a useable self-pointing symbol
+	(set cname cname)
+
+	;; Store the new class vector definition into the symbol.  We need to
+	;; do this first so that we can call defmethod for the accessor.
+	;; The vector will be updated by the following while loop and will not
+	;; need to be stored a second time.
+	(put cname 'eieio-class-definition newc)
+
+	;; Clear the parent
+	(if clear-parent (aset newc class-parent nil))
+
+	;; Create an autoload on top of our constructor function.
+	(autoload cname filename doc nil nil)
+	(autoload (intern (concat (symbol-name cname) "-p")) filename "" nil nil)
+	(autoload (intern (concat (symbol-name cname) "child--p")) filename "" nil nil)
+
+	))))
+
+(defsubst eieio-class-un-autoload (cname)
+  "If class CNAME is in an autoload state, load it's file."
+  (when (eq (car-safe (symbol-function cname)) 'autoload)
+    (load-library (car (cdr (symbol-function cname))))))
+
 (defun eieio-defclass (cname superclasses fields options-and-doc)
   "See `defclass' for more information.
 Define CNAME as a new subclass of SUPERCLASSES, with FIELDS being the
@@ -329,8 +403,18 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     ;; if no new slots are created, it also saves time, and prevents
     ;; method table breakage, particularly when the users is only
     ;; byte compiling an EIEIO file.
-    (when oldc
-      (aset newc class-children (aref oldc class-children)))
+    (if oldc
+	(aset newc class-children (aref oldc class-children))
+      ;; If the old class did not exist, but did exist in the autoload map, then adopt those children.
+      ;; This is like the above, but deals with autoloads nicely.
+      (let ((sym (intern-soft (symbol-name cname) eieio-defclass-autoload-map)))
+	(when sym
+	  (condition-case nil
+	      (aset newc class-children (symbol-value sym))
+	    (error nil))
+	  (unintern (symbol-name cname) eieio-defclass-autoload-map)
+	  ))
+      )
 
     (cond ((and (stringp (car options-and-doc))
 		(/= 1 (% (length options-and-doc) 2)))
@@ -354,9 +438,9 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		    (error "Given parent class %s is not a class" (car pname))
 		  ;; good parent class...
 		  ;; save new child in parent
-		  (if (not (member cname (aref (class-v (car pname)) class-children)))
-		      (aset (class-v (car pname)) class-children
-			    (cons cname (aref (class-v (car pname)) class-children))))
+		  (when (not (member cname (aref (class-v (car pname)) class-children)))
+		    (aset (class-v (car pname)) class-children
+			  (cons cname (aref (class-v (car pname)) class-children))))
 		  ;; Get custom groups, and store them into our local copy.
 		  (mapcar (lambda (g) (add-to-list 'groups g))
 			  (class-option (car pname) :custom-groups))
@@ -503,7 +587,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	       (setq customg '(default)))
 	      ((not (listp customg))
 	       (setq customg (list customg))))
-	;; The customgroup better be a symbol, or list o symbols.
+	;; The customgroup better be a symbol, or list of symbols.
 	(mapcar (lambda (cg)
 		  (if (not (symbolp cg))
 		      (signal 'invalid-slot-type (list ':group cg))))
@@ -1168,6 +1252,7 @@ created by the :initarg tag."
       (signal 'wrong-type-argument (list '(or object-p class-p) obj)))
   (if (not (symbolp field))
       (signal 'wrong-type-argument (list 'symbolp field)))
+  (if (class-p obj) (eieio-class-un-autoload obj))
   (let* ((class (if (class-p obj) obj (aref obj object-class)))
 	 (c (eieio-field-name-index class obj field)))
     (if (not c)
