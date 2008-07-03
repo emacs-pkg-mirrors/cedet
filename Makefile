@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.16 2008/04/14 15:51:53 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.17 2008/07/03 01:29:49 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -30,11 +30,11 @@ CEDET_HOME="$(CURDIR)"
 ## The CEDET's packages installed
 CEDET_PACKAGES=\
 common \
-ede \
 speedbar \
 eieio \
 semantic \
 srecode \
+ede \
 cogre \
 contrib
 
