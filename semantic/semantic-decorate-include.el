@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.13 2008/06/28 14:36:59 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.14 2008/07/15 01:32:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -244,7 +244,7 @@ This mode provides a nice context menu on the include statements."
       (setq face 'semantic-decoration-on-unknown-includes
 	    map semantic-decoration-on-unknown-include-map)
       )
-     ((number-or-marker-p (oref table pointmax))
+     ((and table (number-or-marker-p (oref table pointmax)))
       ;; A found and parsed file.
       (setq face 'semantic-decoration-on-includes
 	    map semantic-decoration-on-include-map)
