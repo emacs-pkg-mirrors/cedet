@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.115 2008/06/17 16:30:49 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.116 2008/07/15 01:23:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1028,6 +1028,12 @@ DONTLOAD does not affect the creation of new database objects."
 	     (not (semanticdb-needs-refresh-p tab)))
 	;; A-ok!
 	tab)
+       ((find-buffer-visiting file)
+	;; If FILE is being visited, but none of the above state is
+	;; true (meaning, there is no table object associated with it)
+	;; then it is a file not supported by Semantic, and can be safely
+	;; ignored.
+	nil)
        ((not dontload) ;; We must load the file.
 	(save-excursion
 	  (let* ( ;; This is a brave statement.  Don't waste time loading in
@@ -1041,7 +1047,14 @@ DONTLOAD does not affect the creation of new database objects."
 		 (font-lock-maximum-size 0)
 		 (font-lock-verbose nil)
 		 ;; Remember the buffer to kill
-		 (buffer-to-kill (find-file-noselect file t)))
+		 (kill-buffer-flag (find-buffer-visiting file))
+		 (buffer-to-kill (or kill-buffer-flag
+				     (find-file-noselect file t))))
+
+	    ;; Debug some issue here?
+	    (when kill-buffer-flag
+	      (debug))
+
 	    (set-buffer buffer-to-kill)
 	    ;; Find file should automatically do this for us.
 	    ;; Sometimes the DB table doesn't contains tags and needs
@@ -1053,9 +1066,11 @@ DONTLOAD does not affect the creation of new database objects."
 	      (semantic-fetch-tags))
 	    (prog1
 		semanticdb-current-table
-	      ;; If we had to find the file, then we should kill it
-	      ;; to keep the master buffer list clean.
-	      (kill-buffer buffer-to-kill))))
+	      (when (not kill-buffer-flag)
+		;; If we had to find the file, then we should kill it
+		;; to keep the master buffer list clean.
+		(kill-buffer buffer-to-kill)
+		))))
 	)
        (t
 	;; We were asked not to load the file in and parse it.
