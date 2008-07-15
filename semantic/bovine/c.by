@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.46 2008/07/01 20:39:02 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.47 2008/07/15 01:46:03 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -303,6 +303,8 @@ opt-class-parents
 one-class-parent
   : opt-class-protection opt-class-declmods namespace-symbol
     (TYPE-TAG (car $3) "class" nil nil :protection (car $1))
+  | opt-class-declmods opt-class-protection namespace-symbol
+    (TYPE-TAG (car $3) "class" nil nil :protection (car $2))
   ;
 
 class-parents
