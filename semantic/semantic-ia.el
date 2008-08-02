@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.22 2008/05/17 20:07:37 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.23 2008/08/02 16:24:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -140,9 +140,11 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	  (semantic-ia-insert-tag ans))
 	))))
 
-(defun semantic-ia-insert-tag (tag)
+(define-overloadable-function semantic-ia-insert-tag (tag)
+  "Insert TAG into the current buffer based on completion.")
+
+(defun semantic-ia-insert-tag-default (tag)
   "Insert TAG into the current buffer based on completion."
-  ;; I need to convert this into an override method!
   (insert (semantic-tag-name tag))
   (let ((tt (semantic-tag-class tag)))
     (cond ((eq tt 'function)
