@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.21 2008/06/13 12:11:56 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.22 2008/08/03 02:12:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -203,6 +203,35 @@ Return non-nil if it matches"
 	     (eq 'spp-arg-list (car (car val))))
     (car (cdr (car val)))))
 
+(defun semantic-lex-spp-one-token-to-txt (tok)
+  "Convert the token TOK into a string.
+If TOK is made of multiple tokens, convert those to text."
+  (let ((txt (semantic-lex-token-text tok))
+	(sym nil)
+	)
+    (cond ((and (eq (car tok) 'symbol)
+		(setq sym (semantic-lex-spp-symbol txt))
+		(not (semantic-lex-spp-macro-with-args (symbol-value sym)))
+		)
+	   ;; Now that we have a symbol,
+	   (let ((val (symbol-value sym)))
+	     (cond ((and (consp val)
+			 (symbolp (car val)))
+		    (semantic-lex-spp-one-token-to-txt val))
+		   ((and (consp val)
+			 (consp (car val))
+			 (symbolp (car (car val))))
+		    (mapconcat (lambda (subtok)
+				 (semantic-lex-spp-one-token-to-txt subtok))
+			       val
+			       ""))
+		   (t (debug)))
+	     ))
+	  ((stringp txt)
+	   txt)
+	  (t nil))
+    ))
+
 (defun semantic-lex-spp-macro-to-macro-stream (val beg end argvalues)
   "Convert lexical macro contents VAL into a macro expansion stream.
 Argument VAL is the value of some macro to be converted into a stream.
@@ -223,6 +252,8 @@ ARGVALUES are values for any arg list, or nil."
 	 (symbolp (car (car val))))
     (let ((arglist (semantic-lex-spp-macro-with-args val))
 	  (argalist nil)
+	  (val-tmp nil)
+	  (v nil)
 	  )
       ;; Skip the arg list.
       (when arglist (setq val (cdr val)))
@@ -233,13 +264,38 @@ ARGVALUES are values for any arg list, or nil."
 	(setq argalist (cons (cons A (car argvalues)) argalist))
 	(setq argvalues (cdr argvalues)))
 
+      ;; Set val-tmp after stripping arguments.
+      (setq val-tmp val)
+
       ;; Push everything else onto the list.
-      (dolist (v val)
-	(let ((txt (car (cdr v)))
-	      (sym nil)
-	      )
+      (while val-tmp
+	(setq v (car val-tmp))
+	(setq val-tmp (cdr val-tmp))
+
+	(let* ((txt (car (cdr v)))
+	       (sym (semantic-lex-spp-symbol txt))
+	       (macro-and-args
+		(when sym
+		  (semantic-lex-spp-macro-with-args (symbol-value sym)))
+		)
+	       (next-tok-class (semantic-lex-token-class (car val-tmp)))
+	       )
 	  (cond
-	   ((and (eq (car v) 'symbol) (setq sym (semantic-lex-spp-symbol txt)))
+	   ((eq (car v) 'spp-symbol-merge)
+	    ;; We need to merge the tokens in the 'text segement together,
+	    ;; and produce a single symbol from it.
+	    (let ((newsym
+		   (mapconcat (lambda (tok)
+				(semantic-lex-spp-one-token-to-txt tok))
+			      txt
+			      "")))
+	      (semantic-lex-push-token
+	       (semantic-lex-token 'symbol beg end newsym))
+	      ))
+	   ((and (eq (car v) 'symbol) sym
+		 (or (and macro-and-args (eq next-tok-class 'semantic-list))
+		     (not macro-and-args))
+		 )
 	    ;; Special arg symbol
 	    (semantic-lex-spp-macro-to-macro-stream
 	     (symbol-value sym)
@@ -387,7 +443,7 @@ STR occurs in the current buffer between BEG and END."
       ;; symbol.  Push a magic keyword.
       ;;(message "push %S" val)
       (semantic-lex-push-token
-       (semantic-lex-token 'spp-replace-replace start end val))
+       (semantic-lex-token 'spp-replace-replace beg end val))
       )
      ;; Anything else.
      (t
@@ -533,7 +589,7 @@ of type `spp-macro-undef' is to be created."
 			      ,start ,end))
 	 ))))
 
-;;; INCLUDEs
+;;; INCLUDES
 ;;
 ;; Bringing pre-processor macros in from included headers.
 (defcustom semantic-lex-spp-use-headers-flag nil
