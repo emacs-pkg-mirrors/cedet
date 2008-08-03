@@ -75,6 +75,11 @@ int tail int_arg(q) {}
 /* TEST: macros used impropertly. */
 #define tail_fail tail_with_args_and_long_name(q)
 
-int tail_fcn tail_fail(q)
+int tail_fcn tail_fail(q);
+
+/* TEST: feature of CPP from LSD <lsdsgster@...> */
+#define __gthrw_(name) __gthrw_ ## name
+
+int __gthrw_(foo) (int arg1) { }
 
 /* END */
