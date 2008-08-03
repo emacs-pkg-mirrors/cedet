@@ -48,3 +48,13 @@ int continuation_symbol () { };
 /* TEST: macros in a macro - tail processing */
 
 int tail (int q) {}
+
+/* TEST: macros used impropertly. */
+
+int tail_fcn(int q);
+
+/* TEST: feature of CPP from LSD <lsdsgster@...> */
+
+int __gthrw_foo (int arg1) { }
+
+/* End */
