@@ -4,7 +4,7 @@
 
 ;; Author: Marco (Bj) Bardelli <bardelli.marco@gmail.com>
 ;; Keywords: project, make, gnustep, gnustep-make
-;; RCS: $Id: ede-gnustep.el,v 1.1 2008/08/04 23:39:44 safanaj Exp $
+;; RCS: $Id: ede-gnustep.el,v 1.2 2008/08/07 01:29:02 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -61,7 +61,11 @@
 ;; GNUmakefile.
 
 
-(eval-and-compile '(require 'ede))
+(eval-and-compile 
+  (require 'ede)
+  (require 'ede-proj)
+  )
+
 
 ;;; Class Definitions:
 ;; Source
@@ -740,8 +744,6 @@ Argument COMMAND is the command to use for compiling the target."
 ;;; Target type specific autogenerating gobbldegook.
 ;; I would implement the ede-proj interface.
 (eval-when-compile
-  ;; This provides prevents recursive loading during a compile
-  (provide 'ede-proj)
   (require 'ede-pmake "ede-pmake.el")
   (require 'ede-pconf "ede-pconf.el"))
 
