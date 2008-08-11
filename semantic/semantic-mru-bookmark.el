@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.11 2008/04/01 01:49:39 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.12 2008/08/11 13:55:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -94,10 +94,6 @@ Nice values are 'edit, 'read, 'jump, and 'mark.
 Uses `semantic-go-to-tag' and highlighting."
   (with-slots (tag filename) sbm
     ;; Go to the tag
-    (when (not (semantic-tag-buffer tag))
-      (let ((fn (or (semantic-tag-file-name tag)
-		    filename)))
-	(set-buffer (find-file-noselect fn))))
     (semantic-go-to-tag (oref sbm tag) (oref sbm parent))
     ;; Go back to the offset.
     (condition-case nil
@@ -126,12 +122,12 @@ If there is a buffer match, unlink the tag."
   (let ((tag (oref sbm tag))
 	(parent (when (slot-boundp sbm 'parent)
 		  (oref sbm parent))))
-    (let ((b (semantic-tag-buffer tag)))
+    (let ((b (semantic-tag-in-buffer tag)))
       (when (and b (eq b (current-buffer)))
 	(semantic--tag-unlink-from-buffer tag)))
 
     (when parent
-      (let ((b (semantic-tag-buffer parent)))
+      (let ((b (semantic-tag-in-buffer parent)))
 	(when (and b (eq b (current-buffer)))
 	  (semantic--tag-unlink-from-buffer parent))))))
 
