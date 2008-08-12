@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.102 2008/07/03 02:05:07 zappo Exp $
+;; RCS: $Id: ede.el,v 1.103 2008/08/12 01:32:53 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1105,9 +1105,12 @@ Return the new object created in its place."
 Allows for one-project-object-for-a-tree type systems."
   (oref this rootproject))
 
-(defmethod ede-project-root-directory ((this ede-project-placeholder))
+(defmethod ede-project-root-directory ((this ede-project-placeholder)
+				       &optional file)
   "If a project knows it's root, return it here.
-Allows for one-project-object-for-a-tree type systems."
+Allows for one-project-object-for-a-tree type systems.
+Optional FILE is the file to test.  It is ignored in preference
+of the anchor file for the project."
   (file-name-directory (oref this file)))
 
 
@@ -1116,13 +1119,19 @@ Allows for one-project-object-for-a-tree type systems."
 Allows for one-project-object-for-a-tree type systems."
   nil)
 
-(defmethod ede-project-root-directory ((this ede-project-autoload))
+(defmethod ede-project-root-directory ((this ede-project-autoload)
+				       &optional file)
   "If a project knows it's root, return it here.
-Allows for one-project-object-for-a-tree type systems."
+Allows for one-project-object-for-a-tree type systems.
+Optional FILE is the file to test.  If there is no FILE, use
+the current buffer."
   (when (slot-boundp this :proj-root)
     (let ((rootfcn (oref this proj-root)))
       (when rootfcn
-	(funcall rootfcn)))))
+	(condition-case nil
+	    (funcall rootfcn file)
+	  (error (funcall rootfcn)))
+	))))
 
 
 ;;; EDE project target baseline methods.
@@ -1410,11 +1419,12 @@ This functions is meant for use with ECB."
   "Return a full file name of project THIS found in DIR.
 Return nil if the project file does not exist."
   (let* ((d (file-name-as-directory dir))
+	 (root (ede-project-root-directory this d))
 	 (pf (oref this proj-file))
 	 (f (cond ((stringp pf)
-		   (concat d pf))
+		   (expand-file-name pf (or root d)))
 		  ((and (symbolp pf) (fboundp pf))
-		   (funcall pf dir))))
+		   (funcall pf (or root d)))))
 	 )
     (when (and f (file-exists-p f))
       f)))
