@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.103 2008/08/12 01:32:53 zappo Exp $
+;; RCS: $Id: ede.el,v 1.104 2008/08/20 18:58:56 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1478,10 +1478,11 @@ nil is returned if the current directory is not a part ofa project."
     ;; Loop up to the topmost project, and then load that single
     ;; project, and it's sub projects.  When we are done, identify the
     ;; sub-project object belonging to file.
-    (while (and (not ans) proj)
+    (while (and (not ans) newpath proj)
       (setq toppath newpath
 	    newpath (ede-up-directory toppath))
-      (setq proj (ede-directory-project-p newpath))
+      (when newpath
+	(setq proj (ede-directory-project-p newpath)))
 
       (when proj
 	;; We can home someone in the middle knows too.
