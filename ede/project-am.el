@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.32 2008/05/29 03:07:58 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.33 2008/08/20 18:53:31 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -547,7 +547,11 @@ Return nil if it isn't a variable."
 			     submake
 			     'file osubproj))
 		  (if (not tmp)
-		      (setq tmp (project-am-load-makefile subdir))
+		      (setq tmp 
+			    (condition-case nil
+				;; In case of problem, ignore it.
+				(project-am-load-makefile subdir)
+			      (error nil)))
 		    ;; If we have tmp, then rescan it only if deep mode.
 		    (if ede-deep-rescan
 			(project-rescan tmp)))
