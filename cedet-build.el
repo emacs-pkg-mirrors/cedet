@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-build.el,v 1.5 2008/07/03 01:38:58 zappo Exp $
+;; X-RCS: $Id: cedet-build.el,v 1.6 2008/08/22 23:56:36 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -63,7 +63,8 @@
   "Build CEDET in a new Emacs instance started with -Q."
   (interactive)
   (let ((default-directory cedet-build-location))
-    (call-process (concat exec-directory "emacs") nil 0 nil
+    (call-process (expand-file-name invocation-name invocation-directory)
+		  nil 0 nil
                   "-Q" "-l" "cedet-build.el" "-f" "cedet-build")
     (message "Started new Emacs instance to build CEDET ...")))
 
