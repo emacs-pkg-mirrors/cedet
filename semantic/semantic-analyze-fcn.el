@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.19 2008/07/01 02:52:08 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.20 2008/08/23 15:12:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -228,7 +228,8 @@ Argument SCOPE is the scope object with additional items in which to search."
       (setq lasttype nexttype)
       (setq nexttype (semantic-analyze-dereference-metatype lasttype scope))
       (setq idx (1+ idx))
-      (when (> idx 20) (error "Possible metatype recursion?"))
+      (when (> idx 20) (error "Possible metatype recursion for %S"
+			      (semantic-tag-name lasttype)))
       )
     lasttype))
 
@@ -248,8 +249,11 @@ SCOPE is the scope object with additional items in which to search for names."
     (let ((ans (:override
                 ;; Nothing fancy, just return type be default.
                 (throw 'default-behavior type))))
-      (semantic-analyze-dereference-metatype-1 ans scope)
-      )))
+      (cond
+       ((semantic-tag-p ans)
+	ans)
+       (t (semantic-analyze-dereference-metatype-1 ans scope))
+       ))))
 
 ;; @ TODO - the typecache can also return a stack of scope names.
 
