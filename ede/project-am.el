@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.33 2008/08/20 18:53:31 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.34 2008/08/23 13:33:13 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -764,11 +764,12 @@ files in the project."
 
 ;;; Programatic editing of a Makefile
 ;;
-(defun makefile-move-to-macro (macro)
-  "Move to the definition of MACRO.  Return t if found."
+(defun makefile-move-to-macro (macro &optional next)
+  "Move to the definition of MACRO.  Return t if found.
+If NEXT is non-nil, move to the next occurance of MACRO."
   (let ((oldpt (point)))
-    (goto-char (point-min))
-    (if (re-search-forward (concat "^" macro "\\s-*=") nil t)
+    (when (not next) (goto-char (point-min)))
+    (if (re-search-forward (concat "^\\s-*" macro "\\s-*[+:?]?=") nil t)
 	t
       (goto-char oldpt)
       nil)))
@@ -788,18 +789,19 @@ STOP-BEFORE is a regular expression matching a file name."
 (defun makefile-macro-file-list (macro)
   "Return a list of all files in MACRO."
   (save-excursion
-    (if (makefile-move-to-macro macro)
+    (goto-char (point-min))
+    (let ((lst nil))
+      (while (makefile-move-to-macro macro t)
 	(let ((e (save-excursion
 		   (makefile-end-of-command)
-		   (point)))
-	      (lst nil))
+		   (point))))
 	  (while (re-search-forward "\\s-**\\([-a-zA-Z0-9./_@$%()]+\\)\\s-*" e t)
 	    (setq lst (cons
 		       (buffer-substring-no-properties
 			(match-beginning 1)
 			(match-end 1))
-		       lst)))
-	  (nreverse lst)))))
+		       lst)))))
+      (nreverse lst))))
 
 ;;; Methods used in speedbar
 ;;
