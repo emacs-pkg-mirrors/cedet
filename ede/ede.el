@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.104 2008/08/20 18:58:56 zappo Exp $
+;; RCS: $Id: ede.el,v 1.105 2008/08/23 13:04:09 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1540,11 +1540,11 @@ nil is returned if the current directory is not a part ofa project."
 	    (setq tocheck
 		  (append (cdr tocheck) newbits))))
 	(if (not found)
-	    (error "No project for %s, but passes project-p test" file))
-	;; Now that the file has been reset inside the project object, do
-	;; the cache maintenance.
-	(setq ede-project-cache-files
-	      (delete (oref found file) ede-project-cache-files))
+	    (message "No project for %s, but passes project-p test" file)
+	  ;; Now that the file has been reset inside the project object, do
+	  ;; the cache maintenance.
+	  (setq ede-project-cache-files
+		(delete (oref found file) ede-project-cache-files)))
 	found)))))
 
 (defun ede-toplevel (&optional subproj)
