@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.86 2008/06/17 04:00:03 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.87 2008/08/23 15:16:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -154,21 +154,27 @@ Return the the defined symbol as a special spp lex token."
   (skip-chars-forward " \t")
   (if (eolp)
       nil
-    (let* ((with-args (save-excursion
+    (let* ((name (buffer-substring-no-properties 
+		  (match-beginning 1) (match-end 1)))
+	   (with-args (save-excursion
 			(goto-char (match-end 0))
 			(looking-at "(")))
 	   (semantic-lex-spp-replacements-enabled nil)
+	   ;; Temporarilly override the lexer to include
+	   ;; special items needed inside a macro
+	   (semantic-lex-analyzer #'semantic-cpp-lexer)
 	   (raw-stream
 	    (semantic-lex-spp-stream-for-macro (save-excursion
 						 (semantic-c-end-of-macro)
 						 (point))))
+	   (cooked-stream nil)
 	   )
 
       ;; If this symbol refers to some other symbol, do a replacement.
-      ;; @todo - This really needs to handle the case of multiple
-      ;;         macros, but we'll see if we get any reports on that.
       (when (and (consp raw-stream) (consp (car raw-stream))
-		 (eq (car (car raw-stream)) 'spp-replace-replace))
+		 (eq (car (car raw-stream)) 'spp-replace-replace)
+		 (not (string= name (semantic-lex-token-text (car raw-stream))))
+		 )
 
 	;; extract the replacement.
 	(setq raw-stream (car (cdr (car raw-stream)))))
@@ -181,8 +187,31 @@ Return the the defined symbol as a special spp lex token."
       ;; Magical spp variable for end point.
       (setq semantic-lex-end-point (point))
 
+      ;; Merge the stream
+      (while raw-stream
+	(cond ((eq (semantic-lex-token-class (car raw-stream)) 'hashhash)
+	       ;; handle hashhash, by skipping it.
+	       (setq raw-stream (cdr raw-stream))
+	       ;; Now merge the symbols.
+	       (let ((prev-tok (car cooked-stream))
+		     (next-tok (car raw-stream)))
+		 (setq cooked-stream (cdr cooked-stream))
+		 (push (semantic-lex-token
+			'spp-symbol-merge
+			(semantic-lex-token-start prev-tok)
+			(semantic-lex-token-end next-tok)
+			(list prev-tok next-tok))
+		       cooked-stream)
+		 ))
+	      (t
+	       (push (car raw-stream) cooked-stream))
+	      )
+	(setq raw-stream (cdr raw-stream))
+	)
+
       ;; Return the stream.
-      raw-stream
+      ;; raw-stream
+      (nreverse cooked-stream)
       )))
 
 (define-lex-spp-macro-undeclaration-analyzer semantic-lex-cpp-undef
@@ -353,9 +382,41 @@ they are comment end characters)."
 
 
 (define-lex semantic-c-lexer
-  "Lexical Analyzer for C code."
+  "Lexical Analyzer for C code.
+Use semantic-cpp-lexer for parsing text inside a CPP macro."
   semantic-lex-ignore-whitespace
   semantic-c-lex-ignore-newline
+  ;; C preprocessor features
+  semantic-lex-cpp-define
+  semantic-lex-cpp-undef
+  semantic-lex-c-if
+  semantic-lex-c-macro-else
+  semantic-lex-c-macrobits
+  semantic-lex-c-include
+  semantic-lex-c-include-system
+  semantic-lex-c-ignore-ending-backslash
+  ;; Non-preprocessor features
+  semantic-lex-number
+  ;; Must detect C strings before symbols because of possible L prefix!
+  semantic-lex-c-string
+  semantic-lex-spp-replace-or-symbol-or-keyword
+  semantic-lex-charquote
+  semantic-lex-paren-or-list
+  semantic-lex-close-paren
+  semantic-lex-ignore-comments
+  semantic-lex-punctuation
+  semantic-lex-default-action)
+
+(define-lex-simple-regex-analyzer semantic-lex-cpp-hashhash
+  "Match ## inside a CPP macro as special."
+  "##" 'hashhash)
+
+(define-lex semantic-cpp-lexer
+  "Lexical Analyzer for CPP macros in C code."
+  semantic-lex-ignore-whitespace
+  semantic-c-lex-ignore-newline
+  ;; CPP special
+  semantic-lex-cpp-hashhash
   ;; C preprocessor features
   semantic-lex-cpp-define
   semantic-lex-cpp-undef
@@ -540,7 +601,8 @@ the regular parser."
 				    ;; name shows up as a parent of this
 				    ;; typedef.
 				    :typedef
-				    (semantic-tag-type-superclasses tag)
+				    (semantic-tag-get-attribute tag :superclasses)
+				    ;;(semantic-tag-type-superclasses tag)
 				    :documentation
 				    (semantic-tag-docstring tag))
 				   vl))
@@ -820,7 +882,8 @@ Override function for `semantic-tag-protection'."
       ;; A typedef can contain a parent who has positional children,
       ;; but that parent will not have a position.  Do this funny hack
       ;; to make sure we can apply overlays properly.
-      (semantic-tag-components (semantic-tag-type-superclasses tag))
+      (let ((sc (semantic-tag-get-attribute tag :typedef)))
+	(when (semantic-tag-p sc) (semantic-tag-components sc)))
     (semantic-tag-components-default tag)))
 
 (defun semantic-c-tag-template (tag)
@@ -914,7 +977,10 @@ If TYPE is a typedef, get TYPE's type by name or tag, and return."
   (if (and (eq (semantic-tag-class type) 'type)
 	   (string= (semantic-tag-type type) "typedef"))
       (let ((dt (semantic-tag-get-attribute type :typedef)))
-	(cond ((stringp dt) dt)
+	(cond ((and (semantic-tag-p dt)
+		    (not (semantic-analyze-tag-prototype-p dt)))
+	       dt)
+	      ((stringp dt) dt)
 	      ((consp dt) (car dt))))
     type))
 
