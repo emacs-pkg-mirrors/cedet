@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.163 2008/07/03 02:03:50 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.164 2008/08/23 00:08:41 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -308,7 +308,8 @@ wish, and reference them using the function `class-option'."
   "Create autoload symbols for the EIEIO class CNAME.
 SUPERCLASSES are the superclasses that CNAME inherites from.
 DOC is the docstring for CNAME.
-This function creates a mock-class for  CNAME and adds it into SUPERCLASSES as children.
+This function creates a mock-class for CNAME and adds it into
+SUPERCLASSES as children.
 It creates an autoload function for CNAME's constructor."
   ;; Assume we've already debugged inputs.
 
@@ -329,12 +330,20 @@ It creates an autoload function for CNAME's constructor."
 		clear-parent t)
 	  )
 
-	;; Hook our new class into the existing structures so we can autoload it later.
+	;; Hook our new class into the existing structures so we can
+	;; autoload it later.
 	(dolist (SC superclasses)
+
+
+	  ;; TODO - If we create an autoload that is in the map, that
+	  ;;        map needs to be cleared!
+
+
 	  ;; Does our parent exist?
 	  (if (not (class-p SC))
 	    
-	      ;; Create a symbol for this parent, and then store this parent on that symbol.
+	      ;; Create a symbol for this parent, and then store this
+	      ;; parent on that symbol.
 	      (let ((sym (intern (symbol-name SC) eieio-defclass-autoload-map)))
 		(if (not (boundp sym))
 		    (set sym (list cname))
