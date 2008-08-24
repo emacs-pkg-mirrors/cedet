@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.38 2008/02/11 14:02:16 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.38.2.1 2008/08/24 16:14:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -387,7 +387,12 @@ Optional argument POINT is where to look for the environment."
 
 (defvar semantic-texi-command-completion-list
   (append (mapcar (lambda (a) (car a)) texinfo-section-list)
-	  texinfo-environments
+	  (condition-case nil
+	      texinfo-environments
+	    (error 
+	     ;; XEmacs doesn't use the above.  Split up its regexp
+	     (split-string texinfo-environment-regexp "\\\\|\\|\\^@\\\\(\\|\\\\)")
+	     ))
 	  ;; Is there a better list somewhere?  Here are few
 	  ;; of the top of my head.
 	  "anchor" "asis"
