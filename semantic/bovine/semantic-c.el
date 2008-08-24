@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.87 2008/08/23 15:16:22 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.87.2.1 2008/08/24 16:16:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -126,7 +126,9 @@ The output table will describe the symbols needed."
 		       (sexp :tag "Replacement")))
   :set (lambda (sym value)
 	 (set-default sym value)
-	 (semantic-c-reset-preprocessor-symbol-map)
+	 (condition-case nil
+	     (semantic-c-reset-preprocessor-symbol-map)
+	   (error nil))
 	 )
   )
 
@@ -141,9 +143,17 @@ to store your global macros in a more natural way."
   :type '(repeat (file :tag "File"))
   :set (lambda (sym value)
 	 (set-default sym value)
-	 (semantic-c-reset-preprocessor-symbol-map)
+	 (condition-case nil
+	     (semantic-c-reset-preprocessor-symbol-map)
+	   (error nil))
 	 )
   )
+
+;; XEmacs' autoload can't seem to byte compile the above because it
+;; directly includes the entire defcustom.  To safely execute those,
+;; it needs this next line to bootstrap in user settings w/out
+;; loading in semantic-c.el at bootstrap time.
+(semantic-c-reset-preprocessor-symbol-map)
 
 (define-lex-spp-macro-declaration-analyzer semantic-lex-cpp-define
   "A #define of a symbol with some value.
