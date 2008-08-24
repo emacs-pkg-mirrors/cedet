@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.17 2008/07/01 21:08:48 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.17.2.1 2008/08/24 03:14:04 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -473,33 +473,35 @@ the access would be 'protected.  Otherwise, access is 'public")
 SCOPE is the scope object.
 NOINHERIT turns off searching of inherited tags.
 PROTECTION specifies the type of access requested, such as 'public or 'private."
-  (let* ((access (semantic-analyze-scope-calculate-access type scope))
-	 ;; SLOTS are the slots directly a part of TYPE.
-	 (allslots (semantic-tag-components type))
-	 (slots (semantic-find-tags-by-scope-protection
-		 access
-		 type allslots))
-	 (fname (semantic-tag-file-name type))
-	 ;; EXTMETH are externally defined methods that are still
-	 ;; a part of this class.
+  (if (not type)
+      nil
+    (let* ((access (semantic-analyze-scope-calculate-access type scope))
+	   ;; SLOTS are the slots directly a part of TYPE.
+	   (allslots (semantic-tag-components type))
+	   (slots (semantic-find-tags-by-scope-protection
+		   access
+		   type allslots))
+	   (fname (semantic-tag-file-name type))
+	   ;; EXTMETH are externally defined methods that are still
+	   ;; a part of this class.
 	
-	 ;; @TODO - is this line needed??  Try w/out for a while
-	 ;; @note - I think C++ says no.  elisp might, but methods
-	 ;;         look like defuns, so it makes no difference.
-	 (extmeth nil) ; (semantic-tag-external-member-children type t))
+	   ;; @TODO - is this line needed??  Try w/out for a while
+	   ;; @note - I think C++ says no.  elisp might, but methods
+	   ;;         look like defuns, so it makes no difference.
+	   (extmeth nil) ; (semantic-tag-external-member-children type t))
 
-	 ;; INHERITED are tags found in classes that our TYPE tag
-	 ;; inherits from.  Do not do this if it was not requested.
-	 (inherited (when (not noinherit)
-		      (semantic-analyze-scoped-inherited-tags type scope
-							      access)))
-	 )
-    (when (not (semantic-tag-in-buffer-p type))
-      (dolist (tag slots)
-	(semantic--tag-put-property tag :filename fname)))
-    ;; Flatten the database output.
-    (append slots extmeth inherited)
-    ))
+	   ;; INHERITED are tags found in classes that our TYPE tag
+	   ;; inherits from.  Do not do this if it was not requested.
+	   (inherited (when (not noinherit)
+			(semantic-analyze-scoped-inherited-tags type scope
+								access)))
+	   )
+      (when (not (semantic-tag-in-buffer-p type))
+	(dolist (tag slots)
+	  (semantic--tag-put-property tag :filename fname)))
+      ;; Flatten the database output.
+      (append slots extmeth inherited)
+      )))
 
 (defun semantic-analyze-scoped-inherited-tags (type scope access)
   "Return all tags that TYPE inherits from.
