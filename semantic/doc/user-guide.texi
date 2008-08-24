@@ -880,18 +880,20 @@ for tokens which will be charted.
 @end deffn
 
 @deffn Command semantic-chart-database-size &optional tagtable
+@anchor{semantic-chart-database-size}
 Create a bar chart representing the size of each file in semanticdb.
-Each bar represents how many toplevel nonterminals in @var{TAGTABLE}
+Each bar represents how many toplevel tags in @var{tagtable}
 exist in each database entry.
-@var{TAGTABLE} is passedto @dfn{semantic-something-to-tag-table}.
+@var{tagtable} is passed to @dfn{semantic-something-to-tag-table}.
 @end deffn
 
 @deffn Command semantic-chart-tag-complexity &optional class tagtable
-Create a bar chart representing the complexity of some tokens.
-Complexity is calculated for tokens with a tag of @var{CLASS}.  Each bar
-represents the complexity of some nonterminal in @var{TAGTABLE}.
-Only the most complex items are charted.
-@var{TAGTABLE} is passedto @dfn{semantic-something-to-tag-table}.
+@anchor{semantic-chart-tag-complexity}
+Create a bar chart representing the complexity of some tags.
+Complexity is calculated for tags of @var{class}.  Each bar represents
+the complexity of some tag in @var{tagtable}.  Only the most complex
+items are charted.  @var{tagtable} is passedto
+@dfn{semantic-something-to-tag-table}.
 @end deffn
 
 @node Idle Scheduler
