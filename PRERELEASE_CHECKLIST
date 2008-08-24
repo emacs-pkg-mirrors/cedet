@@ -27,6 +27,10 @@ Add a CVS tag
 
   * Apply patches to above while resolving other issues.
 
+  * Build the new area:
+    - touch `find . -name Makefile`
+    - make EMACS=semacs
+
 Update Changelogs
 
   * Use a fresh emacs
