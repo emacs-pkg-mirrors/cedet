@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.34 2008/06/09 22:29:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.35 2008/08/25 02:13:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -27,8 +27,6 @@
 ;;
 ;; A set of semanticdb classes for persistently saving caches on disk.
 ;;
-
-;; @todo - create .semanticdb if it doesn't exist.
 
 (require 'inversion)
 (require 'semantic)
@@ -195,6 +193,21 @@ If DIRECTORY doesn't exist, create a new one."
   "Return the project belonging to FILENAME if it was already loaded."
   (eieio-instance-tracker-find filename 'file 'semanticdb-database-list))
 
+(defmethod semanticdb-file-directory-exists-p ((DB semanticdb-project-database-file)
+					       &optional supress-questions)
+  "Does the directory the database DB needs to write to exist?
+If SUPRESS-QUESTIONS, then do not ask to create the directory."
+  (let ((dest (file-name-directory (oref DB file)))
+	)
+    (cond ((file-exists-p dest) t)
+	  (supress-questions nil)
+	  ((y-or-n-p (format "Create directory %s for SemanticDB? "
+			     dest))
+	   (make-directory dest t)
+	   t)
+	  (t nil))
+    ))
+
 (defmethod semanticdb-save-db ((DB semanticdb-project-database-file)
 			       &optional
 			       supress-questions)
@@ -202,6 +215,7 @@ If DIRECTORY doesn't exist, create a new one."
 If DB is not specified, then use the current database."
   (let ((objname (oref DB file)))
     (when (and (semanticdb-live-p DB)
+	       (semanticdb-file-directory-exists-p DB supress-questions)
 	       (semanticdb-write-directory-p DB)
 	       (semanticdb-dirty-p DB))
       ;;(message "Saving tag summary for %s..." objname)
