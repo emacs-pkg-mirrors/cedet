@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.17.2.1 2008/08/24 03:14:04 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.17.2.2 2008/08/26 01:48:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -349,13 +349,14 @@ be found."
     (dolist (slp parents)
       (semantic-analyze-scoped-inherited-tag-map
        slp (lambda (newparent)
-	   (let* ((prot (semantic-tag-type-superclass-protection slp newparent))
-		  (effectiveprot (cond ((eq prot 'public)
-					;; doesn't provide access to private slots?
-					'protected)
-				       (t prot))))
-	     (push (cons newparent effectiveprot) lineage)
-	     ))
+	     (let* ((pname (semantic-tag-name newparent))
+		    (prot (semantic-tag-type-superclass-protection slp pname))
+		    (effectiveprot (cond ((eq prot 'public)
+					  ;; doesn't provide access to private slots?
+					  'protected)
+					 (t prot))))
+	       (push (cons newparent effectiveprot) lineage)
+	       ))
        miniscope))
 
     lineage))
@@ -516,7 +517,9 @@ type."
   (let ((ret nil))
     (semantic-analyze-scoped-inherited-tag-map
      type (lambda (p)
-	    (let* ((protection (semantic-tag-type-superclass-protection type p))
+	    (let* ((pname (semantic-tag-name p))
+		   (protection (semantic-tag-type-superclass-protection
+				type pname))
 		   )
 	      (if (and (eq access 'public) (not (eq protection 'public)))
 		  nil ;; Don't do it.
