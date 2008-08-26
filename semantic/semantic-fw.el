@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.61 2008/07/03 01:44:28 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.62 2008/08/26 00:20:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -370,6 +370,16 @@ calling this one."
 		 (message "Looping ...")
 		 (semantic-throw-on-input 'test-inner-loop))
 	       'exit))))
+
+;;; Special versions of Find File
+;;
+(defun semantic-find-file-noselect (file &optional nowarn rawfile wildcards)
+  "Call find-file-noselect with various features turned off.
+Use this when referencing a file that will be soon deleted."
+  (let ((recentf-exclude '(ignore)))
+    (find-file-noselect file nowarn rawfile wildcards)
+    ))
+
 
 ;;; Editor goodies ;-)
 ;;
