@@ -7,7 +7,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.28 2008/07/03 01:37:53 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.29 2008/08/26 00:18:11 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -138,7 +138,11 @@
 	  ;; Set up one of the info paths depending on if info is
 	  ;; loaded yet.	  
 	  (if (featurep 'info)
-	      (add-to-list 'Info-directory-list fulldocpath)
+	      (progn
+		(condition-case nil ; Not all emacs versions have this.
+		    (info-initialize)
+		  (error nil))
+		(add-to-list 'Info-directory-list fulldocpath))
 	    (add-to-list 'Info-default-directory-list fulldocpath))
 	  )))
 
