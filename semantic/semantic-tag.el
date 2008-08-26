@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.55.2.1 2008/08/26 01:46:29 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.55.2.2 2008/08/26 01:47:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -729,7 +729,7 @@ That is the value of the `:members' attribute."
 If a simple search doesn't do it, try splitting up the names
 in SUPERS."
   (let ((stag nil))
-    (setq stag (semantic-find-first-tag-by-name parentstring supers))
+    (setq stag (semantic-find-first-tag-by-name name supers))
 
     (when (not stag)
       (dolist (S supers)
