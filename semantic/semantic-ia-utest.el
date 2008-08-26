@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.12 2008/07/01 21:09:16 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.12.2.1 2008/08/26 00:16:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -46,7 +46,7 @@
   (interactive)
   (save-excursion
 
-    (set-buffer (find-file-noselect
+    (set-buffer (semantic-find-file-noselect
 		 (locate-library "semantic-ia-utest.el")))
 
     (let ((fl semantic-ia-utest-file-list))
@@ -56,7 +56,7 @@
       (while fl
 
 	(let ((fb (find-buffer-visiting (car fl)))
-	      (b (find-file-noselect (car fl) t)))
+	      (b (semantic-find-file-noselect (car fl) t)))
 
 	  ;; Run the test on it.
 	  (save-excursion
