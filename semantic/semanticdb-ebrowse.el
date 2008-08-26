@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.18 2008/03/27 02:52:22 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.18.2.1 2008/08/26 00:16:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -137,7 +137,7 @@ is specified by `semanticdb-default-system-save-directory'."
       )
     ;; Create a short LOADER program for loading in this database.
     (let* ((lfn (concat savein "-load.el"))
-	   (lf (find-file-noselect lfn)))
+	   (lf (semantic-find-file-noselect lfn)))
       (save-excursion
 	(set-buffer lf)
 	(erase-buffer)
