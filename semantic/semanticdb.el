@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.116 2008/07/15 01:23:30 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.117 2008/08/26 00:20:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1049,7 +1049,7 @@ DONTLOAD does not affect the creation of new database objects."
 		 ;; Remember the buffer to kill
 		 (kill-buffer-flag (find-buffer-visiting file))
 		 (buffer-to-kill (or kill-buffer-flag
-				     (find-file-noselect file t))))
+				     (semantic-find-file-noselect file t))))
 
 	    ;; Debug some issue here?
 	    (when kill-buffer-flag
