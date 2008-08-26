@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.55 2008/06/01 02:52:31 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.56 2008/08/26 01:49:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -724,6 +724,23 @@ That is the value of the `:members' attribute."
 	   ;; A list of something, return it.
 	   supers))))
 
+(defun semantic--tag-find-parent-by-name (name supers)
+  "Find the superclass NAME in the list of SUPERS.
+If a simple search doesn't do it, try splitting up the names
+in SUPERS."
+  (let ((stag nil))
+    (setq stag (semantic-find-first-tag-by-name name supers))
+
+    (when (not stag)
+      (dolist (S supers)
+	(let* ((sname (semantic-tag-name S))
+	       (parts (nreverse (semantic-analyze-split-name sname))))
+	  (when (string= name (car parts))
+	    (setq stag S))
+	  )))
+
+    stag))
+
 (defun semantic-tag-type-superclass-protection (tag parentstring)
   "Return the inheritance protection in TAG from PARENTSTRING.
 PARENTSTRING is the name of the parent being inherited.
@@ -740,7 +757,7 @@ The return protection is a symbol, 'public, 'protection, and 'private."
 	  ((and (consp supers) (stringp (car supers)))
 	   'public)
 	  ((and (consp supers) (semantic-tag-p (car supers)))
-	   (let* ((stag (semantic-find-first-tag-by-name parentstring))
+	   (let* ((stag (semantic--tag-find-parent-by-name parentstring supers))
 		  (prot (when stag
 			  (semantic-tag-get-attribute stag :protection))))
 	     (or (cdr (assoc prot '(("public" . public)
