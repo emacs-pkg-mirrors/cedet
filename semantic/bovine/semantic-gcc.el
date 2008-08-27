@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.2 2008/08/27 03:15:18 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.3 2008/08/27 13:16:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -32,10 +32,6 @@
 GCC-CMD is an optional command to execute instead of \"gcc\""
   ;; $ gcc -v
   ;;
-  ;; Reading specs from /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/specs
-  ;; Configured with: ../configure --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --enable-shared --enable-threads=posix --disable-checking --with-system-zlib --enable-__cxa_atexit --host=i386-redhat-linux
-  ;; Thread model: posix
-  ;; gcc version 3.2.2 20030222 (Red Hat Linux 3.2.2-5)
   (let ((buff (get-buffer-create " *gcc-query*")))
     (save-excursion
       (set-buffer buff)
@@ -52,30 +48,36 @@ GCC-CMD is an optional command to execute instead of \"gcc\""
   (let ((fields nil)
 	(lines (split-string str "\n"))
 	)
-    ;; Line 1 is configuration file
-    (setq lines (cdr lines))
-    ;; Line 2 is "Configured with:"
-    (let* ((parts (split-string (car lines) ":" t))
-	   (opts (split-string (car (cdr parts)) " " t))
-	   )
-      (dolist (O (cdr opts))
-	(let* ((data (split-string O "="))
-	       (sym (intern (car data)))
-	       (val (car (cdr data))))
-	  (push (cons sym val) fields)
-	  ))
-      )
-    (setq lines (cdr lines))
-    ;; Line 3 is thread model
-    (setq lines (cdr lines))
-    ;; Line 4 is gcc version
-    (let ((parts (split-string (car lines) " ")))
-      (push (cons 'version (nth 2 parts)) fields))
-    ;; Return it.
+    (dolist (L lines)
+      ;; For any line, what do we do with it?
+      (cond ((string-match "Configured with\\(:\\)" L)
+	     (let* ((parts (substring L (match-end 1)))
+		    (opts (split-string parts " " t))
+		    )
+	       (dolist (O (cdr opts))
+		 (let* ((data (split-string O "="))
+			(sym (intern (car data)))
+			(val (car (cdr data))))
+		   (push (cons sym val) fields)
+		   ))
+	       ))
+	    ((string-match "gcc version" L)
+	     (let ((parts (split-string L " ")))
+	       (push (cons 'version (nth 2 parts)) fields)))
+	    ((string-match "Target: " L)
+	     (let ((parts (split-string L " ")))
+	       (push (cons 'target (nth 1 parts)) fields)))
+	    ))
     fields))
 
 (defvar semantic-gcc-setup-data nil
-  "The GCC setup data.")
+  "The GCC setup data.
+This is setup by `semantic-gcc-setup'.
+This is an alist, and should include keys of:
+  'version - The version of gcc
+  '--host  - The host symbol.  (Used in include directories)
+  '--prefix - Where GCC was installed.
+It should also include other symbols GCC was compiled with.")
 
 ;;;###autoload
 (defun semantic-gcc-setup (&optional gcc-cmd)
@@ -85,7 +87,8 @@ Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
   (let* ((fields (or semantic-gcc-setup-data
 		     (semantic-gcc-fields (semantic-gcc-query))))
 	 (ver (cdr (assoc 'version fields)))
-	 (host (cdr (assoc '--host fields)))
+	 (host (or (cdr (assoc 'target fields))
+		   (cdr (assoc '--host fields))))
 	 (prefix (cdr (assoc '--prefix fields)))
 	 (include-root (concat prefix "/include"))
 	 (include-cpp (concat include-root "/c++/" ver))
@@ -105,6 +108,73 @@ Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
       (setq semantic-lex-c-preprocessor-symbol-file (list cppconfig)))
     (when (featurep 'semantic-c)
       (semantic-c-reset-preprocessor-symbol-map))
+    ))
+
+;;; TESTING
+;;
+;; Example output of "gcc -v"
+(defvar semantic-gcc-test-strings
+  '(;; My old box:
+    "Reading specs from /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/specs
+Configured with: ../configure --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --enable-shared --enable-threads=posix --disable-checking --with-system-zlib --enable-__cxa_atexit --host=i386-redhat-linux
+Thread model: posix
+gcc version 3.2.2 20030222 (Red Hat Linux 3.2.2-5)"
+    ;; Alex Ott:
+    "Using built-in specs.
+Target: i486-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 4.3.1-9ubuntu1' --with-bugurl=file:///usr/share/doc/gcc-4.3/README.Bugs --enable-languages=c,c++,fortran,objc,obj-c++ --prefix=/usr --enable-shared --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --enable-nls --with-gxx-include-dir=/usr/include/c++/4.3 --program-suffix=-4.3 --enable-clocale=gnu --enable-libstdcxx-debug --enable-objc-gc --enable-mpfr --enable-targets=all --enable-checking=release --build=i486-linux-gnu --host=i486-linux-gnu --target=i486-linux-gnu
+Thread model: posix
+gcc version 4.3.1 (Ubuntu 4.3.1-9ubuntu1)"
+    ;; My debian box:
+    "Using built-in specs.
+Target: x86_64-unknown-linux-gnu
+Configured with: ../../../sources/gcc/configure --prefix=/usr/local/glibc-2.3.6/x86_64/apps/gcc-4.2.3 --with-gmp=/usr/local/gcc/gmp --with-mpfr=/usr/local/gcc/mpfr --enable-languages=c,c++,fortran --with-as=/usr/local/glibc-2.3.6/x86_64/apps/gcc-4.2.3/bin/as --with-ld=/usr/local/glibc-2.3.6/x86_64/apps/gcc-4.2.3/bin/ld --disable-multilib
+Thread model: posix
+gcc version 4.2.3"
+    ;; My mac:
+    "Using built-in specs.
+Target: i686-apple-darwin8
+Configured with: /private/var/tmp/gcc/gcc-5341.obj~1/src/configure --disable-checking -enable-werror --prefix=/usr --mandir=/share/man --enable-languages=c,objc,c++,obj-c++ --program-transform-name=/^[cg][^.-]*$/s/$/-4.0/ --with-gxx-include-dir=/include/c++/4.0.0 --with-slibdir=/usr/lib --build=powerpc-apple-darwin8 --with-arch=pentium-m --with-tune=prescott --program-prefix= --host=i686-apple-darwin8 --target=i686-apple-darwin8
+Thread model: posix
+gcc version 4.0.1 (Apple Computer, Inc. build 5341)"
+    )
+  "A bunch of sample gcc -v outputs from different machines.")
+
+(defvar semantic-gcc-test-strings-fail
+  '(;; A really old solaris box I found
+    "Reading specs from /usr/local/gcc-2.95.2/lib/gcc-lib/sparc-sun-solaris2.6/2.95.2/specs
+gcc version 2.95.2 19991024 (release)"
+    )
+  "A bunch of sample gcc -v outputs that fail to provide the info we want.")
+
+(defun semantic-gcc-test-output-parser ()
+  "Test the output parser against some collected strings."
+  (interactive)
+  (let ((fail nil))
+    (dolist (S semantic-gcc-test-strings)
+      (let* ((fields (semantic-gcc-fields S))
+	     (v (cdr (assoc 'version fields)))
+	     (h (or (cdr (assoc 'target fields))
+		    (cdr (assoc '--host fields))))
+	     (p (cdr (assoc '--prefix fields)))
+	     )
+	(when (not (and v h p))
+	  (let ((strs (split-string S "\n")))
+	    (message "Test failed on %S\nV H P:\n%S %S %S" (car strs) v h p))
+	  (setq fail t))
+	))
+    (dolist (S semantic-gcc-test-strings-fail)
+      (let* ((fields (semantic-gcc-fields S))
+	     (v (cdr (assoc 'version fields)))
+	     (h (or (cdr (assoc '--host fields))
+		    (cdr (assoc 'target fields))))
+	     (p (cdr (assoc '--prefix fields)))
+	     )
+	(when (and v h p)
+	  (message "Negative test failed on %S" S)
+	  (setq fail t))
+	))
+    (if (not fail) (message "Tests passed."))
     ))
 
 (provide 'semantic-gcc)
