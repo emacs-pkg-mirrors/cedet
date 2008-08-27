@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.1 2008/08/27 03:14:50 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.2 2008/08/27 03:15:18 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -77,6 +77,7 @@ GCC-CMD is an optional command to execute instead of \"gcc\""
 (defvar semantic-gcc-setup-data nil
   "The GCC setup data.")
 
+;;;###autoload
 (defun semantic-gcc-setup (&optional gcc-cmd)
   "Setup Semantic C parsing based on GCC output.
 Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
