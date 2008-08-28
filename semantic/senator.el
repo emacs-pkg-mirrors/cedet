@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.126 2008/06/10 00:43:44 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.127 2008/08/28 01:17:34 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1284,6 +1284,17 @@ filters in `senator-search-tag-filter-functions' remain active."
 	(senator-unfold-tag tag)
       (senator-fold-tag tag))))
 
+;;; Pulsing
+;;
+;; Useful for debugging parsing state.
+;;
+(defun senator-pulse-tag (&optional tag)
+  "Pulse the current TAG."
+  (interactive)
+  (let ((tag (semantic-current-tag)))
+    (when tag
+      (pulse-momentary-highlight-overlay (semantic-tag-overlay tag)))))
+
 ;;;;
 ;;;;
 ;;;;
@@ -1842,6 +1853,7 @@ This is a buffer local variable.")
     (define-key km "\C-y" 'senator-yank-tag)
     (define-key km "-"    'senator-fold-tag)
     (define-key km "+"    'senator-unfold-tag)
+    (define-key km "?"    'senator-pulse-tag)
     
     km)
   "Default key bindings in senator minor mode.")
