@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.90 2008/08/28 01:25:15 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.91 2008/08/28 01:51:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1150,6 +1150,92 @@ DO NOT return the list of tags encompassing point."
 
 (define-child-mode c++-mode c-mode
   "`c++-mode' uses the same parser as `c-mode'.")
+
+;;; SETUP QUERY
+;;
+(defun semantic-c-describe-environment ()
+  "Describe the Semantic features of the current C environment."
+  (interactive)
+  (if (not (or (eq major-mode 'c-mode) (eq major-mode 'c++-mode)))
+      (error "Not usefule to query C mode in %s mode" major-mode))
+  (let ((gcc (when (boundp 'semantic-gcc-setup-data)
+	       semantic-gcc-setup-data))
+	)
+    (semantic-fetch-tags)
+
+    (with-output-to-temp-buffer "*Semantic C Environment*"
+      (when gcc
+	(princ "Calculated GCC Parameters:")
+	(dolist (P gcc)
+	  (princ "\n  ")
+	  (princ (car P))
+	  (princ " = ")
+	  (princ (cdr P))
+	  )
+	)
+
+      (princ "\n\nInclude Path Summary:\n")
+      (when ede-object
+	(princ "\n  This file's project include is handled by:\n")
+	(princ "   ")
+	(princ (object-print ede-object))
+	(princ "\n  with the system path:\n")
+	(dolist (dir (ede-system-include-path ede-object))
+	  (princ "    ")
+	  (princ dir)
+	  (princ "\n"))
+	)
+
+      (when semantic-dependency-include-path
+	(princ "\n  This file's generic include path is:\n")
+	(dolist (dir semantic-dependency-include-path)
+	  (princ "    ")
+	  (princ dir)
+	  (princ "\n")))
+
+      (when semantic-dependency-system-include-path
+	(princ "\n  This file's system include path is:\n")
+	(dolist (dir semantic-dependency-system-include-path)
+	  (princ "    ")
+	  (princ dir)
+	  (princ "\n")))
+
+      (princ "\n\nMacro Summary:\n")
+      (when semantic-lex-c-preprocessor-symbol-file
+	(princ "\n  Your CPP table is primed from these files:\n")
+	(dolist (file semantic-lex-c-preprocessor-symbol-file)
+	  (princ "    ")
+	  (princ file)
+	  (princ "\n")
+	  (princ "    in table: ")
+	  (princ (object-print (semanticdb-file-table-object file)))
+	  (princ "\n")
+	  ))
+
+      (when semantic-lex-c-preprocessor-symbol-map-builtin
+	(princ "\n  Built-in symbol map:\n")
+	(dolist (S semantic-lex-c-preprocessor-symbol-map-builtin)
+	  (princ "    ")
+	  (princ (car S))
+	  (princ " = ")
+	  (princ (cdr S))
+	  (princ "\n")
+	  ))
+
+      (when semantic-lex-c-preprocessor-symbol-map
+	(princ "\n  User symbol map:\n")
+	(dolist (S semantic-lex-c-preprocessor-symbol-map)
+	  (princ "    ")
+	  (princ (car S))
+	  (princ " = ")
+	  (princ (cdr S))
+	  (princ "\n")
+	  ))
+
+      (princ "\n\n  Use: M-x semantic-lex-spp-describe RET\n")
+      (princ "\n  to see the complete macro table.\n")
+
+      )))
 
 (provide 'semantic-c)
 
