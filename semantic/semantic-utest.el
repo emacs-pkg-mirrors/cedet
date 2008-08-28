@@ -1,9 +1,9 @@
 ;;; semantic-utest.el --- Tests for semantic's parsing system.
 
-;;; Copyright (C) 2003, 2004, 2007 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.2 2007/02/03 03:05:06 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.3 2008/08/28 01:16:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -298,10 +298,10 @@ function fun2(a,b){ //1
 (defvar semantic-utest-Makefile-buffer-contents
 "
 t1:
-    echo t1
+\techo t1
 
 t2:t1 #1
-    echo t2
+\techo t2
 
 
 "
@@ -414,8 +414,11 @@ class someClass {
 
 
 (defun semantic-utest-makebuffer (filename contents)
+  "Create a buffer for FILENAME for use in a unit test.
+Pre-fill the buffer with CONTENTS."
   (let ((buff (find-file-noselect filename)))
     (set-buffer buff)
+    (font-lock-mode -1)
     (erase-buffer)
     (insert contents)
     ;(semantic-fetch-tags) ;JAVE could this go here?
@@ -554,6 +557,7 @@ class someClass {
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;###autoload
 (defun semantic-utest-main()
   (interactive)
   "call all utests"
