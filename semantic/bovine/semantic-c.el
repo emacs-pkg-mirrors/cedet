@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.89 2008/08/27 03:13:57 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.90 2008/08/28 01:25:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -63,6 +63,8 @@ This function does not do any hidden buffer changes."
   )
 
 ;;; Code:
+(when (member system-type '(gnu gnu/linux darwin cygwin))
+  (semantic-gcc-setup))
 
 ;;; Pre-processor maps
 ;;
