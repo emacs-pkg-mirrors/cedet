@@ -4,7 +4,7 @@
 
 ;; Author: Marco (Bj) Bardelli <bardelli.marco@gmail.com>
 ;; Keywords: project, make, gnustep, gnustep-make
-;; RCS: $Id: ede-gnustep.el,v 1.2 2008/08/07 01:29:02 zappo Exp $
+;; RCS: $Id: ede-gnustep.el,v 1.3 2008/08/28 23:13:51 safanaj Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -98,6 +98,7 @@
 
 
 ;; Target
+;(defclass ede-step-target (ede-proj-target) ;; may be don't need
 (defclass ede-step-target (ede-target)
   ((makefile :initarg :makefile
 	     :initform "GNUmakefile"
@@ -239,6 +240,7 @@ This enables the creation of your target type."
 	    (cons (cons name class) ede-step-target-alist)))))
 
 (defclass ede-step-project (ede-project)
+;(defclass ede-step-project (ede-proj-project) ;; to mix several project types, but don't solve ...
   ((init-variables
     :initarg :init-variables
     :initform nil
@@ -710,7 +712,7 @@ Argument COMMAND is the command to use when compiling."
   (let ((pm (ede-proj-dist-makefile proj))
 	(default-directory (file-name-directory (oref proj file))))
     (ede-proj-setup-buildenvironment proj)
-    (if (string= pm "Makefile.am") (setq pm "Makefile"))
+;    (if (string= pm "Makefile.am") (setq pm "Makefile"))
     (compile (concat "make -f " pm " all"))))
 
 ;;; Target type specific compilations/debug
@@ -773,7 +775,7 @@ Handles the Makefile, or a Makefile.am configure.in combination.
 Optional argument FORCE will force items to be regenerated."
   (if (not force)
       (ede-proj-makefile-create-maybe this (ede-proj-dist-makefile this))
-    (require 'ede-pmake)
+;    (require 'ede-pmake)
     (ede-proj-makefile-create this (ede-proj-dist-makefile this)))
   ;; Rebuild all subprojects
   (ede-map-subprojects
