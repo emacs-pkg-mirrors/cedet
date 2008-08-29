@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.14 2008/07/15 01:32:07 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.15 2008/08/29 17:29:33 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -253,12 +253,14 @@ This mode provides a nice context menu on the include statements."
       ;; An unparsed file.
       (setq face 'semantic-decoration-on-unparsed-includes
 	    map semantic-decoration-on-unparsed-include-map)
-      ;; Set ourselves up for synchronization
-      (semanticdb-cache-get
-       table 'semantic-decoration-unparsed-include-cache)
-      ;; Add a dependancy.
-      (let ((table semanticdb-current-table))
-	(semanticdb-add-reference table tag))
+      (when table
+	;; Set ourselves up for synchronization
+	(semanticdb-cache-get
+	 table 'semantic-decoration-unparsed-include-cache)
+	;; Add a dependancy.
+	(let ((table semanticdb-current-table))
+	  (semanticdb-add-reference table tag))
+	)
       ))
 
     (let ((ol (semantic-decorate-tag tag
