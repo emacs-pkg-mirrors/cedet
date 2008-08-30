@@ -1,9 +1,9 @@
 ;;; semantic-utest.el --- Tests for semantic's parsing system.
 
-;;; Copyright (C) 2003, 2004, 2007 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.2 2007/02/03 03:05:06 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.2.4.1 2008/08/30 14:29:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -298,10 +298,10 @@ function fun2(a,b){ //1
 (defvar semantic-utest-Makefile-buffer-contents
 "
 t1:
-    echo t1
+\techo t1
 
 t2:t1 #1
-    echo t2
+\techo t2
 
 
 "
@@ -414,8 +414,12 @@ class someClass {
 
 
 (defun semantic-utest-makebuffer (filename contents)
-  (let ((buff (find-file-noselect filename)))
+  "Create a unit test buffer with FILENAME.
+Fill with CONTENTS."
+  (let ((buff (semantic-find-file-noselect filename)))
     (set-buffer buff)
+    (setq buffer-offer-save nil)
+    ;; (font-lock-mode -1) ;; Font lock has issues in Emacs 23
     (erase-buffer)
     (insert contents)
     ;(semantic-fetch-tags) ;JAVE could this go here?
@@ -463,7 +467,15 @@ class someClass {
 
 
 (defun semantic-utest-generic (testname filename contents name-contents names-removed killme insertme)
-  "generic unit test according to template, should work for languages withouth .h files, python javascript java."
+  "Generic unit test according to template.
+Should work for languages withouth .h files, python javascript java.
+TESTNAME is the name of the test.
+FILENAME is the name of the file to create.
+CONTENTS is the contents of the file to test.
+NAME-CONTENTS is the list of names that should be in the contents.
+NAMES-REMOVED is the list of names that gets removed in the removal step.
+KILLME is the name of items to be killed.
+INSERTME is the text to be inserted after the deletion."
   (save-excursion
     (let ((buff  (semantic-utest-makebuffer filename  contents))
 	  )
