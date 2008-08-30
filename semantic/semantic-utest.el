@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.3 2008/08/28 01:16:54 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.4 2008/08/30 14:50:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -418,10 +418,12 @@ class someClass {
 Pre-fill the buffer with CONTENTS."
   (let ((buff (find-file-noselect filename)))
     (set-buffer buff)
-    (font-lock-mode -1)
+    (setq buffer-offer-save nil)
+    ;; (font-lock-mode -1) ;; Font lock has issues in Emacs 23
     (erase-buffer)
     (insert contents)
     ;(semantic-fetch-tags) ;JAVE could this go here?
+    (set-buffer-modified-p nil)
     buff
     )
   )
@@ -444,6 +446,7 @@ Pre-fill the buffer with CONTENTS."
 
       ;; Update tags, and show it.
       (semantic-fetch-tags)
+
       (switch-to-buffer buff)
       (sit-for 0)
       
@@ -455,6 +458,7 @@ Pre-fill the buffer with CONTENTS."
       (semantic-utest-last-invalid semantic-utest-C-name-contents '("fun2") "/\\*1\\*/" "/* Deleted this line */")
       (semantic-utest-verify-names semantic-utest-C-name-contents)
 
+      (set-buffer-modified-p nil)
       ;; Clean up
       ;; (kill-buffer buff)
       ;; (kill-buffer buff2)
@@ -466,7 +470,15 @@ Pre-fill the buffer with CONTENTS."
 
 
 (defun semantic-utest-generic (testname filename contents name-contents names-removed killme insertme)
-  "generic unit test according to template, should work for languages withouth .h files, python javascript java."
+  "Generic unit test according to template.
+Should work for languages withouth .h files, python javascript java.
+TESTNAME is the name of the test.
+FILENAME is the name of the file to create.
+CONTENTS is the contents of the file to test.
+NAME-CONTENTS is the list of names that should be in the contents.
+NAMES-REMOVED is the list of names that gets removed in the removal step.
+KILLME is the name of items to be killed.
+INSERTME is the text to be inserted after the deletion."
   (save-excursion
     (let ((buff  (semantic-utest-makebuffer filename  contents))
 	  )
@@ -489,9 +501,9 @@ Pre-fill the buffer with CONTENTS."
       (semantic-utest-last-invalid name-contents names-removed killme insertme)
       (semantic-utest-verify-names name-contents)
 
+      (set-buffer-modified-p nil)
       ;; Clean up
       ;; (kill-buffer buff)
-      ;; (kill-buffer buff2)
       ))
   (message "All %s tests passed." testname)
   )
