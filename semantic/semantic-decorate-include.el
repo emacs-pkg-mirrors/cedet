@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.15 2008/08/29 17:29:33 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.16 2008/08/30 01:55:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -280,7 +280,8 @@ This mode provides a nice context menu on the include statements."
   "Describe what unparsed includes are in the current buffer.
 Argument EVENT is the mouse clicked event."
   (interactive)
-  (let* ((tag (semantic-current-tag))
+  (let* ((tag (or (semantic-current-tag)
+		  (error "No tag under point")))
 	 (file (semantic-dependency-tag-file tag))
 	 (table (when file
 		  (semanticdb-file-table-object file t))))
