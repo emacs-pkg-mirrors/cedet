@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-debug.el,v 1.4 2008/08/23 15:13:23 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-debug.el,v 1.4.2.1 2008/08/30 14:28:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -251,13 +251,14 @@ with the command:
 				(set-buffer orig-buffer)
 				(semantic-analyze-dereference-metatype
 				 ots (oref ctxt scope)))))
-		(when (eq nexttype lasttype)
-		  (error "Debugger errorr trying to help with metatypes"))
+		(if (eq nexttype lasttype)
+		    (princ "\n  [ Debugger error trying to help with metatypes ]")
 		
-		(if (eq ots dt)
-		    (princ "\nwhich is a metatype")
-		  (princ "\nwhich is derived from metatype ")
-		  (semantic-analyzer-debug-insert-tag lasttype))
+		  (if (eq ots dt)
+		      (princ "\nwhich is a metatype")
+		    (princ "\nwhich is derived from metatype ")
+		    (semantic-analyzer-debug-insert-tag lasttype)))
+
 		(princ ".\nThe Metatype stack is:\n")
 		(princ "   ")
 		(semantic-analyzer-debug-insert-tag lasttype)
