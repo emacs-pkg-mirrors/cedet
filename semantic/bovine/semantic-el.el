@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.46 2008/08/02 16:25:03 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.47 2008/09/01 01:36:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -452,10 +452,19 @@ Return a bovination list to use."
 (define-mode-local-override semantic-dependency-tag-file
   emacs-lisp-mode (tag)
   "Find the file BUFFER depends on described by TAG."
-  (let ((lib (locate-library (semantic-tag-name tag)))
-	)
-    (when lib
-      (concat (file-name-sans-extension lib) ".el"))))
+  (let* ((lib (locate-library (semantic-tag-name tag)))
+	 (name (if lib (file-name-sans-extension lib) nil))
+	 (nameel (concat name ".el")))
+    (cond
+     ((and name (file-exists-p nameel)) nameel)
+     ((and name (file-exists-p (concat name ".el.gz")))
+      ;; This is the linux distro case.
+      (concat name ".el.gz"))
+     ;; source file does not exists
+     (name
+      (message "semantic: cannot find source file %s" (concat name ".el")))
+     (t
+      nil))))
 
 ;;; DOC Strings
 ;;
