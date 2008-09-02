@@ -1,9 +1,9 @@
 ;;; inversion.el --- When you need something in version XX.XX
 
-;;; Copyright (C) 2002, 2003, 2005, 2006, 2007 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.31 2007/08/14 18:14:56 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.32 2008/09/02 11:24:24 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.3"
@@ -413,10 +413,10 @@ INSTALLDIR path."
             (setq subdir  (expand-file-name (car subdirs))
                   subdirs (cdr subdirs))
             (when (file-directory-p subdir)
-              (message "%S added to `load-path'" subdir)
+              ;;(message "%S added to `load-path'" subdir)
               (add-to-list 'load-path subdir)))
           ;; Add the main path
-          (message "%S added to `load-path'" default-directory)
+          ;;(message "%S added to `load-path'" default-directory)
           (add-to-list 'load-path default-directory))
 	;; We get to this point iff we do not accept or there is no
 	;; system file.  Lets check the version of what we just
