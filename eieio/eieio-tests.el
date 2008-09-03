@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.42 2008/06/19 02:05:48 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.43 2008/09/03 13:04:33 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -581,9 +581,66 @@ METHOD is the method that was attempting to be called."
 (if (not (eq (get-slot-3 class-c) 'emu))
     (error "Accessor to private :class slot returned bad value from class."))
 
-(setf (get-slot-3 t1) 'moose)
-(if (not (eq (get-slot-3 t1) 'moose))
+(setf (get-slot-3 t1) 'setf-emu)
+(if (not (eq (get-slot-3 t1) 'setf-emu))
     (error "setf and get through accessor failed!"))
+
+;; Slot Default inheritance Testing
+;;
+(defclass class-subc (class-c)
+  ((slot-1 ;; :initform moose  - don't override this
+	   )
+   (slot-2 :initform "linux" ;; Do override this one
+	   :protection :private
+	   )
+   ;; (slot-3 :initform emu) - don't touch this one.
+   )
+  "A class for testing slot arguments."
+  )
+
+(defvar t2 nil)
+(setq t2 (class-subc "subc"))
+
+(if (not (and (eq (oref t2 slot-1) 'moose)
+	      (eq (oref t2 :moose) 'moose)))
+    (error "Initialization of slot failed."))
+
+(if (not (string= (get-slot-2 t2) "linux"))
+    (error "Accessor to private slot returned bad value."))
+
+(condition-case nil
+    (progn
+      (oref t2 slot-2)
+      (error "Reference of private slot passed."))
+  (invalid-slot-name nil))
+
+(if (not (string= (get-slot-2 t2) "linux"))
+    (error "Accessor to private slot returned bad value."))
+
+(condition-case nil
+    (progn
+      (class-subc "C2" :moose "not a symbol")
+      (error "A string was set on a symbol slot during init."))
+  (invalid-slot-type nil))
+
+
+(when nil
+
+  ;;; HACK ALERT: The new value of a class slot is inherited by the
+  ;; subclass!  This is probably a bug.  We should either share the slot
+  ;; so sets on the baseclass change the subclass, or we should inherit
+  ;; the original value. 
+
+  (if (not (eq (get-slot-3 t2) 'emu))
+      (error "Accessor to private :class slot returned bad value from object."))
+
+  (if (not (eq (get-slot-3 class-subc) 'emu))
+      (error "Accessor to private :class slot returned bad value from class."))
+
+  (setf (get-slot-3 t2) 'setf-emu)
+  (if (not (eq (get-slot-3 t2) 'setf-emu))
+      (error "setf and get through accessor failed!"))
+  )
 
 ;; Slot protection
 (defclass prot-0 ()
