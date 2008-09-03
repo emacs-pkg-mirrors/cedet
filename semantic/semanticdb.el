@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.117 2008/08/26 00:20:53 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.118 2008/09/03 15:19:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1036,17 +1036,7 @@ DONTLOAD does not affect the creation of new database objects."
 	nil)
        ((not dontload) ;; We must load the file.
 	(save-excursion
-	  (let* ( ;; This is a brave statement.  Don't waste time loading in
-		 ;; lots of modes.  Especially decoration mode can waste a lot
-		 ;; of time for a buffer we intend to kill.
-		 (semantic-init-hooks nil)
-		 ;; This disables the part of EDE that asks questions
-		 (ede-auto-add-method 'never)
-		 ;; Ask font-lock to not colorize these buffers, nor to
-		 ;; whine about it either.
-		 (font-lock-maximum-size 0)
-		 (font-lock-verbose nil)
-		 ;; Remember the buffer to kill
+	  (let* (;; Remember the buffer to kill
 		 (kill-buffer-flag (find-buffer-visiting file))
 		 (buffer-to-kill (or kill-buffer-flag
 				     (semantic-find-file-noselect file t))))
