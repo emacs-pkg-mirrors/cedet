@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.3 2008/08/27 13:16:47 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.4 2008/09/03 03:15:23 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -98,6 +98,10 @@ Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
     ;; Remember so we don't have to call GCC twice.
     (setq semantic-gcc-setup-data fields)
     ;; Now setup include paths
+    (semantic-add-system-include "/usr/include" 'c-mode)
+    (semantic-add-system-include "/usr/include" 'c++-mode)
+    (semantic-add-system-include include-root 'c-mode)
+    (semantic-add-system-include include-root 'c++-mode)
     (semantic-add-system-include include-cpp 'c-mode)
     (semantic-add-system-include include-cpp 'c++-mode)
     (semantic-add-system-include include-cpp-sys 'c-mode)
@@ -108,7 +112,7 @@ Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
       (setq semantic-lex-c-preprocessor-symbol-file (list cppconfig)))
     (when (featurep 'semantic-c)
       (semantic-c-reset-preprocessor-symbol-map))
-    ))
+    nil))
 
 ;;; TESTING
 ;;
