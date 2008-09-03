@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.164 2008/08/23 00:08:41 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.165 2008/09/03 13:03:24 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -828,8 +828,9 @@ if default value is nil."
 			 "Child slot type `%s' does not match inherited type `%s' for `%s'"
 			 type tp a)))
 		;; If we have a repeat, only update the initarg...
-		(eieio-perform-slot-validation-for-default a tp d skipnil)
-		(setcar dp d)
+		(unless (eq d eieio-unbound)
+		  (eieio-perform-slot-validation-for-default a tp d skipnil)
+		  (setcar dp d))
 		;; If we have a new initarg, check for it.
 		(when init
 		  (let* ((inits (aref newc class-initarg-tuples))
@@ -847,6 +848,7 @@ if default value is nil."
 		;;
 		;; EML - We used to have (if prot... here,
 		;;       but a prot of 'nil means public.
+		;;
 		(let ((super-prot (nth num (aref newc class-protection)))
 		      )
 		  (if (not (eq prot super-prot))
@@ -933,6 +935,9 @@ if default value is nil."
 		      (error
 		       "Child slot type `%s' does not match inherited type `%s' for `%s'"
 		       type tp a)))
+	      ;; EML - Note: the only reason to override a class bound slot
+	      ;;       is to change the default, so allow unbound in.
+
 	      ;; If we have a repeat, only update the vlaue...
 	      (eieio-perform-slot-validation-for-default a tp value skipnil)
 	      (setcar dp value))
