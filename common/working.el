@@ -1,7 +1,7 @@
 ;;; working --- Display a "working" message in the minibuffer.
 
 ;; Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003,
-;;               2004, 2007  Eric M. Ludlam
+;;               2004, 2007, 2008  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.5
@@ -400,7 +400,7 @@ is t to display the done string, or the percentage to display."
   (let* ((ps (if (eq percent t)
 		 (concat "... " working-donestring)
 	       (working-percent-display length percent)))
-	 (psl (+ 2 length (if (eq percent t) working-ref1 (length ps)))))
+	 (psl (+ 2 length (if (eq percent t) (length ps) working-ref1))))
     (cond ((eq percent t)
 	   (concat (working-bar-display psl 100) " " ps))
 	  (t
@@ -414,7 +414,7 @@ is t to display the done string, or the percentage to display."
   (let* ((ps (if (eq percent t)
 		 (concat "... " working-donestring)
 	       (working-percent-display length percent)))
-	 (psl (+ 1 length (if (eq percent t) working-ref1 (length ps)))))
+	 (psl (+ 1 length (if (eq percent t) (length ps) working-ref1))))
     (cond ((eq percent t)
 	   (concat ps " " (working-bar-display psl 100)))
 	  (t
@@ -444,7 +444,7 @@ is t to display the done string, or the percentage to display."
   (let* ((ps (if (eq percent t)
 		 (concat " ... " working-donestring)
 	       (working-percent-display length percent)))
-	 (psl (+ 1 length (if (eq percent t) working-ref1 (length ps)))))
+	 (psl (+ 1 length (if (eq percent t) (length ps) working-ref1))))
     (cond ((eq percent t)
 	   (concat (working-bubble-display psl t)))
 	  (t
