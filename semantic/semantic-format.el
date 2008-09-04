@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.28 2008/06/10 00:43:10 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.29 2008/09/04 01:44:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,6 +48,8 @@
     semantic-format-tag-canonical-name
     semantic-format-tag-abbreviate
     semantic-format-tag-summarize
+    semantic-format-tag-summarize-with-file
+    semantic-format-tag-short-doc
     semantic-format-tag-prototype
     semantic-format-tag-concise-prototype
     semantic-format-tag-uml-abbreviate
@@ -138,6 +140,7 @@ Optional argument ARG specifies not to use color."
      (keyword . font-lock-keyword-face)
      (abstract . italic)
      (static . underline)
+     (documentation . font-lock-doc-face)
      )
   "Face used to colorize tags of different types.
 Override the value locally if a language supports other tag types.
@@ -422,6 +425,69 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
     (if color
         (setq label (semantic--format-colorize-text label 'label)))
     (concat label ": " proto)))
+
+;;;###autoload
+(define-overloadable-function semantic-format-tag-summarize-with-file (tag &optional parent color)
+  "Like `semantic-format-tag-summarize', but with the file name.
+Optional argument PARENT is the parent type if TAG is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors.")
+
+(defun semantic-format-tag-summarize-with-file-default (tag &optional parent color)
+  "Summarize TAG in a reasonable way.
+Optional argument PARENT is the parent type if TAG is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let* ((proto (semantic-format-tag-prototype tag nil color))
+         (file (semantic-tag-file-name tag))
+	 )
+    ;; Nothing for tag?  Try parent.
+    (when (and (not file) (and parent))
+      (setq file (semantic-tag-file-name parent)))
+    ;; Don't include the file name if we can't find one, or it is the
+    ;; same as the current buffer.
+    (if (or (not file)
+	    (string= file (buffer-file-name (current-buffer))))
+	proto
+      (setq file (file-name-nondirectory file))
+      (when color
+	(setq file (semantic--format-colorize-text file 'label)))
+      (concat file ": " proto))))
+
+;;;###autoload
+(define-overloadable-function semantic-format-tag-short-doc (tag &optional parent color)
+  "Display a short form of TAG's documentation. (Comments, or docstring.)
+Optional argument PARENT is the parent type if TAG is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors.")
+
+(defun semantic-format-tag-short-doc-default (tag &optional parent color)
+  "Display a short form of TAG's documentation.  (Comments, or docstring.)
+Optional argument PARENT is the parent type if TAG is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let* ((fname (or (semantic-tag-file-name tag)
+		    (when parent (semantic-tag-file-name parent))))
+	 (buf (or (semantic-tag-buffer tag)
+		  (when parent (semantic-tag-buffer parent))))
+	 (doc (semantic-tag-docstring tag buf)))
+    (when (and (not doc) (not buf) fname)
+      ;; If there is no doc, and no buffer, but we have a filename,
+      ;; lets try again.
+      (setq buf (find-file-noselect fname))
+      (setq doc (semantic-tag-docstring tag buf)))
+    (when (not doc)
+      (setq doc (semantic-documentation-for-tag tag))
+      )
+    (setq doc
+	  (if (not doc)
+	      ;; No doc, use summarize.
+	      (semantic-format-tag-summarize tag parent color)
+	    ;; We have doc.  Can we devise a single line?
+	    (if (string-match "$" doc)
+		(substring doc 0 (match-beginning 0))
+	      doc)
+	    ))
+    (when color
+      (setq doc (semantic--format-colorize-text doc 'documentation)))
+    doc
+    ))
 
 ;;; Prototype generation
 ;;
