@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.49 2008/09/04 01:48:32 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.50 2008/09/04 01:49:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -729,20 +729,6 @@ macro expansion.)"
   (if str
       `(cons ,symbol (cons ,str (cons ,start ,end)))
     `(cons ,symbol (cons ,start ,end))))
-
-(defun semantic-lex-token-p (thing)
-  "Return non-nil if THING is a semantic lex token.
-This is an exhaustively robust check."
-  (and (consp thing)
-       (symbolp (car thing))
-       (or (and (= (length thing) 3)
-		(numberp (nth 1 thing))
-		(numberp (nth 2 thing)))
-	   (and (= (length thing) 4)
-		(stringp (nth 1 thing))
-		(numberp (nth 2 thing))
-		(numberp (nth 3 thing)))))
-  )
 
 (defun semantic-lex-token-p (thing)
   "Return non-nil if THING is a semantic lex token.
