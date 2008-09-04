@@ -31,7 +31,7 @@
    (ede-proj-target-elisp "Database"
     :name "Database"
     :path ""
-    :source '("semanticdb.el" "semanticdb-debug.el" "semanticdb-ebrowse.el" "semanticdb-el.el" "semanticdb-file.el" "semanticdb-find.el" "semanticdb-mk.el" "semanticdb-ref.el" "semanticdb-search.el" "semanticdb-typecache.el")
+    :source '("semanticdb.el" "semanticdb-debug.el" "semanticdb-ebrowse.el" "semanticdb-el.el" "semanticdb-file.el" "semanticdb-find.el" "semanticdb-mk.el" "semanticdb-ref.el" "semanticdb-search.el" "semanticdb-typecache.el" "semanticdb-javascript.el")
     )
    (ede-proj-target-elisp "tools"
     :name "tools"
