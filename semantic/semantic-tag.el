@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.56 2008/08/26 01:49:53 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.57 2008/09/04 01:47:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -686,10 +686,18 @@ That is the value defined by the `:documentation' attribute.
 Optional argument BUFFER indicates where to get the text from.
 If not provided, then only the POSITION can be provided."
   (let ((p (semantic-tag-get-attribute tag :documentation)))
-    (if (and p buffer)
-        (with-current-buffer buffer
-          (semantic-lex-token-text (car (semantic-lex p (1+ p)))))
-      p)))
+    (cond
+     ((stringp p) p) ;; it is the doc string.
+
+     ((semantic-lex-token-with-text-p p)
+      (semantic-lex-token-text p))
+
+     ((and (semantic-lex-token-without-text-p p)
+	   buffer)
+      (with-current-buffer buffer
+	(semantic-lex-token-text (car (semantic-lex p (1+ p))))))
+
+     (t nil))))
 
 ;;; Generic attributes for tags of any class.
 ;;
