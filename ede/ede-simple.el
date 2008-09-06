@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-simple.el,v 1.6 2008/09/06 14:13:09 zappo Exp $
+;; X-RCS: $Id: ede-simple.el,v 1.7 2008/09/06 23:56:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -93,7 +93,7 @@ ROOTPROJ is nil, since we will only create a single EDE project here."
 All directories need at least one target.")
 
 ;;;###autoload
-(defclass ede-simple-project (eieio-persistent ede-project)
+(defclass ede-simple-project (ede-project eieio-persistent)
   ((extension :initform ".ede")
    (file-header-line :initform ";; EDE Simple Project")
    )
