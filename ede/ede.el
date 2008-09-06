@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.106 2008/09/06 00:25:54 zappo Exp $
+;; RCS: $Id: ede.el,v 1.107 2008/09/06 12:32:53 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -696,6 +696,14 @@ If optional argument CURRENT is non-nil, return sub-menu code."
 (eval-and-compile
   (autoload 'ede-dired-minor-mode "ede-dired" "EDE commands for dired" t))
 
+(defun ede-apply-target-options ()
+  "Apply options to the current buffer for the active project/target."
+  (if (ede-current-project)
+      (ede-set-project-variables (ede-current-project)))
+  (ede-apply-object-keymap)
+  (ede-apply-preprocessor-map)
+  )
+
 (defun ede-turn-on-hook ()
   "Turn on EDE minor mode in the current buffer if needed.
 To be used in hook functions."
@@ -729,9 +737,7 @@ mode.  nil means to toggle the mode."
 	    (setq ede-object (ede-buffer-object))
 	    (if (and (not ede-object) (ede-current-project))
 		(ede-auto-add-to-target))
-	    (if (ede-current-project)
-		(ede-set-project-variables (ede-current-project)))
-	    (ede-apply-object-keymap))
+	    (ede-apply-target-options))
 	;; If we fail to have a project here, turn it back off.
 	(if (not (interactive-p))
 	    (setq ede-minor-mode nil))))))
@@ -931,7 +937,7 @@ a string \"y\" or \"n\", which answers the y/n question done interactively."
   (apply 'project-new-target (ede-current-project) args)
   (setq ede-object nil)
   (setq ede-object (ede-buffer-object (current-buffer)))
-  (ede-apply-object-keymap))
+  (ede-apply-target-options))
 
 (defun ede-new-target-custom ()
   "Create a new target specific to this type of project file."
@@ -954,7 +960,7 @@ a string \"y\" or \"n\", which answers the y/n question done interactively."
 	(setq ede-object nil)
 	(setq ede-object (ede-buffer-object (current-buffer)))
 	(setq condemned (cdr condemned))))
-    (ede-apply-object-keymap)))
+    (ede-apply-target-options)))
 
 (defun ede-add-file (target)
   "Add the current buffer to a TARGET in the current project."
@@ -977,7 +983,7 @@ a string \"y\" or \"n\", which answers the y/n question done interactively."
     (error "Can't add %s to target %s: Wrong file type"
 	   (file-name-nondirectory (buffer-file-name))
 	   (object-name target)))
-  (ede-apply-object-keymap))
+  (ede-apply-target-options))
 
 ;;;###autoload
 (defun ede-remove-file (&optional force)
@@ -997,7 +1003,7 @@ Optional argument FORCE forces the file to be removed without asking."
       (setq eo (cdr eo)))
     (setq ede-object nil)
     (setq ede-object (ede-buffer-object (current-buffer)))
-    (ede-apply-object-keymap)))
+    (ede-apply-target-options)))
 
 (defun ede-edit-file-target ()
   "Enter the project file to hand edit the current buffer's target."
@@ -1120,7 +1126,7 @@ Allows for one-project-object-for-a-tree type systems."
 Allows for one-project-object-for-a-tree type systems.
 Optional FILE is the file to test.  It is ignored in preference
 of the anchor file for the project."
-  (file-name-directory (oref this file)))
+  (file-name-directory (expand-file-name (oref this file))))
 
 
 (defmethod ede-project-root ((this ede-project-autoload))
@@ -1264,7 +1270,7 @@ Do this by extracting the lowest directory name."
   "Convert path in a standard way for a given project.
 Default to making it project relative.
 Argument THIS is the project to convert PATH to."
-  (let ((pp (file-name-directory (expand-file-name (oref this file))))
+  (let ((pp (ede-project-root-directory this))
 	(fp (expand-file-name path)))
     (if (string-match (regexp-quote pp) fp)
 	(substring fp (match-end 0))
@@ -1308,7 +1314,7 @@ by this project.
 Optional argument FORCE forces the default filename to be provided even if it
 doesn't exist."
   ;; @todo - Can Id utils do this?
-  (let ((path (file-name-directory (oref this file)))
+  (let ((path (ede-project-root-directory this))
 	(proj (oref this subproj))
 	(found nil))
     (or
@@ -1751,6 +1757,14 @@ Return the first non-nil value returned by PROC."
 ;;
 ;; These items are needed by ede-cpp-root to add better support for
 ;; configuring items for Semantic.
+(defun ede-apply-preprocessor-map ()
+  "Apply preprocessor tables onto the current buffer."
+  (when ede-object
+    (let ((map (ede-preprocessor-map ede-object)))
+      (when map
+	(setq semantic-lex-spp-project-macro-symbol-obarray
+	      (semantic-lex-make-spp-table map))
+	))))
 
 (defmethod ede-system-include-path ((this ede-project))
   "Get the system include path used by project THIS."
