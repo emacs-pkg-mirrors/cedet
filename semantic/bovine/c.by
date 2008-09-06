@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.47 2008/07/15 01:46:03 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.48 2008/09/06 23:59:23 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -950,11 +950,27 @@ arg-list
     ( )
   ;
 
+knr-varnamelist
+  : varname COMA knr-varnamelist
+    ( ,(cons $1 $3) )
+  | varname
+    ( $1 )
+  ;
+
+
+knr-one-variable-decl
+  : typeformbase cv-declmods knr-varnamelist
+    ( VARIABLE-TAG (nreverse $3) $1 nil
+                   :constant-flag (if (member "const" (append $2)) t nil)
+                   :typemodifiers (delete "const" $2)
+                   )
+  ;
+
 knr-arguments
-  : variablearg SEMICOLON knr-arguments
-    ( ,(cons (car (semantic-expand-c-tag ,$1) ) ,$3) )
-  | variablearg SEMICOLON
-    ( (car (semantic-expand-c-tag ,$1)) )
+  : knr-one-variable-decl SEMICOLON knr-arguments
+    ( ,(append (semantic-expand-c-tag ,$1) ,$3) )
+  | knr-one-variable-decl SEMICOLON
+    ( ,(semantic-expand-c-tag ,$1) )
   ;
 
 arg-sub-list
