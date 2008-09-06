@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.53 2008/06/19 02:09:58 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.54 2008/09/06 21:33:55 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -647,40 +647,11 @@ Optional argument FORCE will force items to be regenerated."
 ;;  
 (defmethod project-rescan ((this ede-proj-project))
   "Rescan the EDE proj project THIS."
-  (ede-with-projectfile this
-    (goto-char (point-min))
-    (let ((l (read (current-buffer)))
-	  (fields (object-slots this))
-	  (targets (oref this targets)))
-      (setq l (cdr (cdr l))) ;; objtype and name skip
-      (while fields ;  reset to defaults those that dont appear.
-	(if (and (not (assoc (car fields) l))
-		 (not (eq (car fields) 'file)))
-	    (let ((eieio-skip-typecheck t))
-	      ;; This is a hazardous thing, for some elements
-	      ;; might not be bound.  Skip typechecking and duplicate
-	      ;; unbound slots along the way.
-	      (eieio-oset this (car fields)
-			  (eieio-oref-default this (car fields)))))
-	(setq fields (cdr fields)))
-      (while l
-	(let ((field (car l)) (val (car (cdr l))))
-	  (cond ((eq field targets)
-		 (let ((targets (oref this targets))
-		       (newtarg nil))
-		   (setq val (cdr val)) ;; skip the `list'
-		   (while val
-		     (let ((o (object-assoc (car (cdr (car val))) ; name
-					    'name targets)))
-		       (if o
-			   (project-rescan o (car val))
-			 (setq o (eval (car val))))
-		       (setq newtarg (cons o newtarg)))
-		     (setq val (cdr val)))
-		   (oset this targets newtarg)))
-		(t
-		 (eieio-oset this field val))))
-	(setq l (cdr (cdr l))))))) ;; field/value
+  (let ((root (or (ede-project-root this) this))
+	)
+    (setq ede-projects (delq root ede-projects))
+    (ede-proj-load (ede-project-root-directory root))
+    ))
 	
 (defmethod project-rescan ((this ede-proj-target) readstream)
   "Rescan target THIS from the read list READSTREAM."
