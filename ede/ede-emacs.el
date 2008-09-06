@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-emacs.el,v 1.1 2008/09/06 12:35:57 zappo Exp $
+;; X-RCS: $Id: ede-emacs.el,v 1.2 2008/09/06 14:12:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -66,7 +66,22 @@ DIR is the directory to search from."
 	(let ((base (substring dir 0 (match-end 0))))
 	  (when (file-exists-p (expand-file-name "src/emacs.c" base))
 	      base))))))
-	  
+
+(defun ede-emacs-version (dir)
+  "Find the Emacs version for the Emacs src in DIR."
+  (let ((buff (get-buffer-create " *emacs-query*")))
+    (save-excursion
+      (set-buffer buff)
+      (erase-buffer)
+      (setq default-directory (file-name-as-directory dir))
+      (call-process "egrep" nil buff nil "-n" "-e" "^version=" "Makefile")
+      (goto-char (point-min))
+      (re-search-forward "version=\\([0-9.]+\\)")
+      (prog1
+	  (match-string 1)
+	(kill-buffer buff)
+	))))
+
 ;;;###autoload
 (defun ede-emacs-load (dir &optional rootproj)
   "Return an Emacs Project object if there is a match.
@@ -76,6 +91,7 @@ ROOTPROJ is nil, since there is only one project."
   (or (ede-emacs-file-existing dir)
       ;; Doesn't already exist, so lets make one.
       (ede-emacs-project "Emacs"
+			 :name (concat "Emacs" (ede-emacs-version dir))
 			 :file (expand-file-name "src/emacs.c"
 						 dir)))
   )
