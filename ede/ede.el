@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.108 2008/09/06 14:04:56 zappo Exp $
+;; RCS: $Id: ede.el,v 1.109 2008/09/06 21:35:39 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -735,7 +735,17 @@ mode.  nil means to toggle the mode."
 	;; If we fail to have a project here, turn it back off.
 	(if (not (interactive-p))
 	    (setq ede-minor-mode nil))))))
-  
+
+(defun ede-reset-all-buffers (onoff)
+  "Reset all the buffers due to change in EDE.
+ONOFF indicates enabling or disabling the mode."
+  (let ((b (buffer-list)))
+    (while b
+      (when (buffer-file-name (car b))
+	(ede-buffer-object (car b))
+	)
+      (setq b (cdr b)))))
+
 ;;;###autoload
 (defun global-ede-mode (arg)
   "Turn on variable `ede-minor-mode' mode when ARG is positive.
@@ -757,18 +767,7 @@ If ARG is negative, disable.  Toggle otherwise."
       (remove-hook 'ecb-source-path-functions 'ede-ecb-project-paths)
       (remove-hook 'find-file-hooks 'ede-turn-on-hook)
       (remove-hook 'dired-mode-hook 'ede-turn-on-hook))
-    (let ((b (buffer-list)))
-      (while b
-	(if (buffer-file-name (car b))
-	    (save-excursion
-	      (set-buffer (car b))
-	      (ede-minor-mode arg))
-	  (save-excursion
-	    (set-buffer (car b))
-	    (if (eq major-mode 'dired-mode)
-		(ede-minor-mode arg)
-	      )))
-	(setq b (cdr b))))))
+    (ede-reset-all-buffers arg)))
 
 (defun ede-auto-add-to-target ()
   "Look for a target that wants to own the current file.
@@ -920,7 +919,9 @@ ARGS are additional arguments to pass to method sym."
   (interactive)
   (let ((toppath (ede-toplevel-project default-directory))
 	(ede-deep-rescan t))
-    (project-rescan (ede-load-project-file toppath))))
+    (project-rescan (ede-load-project-file toppath))
+    (ede-reset-all-buffers 1)
+    ))
 
 (defun ede-new-target (&rest args)
   "Create a new target specific to this type of project file.
@@ -1597,17 +1598,21 @@ If optional DIR is provided, get the project for DIR instead."
 
 (defun ede-buffer-object (&optional buffer)
   "Return the target object for BUFFER."
-  (if (not buffer) (setq buffer (current-buffer)))
-  (let ((po (ede-current-project)))
-    (if po (setq ede-object (ede-find-target po buffer))))
-  (if (= (length ede-object) 1)
-      (setq ede-object (car ede-object)))
-  ede-object)
+  (save-excursion
+    (if (not buffer) (setq buffer (current-buffer)))
+    (set-buffer buffer)
+    (setq ede-object nil)
+    (let ((po (ede-current-project)))
+      (if po (setq ede-object (ede-find-target po buffer))))
+    (if (= (length ede-object) 1)
+	(setq ede-object (car ede-object)))
+    ede-object))
 
 (defmethod ede-target-in-project-p ((proj ede-project) target)
   "Is PROJ the parent of TARGET?
 If TARGET belongs to a subproject, return that project file."
-  (if (memq target (oref proj targets))
+  (if (and (slot-boundp proj 'targets)
+	   (memq target (oref proj targets)))
       proj
     (let ((s (oref proj subproj))
 	  (ans nil))
