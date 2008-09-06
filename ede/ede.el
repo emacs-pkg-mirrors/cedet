@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.105 2008/08/23 13:04:09 zappo Exp $
+;; RCS: $Id: ede.el,v 1.106 2008/09/06 00:25:54 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -395,7 +395,7 @@ Do not set this to non-nil globally.  It is used internally.")
     (insert ";; EDE project cache file.
 ;; This contains a list of projects you have visited.\n(")
     (while p
-      (when (car p)
+      (when (and (car p) (ede-project-p p))
 	(let ((f (oref (car p) file)))
 	  (when (file-exists-p f)
 	    (insert "\n  \"" f "\""))))
@@ -560,7 +560,8 @@ Argument MENU-DEF is the menu definition to use."
 	  (tskip nil))
       (if (not obj)
 	  nil
-	(setq targets (oref obj targets)
+	(setq targets (when (slot-boundp obj 'targets)
+			(oref obj targets))
 	      ede-obj (if (listp ede-object) ede-object (list ede-object)))
 	;; First, collect the build items from the project
 	(setq newmenu (append newmenu (ede-menu-items-build obj t)))
@@ -618,16 +619,22 @@ Argument MENU-DEF is the menu definition to use."
     (let* ((obj (ede-current-project))
 	   (class (if obj (object-class obj)))
 	   (menu nil))
-      (while (and class (slot-exists-p class 'menu))
-	(setq menu (append menu (oref class menu))
-	      class (class-parent class))
-	(if (listp class) (setq class (car class))))
-      (append
-       '( [ "Add Target" ede-new-target (ede-current-project) ]
-	  [ "Remove Target" ede-delete-target ede-object ]
-	  "-")
-       menu
-       )))))
+      (condition-case err
+	  (progn
+	    (while (and class (slot-exists-p class 'menu))
+	      ;;(message "Looking at class %S" class)
+	      (setq menu (append menu (oref class menu))
+		    class (class-parent class))
+	      (if (listp class) (setq class (car class))))
+	    (append
+	     '( [ "Add Target" ede-new-target (ede-current-project) ]
+		[ "Remove Target" ede-delete-target ede-object ]
+		"-")
+	     menu
+	     ))
+	(error (message "Err found: %S" err)
+	       menu)
+	)))))
 
 (defun ede-customize-forms-menu (menu-def)
   "Create a menu of the project, and targets that can be customized.
@@ -635,8 +642,9 @@ Argument MENU-DEF is the definition of the current menu."
   (easy-menu-filter-return
    (easy-menu-create-menu
     "Customize Project"
-    (let ((obj (ede-current-project))
-	  (targ nil))
+    (let* ((obj (ede-current-project))
+	   (targ (when (slot-boundp obj 'targets)
+		   (oref obj targets))))
       (when obj
 	;; Make custom menus for everything here.
 	(append (list
@@ -645,7 +653,8 @@ Argument MENU-DEF is the definition of the current menu."
 		(mapcar (lambda (o)
 			  (cons (concat "Target " (ede-name o))
 				(eieio-customize-object-group o)))
-			(oref obj targets))))))))
+			targ)))))))
+
 
 (defun ede-apply-object-keymap (&optional default)
   "Add target specific keybindings into the local map.
@@ -1125,12 +1134,15 @@ Allows for one-project-object-for-a-tree type systems."
 Allows for one-project-object-for-a-tree type systems.
 Optional FILE is the file to test.  If there is no FILE, use
 the current buffer."
+  (when (not file)
+    (setq file default-directory))
   (when (slot-boundp this :proj-root)
     (let ((rootfcn (oref this proj-root)))
       (when rootfcn
-	(condition-case nil
+	(condition-case err
 	    (funcall rootfcn file)
-	  (error (funcall rootfcn)))
+	  (error 
+	   (funcall rootfcn)))
 	))))
 
 
@@ -1526,6 +1538,8 @@ nil is returned if the current directory is not a part ofa project."
 	  ;; If not, get it now.
 	  (let ((ede-constructing t) (afo nil))
 	    (setq o (funcall (oref pfc load-type) toppath))
+	    (when (not o)
+	      (error "Project type error: :load-type failed to create a project"))
 	    (setq ede-projects (cons o ede-projects))))
       (let (tocheck found)
 	;; Now find the project file belonging to FILE!
