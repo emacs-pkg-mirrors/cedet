@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.165 2008/09/03 13:03:24 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.166 2008/09/06 23:57:37 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -2011,7 +2011,9 @@ function performs no type checking!"
 	  (progn
 	    (set s ov)			;store ov as our next symbol
 	    (setq cont nil))
-	(setq es (append (cdr es) (eieiomt-next (car es))))))
+	;; Pre-pend the subclasses of (car es) so we get
+	;; DEPTH FIRST optimization.
+	(setq es (append (eieiomt-next (car es)) (cdr es)))))
     ;; If there is no nearest call, then set our value to nil
     (if (not es) (set s nil))
     ))
