@@ -1,10 +1,10 @@
 ;;; ede-speedbar.el --- Speedbar viewing of EDE projects
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2003, 2005, 2007  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2003, 2005, 2007, 2008  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.28 2007/02/19 13:47:12 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.29 2008/09/06 21:36:05 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -235,8 +235,10 @@ A plain child is a child element which is not an EIEIO object."
 
 (defmethod eieio-speedbar-object-children ((this ede-project))
   "Return the list of speedbar display children for THIS."
-  (with-slots (subproj targets) this
-    (append subproj targets)))
+  (condition-case nil
+      (with-slots (subproj targets) this
+	(append subproj targets))
+    (error nil)))
 
 (defmethod eieio-speedbar-object-children ((this ede-target))
   "Return the list of speedbar display children for THIS."
