@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.10 2008/07/02 14:23:55 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.11 2008/09/06 00:23:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -154,9 +154,10 @@ DIR is the directory to search from."
     (when proj (oref proj :file))))
 
 ;;;###autoload
-(defun ede-cpp-root-project-root ()
+(defun ede-cpp-root-project-root (&optional dir)
   "Get the root directory for DIR."
-  (let ((projfile (ede-cpp-root-project-file-for-dir default-directory)))
+  (let ((projfile (ede-cpp-root-project-file-for-dir
+		   (or dir default-directory))))
     (when projfile
       (file-name-directory projfile))))
 
@@ -271,6 +272,8 @@ If one doesn't exist, create a new one for this directory."
 	 )
     (when (not ans)
       (setq ans (ede-cpp-root-target dir
+                 :name (file-name-nondirectory
+			(directory-file-name dir))
 		 :path dir
 		 :source nil))
       (object-add-to-list proj :targets ans)
