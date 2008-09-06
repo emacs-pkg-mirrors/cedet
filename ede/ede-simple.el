@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-simple.el,v 1.5 2008/06/17 16:21:56 zappo Exp $
+;; X-RCS: $Id: ede-simple.el,v 1.6 2008/09/06 14:13:09 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -104,7 +104,7 @@ Each directory needs a a project file to control it.")
   "Commit any change to PROJ to its file."
   (when (not (file-exists-p ede-simple-save-directory))
     (if (y-or-n-p (concat ede-simple-save-directory
-			  " Doesn't exist.  Create? "))
+			  " doesn't exist.  Create? "))
 	(make-directory ede-simple-save-directory)
       (error "No save directory for new project")))
   (eieio-persistent-save proj))
