@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.11 2008/09/06 00:23:27 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.12 2008/09/06 23:56:06 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -190,7 +190,7 @@ ROOTPROJ is nil, since there is only one project."
 All directories need at least one target.")
 
 ;;;###autoload
-(defclass ede-cpp-root-project (eieio-instance-tracker ede-project)
+(defclass ede-cpp-root-project (ede-project eieio-instance-tracker)
   ((tracking-symbol :initform 'ede-cpp-root-project-list)
    (include-path :initarg :include-path
 		 :initform '( "/include" "../include/" )
