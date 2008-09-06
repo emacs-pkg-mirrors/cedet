@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.107 2008/09/06 12:32:53 zappo Exp $
+;; RCS: $Id: ede.el,v 1.108 2008/09/06 14:04:56 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -136,12 +136,6 @@ type is required and the load function used.")
 			 :new-p nil)
    )
   "List of vectos defining how to determine what type of projects exist.")
-
-;;; AUTOLOADS
-;;
-;; These autoloads must appear here to avoid recursive loading.
-;;
-(require 'ede-load)
 
 ;;; Generic project information manager objects
 ;;
@@ -1584,8 +1578,9 @@ instead of the current project."
   "Return the project belonging to the parent directory.
 nil if there is no previous directory.
 Optional argument OBJ is an object to find the parent of."
-  (if (and obj (eq (ede-project-root obj)
-		   (oref obj file)))
+  (if (and obj
+	   (or (not (ede-project-root obj))
+	       (eq (ede-project-root obj) (oref obj file))))
       nil ;; we are at the root.
     (ede-load-project-file
      (concat (ede-up-directory
