@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.60 2008/06/10 00:51:54 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.61 2008/09/07 14:16:38 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -112,6 +112,8 @@ This includes `semantic-load-enable-minimum-features' plus:
 
   (global-semantic-idle-summary-mode 1)
 
+  (global-semantic-mru-bookmark-mode 1)
+
   ;; Do this last.  This allows other minor modes to get loaded
   ;; in so they appear in the menu properly.
   (global-senator-minor-mode 1)
@@ -151,6 +153,9 @@ This includes all features of `semantic-load-enable-code-helpers' plus:
   (interactive)
 
   (semantic-load-enable-code-helpers)
+
+  (semantic-toggle-decoration-style "semantic-decoration-on-private-members" t)
+  (semantic-toggle-decoration-style "semantic-decoration-on-protected-members" t)
 
   (if (fboundp #'which-func-mode)
       (add-hook 'semantic-init-hooks (lambda ()
