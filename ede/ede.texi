@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.15 2008/03/22 19:54:00 zappo Exp $
+@c $Id: ede.texi,v 1.16 2008/09/07 14:20:23 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -427,8 +427,9 @@ It can be configured with minimal lisp knowledge to do header file
 lookup for @semantic{}, improving code completion performance.
 
 @menu
-* ede-cpp-root::
-* ede-simple subclassing::
+* ede-cpp-root::        This project marks the root of a C/C++ code project.
+* ede-simple subclassing:: Create your own simple project.
+* ede-emacs::		A project for working with Emacs.
 @end menu
 
 @node ede-cpp-root
@@ -561,6 +562,15 @@ of project.
 todo - Write some doc.
 
   In the meantime look in the commentary of ede-simple.el
+
+@node ede-emacs
+@subsection ede-emacs
+
+The @code{ede-emacs} project will automatically identify an Emacs
+source tree, and enable EDE project mode for it.
+
+It pre-populates the C Preprocessor symbol map for correct parsing,
+and has an optimized include file identification function.
 
 @node Extending EDE, Project, Project types, top
 @chapter Extending @ede{}
