@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.50 2008/09/04 01:46:51 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.51 2008/09/07 14:16:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -436,7 +436,7 @@ Uses `semantic-idle-work-for-on-buffer' to do the work."
 		     (length errbuf)))))))
 
 (defun semantic-debug-idle-work-function ()
-  "Run the Semantic idle function with debugging turned on."
+  "Run the Semantic idle work function with debugging turned on."
   (interactive)
   (let ((debug-on-error t))
     (semantic-idle-work-core-handler)
