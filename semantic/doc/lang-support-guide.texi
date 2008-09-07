@@ -25,7 +25,7 @@
 @copying
 This manual documents Application Development with Semantic.
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -1272,7 +1272,6 @@ requires different types of tools.
 * Wisent Parser Debugging::     
 * Overlay Debugging::           
 * Incremental Parser Debugging::  
-* Debugging Analysis::          
 * Semantic 1.4 Doc::            
 @end menu
 
@@ -1543,27 +1542,6 @@ parser is merging changes with the main buffer.
 Non-@code{nil} means the incremental perser is verbose.
 If @code{nil}, errors are still displayed, but informative messages are not.
 @end defvar
-
-@node Debugging Analysis
-@section Debugging Analysis
-
-The semantic analyzer is a at the top of the food chain when it comes
-to @semantic{} service functionality.  The semantic support for a
-language must be absolute before analysis will work property.
-
-A good way to test analysis is by placing the cursor in different
-places, and requesting a dump of the context.
-
-@deffn Command semantic-analyze-current-context position
-@anchor{semantic-analyze-current-context}
-Analyze the current context at @var{POSITION}.
-If called interactively, display interesting information about @var{POSITION}
-in a separate buffer.
-Returns an object based on symbol @dfn{semantic-analyze-context}.
-@end deffn
-
-@ref{Semantic Analyzer Support}
-@inforef{Analyzer, , semantic-user}
 
 @node Semantic 1.4 Doc
 @section Semantic 1.4 Doc
