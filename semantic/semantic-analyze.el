@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.76 2008/08/23 15:11:59 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.77 2008/09/07 01:41:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -231,7 +231,7 @@ Optional argument DESIRED-TYPE may be a non-type tag to analyze."
 ;; context.
 
 (define-overloadable-function semantic-analyze-find-tag-sequence (sequence &optional
-							      scope typereturn)
+							      scope typereturn throwsym)
   "Attempt to find all tags in SEQUENCE.
 Optional argument LOCALVAR is the list of local variables to use when
 finding the details on the first element of SEQUENCE in case
@@ -240,14 +240,17 @@ Optional argument SCOPE are additional terminals to search which are currently
 scoped.  These are not local variables, but symbols available in a structure
 which doesn't need to be dereferneced.
 Optional argument TYPERETURN is a symbol in which the types of all found
-will be stored.  If nil, that data is thrown away.")
+will be stored.  If nil, that data is thrown away.
+Optional argument THROWSYM specifies a symbol the throw on non-recoverable error.")
 
 (defun semantic-analyze-find-tag-sequence-default (sequence &optional
-							    scope typereturn)
+							    scope typereturn
+							    throwsym)
   "Attempt to find all tags in SEQUENCE.
 SCOPE are extra tags which are in scope.
 TYPERETURN is a symbol in which to place a list of tag classes that
-are found in SEQUENCE."
+are found in SEQUENCE.
+Optional argument THROWSYM specifies a symbol the throw on non-recoverable error."
   (let ((s sequence)			; copy of the sequence
 	(tmp nil)			; tmp find variable
 	(nexttype nil)			; a tag for the type next in sequence
@@ -278,7 +281,9 @@ are found in SEQUENCE."
       (if (and (listp tmp) (semantic-tag-p (car tmp)))
 	  (setq tmp (semantic-analyze-select-best-tag tmp)))
       (if (not (semantic-tag-p tmp))
-	  (error "Cannot find definition for \"%s\"" (car s)))
+	  (if throwsym
+	      (throw throwsym "Cannot find definition")
+	    (error "Cannot find definition for \"%s\"" (car s))))
       (setq s (cdr s))
       (setq tag (cons tmp tag)) ; tag is nil here...
       (setq fname (semantic-tag-file-name tmp))
@@ -471,9 +476,10 @@ Returns an object based on symbol `semantic-analyze-context'."
 
       ;; Step 2:
       (if debug-on-error
-	  ;; If debug on error is on, allow debugging in this fcn.
-	  (setq prefix (semantic-analyze-find-tag-sequence
-			prefix scope 'prefixtypes))
+	  (catch 'unfindable
+	    ;; If debug on error is on, allow debugging in this fcn.
+	    (setq prefix (semantic-analyze-find-tag-sequence
+			  prefix scope 'prefixtypes 'unfindable)))
 	;; Debug on error is off.  Capture errors and move on
 	(condition-case err
 	    ;; NOTE: This line is duplicated in
