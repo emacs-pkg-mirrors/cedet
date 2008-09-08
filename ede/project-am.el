@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.35 2008/09/08 01:14:55 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.36 2008/09/08 01:59:08 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -84,7 +84,14 @@
     ("man" project-am-man "man_MANS")
     ("lisp" project-am-lisp "lisp_LISP")
     )
-  "Alist of type names and the type of object to create for them.")
+  "Alist of type names and the type of object to create for them.
+Each entry is of th form:
+  (EMACSNAME CLASS AUToMAKEVAR INDIRECT)
+where EMACSNAME is a name for Emacs to use.
+CLASS is the EDE project class to represent the target.
+AUTOMAKEVAR is the Automake variable to identify.
+INDIRECT is optional.  If it is non-nil, then the variable in
+question lists other variables that need to be looked up.")
 
 (defclass project-am-target (ede-target)
   nil
