@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.29 2008/09/06 21:36:05 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.30 2008/09/08 01:15:43 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -27,10 +27,6 @@
 ;;
 ;; Display a project's hierarchy in speedbar.
 ;;
-;; For speedbar support of your object, define these:
-;; `ede-sb-button' - Create a button representing your object.
-;; `ede-sb-expand' - Create the list of sub-buttons under your button
-;;                          when it is expanded.
 
 ;;; Code:
 (require 'speedbar)
@@ -263,8 +259,7 @@ It has depth DEPTH."
 (defun ede-file-find (text token indent)
   "Find the file TEXT at path TOKEN.
 INDENT is the current indentation level."
-  (speedbar-find-file-in-frame
-   (concat (speedbar-line-directory) token))
+  (speedbar-find-file-in-frame token)
   (speedbar-maybee-jump-to-attached-frame))
 
 (defun ede-create-tag-buttons (filename indent)
