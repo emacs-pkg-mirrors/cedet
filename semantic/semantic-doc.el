@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-doc.el,v 1.9 2008/09/04 01:50:55 zappo Exp $
+;; X-RCS: $Id: semantic-doc.el,v 1.10 2008/09/08 01:47:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,7 +111,9 @@ If NOSNARF is 'lex, then return the lex token."
 	    (setq ct (concat (substring ct 0 (match-beginning 0))
 			     (substring ct (match-end 0)))))
 	  ;; End of a block comment.
-	  (if (and block-comment-end (string-match block-comment-end ct))
+	  (if (and (boundp 'block-comment-end)
+		   block-comment-end
+		   (string-match block-comment-end ct))
 	      (setq ct (concat (substring ct 0 (match-beginning 0))
 			       (substring ct (match-end 0)))))
 	  ;; In case it's a real string, STRIPIT.
