@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.30 2008/09/08 01:15:43 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.31 2008/09/08 01:46:40 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -247,10 +247,10 @@ It has depth DEPTH."
     (mapcar (lambda (car)
  	      (speedbar-make-tag-line 'bracket ?+
  				      'speedbar-tag-file
- 				      (concat (oref this :path) car)
+				      car
  				      car
  				      'ede-file-find
- 				      (concat (oref this :path) car)
+ 				      car
  				      'speedbar-file-face depth))
 	    source)))
 
@@ -259,7 +259,8 @@ It has depth DEPTH."
 (defun ede-file-find (text token indent)
   "Find the file TEXT at path TOKEN.
 INDENT is the current indentation level."
-  (speedbar-find-file-in-frame token)
+  (speedbar-find-file-in-frame
+   (expand-file-name token (speedbar-line-directory indent)))
   (speedbar-maybee-jump-to-attached-frame))
 
 (defun ede-create-tag-buttons (filename indent)
