@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.4 2008/09/03 03:15:23 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.5 2008/09/08 01:48:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -36,7 +36,11 @@ GCC-CMD is an optional command to execute instead of \"gcc\""
     (save-excursion
       (set-buffer buff)
       (erase-buffer)
-      (call-process (or gcc-cmd "gcc") nil buff nil "-v")
+      (condition-case nil
+	  (call-process (or gcc-cmd "gcc") nil buff nil "-v")
+	(error ;; Some bogus directory for the first time perhaps?
+	 (let ((default-directory (expand-file-name "~/")))
+	   (call-process (or gcc-cmd "gcc") nil buff nil "-v"))))
       (prog1
 	  (buffer-string)
 	(kill-buffer buff)
