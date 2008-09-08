@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.109 2008/09/06 21:35:39 zappo Exp $
+;; RCS: $Id: ede.el,v 1.110 2008/09/08 01:09:15 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1579,9 +1579,11 @@ instead of the current project."
   "Return the project belonging to the parent directory.
 nil if there is no previous directory.
 Optional argument OBJ is an object to find the parent of."
-  (if (and obj
-	   (or (not (ede-project-root obj))
-	       (eq (ede-project-root obj) (oref obj file))))
+  (if (and obj (and (ede-project-root obj)
+		    (eq (ede-project-root obj)
+			(oref obj file))))
+      ;; The above case is a SHORTCUT if the project has defined
+      ;; a way to calculate the project root.
       nil ;; we are at the root.
     (ede-load-project-file
      (concat (ede-up-directory
