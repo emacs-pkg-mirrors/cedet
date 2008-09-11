@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.35 2008/08/25 02:13:13 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.36 2008/09/11 02:10:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -371,11 +371,6 @@ name in a secondary directory."
 (defmethod semanticdb-full-filename ((obj semanticdb-project-database-file))
   "Fetch the full filename that OBJ refers to."
   (oref obj file))
-
-(defmethod semanticdb-full-filename ((obj semanticdb-table))
-  "Fetch the full filename that OBJ refers to."
-  (expand-file-name (oref obj file)
-		    (oref (oref obj parent-db) reference-directory)))
 
 ;;; Compatibility
 ;;
