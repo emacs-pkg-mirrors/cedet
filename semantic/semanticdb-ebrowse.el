@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.18 2008/03/27 02:52:22 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.19 2008/09/11 02:09:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,12 +53,12 @@
 ;;       Call it a second time to refresh the Emacs DB with the file.
 ;;
 
-(require 'semanticdb-search)
 (eval-when-compile
   ;; For generic function searching.
   (require 'eieio)
   (require 'eieio-opt)
   )
+(require 'semanticdb-file)
 
 (eval-and-compile
   ;; Hopefully, this will allow semanticdb-ebrowse to compile under
@@ -100,7 +100,7 @@ be searched."
 (defun semanticdb-create-ebrowse-database (dir)
   "Create an EBROSE database for directory DIR.
 The database file is stored in ~/.semanticdb, or whichever directory
-is specified by `semanticdb-default-system-save-directory'."
+is specified by `semanticdb-default-save-directory'."
   (interactive "DDirectory: ")
   (setq dir (file-name-as-directory dir)) ;; for / on end
   (let* ((savein (semanticdb-ebrowse-file-for-directory dir))
@@ -155,7 +155,7 @@ is specified by `semanticdb-default-system-save-directory'."
 (defun semanticdb-load-ebrowse-caches ()
   "Load all semanticdb controlled EBROWSE caches."
   (interactive)
-  (let ((f (directory-files semanticdb-default-system-save-directory
+  (let ((f (directory-files semanticdb-default-save-directory
 			    t (concat semanticdb-ebrowse-default-file-name "-load.el$") t)))
     (while f
       (load (car f) nil t)
@@ -255,9 +255,9 @@ EML: Our database should probably remember the timestamp/checksum of
 ;; These routines deal with part of the ebrowse interface.
 (defun semanticdb-ebrowse-file-for-directory (dir)
   "Return the file name for DIR where the ebrowse BROWSE file is.
-This file should reside in `semanticdb-default-system-save-directory'."
+This file should reside in `semanticdb-default-save-directory'."
   (let* ((semanticdb-default-save-directory
-	  semanticdb-default-system-save-directory)
+	  semanticdb-default-save-directory)
 	 (B (semanticdb-file-name-directory
 	     'semanticdb-project-database-file
 	     (concat (expand-file-name dir)
