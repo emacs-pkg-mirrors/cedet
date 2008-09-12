@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.36 2008/09/11 02:10:11 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.37 2008/09/12 11:48:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -288,7 +288,7 @@ Argument OBJ is the object to write."
 
     ;; Make sure that the file size and other attributes are
     ;; up to date.
-    (let ((fattr (file-attributes (semanticdb-full-filename obj) 'integer)))
+    (let ((fattr (file-attributes (semanticdb-full-filename obj))))
       (oset obj fsize (nth 7 fattr))
       (oset obj lastmodtime (nth 5 fattr))
       )
