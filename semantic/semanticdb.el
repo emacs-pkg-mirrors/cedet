@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.119 2008/09/11 02:07:07 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.120 2008/09/12 11:48:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -131,6 +131,14 @@ Some databases may default to searching and providing simplified tags
 based on whichever technique used.  This method provides a hook for
 them to convert TAG into a more complete form."
   tags)
+
+(defmethod semanticdb-normalize-one-tag ((obj semanticdb-abstract-table) tag)
+  "For the table OBJ, convert a list of TAGS, into standardized form.
+The default is to return TAGS.
+Some databases may default to searching and providing simplified tags
+based on whichever technique used.  This method provides a hook for
+them to convert TAG into a more complete form."
+  (cons obj tag))
 
 (defmethod object-print ((obj semanticdb-abstract-table) &rest strings)
   "Pretty printer extension for `semanticdb-table'.
@@ -520,7 +528,7 @@ The file associated with OBJ does not need to be in a buffer."
 	  )
       ;; Buffer isn't loaded.  The only clue we have is if the file
       ;; is somehow different from our mark in the semanticdb table.
-      (let* ((stats (file-attributes ff 'integer))
+      (let* ((stats (file-attributes ff))
 	     (actualsize (nth 7 stats))
 	     (actualmod (nth 5 stats))
 	     )
@@ -540,9 +548,7 @@ The file associated with OBJ does not need to be in a buffer."
   "Synchronize the table TABLE with some NEW-TAGS."
   (oset table tags new-tags)
   (oset table pointmax (point-max))
-  (let ((fattr (file-attributes
-		(semanticdb-full-filename table)
-		'integer)))
+  (let ((fattr (file-attributes (semanticdb-full-filename table))))
     (oset table fsize (nth 7 fattr))
     (oset table lastmodtime (nth 5 fattr))
     )
