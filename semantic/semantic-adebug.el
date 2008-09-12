@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.19 2008/06/17 01:21:50 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.20 2008/09/12 11:49:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -355,7 +355,7 @@ Optional argument CTXT is the context to show."
 	))
       ;; Buffer isn't loaded.  The only clue we have is if the file
       ;; is somehow different from our mark in the semanticdb table.
-      (let* ((stats (file-attributes file 'integer))
+      (let* ((stats (file-attributes file))
 	     (actualsize (nth 7 stats))
 	     (actualmod (nth 5 stats))
 	     )
