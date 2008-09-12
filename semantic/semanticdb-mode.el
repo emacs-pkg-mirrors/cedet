@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-mode.el,v 1.1 2008/09/11 02:04:31 zappo Exp $
+;; X-RCS: $Id: semanticdb-mode.el,v 1.2 2008/09/12 11:47:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -206,8 +206,7 @@ handle it later if need be."
 	    (oset semanticdb-current-table pointmax (point-max))
 	    (let ((fattr (file-attributes
 			  (semanticdb-full-filename
-			   semanticdb-current-table)
-			  'integer)))
+			   semanticdb-current-table))))
 	      (oset semanticdb-current-table fsize (nth 7 fattr))
 	      (oset semanticdb-current-table lastmodtime (nth 5 fattr))
 	      ))
