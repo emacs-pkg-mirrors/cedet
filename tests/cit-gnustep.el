@@ -26,8 +26,8 @@
 ;;; Code:
 
 ;(require 'ede-pmake "../ede/ede-pmake.el" t)
-(require 'ede-gnustep (concat cit-src-dir "../contrib/ede-gnustep.el") t)
-;(defvar cit-ede-step-dir (concat cedet-integ-target "/edegnustep"))
+(require 'ede-gnustep (expand-file-name "../contrib/ede-gnustep.el") t)
+
 (require 'edebug)
 (defun cit-ede-step-test ()
   "Test EDE GNUstep-Make Project"
