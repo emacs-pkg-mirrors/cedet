@@ -1,7 +1,7 @@
 
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.58 2008/09/14 17:13:34 zappo Exp $
+@c $Id: eieio.texi,v 1.59 2008/09/15 01:33:08 zappo Exp $
 @c
 
 @c
@@ -537,6 +537,26 @@ however, to see what groups are available.
 
 This option is specific to Emacs, and is not in the CLOS spec.
 
+@item :method-invocation-order
+This controls the order in which method resolution occurs for
+@code{:primary} methods in cases of multiple inheritance.  The order
+affects which method is called first in a tree, and if
+@code{call-next-method} is used, it controls the order in which the
+stack of methods are run.
+
+Valid values are:
+
+@table @code
+@item :breadth-first
+Search for methods in the class hierarchy in breadth first order.
+This is the default.
+@item :depth-first
+Search for methods in the class hierarchy in a depth first order.
+@end table
+
+For more on method invocation order, @ref{Method Invocation}.
+
+
 @item :metaclass
 Unsupported CLOS option.  Enables the use of a different base class other
 than @code{standard-class}.
@@ -549,28 +569,6 @@ function of @code{:initform}.
 
 @xref{CLOS compatibility}, for more details on CLOS tags versus @eieio{}
 specific tags.
-
-The whole definition may look like this:
-@example
-(defclass data-object ()
-  ((value :initarg :value
-          :initform nil
-          :accessor get-value
-          :documentation
-          "Lisp object which represents the data this object maintains."
-          :protection :protected)
-   (reference :initarg :reference
-              :initform nil
-              :type list
-              :custom (repeat object)
-              :documentation
-              "List of objects looking at this object.
-The method `update-symbol' is called for each member of `reference' whenever 
-`value' is modified."
-              :protection :protected)
-   )
-  "Data object which tracks referencers.")
-@end example
 
 @node Making New Objects
 @comment  node-name,  next,  previous,  up
