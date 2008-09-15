@@ -1,10 +1,10 @@
 ;;; eieio-speedbar.el -- Classes for managing speedbar displays.
 
 ;;;
-;; Copyright (C) 1999, 2000, 2001, 2002, 2005, 2007 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2005, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.18 2007/02/18 18:12:49 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.19 2008/09/15 00:22:08 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -90,6 +90,8 @@
 ;; 
 ;; where `mymodename' is the same value as passed to `eieio-speedbar-create'
 ;; as the MODENAME parameter.
+
+;; @todo - Can we make this ECB friendly?
 
 ;;; Code:
 (require 'eieio)
@@ -264,18 +266,21 @@ See `speedbar-make-tag-line' for details."
    )
   "Class which provides basic speedbar support for child classes.
 Add one of thie child classes to this class to the parent list of a class."
+  :method-invocation-order :depth-first
   :abstract t)
 
 (defclass eieio-speedbar-directory-button (eieio-speedbar)
   ((buttontype :initform angle)
    (buttonface :initform speedbar-directory-face))
   "Class providing support for objects which behave like a directory."
+  :method-invocation-order :depth-first
   :abstract t)
 
 (defclass eieio-speedbar-file-button (eieio-speedbar)
   ((buttontype :initform bracket)
    (buttonface :initform speedbar-file-face))
   "Class providing support for objects which behave like a directory."
+  :method-invocation-order :depth-first
   :abstract t)
 
 
