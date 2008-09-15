@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-emacs.el,v 1.3 2008/09/06 23:55:41 zappo Exp $
+;; X-RCS: $Id: ede-emacs.el,v 1.4 2008/09/15 00:22:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -127,7 +127,8 @@ All directories need at least one target.")
 (defclass ede-emacs-project (ede-project eieio-instance-tracker)
   ((tracking-symbol :initform 'ede-emacs-project-list)
    )
-  "Project Type for the Emacs source code.")
+  "Project Type for the Emacs source code."
+  :method-invocation-order :depth-first)
 
 (defmethod initialize-instance ((this ede-emacs-project)
 				&rest fields)
