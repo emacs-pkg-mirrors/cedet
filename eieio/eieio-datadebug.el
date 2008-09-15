@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: eieio-datadebug.el,v 1.1 2008/03/27 02:45:10 zappo Exp $
+;; X-RCS: $Id: eieio-datadebug.el,v 1.2 2008/09/15 00:20:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -135,7 +135,24 @@ PREBUTTONTEXT is some text between PREFIX and the object button."
     (data-debug-insert-object-fields obj "]"))
   )
 
-;;; Code:
+;;; DEBUG FUNCTIONS
+;;
+(defun eieio-debug-methodinvoke (method class)
+  "Show the method invocation order for METHOD with CLASS object."
+  (interactive "aMethod: \nXClass Expression: ")
+  (let* ((eieio-pre-method-execution-hooks
+	  (lambda (l) (throw 'moose l) ))
+	 (data
+	  (catch 'moose (eieio-generic-call
+			 method (list class))))
+	 (buf (data-debug-new-buffer "*Method Invocation*"))
+	 (data2 (mapcar (lambda (sym)
+			  (symbol-function (car sym)))
+			  data))
+	 )
+    
+    (data-debug-insert-thing data2 ">" "")))
+
 
 (provide 'eieio-datadebug)
 
