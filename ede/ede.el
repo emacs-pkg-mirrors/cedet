@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.110 2008/09/08 01:09:15 zappo Exp $
+;; RCS: $Id: ede.el,v 1.111 2008/09/15 00:22:46 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -344,7 +344,8 @@ and target specific elements such as build variables.")
 	 :accessor ede-object-menu)
    )
   "Top level EDE project specification.
-All specific project types must derive from this project.")
+All specific project types must derive from this project."
+  :method-invocation-order :depth-first)
 
 ;;; Management variables
 ;;
