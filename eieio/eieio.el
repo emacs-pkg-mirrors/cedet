@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.166 2008/09/06 23:57:37 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.167 2008/09/15 00:18:57 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -240,6 +240,12 @@ Return nil if that option doesn't exist."
 Abstract classes cannot be instantiated."
   `(class-option ,class :abstract))
 
+(defmacro class-method-invocation-order (class)
+  "Return the invocation order of CLASS.
+Abstract classes cannot be instantiated."
+  `(or (class-option ,class :method-invocation-order)
+       :breadth-first))
+
 
 ;;; Defining a new class
 ;;
@@ -285,6 +291,11 @@ Options added to EIEIO:
   :abstract           - Non-nil to prevent instances of this class.
                         If a string, use as an error string if someone does
                         try to make an instance.
+  :method-invocation-order
+                      - Control the method invokation order if there is
+                        multiple inheritance.  Valid values are:
+                         :breadth-first - The default.
+                         :depth-first
 
 Options in CLOS not supported in EIEIO:
 
@@ -486,6 +497,12 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		  (format "Test OBJ to see if it an object of type %s" cname)
 		  (list 'and '(object-p obj)
 			(list 'same-class-p 'obj cname)))))
+
+    ;; Make sure the method invocation order  is a valid value.
+    (let ((io (class-option-assoc options :method-invocation-order)))
+      (when (and io (not (member io '(:depth-first :breadth-first))))
+	(error "Method invocation order %s is not allowed" io)
+	))
 
     ;; Create a handy child test too
     (let ((csym (intern (concat (symbol-name cname) "-child-p"))))
@@ -1736,6 +1753,11 @@ Keys are a number representing :BEFORE, :PRIMARY, and :AFTER methods.")
 During executions, the list is first generated, then as each next method
 is called, the next method is popped off the stack.")
 
+(defvar eieio-pre-method-execution-hooks nil
+  "*Hooks run just before a method is executed.
+The hook function must accept on argument, this list of forms
+about to be executed.")
+
 (defun eieio-generic-call (method args)
   "Call METHOD with ARGS.
 ARGS provides the context on which implementation to use.
@@ -1818,6 +1840,9 @@ This should only be called from a generic function."
 	    primarymethodlist  ;; Re-use even with bad name here
 	    (eieiomt-method-list method method-static mclass)))
 
+    (run-hook-with-args 'eieio-pre-method-execution-hooks
+			primarymethodlist)
+
     ;; Now loop through all occurances forms which we must execute
     ;; (which are happily sorted now) and execute them all!
     (let ((rval nil) (lastval nil) (rvalever nil) (found nil))
@@ -1875,7 +1900,12 @@ CLASS is the starting class to search from in the method tree."
       ;; Add new classes to mclass.  Since our input might not be a class
       ;; protect against that.
       (if (car mclass)
-	  (setq mclass (append (cdr mclass) (eieiomt-next (car mclass))))
+	  (let ((io (class-method-invocation-order (car mclass))))
+	    (if (eq io :depth-first)
+		(setq mclass (append (eieiomt-next (car mclass)) (cdr mclass)))
+	      ;; Breadth first.
+	      (setq mclass (append (cdr mclass) (eieiomt-next (car mclass)))))
+	    )
 	(setq mclass (cdr mclass)))
       )
     (if (eq key method-after)
@@ -1979,6 +2009,7 @@ CLASS is the class this method is associated with."
     ;; Now optimize the entire obarray
     (if (< key method-num-lists)
 	(let ((eieiomt-optimizing-obarray (aref emto key)))
+	  ;; @todo - Is this overkill?  Should we just clear the symbol?
 	  (mapatoms 'eieiomt-sym-optimize eieiomt-optimizing-obarray)))
     ))
 
@@ -1998,9 +2029,10 @@ function performs no type checking!"
 (defun eieiomt-sym-optimize (s)
   "Find the next class above S which has a function body for the optimizer."
   ;; (message "Optimizing %S" s)
-  (let ((es (intern-soft (symbol-name s))) ;external symbol of class
-	(ov nil)
-	(cont t))
+  (let* ((es (intern-soft (symbol-name s))) ;external symbol of class
+	 (io (class-method-invocation-order es))
+	 (ov nil)
+	 (cont t))
     ;; This converts ES from a single symbol to a list of parent classes.
     (setq es (eieiomt-next es))
     ;; Loop over ES, then it's children individually.
@@ -2011,9 +2043,14 @@ function performs no type checking!"
 	  (progn
 	    (set s ov)			;store ov as our next symbol
 	    (setq cont nil))
-	;; Pre-pend the subclasses of (car es) so we get
-	;; DEPTH FIRST optimization.
-	(setq es (append (eieiomt-next (car es)) (cdr es)))))
+	(if (eq io :depth-first)
+	    ;; Pre-pend the subclasses of (car es) so we get
+	    ;; DEPTH FIRST optimization.
+	    (setq es (append (eieiomt-next (car es)) (cdr es)))
+	  ;; Else, we are breadth first.
+	  ;; (message "Class %s is breadth first" es)
+	  (setq es (append (cdr es) (eieiomt-next (car es))))
+	  )))
     ;; If there is no nearest call, then set our value to nil
     (if (not es) (set s nil))
     ))
@@ -2134,13 +2171,13 @@ This is usually a symbol that starts with `:'."
 (defsetf eieio-oref (obj field) (store) (list 'eieio-oset obj field store))
 
 ;; The below setf method was written by Arnd Kohrs <kohrs@acm.org>
-(define-setf-method oref (obj field) 
-  (let ((obj-temp (gensym)) 
-	(field-temp (gensym)) 
-	(store-temp (gensym))) 
-    (list (list obj-temp field-temp) 
-	  (list obj `(quote ,field)) 
-	  (list store-temp) 
+(define-setf-method oref (obj field)
+  (let ((obj-temp (gensym))
+	(field-temp (gensym))
+	(store-temp (gensym)))
+    (list (list obj-temp field-temp)
+	  (list obj `(quote ,field))
+	  (list store-temp)
 	  (list 'set-slot-value obj-temp field-temp
 		store-temp)
 	  (list 'slot-value obj-temp field-temp))))
