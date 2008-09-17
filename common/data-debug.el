@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.7 2008/06/19 01:37:49 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.8 2008/09/17 14:05:36 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -361,7 +361,7 @@ PREBUTTONTEXT is some text between prefix and the thing."
     (put-text-property start end 'face font-lock-string-face)
     ))
 
-;;; String
+;;; Number
 (defun data-debug-insert-number (thing prefix prebuttontext)
   "Insert one symbol THING.
 A Symbol is a simple thing, but this provides some face and prefix rules.
@@ -397,6 +397,17 @@ PREBUTTONTEXT is some text between prefix and the thing."
 	  nil)
 	 )
 	)
+  )
+
+;;; Lambda Expression
+(defun data-debug-insert-lambda-expression (thing prefix prebuttontext)
+  "Insert one symbol THING.
+A Symbol is a simple thing, but this provides some face and prefix rules.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the thing."
+  (let ((txt (prin1-to-string thing)))
+    (data-debug-insert-simple-thing
+     txt prefix prebuttontext 'font-lock-keyword))
   )
 
 ;;; simple thing
@@ -467,6 +478,10 @@ FACE is the face to use."
 
     ;; Ring
     (ring-p . data-debug-insert-ring-button)
+
+    ;; Lambda Expression
+    ((lambda (thing) (and (consp thing) (eq (car thing) 'lambda))) .
+     data-debug-insert-lambda-expression)
 
     ;; List of stuff
     (listp . data-debug-insert-stuff-list-button)
