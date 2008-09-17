@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.167 2008/09/15 00:18:57 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.168 2008/09/17 14:20:59 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -111,7 +111,7 @@ default setting for optimization purposes.")
 ;; State Variables
 (defvar this nil
   "Inside a method, this variable is the object in question.
-DO NOT SET THIS YOURSELF unless you are trying to simulate friendly fields.
+DO NOT SET THIS YOURSELF unless you are trying to simulate friendly slots.
 
 Note: Embedded methods are no longer supported.  The variable THIS is
 still set for CLOS methods for the sake of routines like
@@ -133,8 +133,8 @@ execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
 (defvar eieio-default-superclass nil)
 
 (defconst class-symbol 1 "Class's symbol (self-referencing.).")
-(defconst class-parent 2 "Class parent field.")
-(defconst class-children 3 "Class children class field.")
+(defconst class-parent 2 "Class parent slot.")
+(defconst class-children 3 "Class children class slot.")
 (defconst class-symbol-obarray 4 "Obarray permitting fast access to variable position indexes.")
 ;; @todo
 ;; the word "public" here is leftovers from the very first version.
@@ -167,8 +167,8 @@ from the default.")
   "Storage location of tagged class options.
 Stored outright without modifications or stripping.")
 
-(defconst class-num-fields 26
-  "Number of fields in the class definition object.")
+(defconst class-num-slots 26
+  "Number of slots in the class definition object.")
 
 (defconst object-class 1 "Index in an object vector where the class is stored.")
 (defconst object-name 2 "Index in an object where the name is stored.")
@@ -181,7 +181,7 @@ Stored outright without modifications or stripping.")
 (defconst method-generic-before 4 "Index into generic :BEFORE tag on a method.")
 (defconst method-generic-primary 5 "Index into generic :PRIMARY tag on a method.")
 (defconst method-generic-after 6 "Index into generic :AFTER tag on a method.")
-(defconst method-num-fields 7 "Number of indexes into a method's vector.")
+(defconst method-num-slots 7 "Number of indexes into a method's vector.")
 
 ;; How to specialty compile stuff.
 (autoload 'byte-compile-file-form-defmethod "eieio-comp"
@@ -249,17 +249,17 @@ Abstract classes cannot be instantiated."
 
 ;;; Defining a new class
 ;;
-(defmacro defclass (name superclass fields &rest options-and-doc)
-  "Define NAME as a new class derived from SUPERCLASS with FIELDS.
+(defmacro defclass (name superclass slots &rest options-and-doc)
+  "Define NAME as a new class derived from SUPERCLASS with SLOTS.
 OPTIONS-AND-DOC is used as the class' options and base documentation.
-SUPERCLASS is a list of superclasses to inherit from, with FIELDS
-being the fields residing in that class definition.  NOTE: Currently
-only one field may exist in SUPERCLASS as multiple inheritance is not
+SUPERCLASS is a list of superclasses to inherit from, with SLOTS
+being the slots residing in that class definition.  NOTE: Currently
+only one slot may exist in SUPERCLASS as multiple inheritance is not
 yet supported.  Supported tags are:
 
   :initform   - initializing form
   :initarg    - tag used during initialization
-  :accessor   - tag used to create a function to access this field
+  :accessor   - tag used to create a function to access this slot
   :allocation - specify where the value is stored.
                 defaults to `:instance', but could also be `:class'
   :writer     - a function symbol which will `write' an object's slot
@@ -309,7 +309,7 @@ wish, and reference them using the function `class-option'."
   ;; an eieio program, there is no need to load it ahead of time.
   ;; It also provides lots of nice debugging errors at compile time.
   `(eval-and-compile
-     (eieio-defclass ',name ',superclass ',fields ',options-and-doc)))
+     (eieio-defclass ',name ',superclass ',slots ',options-and-doc)))
 
 (defvar eieio-defclass-autoload-map (make-vector 7 nil)
   "Symbol map of superclasses we find in autoloads.")
@@ -325,7 +325,7 @@ It creates an autoload function for CNAME's constructor."
   ;; Assume we've already debugged inputs.
 
   (let* ((oldc (when (class-p cname) (class-v cname)))
-	 (newc (make-vector class-num-fields nil))
+	 (newc (make-vector class-num-slots nil))
 	 )
     (if oldc
 	nil ;; Do nothing if we already have this class.
@@ -394,10 +394,10 @@ It creates an autoload function for CNAME's constructor."
   (when (eq (car-safe (symbol-function cname)) 'autoload)
     (load-library (car (cdr (symbol-function cname))))))
 
-(defun eieio-defclass (cname superclasses fields options-and-doc)
+(defun eieio-defclass (cname superclasses slots options-and-doc)
   "See `defclass' for more information.
-Define CNAME as a new subclass of SUPERCLASSES, with FIELDS being the
-fields residing in that class definition, and with options or documentation
+Define CNAME as a new subclass of SUPERCLASSES, with SLOTS being the
+slots residing in that class definition, and with options or documentation
 OPTIONS-AND-DOC as the toplevel documentation for this class."
   ;; Run our eieio-hook each time, and clear it when we are done.
   ;; This way people can add hooks safely if they want to modify eieio
@@ -409,7 +409,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
   (if (not (listp superclasses)) (signal 'wrong-type-argument '(listp superclasses)))
 
   (let* ((pname (if superclasses superclasses nil))
-	 (newc (make-vector class-num-fields nil))
+	 (newc (make-vector class-num-slots nil))
 	 (oldc (when (class-p cname) (class-v cname)))
 	 (groups nil) ;; list of groups id'd from slots
 	 (options nil)
@@ -527,7 +527,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 
       )
 
-    ;; before adding new fields, lets add all the methods and classes
+    ;; before adding new slots, lets add all the methods and classes
     ;; in from the parent class
     (eieio-copy-parents-into-subclass newc superclasses)
 
@@ -537,33 +537,33 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     ;; need to be stored a second time.
     (put cname 'eieio-class-definition newc)
 
-    ;; Query each field in the declaration list and mangle into the
+    ;; Query each slot in the declaration list and mangle into the
     ;; class structure I have defined.
-    (while fields
-      (let* ((field1  (car fields))
-	     (name    (car field1))
-	     (field   (cdr field1))
-	     (acces   (plist-get field ':accessor))
-	     (init    (or (plist-get field ':initform)
-			  (if (member ':initform field) nil
+    (while slots
+      (let* ((slot1  (car slots))
+	     (name    (car slot1))
+	     (slot   (cdr slot1))
+	     (acces   (plist-get slot ':accessor))
+	     (init    (or (plist-get slot ':initform)
+			  (if (member ':initform slot) nil
 			    eieio-unbound)))
-	     (initarg (plist-get field ':initarg))
-	     (docstr  (plist-get field ':documentation))
-	     (prot    (plist-get field ':protection))
-	     (reader  (plist-get field ':reader))
-	     (writer  (plist-get field ':writer))
-	     (alloc   (plist-get field ':allocation))
-	     (type    (plist-get field ':type))
-	     (custom  (plist-get field ':custom))
-	     (label   (plist-get field ':label))
-	     (customg (plist-get field ':group))
-	     (printer (plist-get field ':printer))
+	     (initarg (plist-get slot ':initarg))
+	     (docstr  (plist-get slot ':documentation))
+	     (prot    (plist-get slot ':protection))
+	     (reader  (plist-get slot ':reader))
+	     (writer  (plist-get slot ':writer))
+	     (alloc   (plist-get slot ':allocation))
+	     (type    (plist-get slot ':type))
+	     (custom  (plist-get slot ':custom))
+	     (label   (plist-get slot ':label))
+	     (customg (plist-get slot ':group))
+	     (printer (plist-get slot ':printer))
 
 	     (skip-nil (class-option-assoc options :allow-nil-initform))
 	     )
 
 	(if eieio-error-unsupported-class-tags
-	    (let ((tmp field))
+	    (let ((tmp slot))
 	      (while tmp
 		(if (not (member (car tmp) '(:accessor
 					     :initform
@@ -619,8 +619,8 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		      (signal 'invalid-slot-type (list ':group cg))))
 		customg)
 
-	;; First up, add this field into our new class.
-	(eieio-add-new-field newc name init docstr type custom label customg printer
+	;; First up, add this slot into our new class.
+	(eieio-add-new-slot newc name init docstr type custom label customg printer
 			     prot initarg alloc 'defaultoverride skip-nil)
 
 	;; We need to id the group, and store them in a group list attribute.
@@ -671,7 +671,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 			      name cname)
 		      `(slot-value this ',name)))))
 	)
-      (setq fields (cdr fields)))
+      (setq slots (cdr slots)))
 
     ;; Now that everything has been loaded up, all our lists are backwards!  Fix that up now.
     (aset newc class-public-a (nreverse (aref newc class-public-a)))
@@ -695,8 +695,8 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     (aset newc class-class-allocation-values
 	  (apply 'vector (aref newc class-class-allocation-values)))
 
-    ;; Attach field symbols into an obarray, and store the index of
-    ;; this field as the variable slot in this new symbol.  We need to
+    ;; Attach slot symbols into an obarray, and store the index of
+    ;; this slot as the variable slot in this new symbol.  We need to
     ;; know about primes, because obarrays are best set in vectors of
     ;; prime number length, and we also need to make our vector small
     ;; to save space, and also optimal for the number of items we have.
@@ -734,9 +734,9 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 
       ;; Non-abstract classes need a constructor.
       (fset cname
-	    `(lambda (newname &rest fields)
+	    `(lambda (newname &rest slots)
 	       ,(format "Create a new object with name NAME of class type %s" cname)
-	       (apply 'constructor ,cname newname fields)))
+	       (apply 'constructor ,cname newname slots)))
       )
 
     ;; Set up a specialized doc string.
@@ -774,21 +774,21 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     newc
     ))
 
-(defun eieio-perform-slot-validation-for-default (field spec value skipnil)
-  "For FIELD, signal if SPEC does not match VALUE.
+(defun eieio-perform-slot-validation-for-default (slot spec value skipnil)
+  "For SLOT, signal if SPEC does not match VALUE.
 If SKIPNIL is non-nil, then if VALUE is nil, return t."
   (let ((val (eieio-default-eval-maybe value)))
     (if (and (not eieio-skip-typecheck)
 	     (not (and skipnil (null val)))
 	     (not (eieio-perform-slot-validation spec val)))
-	(signal 'invalid-slot-type (list field spec val)))))
+	(signal 'invalid-slot-type (list slot spec val)))))
 
-(defun eieio-add-new-field (newc a d doc type cust label custg print prot init alloc
+(defun eieio-add-new-slot (newc a d doc type cust label custg print prot init alloc
 				 &optional defaultoverride skipnil)
   "Add into NEWC attribute A.
 If A already exists in NEWC, then do nothing.  If it doesn't exist,
 then also add in D (defualt), DOC, TYPE, CUST, LABEL, CUSTG, PRINT, PROT, and INIT arg.
-Argument ALLOC specifies if the field is allocated per instance, or per class.
+Argument ALLOC specifies if the slot is allocated per instance, or per class.
 If optional DEFAULTOVERRIDE is non-nil, then if A exists in NEWC,
 we must override it's value for a default.
 Optional argument SKIPNIL indicates if type checking should be skipped
@@ -824,7 +824,7 @@ if default value is nil."
 	      (aset newc class-initarg-tuples (cons (cons init a) (aref newc class-initarg-tuples)))
 	      )
 	  ;; When defaultoverride is true, we are usually adding new local
-	  ;; attributes which must override the default value of any field
+	  ;; attributes which must override the default value of any slot
 	  ;; passed in by one of the parent classes.
 	  (when defaultoverride
 	    ;; There is a match, and we must override the old value.
@@ -999,14 +999,14 @@ if default value is nil."
     ))
 
 (defun eieio-copy-parents-into-subclass (newc parents)
-  "Copy into NEWC the fields of PARENTS.
+  "Copy into NEWC the slots of PARENTS.
 Follow the rules of not overwritting early parents when applying to
 the new child class."
   (let ((ps (aref newc class-parent))
 	(sn (class-option-assoc (aref newc class-options)
 				':allow-nil-initform)))
     (while ps
-      ;; First, duplicate all the fields of the parent.
+      ;; First, duplicate all the slots of the parent.
       (let ((pcv (class-v (car ps))))
 	(let ((pa (aref pcv class-public-a))
 	      (pd (aref pcv class-public-d))
@@ -1020,7 +1020,7 @@ the new child class."
 	      (pinit (aref pcv class-initarg-tuples))
 	      (i 0))
 	  (while pa
-	    (eieio-add-new-field newc
+	    (eieio-add-new-slot newc
 				 (car pa) (car pd) (car pdoc) (aref ptype i)
 				 (car pcust) (car plabel) (car pcustg)
 				 (car printer)
@@ -1037,7 +1037,7 @@ the new child class."
 		  pprot (cdr pprot)
 		  pinit (cdr pinit))
 	    )) ;; while/let
-	;; Now duplicate all the class alloc fields.
+	;; Now duplicate all the class alloc slots.
 	(let ((pa (aref pcv class-class-allocation-a))
 	      (pdoc (aref pcv class-class-allocation-doc))
 	      (ptype (aref pcv class-class-allocation-type))
@@ -1049,7 +1049,7 @@ the new child class."
 	      (pval (aref pcv class-class-allocation-values))
 	      (i 0))
 	  (while pa
-	    (eieio-add-new-field newc
+	    (eieio-add-new-slot newc
 				 (car pa) (aref pval i) (car pdoc) (aref ptype i)
 				 (car pcust) (car plabel) (car pcustg)
 				 (car printer)
@@ -1229,30 +1229,30 @@ Summary:
       (eq value eieio-unbound)		; unbound always passes
       (typep value spec)))
 
-(defun eieio-validate-slot-value (class field-idx value field)
-  "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
+(defun eieio-validate-slot-value (class slot-idx value slot)
+  "Make sure that for CLASS referencing SLOT-IDX, that VALUE is valid.
 Checks the :type specifier.
-FIELD is the field that is being checked, and is only used when throwing
+SLOT is the slot that is being checked, and is only used when throwing
 and error."
   (if eieio-skip-typecheck
       nil
     ;; Trim off object IDX junk added in for the object index.
-    (setq field-idx (- field-idx 3))
-    (let ((st (aref (aref (class-v class) class-public-type) field-idx)))
+    (setq slot-idx (- slot-idx 3))
+    (let ((st (aref (aref (class-v class) class-public-type) slot-idx)))
       (if (not (eieio-perform-slot-validation st value))
-	  (signal 'invalid-slot-type (list class field st value))))))
+	  (signal 'invalid-slot-type (list class slot st value))))))
 
-(defun eieio-validate-class-slot-value (class field-idx value field)
-  "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
+(defun eieio-validate-class-slot-value (class slot-idx value slot)
+  "Make sure that for CLASS referencing SLOT-IDX, that VALUE is valid.
 Checks the :type specifier.
-FIELD is the field that is being checked, and is only used when throwing
+SLOT is the slot that is being checked, and is only used when throwing
 and error."
   (if eieio-skip-typecheck
       nil
     (let ((st (aref (aref (class-v class) class-class-allocation-type)
-		    field-idx)))
+		    slot-idx)))
       (if (not (eieio-perform-slot-validation st value))
-	  (signal 'invalid-slot-type (list class field st value))))))
+	  (signal 'invalid-slot-type (list class slot st value))))))
 
 (defun eieio-barf-if-slot-unbound (value instance slotname fn)
   "Throw a signal if VALUE is a representation of an UNBOUND slot.
@@ -1271,36 +1271,36 @@ Argument FN is the function calling this verifier."
 
 ;;; Get/Set slots in an object.
 ;;
-(defmacro oref (obj field)
-  "Retrieve the value stored in OBJ in the slot named by FIELD.
-Field is the name of the slot when created by `defclass' or the label
+(defmacro oref (obj slot)
+  "Retrieve the value stored in OBJ in the slot named by SLOT.
+Slot is the name of the slot when created by `defclass' or the label
 created by the :initarg tag."
-  `(eieio-oref ,obj (quote ,field)))
+  `(eieio-oref ,obj (quote ,slot)))
 
-(defun eieio-oref (obj field)
-  "Return the value in OBJ at FIELD in the object vector."
+(defun eieio-oref (obj slot)
+  "Return the value in OBJ at SLOT in the object vector."
   (if (not (or (object-p obj) (class-p obj)))
       (signal 'wrong-type-argument (list '(or object-p class-p) obj)))
-  (if (not (symbolp field))
-      (signal 'wrong-type-argument (list 'symbolp field)))
+  (if (not (symbolp slot))
+      (signal 'wrong-type-argument (list 'symbolp slot)))
   (if (class-p obj) (eieio-class-un-autoload obj))
   (let* ((class (if (class-p obj) obj (aref obj object-class)))
-	 (c (eieio-field-name-index class obj field)))
+	 (c (eieio-slot-name-index class obj slot)))
     (if (not c)
-	;; It might be missing because it is a :class allocated field.
+	;; It might be missing because it is a :class allocated slot.
 	;; Lets check that info out.
-	(if (setq c (eieio-class-field-name-index class field))
+	(if (setq c (eieio-class-slot-name-index class slot))
 	    ;; Oref that slot.
 	    (aref (aref (class-v class) class-class-allocation-values) c)
 	  ;; The slot-missing method is a cool way of allowing an object author
 	  ;; to intercept missing slot definitions.  Since it is also the LAST
 	  ;; thing called in this fn, it's return value would be retrieved.
-	  (slot-missing obj field 'oref)
-	  ;;(signal 'invalid-slot-name (list (object-name obj) field))
+	  (slot-missing obj slot 'oref)
+	  ;;(signal 'invalid-slot-name (list (object-name obj) slot))
 	  )
       (if (not (object-p obj))
 	  (signal 'wrong-type-argument (list 'object-p obj)))
-      (eieio-barf-if-slot-unbound (aref obj c) obj field 'oref))))
+      (eieio-barf-if-slot-unbound (aref obj c) obj slot 'oref))))
 
 (defalias 'slot-value 'eieio-oref)
 (defalias 'set-slot-value 'eieio-oset)
@@ -1322,30 +1322,30 @@ CDR is function definition and body."
 (put 'lambda-default 'lisp-indent-function 'defun)
 (put 'lambda-default 'byte-compile 'byte-compile-lambda-form)
 
-(defmacro oref-default (obj field)
-  "Gets the default value of OBJ (maybe a class) for FIELD.
+(defmacro oref-default (obj slot)
+  "Gets the default value of OBJ (maybe a class) for SLOT.
 The default value is the value installed in a class with the :initform
-tag.  FIELD can be the slot name, or the tag specified by the :initarg
+tag.  SLOT can be the slot name, or the tag specified by the :initarg
 tag in the `defclass' call."
-  `(eieio-oref-default ,obj (quote ,field)))
+  `(eieio-oref-default ,obj (quote ,slot)))
 
-(defun eieio-oref-default (obj field)
+(defun eieio-oref-default (obj slot)
   "Does the work for the macro `oref-default' with similar parameters.
-Fills in OBJ's FIELD with it's default value."
+Fills in OBJ's SLOT with it's default value."
   (if (not (or (object-p obj) (class-p obj))) (signal 'wrong-type-argument (list 'object-p obj)))
-  (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
+  (if (not (symbolp slot)) (signal 'wrong-type-argument (list 'symbolp slot)))
   (let* ((cl (if (object-p obj) (aref obj object-class) obj))
-	 (c (eieio-field-name-index cl obj field)))
+	 (c (eieio-slot-name-index cl obj slot)))
     (if (not c)
-	;; It might be missing because it is a :class allocated field.
+	;; It might be missing because it is a :class allocated slot.
 	;; Lets check that info out.
 	(if (setq c
-		  (eieio-class-field-name-index cl field))
+		  (eieio-class-slot-name-index cl slot))
 	    ;; Oref that slot.
 	    (aref (aref (class-v cl) class-class-allocation-values)
 		  c)
-	  (slot-missing obj field 'oref-default)
-	  ;;(signal 'invalid-slot-name (list (class-name cl) field))
+	  (slot-missing obj slot 'oref-default)
+	  ;;(signal 'invalid-slot-name (list (class-name cl) slot))
 	  )
       (eieio-barf-if-slot-unbound
        (let ((val (nth (- c 3) (aref (class-v cl) class-public-d))))
@@ -1369,67 +1369,67 @@ Fills in OBJ's FIELD with it's default value."
 
 ;;; Object Set macros
 ;;
-(defmacro oset (obj field value)
-  "Set the value in OBJ for slot FIELD to VALUE.
-FIELD is the slot name as specified in `defclass' or the tag created
+(defmacro oset (obj slot value)
+  "Set the value in OBJ for slot SLOT to VALUE.
+SLOT is the slot name as specified in `defclass' or the tag created
 with in the :initarg slot.  VALUE can be any Lisp object."
-  `(eieio-oset ,obj (quote ,field) ,value))
+  `(eieio-oset ,obj (quote ,slot) ,value))
 
-(defun eieio-oset (obj field value)
+(defun eieio-oset (obj slot value)
   "Does the work for the macro `oset'.
-Fills in OBJ's FIELD with VALUE."
+Fills in OBJ's SLOT with VALUE."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let ((c (eieio-field-name-index (object-class-fast obj) obj field)))
+  (if (not (symbolp slot)) (signal 'wrong-type-argument (list 'symbolp slot)))
+  (let ((c (eieio-slot-name-index (object-class-fast obj) obj slot)))
     (if (not c)
-	;; It might be missing because it is a :class allocated field.
+	;; It might be missing because it is a :class allocated slot.
 	;; Lets check that info out.
 	(if (setq c
-		  (eieio-class-field-name-index (aref obj object-class) field))
+		  (eieio-class-slot-name-index (aref obj object-class) slot))
 	    ;; Oset that slot.
 	    (progn
-	      (eieio-validate-class-slot-value (object-class-fast obj) c value field)
+	      (eieio-validate-class-slot-value (object-class-fast obj) c value slot)
 	      (aset (aref (class-v (aref obj object-class))
 			  class-class-allocation-values)
 		    c value))
 	  ;; See oref for comment on `slot-missing'
-	  (slot-missing obj field 'oset value)
-	  ;;(signal 'invalid-slot-name (list (object-name obj) field))
+	  (slot-missing obj slot 'oset value)
+	  ;;(signal 'invalid-slot-name (list (object-name obj) slot))
 	  )
-      (eieio-validate-slot-value (object-class-fast obj) c value field)
+      (eieio-validate-slot-value (object-class-fast obj) c value slot)
       (aset obj c value))))
 
-(defmacro oset-default (class field value)
-  "Set the default slot in CLASS for FIELD to VALUE.
+(defmacro oset-default (class slot value)
+  "Set the default slot in CLASS for SLOT to VALUE.
 The default value is usually set with the :initform tag during class
 creation.  This allows users to change the default behavior of classes
 after they are created."
-  `(eieio-oset-default ,class (quote ,field) ,value))
+  `(eieio-oset-default ,class (quote ,slot) ,value))
 
-(defun eieio-oset-default (class field value)
+(defun eieio-oset-default (class slot value)
   "Does the work for the macro `oset-default'.
-Fills in the default value in CLASS' in FIELD with VALUE."
+Fills in the default value in CLASS' in SLOT with VALUE."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
-  (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
+  (if (not (symbolp slot)) (signal 'wrong-type-argument (list 'symbolp slot)))
   (let* ((scoped-class class)
-	 (c (eieio-field-name-index class nil field)))
+	 (c (eieio-slot-name-index class nil slot)))
     (if (not c)
-	;; It might be missing because it is a :class allocated field.
+	;; It might be missing because it is a :class allocated slot.
 	;; Lets check that info out.
-	(if (setq c (eieio-class-field-name-index class field))
+	(if (setq c (eieio-class-slot-name-index class slot))
 	    (progn
 	      ;; Oref that slot.
-	      (eieio-validate-class-slot-value class c value field)
+	      (eieio-validate-class-slot-value class c value slot)
 	      (aset (aref (class-v class) class-class-allocation-values) c
 		    value))
-	  (signal 'invalid-slot-name (list (class-name class) field)))
-      (eieio-validate-slot-value class c value field)
+	  (signal 'invalid-slot-name (list (class-name class) slot)))
+      (eieio-validate-slot-value class c value slot)
       ;; Set this into the storage for defaults.
       (setcar (nthcdr (- c 3) (aref (class-v class) class-public-d))
 	      value)
       ;; Take the value, and put it into our cache object.
       (eieio-oset (aref (class-v class) class-default-object-cache)
-		  field value)
+		  slot value)
       )))
 
 ;;; Handy CLOS macros
@@ -1602,41 +1602,41 @@ If there is no class, nil is returned if ERRORP is nil."
 
 ;;; Slightly more complex utility functions for objects
 ;;
-(defun object-assoc (key field list)
-  "Return non-nil if KEY is `equal' to the FIELD of the car of objects in LIST.
-LIST is a list of objects who's fields are searched.
-The value is actually the element of LIST whose field equals KEY."
+(defun object-assoc (key slot list)
+  "Return non-nil if KEY is `equal' to the SLOT of the car of objects in LIST.
+LIST is a list of objects who's slots are searched.
+The value is actually the element of LIST whose slot equals KEY."
   (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
   (while (and list (not (condition-case nil
 			    ;; This prevents errors for missing slots.
-			    (equal key (eieio-oref (car list) field))
+			    (equal key (eieio-oref (car list) slot))
 			  (error nil))))
     (setq list (cdr list)))
   (car list))
 
-(defun object-assoc-list (field list)
-  "Return an association list with the contents of FIELD as the key element.
-LIST must be a list of objects with FIELD in it.
+(defun object-assoc-list (slot list)
+  "Return an association list with the contents of SLOT as the key element.
+LIST must be a list of objects with SLOT in it.
 This is useful when you need to do completing read on an object group."
   (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
   (let ((assoclist nil))
     (while list
-      (setq assoclist (cons (cons (eieio-oref (car list) field)
+      (setq assoclist (cons (cons (eieio-oref (car list) slot)
 				  (car list))
 			    assoclist))
       (setq list (cdr list)))
     (nreverse assoclist)))
 
-(defun object-assoc-list-safe (field list)
-  "Return an association list with the contents of FIELD as the key element.
+(defun object-assoc-list-safe (slot list)
+  "Return an association list with the contents of SLOT as the key element.
 LIST must be a list of objects, but those objects do not need to have
-FIELD in it.  If it does not, then that element is left out of the association
+SLOT in it.  If it does not, then that element is left out of the association
 list."
   (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
   (let ((assoclist nil))
     (while list
-      (if (slot-exists-p (car list) field)
-	  (setq assoclist (cons (cons (eieio-oref (car list) field)
+      (if (slot-exists-p (car list) slot)
+	  (setq assoclist (cons (cons (eieio-oref (car list) slot)
 				      (car list))
 				assoclist)))
       (setq list (cdr list)))
@@ -1676,32 +1676,32 @@ If SLOT is unbound, do nothing."
 
 ;;; EIEIO internal search functions
 ;;
-(defun eieio-field-originating-class-p (start-class field)
-  "Return Non-nil if START-CLASS is the first class to define FIELD.
-This is for testing if `scoped-class' is the class that defines FIELD
+(defun eieio-slot-originating-class-p (start-class slot)
+  "Return Non-nil if START-CLASS is the first class to define SLOT.
+This is for testing if `scoped-class' is the class that defines SLOT
 so that we can protect private slots."
   (let ((par (class-parents start-class))
 	(ret t))
     (if (not par)
 	t
       (while (and par ret)
-	(if (intern-soft (symbol-name field)
+	(if (intern-soft (symbol-name slot)
 			 (aref (class-v (car par))
 			       class-symbol-obarray))
 	    (setq ret nil))
 	(setq par (cdr par)))
       ret)))
 
-(defun eieio-field-name-index (class obj field)
-  "In CLASS for OBJ find the index of the named FIELD.
-The field is a symbol which is installed in CLASS by the `defclass'
+(defun eieio-slot-name-index (class obj slot)
+  "In CLASS for OBJ find the index of the named SLOT.
+The slot is a symbol which is installed in CLASS by the `defclass'
 call.  OBJ can be nil, but if it is an object, and the slot in question
 is protected, access will be allowed if obj is a child of the currently
 `scoped-class'.
-If FIELD is the value created with :initarg instead,
+If SLOT is the value created with :initarg instead,
 reverse-lookup that name, and recurse with the associated slot value."
   ;; Removed checks to outside this call
-  (let* ((fsym (intern-soft (symbol-name field)
+  (let* ((fsym (intern-soft (symbol-name slot)
 			    (aref (class-v class)
 				  class-symbol-obarray)))
 	 (fsi (if (symbolp fsym) (symbol-value fsym) nil)))
@@ -1717,23 +1717,23 @@ reverse-lookup that name, and recurse with the associated slot value."
 	  (+ 3 fsi))
 	 ((and (eq (get fsym 'protection) 'private)
 	       (or (and scoped-class
-			(eieio-field-originating-class-p scoped-class field))
+			(eieio-slot-originating-class-p scoped-class slot))
 		   eieio-initializing-object))
 	  (+ 3 fsi))
 	 (t nil))
-      (let ((fn (eieio-initarg-to-attribute class field)))
-	(if fn (eieio-field-name-index class obj fn) nil)))))
+      (let ((fn (eieio-initarg-to-attribute class slot)))
+	(if fn (eieio-slot-name-index class obj fn) nil)))))
 
-(defun eieio-class-field-name-index (class field)
-  "In CLASS find the index of the named FIELD.
-The field is a symbol which is installed in CLASS by the `defclass'
-call.  If FIELD is the value created with :initarg instead,
+(defun eieio-class-slot-name-index (class slot)
+  "In CLASS find the index of the named SLOT.
+The slot is a symbol which is installed in CLASS by the `defclass'
+call.  If SLOT is the value created with :initarg instead,
 reverse-lookup that name, and recurse with the associated slot value."
   ;; This will happen less often, and with fewer slots.  Do this the
   ;; storage cheap way.
   (let* ((a (aref (class-v class) class-class-allocation-a))
 	 (l1 (length a))
-	 (af (memq field a))
+	 (af (memq slot a))
 	 (l2 (length af)))
     ;; Slot # is length of the total list, minus the remaining list of
     ;; the found slot.
@@ -1972,9 +1972,9 @@ Do not do the work if they already exist."
     (if (or (not emtv) (not emto))
 	(progn
 	  (setq emtv (put method-name 'eieio-method-tree
-			  (make-vector method-num-fields nil))
+			  (make-vector method-num-slots nil))
 		emto (put method-name 'eieio-method-obarray
-			  (make-vector method-num-fields nil)))
+			  (make-vector method-num-slots nil)))
 	  (aset emto 0 (make-vector 11 0))
 	  (aset emto 1 (make-vector 11 0))
 	  (aset emto 2 (make-vector 41 0))
@@ -1989,7 +1989,7 @@ KEY is an integer (see comment in eieio.el near this function) which
 is associated with the :STATIC :BEFORE :PRIMARY and :AFTER tags.
 It also indicates if CLASS is defined or not.
 CLASS is the class this method is associated with."
-  (if (or (> key method-num-fields) (< key 0))
+  (if (or (> key method-num-slots) (< key 0))
       (error "Eieiomt-add: method key error!"))
   (let ((emtv (get method-name 'eieio-method-tree))
 	(emto (get method-name 'eieio-method-obarray)))
@@ -2103,13 +2103,13 @@ memoized for future faster use."
 	 nil)))))
 
 ;;;
-;; Way to assign fields based on a list.  Used for constructors, or
+;; Way to assign slots based on a list.  Used for constructors, or
 ;; even resetting an object at run-time
 ;;
 (defun eieio-set-defaults (obj &optional set-all)
-  "Take object OBJ, and reset all fields to their defaults.
+  "Take object OBJ, and reset all slots to their defaults.
 If SET-ALL is non-nil, then when a default is nil, that value is
-reset.  If SET-ALL is nil, the fields are only reset if the default is
+reset.  If SET-ALL is nil, the slots are only reset if the default is
 not nil."
   (let ((scoped-class (aref obj object-class))
 	(eieio-initializing-object t)
@@ -2167,20 +2167,20 @@ This is usually a symbol that starts with `:'."
 ;;; Here are some CLOS items that need the CL package
 ;;
 
-(defsetf slot-value (obj field) (store) (list 'eieio-oset obj field store))
-(defsetf eieio-oref (obj field) (store) (list 'eieio-oset obj field store))
+(defsetf slot-value (obj slot) (store) (list 'eieio-oset obj slot store))
+(defsetf eieio-oref (obj slot) (store) (list 'eieio-oset obj slot store))
 
 ;; The below setf method was written by Arnd Kohrs <kohrs@acm.org>
-(define-setf-method oref (obj field)
+(define-setf-method oref (obj slot)
   (let ((obj-temp (gensym))
-	(field-temp (gensym))
+	(slot-temp (gensym))
 	(store-temp (gensym)))
-    (list (list obj-temp field-temp)
-	  (list obj `(quote ,field))
+    (list (list obj-temp slot-temp)
+	  (list obj `(quote ,slot))
 	  (list store-temp)
-	  (list 'set-slot-value obj-temp field-temp
+	  (list 'set-slot-value obj-temp slot-temp
 		store-temp)
-	  (list 'slot-value obj-temp field-temp))))
+	  (list 'slot-value obj-temp slot-temp))))
 
 
 ;;;
@@ -2195,17 +2195,17 @@ This is usually a symbol that starts with `:'."
 (defclass eieio-default-superclass nil
   nil
   "Default class used as parent class for orphaned classes.
-Its fields are automatically adopted by classes with no specified
-parents.  This class is not stored in the `parent' field of a class vector."
+Its slots are automatically adopted by classes with no specified
+parents.  This class is not stored in the `parent' slot of a class vector."
   :abstract t)
 
 (defalias 'standard-class 'eieio-default-superclass)
 
 (defmethod constructor :STATIC
-  ((class eieio-default-superclass) newname &rest fields)
+  ((class eieio-default-superclass) newname &rest slots)
   "Default constructor for CLASS `eieio-defualt-superclass'.
 NEWNAME is the name to be given to the constructed object.
-FIELDS are the initialization fields used by `shared-initialize'.
+SLOTS are the initialization slots used by `shared-initialize'.
 This static method is called when an object is constructed.
 It allocates the vector used to represent an EIEIO object, and then
 calls `shared-initialize' on that object."
@@ -2213,34 +2213,34 @@ calls `shared-initialize' on that object."
 					  class-default-object-cache))))
     ;; Update the name for the newly created object.
     (aset new-object object-name newname)
-    ;; Call the initialize method on the new object with the fields
+    ;; Call the initialize method on the new object with the slots
     ;; that were passed down to us.
-    (initialize-instance new-object fields)
+    (initialize-instance new-object slots)
     ;; Return the created object.
     new-object))
 
-(defmethod shared-initialize ((obj eieio-default-superclass) fields)
-  "Set fields of OBJ with FIELDS which is a list of name/value pairs.
+(defmethod shared-initialize ((obj eieio-default-superclass) slots)
+  "Set slots of OBJ with SLOTS which is a list of name/value pairs.
 Called from the constructor routine."
   (let ((scoped-class (aref obj object-class)))
-    (while fields
+    (while slots
       (let ((rn (eieio-initarg-to-attribute (object-class-fast obj)
-					    (car fields))))
+					    (car slots))))
 	(if (not rn)
-	    (slot-missing obj (car fields) 'oset (car (cdr fields))))
-	(eieio-oset obj rn (car (cdr fields))))
-      (setq fields (cdr (cdr fields))))))
+	    (slot-missing obj (car slots) 'oset (car (cdr slots))))
+	(eieio-oset obj rn (car (cdr slots))))
+      (setq slots (cdr (cdr slots))))))
 
 (defmethod initialize-instance ((this eieio-default-superclass)
-				&optional fields)
-    "Constructs the new object THIS based on FIELDS.
-FIELDS is a tagged list where odd numbered elements are tags, and
+				&optional slots)
+    "Constructs the new object THIS based on SLOTS.
+SLOTS is a tagged list where odd numbered elements are tags, and
 even numbered elements are the values to store in the tagged slot.  If
 you overload the `initialize-instance', there you will need to call
 `shared-initialize' yourself, or you can call `call-next-method' to
 have this constructor called automatically.  If these steps are not
 taken, then new objects of your class will not have their values
-dynamically set from FIELDS."
+dynamically set from SLOTS."
     ;; First, see if any of our defaults are `lambda', and
     ;; re-evaluate them and apply the value to our slots.
     (let* ((scoped-class (class-v (aref this object-class)))
@@ -2252,8 +2252,8 @@ dynamically set from FIELDS."
 	    (eieio-oset this (car slot) (funcall (car defaults))))
 	(setq slot (cdr slot)
 	      defaults (cdr defaults))))
-    ;; Shared initialize will parse our fields for us.
-    (shared-initialize this fields))
+    ;; Shared initialize will parse our slots for us.
+    (shared-initialize this slots))
 
 (defmethod slot-missing ((object eieio-default-superclass) slot-name
 			 operation &optional new-value)
@@ -2354,8 +2354,8 @@ this object."
 	 (cv (class-v cl)))
     ;; Now output readable lisp to recreate this object
     ;; It should look like this:
-    ;; (<constructor> <name> <slot> <field> ... )
-    ;; Each slot's field is writen using its :writer.
+    ;; (<constructor> <name> <slot> <slot> ... )
+    ;; Each slot's slot is writen using its :writer.
     (princ (make-string (* eieio-print-depth 2) ? ))
     (princ "(")
     (princ (symbol-name (class-constructor (object-class this))))
