@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.67 2008/06/15 14:38:42 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.68 2008/09/17 15:16:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -846,14 +846,22 @@ instead."
 	(while tmp
 	  (let ((tab (car (car tmp)))
 		(tags (cdr (car tmp))))
-	    (if (eq find-file-match 'name)
-		(let ((f (semanticdb-full-filename tab)))
-		  (dolist (tag tags)
-		    (semantic--tag-put-property tag :filename f)
+	    (dolist (T tags)
+	      (let* ((norm (semanticdb-normalize-one-tag tab T))
+		     (ntab (car norm))
+		     (ntag (cdr norm))
+		     (nametable ntab))
+		(if (not norm)
+		    (setq nametable tab)
+		  (semanticdb-get-buffer ntab)
+		  (setq output (append output (list ntag)))
+		  )
+		(when (eq find-file-match 'name)
+		  (let ((f (semanticdb-full-filename nametable)))
+		    (semantic--tag-put-property ntag :filename f)
 		    ))
-	      (semanticdb-get-buffer tab))
-	    (setq output (append output
-				 (semanticdb-normalize-tags tab tags))))
+		))
+	    )
 	  (setq tmp (cdr tmp)))
 	output)
     ;; @todo - I could use nconc, but I don't know what the caller may do with
@@ -966,7 +974,17 @@ is still made current."
     ;; If we have a hit, double-check the find-file
     ;; entry.  If the file must be loaded, then gat that table's
     ;; source file into a buffer.
-    (if anstable (semanticdb-set-buffer anstable))
+
+    (if anstable
+	(let ((norm (semanticdb-normalize-one-tag anstable ans)))
+	  (when norm
+	    ;; The normalized tags can now be found based on that
+	    ;; tags table.
+	    (semanticdb-set-buffer (car norm))
+	    ;; Now reset ans
+	    (setq ans (cdr norm))
+	    ))
+      )
     ;; Return the tag.
     ans))
 
