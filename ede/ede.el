@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.111 2008/09/15 00:22:46 zappo Exp $
+;; RCS: $Id: ede.el,v 1.112 2008/09/17 14:24:14 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1864,7 +1864,7 @@ Display the results as a debug list."
   (let ((ab nil))
     (when (ede-current-project)
       (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
-      (data-debug-insert-object-fields (ede-current-project) "")
+      (data-debug-insert-object-slots (ede-current-project) "")
       )))
 
 ;;; Hooks & Autoloads
