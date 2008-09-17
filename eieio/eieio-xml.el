@@ -4,7 +4,7 @@
 ;; Copyright (C) 2005, 2006, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; CVS: $Id: eieio-xml.el,v 1.1 2008/06/19 01:55:00 zappo Exp $
+;; CVS: $Id: eieio-xml.el,v 1.2 2008/09/17 14:23:29 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -82,7 +82,7 @@ this object.
     ;;      <value>attrvalue</value>
     ;;    </slot>
     ;; </object>
-    ;; Each slot's field is writen using its :writer.
+    ;; Each slot's slot is writen using its :writer.
     (princ (make-string (* eieio-print-depth 2) ? ))
     (princ "<object>\n")
     (let ((eieio-print-depth (+ eieio-print-depth 1)))
