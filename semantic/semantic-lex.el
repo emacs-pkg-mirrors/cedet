@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.50 2008/09/04 01:49:30 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.51 2008/09/17 14:25:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -482,6 +482,26 @@ If universal argument ARG, then try the whole buffer."
 	 (result (semantic-lex
 		  (if arg (point-min) (point))
 		  (point-max)))
+	 (end (current-time)))
+    (message "Elapsed Time: %.2f seconds."
+	     (semantic-elapsed-time start end))
+    (pop-to-buffer "*Lexer Output*")
+    (require 'pp)
+    (erase-buffer)
+    (insert (pp-to-string result))
+    (goto-char (point-min))
+    ))
+
+(defun semantic-lex-test-full-depth (arg)
+  "Test the semantic lexer in the current buffer parsing through lists.
+Usually the lexer parses
+If universal argument ARG, then try the whole buffer."
+  (interactive "P")
+  (let* ((start (current-time))
+	 (result (semantic-lex
+		  (if arg (point-min) (point))
+		  (point-max)
+		  100))
 	 (end (current-time)))
     (message "Elapsed Time: %.2f seconds."
 	     (semantic-elapsed-time start end))
