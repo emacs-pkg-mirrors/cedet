@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.23 2008/09/07 01:42:29 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.24 2008/09/17 15:46:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -689,10 +689,10 @@ The VALUE is a spp lexical table."
 		   (condition-case nil
 		       (prin1 rest)
 		     (error
-		      (princ ";; Error writing macro")))
+		      (princ "nil ;; Error writing macro")))
 		   )
 		  (t ;; Too Long!
-		   (princ ";; Too Long!\n          ")
+		   (princ "nil ;; Too Long!\n          ")
 		   ))))
 	)
       (princ ")\n          ")
