@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.23 2008/08/02 16:24:00 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.24 2008/09/17 15:19:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,6 +30,7 @@
 
 (require 'senator)
 (require 'semantic-analyze)
+(require 'pulse)
 
 ;;; Code:
 (defcustom semantic-ia-completion-format-tag-function
@@ -207,7 +208,9 @@ origin of the code at point."
 	  ;; @todo - push a tag mark?
 	  (push-mark)
 	  (semantic-go-to-tag first)
-	  (switch-to-buffer (current-buffer)))
+	  (switch-to-buffer (current-buffer))
+	  (pulse-momentary-highlight-one-line (point))
+	  )
       (if (semantic-tag-p second)
 	  (let ((secondclass (car (reverse (oref ctxt prefixtypes)))))
 	    (cond
@@ -216,13 +219,17 @@ origin of the code at point."
 				     first (semantic-tag-name secondclass))))
 	      (push-mark)
 	      (semantic-go-to-tag secondclass)
-	      (switch-to-buffer (current-buffer)))
+	      (switch-to-buffer (current-buffer))
+	      (pulse-momentary-highlight-one-line (point))
+	      )
 	     ((and (semantic-tag-p second)
 		   (y-or-n-p (format "Cound not find `%s'.  Jump to %s? "
 				     first (semantic-tag-name second))))
 	      (push-mark)
 	      (semantic-go-to-tag second)
-	      (switch-to-buffer (current-buffer)))))
+	      (switch-to-buffer (current-buffer))
+	      (pulse-momentary-highlight-one-line (point))
+	      )))
 	(error "Could not find suitable jump point for %s"
 	       first)
 	))))
