@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.20 2008/09/12 11:49:12 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.21 2008/09/17 14:24:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -285,7 +285,7 @@ Optional argument CTXT is the context to show."
     (if ctxt
 	(progn
 	  (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
-	  (data-debug-insert-object-fields ctxt "]"))
+	  (data-debug-insert-object-slots ctxt "]"))
       (message "No Context to analyze here."))))
 
 ;;;###autoload
