@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.120 2008/09/12 11:48:43 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.121 2008/09/17 15:15:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -133,8 +133,11 @@ them to convert TAG into a more complete form."
   tags)
 
 (defmethod semanticdb-normalize-one-tag ((obj semanticdb-abstract-table) tag)
-  "For the table OBJ, convert a list of TAGS, into standardized form.
-The default is to return TAGS.
+  "For the table OBJ, convert a TAG, into standardized form.
+This method returns a list of the form (DATABASE . NEWTAG).
+
+The default is to just return (OBJ TAG).
+
 Some databases may default to searching and providing simplified tags
 based on whichever technique used.  This method provides a hook for
 them to convert TAG into a more complete form."
