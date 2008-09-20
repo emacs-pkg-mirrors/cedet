@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.27 2008/08/20 19:00:49 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.28 2008/09/20 03:20:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,6 +64,8 @@ depended on (see `semantic-dependency-tag-file'."
 	    ;; Tag had nothing, and the parent only has a file-name, then
 	    ;; find that file, and switch to that buffer.
 	    (set-buffer (find-file-noselect (semantic-tag-file-name parent))))
+	   ((and parent (semanticdb-table-child-p parent))
+	    (set-buffer (semanticdb-get-buffer parent)))
 	   (t
 	    ;; Well, just assume things are in the current buffer.
 	    nil
