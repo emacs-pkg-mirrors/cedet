@@ -42,7 +42,7 @@
    (ede-proj-target-elisp "Analyzer"
     :name "Analyzer"
     :path ""
-    :source '("semantic-analyze.el" "semantic-analyze-complete.el" "semantic-analyze-fcn.el" "semantic-analyze-debug.el")
+    :source '("semantic-analyze.el" "semantic-analyze-complete.el" "semantic-analyze-fcn.el" "semantic-analyze-debug.el" "semantic-analyze-refs.el")
     :aux-packages '("eieio" "ede")
     )
    (ede-proj-target-elisp "Languages"
