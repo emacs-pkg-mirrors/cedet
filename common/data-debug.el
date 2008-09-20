@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.8 2008/09/17 14:05:36 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.9 2008/09/20 03:32:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -457,6 +457,12 @@ FACE is the face to use."
     ;; find results
     (semanticdb-find-results-p . data-debug-insert-find-results-button)
    
+    ;; Elt of a find-results
+    ((lambda (thing) (and (listp thing)
+			  (semanticdb-abstract-table-child-p (car thing))
+			  (semantic-tag-p (cdr thing)))) .
+			  data-debug-insert-db-and-tag-button)
+
     ;; Overlay
     (data-debug-overlay-p . data-debug-insert-overlay-button)
 
