@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.48 2008/09/06 23:59:23 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.49 2008/09/20 03:29:45 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -959,10 +959,10 @@ knr-varnamelist
 
 
 knr-one-variable-decl
-  : typeformbase cv-declmods knr-varnamelist
-    ( VARIABLE-TAG (nreverse $3) $1 nil
-                   :constant-flag (if (member "const" (append $2)) t nil)
-                   :typemodifiers (delete "const" $2)
+  : declmods typeformbase cv-declmods knr-varnamelist
+    ( VARIABLE-TAG (nreverse $4) $2 nil
+                   :constant-flag (if (member "const" (append $3)) t nil)
+                   :typemodifiers (delete "const" $3)
                    )
   ;
 
