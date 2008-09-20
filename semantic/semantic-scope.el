@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.19 2008/08/26 01:49:39 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.20 2008/09/20 02:45:19 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -261,7 +261,9 @@ are from nesting data types."
 		;; Otherwise, just add this to the returnlist.
 		(setq returnlist (cons (car stack) returnlist))
 		(setq stack (cdr stack)))
-	      (setq returnlist (nreverse returnlist))))
+
+	      (setq returnlist (nreverse returnlist))
+	      ))
 	  )
 	
 	;; Step 2:
@@ -322,9 +324,11 @@ are from nesting data types."
 		  )
 
 		(setq snlist (cdr snlist)))
+	      (setq returnlist (nreverse returnlist))
 	      )))
 	
-	(nreverse returnlist)))))
+	returnlist
+	))))
 
 (define-overloadable-function semantic-analyze-scope-lineage-tags (parents scopedtypes)
   "Return the full lineage of tags from PARENTS.
