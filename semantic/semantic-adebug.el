@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.21 2008/09/17 14:24:47 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.22 2008/09/20 03:31:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -102,6 +102,7 @@ PARENT specifires any parent tag."
 (defun data-debug-insert-tag (tag prefix prebuttontext &optional parent)
   "Insert TAG into the current buffer at the current point.
 PREFIX specifies text to insert in front of TAG.
+PREBUTTONTEXT is text appearing btewen the prefix and TAG.
 Optional PARENT is the parent tag containing TAG.
 Add text properties needed to allow tag expansion later."
   (let ((start (point))
@@ -232,6 +233,49 @@ PREBUTTONTEXT is some text between prefix and the find results button."
     (put-text-property start end 'ddebug-function
 		       'data-debug-insert-taglist-from-point)
     (insert "\n")
+    ))
+
+;;;###autoload
+(defun data-debug-insert-db-and-tag-button (dbtag prefix prebuttontext)
+  "Insert a single summary of short list DBTAG of format (DB . TAG).
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the find results button."
+  (let ((start (point))
+	(end nil)
+	(str (concat "(#<db/tag "
+		     (object-name-string (car dbtag))
+		     " / "
+		     (semantic-format-tag-name (cdr dbtag) nil t)
+		     ")"))
+	(tip nil))
+    (insert prefix prebuttontext str)
+    (setq end (point))
+    (put-text-property (- end (length str)) end 'face 'font-lock-function-name-face)
+    (put-text-property start end 'ddebug dbtag)
+    (put-text-property start end 'ddebug-indent(length prefix))
+    (put-text-property start end 'ddebug-prefix prefix)
+    (put-text-property start end 'help-echo tip)
+    (put-text-property start end 'ddebug-function
+		       'data-debug-insert-db-and-tag-from-point)
+    (insert "\n")
+    ))
+
+(defun data-debug-insert-db-and-tag-from-point (point)
+  "Insert the find results found at the find results button at POINT."
+  (let ((dbtag (get-text-property point 'ddebug))
+	(indent (get-text-property point 'ddebug-indent))
+	start end
+	)
+    (end-of-line)
+    (setq start (point))
+    (forward-char 1)
+    (data-debug-insert-thing (car dbtag) (make-string indent ? )
+			     "| DB ")
+    (data-debug-insert-tag (cdr dbtag) (concat (make-string indent ? )
+					       "| ")
+			   "TAG ")
+    (setq end (point))
+    (goto-char start)
     ))
 
 ;;; DEBUG COMMANDS
