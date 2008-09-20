@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-refs.el,v 1.1 2008/09/20 02:48:43 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-refs.el,v 1.2 2008/09/20 03:12:03 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -106,7 +106,7 @@ Optional argument IN-BUFFER indicates that the returned tag should be in an acti
 	      (aT (cdr ans))
 	      (aDB (car ans))
 	      )
-	 (setq impl  (semantic-analyze-select-best-tag (list (cdr-safe impl) aT)))
+	 (setq impl  (semantic-analyze-select-best-tag (list impl aT)))
 	 (when (semantic-equivalent-tag-p aT impl)
 	   (setq impldb aDB))
 	 ))
