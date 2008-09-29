@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2005, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.24 2008/09/17 14:22:28 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.25 2008/09/29 00:19:41 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -428,7 +428,7 @@ Must return the created widget."
 
 (defun eieio-object-value-to-abstract (widget value)
   "For WIDGET, convert VALUE to an abstract /safe/ representation."
-  (if (object-p value) value
+  (if (eieio-object-p value) value
     (if (null value) value
       nil)))
 
