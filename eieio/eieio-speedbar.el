@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2005, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.19 2008/09/15 00:22:08 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.20 2008/09/29 00:20:17 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -127,7 +127,7 @@
 		      (looking-at "[0-9]+: *.-. "))]
     "---"
     [ "Customize Object" eieio-speedbar-customize-line
-      (object-p (speedbar-line-token)) ]
+      (eieio-object-p (speedbar-line-token)) ]
     )
   "Menu part in easymenu format used in speedbar while browsing objects.")
 
@@ -177,7 +177,7 @@ objects subelements.
 Argument DEPTH specifies how far down we have already been displayed.
 If it is a directory, use FETCHER to fetch all objects associated with
 that path."
-  (let ((objlst (cond ((object-p dir-or-object)
+  (let ((objlst (cond ((eieio-object-p dir-or-object)
 		       (list dir-or-object))
 		      ((stringp dir-or-object)
 		       (funcall fetcher dir-or-object))
@@ -332,7 +332,7 @@ Argument DEPTH is the depth at which the tag line is inserted."
 Inserts a list of new tag lines representing expanded elements withing
 OBJECT."
   (let ((children (eieio-speedbar-object-children object)))
-    (cond ((object-p (car children))
+    (cond ((eieio-object-p (car children))
 	   (mapcar (lambda (car)
 		     (eieio-speedbar-make-tag-line car depth))
 		   children))
@@ -372,7 +372,7 @@ INDENT is the current indentation level."
   "Display info for the current line when in EDE display mode."
   ;; Switch across the types of the tokens.
   (let ((tok (speedbar-line-token)))
-    (cond ((object-p tok)
+    (cond ((eieio-object-p tok)
 	   (message (eieio-speedbar-description tok)))
 	  (t
 	   (let ((no (eieio-speedbar-find-nearest-object)))
@@ -389,7 +389,7 @@ Optional argument DEPTH is the current depth of the search."
 	  (when (looking-at "^\\([0-9]+\\):")
 	    (setq depth (string-to-number (match-string 1))))))
     (when depth
-      (while (and (not (object-p (speedbar-line-token)))
+      (while (and (not (eieio-object-p (speedbar-line-token)))
 		  (> depth 0))
 	(setq depth (1- depth))
 	(re-search-backward (format "^%d:" depth) nil t))
@@ -406,7 +406,7 @@ Optional DEPTH is the depth we start at."
 	  (setq depth (string-to-number (match-string 1)))))
     ;; This whole function is presently bogus.  Make it better later.
     (let ((tok (eieio-speedbar-find-nearest-object depth)))
-      (if (object-p tok)
+      (if (eieio-object-p tok)
 	  (eieio-speedbar-derive-line-path tok)
 	default-directory))))
 
