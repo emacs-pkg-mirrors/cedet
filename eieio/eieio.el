@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.168 2008/09/17 14:20:59 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.169 2008/09/29 00:18:23 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -40,6 +40,12 @@
 
 ;; There is funny stuff going on with typep and deftype.  This
 ;; is the only way I seem to be able to make this stuff load properly.
+
+;; @TODO - fix :initform to be a form, not a quoted value
+;; @TODO - For API calls like `object-p', replace with something
+;;         that does not conflict with "object", meaning a lisp object.
+;; @TODO - Prefix non-clos functions with `eieio-'.
+
 (require 'cl)
 (load "cl-macs" nil t) ; No provide in this file.
 
@@ -173,14 +179,14 @@ Stored outright without modifications or stripping.")
 (defconst object-class 1 "Index in an object vector where the class is stored.")
 (defconst object-name 2 "Index in an object where the name is stored.")
 
-(defconst method-static 0 "Index into :STATIC tag on a method.")
-(defconst method-before 1 "Index into :BEFORE tag on a method.")
-(defconst method-primary 2 "Index into :PRIMARY tag on a method.")
-(defconst method-after 3 "Index into :AFTER tag on a method.")
+(defconst method-static 0 "Index into :static tag on a method.")
+(defconst method-before 1 "Index into :before tag on a method.")
+(defconst method-primary 2 "Index into :primary tag on a method.")
+(defconst method-after 3 "Index into :after tag on a method.")
 (defconst method-num-lists 4 "Number of indexes into methods vector in which groups of functions are kept.")
-(defconst method-generic-before 4 "Index into generic :BEFORE tag on a method.")
-(defconst method-generic-primary 5 "Index into generic :PRIMARY tag on a method.")
-(defconst method-generic-after 6 "Index into generic :AFTER tag on a method.")
+(defconst method-generic-before 4 "Index into generic :before tag on a method.")
+(defconst method-generic-primary 5 "Index into generic :primary tag on a method.")
+(defconst method-generic-after 6 "Index into generic :after tag on a method.")
 (defconst method-num-slots 7 "Number of indexes into a method's vector.")
 
 ;; How to specialty compile stuff.
@@ -193,15 +199,14 @@ Stored outright without modifications or stripping.")
 
 ;;; Important macros used in eieio.
 ;;
-(defmacro class-v (class) "Internal: Return the class vector from the CLASS symbol."
+(defmacro class-v (class)
+  "Internal: Return the class vector from the CLASS symbol."
   ;; No check: If eieio gets this far, it's probably been checked already.
   `(get ,class 'eieio-class-definition))
 
 (defmacro class-p (class)
   "Return t if CLASS is a valid class vector.
-CLASS is a symbol.  Defclass will assign the class symbol to itself, so
-the shortcut (class-p foo) will work.  The form (class-p 'foo) is more
-robust."
+CLASS is a symbol."
   ;; this new method is faster since it doesn't waste time checking lots of
   ;; things.
   `(condition-case nil
@@ -209,12 +214,14 @@ robust."
      (error nil)))
 
 ;;;###autoload
-(defmacro object-p (obj) "Return t if OBJ is an object vector."
+(defmacro eieio-object-p (obj)
+  "Return non-nil if OBJ is an EIEIO object."
   `(condition-case nil
        (let ((tobj ,obj))
 	 (and (eq (aref tobj 0) 'object)
 	      (class-p (aref tobj object-class))))
      (error nil)))
+(defalias 'object-p 'eieio-object-p)
 
 (defmacro class-constructor (class)
   "Return the symbol representing the constructor of CLASS."
@@ -495,7 +502,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
       (fset csym
 	    (list 'lambda (list 'obj)
 		  (format "Test OBJ to see if it an object of type %s" cname)
-		  (list 'and '(object-p obj)
+		  (list 'and '(eieio-object-p obj)
 			(list 'same-class-p 'obj cname)))))
 
     ;; Make sure the method invocation order  is a valid value.
@@ -511,7 +518,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	       ,(format
 		  "Test OBJ to see if it an object is a child of type %s"
 		  cname)
-	       (and (object-p obj)
+	       (and (eieio-object-p obj)
 		    (object-of-class-p obj ,cname))))
     
       ;; When using typep, (typep OBJ 'myclass) returns t for objects which
@@ -632,7 +639,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	(if acces
 	    (progn
 	      (eieio-defmethod acces
-		(list (if (eq alloc :class) :STATIC :PRIMARY)
+		(list (if (eq alloc :class) :static :primary)
 		      (list (list 'this cname))
 		      (format
 		       "Retrieves the slot `%s' from an object of class `%s'"
@@ -1071,16 +1078,25 @@ the new child class."
 ;;; CLOS style implementation of object creators.
 ;;
 (defun make-instance (class &rest initargs)
-  "Make a new instance of CLASS with NAME and initialization based on INITARGS.
-The class' constructor requires a name for use when printing.
+  "Make a new instance of CLASS based on INITARGS.
+CLASS is a class symbol.  For example:
+
+  (make-instance 'foo)
+
+  INITARGS is a property list with keywords based on the :initarg
+for each slot.  For example:
+
+  (make-instance 'foo :slot1 value1 :slotN valueN)
+
+Compatability note:
+
+If the first element of INITARGS is a string, it is used as the
+name of the class.
+
+In EIEIO, the class' constructor requires a name for use when printing.
 `make-instance' in CLOS doesn't use names the way Emacs does, so the
 class is used as the name slot instead when INITARGS doesn't start with
-a string.  The rest of INITARGS are label/value pairs.  The label's
-are the symbols created with the :initarg tag from the `defclass' call.
-The value is the value stored in that slot.
-CLASS is a symbol.  Defclass will assign the class symbol to itself, so
-the shortcut (make-instance foo) will work.  The form (make-instance 'foo)
-is more robust."
+a string."
   (if (and (car initargs) (stringp (car initargs)))
       (apply (class-constructor class) initargs)
     (apply  (class-constructor class)
@@ -1141,10 +1157,10 @@ reference to all implementations of METHOD."
 
 The second optional argument KEY is a specifier that
 modifies how the method is called, including:
-   :BEFORE - Method will be called before the :PRIMARY
-   :PRIMARY - The default if not specified.
-   :AFTER - Method will be called after the :PRIMARY
-   :STATIC - First arg could be an object or class
+   :before - Method will be called before the :primary
+   :primary - The default if not specified.
+   :after - Method will be called after the :primary
+   :static - First arg could be an object or class
 The next argument is the ARGLIST.  The ARGLIST specifies the arguments
 to the method as with `defun'.  The first argument can have a type
 specifier, such as:
@@ -1157,7 +1173,7 @@ return the value of the last form in the BODY.
 
 Summary:
 
- (defmethod mymethod [:BEFORE | :PRIMARY | :AFTER | :STATIC]
+ (defmethod mymethod [:before | :primary | :after | :static]
                      ((typearg class-name) arg2 &optional opt &rest rest)
     \"doc-string\"
      body)"
@@ -1168,16 +1184,20 @@ Summary:
   (let ((key nil) (body nil) (firstarg nil) (argfix nil) (argclass nil) loopa)
     ;; find optional keys
     (setq key
-	  (cond ((eq ':BEFORE (car args))
+	  (cond ((or (eq ':BEFORE (car args))
+		     (eq ':before (car args)))
 		 (setq args (cdr args))
 		 method-before)
-		((eq ':AFTER (car args))
+		((or (eq ':AFTER (car args))
+		     (eq ':after (car args)))
 		 (setq args (cdr args))
 		 method-after)
-		((eq ':PRIMARY (car args))
+		((or (eq ':PRIMARY (car args))
+		     (eq ':primary (car args)))
 		 (setq args (cdr args))
 		 method-primary)
-		((eq ':STATIC (car args))
+		((or (eq ':STATIC (car args))
+		     (eq ':static (car args)))
 		 (setq args (cdr args))
 		 method-static)
 		;; Primary key
@@ -1209,7 +1229,7 @@ Summary:
 	      (error "Unknown class type %s in method parameters"
 		     (nth 1 firstarg))))
       (if (= key -1)
-	  (signal 'wrong-type-argument (list :STATIC 'non-class-arg)))
+	  (signal 'wrong-type-argument (list :static 'non-class-arg)))
       ;; generics are higher
       (setq key (+ key 3)))
     ;; Put this lambda into the symbol so we can find it
@@ -1279,8 +1299,8 @@ created by the :initarg tag."
 
 (defun eieio-oref (obj slot)
   "Return the value in OBJ at SLOT in the object vector."
-  (if (not (or (object-p obj) (class-p obj)))
-      (signal 'wrong-type-argument (list '(or object-p class-p) obj)))
+  (if (not (or (eieio-object-p obj) (class-p obj)))
+      (signal 'wrong-type-argument (list '(or eieio-object-p class-p) obj)))
   (if (not (symbolp slot))
       (signal 'wrong-type-argument (list 'symbolp slot)))
   (if (class-p obj) (eieio-class-un-autoload obj))
@@ -1298,8 +1318,8 @@ created by the :initarg tag."
 	  (slot-missing obj slot 'oref)
 	  ;;(signal 'invalid-slot-name (list (object-name obj) slot))
 	  )
-      (if (not (object-p obj))
-	  (signal 'wrong-type-argument (list 'object-p obj)))
+      (if (not (eieio-object-p obj))
+	  (signal 'wrong-type-argument (list 'eieio-object-p obj)))
       (eieio-barf-if-slot-unbound (aref obj c) obj slot 'oref))))
 
 (defalias 'slot-value 'eieio-oref)
@@ -1332,9 +1352,9 @@ tag in the `defclass' call."
 (defun eieio-oref-default (obj slot)
   "Does the work for the macro `oref-default' with similar parameters.
 Fills in OBJ's SLOT with it's default value."
-  (if (not (or (object-p obj) (class-p obj))) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (or (eieio-object-p obj) (class-p obj))) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   (if (not (symbolp slot)) (signal 'wrong-type-argument (list 'symbolp slot)))
-  (let* ((cl (if (object-p obj) (aref obj object-class) obj))
+  (let* ((cl (if (eieio-object-p obj) (aref obj object-class) obj))
 	 (c (eieio-slot-name-index cl obj slot)))
     (if (not c)
 	;; It might be missing because it is a :class allocated slot.
@@ -1378,7 +1398,7 @@ with in the :initarg slot.  VALUE can be any Lisp object."
 (defun eieio-oset (obj slot value)
   "Does the work for the macro `oset'.
 Fills in OBJ's SLOT with VALUE."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (eieio-object-p obj)) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   (if (not (symbolp slot)) (signal 'wrong-type-argument (list 'symbolp slot)))
   (let ((c (eieio-slot-name-index (object-class-fast obj) obj slot)))
     (if (not c)
@@ -1435,12 +1455,24 @@ Fills in the default value in CLASS' in SLOT with VALUE."
 ;;; Handy CLOS macros
 ;;
 (defmacro with-slots (spec-list object &rest body)
-  "The macro with-slots establishes a lexical environment for
-referring to the slots in the instance named by the given
-slot-names as though they were variables. Within such a context
-the value of the slot can be specified by using its slot name,
-as if it were a lexically bound variable. Both setf and setq
-can be used to set the value of the slot."
+  "Bind SPEC-LIST lexically to slot values in OBJECT, and execute BODY.
+This establishes a lexical environment for referring to the slots in
+the instance named by the given slot-names as though they were
+variables.  Within such a context the value of the slot can be
+specified by using its slot name, as if it were a lexically bound
+variable.  Both setf and setq can be used to set the value of the
+slot.
+
+SPEC-LIST is of a form similar to `let'.  For example:
+
+  ((VAR1 SLOT1)
+    SLOT2
+    SLOTN
+   (VARN+1 SLOTN+1))
+
+Where each VAR is the local variable given to the associated
+SLOT.  A Slot specified without a variable name is given a
+variable name of the same name as the slot."
   ;; Transform the spec-list into a symbol-macrolet spec-list.
   (let ((mappings (mapcar (lambda (entry)
 			    (let ((var  (if (listp entry) (car entry) entry))
@@ -1468,26 +1500,26 @@ can be used to set the value of the slot."
 (defun object-name (obj &optional extra)
   "Return a Lisp like symbol string for object OBJ.
 If EXTRA, include that in the string returned to represent the symbol."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (eieio-object-p obj)) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   (format "#<%s %s%s>" (symbol-name (object-class-fast obj))
 	  (aref obj object-name) (or extra "")))
 
 (defun object-name-string (obj) "Return a string which is OBJ's name."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (eieio-object-p obj)) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   (aref obj object-name))
 
 (defun object-set-name-string (obj name) "Set the string which is OBJ's NAME."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (eieio-object-p obj)) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   (if (not (stringp name)) (signal 'wrong-type-argument (list 'stringp name)))
   (aset obj object-name name))
 
 (defun object-class (obj) "Return the class struct defining OBJ."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (eieio-object-p obj)) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   (object-class-fast obj))
 (defalias 'class-of 'object-class)
 
 (defun object-class-name (obj) "Return a Lisp like symbol name for OBJ's class."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (eieio-object-p obj)) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   (class-name (object-class-fast obj)))
 
 (defmacro class-parents-fast (class) "Return parent classes to CLASS with no check."
@@ -1525,12 +1557,12 @@ The CLOS function `class-direct-subclasses' is aliased to this function."
 
 (defun same-class-p (obj class) "Return t if OBJ is of class-type CLASS."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (eieio-object-p obj)) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   (same-class-fast-p obj class))
 
 (defun object-of-class-p (obj class)
   "Return non-nil if OBJ is an instance of CLASS or CLASS' subclasses."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (eieio-object-p obj)) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   ;; class will be checked one layer down
   (child-of-class-p (aref obj object-class) class))
 ;; Backwards compatibility
@@ -1548,7 +1580,7 @@ The CLOS function `class-direct-subclasses' is aliased to this function."
     (if child t)))
 
 (defun object-slots (obj) "List of slots available in OBJ."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (if (not (eieio-object-p obj)) (signal 'wrong-type-argument (list 'eieio-object-p obj)))
   (aref (class-v (object-class-fast obj)) class-public-a))
 
 (defun class-slot-initarg (class slot) "Fetch from CLASS, SLOT's :initarg."
@@ -1571,11 +1603,11 @@ OBJECT can be an instance or a class."
   ;; Skip typechecking while retrieving this value.
   (let ((eieio-skip-typecheck t))
     ;; Return nil if the magic symbol is in there.
-    (if (object-p object)
+    (if (eieio-object-p object)
 	(if (eq (eieio-oref object slot) eieio-unbound) nil t)
       (if (class-p object)
 	  (if (eq (eieio-oref-default object slot) eieio-unbound) nil t)
-	(signal 'wrong-type-argument (list 'object-p object))))))
+	(signal 'wrong-type-argument (list 'eieio-object-p object))))))
 
 (defun slot-makeunbound (object slot)
   "In OBJECT, make SLOT unbound."
@@ -1583,7 +1615,7 @@ OBJECT can be an instance or a class."
 
 (defun slot-exists-p (object-or-class slot)
   "Non-nil if OBJECT-OR-CLASS has SLOT."
-  (let ((cv (class-v (cond ((object-p object-or-class)
+  (let ((cv (class-v (cond ((eieio-object-p object-or-class)
 			    (object-class object-or-class))
 			   ((class-p object-or-class)
 			    object-or-class))
@@ -1593,8 +1625,9 @@ OBJECT can be an instance or a class."
     ))
 
 (defun find-class (symbol &optional errorp)
-  "Return the class that SYMBOL represents. (CLOS function)
-If there is no class, nil is returned if ERRORP is nil."
+  "Return the class that SYMBOL represents.
+If there is no class, nil is returned if ERRORP is nil.
+If ERRORP is non-nil, `wrong-argument-type' is signaled."
   (if (not (class-p symbol))
       (if errorp (signal 'wrong-type-argument (list 'class-p symbol))
 	nil)
@@ -1603,9 +1636,11 @@ If there is no class, nil is returned if ERRORP is nil."
 ;;; Slightly more complex utility functions for objects
 ;;
 (defun object-assoc (key slot list)
-  "Return non-nil if KEY is `equal' to the SLOT of the car of objects in LIST.
+  "Return an object if KEY is `equal' to SLOT's value of an object in LIST.
 LIST is a list of objects who's slots are searched.
-The value is actually the element of LIST whose slot equals KEY."
+Objects in LIST do not need to have a slot named SLOT, nor does
+SLOT need to be bound.  If these errors occur, those objects will
+be ignored."
   (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
   (while (and list (not (condition-case nil
 			    ;; This prevents errors for missing slots.
@@ -1643,7 +1678,7 @@ list."
     (nreverse assoclist)))
 
 (defun object-add-to-list (object slot item &optional append)
-  "In OBJECT's SLOT, add ITEM to the pre-existing list of elements.
+  "In OBJECT's SLOT, add ITEM to the list of elements.
 Optional argument APPEND indicates we need to append to the list.
 If ITEM already exists in the list in SLOT, then it is not added.
 Comparison is done with `equal' through the `member' function call.
@@ -1666,9 +1701,9 @@ If SLOT is unbound, bind it to the list containing ITEM."
     (eieio-oset object slot ov)))
 
 (defun object-remove-from-list (object slot item)
-  "In OBJECT's SLOT, remove occurrences ITEM.
-If ITEM exists in the list in SLOT, then it is removed.
-Comparison is done with `equal' via the `delete' function call.
+  "In OBJECT's SLOT, remove occurrences of ITEM.
+Deletion is done with `delete', which deletes by side effect
+and comparisons are done with `equal'.
 If SLOT is unbound, do nothing."
   (if (not (slot-boundp object slot))
       nil
@@ -1712,7 +1747,7 @@ reverse-lookup that name, and recurse with the associated slot value."
 	 ((and (eq (get fsym 'protection) 'protected)
 	       scoped-class
 	       (or (child-of-class-p class scoped-class)
-		   (and (object-p obj)
+		   (and (eieio-object-p obj)
 			(child-of-class-p class (object-class obj)))))
 	  (+ 3 fsi))
 	 ((and (eq (get fsym 'protection) 'private)
@@ -1747,7 +1782,7 @@ reverse-lookup that name, and recurse with the associated slot value."
   "When using `call-next-method', provides a context for parameters.")
 (defvar eieio-generic-call-key nil
   "When using `call-next-method', provides a context for the current key.
-Keys are a number representing :BEFORE, :PRIMARY, and :AFTER methods.")
+Keys are a number representing :before, :primary, and :after methods.")
 (defvar eieio-generic-call-next-method-list nil
   "When executing a PRIMARY or STATIC method, track the 'next-method'.
 During executions, the list is first generated, then as each next method
@@ -1783,7 +1818,7 @@ This should only be called from a generic function."
 	     (eq 'autoload (car (symbol-function firstarg))))
 	(load (nth 1 (symbol-function firstarg))))
     ;; lookup the forms to use
-    (cond ((object-p firstarg)
+    (cond ((eieio-object-p firstarg)
 	   (setq mclass (object-class-fast firstarg)))
 	  ((class-p firstarg)
 	   (setq mclass firstarg
@@ -1794,11 +1829,11 @@ This should only be called from a generic function."
     ;;    This prevents multiple calls in the case of recursion
     ;; 2) Only call static if this is a static method.
     ;; 3) Only call specifics if the definition allows for them.
-    ;; 4) Call in order based on :BEFORE, :PRIMARY, and :AFTER
-    (when (object-p firstarg)
+    ;; 4) Call in order based on :before, :primary, and :after
+    (when (eieio-object-p firstarg)
       ;; Non-static calls do all this stuff.
 
-      ;; :AFTER methods
+      ;; :after methods
       (setq tlambdas
 	    (if mclass
 		(eieiomt-method-list method method-after mclass)
@@ -1809,7 +1844,7 @@ This should only be called from a generic function."
       (setq lambdas (append tlambdas lambdas)
 	    keys (append (make-list (length tlambdas) method-after) keys))
       
-      ;; :PRIMARY methods
+      ;; :primary methods
       (setq tlambdas
 	    (or (and mclass (eieio-generic-form method method-primary mclass))
 		(eieio-generic-form method method-primary nil)))
@@ -1819,7 +1854,7 @@ This should only be called from a generic function."
 	      primarymethodlist
 	      (eieiomt-method-list method method-primary mclass)))
 
-      ;; :BEFORE methods
+      ;; :before methods
       (setq tlambdas
 	    (if mclass
 		(eieiomt-method-list method method-before mclass)
@@ -1831,7 +1866,7 @@ This should only be called from a generic function."
 	    keys (append (make-list (length tlambdas) method-before) keys))
       )
 
-    ;; If there were no methods found, then there could be :STATIC methods.
+    ;; If there were no methods found, then there could be :static methods.
     (when (not lambdas)
       (setq tlambdas
 	    (eieio-generic-form method method-static mclass))
@@ -1868,7 +1903,7 @@ This should only be called from a generic function."
 	(setq lambdas (cdr lambdas)
 	      keys (cdr keys)))
       (if (not found)
-	  (if (object-p (car args))
+	  (if (eieio-object-p (car args))
 	      (setq rval (apply 'no-applicable-method (car args) method args)
 		    rvalever t)
 	    (signal
@@ -1881,7 +1916,7 @@ This should only be called from a generic function."
 (defun eieiomt-method-list (method key class)
   "Return an alist list of methods lambdas.
 METHOD is the method name.
-KEY represents either :BEFORE, or :AFTER methods.
+KEY represents either :before, or :after methods.
 CLASS is the starting class to search from in the method tree."
   (let ((lambdas nil)
 	(mclass (list class)))
@@ -1913,20 +1948,26 @@ CLASS is the starting class to search from in the method tree."
       (nreverse lambdas))))
 
 (defun next-method-p ()
-  "Return a list of lambdas which qualify as the `next-method'."
+  "Non-nil if there is a next method.
+Returns a list of lambda expressions which is the `next-method'
+order."
   eieio-generic-call-next-method-list)
 
 (defun call-next-method (&rest replacement-args)
-  "Call the next logical method from another method.
-The next logical method is the method belong to the parent class of
-the currently running method.  If REPLACEMENT-ARGS is non-nil, then
-use them instead of `eieio-generic-call-arglst'.  The generic arg list
-are the arguments passed in at the top level."
+  "Call the superclass method from a subclass method.
+The superclass method is specified in the current method list,
+and is called the next method.
+
+If REPLACEMENT-ARGS is non-nil, then use them instead of
+`eieio-generic-call-arglst'.  The generic arg list are the
+arguments passed in at the top level.
+
+Use `next-method-p' to find out if there is a next method to call."
   (if (not scoped-class)
       (error "Call-next-method not called within a class specific method"))
   (if (and (/= eieio-generic-call-key method-primary)
 	   (/= eieio-generic-call-key method-static))
-      (error "Cannot `call-next-method' except in :PRIMARY or :STATIC methods")
+      (error "Cannot `call-next-method' except in :primary or :static methods")
     )
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
 	(next (car eieio-generic-call-next-method-list))
@@ -1954,12 +1995,12 @@ are the arguments passed in at the top level."
 ;;                          genericBEFORE genericPRIMARY genericAFTER])
 ;;    where the association is a vector.
 ;;    (aref 0  -- all static methods.
-;;    (aref 1  -- all methods classified as :BEFORE
-;;    (aref 2  -- all methods classified as :PRIMARY
-;;    (aref 3  -- all methods classified as :AFTER
-;;    (aref 4  -- a generic classified as :BEFORE
-;;    (aref 5  -- a generic classified as :PRIMARY
-;;    (aref 6  -- a generic classified as :AFTER
+;;    (aref 1  -- all methods classified as :before
+;;    (aref 2  -- all methods classified as :primary
+;;    (aref 3  -- all methods classified as :after
+;;    (aref 4  -- a generic classified as :before
+;;    (aref 5  -- a generic classified as :primary
+;;    (aref 6  -- a generic classified as :after
 ;;
 (defvar eieiomt-optimizing-obarray nil
   "While mapping atoms, this contain the obarray being optimized.")
@@ -1986,7 +2027,7 @@ Do not do the work if they already exist."
 METHOD-NAME is the name created by a call to `defgeneric'.
 METHOD are the forms for a given implementation.
 KEY is an integer (see comment in eieio.el near this function) which
-is associated with the :STATIC :BEFORE :PRIMARY and :AFTER tags.
+is associated with the :static :before :primary and :after tags.
 It also indicates if CLASS is defined or not.
 CLASS is the class this method is associated with."
   (if (or (> key method-num-slots) (< key 0))
@@ -2194,14 +2235,17 @@ This is usually a symbol that starts with `:'."
 
 (defclass eieio-default-superclass nil
   nil
-  "Default class used as parent class for orphaned classes.
+  "Default parent class for classes with no specified parent class.
 Its slots are automatically adopted by classes with no specified
 parents.  This class is not stored in the `parent' slot of a class vector."
   :abstract t)
 
 (defalias 'standard-class 'eieio-default-superclass)
 
-(defmethod constructor :STATIC
+(defgeneric constructor (class newname &rest slots)
+  "Default constructor for CLASS `eieio-defualt-superclass'.")
+
+(defmethod constructor :static
   ((class eieio-default-superclass) newname &rest slots)
   "Default constructor for CLASS `eieio-defualt-superclass'.
 NEWNAME is the name to be given to the constructed object.
@@ -2219,6 +2263,10 @@ calls `shared-initialize' on that object."
     ;; Return the created object.
     new-object))
 
+(defgeneric shared-initialize (obj slots)
+  "Set slots of OBJ with SLOTS which is a list of name/value pairs.
+Called from the constructor routine.")
+
 (defmethod shared-initialize ((obj eieio-default-superclass) slots)
   "Set slots of OBJ with SLOTS which is a list of name/value pairs.
 Called from the constructor routine."
@@ -2230,6 +2278,9 @@ Called from the constructor routine."
 	    (slot-missing obj (car slots) 'oset (car (cdr slots))))
 	(eieio-oset obj rn (car (cdr slots))))
       (setq slots (cdr (cdr slots))))))
+
+(defgeneric initialize-instance (this &optional slots)
+    "Constructs the new object THIS based on SLOTS.")
 
 (defmethod initialize-instance ((this eieio-default-superclass)
 				&optional slots)
@@ -2255,14 +2306,23 @@ dynamically set from SLOTS."
     ;; Shared initialize will parse our slots for us.
     (shared-initialize this slots))
 
+(defgeneric slot-missing (object slot-name operation &optional new-value)
+  "Method invoked when an attempt to access a slot in OBJECT fails.")
+
 (defmethod slot-missing ((object eieio-default-superclass) slot-name
 			 operation &optional new-value)
-  "Slot missing is invoked when an attempt to access a slot in OBJECT fails.
+  "Method invoked when an attempt to access a slot in OBJECT fails.
 SLOT-NAME is the name of the failed slot, OPERATION is the type of access
 that was requested, and optional NEW-VALUE is the value that was desired
-to be set."
+to be set.
+
+This method is called from `oref', `oset', and other functions which
+directly reference slots in EIEIO objects."
   (signal 'invalid-slot-name (list (object-name object)
 				   slot-name)))
+
+(defgeneric slot-unbound (object class slot-name fn)
+  "Slot unbound is invoked during an attempt to reference an unbound slot.")
 
 (defmethod slot-unbound ((object eieio-default-superclass)
 			 class slot-name fn)
@@ -2279,13 +2339,22 @@ EIEIO can only dispatch on the first argument, so the first two are swapped."
   (signal 'unbound-slot (list (class-name class) (object-name object)
 			      slot-name fn)))
 
+(defgeneric no-applicable-method (object method &rest args)
+  "Called if there are no implementations for OBJECT in METHOD.")
+
 (defmethod no-applicable-method ((object eieio-default-superclass)
 				 method &rest args)
   "Called if there are no implementations for OBJECT in METHOD.
 OBJECT is the object which has no method implementation.
-ARGS are the arguments that were passed to METHOD."
+ARGS are the arguments that were passed to METHOD.
+
+Implement this for a class to block this signal.  The return
+value becomes the return value of the original method call."
   (signal 'no-method-definition (list method (object-name object)))
   )
+
+(defgeneric no-next-method (object &rest args)
+"Called from `call-next-method' when no additional methods are available.")
 
 (defmethod no-next-method ((object eieio-default-superclass)
 			   &rest args)
@@ -2298,11 +2367,15 @@ return value of `call-next-method'."
   (signal 'no-next-method (list (object-name object) args))
 )
 
+(defgeneric clone (obj &rest params)
+  "Make a copy of OBJ, and then supply PARAMS.
+PARAMS is a parameter list of the same form used by `initialize-instance'.
+
+When overloading `clone', be sure to call `call-next-method'
+first and modify the returned object.")
+
 (defmethod clone ((obj eieio-default-superclass) &rest params)
-  "Make a copy of OBJ, and then apply PARAMS.
-PARAMS is a parameter list of the same form as INITIALIZE-INSTANCE
-which are applied to change the object.  When overloading `clone', be
-sure to call `call-next-method' first and modify the returned object."
+  "Make a copy of OBJ, and then apply PARAMS."
   (let ((nobj (copy-sequence obj))
 	(nm (aref obj object-name))
 	(passname (and params (stringp (car params))))
@@ -2317,6 +2390,9 @@ sure to call `call-next-method' first and modify the returned object."
       (aset nobj object-name (car params)))
     nobj))
 
+(defgeneric destructor (this &rest params)
+  "Destructor for cleaning up any dynamic links to our object.")
+
 (defmethod destructor ((this eieio-default-superclass) &rest params)
   "Destructor for cleaning up any dynamic links to our object.
 Argument THIS is the object being destroyed.  PARAMS are additional
@@ -2324,19 +2400,33 @@ ignored parameters."
   ;; No cleanup... yet.
   )
 
+(defgeneric object-print (this &rest strings)
+  "Pretty printer for object THIS.  Call function `object-name' with STRINGS.
+
+It is sometimes useful to put a summary of the object into the
+default #<notation> string when using eieio browsing tools.
+Implement this method to customize the summary.")
+
 (defmethod object-print ((this eieio-default-superclass) &rest strings)
   "Pretty printer for object THIS.  Call function `object-name' with STRINGS.
 The default method for printing object THIS is to use the
-function `object-name'.  At times it could be useful to put a summary
-of the object into the default #<notation> string.  Overload this
-function to allow summaries of your objects to be used by eieio
-browsing tools.  The optional parameter STRINGS is for additional
-summary parts to put into the name string.  When passing in extra
-strings from child classes, always remember to prepend a space."
+function `object-name'.
+
+It is sometimes useful to put a summary of the object into the
+default #<notation> string when using eieio browsing tools.
+
+Implement this function and specify STRINGS in a call to
+`call-next-method' to provide additional summary information.
+When passing in extra strings from child classes, always remember
+to prepend a space."
   (object-name this (apply 'concat strings)))
 
 (defvar eieio-print-depth 0
   "When printing, keep track of the current indentation depth.")
+
+(defgeneric object-write (this &optional comment)
+  "Write out object THIS to the current stream.
+Optional COMMENDS will add comments to the beginning of the output.")
 
 (defmethod object-write ((this eieio-default-superclass) &optional comment)
   "Write object THIS out to the current stream.
@@ -2389,7 +2479,7 @@ this object."
 
 (defun eieio-override-prin1 (thing)
   "Perform a prin1 on THING taking advantage of object knowledge."
-  (cond ((object-p thing)
+  (cond ((eieio-object-p thing)
 	 (object-write thing))
 	((listp thing)
 	 (eieio-list-prin1 thing))
@@ -2401,14 +2491,14 @@ this object."
 
 (defun eieio-list-prin1 (list)
   "Display LIST where list may contain objects."
-  (if (not (object-p (car list)))
+  (if (not (eieio-object-p (car list)))
       (progn
 	(princ "'")
 	(prin1 list))
     (princ "(list ")
-    (if (object-p (car list)) (princ "\n "))
+    (if (eieio-object-p (car list)) (princ "\n "))
     (while list
-      (if (object-p (car list))
+      (if (eieio-object-p (car list))
 	  (object-write (car list))
 	(princ "'")
 	(prin1 (car list)))
@@ -2435,9 +2525,9 @@ of `eq'."
   "Display eieio OBJECT in fancy format.  Overrides the edebug default.
 Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
   (cond ((class-p object) (class-name object))
-	((object-p object) (object-print object))
+	((eieio-object-p object) (object-print object))
 	((and (listp object) (or (class-p (car object))
-				 (object-p (car object))))
+				 (eieio-object-p (car object))))
 	 (concat "(" (mapconcat 'eieio-edebug-prin1-to-string object " ") ")"))
 	(t (prin1-to-string object noescape))))
 
@@ -2447,7 +2537,7 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 	      (&define			; this means we are defining something
 	       [&or name ("setf" :name setf name)]
 	       ;; ^^ This is the methods symbol
-	       [ &optional symbolp ]    ; this is key :BEFORE etc
+	       [ &optional symbolp ]    ; this is key :before etc
 	       list              ; arguments
 	       [ &optional stringp ]    ; documentation string
 	       def-body	                ; part to be debugged
@@ -2459,7 +2549,7 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 	    (def-edebug-spec oset-default (form quote form))
 	    (def-edebug-spec class-v form)
 	    (def-edebug-spec class-p form)
-	    (def-edebug-spec object-p form)
+	    (def-edebug-spec eieio-object-p form)
 	    (def-edebug-spec class-constructor form)
 	    (def-edebug-spec generic-p form)
 	    (def-edebug-spec with-slots (list list def-body))
@@ -2475,9 +2565,9 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 (eval-after-load "cedet-edebug"
   '(progn
      (cedet-edebug-add-print-override '(class-p object) '(class-name object) )
-     (cedet-edebug-add-print-override '(object-p object) '(object-print object) )
+     (cedet-edebug-add-print-override '(eieio-object-p object) '(object-print object) )
      (cedet-edebug-add-print-override '(and (listp object)
-					    (or (class-p (car object)) (object-p (car object))))
+					    (or (class-p (car object)) (eieio-object-p (car object))))
 				      '(cedet-edebug-prin1-recurse object) )
      ))
 
