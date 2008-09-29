@@ -4,7 +4,7 @@
 ;; Copyright (C) 2005, 2006, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; CVS: $Id: eieio-xml.el,v 1.2 2008/09/17 14:23:29 zappo Exp $
+;; CVS: $Id: eieio-xml.el,v 1.3 2008/09/29 00:21:05 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -40,7 +40,7 @@
 ;;
 (defun eieio-xml-override-prin1 (thing)
   "Perform a prin1 on THING taking advantage of object knowledge."
-  (cond ((object-p thing)
+  (cond ((eieio-object-p thing)
 	 (princ "\n")
 	 (object-write-xml thing)
 	 (princ "\n"))
@@ -50,7 +50,7 @@
 
 (defun eieio-xml-list-prin1 (list)
   "Display LIST where list may contain objects."
-  (if (not (object-p (car list)))
+  (if (not (eieio-object-p (car list)))
       (eieio-list-prin1 list)
     (princ "\n")
     (while list
