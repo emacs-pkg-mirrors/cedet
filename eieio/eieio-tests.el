@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.43 2008/09/03 13:04:33 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.44 2008/09/29 00:20:45 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -148,7 +148,7 @@
 (defmethod static-method-class-method :STATIC ((c static-method-class) value)
   "Test static methods.
 Argument C is the class bound to this static method."
-  (if (object-p c) (setq c (object-class c)))
+  (if (eieio-object-p c) (setq c (object-class c)))
   (oset-default c some-slot value))
 
 (condition-case nil
@@ -170,7 +170,7 @@ Argument C is the class bound to this static method."
 (defmethod static-method-class-method :STATIC ((c static-method-class-2) value)
   "Test static methods.
 Argument C is the class bound to this static method."
-  (if (object-p c) (setq c (object-class c)))
+  (if (eieio-object-p c) (setq c (object-class c)))
   (oset-default c some-slot (intern (concat "moose-" (symbol-name value)))))
 
 (condition-case nil
@@ -1002,8 +1002,8 @@ Assume SLOTVALUE is a symbol of some sort."
 
 (let ((obj1 (SINGLE "Moose"))
       (obj2 (SINGLE "Cow")))
-  (if (not (and (object-p obj1)
-		(object-p obj2)
+  (if (not (and (eieio-object-p obj1)
+		(eieio-object-p obj2)
 		(eq obj1 obj2)
 		(oref obj1 a-slot)))
       (error "Two instances of a singleton")))
