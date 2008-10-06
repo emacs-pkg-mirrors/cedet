@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.20 2008/09/20 02:45:19 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.21 2008/10/06 19:24:01 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -229,43 +229,42 @@ are from nesting data types."
 	   (returnlist nil)
 	   (miniscope (semantic-scope-cache "mini"))
 	   )
-      ;; Only do this level of analysis for functions.
-      (when (eq (semantic-tag-class tag) 'function)
 	;; Step 1:
 	;;    Analyze the stack of tags we are nested in as parents.
 	;;
-	;; @todo - Is step 1 useful for non-function blocks?
 
-	;; If we have a pparent tag, lets go there
-	;; an analyze that stack of tags.
-	(when (and pparent (semantic-tag-with-position-p pparent))
-	  (semantic-go-to-tag pparent)
-	  (setq stack (semantic-find-tag-by-overlay (point)))
-	  ;; Step one, find the merged version of stack in the typecache.
-	  (let* ((stacknames (reverse (mapcar 'semantic-tag-name stack)))
-		 (tc nil)
-		 )
-	    ;; @todo - can we use the typecache ability to
-	    ;;         put a scope into a tag to do this?
-	    (while (and stacknames
-			(setq tc (semanticdb-typecache-find
-				  (reverse stacknames))))
-	      (setq returnlist (cons tc returnlist)
-		    stacknames (cdr stacknames)))
-	    (when (not returnlist)
-	      ;; When there was nothing from the typecache, then just
-	      ;; use what's right here.
-	      (setq stack (reverse stack))
-	      ;; Add things to STACK until we cease finding tags of class type.
-	      (while (and stack (eq (semantic-tag-class (car stack)) 'type))
-		;; Otherwise, just add this to the returnlist.
-		(setq returnlist (cons (car stack) returnlist))
-		(setq stack (cdr stack)))
+      ;; If we have a pparent tag, lets go there
+      ;; an analyze that stack of tags.
+      (when (and pparent (semantic-tag-with-position-p pparent))
+	(semantic-go-to-tag pparent)
+	(setq stack (semantic-find-tag-by-overlay (point)))
+	;; Step one, find the merged version of stack in the typecache.
+	(let* ((stacknames (reverse (mapcar 'semantic-tag-name stack)))
+	       (tc nil)
+	       )
+	  ;; @todo - can we use the typecache ability to
+	  ;;         put a scope into a tag to do this?
+	  (while (and stacknames
+		      (setq tc (semanticdb-typecache-find
+				(reverse stacknames))))
+	    (setq returnlist (cons tc returnlist)
+		  stacknames (cdr stacknames)))
+	  (when (not returnlist)
+	    ;; When there was nothing from the typecache, then just
+	    ;; use what's right here.
+	    (setq stack (reverse stack))
+	    ;; Add things to STACK until we cease finding tags of class type.
+	    (while (and stack (eq (semantic-tag-class (car stack)) 'type))
+	      ;; Otherwise, just add this to the returnlist.
+	      (setq returnlist (cons (car stack) returnlist))
+	      (setq stack (cdr stack)))
 
-	      (setq returnlist (nreverse returnlist))
-	      ))
-	  )
+	    (setq returnlist (nreverse returnlist))
+	    ))
+	)
 	
+      ;; Only do this level of analysis for functions.
+      (when (eq (semantic-tag-class tag) 'function)
 	;; Step 2:
 	;;   If the function tag itself has a "parent" by name, then that
 	;;   parent will exist in the scope we just calculated, so look it
@@ -326,9 +325,9 @@ are from nesting data types."
 		(setq snlist (cdr snlist)))
 	      (setq returnlist (nreverse returnlist))
 	      )))
-	
-	returnlist
-	))))
+	)
+      returnlist
+      )))
 
 (define-overloadable-function semantic-analyze-scope-lineage-tags (parents scopedtypes)
   "Return the full lineage of tags from PARENTS.
