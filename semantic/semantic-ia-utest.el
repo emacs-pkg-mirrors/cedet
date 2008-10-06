@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.13 2008/08/26 00:23:20 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.14 2008/10/06 19:32:29 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -61,7 +61,17 @@
 	  ;; Run the test on it.
 	  (save-excursion
 	    (set-buffer b)
-	    (semantic-ia-utest-buffer))
+
+	    (semantic-ia-utest-log "** Starting tests in %s"
+				   (buffer-name))
+
+	    (semantic-ia-utest-buffer)
+	    (set-buffer b)
+	    (semantic-ia-utest-buffer-refs)
+
+	    (semantic-ia-utest-log "** Completed tests in %s\n"
+				   (buffer-name))
+	    )
 
 	  ;; If it wasn't already in memory, whack it.
 	  (when (not fb)
@@ -134,7 +144,7 @@
 	    (setq pass (cons idx pass))
 	  (setq fail (cons idx fail))
 	  (semantic-ia-utest-log
-	   "Failed %d.  Desired: %S Actual %S"
+	   "  Failed %d.  Desired: %S Actual %S"
 	   idx desired actual)
 	  )
 	)
@@ -145,14 +155,130 @@
     (if fail
 	(progn
 	  (semantic-ia-utest-log
-	   "Unit tests in %s failed tests %S"
-	   (buffer-name) (reverse fail))
+	   "  Unit tests (completions) failed tests %S"
+	   (reverse fail))
 	  )
-      (semantic-ia-utest-log "Unit tests in %s passed (%d total)"
-			     (buffer-name)
+      (semantic-ia-utest-log "  Unit tests (completions) passed (%d total)"
 			     (- idx 1)))
 
     ))
+
+(defun semantic-ia-utest-buffer-refs ()
+  "Run a unit-test pass in the current buffer."
+  (interactive)
+
+  ;; This line will also force the include, scope, and typecache.
+  (semantic-clear-toplevel-cache)
+  ;; Force tags to be parsed.
+  (semantic-fetch-tags)
+
+  (let* ((idx 1)
+	 (regex-p nil)
+	 (p nil)
+	 (pass nil)
+	 (fail nil)
+	 ;; Exclude unpredictable system files in the
+	 ;; header include list.
+	 (semanticdb-find-default-throttle
+	  (remq 'system semanticdb-find-default-throttle))
+	 )
+    ;; Keep looking for test points until we run out.
+    (while (save-excursion
+	     (setq regex-p (concat "//\\s-*\\^" (number-to-string idx) "^" )
+		   )
+	     (goto-char (point-min))
+	     (save-match-data
+	       (when (re-search-forward regex-p nil t)
+		 (setq p (match-beginning 0))))
+	     p)
+
+      (save-excursion
+
+	(goto-char p)
+	(forward-char -1)
+
+	(let* ((ct (semantic-current-tag))
+	       (refs (semantic-analyze-tag-references ct))
+	       (impl (semantic-analyze-refs-impl refs t))
+	       (proto (semantic-analyze-refs-proto refs t))
+	       (pf nil)
+	       )
+	  (setq
+	   pf
+	   (catch 'failed
+	     (if (and impl proto (car impl) (car proto))
+		 (let (ct2 ref2 impl2 proto2
+			   newtarget newstart)
+		   (cond
+		    ((semantic-equivalent-tag-p (car impl) ct)
+		     ;; We are on an IMPL.  Go To the proto, and find matches.
+		     (semantic-go-to-tag (car proto))
+		     (setq newtarget (car impl)
+			   newstart (car proto))
+		     )
+		    ((semantic-equivalent-tag-p (car proto) ct)
+		     ;; We are on a PROTO.  Go to the imple, and find matches
+		     (semantic-go-to-tag (car impl))
+		     (setq newtarget (car proto)
+			   newstart (car impl))
+		     )
+		    (t
+		     ;; No matches is a fail.
+		     (throw 'failed t)
+		     ))
+		   ;; Get the new tag, does it match?
+		   (setq ct2 (semantic-current-tag))
+
+		   ;; Does it match?
+		   (when (not (semantic-equivalent-tag-p ct2 newstart))
+		     (throw 'failed t))
+		   
+		   ;; Can we double-jump?
+		   (setq ref2 (semantic-analyze-tag-references ct)
+			 impl2 (semantic-analyze-refs-impl ref2 t)
+			 proto2 (semantic-analyze-refs-proto ref2 t))
+
+		   (when (or (not (and impl2 proto2))
+			     (not
+			      (and (semantic-equivalent-tag-p
+				    (car impl) (car impl2))
+				   (semantic-equivalent-tag-p
+				    (car proto) (car proto2)))))
+		     (throw 'failed t))
+		   )
+	       
+	       ;; Else, no matches at all, so another fail.
+	       (throw 'failed t)
+	       )))
+
+	   (if (not pf)
+	      ;; We passed
+	      (setq pass (cons idx pass))
+	    ;; We failed.
+	    (setq fail (cons idx fail))
+	    (semantic-ia-utest-log
+	     "  Failed %d.  For %s (Num impls %d) (Num protos %d)"
+	     idx (if ct (semantic-tag-name ct) "<No tag found>")
+	     (length impl) (length proto))
+	    ))
+
+	(setq p nil a nil)
+	(setq idx (1+ idx))
+	
+	))
+    
+    (if fail
+	(progn
+	  (semantic-ia-utest-log
+	   "  Unit tests (refs) failed tests")
+	  )
+      (semantic-ia-utest-log "  Unit tests (refs) passed (%d total)"
+			     (- idx 1)))
+
+    ))
+
+
+
 
 (defun semantic-ia-utest-start-log ()
   "Start up a testlog for a run."
@@ -170,11 +296,12 @@
 Pass ARGS to format to create the log message."
   (let ((b (get-buffer-create "*UTEST LOG*"))
 	)
-    (set-buffer b)
-    (goto-char (point-max))
-    (insert (apply 'format args))
-    (insert "\n")
-    ))
+    (save-excursion
+      (set-buffer b)
+      (goto-char (point-max))
+      (insert (apply 'format args))
+      (insert "\n")
+      )))
 
 (provide 'semantic-ia-utest)
 ;;; semantic-ia-utest.el ends here
