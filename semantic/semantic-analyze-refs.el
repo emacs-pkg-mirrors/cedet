@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-refs.el,v 1.2 2008/09/20 03:12:03 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-refs.el,v 1.3 2008/10/06 19:30:46 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -101,19 +101,16 @@ Optional argument IN-BUFFER indicates that the returned tag should be in an acti
 	(impldb nil))
     (semanticdb-find-result-mapc
      (lambda (T DB)
-       "Examine T in the database DB, and sort it."
+       "Examine T in the database DB, and sont it."
        (let* ((ans (semanticdb-normalize-one-tag DB T))
 	      (aT (cdr ans))
 	      (aDB (car ans))
 	      )
-	 (setq impl  (semantic-analyze-select-best-tag (list impl aT)))
-	 (when (semantic-equivalent-tag-p aT impl)
-	   (setq impldb aDB))
-	 ))
+	 (when (not (semantic-tag-prototype-p aT))
+	   (when in-buffer (save-excursion (semantic-go-to-tag aT aDB)))
+	   (push aT impl))))
      allhits)
-    (when impl
-      (if in-buffer (save-excursion (semantic-go-to-tag impl impldb)))
-      impl)))
+    impl))
 
 (defmethod semantic-analyze-refs-proto ((refs semantic-analyze-references) &optional in-buffer)
   "Return the prototypes derived in the reference analyzer REFS.
@@ -197,7 +194,7 @@ TAG should be the tag currently under point."
 	 ;; The first item in the parent list
 	 (name (car plist))
 	 ;; Stuff from the simple list.
-	 (simple (semantic--analyze-refs-full-lookup-simple tag))
+	 (simple (semantic--analyze-refs-full-lookup-simple tag t))
 	 ;; Find all hits for the first parent name.
 	 (brute (semanticdb-find-tags-collector
 		 (lambda (table tags)
@@ -236,11 +233,13 @@ TAG should be the tag currently under point."
 
     answer))
 
-(defun semantic--analyze-refs-full-lookup-simple (tag)
-  "Perform a simple full lookup for all occurances of TAG in the current project.
+(defun semantic--analyze-refs-full-lookup-simple (tag &optional noerror)
+  "Perform a simple  lookup for occurances of TAG in the current project.
 TAG should be the tag currently under point.
+Optional NOERROR means don't throw errors on failure to find something.
 This only compares the tag name, and does not infer any matches in namespaces,
-or parts of some other data structure.  Only works for tags in the global namespace."
+or parts of some other data structure.
+Only works for tags in the global namespace."
   (let* ((name (semantic-tag-name tag))
 	 (brute (semanticdb-find-tags-collector
 		 (lambda (table tags)
@@ -249,7 +248,7 @@ or parts of some other data structure.  Only works for tags in the global namesp
 		 nil nil t))
 	 )
 
-	(when (not brute)
+	(when (and (not brute) (not noerror))
 	  ;; An error, because tag under point ought to be found.
 	  (error "Cannot find any references to %s in wide search" name))
 	
@@ -262,7 +261,7 @@ or parts of some other data structure.  Only works for tags in the global namesp
 		   )
 		 brute nil)))
 	  
-	  (when (not RES)
+	  (when (and (not RES) (not noerror))
 	    (error "Cannot find any definitions for %s in wide search"
 		   (semantic-tag-name tag)))
 	  
@@ -298,7 +297,7 @@ or parts of some other data structure.  Only works for tags in the global namesp
 		  (semantic-analyze-tag-references tag)
 		(error "Point must be in a declaration")))
 	 (target (if (semantic-tag-prototype-p tag)
-		     (semantic-analyze-refs-impl sar t)
+		     (car (semantic-analyze-refs-impl sar t))
 		   (car (semantic-analyze-refs-proto sar t))))
 	 )
 
