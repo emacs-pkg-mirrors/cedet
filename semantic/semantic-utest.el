@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.4 2008/08/30 14:50:29 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.5 2008/10/06 19:33:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -419,7 +419,7 @@ Pre-fill the buffer with CONTENTS."
   (let ((buff (find-file-noselect filename)))
     (set-buffer buff)
     (setq buffer-offer-save nil)
-    ;; (font-lock-mode -1) ;; Font lock has issues in Emacs 23
+    (font-lock-mode -1) ;; Font lock has issues in Emacs 23
     (erase-buffer)
     (insert contents)
     ;(semantic-fetch-tags) ;JAVE could this go here?
@@ -451,10 +451,10 @@ Pre-fill the buffer with CONTENTS."
       (sit-for 0)
       
       ;; Run the tests.
-      (message "First parsing test.")
+      ;;(message "First parsing test.")
       (semantic-utest-verify-names semantic-utest-C-name-contents)
 
-      (message "Invalid tag test.")
+      ;;(message "Invalid tag test.")
       (semantic-utest-last-invalid semantic-utest-C-name-contents '("fun2") "/\\*1\\*/" "/* Deleted this line */")
       (semantic-utest-verify-names semantic-utest-C-name-contents)
 
@@ -494,10 +494,10 @@ INSERTME is the text to be inserted after the deletion."
       (sit-for 0)
       
       ;; Run the tests.
-      (message "First parsing test %s." testname)
+      ;;(message "First parsing test %s." testname)
       (semantic-utest-verify-names name-contents)
 
-      (message "Invalid tag test %s." testname)
+      ;;(message "Invalid tag test %s." testname)
       (semantic-utest-last-invalid name-contents names-removed killme insertme)
       (semantic-utest-verify-names name-contents)
 
