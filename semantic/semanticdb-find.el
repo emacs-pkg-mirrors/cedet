@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.68 2008/09/17 15:16:48 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.69 2008/10/09 00:07:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -847,19 +847,27 @@ instead."
 	  (let ((tab (car (car tmp)))
 		(tags (cdr (car tmp))))
 	    (dolist (T tags)
+	      ;; Normilzation gives specialty database tables a chance
+	      ;; to convert into a more stable tag format.
 	      (let* ((norm (semanticdb-normalize-one-tag tab T))
 		     (ntab (car norm))
 		     (ntag (cdr norm))
 		     (nametable ntab))
+
+		;; If it didn't normalize, use what we had.
 		(if (not norm)
 		    (setq nametable tab)
-		  (semanticdb-get-buffer ntab)
-		  (setq output (append output (list ntag)))
-		  )
-		(when (eq find-file-match 'name)
-		  (let ((f (semanticdb-full-filename nametable)))
-		    (semantic--tag-put-property ntag :filename f)
-		    ))
+		  (setq output (append output (list ntag))))
+
+		;; Find-file-match allows a tool to make sure the tag is
+		;; 'live', somewhere in a buffer.
+		(cond ((eq find-file-match 'name)
+		       (let ((f (semanticdb-full-filename nametable)))
+			 (semantic--tag-put-property ntag :filename f)))
+		      (find-file-match
+		       (semanticdb-get-buffer ntab))
+		      )
+
 		))
 	    )
 	  (setq tmp (cdr tmp)))
