@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.1 2008/10/05 12:51:37 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.2 2008/10/10 21:28:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -48,9 +48,22 @@
     ("eieio" . (lambda () (let ((lib (locate-library "eieio-tests.el"
 						     t)))
 			    (load-file lib))))
-    ("eieio browser" . eieio-browse)
+    ("eieio: browser" . eieio-browse)
+    ("eieio: custom" . (lambda ()
+			 (require 'eieio-custom)
+			 (customize-variable 'eieio-widge-test)))
+    ("eieio: chart" . chart-test-it-all)
 
     ;; SEMANTIC tests
+    ("semantic: lex spp table write" .
+     (lambda ()
+       (let* ((sem (locate-library "semantic.el"))
+	      (dir (file-name-directory sem)))
+       (save-excursion
+	 (set-buffer (find-file-noselect
+		      (expand-file-name "tests/testsppreplace.c"
+					dir)))
+	 (semantic-lex-spp-write-test)))))
     ("semantic: multi-lang parsing" . semantic-utest-main)
     ("semantic: C preprocessor" . semantic-utest-c)
     ("semantic: analyzer tests" . semantic-ia-utest)
@@ -60,9 +73,11 @@
     ;; SRecode
     ("srecode: templates" . srecode-utest-template-output)
     ("srecode: show maps" . srecode-get-maps)
+    ("srecode: getset" . srecode-utest-getset-output)
    )
   "Alist of all the ttests in CEDET we should run.")
 
+;;;###autoload
 (defun cedet-utest ()
   "Run the CEDET unittests."
   (interactive)
@@ -96,6 +111,9 @@
     (minibuffer . t))
   "Frame parameters used for the cedet utest log frame.")
 
+(defvar cedet-utest-last-log-item nil
+  "Remember the last item we were logging for.")
+
 (defun cedet-utest-log-setup ()
   "Setup a frame and buffer for unit testing."
   (when (or (not cedet-utest-frame) (not (frame-live-p cedet-utest-frame)))
@@ -104,6 +122,7 @@
     (setq cedet-utest-buffer (get-buffer-create "*CEDET utest log*")))
   (save-excursion
     (set-buffer cedet-utest-buffer)
+    (setq cedet-utest-last-log-item nil)
     (erase-buffer)
     (insert "Setting up tests to run @ " (current-time-string) "\n\n"))
   (let ((oframe (selected-frame)))
@@ -114,14 +133,44 @@
       (select-frame oframe)))
   )
 
+(defun cedet-utest-show-log-end ()
+  "Show the end of the current unit test log."
+  (let* ((cb (current-buffer))
+	 (cf (selected-frame))
+	 (bw (get-buffer-window cedet-utest-buffer t))
+	 (lf (window-frame bw))
+	 )
+    (select-frame lf)
+    (select-window bw)
+    (goto-char (point-max))
+    (select-frame cf)
+    (set-buffer cb)
+    ))
+
+(defun cedet-utest-post-command-hook ()
+  "Hook run after the current log command was run."
+    (save-excursion
+      (set-buffer cedet-utest-buffer)
+      (goto-char (point-max))
+      (insert "\n\n"))
+    (setq cedet-utest-last-log-item nil)
+    (remove-hook 'post-command-hook 'cedet-utest-post-command-hook)
+    )
+
 (defun cedet-utest-add-log-item-start (item)
   "Add ITEM into the log as being started."
-  (save-excursion
-    (set-buffer cedet-utest-buffer)
-    (goto-char (point-max))
-    (when (not (bolp)) (insert "\n"))
-    (insert "Running " item " ... ")
-    (sit-for 0)
+  (unless (equal item cedet-utest-last-log-item)
+    (setq cedet-utest-last-log-item item)
+    ;; This next line makes sure we clear out status during logging.
+    (add-hook 'post-command-hook 'cedet-utest-post-command-hook)
+    (save-excursion
+      (set-buffer cedet-utest-buffer)
+      (goto-char (point-max))
+      (when (not (bolp)) (insert "\n"))
+      (insert "Running " item " ... ")
+      (sit-for 0)
+      )
+    (cedet-utest-show-log-end)
     ))
 
 (defun cedet-utest-add-log-item-done (&optional notes err precr)
@@ -138,8 +187,39 @@ Optional argument PRECR indicates to prefix the done msg w/ a newline."
       (insert "done")
       (when notes (insert " (" notes ")")))
     (insert "\n")
+    (setq cedet-utest-last-log-item nil)
     (sit-for 0)
     ))
+
+;;; INDIVIDUAL TEST API
+;;
+;; Use these APIs to start and log information.
+;;
+;; The other fcns will be used to log across all the tests at once.
+(defun cedet-utest-log-start (testname)
+  "Setup the log for the test TESTNAME."
+  ;; Make sure we have a log buffer.
+  (when (or (not cedet-utest-buffer)
+	    (not (buffer-live-p cedet-utest-buffer)))
+    (cedet-utest-log-setup))
+  ;; Add our startup message.
+  (cedet-utest-add-log-item-start testname)
+  )
+
+(defun cedet-utest-log(format &rest args)
+  "Log the text string FORMAT.
+The rest of the ARGS are used to fill in FORMAT with `format'."
+  (save-excursion
+    (set-buffer cedet-utest-buffer)
+    (goto-char (point-max))
+    (when (not (bolp)) (insert "\n"))
+    (insert (apply 'format format args))
+    (insert "\n")
+    (sit-for 0)
+    )
+  (cedet-utest-show-log-end)
+  )
+
 
 (provide 'cedet-utests)
 ;;; cedet-utests.el ends here
