@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.5 2008/10/06 19:33:47 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.6 2008/10/10 21:39:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,6 +29,7 @@
 ;; and full reparsing system, and anything else I may feel the urge
 ;; to write a test for.
 
+(require 'cedet-utest)
 (require 'semantic)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -573,13 +574,22 @@ INSERTME is the text to be inserted after the deletion."
 (defun semantic-utest-main()
   (interactive)
   "call all utests"
+  (cedet-utest-log-start "multi-lang parsing")
+  (cedet-utest-log " * C tests...")
   (semantic-utest-C)
+  (cedet-utest-log " * Python tests...")
   (semantic-utest-Python)
+  (cedet-utest-log " * Java tests...")
   (semantic-utest-Java) 
+  (cedet-utest-log " * Javascript tests...")
   (semantic-utest-Javascript)
+  (cedet-utest-log " * Makefile tests...")
   (semantic-utest-Makefile)
+  (cedet-utest-log " * Scheme tests...")
   (semantic-utest-Scheme)
-  ;(semantic-utest-Html)
+  (cedet-utest-log " * Html tests...")
+  (semantic-utest-Html)
+  ;(cedet-utest-log " * Csharp tests...")
   ;(semantic-utest-Csharp)
   )
 
