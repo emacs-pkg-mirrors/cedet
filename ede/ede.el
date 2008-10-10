@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.112 2008/09/17 14:24:14 zappo Exp $
+;; RCS: $Id: ede.el,v 1.113 2008/10/10 21:47:48 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -804,7 +804,7 @@ of objects with the `ede-want-file-p' method."
 			      (format "Add %s to target: " (buffer-file-name))
 			      al nil t)))
 		   (setq ans (assoc ans al))
-		   (cond ((object-p (cdr ans))
+		   (cond ((eieio-object-p (cdr ans))
 			  (ede-add-file (cdr ans)))
 			 ((eq (cdr ans) 'new)
 			  (ede-new-target))
