@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.6 2008/10/10 21:39:16 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.7 2008/10/10 21:39:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,7 +29,7 @@
 ;; and full reparsing system, and anything else I may feel the urge
 ;; to write a test for.
 
-(require 'cedet-utest)
+(require 'cedet-utests)
 (require 'semantic)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
