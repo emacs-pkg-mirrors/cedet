@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.22 2008/09/20 03:31:24 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.23 2008/10/10 21:29:49 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -367,9 +367,9 @@ Optional argument CTXT is the context to show."
       (princ "\nDirectory Part is: ")
       (princ default-directory)
       (princ "\nFound Database is: ")
-      (princ (object-print db))
+      (princ (eieio-object-print db))
       (princ "\nFound Table is: ")
-      (if tab (princ (object-print tab)) (princ "nil"))
+      (if tab (princ (eieio-object-print tab)) (princ "nil"))
       (princ "\n\nAction Summary: ")
       (cond
        ((and tab
