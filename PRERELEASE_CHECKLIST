@@ -84,10 +84,10 @@ CEDET & Common area
 
       M-x load-file RET cedet/common/cedet.el RET
 
-  * Test inversion
+  * All individual CEDET unit test
 
-      M-x inversion-unit-test RET
-      - Make sure it doesn't throw an error.
+      M-x cedet-utest RET
+      - Note: Runs all automated unit tests.  These tests are repeated below.
 
   * Test ezimage
 
@@ -96,28 +96,16 @@ CEDET & Common area
       M-x ezimage-image-dump RET
       - Verify the default registered images for Emacs and XEmacs.
 
-  * Test working
+      NOTE: These are in cedet-utest, but pictures need verification.
 
-      M-x working-wait-for-keypress RET
-      - Verify working message till a key is pressed.
-        NOTE: The key will be executed as a regular Emacs command too.
-
-      M-x working-verify-sleep RET
-      - Verify working message runs for 5 seconds when the subprocess
-        sleep is done.
- 
   * Test pulse
       M-x pulse-test RET
       - Verify pulse does what messages say.
       - Try in Emacs 22, and older Emacs, or XEmacs.  (different behaviors)
 
+    NOTE: This is in cedet-utest.  Needs additional x-platform care.
+
 EIEIO
-
-  * In a clean Emacs
-
-    M-x load-file RET eieio/eieio-tests.el RET
-
-    If it loads, the tests pass.
 
   * M-x eieio-browse RET
 
@@ -148,17 +136,6 @@ Semantic
           parser and incremental parser.  (Usually hidden.)
 
     Run some unit tests:
-      M-x load-library semantic-utest.el
-      M-x semantic-utest-main RET
-
-      M-x load-library semantic-utest-c.el
-      M-x semantic-utest-c RET
-
-      M-x load-library semantic-ai-utest.el+
-      M-x semantic-ia-utest RET
-
-      M-x semantic-test-data-cache RET
-      M-x semantic-test-throw-on-input RET
 
     For each supported mode:
       M-x bovinate RET - verify tags are accurate.
@@ -201,10 +178,6 @@ Semantic
         - Verify all formats work.
 
       - Use your favorite semantic-enabled tool.
-
-      M-x semantic-test-data-cache RET
-        - Make sure the cache hasn't been corrupted while working on
-	  all the above
 
   * Try semantic-regtest.el (from CVS).
 
@@ -270,9 +243,6 @@ COGRE
 
 SRecode
 
-   * Run the tests:
-     M-x srecode-utest-template-output RET
-
    * Verify menu working in SRT, C++, and Emacs Lisp.
      * Make sure srecode-mode is on.
 
@@ -281,6 +251,9 @@ SRecode
 
    * Check the maps:
      M-x srecode-get-maps RET
+
+     Note: In cedet-utest, but make sure the output contains the known
+           templates.
 
 GENERAL
 
