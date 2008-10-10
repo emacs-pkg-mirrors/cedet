@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.63 2008/09/03 15:19:12 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.64 2008/10/10 21:33:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -207,7 +207,7 @@ Remove self from `post-command-hook' if it is empty."
 				   data 'moose 'exit-cache-zone)
     (if (equal (semantic-get-cache-data 'moose) data)
 	(message "Successfully retrieved cached data.")
-      (message "Failed to retrieve cached data."))
+      (error "Failed to retrieve cached data"))
     ))
 
 ;;; Obsoleting various functions & variables
@@ -366,10 +366,12 @@ calling this one."
 	   (semantic-exit-on-input 'testing
 	     (let ((inhibit-quit nil)
 		   (message-log-max nil))
-	       (while (sit-for 0)
-		 (message "Looping ...")
+	       (while t
+		 (message "Looping ... press a key to test")
 		 (semantic-throw-on-input 'test-inner-loop))
-	       'exit))))
+	       'exit)))
+  (when (input-pending-p) (read-event))
+  )
 
 ;;; Special versions of Find File
 ;;
