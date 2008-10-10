@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.31 2008/09/08 01:46:40 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.32 2008/10/10 21:47:28 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -65,7 +65,7 @@
       (ede-project-child-p (speedbar-line-token)) ]
     "---"
     [ "Edit File/Tag" speedbar-edit-line
-      (not (object-p (speedbar-line-token)))]
+      (not (eieio-object-p (speedbar-line-token)))]
     [ "Expand" speedbar-expand-line
       (save-excursion (beginning-of-line)
 		      (looking-at "[0-9]+: *.\\+. "))]
@@ -76,7 +76,7 @@
     [ "Remove File from Target" ede-speedbar-remove-file-from-target
       (stringp (speedbar-line-token)) ]
     [ "Customize Project/Target" eieio-speedbar-customize-line
-      (object-p (speedbar-line-token)) ]
+      (eieio-object-p (speedbar-line-token)) ]
     [ "Edit Project File" ede-speedbar-edit-projectfile t]
     [ "Make Distribution" ede-speedbar-make-distribution
       (ede-project-child-p (speedbar-line-token)) ]
@@ -120,7 +120,7 @@ Argument DIR is the directory from which to derive the list of objects."
   "Compile/Build the project or target on this line."
   (interactive)
   (let ((obj (eieio-speedbar-find-nearest-object)))
-    (if (not (object-p obj))
+    (if (not (eieio-object-p obj))
 	nil
       (cond ((obj-of-class-p obj ede-project)
 	     (project-compile-project obj))
@@ -132,7 +132,7 @@ Argument DIR is the directory from which to derive the list of objects."
   "Return a project object for this line."
   (interactive)
   (let ((obj (eieio-speedbar-find-nearest-object)))
-    (if (not (object-p obj))
+    (if (not (eieio-object-p obj))
 	(error "Error in speedbar or ede structure")
       (if (obj-of-class-p obj ede-target)
 	  (setq obj (ede-target-parent obj)))
@@ -199,7 +199,7 @@ Optional DEPTH is the depth we start at."
     ;; If we are on a child, we need a file name too.
     (save-excursion
       (let ((lt (speedbar-line-token)))
-	(if (or (object-p lt) (stringp lt))
+	(if (or (eieio-object-p lt) (stringp lt))
 	    (eieio-speedbar-derive-line-path proj)
 	  ;; a child element is a token.  Do some work to get a filename too.
 	  (concat (eieio-speedbar-derive-line-path proj)
