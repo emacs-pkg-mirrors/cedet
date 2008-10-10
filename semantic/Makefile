@@ -10,10 +10,10 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH= ../common/  wisent/ bovine/  ../speedbar/ ../ede/ ../eieio/\
-    ./
+LOADPATH= ../common/  ctags/ wisent/ bovine/\
+    ../speedbar/ ../ede/ ../eieio/  ./
 LOADDEFS=semantic-loaddefs.el
-LOADDIRS=. bovine wisent
+LOADDIRS=. bovine wisent ctags
 init_LISP=semantic-load.el
 EMACS=emacs
 semantic_LISP=semantic.el semantic-fw.el semantic-lex.el semantic-lex-spp.el semantic-edit.el semantic-util.el semantic-tag.el semantic-tag-ls.el semantic-find.el semantic-sort.el semantic-tag-file.el semantic-tag-write.el semantic-doc.el semantic-idle.el
@@ -35,7 +35,7 @@ DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: autoloads init semantic utils Database tools Analyzer Languages metagrammar tests example scripts wisent Tests Documentation bovinator
+all: autoloads init semantic utils Database tools Analyzer Languages metagrammar tests example scripts wisent Tests Documentation ctags bovinator
 
 .PHONY: autoloads
 autoloads: 
@@ -155,6 +155,10 @@ Tests:
 Documentation:
 	cd doc; $(MAKE)
 
+.PHONY:ctags
+ctags:
+	cd ctags; $(MAKE)
+
 .PHONY:bovinator
 bovinator:
 	cd bovine; $(MAKE)
@@ -163,6 +167,7 @@ tags:
 	cd wisent/; make $(MFLAGS) $@
 	cd tests/; make $(MFLAGS) $@
 	cd doc/; make $(MFLAGS) $@
+	cd ctags/; make $(MFLAGS) $@
 	cd bovine/; make $(MFLAGS) $@
 
 
@@ -177,6 +182,7 @@ dist: autoloads $(metagrammar_SEMANTIC_GRAMMAR_EL)
 	cd wisent; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/wisent dist
 	cd tests; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/tests dist
 	cd doc; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/doc dist
+	cd ctags; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/ctags dist
 	cd bovine; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/bovine dist
 
 Makefile: Project.ede
