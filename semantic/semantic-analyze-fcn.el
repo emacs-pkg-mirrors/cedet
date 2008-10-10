@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.20 2008/08/23 15:12:45 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.21 2008/10/10 21:30:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -77,7 +77,7 @@ tags of TAGCLASS."
 
   ;; If there is a srew up and we get just one tag.. massage over it.
   (when (semantic-tag-p sequence)
-    (setq sequence (list sequence)))    
+    (setq sequence (list sequence)))
 
   ;; Filter out anything not of TAGCLASS
   (when tagclass
