@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.14 2008/10/06 19:32:29 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.15 2008/10/10 21:35:39 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,6 +30,7 @@
 ;; where # is 1, 2, 3, etc, and some sort of answer list.
 
 ;;; Code:
+(require 'cedet-utests)
 (require 'semantic)
 
 (defvar semantic-ia-utest-file-list
@@ -78,11 +79,6 @@
 	    (kill-buffer b))
 	  )
 	(setq fl (cdr fl)))))
-  (pop-to-buffer "*UTEST LOG*" t t)
-  (goto-char (point-max))
-  (search-backward "semantic-ia-utest")
-  (beginning-of-line)
-  (recenter 1)
   )
 
 (defun semantic-ia-utest-buffer ()
@@ -262,7 +258,7 @@
 	     (length impl) (length proto))
 	    ))
 
-	(setq p nil a nil)
+	(setq p nil)
 	(setq idx (1+ idx))
 	
 	))
@@ -277,31 +273,16 @@
 
     ))
 
-
-
-
 (defun semantic-ia-utest-start-log ()
   "Start up a testlog for a run."
-  (let ((b (get-buffer-create "*UTEST LOG*"))
-	)
-    (save-excursion
-      (set-buffer b)
-      (goto-char (point-max))
-      (insert "\n\nsemantic-ia-utest log at ")
-      (insert (current-time-string))
-      (insert "\n\n"))))
+  ;; Redo w/ CEDET utest framework.
+  (cedet-utest-log-start "semantic: analyzer tests"))
 
 (defun semantic-ia-utest-log (&rest args)
   "Log some test results.
 Pass ARGS to format to create the log message."
-  (let ((b (get-buffer-create "*UTEST LOG*"))
-	)
-    (save-excursion
-      (set-buffer b)
-      (goto-char (point-max))
-      (insert (apply 'format args))
-      (insert "\n")
-      )))
+  ;; Forward to CEDET utest framework.
+  (apply 'cedet-utest-log args))
 
 (provide 'semantic-ia-utest)
 ;;; semantic-ia-utest.el ends here
