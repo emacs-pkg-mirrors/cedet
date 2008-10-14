@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.3 2008/10/14 12:15:16 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.4 2008/10/14 23:49:53 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -49,37 +49,48 @@ Convert the output tags into Semantic tags."
   (when (not semantic-ectag-lang)
     (error "Exuberent CTag support for Semantic not configured for %s"
 	   major-mode))
-  (let* ((start (current-time))
-	 (arg-list (append
-		    semantic-ectag-lang-extra-flags
-		    (list
-		     "--sort=no"	   ;; Don't resort the names.
-		     "--excmd=number" ;; add line numbers
-		     "--fields=aKStsim" ;; Add extra info
-		     (format "--%s-kinds=%s"
-			     semantic-ectag-lang
-			     semantic-ectag-lang-kind)
-		     "-f" "-" ;; Send to standard out.
-		     ;; We have to pass in the file, not buffer text.
-		     (buffer-file-name))))
-	 (buff (apply 'semantic-ectag-run arg-list))
-	 (mode major-mode)
-	 (end (current-time))
-	 (parsed-output (save-excursion
-			  (set-buffer buff)
-			  (funcall mode)
-			  (semantic-ectag-parse-tags))
-			)
-	 )
+  (let ((start (current-time))
+	(tags
+	 (semantic-ectag-parse-file-with-mode (buffer-file-name) major-mode))
+	(end (current-time)))
+
     (when (interactive-p)
       (message "Parsed %d tags in %d seconds."
-	       (length parsed-output)
+	       (length tags)
 	       (semantic-elapsed-time start end))
       (let ((ab (data-debug-new-buffer (concat "*"
 					       (buffer-name)
 					       " ADEBUG*")))
 	    )
-	(data-debug-insert-tag-list parsed-output "* ")))
+	(data-debug-insert-tag-list tags "* ")))
+    ))
+
+(defun semantic-ectag-parse-file-with-mode (filename mode)
+  "Execute Exuberent CTags on FILENAME using major mode MODE settings."
+  (message "CTAGS/%s..." (file-name-nondirectory filename))
+  (let* ((xtra (mode-local-symbol-value 'semantic-ectag-lang-extra-flags
+					mode))
+	 (lang (mode-local-symbol-value 'semantic-ectag-lang
+					mode))
+	 (kind (mode-local-symbol-value 'semantic-ectag-lang-kind
+					mode))
+	 (arg-list (append
+		    xtra
+		    (list
+		     "--sort=no"	   ;; Don't resort the names.
+		     "--excmd=number" ;; add line numbers
+		     "--fields=aKStsim" ;; Add extra info
+		     (format "--%s-kinds=%s" lang kind)
+		     "-f" "-" ;; Send to standard out.
+		     ;; We have to pass in the file, not buffer text.
+		     filename)))
+	 (buff (apply 'semantic-ectag-run arg-list))
+	 
+	 )
+    (save-excursion
+      (set-buffer buff)
+      (funcall mode)
+      (semantic-ectag-parse-tags))
     ))
 
 (defun semantic-ectag-parse-tags ()
@@ -206,6 +217,7 @@ parents running forward, such as namespace/namespace/class"
 	 (ect-class (nth 3 elements))
 	 (class (intern ect-class))
 	 (prototype nil)
+	 (const nil)
 	 (type nil)
 
 	 (class-sym (cond
@@ -221,6 +233,12 @@ parents running forward, such as namespace/namespace/class"
 		      'variable)
 		     ((eq class 'include)
 		      'include)
+		     ((eq class 'macro)
+		      (setq const t)
+		      'variable)
+		     ((eq class 'enumerator)
+		      (setq const t)
+		      'variable)
 		     (t
 		      (error "Unknown ctag output kind %s" class))))
 
@@ -233,6 +251,7 @@ parents running forward, such as namespace/namespace/class"
 			    ;; :filename (nth 1 elements)
 			    :line line
 			    :prototype-flag prototype
+			    :constant-flag const
 			    :type (if (eq class-sym 'type) type nil) ;; Nil alows override later
 			    ))
 	 (parents nil)
