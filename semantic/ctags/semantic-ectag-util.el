@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-util.el,v 1.2 2008/10/14 12:14:29 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-util.el,v 1.3 2008/10/14 23:50:33 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -34,21 +34,6 @@
   "The Exuberent CTags program to use."
   :group 'semantic
   :type 'file)
-
-;;; ENABLE CTAGS SUPPORT
-;;
-;; Off by default, users can use this to enable ctags parsing
-;; if they desire.
-;;;###autoload
-(defun semantic-enable-exuberent-ctags ()
-  "Enable the use of exuberent ctags.
-Throws an error if `semantic-ectag-program' is not of the correct
-version needed by Semantic ctags support."
-  ;; First, make sure the version is ok.
-  (semantic-ectag-test-version)
-  ;; Next, enable various hooks.
-
-  )  
 
 ;;; RUN CTAGS
 ;;
@@ -127,20 +112,36 @@ The returned buffer will be recycled in future calls to this function."
 		(if (re-search-forward "Exuberant Ctags \\([0-9.]+\\)," nil t)
 		    (match-string 1)
 		  "0")
-		)))
+		))
+	 (ropt (save-excursion
+		 (set-buffer b)
+		 (goto-char (point-min))
+		 (if (re-search-forward "\\+regex\\>" nil t)
+		     t
+		   nil)))
+	 )
     (when (interactive-p)
-      (message "Detected Exuberent CTags version : %s" str))
-    str))
+      (message "Detected Exuberent CTags version : %s %s"
+	       str
+	       (if ropt
+		   "with regex support"
+		 "WITHOUT regex support")
+	       ))
+    (list str ropt) ))
 
 (defvar semantic-ectag-min-version "5.7"
   "Minimum version of Exuberent CTags we need.")
 
 (defun semantic-ectag-test-version ()
   "Make sure the version of ctags we have is up to date."
-  (let ((v (semantic-ectag-version)))
+  (let* ((vi (semantic-ectag-version))
+	 (v (car vi))
+	 (r (car (cdr vi))))
     (when (inversion-check-version v nil semantic-ectag-min-version)
       (error "Version of CTags is %s.  Need at least %s"
 	     v semantic-ectag-min-version))
+    (when (not r)
+      (error "CTags was not compiled with +regex support"))
     ))
 
 (provide 'semantic-ectag-util)
