@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.91 2008/08/28 01:51:36 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.92 2008/10/14 00:59:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1011,6 +1011,10 @@ These are constants which are of type TYPE."
     (if (= (length ans) 1)
 	name
       (delete "" ans))))
+
+(define-mode-local-override semantic-analyze-unsplit-name c-mode (namelist)
+  "Assemble the list of names NAMELIST into a namespace name."
+  (mapconcat 'identity namelist "::"))
 
 (define-mode-local-override semantic-ctxt-scoped-types c-mode (&optional point)
   "Return a list of tags of CLASS type based on POINT.
