@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.2 2008/10/14 01:02:22 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.3 2008/10/14 12:15:16 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -38,6 +38,8 @@
   "The language name used by Exuberent CTags for the current buffer.")
 (defvar semantic-ectag-lang-kind nil
   "The kinds of tags fetched by Exuberent CTags for the current language.")
+(defvar semantic-ectag-lang-extra-flags nil
+  "Extra flags to pass to Exuberent CTags for a particular language.")
 
 ;;;###autoload
 (defun semantic-ectag-parse-buffer ()
@@ -48,16 +50,19 @@ Convert the output tags into Semantic tags."
     (error "Exuberent CTag support for Semantic not configured for %s"
 	   major-mode))
   (let* ((start (current-time))
-	 (buff (semantic-ectag-run
-		"--sort=no" ;; Don't resort the names.
-		"--excmd=number" ;; add line numbers
-		"--fields=aKStsim" ;; Add extra info
-		(format "--%s-kinds=%s"
-			semantic-ectag-lang
-			semantic-ectag-lang-kind)
-		"-f" "-" ;; Send to standard out.
-		(buffer-file-name) ;; The file to parse.
-		))
+	 (arg-list (append
+		    semantic-ectag-lang-extra-flags
+		    (list
+		     "--sort=no"	   ;; Don't resort the names.
+		     "--excmd=number" ;; add line numbers
+		     "--fields=aKStsim" ;; Add extra info
+		     (format "--%s-kinds=%s"
+			     semantic-ectag-lang
+			     semantic-ectag-lang-kind)
+		     "-f" "-" ;; Send to standard out.
+		     ;; We have to pass in the file, not buffer text.
+		     (buffer-file-name))))
+	 (buff (apply 'semantic-ectag-run arg-list))
 	 (mode major-mode)
 	 (end (current-time))
 	 (parsed-output (save-excursion
@@ -214,6 +219,8 @@ parents running forward, such as namespace/namespace/class"
 		      'type)
 		     ((eq class 'member)
 		      'variable)
+		     ((eq class 'include)
+		      'include)
 		     (t
 		      (error "Unknown ctag output kind %s" class))))
 
