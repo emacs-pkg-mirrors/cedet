@@ -9,7 +9,7 @@
 top=../
 ede_FILES=Project.ede Makefile
 
-ctags_LISP=semantic-ectag-util.el semantic-ectag-lang.el semantic-ectag-parse.el
+ctags_LISP=semantic-ectag-util.el semantic-ectag-lang.el semantic-ectag-parse.el semanticdb-ectag.el
 EMACS=emacs
 LOADPATH= ../bovine/ ../../eieio/ ../ ../../common/
 VERSION=2.0pre5
