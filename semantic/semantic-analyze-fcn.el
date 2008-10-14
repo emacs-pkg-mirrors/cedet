@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.22 2008/10/14 00:57:56 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.23 2008/10/14 00:58:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -66,7 +66,7 @@ Return the string representing the compound name.")
 
 (defun semantic-analyze-unsplit-name-default (namelist)
   "Concatenate the names in NAMELIST with a . between."
-  (mapconcat identity namelist "."))
+  (mapconcat 'identity namelist "."))
 
 ;;; SELECTING
 ;;
