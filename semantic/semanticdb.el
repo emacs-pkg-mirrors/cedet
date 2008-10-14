@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.121 2008/09/17 15:15:29 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.122 2008/10/14 23:46:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -390,14 +390,17 @@ If one isn't found, create one."
 If FILENAME exists in the database already, return that.
 If there is no database for the table to live in, create one."
   (let ((cdb nil)
+	(tbl nil)
 	(dd (file-name-directory filename))
 	)
     ;; Allow a database override function
     (setq cdb (semanticdb-create-database semanticdb-new-database-class
 					  dd))
     ;; Get a table for this file.
-    (let ((tbl (semanticdb-create-table cdb filename)))
-      (cons cdb tbl))
+    (setq tbl (semanticdb-create-table cdb filename))
+
+    ;; Return the pair.
+    (cons cdb tbl)
     ))
 
 ;;; Cache Cache.
@@ -850,32 +853,7 @@ DONTLOAD does not affect the creation of new database objects."
 	;; ignored.
 	nil)
        ((not dontload) ;; We must load the file.
-	(save-excursion
-	  (let* (;; Remember the buffer to kill
-		 (kill-buffer-flag (find-buffer-visiting file))
-		 (buffer-to-kill (or kill-buffer-flag
-				     (semantic-find-file-noselect file t))))
-
-	    ;; Debug some issue here?
-	    (when kill-buffer-flag
-	      (debug))
-
-	    (set-buffer buffer-to-kill)
-	    ;; Find file should automatically do this for us.
-	    ;; Sometimes the DB table doesn't contains tags and needs
-	    ;; a refresh.  For example, when the file is loaded for
-	    ;; the first time, and the idle scheduler didn't get a
-	    ;; chance to trigger a parse before the file buffer is
-	    ;; killed.
-	    (when semanticdb-current-table
-	      (semantic-fetch-tags))
-	    (prog1
-		semanticdb-current-table
-	      (when (not kill-buffer-flag)
-		;; If we had to find the file, then we should kill it
-		;; to keep the master buffer list clean.
-		(kill-buffer buffer-to-kill)
-		))))
+	(semanticdb-create-table-for-file-not-in-buffer file)
 	)
        (t
 	;; We were asked not to load the file in and parse it.
@@ -891,6 +869,45 @@ DONTLOAD does not affect the creation of new database objects."
 	)
        )
       )))
+
+(defvar semanticdb-out-of-buffer-create-table-fcn nil
+  "When non-nil, a function for creating a semanticdb table.
+This should take a filename to be parsed.")
+(make-variable-buffer-local 'semanticdb-out-of-buffer-create-table-fcn)
+
+(defun semanticdb-create-table-for-file-not-in-buffer (filename)
+  "Create a table for the file FILENAME.
+If there are no language specific configurations, this
+function will read in the buffer, parse it, and kill the buffer."
+  (if semanticdb-out-of-buffer-create-table-fcn
+      (funcall semanticdb-out-of-buffer-create-table-fcn filename)
+    (save-excursion
+      (let* ( ;; Remember the buffer to kill
+	     (kill-buffer-flag (find-buffer-visiting filename))
+	     (buffer-to-kill (or kill-buffer-flag
+				 (semantic-find-file-noselect filename t))))
+
+	;; This shouldn't ever be set.  Debug some issue here?
+	(when kill-buffer-flag
+	  (debug))
+
+	(set-buffer buffer-to-kill)
+	;; Find file should automatically do this for us.
+	;; Sometimes the DB table doesn't contains tags and needs
+	;; a refresh.  For example, when the file is loaded for
+	;; the first time, and the idle scheduler didn't get a
+	;; chance to trigger a parse before the file buffer is
+	;; killed.
+	(when semanticdb-current-table
+	  (semantic-fetch-tags))
+	(prog1
+	    semanticdb-current-table
+	  (when (not kill-buffer-flag)
+	    ;; If we had to find the file, then we should kill it
+	    ;; to keep the master buffer list clean.
+	    (kill-buffer buffer-to-kill)
+	    )))))
+  )
 
 ;;;###autoload
 (defun semanticdb-file-stream (file)
