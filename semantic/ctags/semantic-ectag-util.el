@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-util.el,v 1.1 2008/10/10 22:23:08 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-util.el,v 1.2 2008/10/14 12:14:29 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -108,7 +108,10 @@ The returned buffer will be recycled in future calls to this function."
 		 (downcase lang)
 		 kinds)
 	)
-      )))
+      )
+    (switch-to-buffer-other-window b)
+    (goto-char (point-min))
+    ))
 
 ;;; Revision Test
 ;;
