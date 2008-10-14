@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.57 2008/09/04 01:47:52 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.58 2008/10/14 23:44:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -255,6 +255,19 @@ ATTRIBUTE is a symbol whose specification value to get.
 Return the value found, or nil if ATTRIBUTE is not one of the
 attributes of TAG."
   (plist-get (semantic-tag-attributes tag) attribute))
+
+(defun semantic--tag-put-attribute (tag attribute value)
+  "Internal function for modifying a tag.
+Change value in TAG of ATTRIBUTE to VALUE.
+If ATTRIBUTE already exists, its value is set to VALUE, otherwise the
+new ATTRIBUTE VALUE pair is added.
+Return TAG."
+  (let* ((plist-cdr (nthcdr 2 tag)))
+    (when (consp plist-cdr)
+      (setcar plist-cdr
+              (semantic-tag-make-plist
+               (plist-put (car plist-cdr) attribute value))))
+    tag))
 
 ;; These functions are for internal use only!
 (defsubst semantic--tag-properties-cdr (tag)
