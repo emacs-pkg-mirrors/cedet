@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.29 2008/10/09 15:42:19 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.30 2008/10/14 23:44:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -79,6 +79,14 @@ PARENT can also be a `semanticdb-table' object."
 	  (re-search-forward (semantic-tag-name tag)
 			     (semantic-tag-end parent)
 			     t))
+	 ((semantic-tag-get-attribute tag :line)
+	  ;; The tag has a line number in it.  Go there.
+	  (goto-line (semantic-tag-get-attribute tag :line)))
+	 ((semantic-tag-get-attribute parent :line)
+	  ;; The tag has a line number in it.  Go there.
+	  (goto-line (semantic-tag-get-attribute parent :line))
+	  (re-search-forward (semantic-tag-name tag) nil t)
+	  )
 	 (t
 	  ;; Take a guess that the tag has a unique name, and just
 	  ;; search for it from the beginning of the buffer.
