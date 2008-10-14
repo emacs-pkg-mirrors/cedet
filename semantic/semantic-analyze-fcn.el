@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.21 2008/10/10 21:30:24 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.22 2008/10/14 00:57:56 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -59,6 +59,14 @@ Return the string NAME for no change, or a list if it needs to be split.")
 (defun semantic-analyze-split-name-default (name)
   "Don't split up NAME by default."
   name)
+
+(define-overloadable-function semantic-analyze-unsplit-name (namelist)
+  "Assemble a NAMELIST into a string representing a compound name.
+Return the string representing the compound name.")
+
+(defun semantic-analyze-unsplit-name-default (namelist)
+  "Concatenate the names in NAMELIST with a . between."
+  (mapconcat identity namelist "."))
 
 ;;; SELECTING
 ;;
