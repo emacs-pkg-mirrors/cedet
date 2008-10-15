@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-ectag.el,v 1.1 2008/10/14 23:47:06 zappo Exp $
+;; X-RCS: $Id: semanticdb-ectag.el,v 1.2 2008/10/15 13:53:33 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -53,13 +53,16 @@ version needed by Semantic ctags support."
           t (symbol-name major-mode))))
   ;; First, make sure the version is ok.
   (semantic-ectag-test-version)
+  ;; Make sure mode is a symbol.
+  (when (stringp mode)
+    (setq mode (intern mode)))
   ;; Next, enable the table create routine.
   (eval
-   `(setq-mode-local ,(intern mode)
+   `(setq-mode-local ,mode
 		     semanticdb-out-of-buffer-create-table-fcn
 		     (lambda (fname)
 		       (semanticdb-ectag-create-table-for-file-not-in-buffer
-			fname (quote ,(intern mode))))))
+			fname (quote ,mode)))))
   )
 
 ;;; PARSE REPLACEMENT
