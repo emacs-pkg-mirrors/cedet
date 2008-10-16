@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-util.el,v 1.3 2008/10/14 23:50:33 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-util.el,v 1.4 2008/10/16 00:38:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,7 +30,7 @@
 
 ;;; Code:
 
-(defcustom semantic-ectag-program "~/src/ctags-5.7/ctags" ; "ctags"
+(defcustom semantic-ectag-program "ctags"
   "The Exuberent CTags program to use."
   :group 'semantic
   :type 'file)
