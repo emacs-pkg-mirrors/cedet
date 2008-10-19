@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.61 2008/06/19 02:24:21 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.62 2008/10/19 13:43:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -158,7 +158,13 @@ Optional KEYMAP is the keymap for the minor mode that will be added to
     (if mm
         (setcdr mm (list name))
       (setq semantic-minor-mode-alist (cons (list toggle name)
-                                       semantic-minor-mode-alist)))))
+                                       semantic-minor-mode-alist))))
+
+  ;; Semantic minor modes don't work w/ Desktop restore.
+  ;; This line will disable this minor mode from being restored
+  ;; by Desktop.
+  (add-to-list 'desktop-minor-mode-handlers (list toggle nil))
+  )
 
 (defun semantic-toggle-minor-mode-globally (mode &optional arg)
   "Toggle minor mode MODE in every Semantic enabled buffer.
@@ -257,15 +263,15 @@ enabled parse the current buffer if needed.  Return non-nil if the
 minor mode is enabled."
   (if semantic-highlight-edits-mode
       (if (not (and (featurep 'semantic) (semantic-active-p)))
-          (progn
-            ;; Disable minor mode if semantic stuff not available
-            (setq semantic-highlight-edits-mode nil)
-            (error "Buffer %s was not set up for parsing"
-                   (buffer-name)))
-        (semantic-make-local-hook 'semantic-edits-new-change-hooks)
-        (add-hook 'semantic-edits-new-change-hooks
-                  'semantic-highlight-edits-new-change-hook-fcn nil t)
-        )
+	  (progn
+	    ;; Disable minor mode if semantic stuff not available
+	    (setq semantic-highlight-edits-mode nil)
+	    (error "Buffer %s was not set up for parsing"
+		   (buffer-name)))
+	(semantic-make-local-hook 'semantic-edits-new-change-hooks)
+	(add-hook 'semantic-edits-new-change-hooks
+		  'semantic-highlight-edits-new-change-hook-fcn nil t)
+	)
     ;; Remove hooks
     (remove-hook 'semantic-edits-new-change-hooks
 		 'semantic-highlight-edits-new-change-hook-fcn t)
