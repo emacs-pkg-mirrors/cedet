@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-ectag.el,v 1.2 2008/10/15 13:53:33 zappo Exp $
+;; X-RCS: $Id: semanticdb-ectag.el,v 1.3 2008/10/19 12:16:06 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -41,7 +41,7 @@
 ;; Off by default, users can use this to enable ctags parsing
 ;; if they desire.
 ;;;###autoload
-(defun semantic-enable-exuberent-ctags (mode)
+(defun semanticdb-enable-exuberent-ctags (mode)
   "Enable the use of exuberent ctags for out-of-buffer parsing for MODE.
 MODE is a `major-mode' symbol used.
 Throws an error if `semantic-ectag-program' is not of the correct
