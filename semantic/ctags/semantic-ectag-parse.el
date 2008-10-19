@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.4 2008/10/14 23:49:53 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.5 2008/10/19 11:37:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -63,7 +63,9 @@ Convert the output tags into Semantic tags."
 					       " ADEBUG*")))
 	    )
 	(data-debug-insert-tag-list tags "* ")))
-    ))
+
+    tags)
+  )
 
 (defun semantic-ectag-parse-file-with-mode (filename mode)
   "Execute Exuberent CTags on FILENAME using major mode MODE settings."
@@ -198,14 +200,14 @@ Convert the output tags into Semantic tags."
   (let ((children (semantic-tag-type-members parent))
 	)
     (add-to-list 'children child t)
-    (semantic--tag-put-attribute parent :members children)
+    (semantic-tag-put-attribute parent :members children)
     ))
 
 (defun semantic-ectag-add-parent (tag parentlist)
   "Add to TAG the tag name in PARENTLIST."
   (when parentlist
     (let ((pstring (semantic-analyze-unsplit-name parentlist)))
-      (semantic--tag-put-attribute tag :parent pstring)
+      (semantic-tag-put-attribute tag :parent pstring)
       )))
 
 (defun semantic-ectag-parse-one-tag (line)
@@ -331,5 +333,83 @@ PARENTS is the list of parent names for TAG.")
 TAG and PARENTS are ignored."
   nil)
 
+;;; MAIN PARSER SUPPORT
+;;
+;; Tools for using ctags as the main parser for a language.
+
+(defun semantic-ectag-setup-parse-table ()
+  "Setup the current buffer for parsing with Exuberent CTags.
+Unlike basic ECTag setup, this will setup the buffer so the main
+parser is also using CTags to dynamically parse the buffer."
+  (semantic-install-function-overrides
+   '((parse-region . semantic-ectag-parse-region)
+     (parse-changes . semantic-ectag-parse-changes)))
+  (setq semantic-parser-name "CTAGS"
+        ;; Setup a dummy parser table to enable parsing!
+        semantic--parse-table t
+	)
+  )
+  
+(defun semantic-ectag-parse-region (&rest ignore)
+  "Parse the current shell script buffer for semantic tags.
+IGNORE any arguments, always parse the whole buffer."
+  (let ((tags (semantic-ectag-parse-buffer))
+	(newtags nil))
+    (while tags
+      (push (semantic-ectag-expand-tag (car tags)
+				       (car (cdr tags)))
+	    newtags)
+      (setq tags (cdr tags)))
+    (nreverse newtags)))
+
+(defun semantic-ectag-parse-changes ()
+  "Parse changes in the current shell script buffer."
+  ;; NOTE: For now, just schedule a full reparse.
+  ;;       To be implemented later.
+  (semantic-parse-tree-set-needs-rebuild))
+
+;;; TAG COOKING
+;;
+;; Tags are 'cooked' when they are bound into a buffer.
+(defun semantic-ectag-expand-tag (tag nexttag)
+  "Expand the Exuberent CTag TAG into the current buffer.
+NEXTTAG provides a clue to the end of TAG.
+CTags start out with a a line number.
+Cooking a tag needs character positions instead.
+NOTE: Currently this only supports a flat-list style tag."
+  (let ((name (semantic-tag-name tag))
+	(class (semantic-tag-class tag))
+	(attr (semantic-tag-attributes tag))
+	(line nil)
+	(newattr nil)
+	start end)
+    (while attr
+      (if (eq (car attr) :line)
+	  (setq line (car (cdr attr)))
+	(push (car (cdr attr)) newattr)
+	(push (car attr) newattr))
+      (setq attr (cdr (cdr attr))))
+    (save-excursion
+      (goto-line line)
+      (setq start (point-at-bol)
+	    end
+	    (progn
+	      (if nexttag
+		  (goto-line (semantic-tag-get-attribute nexttag :line))
+		(goto-char (point-max))
+		)
+	      (while (forward-comment -1) nil)
+	      (point)
+	      )))
+    ;; We can safely take the first because ctags
+    ;; doesn't produce compound tags.
+    (let ((ret
+	   (car
+	    (semantic--tag-expand
+	     ;; Uncooked tags are unlike standard tags.
+	     (list name class newattr nil nil start end)))
+	   ))
+      ret)))
+  
 (provide 'semantic-ectag-parse)
 ;;; semantic-ectag-parse.el ends here
