@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-lang.el,v 1.4 2008/10/19 11:44:06 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-lang.el,v 1.5 2008/10/19 12:15:20 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -136,9 +136,17 @@ Uses PARENTS to determine if it is a constructor or destructor."
 ;; fcn instead.
 
 ;;;###autoload
-(defun semantic-enable-all-exuberent-ctags-support ()
-  "Enable all ectag supported backend support features."
+(defun semantic-load-enable-all-exuberent-ctags-support ()
+  "Enable all ectag supported backend support features.
+This includes:
+  * semanticdb backend support 
+  * buffer parsing using ectags for somoe modes.
+
+Any mode that has been tested to work will be added to this function."
   (interactive)
+
+  ;; Make sure that the version of ctags installed will work.
+  (semantic-ectag-test-version)
 
   ;; Semanticdb backend support only.
   (semanticdb-enable-exuberent-ctags 'c-mode)
