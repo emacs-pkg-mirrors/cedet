@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-lang.el,v 1.3 2008/10/14 23:48:04 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-lang.el,v 1.4 2008/10/19 11:44:06 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -32,7 +32,8 @@
 (require 'semantic-fw)
 (require 'semantic-ectag-parse)
 
-;;; C/C++
+;;; C/C++ Mode
+;;
 (defvar-mode-local c-mode semantic-ectag-lang "c"
   "Language name for Exuberent CTags.")
 
@@ -98,20 +99,53 @@ Uses PARENTS to determine if it is a constructor or destructor."
 	(name (semantic-tag-name tag))
 	)
     (when (string= lastname name)
-      (semantic--tag-put-attribute tag :constructor-flag t))
+      (semantic-tag-put-attribute tag :constructor-flag t))
     (when (string= (concat "~" lastname) name)
       (setcar tag lastname)
-      (semantic--tag-put-attribute tag :destructor-flag t))
+      (semantic-tag-put-attribute tag :destructor-flag t))
     ))
 
-;;; Emacs Lisp
+;;; Emacs Lisp Mode
+;;
 (defvar-mode-local emacs-lisp-mode semantic-ectag-lang "lisp"
   "Language name for Exuberent CTags.")
 
 (defvar-mode-local emacs-lisp-mode semantic-ectag-lang-kind "f"
   "Kinds of Exuberent CTags available.")
 
+;;; SH Script mode
+;;
+(defvar-mode-local sh-mode semantic-ectag-lang "sh"
+  "Language name for Exuberent CTags.")
 
+(defvar-mode-local sh-mode semantic-ectag-lang-kind "f"
+  "Kinds of Exuberent CTags available.")
+
+;;;###autoload
+(defun semantic-default-sh-setup ()
+  "Set up a buffer for Semantic parsing for SH language using CTags."
+  (semantic-ectag-setup-parse-table)
+  (setq imenu-create-index-function 'semantic-create-imenu-index
+	)
+  )
+
+;;; BUFFER PARSING HOOKS
+;;
+;; We cannot blindly enable the buffer support for languages that
+;; can only get tags from ctags.  The user must enable them via this
+;; fcn instead.
+
+;;;###autoload
+(defun semantic-enable-all-exuberent-ctags-support ()
+  "Enable all ectag supported backend support features."
+  (interactive)
+
+  ;; Semanticdb backend support only.
+  (semanticdb-enable-exuberent-ctags 'c-mode)
+
+  ;; Mode Hooks for enabling parsing with ectag as the main parser.
+  (add-hook 'sh-mode-hook 'semantic-default-sh-setup)
+  )
 
 (provide 'semantic-ectag-lang)
 ;;; semantic-ectag-lang.el ends here
