@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.62 2008/10/19 13:43:02 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.63 2008/10/20 11:21:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -126,6 +126,11 @@ Only minor modes that are locally enabled are shown in the mode line."
                    semantic-minor-modes-status)))))
   (working-mode-line-update))
 
+(defun semantic-desktop-ignore-this-minor-mode (buffer)
+  "Installed as a minor-mode initializer for Desktop mode.
+BUFFER is the buffer to not initialize a Semantic minor mode in."
+  nil)
+
 (defun semantic-add-minor-mode (toggle name &optional keymap)
   "Register a new Semantic minor mode.
 TOGGLE is a symbol which is the name of a buffer-local variable that
@@ -163,7 +168,8 @@ Optional KEYMAP is the keymap for the minor mode that will be added to
   ;; Semantic minor modes don't work w/ Desktop restore.
   ;; This line will disable this minor mode from being restored
   ;; by Desktop.
-  (add-to-list 'desktop-minor-mode-handlers (list toggle nil))
+  (add-to-list 'desktop-minor-mode-handlers
+	       (list toggle 'semantic-desktop-ignore-this-minor-mode))
   )
 
 (defun semantic-toggle-minor-mode-globally (mode &optional arg)
