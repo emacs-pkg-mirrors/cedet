@@ -94,12 +94,11 @@ read the @inforef{Top, Semantic manual, semantic.info}.
 %c TODO - Re-organize this main topic as a set of user-cases
 
 @menu
-* Exuberent ctags::             Using Exuberent ctags support
 * speedbar::                    How to use Semantic speedbar support
 * ECB::                         Emacs Code Browser
 * imenu::                       Special support for Imenu.
 * senator::                     The Semantic Navigator
-* Analyzer::                    Analyze local context
+* Analyzer::                    Context sensitive Help & smart completion
 * Document::                    Document generation functions
 * Charts::                      Charting code statistics
 * Idle Scheduler::              The idle Scheduler and related modes
@@ -109,32 +108,6 @@ read the @inforef{Top, Semantic manual, semantic.info}.
 * GNU Free Documentation License::  
 * Index::                       
 @end menu
-
-@node Exuberent ctags
-@chapter Exuberent ctags support
-@cindex ctags
-@cindex exuberent ctags
-
-If you have Exuberent ctags installed, you can enable using ctags as a
-parser for some languages, or as a database backend parser.
-
-To enable the use of ctags in semantic, add this to your .emacs file.
-@example
-(semantic-enable-all-exuberent-ctags-support)
-@end example
-
-Enabling ctags has the following benifits:
-@enumerate 1
-@item Enable more languages.
-There parseres for some major modes that only work through Exuberent
-ctags, such as borne shell script mode (@code{sh-script-mode}).
-@item Database backend support.
-Complex languages such as C/C++ require that Semantic parse many
-files.  Enabling Exuberent ctags as a database backend for these modes
-enables Emacs to parse through those files much more quickly.  The
-data returned by Exuberent ctags is less accurate, but good enough for
-performing completion, or jumping operations.
-@end enumerate
 
 @node speedbar
 @chapter speedbar
