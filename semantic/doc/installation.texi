@@ -58,6 +58,22 @@ Loads any ebrowse dbs created earlier.
 @end table
 @end deffn
 
+@deffn Command semantic-load-enable-all-exuberent-ctags-support
+@anchor{semantic-enable-all-exuberent-ctags-support}
+Enable all ectag supported backend support features.
+This includes:
+@table @asis
+@item semanticdb backend support 
+Using exuberent ctags as a semanticdb backend allows for faster
+first-time parsing of files for supported languages, such as C/C++.
+@item buffer parsing using ectags for somoe modes.
+Some languages do not have regular all Lisp Semantic parsers.  This
+command enables the use of Exuberent ctags as the main parser for some
+languages, such as for Borne Shell scripts.
+@end table
+
+Any mode that has been tested to work will be added to this function.
+@end deffn
 
 @deffn Command semantic-load-enable-code-helpers
 @anchor{semantic-load-enable-code-helpers}
