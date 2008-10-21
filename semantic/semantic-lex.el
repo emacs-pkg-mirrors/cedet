@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.52 2008/09/28 12:29:37 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.53 2008/10/21 01:12:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -103,15 +103,77 @@
 ;;
 ;;   Lexical keyword table - A Table of symbols declared in a grammar
 ;;           file with the %keyword declaration.
-;;           Used by the analyer `semantic-lex-symbol-or-keyword'.
-;;           Keywords in this table create lexical tokens based on
-;;           the keyword.
+;;           Keywords are used by `semantic-lex-symbol-or-keyword'
+;;           to create lexical tokens based on the keyword.
 ;;
 ;;   Lexical type table - A table of symbols declared in a grammer
 ;;           file with the %type declaration.
-;;           This table is used during the compilation of a grammar
-;;           into lexer/parser code.  Types in this table are used
-;;           to generated analyzers to be used in a lexer.
+;;           The grammar compiler uses the type table to create new
+;;           lexical analyzers.  These analyzers are then used to when
+;;           a new lexical analyzer is made for a language.
+;;
+;;; Lexical Types
+;;
+;; A lexical type defines a kind of lexical analyzer that will be
+;; automatically generated from a grammar file based on some
+;; predetermined attributes. For now these two attributes are
+;; recognized :
+;; 
+;; * matchdatatype : define the kind of lexical analyzer. That is :
+;; 
+;;   - regexp : define a regexp analyzer (see
+;;     `define-lex-regex-type-analyzer')
+;; 
+;;   - string : define a string analyzer (see
+;;     `define-lex-string-type-analyzer')
+;; 
+;;   - block : define a block type analyzer (see
+;;     `define-lex-block-type-analyzer')
+;; 
+;;   - sexp : define a sexp analyzer (see
+;;     `define-lex-sexp-type-analyzer')
+;; 
+;;   - keyword : define a keyword analyzer (see
+;;     `define-lex-keyword-type-analyzer')
+;; 
+;; * syntax : define the syntax that matches a syntactic
+;;   expression. When syntax is matched the corresponding type
+;;   analyzer is entered and the resulting match data will be
+;;   interpreted based on the kind of analyzer (see matchdatatype
+;;   above).
+;; 
+;; The following lexical types are predefined :
+;; 
+;; +-------------+---------------+--------------------------------+
+;; | type        | matchdatatype | syntax                         |
+;; +-------------+---------------+--------------------------------+
+;; | punctuation | string        | "\\(\\s.\\|\\s$\\|\\s'\\)+"    |
+;; | keyword     | keyword       | "\\(\\sw\\|\\s_\\)+"           |
+;; | symbol      | regexp        | "\\(\\sw\\|\\s_\\)+"           |
+;; | string      | sexp          | "\\s\""                        |
+;; | number      | regexp        | semantic-lex-number-expression |
+;; | block       | block         | "\\s(\\|\\s)"                  |
+;; +-------------+---------------+--------------------------------+
+;; 
+;; In a grammar you must use a %type expression to automatically generate
+;; the corresponding analyzers of that type.
+;; 
+;; Here is an example to auto-generate punctuation analyzers
+;; with 'matchdatatype and 'syntax predefined (see table above) 
+;; 
+;; %type <punctuation> ;; will auto-generate this kind of analyzers
+;; 
+;; It is equivalent to write :
+;; 
+;; %type  <punctuation> syntax "\\(\\s.\\|\\s$\\|\\s'\\)+" matchdatatype string
+;; 
+;; ;; Some punctuations based on the type defines above
+;; 
+;; %token <punctuation> NOT         "!"
+;; %token <punctuation> NOTEQ       "!="
+;; %token <punctuation> MOD         "%"
+;; %token <punctuation> MODEQ       "%="
+;; 
 
 ;;; On the Semantic 1.x lexer
 ;;
@@ -1735,6 +1797,7 @@ If there is no error, then the last value of FORMS is returned."
 
 ;;; Compatibility with Semantic 1.x lexical analysis
 ;;
+;; NOTE: DELETE THIS SOMEDAY SOON
 
 (semantic-alias-obsolete 'semantic-flex-start 'semantic-lex-token-start)
 (semantic-alias-obsolete 'semantic-flex-end 'semantic-lex-token-end)
