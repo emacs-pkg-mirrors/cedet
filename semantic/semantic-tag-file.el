@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.30 2008/10/14 23:44:00 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.31 2008/10/27 01:38:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -115,7 +115,8 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
   (save-excursion
     (let ((result nil)
 	  (default-directory default-directory)
-	  (edefind nil))
+	  (edefind nil)
+	  (tag-fname nil))
       (cond ((semantic-tag-in-buffer-p tag)
 	     ;; If the tag has an overlay and buffer associated with it,
 	     ;; switch to that buffer so that we get the right override metohds.
@@ -131,6 +132,9 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 	     ;; All we really need is for 'default-directory' to be set correctly.
 	     (setq default-directory (file-name-directory (semantic-tag-file-name tag)))
 	     ))
+      ;; Setup the filename represented by this include
+      (setq tag-fname (semantic-tag-include-filename tag))
+
       ;; First, see if this file exists in the current EDE project
       (if (and (not (semantic-tag-include-system-p tag))
 	       (fboundp 'ede-expand-filename) ede-minor-mode
@@ -138,7 +142,7 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 		     (condition-case nil
 			 (let ((proj  (ede-toplevel)))
 			   (when proj
-			     (ede-expand-filename proj (semantic-tag-name tag))))
+			     (ede-expand-filename proj tag-fname)))
 		       (error nil))))
 	  (setq result edefind))
       (if (not result)
@@ -150,9 +154,8 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 		;;  (semantic--tag-get-property tag 'dependency-file)
 		(:override
 		 (save-excursion
-		   (let* ((name (semantic-tag-name tag)))
-		     (semantic-dependency-find-file-on-path
-		      name (semantic-tag-include-system-p tag)))))
+		   (semantic-dependency-find-file-on-path
+		    tag-fname (semantic-tag-include-system-p tag))))
 		;; )
 		))
       (if (stringp result)
