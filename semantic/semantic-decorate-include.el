@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.16 2008/08/30 01:55:05 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.17 2008/10/27 01:39:39 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -343,9 +343,19 @@ its contents.
 (defun semantic-decoration-include-visit ()
   "Visit the included file at point."
   (interactive)
-  (semantic-go-to-tag (semantic-current-tag))
-  (switch-to-buffer (current-buffer))
-  )
+  (let ((tag  (semantic-current-tag)))
+    (unless (eq (semantic-tag-class tag) 'include)
+      (error "Point is not on an include tag"))
+    (let ((file (semantic-dependency-tag-file tag)))
+      (cond
+       ((or (not file) (not (file-exists-p file)))
+	(error "Could not location include %s"
+	       (semantic-tag-name tag)))
+       ((get-file-buffer file)
+	(switch-to-buffer (get-file-buffer file)))
+       ((stringp file)
+	(find-file file))
+       ))))
 
 (defun semantic-decoration-include-menu (event)
   "Popup a menu that can help a user understand unparsed includes.
