@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.63 2008/10/20 11:21:51 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.64 2008/11/04 16:35:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -168,8 +168,9 @@ Optional KEYMAP is the keymap for the minor mode that will be added to
   ;; Semantic minor modes don't work w/ Desktop restore.
   ;; This line will disable this minor mode from being restored
   ;; by Desktop.
-  (add-to-list 'desktop-minor-mode-handlers
-	       (list toggle 'semantic-desktop-ignore-this-minor-mode))
+  (when (boundp 'desktop-minor-mode-handlers)
+    (add-to-list 'desktop-minor-mode-handlers
+		 (list toggle 'semantic-desktop-ignore-this-minor-mode)))
   )
 
 (defun semantic-toggle-minor-mode-globally (mode &optional arg)
