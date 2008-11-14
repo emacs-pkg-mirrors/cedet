@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.21 2008/10/06 19:24:01 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.22 2008/11/14 14:22:33 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -389,12 +389,13 @@ implicit \"object\"."
     ;; Loop over typelist, and find and merge all namespaces matching
     ;; the names in typelist.
     (while typelist
-      (if (string= (semantic-tag-type (car typelist)) "namespace")
-	  ;; By using the typecache, our namespaces are pre-merged.
-	  (setq typelist2 (cons (car typelist) typelist2))
-	;; Not a namespace.  Leave it off...
-	;; (setq typelist2 (cons (car typelist) typelist2))
-	)
+      (let ((tt (semantic-tag-type (car typelist))))
+	(if (and (stringp tt) (string= tt "namespace"))
+	    ;; By using the typecache, our namespaces are pre-merged.
+	    (setq typelist2 (cons (car typelist) typelist2))
+	  ;; Not a namespace.  Leave it off...
+	  ;; (setq typelist2 (cons (car typelist) typelist2))
+	  ))
       (setq typelist (cdr typelist)))
 
     ;; Loop over the types (which should be sorted by postion
