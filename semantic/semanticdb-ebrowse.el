@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.20 2008/10/10 21:43:14 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.21 2008/11/20 02:55:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -380,7 +380,7 @@ If there is no database for DIRECTORY available, then
 		    (ebrowse-cs-file class)
 		    ;; Not def'd here, assume our current
 		    ;; file
-		    "unknown-proxy.hh"))
+		    (concat default-directory "/unknown-proxy.hh")))
 	 (vars (ebrowse-ts-member-functions tree))
 	 (fns (ebrowse-ts-member-variables tree))
 	 (toks nil)
@@ -425,7 +425,7 @@ Optional argument BASECLASSES specifyies a baseclass to the tree being provided.
 		      (ebrowse-cs-file (ebrowse-ts-class tree))
 		      ;; Not def'd here, assume our current
 		      ;; file
-		      "unknown-proxy.hh")))
+		      (concat default-directory "/unknown-proxy.hh"))))
 
   (let* ((tab (or (semanticdb-file-table dbe fname)
 		  (semanticdb-create-table dbe fname)))
