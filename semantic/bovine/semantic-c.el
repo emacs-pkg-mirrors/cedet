@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.92 2008/10/14 00:59:01 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.93 2008/11/26 18:01:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1020,7 +1020,8 @@ These are constants which are of type TYPE."
   "Return a list of tags of CLASS type based on POINT.
 DO NOT return the list of tags encompassing point."
   (when point (goto-char (point)))
-  (let ((tagreturn nil)
+  (let ((tagsaroundpoint (semantic-find-tag-by-overlay))
+	(tagreturn nil)
 	(tmp nil))
     ;; In C++, we want to find all the namespaces declared
     ;; locally and add them to the list.
@@ -1031,11 +1032,18 @@ DO NOT return the list of tags encompassing point."
     ;; We should also find all "using" type statements and
     ;; accept those entities in as well.
     (setq tmp (semantic-find-tags-by-class 'using (current-buffer)))
-    (while tmp
-      (setq tagreturn (cons (semantic-tag-type (car tmp))
-			    tagreturn))
-      (setq tmp (cdr tmp)))
-
+    (dolist (T tmp)
+      (setq tagreturn (cons (semantic-tag-type T) tagreturn))
+      )
+    ;; Use the encompased types around point to also look for using statements.
+    ;;(setq tagreturn (cons "bread_name" tagreturn))
+    (while (cdr tagsaroundpoint)  ; don't search the last one
+      (setq tmp (semantic-find-tags-by-class 'using (semantic-tag-components (car tagsaroundpoint))))
+      (dolist (T tmp)
+	(setq tagreturn (cons (semantic-tag-type T) tagreturn))
+	)
+      (setq tagsaroundpoint (cdr tagsaroundpoint))
+      )
     ;; Return the stuff
     tagreturn
     ))
