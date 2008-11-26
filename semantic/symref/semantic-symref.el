@@ -158,8 +158,8 @@ and those hits returned.")
 (eval-when-compile (require 'ede))
 
 (defvar semantic-symref-filepattern-alist
-  '((c-mode . "\\.[ch]$")
-    (c++-mode . "\\.([cChH]|[ch](pp|\\+\\+))$")
+  '((c-mode . "*.[ch]")
+    (c++-mode "*.[chCH]" "*.[ch]pp")
     (emacs-lisp-mode . "*.el")
     )
   "List of major modes and file extension pattern regexp.
@@ -175,9 +175,21 @@ See find -regex man page for format.")
 		    default-directory))
 	 ;; Find the file patterns to use.
 	 (pat (cdr (assoc major-mode semantic-symref-filepattern-alist)))
+	 (cmds (cond ((stringp pat)
+		      (setq cmds (concat "-name \"" pat "\"")))
+		     ((consp pat)
+		      (setq cmds
+			    (mapconcat (lambda (s)
+					 (concat "-name \"" s "\""))
+				       pat
+				       " -o ")))
+		     (t
+		      (error "semantic-symref-tool-grep - Needs to be configured for %s" major-mode))
+		     ))
 	 (b (get-buffer-create "*Semantic SymRef*"))
 	 (ans nil)
 	 )
+    
     (save-excursion
       (set-buffer b)
       (erase-buffer)
@@ -187,8 +199,9 @@ See find -regex man page for format.")
 		    "-c"
 		    (concat "find "
 			    default-directory
-			    " -type f -name \""
-			    pat "\" -print0 "
+			    " -type f "
+			    cmds
+			    " -print0 "
 			    "| xargs -0 -e grep -nH -e "
 			    "'\\<" (oref tool searchfor) "\\>'")
 		    )
@@ -200,7 +213,7 @@ See find -regex man page for format.")
 (defmethod semantic-symref-parse-tool-output-one-line ((tool semantic-symref-tool-grep))
   "Parse one line of grep output, and return it as a match list.
 Moves cursor to end of the match."
-  (when (re-search-forward "^\\([^:]+\\):\\([0-9]+\\):" nil t)
+  (when (re-search-forward "^\\([^:\n]+\\):\\([0-9]+\\):" nil t)
     (cons (string-to-number (match-string 2))
 	  (match-string 1))
     ))
