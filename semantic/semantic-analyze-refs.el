@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-refs.el,v 1.4 2008/11/27 18:01:04 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-refs.el,v 1.5 2008/11/27 18:44:21 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -217,7 +217,7 @@ TAG should be the tag currently under point."
       (let* ((direct (semantic--analyze-refs-find-child-in-find-results
 		      brute (semantic-tag-name tag) classmatch))
 	     (pdirect (semantic--analyze-refs-find-tags-with-parent
-		       direct (cdr plist))))
+		       direct plist)))
 	(setq answer (append pdirect answer)))
 
       ;; The next set of search items.
