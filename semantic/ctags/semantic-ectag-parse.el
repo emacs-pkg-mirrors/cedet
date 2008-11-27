@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.5 2008/10/19 11:37:12 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.6 2008/11/27 18:47:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -244,7 +244,7 @@ parents running forward, such as namespace/namespace/class"
 		     (t
 		      (error "Unknown ctag output kind %s" class))))
 
-	 (attr (semantic-ectag-split-fields (nthcdr 4 elements) class))
+	 (attr (semantic-ectag-split-fields (nthcdr 4 elements)))
 	 (line (string-to-number (nth 2 elements)))
 
 	 (tag (semantic-tag (nth 0 elements)
@@ -272,15 +272,14 @@ parents running forward, such as namespace/namespace/class"
     (cons tag parents)
     ))
 
-(defun semantic-ectag-split-fields (fields class)
-  "Convert FIELDS into a list of Semantic tag attributes.
-CLASS is the class of the tag we are parsing these fields for."
+(defun semantic-ectag-split-fields (fields)
+  "Convert FIELDS into a list of Semantic tag attributes."
   (let ((attr nil))
-    (while fields
-      (string-match "\\w+:" (car fields))
+    (dolist (F fields)
+      (string-match "\\w+:" F)
       (let* ((me (match-end 0))
-	     (field (substring (car fields) 0 (1- me)))
-	     (str (substring (car fields) me))
+	     (field (substring F 0 (1- me)))
+	     (str (substring F me))
 	     )
 	(cond ((string= field "type")
 	       (push str attr)
@@ -298,10 +297,10 @@ CLASS is the class of the tag we are parsing these fields for."
 	      ((string= field "namespace")
 	       (push str attr)
 	       (push :parent attr))
-	      ;((string= field "inheritance")
-	       ;(push str attr)
-	       ;(push :parent attr)
-	       ;)
+	      ;;((string= field "inheritance")
+	      ;;(push str attr)
+	      ;;(push :parent attr)
+	      ;;)
 	      ((string= field "access")
 	       (push str attr)
 	       (push :protection attr))
@@ -309,9 +308,12 @@ CLASS is the class of the tag we are parsing these fields for."
 	       (let ((sigattr (semantic-ectag-split-signature-summary str)))
 		 (push sigattr attr)
 		 (push :arguments attr)))
+	      ((string= field "implementation")
+	       (push sigattr attr)
+	       (push :typemodifiers attr))
 	      (t
 	       (message "Unknown ectag field %s" field))))
-      (setq fields (cdr fields)))
+      )
     attr))
 
 (define-overloadable-function semantic-ectag-split-signature-summary (summary)
