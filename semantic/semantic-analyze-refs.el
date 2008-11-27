@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-refs.el,v 1.3 2008/10/06 19:30:46 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-refs.el,v 1.4 2008/11/27 18:01:04 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -179,6 +179,7 @@ PARENTS is a list of names."
        (let* ((p (semantic-tag-named-parent tag))
 	      (ps (when (stringp p)
 		    (semantic-analyze-split-name p))))
+	 (when (stringp ps) (setq ps (list ps)))
 	 (when (and ps (equal ps parents))
 	   ;; We could optimize this, but it seems unlikely.
 	   (push (list db tag) ans))
