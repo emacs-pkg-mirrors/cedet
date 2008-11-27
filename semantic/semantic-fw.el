@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.64 2008/10/10 21:33:52 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.65 2008/11/27 18:44:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -393,7 +393,9 @@ FILE, NOWARN, RAWFILE, and WILDCARDS are passed into `find-file-noselect'"
 	 ;; Disable revision control
 	 (vc-handled-backends nil)
 	 )
-    (find-file-noselect file nowarn rawfile wildcards)
+    (if (featurep 'xemacs)
+	(find-file-noselect file nowarn rawfile)
+      (find-file-noselect file nowarn rawfile wildcards))
     ))
 
 
