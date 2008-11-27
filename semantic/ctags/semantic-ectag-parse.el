@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.6 2008/11/27 18:47:45 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.7 2008/11/27 18:48:53 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -309,7 +309,7 @@ parents running forward, such as namespace/namespace/class"
 		 (push sigattr attr)
 		 (push :arguments attr)))
 	      ((string= field "implementation")
-	       (push sigattr attr)
+	       (push str attr)
 	       (push :typemodifiers attr))
 	      (t
 	       (message "Unknown ectag field %s" field))))
