@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.64 2008/11/04 16:35:04 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.65 2008/11/27 12:07:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -170,7 +170,7 @@ Optional KEYMAP is the keymap for the minor mode that will be added to
   ;; by Desktop.
   (when (boundp 'desktop-minor-mode-handlers)
     (add-to-list 'desktop-minor-mode-handlers
-		 (list toggle 'semantic-desktop-ignore-this-minor-mode)))
+		 (cons toggle 'semantic-desktop-ignore-this-minor-mode)))
   )
 
 (defun semantic-toggle-minor-mode-globally (mode &optional arg)
