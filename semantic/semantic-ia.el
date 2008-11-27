@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.25 2008/10/07 01:50:52 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.26 2008/11/27 18:45:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -251,7 +251,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 ;; This shows how to use the analyzer context, and the
 ;; analyer references objects to choose a good destination.
 
-(defun semantic-ia--fast-jump-heper (dest)
+(defun semantic-ia--fast-jump-helper (dest)
   "Jump to DEST, a Semantic tag.
 This helper manages the mark, buffer switching, and pulsing."
   ;; We have a tag, but in C++, we usually get a prototype instead
@@ -269,6 +269,8 @@ This helper manages the mark, buffer switching, and pulsing."
   ;; 1) Push the mark, so you can pop global mark back, or
   ;;    use semantic-mru-bookmark mode to do so.
   (push-mark)
+  (when (fboundp 'push-tag-mark)
+    (push-tag-mark))
   ;; 2) Visits the tag.
   (semantic-go-to-tag dest)
   ;; 3) go-to-tag doesn't switch the buffer in the current window,
@@ -301,7 +303,7 @@ origin of the code at point."
 	 )
     (if (semantic-tag-p first)
 	;; We have a match.  Just go there.
-	(semantic-ia--fast-jump-heper first)
+	(semantic-ia--fast-jump-helper first)
       (if (semantic-tag-p second)
 	  ;; Because FIRST failed, we should visit our second tag.
 	  ;; HOWEVER, the tag we actually want that was only an unfound
@@ -313,14 +315,14 @@ origin of the code at point."
 	     ((and (semantic-tag-with-position-p secondclass)
 		   (y-or-n-p (format "Cound not find `%s'.  Jump to %s? "
 				     first (semantic-tag-name secondclass))))
-	      (semantic-ia--fast-jump-heper secondclass)
+	      (semantic-ia--fast-jump-helper secondclass)
 	      )
 	     ;; If we missed out on the class of the second item, then
 	     ;; just visit SECOND.
 	     ((and (semantic-tag-p second)
 		   (y-or-n-p (format "Cound not find `%s'.  Jump to %s? "
 				     first (semantic-tag-name second))))
-	      (semantic-ia--fast-jump-heper second)
+	      (semantic-ia--fast-jump-helper second)
 	      )))
 	(error "Could not find suitable jump point for %s"
 	       first)
