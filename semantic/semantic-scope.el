@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.22 2008/11/14 14:22:33 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.23 2008/11/27 18:43:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -319,11 +319,11 @@ are from nesting data types."
 		  (when (and (not (semantic-tag-p ptag))
 			     (semantic-tag-p (car ptag)))
 		    (setq ptag (car ptag)))
-		  (setq returnlist (cons ptag returnlist))
+		  (setq returnlist (append returnlist (list ptag)))
 		  )
 
 		(setq snlist (cdr snlist)))
-	      (setq returnlist (nreverse returnlist))
+	      (setq returnlist returnlist)
 	      )))
 	)
       returnlist
