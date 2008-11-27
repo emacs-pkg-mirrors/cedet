@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-util.el,v 1.4 2008/10/16 00:38:12 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-util.el,v 1.5 2008/11/27 18:49:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,6 +28,8 @@
 ;; * Running ctags.
 ;; * Decoding ctags output.
 
+(eval-when-compile (require 'inversion))
+
 ;;; Code:
 
 (defcustom semantic-ectag-program "ctags"
@@ -47,8 +49,10 @@ The returned buffer will be recycled in future calls to this function."
       (set-buffer b)
       (erase-buffer)
       (setq default-directory dd)
-      (apply 'call-process semantic-ectag-program nil b nil
-	     args))
+      (condition-case nil
+	  (apply 'call-process semantic-ectag-program nil b nil
+		 args)
+	(error nil)))
     b))
 
 ;;; Semi-automatic linguistic configuration
@@ -137,6 +141,7 @@ The returned buffer will be recycled in future calls to this function."
   (let* ((vi (semantic-ectag-version))
 	 (v (car vi))
 	 (r (car (cdr vi))))
+    (require 'inversion)
     (when (inversion-check-version v nil semantic-ectag-min-version)
       (error "Version of CTags is %s.  Need at least %s"
 	     v semantic-ectag-min-version))
