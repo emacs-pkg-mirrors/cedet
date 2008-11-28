@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.29 2008/09/04 01:44:28 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.30 2008/11/28 20:43:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -350,18 +350,28 @@ A canonical name includes the names of any parents or namespaces preceeding
 the tag with colons separating them.
 Optional argument PARENT is the parent type if TAG is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (if parent
-      (concat
-       ;; Choose a class of 'type as the default parent for something.
-       ;; Just a guess though.
-       (semantic-format-tag-name-from-anything parent nil color 'type)
-       ;; Default separator between class/namespace and others.
-       semantic-format-parent-separator
-       ;; The tag being formatted
-       (semantic-format-tag-name tag parent color))
-    ;; If not parent, then just use the tag.
-    (semantic-format-tag-name tag parent color))
-  )
+  (let ((parent-input-str
+	 (if (and parent
+		  (semantic-tag-p parent)
+		  (semantic-tag-of-class-p parent 'type))
+	     (concat
+	      ;; Choose a class of 'type as the default parent for something.
+	      ;; Just a guess though.
+	      (semantic-format-tag-name-from-anything parent nil color 'type)
+	      ;; Default separator between class/namespace and others.
+	      semantic-format-parent-separator)
+	   ""))
+	(tag-parent-str
+	 (or (when (and (semantic-tag-of-class-p tag 'function)
+			(semantic-tag-function-parent tag))
+	       (concat (semantic-tag-function-parent tag)
+		       semantic-format-parent-separator))
+	     ""))
+	)
+    (concat parent-input-str
+	    tag-parent-str
+	    (semantic-format-tag-name tag parent color))
+    ))
 
 ;;;###autoload
 (define-overloadable-function semantic-format-tag-abbreviate (tag &optional parent color)
