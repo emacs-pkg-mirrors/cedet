@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.66 2008/11/28 02:37:50 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.67 2008/11/28 20:03:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,6 +66,7 @@
       (defalias 'semantic-overlay-lists
         (lambda () (list (extent-list))))
       (defalias 'semantic-overlay-p               'extentp)
+      (defalias 'semantic-event-window        'event-window)
       (defun semantic-read-event ()
         (let ((event (next-command-event)))
           (if (key-press-event-p event)
@@ -74,7 +75,11 @@
                     (keyboard-quit)
                   c)))
           event))
-      (defalias 'semantic-event-window        'event-window)
+      (defun semantic-popup-menu (menu)
+	"Blockinig version of `popup-menu'"
+	(popup-menu menu)
+	;; Wait...
+	(while (popup-up-p) (dispatch-event (next-event))))
       )
   (defalias 'semantic-overlay-live-p          'overlay-buffer)
   (defalias 'semantic-make-overlay            'make-overlay)
@@ -94,6 +99,7 @@
   (defalias 'semantic-overlay-lists           'overlay-lists)
   (defalias 'semantic-overlay-p               'overlayp)
   (defalias 'semantic-read-event              'read-event)
+  (defalias 'semantic-popup-menu              'popup-menu)
   (defun semantic-event-window (event)
     "Extract the window from EVENT."
     (car (car (cdr event))))
