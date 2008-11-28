@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.65 2008/11/27 18:44:52 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.66 2008/11/28 02:37:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -74,6 +74,7 @@
                     (keyboard-quit)
                   c)))
           event))
+      (defalias 'semantic-event-window        'event-window)
       )
   (defalias 'semantic-overlay-live-p          'overlay-buffer)
   (defalias 'semantic-make-overlay            'make-overlay)
@@ -93,6 +94,9 @@
   (defalias 'semantic-overlay-lists           'overlay-lists)
   (defalias 'semantic-overlay-p               'overlayp)
   (defalias 'semantic-read-event              'read-event)
+  (defun semantic-event-window (event)
+    "Extract the window from EVENT."
+    (car (car (cdr event))))
   )
 
 (if (and (not (featurep 'xemacs))
@@ -129,6 +133,25 @@
 
 (if (not (fboundp 'string-to-number))
     (defalias 'string-to-number 'string-to-int))
+
+;;; Menu Item compatibility
+;;
+(defun semantic-menu-item (item)
+  "Build an XEmacs compatible menu item from vector ITEM.
+That is remove the unsupported :help stuff."
+  (if (featurep 'xemacs)
+      (let ((n (length item))
+            (i 0)
+            slot l)
+        (while (< i n)
+          (setq slot (aref item i))
+          (if (and (keywordp slot)
+                   (eq slot :help))
+              (setq i (1+ i))
+            (setq l (cons slot l)))
+          (setq i (1+ i)))
+        (apply #'vector (nreverse l)))
+    item))
 
 ;;; Positional Data Cache
 ;;
