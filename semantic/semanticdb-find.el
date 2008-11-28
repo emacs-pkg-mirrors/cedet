@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.69 2008/10/09 00:07:44 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.70 2008/11/28 03:03:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -430,16 +430,20 @@ a new path from the provided PATH."
 	(incfname nil)
 	nexttable)
     (cond ((null path)
+	   (semantic-refresh-tags-safe)
 	   (setq includetags (semantic-find-tags-included (current-buffer))
 		 curtable semanticdb-current-table
 		 incfname (buffer-file-name))
 	   )
 	  ((semanticdb-table-p path)
-	   (setq includetags (semantic-find-tags-included (semanticdb-get-tags path))
+	   (setq includetags (semantic-find-tags-included path)
 		 curtable path
 		 incfname (semanticdb-full-filename path))
 	   )
 	  ((bufferp path)
+	   (save-excursion
+	     (set-buffer path)
+	     (semantic-refresh-tags-safe))
 	   (setq includetags (semantic-find-tags-included path)
 		 curtable (save-excursion (set-buffer path)
 					  semanticdb-current-table)
@@ -501,6 +505,7 @@ a new path from the provided PATH."
 	    (let ((newtags
 		   (cond
 		    ((semanticdb-table-p nexttable)
+		     (semanticdb-refresh-table nexttable)
 		     ;; Use the method directly, or we will recurse
 		     ;; into ourselves here.
 		     (semanticdb-find-tags-by-class-method
