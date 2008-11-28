@@ -39,39 +39,77 @@
 ;;
 ;; Your tool should then create an instance of `semantic-symref-result'.
 
+(require 'semantic-fw)
+(require 'ede)
+(eval-when-compile (require 'data-debug)
+		   (require 'eieio-datadebug))
+
 ;;; Code:
-(defvar semantic-symref-tool 'grep
+(defvar semantic-symref-tool 'detect
   "*The active symbol reference tool name.
-The tool symbol must be a subclass of `semantic-symref-tool-baseclass'.")
+The tool symbol can be 'detect, or a symbol that is the name of
+a tool that can be used for symbol referencing.")
 (make-variable-buffer-local 'semantic-symref-tool)
 
-(defun semantic-symref-find-references-by-name (name)
-  "Find a list of references to NAME in the current project.
-Refers to `semantic-symref-tool', to determine the reference tool to use
-for the current buffer.
-Returns an object of class `semantic-symref-result'."
-  (interactive "sName: ")
-  (let* ((srt (symbol-name semantic-symref-tool))
+(defun semantic-symref-detect-symref-tool ()
+  "Detect the symref tool to use for the current buffer."
+  (if (not (eq semantic-symref-tool 'detect))
+      semantic-symref-tool
+    ;; We are to perform a detection for the right tool to use.
+    (let* ((rootproj (when (and (featurep 'ede) ede-minor-mode)
+		       (ede-toplevel)))
+	   (rootdir (if rootproj
+			(ede-project-root-directory rootproj)
+		      default-directory)))
+      (setq semantic-symref-tool
+	    (cond
+	     ((file-exists-p (expand-file-name "GPATH" rootdir))
+	      'global)
+	     ;; ADD NEW ONES HERE...
+
+
+	     ;; The default is grep.
+	     (t
+	      'grep)))
+      )))
+
+(defun semantic-symref-instantiate ()
+  "Instantiate a new symref search object."
+  (let* ((srt (symbol-name (semantic-symref-detect-symref-tool)))
 	 (class (intern-soft (concat "semantic-symref-tool-" srt)))
 	 (inst nil)
 	 )
     (when (not (class-p class))
       (error "Unknown symref tool %s" semantic-symref-tool))
     (setq inst (make-instance class :searchfor name :searchtype 'symbol))
-    (let ((result (semantic-symref-get-result inst)))
-      (when (interactive-p)
-	(if result
-	    (let* ((ab (data-debug-new-buffer "*Symbol Reference ADEBUG*")))
-	      (data-debug-insert-object-slots result "]"))
-	  (message "Empty results.")))
-      result)
-    ))
+    inst))
+
+;;;###autoload
+(defun semantic-symref-find-references-by-name (name)
+  "Find a list of references to NAME in the current project.
+Refers to `semantic-symref-tool', to determine the reference tool to use
+for the current buffer.
+Returns an object of class `semantic-symref-result'."
+  (interactive "sName: ")
+  (let* ((inst (semantic-symref-instantiate))
+	 (result (semantic-symref-get-result inst)))
+    (when (interactive-p)
+      (if result
+	  (let* ((ab (data-debug-new-buffer "*Symbol Reference ADEBUG*")))
+	    (data-debug-insert-object-slots result "]"))
+	(message "Empty results.")))
+    result)
+  )
 
 ;;; RESULTS
 ;;
 ;; The results class and methods provide features for accessing hits.
 (defclass semantic-symref-result ()
-  ((hit-alist :initarg :hit-alist
+  ((created-by :initarg :created-by
+	       :type semantic-symref-tool-baseclass
+	       :documentation
+	       "Back-pointer to the symref tool creating these results.")
+   (hit-alist :initarg :hit-alist
 	      :type list
 	      :documentation
 	      "The list of hits.  Each element is a cons cell
@@ -115,7 +153,8 @@ The symref TOOL should already contain the search criteria."
 
     (when answer
       (semantic-symref-result (oref tool searchfor)
-			      :hit-alist answer))
+			      :hit-alist answer
+			      :created-by tool))
     ))
 
 (defmethod semantic-symref-perform-search ((tool semantic-symref-tool-baseclass))
@@ -176,13 +215,12 @@ See find -regex man page for format.")
 	 ;; Find the file patterns to use.
 	 (pat (cdr (assoc major-mode semantic-symref-filepattern-alist)))
 	 (cmds (cond ((stringp pat)
-		      (setq cmds (concat "-name \"" pat "\"")))
+		      (concat "-name \"" pat "\""))
 		     ((consp pat)
-		      (setq cmds
-			    (mapconcat (lambda (s)
-					 (concat "-name \"" s "\""))
-				       pat
-				       " -o ")))
+		      (mapconcat (lambda (s)
+				   (concat "-name \"" s "\""))
+				 pat
+				 " -o "))
 		     (t
 		      (error "semantic-symref-tool-grep - Needs to be configured for %s" major-mode))
 		     ))
