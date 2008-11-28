@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric Ludlam
 
 ;; Author: Eric Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-symref-global.el,v 1.1 2008/11/26 20:02:08 zappo Exp $
+;; X-RCS: $Id: semantic-symref-global.el,v 1.2 2008/11/28 03:45:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -38,6 +38,7 @@
 ;;  (error nil))
 
 ;;; Code:
+;;;###autoload
 (defclass semantic-symref-tool-global (semantic-symref-tool-baseclass)
   (
    )
@@ -50,13 +51,15 @@ the hit list.")
   "Base search for symref tools should throw an error."
   (let ((b (get-buffer-create "*Semantic Symref Global*"))
 	)
+    (save-excursion
+      (set-buffer b)
+      (erase-buffer))
     (call-process semantic-symref-global-command
 		  nil b nil
-		  "-xa"
+		  "-xar"
 		  (oref tool searchfor))
-    (setq ans (semantic-symref-parse-tool-output tool b))
-    ans)
-  )
+    (semantic-symref-parse-tool-output tool b)
+    ))
 
 (defmethod semantic-symref-parse-tool-output-one-line ((tool semantic-symref-tool-global))
   "Parse one line of grep output, and return it as a match list.
