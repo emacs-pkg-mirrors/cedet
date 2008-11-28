@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.127 2008/08/28 01:17:34 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.128 2008/11/28 02:38:11 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1386,22 +1386,7 @@ Makes C/C++ language like assumptions."
 ;;;; Misc. menu stuff.
 ;;;;
 
-(defun senator-menu-item (item)
-  "Build an XEmacs compatible menu item from vector ITEM.
-That is remove the unsupported :help stuff."
-  (if (featurep 'xemacs)
-      (let ((n (length item))
-            (i 0)
-            slot l)
-        (while (< i n)
-          (setq slot (aref item i))
-          (if (and (keywordp slot)
-                   (eq slot :help))
-              (setq i (1+ i))
-            (setq l (cons slot l)))
-          (setq i (1+ i)))
-        (apply #'vector (nreverse l)))
-    item))
+(defalias 'senator-menu-item 'semantic-menu-item)
 
 ;;;;
 ;;;; The dynamic sub-menu of Semantic minor modes.
