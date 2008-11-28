@@ -9,7 +9,7 @@
     :name "autoloads"
     :path ""
     :autoload-file "semantic-loaddefs.el"
-    :autoload-dirs '("." "bovine" "wisent" "ctags")
+    :autoload-dirs '("." "bovine" "wisent" "ctags" "symref")
     )
    (ede-proj-target-elisp "init"
     :name "init"
