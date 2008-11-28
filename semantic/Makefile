@@ -13,7 +13,7 @@ EMACS=emacs
 LOADPATH= ../common/  ctags/ wisent/ bovine/\
     ../speedbar/ ../ede/ ../eieio/  ./
 LOADDEFS=semantic-loaddefs.el
-LOADDIRS=. bovine wisent ctags
+LOADDIRS=. bovine wisent ctags symref
 init_LISP=semantic-load.el
 EMACS=emacs
 semantic_LISP=semantic.el semantic-fw.el semantic-lex.el semantic-lex-spp.el semantic-edit.el semantic-util.el semantic-tag.el semantic-tag-ls.el semantic-find.el semantic-sort.el semantic-tag-file.el semantic-tag-write.el semantic-doc.el semantic-idle.el
@@ -35,7 +35,7 @@ DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: autoloads init semantic utils Database tools Analyzer Languages metagrammar tests example scripts wisent Tests Documentation ctags bovinator
+all: autoloads init semantic utils Database tools Analyzer Languages metagrammar tests example scripts wisent Tests Symref Documentation ctags bovinator
 
 .PHONY: autoloads
 autoloads: 
@@ -151,6 +151,10 @@ wisent:
 Tests:
 	cd tests; $(MAKE)
 
+.PHONY:Symref
+Symref:
+	cd symref; $(MAKE)
+
 .PHONY:Documentation
 Documentation:
 	cd doc; $(MAKE)
@@ -166,6 +170,7 @@ bovinator:
 tags: 
 	cd wisent/; make $(MFLAGS) $@
 	cd tests/; make $(MFLAGS) $@
+	cd symref/; make $(MFLAGS) $@
 	cd doc/; make $(MFLAGS) $@
 	cd ctags/; make $(MFLAGS) $@
 	cd bovine/; make $(MFLAGS) $@
@@ -181,6 +186,7 @@ dist: autoloads $(metagrammar_SEMANTIC_GRAMMAR_EL)
 	cp semantic-loaddefs.el $(init_LISP) $(semantic_LISP) $(utils_LISP) $(Database_LISP) $(tools_LISP) $(Analyzer_LISP) $(Languages_LISP) $(maintenance_LISP) $(metagrammar_SEMANTIC_GRAMMAR) $(metagrammar_SEMANTIC_GRAMMAR_EL) $(tests_LISP) $(example_MISC) $(scripts_MISC) $(misc_AUX) $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/wisent dist
 	cd tests; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/tests dist
+	cd symref; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/symref dist
 	cd doc; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/doc dist
 	cd ctags; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/ctags dist
 	cd bovine; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/bovine dist
