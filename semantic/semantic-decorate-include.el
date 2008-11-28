@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.18 2008/11/28 02:40:39 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.19 2008/11/28 20:04:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -140,7 +140,7 @@ Used by the decoration style: `semantic-decoration-on-unknown-includes'."
    (semantic-menu-item
     ["List all unknown includes" semanticdb-find-adebug-lost-includes
      :active t
-     :Help "Show a list of all includes semantic cannot find for this file." ])
+     :help "Show a list of all includes semantic cannot find for this file." ])
    "---"
    (semantic-menu-item
     ["Summarize includes current buffer" semantic-decoration-all-include-summary
@@ -403,7 +403,7 @@ Argument EVENT describes the event that caused this function to be called."
       ;(goto-char (window-start win))
       (mouse-set-point event)
       (sit-for 0)
-      (popup-menu semantic-decoration-on-include-menu)
+      (semantic-popup-menu semantic-decoration-on-include-menu)
       )
     (select-window startwin)))
 
@@ -485,7 +485,7 @@ Argument EVENT describes the event that caused this function to be called."
       ;(goto-char (window-start win))
       (mouse-set-point event)
       (sit-for 0)
-      (popup-menu semantic-decoration-on-unknown-include-menu)
+      (semantic-popup-menu semantic-decoration-on-unknown-include-menu)
       )
     (select-window startwin)))
 
@@ -547,7 +547,7 @@ Argument EVENT describes the event that caused this function to be called."
       ;(goto-char (window-start win))
       (mouse-set-point event)
       (sit-for 0)
-      (popup-menu semantic-decoration-on-unparsed-include-menu)
+      (semantic-popup-menu semantic-decoration-on-unparsed-include-menu)
       )
     (select-window startwin)))
 
