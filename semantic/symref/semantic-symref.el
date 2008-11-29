@@ -104,11 +104,10 @@ Refers to `semantic-symref-tool', to determine the reference tool to use
 for the current buffer.
 Returns an object of class `semantic-symref-result'."
   (interactive "sName: ")
-  (when (not scope) (setq scope 'project))
   (let* ((inst (semantic-symref-instantiate
 		:searchfor name
 		:searchtype 'symbol
-		:searchscope scope
+		:searchscope (or scope 'project)
 		:resulttype 'line))
 	 (result (semantic-symref-get-result inst)))
     (prog1
@@ -125,12 +124,32 @@ Refers to `semantic-symref-tool', to determine the reference tool to use
 for the current buffer.
 Returns an object of class `semantic-symref-result'."
   (interactive "sName: ")
-  (when (not scope) (setq scope 'project))
   (let* ((inst (semantic-symref-instantiate
 		:searchfor name
-		:searchtype 'symbol
-		:searchscope scope
+		:searchtype 'regexp
+		:searchscope (or scope 'project)
 		:resulttype 'file))
+	 (result (semantic-symref-get-result inst)))
+    (prog1
+	(setq semantic-symref-last-result result)
+      (when (interactive-p)
+	(semantic-symref-data-debug-last-result))))
+  )
+
+;;;###autoload
+(defun semantic-symref-find-text (text &optional scope)
+  "Find a list of occurances of TEXT in the current project.
+TEXT is a regexp formatted for use with egrep.
+Optional SCOPE specifies which file set to search.  Defaults to 'project.
+Refers to `semantic-symref-tool', to determine the reference tool to use
+for the current buffer.
+Returns an object of class `semantic-symref-result'."
+  (interactive "sEgrep style Regexp: ")
+  (let* ((inst (semantic-symref-instantiate
+		:searchfor text
+		:searchtype 'regexp
+		:searchscope (or scope 'project)
+		:resulttype 'line))
 	 (result (semantic-symref-get-result inst)))
     (prog1
 	(setq semantic-symref-last-result result)
@@ -208,7 +227,11 @@ already."
 	       ;; We have a buffer already.  Check it out.
 	       (buff
 		(set-buffer buff)
-		(goto-line line)
+		;; Too much baggage in goto-line
+		;; (goto-line line)
+		(goto-char (point-min))
+		(forward-line (1- line))
+
 		(setq tag (semantic-current-tag)))
 	       ;; We have a table, but it needs a refresh.
 	       ;; This means we should load in that buffer.
@@ -314,92 +337,6 @@ over until it returns nil."
 (defmethod semantic-symref-parse-tool-output-one-line ((tool semantic-symref-tool-baseclass))
   "Base tool output parser is not implemented."
   (error "Symref tool objects must implement `semantic-symref-parse-tool-output-one-line'"))
-
-;;; GREP
-;;
-;; The symref GREP tool uses grep in a project to find symbol references.
-;; This is a lowest-common-denominator tool with sucky performance that
-;; can be used in small projects to find symbol references.
-
-(defclass semantic-symref-tool-grep (semantic-symref-tool-baseclass)
-  (
-   )
-  "A symref tool implementation using grep.
-This tool uses EDE to find he root of the project, then executes
-find-grep in the project.  The output is parsed for hits
-and those hits returned.")
-
-(eval-when-compile (require 'ede))
-
-(defvar semantic-symref-filepattern-alist
-  '((c-mode . "*.[ch]")
-    (c++-mode "*.[chCH]" "*.[ch]pp")
-    (Emacs-lisp-mode . "*.el")
-    )
-  "List of major modes and file extension pattern regexp.
-See find -regex man page for format.")
-
-(defmethod semantic-symref-perform-search ((tool semantic-symref-tool-grep))
-  "Base search for symref tools should throw an error."
-  ;; Find the root of the project, and do a find-grep...
-  (let* ((rootproj (when (and (featurep 'ede) ede-minor-mode)
-		     (ede-toplevel)))
-	 (rootdir (if rootproj
-		      (ede-project-root-directory rootproj)
-		    default-directory))
-	 ;; Find the file patterns to use.
-	 (pat (cdr (assoc major-mode semantic-symref-filepattern-alist)))
-	 (cmds (cond ((stringp pat)
-		      (concat "-name \"" pat "\""))
-		     ((consp pat)
-		      (mapconcat (lambda (s)
-				   (concat "-name \"" s "\""))
-				 pat
-				 " -o "))
-		     (t
-		      (error "semantic-symref-tool-grep - Needs to be configured for %s" major-mode))
-		     ))
-	 (grepflgs (cond ((eq (oref tool :resulttype) 'file)
-			  "-l ")
-			 (t "-n ")))
-	 (b (get-buffer-create "*Semantic SymRef*"))
-	 (ans nil)
-	 )
-    
-    (save-excursion
-      (set-buffer b)
-      (erase-buffer)
-      (setq default-directory rootdir)
-      ;; find . -type f -print0 | xargs -0 -e grep -nH -e 
-      (call-process "sh" nil b nil
-		    "-c"
-		    (concat "find "
-			    default-directory
-			    " -type f "
-			    cmds
-			    " -print0 "
-			    "| xargs -0 -e grep -H "
-			    grepflgs
-			    "-e "
-			    "'\\<" (oref tool searchfor) "\\>'")
-		    )
-      )
-    (setq ans (semantic-symref-parse-tool-output tool b))
-    ;; Return the answer
-    ans))
-
-(defmethod semantic-symref-parse-tool-output-one-line ((tool semantic-symref-tool-grep))
-  "Parse one line of grep output, and return it as a match list.
-Moves cursor to end of the match."
-  (cond ((eq (oref tool :resulttype) 'file)
-	 ;; Search for files
-	 (when (re-search-forward "^\\([^\n]+\\)$" nil t)
-	   (match-string 1)))
-	(t
-	 (when (re-search-forward "^\\([^:\n]+\\):\\([0-9]+\\):" nil t)
-	   (cons (string-to-number (match-string 2))
-		 (match-string 1))
-	   ))))
 
 (provide 'semantic-symref)
 ;;; semantic-symref.el ends here
