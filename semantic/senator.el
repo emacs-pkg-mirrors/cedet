@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.128 2008/11/28 02:38:11 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.129 2008/11/29 11:16:32 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2484,14 +2484,7 @@ used by add log.")
 	    (progn
 	      (setq name
 		    (semantic-format-tag-canonical-name
-		     tag
-		     (or (semantic-current-tag-parent)
-			 (if (semantic-tag-function-parent tag)
-			     (or (semantic-find-first-tag-by-name
-				  (semantic-tag-function-parent tag)
-				  (current-buffer))
-				 (semantic-tag-function-parent
-				  tag))))))
+		     tag (semantic-current-tag-parent)))
 	      (setq ad-return-value name))
           ad-do-it))
     ad-do-it))
