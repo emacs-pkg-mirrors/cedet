@@ -33,6 +33,7 @@ void deer::moose::setAntlers(bool have_antlers) //^4^
 }
 
 bool deer::moose::getAntlers() //^5^
+// %1% ( ( "testsubclass.cpp" "testsubclass.hh" ) ( "deer::moose::getAntlers" "deer::moose::doSomething" "moose" ) )
 {
   return fAntlers;
 }
