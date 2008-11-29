@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric Ludlam
 
 ;; Author: Eric Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-symref-global.el,v 1.3 2008/11/29 11:10:40 zappo Exp $
+;; X-RCS: $Id: semantic-symref-global.el,v 1.4 2008/11/29 16:36:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -55,11 +55,21 @@ the hit list.")
       (set-buffer b)
       (erase-buffer))
     (let ((flgs (cond ((eq (oref tool :resulttype) 'file)
-		       "-ar")
-		      (t "-xar"))))
+		       "-a")
+		      (t "-xa")))
+	  (scopeflgs (cond 
+		      ((eq (oref tool :searchscope) 'project)
+		       ""
+		       )
+		      ((eq (oref tool :searchscope) 'target)
+		       "l")))
+	  (stflag (cond ((eq (oref tool :searchtype) 'regexp)
+			 "g")
+			(t "r")))
+	  )
       (call-process semantic-symref-global-command
 		    nil b nil
-		    flgs
+		    (concat flgs scopeflgs stflag)
 		    (oref tool searchfor)))
     (semantic-symref-parse-tool-output tool b)
     ))
