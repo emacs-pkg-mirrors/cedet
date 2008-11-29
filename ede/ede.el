@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.113 2008/10/10 21:47:48 zappo Exp $
+;; RCS: $Id: ede.el,v 1.114 2008/11/29 16:39:49 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -385,27 +385,34 @@ Do not set this to non-nil globally.  It is used internally.")
   (interactive)
   (let ((p ede-projects)
 	(c ede-project-cache-files))
-    (set-buffer (find-file-noselect ede-project-placeholder-cache-file t))
-    (erase-buffer)
-    (insert ";; EDE project cache file.
-;; This contains a list of projects you have visited.\n(")
-    (while p
-      (when (and (car p) (ede-project-p p))
-	(let ((f (oref (car p) file)))
-	  (when (file-exists-p f)
-	    (insert "\n  \"" f "\""))))
-      (setq p (cdr p)))
-    (while c
-      (insert "\n \"" (car c) "\"")
-      (setq c (cdr c)))
-    (insert "\n)\n")
     (condition-case nil
-	(save-buffer 0)
+	(progn
+	  (set-buffer (find-file-noselect ede-project-placeholder-cache-file t))
+	  (erase-buffer)
+	  (insert ";; EDE project cache file.
+;; This contains a list of projects you have visited.\n(")
+	  (while p
+	    (when (and (car p) (ede-project-p p))
+	      (let ((f (oref (car p) file)))
+		(when (file-exists-p f)
+		  (insert "\n  \"" f "\""))))
+	    (setq p (cdr p)))
+	  (while c
+	    (insert "\n \"" (car c) "\"")
+	    (setq c (cdr c)))
+	  (insert "\n)\n")
+	  (condition-case nil
+	      (save-buffer 0)
+	    (error
+	     (message "File %s could not be saved."
+		      ede-project-placeholder-cache-file)))
+	  (kill-buffer (current-buffer))
+	  )
       (error
-       (message "File %s could not be saved."
-		ede-project-placeholder-cache-file)))
-    (kill-buffer (current-buffer))
-    ))
+       (message "File %s could not be read."
+	       	ede-project-placeholder-cache-file))
+
+      )))
 
 (defun ede-load-cache ()
   "Load the cache of EDE projects."
@@ -1669,7 +1676,10 @@ Handles complex path issues."
 
 (defmethod ede-buffer-mine ((this ede-target) buffer)
   "Return non-nil if object THIS lays claim to the file in BUFFER."
-  (ede-target-buffer-in-sourcelist this buffer (oref this source)))
+  (condition-case nil
+      (ede-target-buffer-in-sourcelist this buffer (oref this source))
+    ;; An error implies a bad match.
+    (error nil)))
 
 
 ;;; Project mapping
