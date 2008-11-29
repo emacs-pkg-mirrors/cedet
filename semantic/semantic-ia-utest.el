@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.16 2008/11/26 18:06:37 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.17 2008/11/29 15:09:46 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -43,9 +43,13 @@
   "List of files with analyzer completion test points.")
 
 ;;;###autoload
-(defun semantic-ia-utest ()
-  "Run the semantic ia unit test against stored sources."
-  (interactive)
+(defun semantic-ia-utest (arg)
+  "Run the semantic ia unit test against stored sources.
+Argument ARG specifies which set of tests to run.
+ 1 - ia utests
+ 2 - regs utests
+ 3 - symrefs utests"
+  (interactive "P")
   (save-excursion
 
     (set-buffer (semantic-find-file-noselect
@@ -64,12 +68,24 @@
 	  (save-excursion
 	    (set-buffer b)
 
+	    ;; This line will also force the include, scope, and typecache.
+	    (semantic-clear-toplevel-cache)
+	    ;; Force tags to be parsed.
+	    (semantic-fetch-tags)
+
 	    (semantic-ia-utest-log "** Starting tests in %s"
 				   (buffer-name))
+	    
+	    (when (or (not arg) (= arg 1))
+	      (semantic-ia-utest-buffer))
+	    
+	    (when (or (not arg) (= arg 2))
+	      (set-buffer b)
+	      (semantic-ia-utest-buffer-refs))
 
-	    (semantic-ia-utest-buffer)
-	    (set-buffer b)
-	    (semantic-ia-utest-buffer-refs)
+	    (when (or (not arg) (= arg 3))
+	      (set-buffer b)
+	      (semantic-sr-utest-buffer-refs))
 
 	    (semantic-ia-utest-log "** Completed tests in %s\n"
 				   (buffer-name))
@@ -84,12 +100,6 @@
 
 (defun semantic-ia-utest-buffer ()
   "Run a unit-test pass in the current buffer."
-  (interactive)
-
-  ;; This line will also force the include, scope, and typecache.
-  (semantic-clear-toplevel-cache)
-  ;; Force tags to be parsed.
-  (semantic-fetch-tags)
 
   (let* ((idx 1)
 	 (regex-p nil)
@@ -162,12 +172,6 @@
 
 (defun semantic-ia-utest-buffer-refs ()
   "Run a unit-test pass in the current buffer."
-  (interactive)
-
-  ;; This line will also force the include, scope, and typecache.
-  (semantic-clear-toplevel-cache)
-  ;; Force tags to be parsed.
-  (semantic-fetch-tags)
 
   (let* ((idx 1)
 	 (regex-p nil)
@@ -270,6 +274,79 @@
 	   "  Unit tests (refs) failed tests")
 	  )
       (semantic-ia-utest-log "  Unit tests (refs) passed (%d total)"
+			     (- idx 1)))
+
+    ))
+
+(defun semantic-sr-utest-buffer-refs ()
+  "Run a unit-test pass in the current buffer."
+
+  ;; This line will also force the include, scope, and typecache.
+  (semantic-clear-toplevel-cache)
+  ;; Force tags to be parsed.
+  (semantic-fetch-tags)
+
+  (let* ((idx 1)
+	 (p nil)
+	 (tag nil)
+	 (desired nil)
+	 (actual-result nil)
+	 (actual nil)
+	 (pass nil)
+	 (fail nil)
+	 ;; Exclude unpredictable system files in the
+	 ;; header include list.
+	 (semanticdb-find-default-throttle
+	  (remq 'system semanticdb-find-default-throttle))
+	 )
+    ;; Keep looking for test points until we run out.
+    (while (save-excursion
+	     (setq regex-p (concat "//\\s-*\\%" (number-to-string idx) "%" )
+		   )
+	     (goto-char (point-min))
+	     (save-match-data
+	       (when (re-search-forward regex-p nil t)
+		 (setq tag (semantic-current-tag))
+		 (goto-char (match-end 0))
+		 (setq desired (read (buffer-substring (point) (point-at-eol))))
+		 ))
+	     tag)
+
+      (setq actual-result (semantic-symref-find-references-by-name
+			   (semantic-tag-name tag) 'target))
+
+      (setq actual (list (mapcar
+			  'file-name-nondirectory
+			  (semantic-symref-result-get-files actual-result))
+			 (mapcar
+			  'semantic-format-tag-canonical-name
+			  (semantic-symref-result-get-tags actual-result))))
+
+      
+      (if (equal desired actual)
+	  ;; We passed
+	  (setq pass (cons idx pass))
+	;; We failed.
+	(setq fail (cons idx fail))
+	(when (not (equal (car actual) (car desired)))
+	  (semantic-ia-utest-log
+	   "Failed FNames %d: Actual: %S Desired: %S"
+	   idx (car actual) (car desired)))
+	(when (not (equal (car (cdr actual)) (car (cdr desired))))
+	  (semantic-ia-utest-log
+	   "Failed TNames %d: Actual: %S Desired: %S"
+	   idx (car (cdr actual)) (car (cdr desired))))
+	)
+
+      (setq idx (1+ idx))
+      (setq tag nil))
+    
+    (if fail
+	(progn
+	  (semantic-ia-utest-log
+	   "  Unit tests (symrefs) failed tests")
+	  )
+      (semantic-ia-utest-log "  Unit tests (symrefs) passed (%d total)"
 			     (- idx 1)))
 
     ))
