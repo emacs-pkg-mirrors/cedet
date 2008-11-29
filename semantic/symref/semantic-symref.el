@@ -73,32 +73,69 @@ a tool that can be used for symbol referencing.")
 	      'grep)))
       )))
 
-(defun semantic-symref-instantiate ()
-  "Instantiate a new symref search object."
+(defun semantic-symref-instantiate (&rest args)
+  "Instantiate a new symref search object.
+ARGS are the initialization arguments to pass to the created class."
   (let* ((srt (symbol-name (semantic-symref-detect-symref-tool)))
 	 (class (intern-soft (concat "semantic-symref-tool-" srt)))
 	 (inst nil)
 	 )
     (when (not (class-p class))
       (error "Unknown symref tool %s" semantic-symref-tool))
-    (setq inst (make-instance class :searchfor name :searchtype 'symbol))
+    (setq inst (apply 'make-instance class args))
     inst))
 
+(defvar semantic-symref-last-result nil
+  "The last calculated symref result.")
+
+(defun semantic-symref-data-debug-last-result ()
+  "Run the last symref data result in Data Debug."
+  (interactive)
+  (if semantic-symref-last-result
+      (let* ((ab (data-debug-new-buffer "*Symbol Reference ADEBUG*")))
+	(data-debug-insert-object-slots semantic-symref-last-result "]"))
+    (message "Empty results.")))
+
 ;;;###autoload
-(defun semantic-symref-find-references-by-name (name)
+(defun semantic-symref-find-references-by-name (name &optional scope)
   "Find a list of references to NAME in the current project.
+Optional SCOPE specifies which file set to search.  Defaults to 'project.
 Refers to `semantic-symref-tool', to determine the reference tool to use
 for the current buffer.
 Returns an object of class `semantic-symref-result'."
   (interactive "sName: ")
-  (let* ((inst (semantic-symref-instantiate))
+  (when (not scope) (setq scope 'project))
+  (let* ((inst (semantic-symref-instantiate
+		:searchfor name
+		:searchtype 'symbol
+		:searchscope scope
+		:resulttype 'line))
 	 (result (semantic-symref-get-result inst)))
-    (when (interactive-p)
-      (if result
-	  (let* ((ab (data-debug-new-buffer "*Symbol Reference ADEBUG*")))
-	    (data-debug-insert-object-slots result "]"))
-	(message "Empty results.")))
-    result)
+    (prog1
+	(setq semantic-symref-last-result result)
+      (when (interactive-p)
+	(semantic-symref-data-debug-last-result))))
+  )
+
+;;;###autoload
+(defun semantic-symref-find-file-references-by-name (name &optional scope)
+  "Find a list of references to NAME in the current project.
+Optional SCOPE specifies which file set to search.  Defaults to 'project.
+Refers to `semantic-symref-tool', to determine the reference tool to use
+for the current buffer.
+Returns an object of class `semantic-symref-result'."
+  (interactive "sName: ")
+  (when (not scope) (setq scope 'project))
+  (let* ((inst (semantic-symref-instantiate
+		:searchfor name
+		:searchtype 'symbol
+		:searchscope scope
+		:resulttype 'file))
+	 (result (semantic-symref-get-result inst)))
+    (prog1
+	(setq semantic-symref-last-result result)
+      (when (interactive-p)
+	(semantic-symref-data-debug-last-result))))
   )
 
 ;;; RESULTS
@@ -109,18 +146,101 @@ Returns an object of class `semantic-symref-result'."
 	       :type semantic-symref-tool-baseclass
 	       :documentation
 	       "Back-pointer to the symref tool creating these results.")
-   (hit-alist :initarg :hit-alist
+   (hit-files :initarg :hit-files
 	      :type list
 	      :documentation
-	      "The list of hits.  Each element is a cons cell
-of the form (LINE . FILENAME).")
-   (hit-tags :type list
+	      "The list of files hit.")
+   (hit-lines :initarg :hit-lines
+	      :type list
+	      :documentation
+	      "The list of line hits.
+Each element is a cons cell of the form (LINE . FILENAME).")
+   (hit-tags :initarg :hit-tags
+	     :type list
 	     :documentation
 	     "The list of tags with hits in them.
-This list starts as empty.  Use the  `semantic-symref-hit-tags'
-method to get this list.")
+Use the  `semantic-symref-hit-tags' method to get this list.")
    )
   "The results from a symbol reference search.")
+
+(defmethod semantic-symref-result-get-files ((result semantic-symref-result))
+  "Get the list of files from the symref result RESULT."
+  (if (slot-boundp result :hit-files)
+      (oref result hit-files)
+    (let* ((lines  (oref result :hit-lines))
+	   (files (mapcar (lambda (a) (cdr a)) lines))
+	   (ans nil))
+      (setq ans (list (car files))
+	    files (cdr files))
+      (dolist (F files)
+	;; This algorithm for uniqing the file list depends on the
+	;; tool in question providing all the hits in the same file
+	;; grouped together.
+	(when (not (string= F (car ans)))
+	  (setq ans (cons F ans))))
+      (oset result hit-files (nreverse ans))
+      )
+    ))
+
+(defmethod semantic-symref-result-get-tags ((result semantic-symref-result))
+  "Get the list of tags from the symref result RESULT.
+Note: This can be quite slow if most of the hits are not in buffers
+already."
+  (if (and (slot-boundp result :hit-tags) (oref result hit-tags))
+      (oref result hit-tags)
+    ;; Calculate the tags.
+    (let ((lines (oref result :hit-lines))
+	  (last nil)
+	  (ans nil)
+	  (out nil)
+	  (buffs-to-kill nil))
+      (save-excursion
+	(setq
+	 ans
+	 (mapcar
+	  (lambda (hit)
+	    (let* ((line (car hit))
+		   (file (cdr hit))
+		   (buff (get-file-buffer file))
+		   (tag nil)
+		   )
+	      (cond
+	       ;; We have a buffer already.  Check it out.
+	       (buff
+		(set-buffer buff)
+		(goto-line line)
+		(setq tag (semantic-current-tag)))
+	       ;; We have a table, but it needs a refresh.
+	       ;; This means we should load in that buffer.
+	       (t
+		(let ((kbuff (semantic-find-file-noselect file t)))
+		  (set-buffer kbuff)
+		  (goto-line line)
+		  (semantic-fetch-tags)
+		  (setq tag (semantic-current-tag))
+		  (setq buffs-to-kill (cons kbuff buffs-to-kill))
+		  ))
+	       )
+	      ;; Copy the tag, which adds a :filename property.
+	      (setq tag (semantic-tag-copy tag nil t))
+	      ;; Ad this hit to the tag.
+	      (semantic--tag-put-property tag :hit (list line))
+	      tag))
+	  lines)))
+      ;; Kill off dead buffers.
+      (mapc 'kill-buffer buffs-to-kill)
+      ;; Strip out duplicates.
+      (dolist (T ans)
+	(if (and T (not (semantic-equivalent-tag-p (car out) T)))
+	    (setq out (cons T out))
+	  (when T
+	    ;; Else, add this line into the existing list of lines.
+	    (let ((lines (append (semantic--tag-get-property (car out) :hit)
+				 (semantic--tag-get-property T :hit))))
+	      (semantic--tag-put-property (car out) :hit lines)))
+	  ))
+      ;; Out is reversed... twice
+      (oset result :hit-tags (nreverse out)))))
 
 ;;; SYMREF TOOLS
 ;;
@@ -130,11 +250,23 @@ method to get this list.")
   ((searchfor :initarg :searchfor
 	      :type string
 	      :documentation "The thing to search for.")
-   (searchtytpe :initarg :searchtype
+   (searchtype :initarg :searchtype
 		:type symbol
 		:documentation "The type of search to do.
 Values could be `symbol, `regexp, or other.")
-
+   (searchscope :initarg :searchscope
+		:type symbol
+		:documentation
+		"@todo - NEEDS TO BE IMPLEMENTED.
+The scope to search for.
+Can be 'project, 'target, or 'file.")
+   (resulttype :initarg :resulttype
+	       :type symbol
+	       :documentation
+	       "The kind of search results desired.
+Can be 'line, 'file, or 'tag.
+The type of result can be converted from 'line to 'file, or 'line to 'tag,
+but not from 'file to 'line or 'tag.")
    )
   "Baseclass for all symbol references tools.
 A symbol reference tool supplies functionality to identify the locations of
@@ -150,11 +282,14 @@ NAME is the name of the tool used in the configuration variable
 The symref TOOL should already contain the search criteria."
   (let ((answer (semantic-symref-perform-search tool))
 	)
-
     (when answer
-      (semantic-symref-result (oref tool searchfor)
-			      :hit-alist answer
-			      :created-by tool))
+      (let ((answersym (if (eq (oref tool :resulttype) 'file)
+			   :hit-files :hit-lines)))
+	(semantic-symref-result (oref tool searchfor)
+				answersym
+				answer
+				:created-by tool))
+      )
     ))
 
 (defmethod semantic-symref-perform-search ((tool semantic-symref-tool-baseclass))
@@ -199,7 +334,7 @@ and those hits returned.")
 (defvar semantic-symref-filepattern-alist
   '((c-mode . "*.[ch]")
     (c++-mode "*.[chCH]" "*.[ch]pp")
-    (emacs-lisp-mode . "*.el")
+    (Emacs-lisp-mode . "*.el")
     )
   "List of major modes and file extension pattern regexp.
 See find -regex man page for format.")
@@ -224,6 +359,9 @@ See find -regex man page for format.")
 		     (t
 		      (error "semantic-symref-tool-grep - Needs to be configured for %s" major-mode))
 		     ))
+	 (grepflgs (cond ((eq (oref tool :resulttype) 'file)
+			  "-l ")
+			 (t "-n ")))
 	 (b (get-buffer-create "*Semantic SymRef*"))
 	 (ans nil)
 	 )
@@ -240,7 +378,9 @@ See find -regex man page for format.")
 			    " -type f "
 			    cmds
 			    " -print0 "
-			    "| xargs -0 -e grep -nH -e "
+			    "| xargs -0 -e grep -H "
+			    grepflgs
+			    "-e "
 			    "'\\<" (oref tool searchfor) "\\>'")
 		    )
       )
@@ -251,10 +391,15 @@ See find -regex man page for format.")
 (defmethod semantic-symref-parse-tool-output-one-line ((tool semantic-symref-tool-grep))
   "Parse one line of grep output, and return it as a match list.
 Moves cursor to end of the match."
-  (when (re-search-forward "^\\([^:\n]+\\):\\([0-9]+\\):" nil t)
-    (cons (string-to-number (match-string 2))
-	  (match-string 1))
-    ))
+  (cond ((eq (oref tool :resulttype) 'file)
+	 ;; Search for files
+	 (when (re-search-forward "^\\([^\n]+\\)$" nil t)
+	   (match-string 1)))
+	(t
+	 (when (re-search-forward "^\\([^:\n]+\\):\\([0-9]+\\):" nil t)
+	   (cons (string-to-number (match-string 2))
+		 (match-string 1))
+	   ))))
 
 (provide 'semantic-symref)
 ;;; semantic-symref.el ends here
