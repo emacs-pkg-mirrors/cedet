@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.30 2008/11/28 20:43:03 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.31 2008/11/29 16:40:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -102,12 +102,7 @@ Optional argument ARG specifies not to use color."
   (interactive "P")
   (semantic-fetch-tags)
   (let* ((tag (semantic-current-tag))
-	 (par (or (semantic-current-tag-parent)
-		  (if (semantic-tag-function-parent tag)
-		      (semantic-find-first-tag-by-name
-		       (semantic-tag-function-parent tag)
-		       (current-buffer)))
-		  ))
+	 (par (semantic-current-tag-parent))
 	 (fns semantic-format-tag-functions))
     (with-output-to-temp-buffer "*format-tag*"
       (princ "Tag->format function tests:")
