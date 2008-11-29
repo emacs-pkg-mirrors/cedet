@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric Ludlam
 
 ;; Author: Eric Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-symref-global.el,v 1.2 2008/11/28 03:45:50 zappo Exp $
+;; X-RCS: $Id: semantic-symref-global.el,v 1.3 2008/11/29 11:10:40 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -54,20 +54,28 @@ the hit list.")
     (save-excursion
       (set-buffer b)
       (erase-buffer))
-    (call-process semantic-symref-global-command
-		  nil b nil
-		  "-xar"
-		  (oref tool searchfor))
+    (let ((flgs (cond ((eq (oref tool :resulttype) 'file)
+		       "-ar")
+		      (t "-xar"))))
+      (call-process semantic-symref-global-command
+		    nil b nil
+		    flgs
+		    (oref tool searchfor)))
     (semantic-symref-parse-tool-output tool b)
     ))
 
 (defmethod semantic-symref-parse-tool-output-one-line ((tool semantic-symref-tool-global))
   "Parse one line of grep output, and return it as a match list.
 Moves cursor to end of the match."
-  (when (re-search-forward "^\\([^ ]+\\) +\\([0-9]+\\) \\([^ ]+\\) " nil t)
-    (cons (string-to-number (match-string 2))
-	  (match-string 3))
-    ))
+  (cond ((eq (oref tool :resulttype) 'file)
+	 ;; Search for files
+	 (when (re-search-forward "^\\([^\n]+\\)$" nil t)
+	   (match-string 1)))
+	(t
+	 (when (re-search-forward "^\\([^ ]+\\) +\\([0-9]+\\) \\([^ ]+\\) " nil t)
+	   (cons (string-to-number (match-string 2))
+		 (match-string 3))
+	   ))))
 
 (provide 'semantic-symref-global)
 ;;; semantic-symref-global.el ends here
