@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.2 2008/10/10 21:28:10 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.3 2008/12/01 20:35:20 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -200,7 +200,9 @@ Optional argument PRECR indicates to prefix the done msg w/ a newline."
   "Setup the log for the test TESTNAME."
   ;; Make sure we have a log buffer.
   (when (or (not cedet-utest-buffer)
-	    (not (buffer-live-p cedet-utest-buffer)))
+	    (not (buffer-live-p cedet-utest-buffer))
+	    (not (get-buffer-window cedet-utest-buffer t))
+	    )
     (cedet-utest-log-setup))
   ;; Add our startup message.
   (cedet-utest-add-log-item-start testname)
