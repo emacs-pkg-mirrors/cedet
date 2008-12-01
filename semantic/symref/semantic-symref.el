@@ -51,6 +51,8 @@ The tool symbol can be 'detect, or a symbol that is the name of
 a tool that can be used for symbol referencing.")
 (make-variable-buffer-local 'semantic-symref-tool)
 
+;;; TOOL SETUP
+;;
 (defun semantic-symref-detect-symref-tool ()
   "Detect the symref tool to use for the current buffer."
   (if (not (eq semantic-symref-tool 'detect))
@@ -95,6 +97,9 @@ ARGS are the initialization arguments to pass to the created class."
       (let* ((ab (data-debug-new-buffer "*Symbol Reference ADEBUG*")))
 	(data-debug-insert-object-slots semantic-symref-last-result "]"))
     (message "Empty results.")))
+
+;;; EXTERNAL API
+;;
 
 ;;;###autoload
 (defun semantic-symref-find-references-by-name (name &optional scope)
@@ -201,14 +206,19 @@ Use the  `semantic-symref-hit-tags' method to get this list.")
       )
     ))
 
-(defmethod semantic-symref-result-get-tags ((result semantic-symref-result))
+(defmethod semantic-symref-result-get-tags ((result semantic-symref-result)
+					    &optional open-buffers)
   "Get the list of tags from the symref result RESULT.
+Optional OPEN-BUFFERS indicates that the buffers that the hits are
+in should remain open after scanning.
 Note: This can be quite slow if most of the hits are not in buffers
 already."
   (if (and (slot-boundp result :hit-tags) (oref result hit-tags))
       (oref result hit-tags)
     ;; Calculate the tags.
     (let ((lines (oref result :hit-lines))
+	  (txt (oref (oref result :created-by) :searchfor))
+	  (searchtype (oref (oref result :created-by) :searchtype))
 	  (last nil)
 	  (ans nil)
 	  (out nil)
@@ -226,32 +236,55 @@ already."
 	      (cond
 	       ;; We have a buffer already.  Check it out.
 	       (buff
-		(set-buffer buff)
-		;; Too much baggage in goto-line
-		;; (goto-line line)
-		(goto-char (point-min))
-		(forward-line (1- line))
+		(set-buffer buff))
 
-		(setq tag (semantic-current-tag)))
 	       ;; We have a table, but it needs a refresh.
 	       ;; This means we should load in that buffer.
 	       (t
-		(let ((kbuff (semantic-find-file-noselect file t)))
+		(let ((kbuff 
+		       (if open-buffers
+			   (find-file-noselect file t)
+			 ;; When not keeping the buffers open, then
+			 ;; don't setup all the fancy froo-froo features
+			 ;; either.
+			 (semantic-find-file-noselect file t))))
 		  (set-buffer kbuff)
-		  (goto-line line)
-		  (semantic-fetch-tags)
-		  (setq tag (semantic-current-tag))
 		  (setq buffs-to-kill (cons kbuff buffs-to-kill))
+		  (semantic-fetch-tags)
 		  ))
 	       )
+
+	      ;; Too much baggage in goto-line
+	      ;; (goto-line line)
+	      (goto-char (point-min))
+	      (forward-line (1- line))
+
+	      ;; Search forward for the matching text
+	      (re-search-forward (regexp-quote txt)
+				 (point-at-eol)
+				 t)
+
+	      (setq tag (semantic-current-tag))
+
+	      ;; If we are searching for a tag, but bound the tag we are looking
+	      ;; for, see if it resides in some other parent tag.
+	      ;;
+	      ;; If there is no parent tag, then we still need to hang the originator
+	      ;; in our list.
+	      (when (and (eq searchtype 'symbol)
+			 (string= (semantic-tag-name tag) txt))
+		(setq tag (or (semantic-current-tag-parent) tag)))
+
 	      ;; Copy the tag, which adds a :filename property.
-	      (setq tag (semantic-tag-copy tag nil t))
-	      ;; Ad this hit to the tag.
-	      (semantic--tag-put-property tag :hit (list line))
+	      (when tag
+		(setq tag (semantic-tag-copy tag nil t))
+		;; Ad this hit to the tag.
+		(semantic--tag-put-property tag :hit (list line)))
 	      tag))
 	  lines)))
-      ;; Kill off dead buffers.
-      (mapc 'kill-buffer buffs-to-kill)
+      ;; Kill off dead buffers, unless we were requested to leave them open.
+      (when (not open-buffers)
+	(mapc 'kill-buffer buffs-to-kill))
       ;; Strip out duplicates.
       (dolist (T ans)
 	(if (and T (not (semantic-equivalent-tag-p (car out) T)))
