@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.93 2008/11/26 18:01:10 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.94 2008/12/03 18:01:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1031,9 +1031,12 @@ DO NOT return the list of tags encompassing point."
     (setq tagreturn tmp)
     ;; We should also find all "using" type statements and
     ;; accept those entities in as well.
-    (setq tmp (semantic-find-tags-by-class 'using (current-buffer)))
-    (dolist (T tmp)
-      (setq tagreturn (cons (semantic-tag-type T) tagreturn))
+    (setq tmp (semanticdb-find-tags-by-class 'using (current-buffer)))
+    (let ((idx 0)
+	  (len (semanticdb-find-result-length tmp)))
+      (while (< idx len)
+	(setq tagreturn (cons (semantic-tag-type (car (semanticdb-find-result-nth tmp idx))) tagreturn))
+	(setq idx (1+ idx)))
       )
     ;; Use the encompased types around point to also look for using statements.
     ;;(setq tagreturn (cons "bread_name" tagreturn))
