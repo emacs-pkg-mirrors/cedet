@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric Ludlam
 
 ;; Author: Eric Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-symref-global.el,v 1.4 2008/11/29 16:36:50 zappo Exp $
+;; X-RCS: $Id: semantic-symref-global.el,v 1.5 2008/12/04 02:07:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -24,18 +24,8 @@
 ;;
 ;; GNU Global use with the semantic-symref system.
 
+(require 'cedet-global)
 (require 'semantic-symref)
-
-(defcustom semantic-symref-global-command "global"
-  "Command name for the GNU Global executable."
-  :type 'string
-  :group 'semantic)
-
-;; I'm not sure how to use gtags.el to do what I'm looking for.
-;;(condition-case nil
-;;    ;; Try and pull in gtags.el if it is available.
-;;    (require 'gtags)
-;;  (error nil))
 
 ;;; Code:
 ;;;###autoload
@@ -48,29 +38,13 @@ similar to that of `grep'.  This tool will parse the output to generate
 the hit list.")
 
 (defmethod semantic-symref-perform-search ((tool semantic-symref-tool-global))
-  "Base search for symref tools should throw an error."
-  (let ((b (get-buffer-create "*Semantic Symref Global*"))
+  "Perform a search with GNU Global."
+  (let ((b (cedet-gnu-global-search (oref tool :searchfor)
+				    (oref tool :searchtype)
+				    (oref tool :resulttype)
+				    (oref tool :searchscope)
+				    ))
 	)
-    (save-excursion
-      (set-buffer b)
-      (erase-buffer))
-    (let ((flgs (cond ((eq (oref tool :resulttype) 'file)
-		       "-a")
-		      (t "-xa")))
-	  (scopeflgs (cond 
-		      ((eq (oref tool :searchscope) 'project)
-		       ""
-		       )
-		      ((eq (oref tool :searchscope) 'target)
-		       "l")))
-	  (stflag (cond ((eq (oref tool :searchtype) 'regexp)
-			 "g")
-			(t "r")))
-	  )
-      (call-process semantic-symref-global-command
-		    nil b nil
-		    (concat flgs scopeflgs stflag)
-		    (oref tool searchfor)))
     (semantic-symref-parse-tool-output tool b)
     ))
 
