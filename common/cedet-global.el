@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-global.el,v 1.1 2008/12/04 01:45:46 zappo Exp $
+;; X-RCS: $Id: cedet-global.el,v 1.2 2008/12/04 02:15:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -57,7 +57,7 @@ SCOPE is the scope of the search, such as 'project or 'subdirs."
 		      (t "r")))
 	)
     (cedet-gnu-global-call (list (concat flgs scopeflgs stflag)
-				 (oref tool searchfor)))))
+				 searchtext))))
 
 (defun cedet-gnu-global-call (flags)
   "Call GNU Global with the list of FLAGS."
@@ -72,6 +72,20 @@ SCOPE is the scope of the search, such as 'project or 'subdirs."
 	   nil b nil
 	   flags)
     b))
+
+;;;###autoload
+(defun cedet-gnu-global-root (&optional dir)
+  "Return the root of any GNU Global scanned project.
+If a default starting DIR is not specified, the current buffer's
+`default-directory' is used."
+  (let ((default-directory (or dir default-directory))
+	)
+    (save-excursion
+      (set-buffer (cedet-gnu-global-call (list "-pq")))
+      (goto-char (point-min))
+      (when (not (eobp))
+	(file-name-as-directory
+	 (buffer-substring (point) (point-at-eol)))))))
 
 ;;;###autoload
 (defun cedet-gnu-global-version-check ()
