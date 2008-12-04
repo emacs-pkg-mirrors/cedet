@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.37 2008/09/12 11:48:05 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.38 2008/12/04 23:26:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -199,7 +199,10 @@ If DIRECTORY doesn't exist, create a new one."
 If SUPRESS-QUESTIONS, then do not ask to create the directory."
   (let ((dest (file-name-directory (oref DB file)))
 	)
-    (cond ((file-exists-p dest) t)
+    (cond ((null dest)
+	   ;; @TODO - If it was never set up... what should we do ?
+	   nil)
+	  ((file-exists-p dest) t)
 	  (supress-questions nil)
 	  ((y-or-n-p (format "Create directory %s for SemanticDB? "
 			     dest))
