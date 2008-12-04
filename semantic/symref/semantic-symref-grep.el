@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-grep.el,v 1.1 2008/11/29 15:10:33 zappo Exp $
+;; X-RCS: $Id: semantic-symref-grep.el,v 1.2 2008/12/04 23:27:21 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -48,13 +48,13 @@ and those hits returned.")
 (defvar semantic-symref-filepattern-alist
   '((c-mode . "*.[ch]")
     (c++-mode "*.[chCH]" "*.[ch]pp" "*.cc" "*.hh")
-    (Emacs-lisp-mode . "*.el")
+    (emacs-lisp-mode . "*.el")
     )
   "List of major modes and file extension pattern regexp.
 See find -regex man page for format.")
 
 (defmethod semantic-symref-perform-search ((tool semantic-symref-tool-grep))
-  "Base search for symref tools should throw an error."
+  "Perform a search with Grep."
   ;; Find the root of the project, and do a find-grep...
   (let* (;; Find the file patterns to use.
 	 (pat (cdr (assoc major-mode semantic-symref-filepattern-alist)))
