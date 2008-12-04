@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.59 2008/10/19 11:38:12 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.60 2008/12/04 23:25:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -742,7 +742,10 @@ in SUPERS."
     (when (not stag)
       (dolist (S supers)
 	(let* ((sname (semantic-tag-name S))
-	       (parts (nreverse (semantic-analyze-split-name sname))))
+	       (splitparts (semantic-analyze-split-name sname))
+	       (parts (if (stringp splitparts)
+			  (list splitparts)
+			(nreverse splitparts))))
 	  (when (string= name (car parts))
 	    (setq stag S))
 	  )))
