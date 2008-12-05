@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-list.el,v 1.1 2008/12/02 02:28:26 zappo Exp $
+;; X-RCS: $Id: semantic-symref-list.el,v 1.2 2008/12/05 03:54:15 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -24,14 +24,16 @@
 ;;
 ;; Provide a simple user facing API to finding symbol references.
 ;;
-;; This UI will be the base to a host of refactoring level tools.
-;; For any refactor, the user will execture `semantic-symref' in a tag.
-;; Once that data is collected, the output will be listed in a buffer.
-;; In the output buffer, the user can then initiate a range of refactoring
+;; This UI will is the base of some refactoring tools.  For any
+;; refactor, the user will execture `semantic-symref' in a tag.  Once
+;; that data is collected, the output will be listed in a buffer.  In
+;; the output buffer, the user can then initiate different refactoring
 ;; operations.
 ;;
+;; NOTE: Need to add some refactoring tools.
 
 (require 'semantic-symref)
+(require 'pulse)
 
 ;;; Code:
 ;;;###autoload
@@ -161,7 +163,7 @@ Some useful functions are found in `semantic-format-tag-functions'."
   "Toggle showing the contents below the current line."
   (interactive)
   (beginning-of-line)
-  (when (re-search-forward "\[[-+]\]" (point-at-eol) t)
+  (when (re-search-forward "\\[[-+]\\]" (point-at-eol) t)
     (forward-char -1)
     (push-button)))
 
