@@ -27,11 +27,36 @@
 ;; Tracking such information is a task that requires a huge amount of
 ;; space and processing not apropriate for an Emacs Lisp program.
 ;;
-;; Many desired tools used in refactoring, however, desire to have
+;; Many desired tools used in refactoring, however, need to have
 ;; such references available to them.  This API aims to provide a
 ;; range of functions that can be used to identify references.  The
 ;; API is backed by an OO system that is used to allow multiple
 ;; external tools to provide the information.
+;;
+;; The default implementation uses a find/grep combination to do a
+;; search.  This works ok in small projects.  For larger projects, it
+;; is important to find an alternate tool to use as a back-end to
+;; symref.
+;;
+;; See the command: `semantic-symref' for an example app using this api.
+;;
+;; TO USE THIS TOOL
+;;
+;; The following functions can be used to find different kinds of
+;; references.
+;;
+;;  `semantic-symref-find-references-by-name'
+;;  `semantic-symref-find-file-references-by-name'
+;;  `semantic-symref-find-text'
+;;
+;; All the search routines return a class of type
+;; `semantic-symref-result'.  You can reference the various slots, but
+;; you will need the following methods to get extended information.
+;;
+;;  `semantic-symref-result-get-files'
+;;  `semantic-symref-result-get-tags'
+;;
+;; ADD A NEW EXTERNAL TOOL
 ;;
 ;; To support a new external tool, sublcass `semantic-symref-tool-baseclass'
 ;; and implement the methods.  The baseclass provides support for
