@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.169 2008/09/29 00:18:23 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.170 2008/12/07 15:49:42 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -45,6 +45,13 @@
 ;; @TODO - For API calls like `object-p', replace with something
 ;;         that does not conflict with "object", meaning a lisp object.
 ;; @TODO - Prefix non-clos functions with `eieio-'.
+
+(when (featurep 'eieio)
+  (error "Do not load EIEIO twice."))
+
+(eval-when-compile
+  (when (featurep 'eieio)
+    (error "Do not byte-compile EIEIO if EIEIO is already loaded.")))
 
 (require 'cl)
 (load "cl-macs" nil t) ; No provide in this file.
@@ -1817,12 +1824,19 @@ This should only be called from a generic function."
 	     (listp (symbol-function firstarg))
 	     (eq 'autoload (car (symbol-function firstarg))))
 	(load (nth 1 (symbol-function firstarg))))
-    ;; lookup the forms to use
+    ;; Determine the class to use.
     (cond ((eieio-object-p firstarg)
 	   (setq mclass (object-class-fast firstarg)))
 	  ((class-p firstarg)
-	   (setq mclass firstarg
-		 )))
+	   (setq mclass firstarg))
+	  )
+    ;; Make sure the class is a valid class
+    ;; mclass can be nil (meaning a generic for should be used.
+    ;; mclass cannot have a value that is not a class, however.
+    (when (and (not (null mclass)) (not (class-p mclass)))
+      (error "Cannot dispatch method %S on class %S"
+	     method mclass)
+      )
     ;; Now create a list in reverse order of all the calls we have
     ;; make in order to successfully do this right.  Rules:
     ;; 1) Only call generics if scoped-class is not defined
@@ -1917,10 +1931,15 @@ This should only be called from a generic function."
   "Return an alist list of methods lambdas.
 METHOD is the method name.
 KEY represents either :before, or :after methods.
-CLASS is the starting class to search from in the method tree."
+CLASS is the starting class to search from in the method tree.
+If CLASS is nil, then an empty list of methods should be returned."
+  ;; Note: eieiomt - the MT means MethodTree.  See more comments below
+  ;; for the rest of the eieiomt methods.
   (let ((lambdas nil)
 	(mclass (list class)))
     (while mclass
+      ;; Note: a nil can show up in the class list once we start
+      ;;       searching through the method tree.
       (when (car mclass)
 	;; lookup the form to use for the PRIMARY object for the next level
 	(let ((tmpl (eieio-generic-form method key (car mclass))))
