@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.10 2008/06/09 22:32:04 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.11 2008/12/08 12:12:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -241,7 +241,6 @@ You may also need `semantic-elp-include-path-list'.")
     semantic-analyze-dereference-metatype
     semantic-analyze-find-tag-sequence
     semantic-analyze-find-tag-sequence
-    semantic-analyze-inherited-tags
     semantic-analyze-interesting-tag
     semantic-analyze-pop-to-context
     semantic-analyze-select-best-tag
