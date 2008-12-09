@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.54 2008/09/06 21:33:55 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.55 2008/12/09 23:54:36 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -252,7 +252,7 @@ making a tar file.")
 
 ;;; Code:
 (defun ede-proj-load (project &optional rootproj)
-  "Load a project file PROJECT.
+  "Load a project file from PROJECT directory.
 If optional ROOTPROJ is provided then ROOTPROJ is the root project
 for the tree being read in.  If ROOTPROJ is nil, then assume that
 the PROJECT being read in is the root project."
@@ -270,6 +270,7 @@ the PROJECT being read in is the root project."
 		(error "Corrupt project file"))
 	    (setq ret (eval ret))
 	    (oset ret file (concat project "Project.ede"))
+	    (oset ret directory project)
 	    (oset ret rootproject rootproj)
 	    )
 	(kill-buffer " *tmp proj read*"))
@@ -289,17 +290,20 @@ the PROJECT being read in is the root project."
   (save-excursion
     (if (not project) (setq project (ede-current-project)))
     (let ((b (set-buffer (get-buffer-create " *tmp proj write*")))
-	  (cfn (oref project file)))
+	  (cfn (oref project file))
+	  (cdir (oref project directory)))
       (unwind-protect
 	  (save-excursion
 	    (erase-buffer)
 	    (let ((standard-output (current-buffer)))
 	      (oset project file (file-name-nondirectory cfn))
+	      (slot-makeunbound project :directory)
 	      (object-write project ";; EDE project file."))
 	    (write-file cfn nil)
 	    )
 	;; Restore the :file on exit.
 	(oset project file cfn)
+	(oset project directory cdir)
 	(kill-buffer b)))))
 
 (defmethod ede-commit-local-variables ((proj ede-proj-project))
