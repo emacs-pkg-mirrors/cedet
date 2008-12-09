@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.26 2008/11/27 18:45:20 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.27 2008/12/09 19:02:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -263,6 +263,13 @@ This helper manages the mark, buffer switching, and pulsing."
 	   )
       (when impl (setq dest (car impl)))))
 
+  ;; Make sure we have a place to go...
+  (if (not (and (or (semantic-tag-with-position-p dest)
+		    (semantic-tag-get-attribute dest :line))
+		(semantic-tag-file-name dest)))
+      (error "Tag %s has no buffer information"
+	     (semantic-format-tag-name dest)))
+
   ;; Once we have the tag, we can jump to it.  Here
   ;; are the key bits to the jump:
 
@@ -301,32 +308,41 @@ origin of the code at point."
 	 (first (car pf))
 	 (second (nth 1 pf))
 	 )
-    (if (semantic-tag-p first)
-	;; We have a match.  Just go there.
-	(semantic-ia--fast-jump-helper first)
-      (if (semantic-tag-p second)
-	  ;; Because FIRST failed, we should visit our second tag.
-	  ;; HOWEVER, the tag we actually want that was only an unfound
-	  ;; string may be related to some take in the datatype that belongs
-	  ;; to SECOND.  Thus, instead of visiting second directly, we
-	  ;; can offer to find the type of SECOND, and go there.
-	  (let ((secondclass (car (reverse (oref ctxt prefixtypes)))))
-	    (cond
-	     ((and (semantic-tag-with-position-p secondclass)
-		   (y-or-n-p (format "Cound not find `%s'.  Jump to %s? "
-				     first (semantic-tag-name secondclass))))
-	      (semantic-ia--fast-jump-helper secondclass)
-	      )
-	     ;; If we missed out on the class of the second item, then
-	     ;; just visit SECOND.
-	     ((and (semantic-tag-p second)
-		   (y-or-n-p (format "Cound not find `%s'.  Jump to %s? "
-				     first (semantic-tag-name second))))
-	      (semantic-ia--fast-jump-helper second)
-	      )))
-	(error "Could not find suitable jump point for %s"
-	       first)
-	))))
+    (cond
+     ((semantic-tag-p first)
+      ;; We have a match.  Just go there.
+      (semantic-ia--fast-jump-helper first))
+     
+     ((semantic-tag-p second)
+      ;; Because FIRST failed, we should visit our second tag.
+      ;; HOWEVER, the tag we actually want that was only an unfound
+      ;; string may be related to some take in the datatype that belongs
+      ;; to SECOND.  Thus, instead of visiting second directly, we
+      ;; can offer to find the type of SECOND, and go there.
+      (let ((secondclass (car (reverse (oref ctxt prefixtypes)))))
+	(cond
+	 ((and (semantic-tag-with-position-p secondclass)
+	       (y-or-n-p (format "Could not find `%s'.  Jump to %s? "
+				 first (semantic-tag-name secondclass))))
+	  (semantic-ia--fast-jump-helper secondclass)
+	  )
+	 ;; If we missed out on the class of the second item, then
+	 ;; just visit SECOND.
+	 ((and (semantic-tag-p second)
+	       (y-or-n-p (format "Could not find `%s'.  Jump to %s? "
+				 first (semantic-tag-name second))))
+	  (semantic-ia--fast-jump-helper second)
+	  ))))
+
+     ((semantic-tag-of-class-p (semantic-current-tag) 'include)
+      ;; Just borrow this cool fcn.
+      (semantic-decoration-include-visit)
+      )
+
+     (t
+      (error "Could not find suitable jump point for %s"
+	     first))
+     )))
 
 ;;; DOC/DESCRIBE
 ;;
