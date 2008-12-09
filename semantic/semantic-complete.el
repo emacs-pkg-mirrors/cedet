@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.55 2008/09/17 15:18:09 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.56 2008/12/09 19:38:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2104,7 +2104,7 @@ use `semantic-complete-analyze-inline' to complete."
 
 ;;;###autoload
 (defun semantic-complete-inline-project ()
-  "Perform prompt completion to do in buffer completion.
+  "Perform inline completion for any symbol in the current project.
 `semantic-analyze-possible-completions' is used to determine the
 possible values.
 The function returns immediately, leaving the buffer in a mode that
