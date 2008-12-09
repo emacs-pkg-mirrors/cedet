@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.1 2008/12/09 20:00:20 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.2 2008/12/09 23:53:09 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -76,24 +76,69 @@ the current buffer."
 	   (funcall rootfcn)))
 	))))
 
+;;; DIRECTORY IN OPEN PROJECT
+;;
+;; These routines match some directory name to one of the many pre-existing
+;; open projects.  This should avoid hitting the disk, or asking lots of questions
+;; if used throughout the other routines.
+(defun ede-directory-get-open-project (dir)
+  "Return an already open project that is managing DIR."
+  (let ((all ede-projects)
+	(ans nil))
+
+    
+
+    ))
+
 ;;; DIRECTORY-PROJECT-P
 ;;
 ;; For a fresh buffer, or for a path w/ no open buffer, use this
 ;; routine to determine if there is a known project type here.
+(defvar ede-project-directory-hash (make-hash-table
+				    ;; Note on test.  Can we compare inodes or something?
+				    :test 'equal)
+  "A hash of directory names and associated EDE objects.")
+
+(defun ede-project-directory-remove-hash (dir)
+  "Reset the directory hash for DIR.
+Do this whenever a new project is created, as opposed to loaded."
+  (when (fboundp 'remhash)
+    (remhash dir ede-project-directory-hash)
+    ;; @todo - remove from all subdirs of DIR also!
+    ))
+
+(defun ede-directory-project-from-hash (dir)
+  "If there is an already loaded project for DIR, return it from the hash."
+  (when (fboundp 'gethash)
+    (gethash dir ede-project-directory-hash nil)))
+
+(defun ede-directory-project-add-description-to-hash (dir desc)
+  "Add to the EDE project hash DIR associated with DESC."
+  (when (fboundp 'puthash)
+    (puthash dir desc ede-project-directory-hash)
+    desc))
+
 (defun ede-directory-project-p (dir)
   "Return a project description object if DIR has a project.
 This depends on an up to date `ede-project-class-files' variable."
-  (let ((types ede-project-class-files)
-	(ret nil))
-    ;; Loop over all types, loading in the first type that we find.
-    (while (and types (not ret))
-      (if (ede-dir-to-projectfile (car types) dir)
-	  (progn
-	    ;; We found one!  Require it now since we will need it.
-	    (require (oref (car types) file))
-	    (setq ret (car types))))
-      (setq types (cdr types)))
-    ret))
+  (let ((match (ede-directory-project-from-hash dir)))
+    (cond
+     ((eq match 'nomatch)
+      nil)
+     (match match)
+     (t
+      (let ((types ede-project-class-files)
+	    (ret nil))
+	;; Loop over all types, loading in the first type that we find.
+	(while (and types (not ret))
+	  (if (ede-dir-to-projectfile (car types) dir)
+	      (progn
+		;; We found one!  Require it now since we will need it.
+		(require (oref (car types) file))
+		(setq ret (car types))))
+	  (setq types (cdr types)))
+	(ede-directory-project-add-description-to-hash dir (or ret 'nomatch))
+	ret)))))
 
 ;;; TOPLEVEL
 ;;
