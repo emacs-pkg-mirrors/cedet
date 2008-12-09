@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.170 2008/12/07 15:49:42 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.171 2008/12/09 19:38:59 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -1954,12 +1954,16 @@ If CLASS is nil, then an empty list of methods should be returned."
       ;; Add new classes to mclass.  Since our input might not be a class
       ;; protect against that.
       (if (car mclass)
+	  ;; If there is a class, append any methods it may provide
+	  ;; to the remainder of the class list.
 	  (let ((io (class-method-invocation-order (car mclass))))
 	    (if (eq io :depth-first)
+		;; Depth first.
 		(setq mclass (append (eieiomt-next (car mclass)) (cdr mclass)))
 	      ;; Breadth first.
 	      (setq mclass (append (cdr mclass) (eieiomt-next (car mclass)))))
 	    )
+	;; Advance to next entry in mclass if it is nil.
 	(setq mclass (cdr mclass)))
       )
     (if (eq key method-after)
