@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.37 2008/12/09 23:53:59 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.38 2008/12/09 23:56:51 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -496,7 +496,7 @@ DIR is the directory to apply to new targets."
 	 (ntargets nil)
 	 (tmp nil)
 	 )
-      (mapcar
+      (mapc
        ;; Map all the different types
        (lambda (typecar)
 	 (let ((macro (nth 2 typecar))
@@ -505,14 +505,14 @@ DIR is the directory to apply to new targets."
 	       (name (car typecar)))
 	   (if indirect
 	       ;; Map all the found objects
-	       (mapcar (lambda (lstcar)
-			 (setq tmp (object-assoc lstcar 'name otargets))
-			 (when (not tmp)
-			   (setq tmp (apply class lstcar :name lstcar
-					    :path dir nil)))
-			 (project-rescan tmp)
-			 (setq ntargets (cons tmp ntargets)))
-		       (makefile-macro-file-list macro))
+	       (mapc (lambda (lstcar)
+		       (setq tmp (object-assoc lstcar 'name otargets))
+		       (when (not tmp)
+			 (setq tmp (apply class lstcar :name lstcar
+					  :path dir nil)))
+		       (project-rescan tmp)
+		       (setq ntargets (cons tmp ntargets)))
+		     (makefile-macro-file-list macro))
 	     ;; Non-indirect will have a target whos sources
 	     ;; are actual files, not names of other targets.
 	     (let ((files (makefile-macro-file-list macro)))
