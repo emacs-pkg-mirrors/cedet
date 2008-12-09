@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.12 2008/09/06 23:56:06 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.13 2008/12/09 23:56:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -82,6 +82,7 @@
 ;;
 ;; (ede-cpp-root-project "NAME" :file "FILENAME" :locate-fcn 'MYFCN)
 ;;
+;; Where FILENAME is a file in the root directory of the project.
 ;; Where MYFCN is a symbol for a function.  See:
 ;;
 ;; M-x describe-class RET ede-cpp-root-project RET
@@ -153,11 +154,15 @@ DIR is the directory to search from."
   (let ((proj (ede-cpp-root-file-existing dir)))
     (when proj (oref proj :file))))
 
+(defvar ede-cpp-root-count 0
+  "Count number of hits to the cpp root thing.")
+
 ;;;###autoload
 (defun ede-cpp-root-project-root (&optional dir)
   "Get the root directory for DIR."
   (let ((projfile (ede-cpp-root-project-file-for-dir
 		   (or dir default-directory))))
+    (setq ede-cpp-root-count (1+ ede-cpp-root-count))
     (when projfile
       (file-name-directory projfile))))
 
@@ -251,15 +256,28 @@ Each directory needs a a project file to control it.")
 (defmethod initialize-instance ((this ede-cpp-root-project)
 				&rest fields)
   "Make sure the :file is fully expanded."
+  ;; Add ourselves to the master list
   (call-next-method)
   (let ((f (expand-file-name (oref this :file))))
+    ;; Remove any previous entries from the main list.
+    (let ((old (eieio-instance-tracker-find (file-name-directory f)
+					    :directory 'ede-cpp-root-project-list)))
+      ;; This is safe, because :directory isn't filled in till later.
+      (when (and old (not (eq old this)))
+	(delete-instance old)))
+    ;; Basic initialization.
     (when (or (not (file-exists-p f))
 	      (file-directory-p f))
       (delete-instance this)
       (error ":file for ede-cpp-root must be a file."))
     (oset this :file f)
+    (oset this :directory (file-name-directory f))
+    (ede-project-directory-remove-hash (file-name-directory f))
     (unless (slot-boundp this 'targets)
-      (oset this :targets nil))))
+      (oset this :targets nil))
+    ;; We need to add ourselves to the master list.
+    ;;(setq ede-projects (cons this ede-projects))
+    ))
 
 ;;; TARGET MANAGEMENT
 ;;
