@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.23 2008/11/27 18:43:27 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.24 2008/12/09 19:07:44 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -502,8 +502,18 @@ PROTECTION specifies the type of access requested, such as 'public or 'private."
 								access)))
 	   )
       (when (not (semantic-tag-in-buffer-p type))
-	(dolist (tag slots)
-	  (semantic--tag-put-property tag :filename fname)))
+	(let ((copyslots nil))
+	  (dolist (TAG slots)
+	    ;;(semantic--tag-put-property TAG :filename fname)
+	    (if (semantic-tag-file-name TAG)
+		;; If it has a filename, just go with it...
+		(setq copyslots (cons TAG copyslots))
+	      ;; Otherwise, copy the tag w/ the guessed filename.
+	      (setq copyslots (cons (semantic-tag-copy TAG nil fname)
+				    copyslots)))
+	    )
+	  (setq slots (nreverse copyslots))
+	  ))
       ;; Flatten the database output.
       (append slots extmeth inherited)
       )))
