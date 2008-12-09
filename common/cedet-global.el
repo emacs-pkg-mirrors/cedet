@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-global.el,v 1.2 2008/12/04 02:15:24 zappo Exp $
+;; X-RCS: $Id: cedet-global.el,v 1.3 2008/12/09 19:36:23 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -40,8 +40,11 @@
 (defun cedet-gnu-global-search (searchtext texttype type scope)
   "Perform a search with GNU Global, return the created buffer.
 SEARCHTEXT is text to find.
-TEXTTYPE is the type of text, such as 'regexp, or 'string.
-TYPE is the type of search, such as filename, tagname, references, or symbol.
+TEXTTYPE is the type of text, such as 'regexp, 'string, 'tagname,
+'tagregexp, or 'tagcompletions.
+TYPE is the type of search, meaning that SEARCHTEXT is compared to
+filename, tagname (tags table), references (uses of a tag) , or
+symbol (uses of something not in the tag table.)
 SCOPE is the scope of the search, such as 'project or 'subdirs."
   (let ((flgs (cond ((eq type 'file)
 		     "-a")
@@ -52,7 +55,12 @@ SCOPE is the scope of the search, such as 'project or 'subdirs."
 		     )
 		    ((eq scope 'target)
 		     "l")))
-	(stflag (cond ((eq texttype 'regexp)
+	(stflag (cond ((or (eq texttype 'tagname)
+			   (eq texttype 'tagregexp))
+		       "")
+		      ((eq texttype 'tagcompletions)
+		       "c")
+		      ((eq texttype 'regexp)
 		       "g")
 		      (t "r")))
 	)
@@ -102,6 +110,20 @@ If a default starting DIR is not specified, the current buffer's
 	(error "Version of GNU Global is %s.  Need at least %s"
 	       rev cedet-global-min-version))
       )))
+
+(defun cedet-gnu-global-scan-hits (buffer)
+  "Scan all the hits from the GNU Global output BUFFER."
+  (let ((hits nil)
+	(r1 "^\\([^ ]+\\) +\\([0-9]+\\) \\([^ ]+\\) "))
+    (save-excursion
+      (set-buffer buffer)
+      (goto-char (point-min))
+      (while (re-search-forward r1 nil t)
+	(setq hits (cons (cons (string-to-number (match-string 2))
+			       (match-string 3))
+			 hits)))
+      ;; Return the results
+      (nreverse hits))))
 
 (provide 'cedet-global)
 ;;; cedet-global.el ends here
