@@ -147,6 +147,66 @@ Returns an object of class `semantic-symref-result'."
   )
 
 ;;;###autoload
+(defun semantic-symref-find-tags-by-name (name &optional scope)
+  "Find a list of references to NAME in the current project.
+Optional SCOPE specifies which file set to search.  Defaults to 'project.
+Refers to `semantic-symref-tool', to determine the reference tool to use
+for the current buffer.
+Returns an object of class `semantic-symref-result'."
+  (interactive "sName: ")
+  (let* ((inst (semantic-symref-instantiate
+		:searchfor name
+		:searchtype 'tagname
+		:searchscope (or scope 'project)
+		:resulttype 'line))
+	 (result (semantic-symref-get-result inst)))
+    (prog1
+	(setq semantic-symref-last-result result)
+      (when (interactive-p)
+	(semantic-symref-data-debug-last-result))))
+  )
+
+;;;###autoload
+(defun semantic-symref-find-tags-by-regexp (name &optional scope)
+  "Find a list of references to NAME in the current project.
+Optional SCOPE specifies which file set to search.  Defaults to 'project.
+Refers to `semantic-symref-tool', to determine the reference tool to use
+for the current buffer.
+Returns an object of class `semantic-symref-result'."
+  (interactive "sName: ")
+  (let* ((inst (semantic-symref-instantiate
+		:searchfor name
+		:searchtype 'tagregexp
+		:searchscope (or scope 'project)
+		:resulttype 'line))
+	 (result (semantic-symref-get-result inst)))
+    (prog1
+	(setq semantic-symref-last-result result)
+      (when (interactive-p)
+	(semantic-symref-data-debug-last-result))))
+  )
+
+;;;###autoload
+(defun semantic-symref-find-tags-by-completion (name &optional scope)
+  "Find a list of references to NAME in the current project.
+Optional SCOPE specifies which file set to search.  Defaults to 'project.
+Refers to `semantic-symref-tool', to determine the reference tool to use
+for the current buffer.
+Returns an object of class `semantic-symref-result'."
+  (interactive "sName: ")
+  (let* ((inst (semantic-symref-instantiate
+		:searchfor name
+		:searchtype 'tagcompletions
+		:searchscope (or scope 'project)
+		:resulttype 'line))
+	 (result (semantic-symref-get-result inst)))
+    (prog1
+	(setq semantic-symref-last-result result)
+      (when (interactive-p)
+	(semantic-symref-data-debug-last-result))))
+  )
+
+;;;###autoload
 (defun semantic-symref-find-file-references-by-name (name &optional scope)
   "Find a list of references to NAME in the current project.
 Optional SCOPE specifies which file set to search.  Defaults to 'project.
@@ -334,12 +394,11 @@ already."
    (searchtype :initarg :searchtype
 		:type symbol
 		:documentation "The type of search to do.
-Values could be `symbol, `regexp, or other.")
+Values could be `symbol, `regexp, 'tagname, or 'completion.")
    (searchscope :initarg :searchscope
 		:type symbol
 		:documentation
-		"@todo - NEEDS TO BE IMPLEMENTED.
-The scope to search for.
+		"The scope to search for.
 Can be 'project, 'target, or 'file.")
    (resulttype :initarg :resulttype
 	       :type symbol
