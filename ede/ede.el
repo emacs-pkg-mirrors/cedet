@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.114 2008/11/29 16:39:49 zappo Exp $
+;; RCS: $Id: ede.el,v 1.115 2008/12/09 20:02:12 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1118,42 +1118,6 @@ Return the new object created in its place."
   this
   )
 
-(defmethod ede-project-root ((this ede-project-placeholder))
-  "If a project knows it's root, return it here.
-Allows for one-project-object-for-a-tree type systems."
-  (oref this rootproject))
-
-(defmethod ede-project-root-directory ((this ede-project-placeholder)
-				       &optional file)
-  "If a project knows it's root, return it here.
-Allows for one-project-object-for-a-tree type systems.
-Optional FILE is the file to test.  It is ignored in preference
-of the anchor file for the project."
-  (file-name-directory (expand-file-name (oref this file))))
-
-
-(defmethod ede-project-root ((this ede-project-autoload))
-  "If a project knows it's root, return it here.
-Allows for one-project-object-for-a-tree type systems."
-  nil)
-
-(defmethod ede-project-root-directory ((this ede-project-autoload)
-				       &optional file)
-  "If a project knows it's root, return it here.
-Allows for one-project-object-for-a-tree type systems.
-Optional FILE is the file to test.  If there is no FILE, use
-the current buffer."
-  (when (not file)
-    (setq file default-directory))
-  (when (slot-boundp this :proj-root)
-    (let ((rootfcn (oref this proj-root)))
-      (when rootfcn
-	(condition-case err
-	    (funcall rootfcn file)
-	  (error 
-	   (funcall rootfcn)))
-	))))
-
 
 ;;; EDE project target baseline methods.
 ;;
@@ -1310,6 +1274,7 @@ Argument THIS is the project to convert PATH to."
       (setq src (cdr src)))
     src))
 
+;; @todo - move to ede-files ??
 (defmethod ede-expand-filename ((this ede-project) filename &optional force)
   "Return a fully qualified file name based on project THIS.
 FILENAME should be just a filename which occurs in a directory controlled
@@ -1452,65 +1417,6 @@ Return nil if the project file does not exist."
 
 ;;; EDE basic functions
 ;;
-(defun ede-directory-project-p (dir)
-  "Return a project description object if DIR has a project.
-This depends on an up to date `ede-project-class-files' variable."
-  (let ((types ede-project-class-files)
-	(ret nil))
-    ;; Loop over all types, loading in the first type that we find.
-    (while (and types (not ret))
-      (if (ede-dir-to-projectfile (car types) dir)
-	  (progn
-	    ;; We found one!  Require it now since we will need it.
-	    (require (oref (car types) file))
-	    (setq ret (car types))))
-      (setq types (cdr types)))
-    ret))
-
-(defun ede-up-directory (dir)
-  "Return a path that is up one directory.
-Argument DIR is the directory to trim upwards."
-  (let* ((fad (directory-file-name dir))
-	 (fnd (file-name-directory fad)))
-    (if (string= dir fnd) ; This will catch the old string-match against
-			  ; c:/ for DOS like systems.
-	nil
-      fnd)))
-  
-(defun ede-toplevel-project-or-nil (path)
-  "Starting with PATH, find the toplevel project directory, or return nil.
-nil is returned if the current directory is not a part ofa project."
-  (if (ede-directory-project-p path)
-      (ede-toplevel-project path)
-    nil))
-
-(defun ede-toplevel-project (path)
-  "Starting with PATH, find the toplevel project directory."
-  (let* ((toppath (expand-file-name path))
-	 (newpath toppath)
-	 (proj (ede-directory-project-p path))
-	 (ans nil))
-    (if proj
-	;; If we already have a project, ask it what the root is.
-	(setq ans (ede-project-root-directory proj)))
-
-    ;; If PROJ didn't know, or there is no PROJ, then
-
-    ;; Loop up to the topmost project, and then load that single
-    ;; project, and it's sub projects.  When we are done, identify the
-    ;; sub-project object belonging to file.
-    (while (and (not ans) newpath proj)
-      (setq toppath newpath
-	    newpath (ede-up-directory toppath))
-      (when newpath
-	(setq proj (ede-directory-project-p newpath)))
-
-      (when proj
-	;; We can home someone in the middle knows too.
-	(setq ans (ede-project-root-directory proj)))
-      )
-    (or ans toppath)))
-
 ;;;###autoload
 (defun ede-load-project-file (file)
   "Project file independent way to read in FILE."
@@ -1570,18 +1476,6 @@ nil is returned if the current directory is not a part ofa project."
 		(delete (oref found file) ede-project-cache-files)))
 	found)))))
 
-(defun ede-toplevel (&optional subproj)
-  "Return the ede project which is the root of the current project.
-Optional argument SUBPROJ indicates a subproject to start from
-instead of the current project."
-  (let* ((cp (or subproj (ede-current-project)))
-	 )
-    (or (and cp (ede-project-root cp))
-	(progn
-	  (while (ede-parent-project cp)
-	    (setq cp (ede-parent-project cp)))
-	  cp))))
-
 ;;;###autoload
 (defun ede-parent-project (&optional obj)
   "Return the project belonging to the parent directory.
@@ -1607,7 +1501,8 @@ If optional DIR is provided, get the project for DIR instead."
     (ede-load-project-file default-directory)))
 
 (defun ede-buffer-object (&optional buffer)
-  "Return the target object for BUFFER."
+  "Return the target object for BUFFER.
+This function clears cached values and recalculates."
   (save-excursion
     (if (not buffer) (setq buffer (current-buffer)))
     (set-buffer buffer)
@@ -1911,6 +1806,8 @@ Display the results as a debug list."
   "Upload auto-generated HTML to the web site.")
 
 (provide 'ede)
+
+(require 'ede-files)
 
 ;; If this does not occur after the provide, we can get a recursive
 ;; load.  Yuck!
