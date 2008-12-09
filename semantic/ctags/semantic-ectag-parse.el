@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.7 2008/11/27 18:48:53 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.8 2008/12/09 21:16:19 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -46,6 +46,7 @@
   "Execute Exuberent CTags on this buffer.
 Convert the output tags into Semantic tags."
   (interactive)
+  (require 'semantic-ectag-lang)
   (when (not semantic-ectag-lang)
     (error "Exuberent CTag support for Semantic not configured for %s"
 	   major-mode))
