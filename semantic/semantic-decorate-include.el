@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.19 2008/11/28 20:04:07 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.20 2008/12/09 19:37:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -373,6 +373,7 @@ its contents.
 	(princ (oref r file)))
       )))
 
+;;;###autoload
 (defun semantic-decoration-include-visit ()
   "Visit the included file at point."
   (interactive)
