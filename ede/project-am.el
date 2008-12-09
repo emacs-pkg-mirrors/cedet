@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.36 2008/09/08 01:59:08 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.37 2008/12/09 23:53:59 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -454,6 +454,7 @@ It does not check for existing project objects.  Use `project-am-load'."
       (let ((ampf (project-am-makefile (project-am-last-dir fn)
 				       :name (project-am-last-dir fn)
 				       :file fn)))
+	(oset ampf :directory (file-name-directory fn))
 	(make-local-variable 'ede-object)
 	(setq ede-object ampf)
 	;; Move the rescan after we set ede-object to prevent recursion
