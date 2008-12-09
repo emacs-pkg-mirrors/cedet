@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.115 2008/12/09 20:02:12 zappo Exp $
+;; RCS: $Id: ede.el,v 1.116 2008/12/09 23:39:37 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -148,6 +148,7 @@ type is required and the load function used.")
 	 :label "Name"
 	 :group (default name)
 	 :documentation "Name of this target.")
+   ;; @todo - I think this should be "dir", and not "path".
    (path :initarg :path
 	 :type string
 	 ;:custom string
@@ -219,9 +220,11 @@ which files this object is interested in."
 	    :label "Version"
 	    :group (default name)
 	    :documentation "The version number used when distributing files.")
-   (file :initarg :file
-	 :type string
-	 ;; No initarg.  We don't want this saved in a file.
+   (directory :type string
+	      :initarg :directory
+	      :documentation "Directory this project is associated with.")
+   (file :type string
+	 :initarg :file
 	 :documentation "File name where this project is stored.")
    (rootproject ; :initarg - no initarg, don't save this slot!
     :initform nil
@@ -760,7 +763,7 @@ ONOFF indicates enabling or disabling the mode."
 If ARG is negative, disable.  Toggle otherwise."
   (interactive "P")
   (if (not arg)
-      (if (member 'ede-turn-on-hook find-file-hooks)
+      (if (member 'ede-turn-on-hook find-file-hook)
 	  (global-ede-mode -1)
 	(global-ede-mode 1))
     (if (or (eq arg t) (> arg 0))
@@ -863,10 +866,14 @@ Optional argument NAME is the name to give this project."
   (let* ((obj (object-assoc type 'name ede-project-class-files))
 	 (nobj (let ((f (oref obj file))
 		     (pf (oref obj proj-file)))
+		 ;; We are about to make something new, changing the
+		 ;; state of existing directories.
+		 (ede-project-directory-remove-hash default-directory)
 		 ;; Make sure this class gets loaded!
 		 (require f)
 		 (make-instance (oref obj class-sym)
 				:name (or name (read-string "Name: "))
+				:directory default-directory
 				:file (cond ((stringp pf)
 					     (expand-file-name pf))
 					    ((fboundp pf)
@@ -1092,13 +1099,13 @@ Optional argument GROUP is the slot group to display."
     (while ov
       (if (not (assoc (car (car ov)) nv))
 	  (save-excursion
-	    (mapcar (lambda (b)
-		      (set-buffer b)
-		      (kill-local-variable (car (car ov))))
-		    (ede-project-buffers proj))))
+	    (mapc (lambda (b)
+		    (set-buffer b)
+		    (kill-local-variable (car (car ov))))
+		  (ede-project-buffers proj))))
       (setq ov (cdr ov)))
-    (mapcar (lambda (b) (ede-set-project-variables proj b))
-	    (ede-project-buffers proj))))
+    (mapc (lambda (b) (ede-set-project-variables proj b))
+	  (ede-project-buffers proj))))
 
 (defmethod eieio-done-customizing ((target ede-target))
   "Call this when a user finishes customizing TARGET."
@@ -1670,6 +1677,7 @@ Return the first non-nil value returned by PROC."
   (when ede-object
     (let ((map (ede-preprocessor-map ede-object)))
       (when map
+	;; We can't do a require for the below symbol.
 	(setq semantic-lex-spp-project-macro-symbol-obarray
 	      (semantic-lex-make-spp-table map))
 	))))
@@ -1724,10 +1732,10 @@ If VARIABLE is not project local, just use set."
     (if (and p (setq a (assoc variable (oref p local-variables))))
 	(progn
 	  (setcdr a value)
-	  (mapcar (lambda (b) (save-excursion
-				(set-buffer b)
-				(set variable value)))
-		  (ede-project-buffers p)))
+	  (mapc (lambda (b) (save-excursion
+			      (set-buffer b)
+			      (set variable value)))
+		(ede-project-buffers p)))
       (set variable value))
     (ede-commit-local-variables p))
   value)
