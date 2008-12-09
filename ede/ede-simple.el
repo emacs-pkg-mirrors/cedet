@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-simple.el,v 1.7 2008/09/06 23:56:48 zappo Exp $
+;; X-RCS: $Id: ede-simple.el,v 1.8 2008/12/09 23:54:54 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -84,7 +84,9 @@ Return nil if there isn't one.
 ROOTPROJ is nil, since we will only create a single EDE project here."
   (let ((pf (ede-simple-projectfile-for-dir dir)))
     (when pf
-      (eieio-persistent-read pf))
+      (eieio-persistent-read pf)
+      (oset pf :directory dir)
+      )
     ))
 
 (defclass ede-simple-target (ede-target)
@@ -108,6 +110,10 @@ Each directory needs a a project file to control it.")
 	(make-directory ede-simple-save-directory)
       (error "No save directory for new project")))
   (eieio-persistent-save proj))
+
+;;; TEST
+;;
+;; @TODO - write a simple test for EDE simple.
 
 (provide 'ede-simple)
 
