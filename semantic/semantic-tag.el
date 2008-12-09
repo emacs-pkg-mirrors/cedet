@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.60 2008/12/04 23:25:41 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.61 2008/12/09 19:06:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -619,14 +619,16 @@ then KEEP-FILE is stored on the `:filename' property.
 This runs the tag hook `unlink-copy-hook`."
   ;; Right now, TAG is a list.
   (let ((copy (semantic-tag-clone tag name)))
+
+    ;; Keep the filename if needed.
+    (when keep-file
+      (semantic--tag-put-property
+       copy :filename (or (semantic-tag-file-name copy)
+			  (and (stringp keep-file)
+			       keep-file)
+			  )))
+
     (when (semantic-tag-with-position-p tag)
-      ;; Keep the filename if needed.
-      (when keep-file
-	(semantic--tag-put-property-no-side-effect
-	 copy :filename (or (semantic-tag-file-name copy)
-			    (and (stringp keep-file)
-				 keep-file)
-			    )))
       ;; Convert the overlay to a vector, effectively 'unlinking' the tag.
       (semantic--tag-set-overlay
        copy (vector (semantic-tag-start copy) (semantic-tag-end copy)))
