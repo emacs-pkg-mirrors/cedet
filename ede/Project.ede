@@ -18,7 +18,7 @@
    (ede-proj-target-elisp "ede"
     :name "ede"
     :path ""
-    :source '("ede.el" "ede-dired.el" "ede-source.el" "ede-util.el" "ede-system.el" "ede-speedbar.el" "ede-srecode.el")
+    :source '("ede.el" "ede-dired.el" "ede-source.el" "ede-util.el" "ede-system.el" "ede-speedbar.el" "ede-srecode.el" "ede-files.el")
     :versionsource '("ede.el")
     :aux-packages '("eieio" "speedbar" "cedet-files" "srecode")
     )
@@ -56,5 +56,5 @@
   :web-site-file "ede.shtml"
   :ftp-upload-site "/ftp@upload.sourceforge.net:/incoming"
   :configuration-variables 'nil
-  :metasubproject t
+  :metasubproject 't
   )
