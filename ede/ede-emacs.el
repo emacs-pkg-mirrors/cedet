@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-emacs.el,v 1.4 2008/09/15 00:22:28 zappo Exp $
+;; X-RCS: $Id: ede-emacs.el,v 1.5 2008/12/09 23:55:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -92,6 +92,7 @@ ROOTPROJ is nil, since there is only one project."
       ;; Doesn't already exist, so lets make one.
       (ede-emacs-project "Emacs"
 			 :name (concat "Emacs" (ede-emacs-version dir))
+			 :directory dir
 			 :file (expand-file-name "src/emacs.c"
 						 dir)))
   )
