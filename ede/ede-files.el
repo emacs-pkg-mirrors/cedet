@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.3 2008/12/10 03:23:34 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.4 2008/12/10 05:05:38 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -76,18 +76,49 @@ the current buffer."
 	   (funcall rootfcn)))
 	))))
 
+(defmethod ede-find-subproject-for-directory ((proj ede-project-placeholder)
+					      dir)
+  "Find a subproject of PROJ that corresponds to DIR."
+  (let ((ans nil))
+    (ede-map-subprojects 
+     proj
+     (lambda (SP)
+       (when (not ans)
+	 (if (string= (oref SP :directory) dir)
+	     (setq ans SP)
+	   (ede-find-subproject-for-directory SP dir)))))
+    ans))
+
 ;;; DIRECTORY IN OPEN PROJECT
 ;;
 ;; These routines match some directory name to one of the many pre-existing
 ;; open projects.  This should avoid hitting the disk, or asking lots of questions
 ;; if used throughout the other routines.
+
 (defun ede-directory-get-open-project (dir)
   "Return an already open project that is managing DIR."
-  (let ((all ede-projects)
+  (let* ((ft (file-name-as-directory (expand-file-name dir)))
+	 (proj (ede-directory-get-toplevel-open-project ft))
+	 (ans proj))
+    (when (and proj (not (string= ft (oref proj :directory))))
+      (setq ans (ede-find-subproject-for-directory proj ft)))
+    ans))
+
+(defun ede-directory-get-toplevel-open-project (dir)
+  "Return an already open toplevel project that is managing DIR."
+  (let ((ft (file-name-as-directory (expand-file-name dir)))
+	(all ede-projects)
 	(ans nil))
     (while (and all (not ans))
-      (when (string= dir (oref (car all) :directory))
-	(setq ans (car all)))
+      (let ((pd (oref (car all) :directory)))
+	(cond
+	 ;; Exact match.
+	 ((string= ft pd)
+	  (setq ans (car all)))
+	 ;; Some sub-directory
+	 ((string-match (concat "^" (regexp-quote pd)) ft)
+	  (setq ans (car all)))
+	 ))
       (setq all (cdr all)))
     ans))
 
@@ -106,7 +137,10 @@ Do this whenever a new project is created, as opposed to loaded."
   (when (fboundp 'remhash)
     (remhash (file-name-as-directory dir) ede-project-directory-hash)
     ;; All but hidden subdirectories.
-    (let ((subdirs (directory-files-and-attributes dir nil "[^.]" nil)))
+    (let ((subdirs
+	   (condition-case nil
+	       (directory-files-and-attributes dir nil "[^.]" nil)
+	     (file-error nil))))
       (dolist (SD subdirs)
 	(when (eq (car (cdr SD)) t)
 	  ;; A subdirectory, recurse...
@@ -151,39 +185,45 @@ This depends on an up to date `ede-project-class-files' variable."
 ;;
 ;; These utilities will identify the "toplevel" of a project.
 ;;
-(defun ede-toplevel-project-or-nil (path)
-  "Starting with PATH, find the toplevel project directory, or return nil.
+(defun ede-toplevel-project-or-nil (dir)
+  "Starting with DIR, find the toplevel project directory, or return nil.
 nil is returned if the current directory is not a part ofa project."
-  (if (ede-directory-project-p path)
-      (ede-toplevel-project path)
-    nil))
+  (let* ((ans (ede-directory-get-toplevel-open-project dir)))
+    (if ans
+	(oref ans :directory)
+      (if (ede-directory-project-p dir)
+	  (ede-toplevel-project dir)
+	nil))))
 
-(defun ede-toplevel-project (path)
-  "Starting with PATH, find the toplevel project directory."
-  (let* ((toppath (expand-file-name path))
-	 (newpath toppath)
-	 (proj (ede-directory-project-p path))
-	 (ans nil))
-    (if proj
-	;; If we already have a project, ask it what the root is.
-	(setq ans (ede-project-root-directory proj)))
+(defun ede-toplevel-project (dir)
+  "Starting with DIR, find the toplevel project directory."
+  (let* ((ans (ede-directory-get-toplevel-open-project dir)))
+    (if ans
+	(oref ans :directory)
+      (let* ((toppath (expand-file-name dir))
+	     (newpath toppath)
+	     (proj (ede-directory-project-p dir))
+	     (ans nil))
+	(if proj
+	    ;; If we already have a project, ask it what the root is.
+	    (setq ans (ede-project-root-directory proj)))
 
-    ;; If PROJ didn't know, or there is no PROJ, then
+	;; If PROJ didn't know, or there is no PROJ, then
 
-    ;; Loop up to the topmost project, and then load that single
-    ;; project, and it's sub projects.  When we are done, identify the
-    ;; sub-project object belonging to file.
-    (while (and (not ans) newpath proj)
-      (setq toppath newpath
-	    newpath (ede-up-directory toppath))
-      (when newpath
-	(setq proj (ede-directory-project-p newpath)))
+	;; Loop up to the topmost project, and then load that single
+	;; project, and it's sub projects.  When we are done, identify the
+	;; sub-project object belonging to file.
+	(while (and (not ans) newpath proj)
+	  (setq toppath newpath
+		newpath (ede-up-directory toppath))
+	  (when newpath
+	    (setq proj (ede-directory-project-p newpath)))
 
-      (when proj
-	;; We can home someone in the middle knows too.
-	(setq ans (ede-project-root-directory proj)))
-      )
-    (or ans toppath)))
+	  (when proj
+	    ;; We can home someone in the middle knows too.
+	    (setq ans (ede-project-root-directory proj)))
+	  )
+	(or ans toppath)))))
 
 ;;; TOPLEVEL PROJECT
 ;;
@@ -206,7 +246,7 @@ instead of the current project."
 ;;
 
 (defun ede-up-directory (dir)
-  "Return a path that is up one directory.
+  "Return a dir that is up one directory.
 Argument DIR is the directory to trim upwards."
   (let* ((fad (directory-file-name dir))
 	 (fnd (file-name-directory fad)))
