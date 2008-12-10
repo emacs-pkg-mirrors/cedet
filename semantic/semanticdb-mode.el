@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-mode.el,v 1.2 2008/09/12 11:47:07 zappo Exp $
+;; X-RCS: $Id: semanticdb-mode.el,v 1.3 2008/12/10 22:10:42 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -162,6 +162,7 @@ Sets up the semanticdb environment."
 	(semantic--set-buffer-cache (oref ctbl tags))
 	;; Don't need it to be dirty.  Set dirty due to hooks from above.
 	(oset ctbl dirty nil) ;; Special case here.
+	(oset ctbl buffer (current-buffer))
 	;; Bind into the buffer.
 	(semantic--tag-link-cache-to-buffer)
 	)
@@ -209,6 +210,7 @@ handle it later if need be."
 			   semanticdb-current-table))))
 	      (oset semanticdb-current-table fsize (nth 7 fattr))
 	      (oset semanticdb-current-table lastmodtime (nth 5 fattr))
+	      (oset semanticdb-current-table buffer nil)
 	      ))
 	;; If this messes up, just clear the system
 	(error
