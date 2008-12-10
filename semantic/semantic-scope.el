@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.24 2008/12/09 19:07:44 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.25 2008/12/10 02:54:54 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -473,6 +473,20 @@ the access would be 'protected.  Otherwise, access is 'public")
 	   ))
 	(t 'public)))
 
+(defun semantic-completable-tags-from-type (type)
+  "Return a list of slots that are valid completions from the list of SLOTS.
+If a tag in SLOTS has a named parent, then that implies that the
+tag is not something you can complete from within TYPE."
+  (let ((allslots (semantic-tag-components type))
+	(leftover nil)
+	)
+    (dolist (S allslots)
+      (when (or (not (semantic-tag-of-class-p S 'function))
+		(not (semantic-tag-function-parent S)))
+	(setq leftover (cons S leftover)))
+      )
+    (nreverse leftover)))
+
 (defun semantic-analyze-scoped-type-parts (type &optional scope noinherit protection)
   "Return all parts of TYPE, a tag representing a TYPE declaration.
 SCOPE is the scope object.
@@ -482,7 +496,7 @@ PROTECTION specifies the type of access requested, such as 'public or 'private."
       nil
     (let* ((access (semantic-analyze-scope-calculate-access type scope))
 	   ;; SLOTS are the slots directly a part of TYPE.
-	   (allslots (semantic-tag-components type))
+	   (allslots (semantic-completable-tags-from-type type))
 	   (slots (semantic-find-tags-by-scope-protection
 		   access
 		   type allslots))
