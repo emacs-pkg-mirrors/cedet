@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.38 2008/12/04 23:26:23 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.39 2008/12/10 22:11:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -342,6 +342,12 @@ Uses `semanticdb-persistent-path' to determine the return value."
 
 ;;; Filename manipulation
 ;;
+(defmethod semanticdb-file-table ((obj semanticdb-project-database-file) filename)
+  "From OBJ, return FILENAME's associated table object."
+  ;; Cheater option.  In this case, we always have files directly
+  ;; under ourselves.  The main project type may not.
+  (object-assoc (file-name-nondirectory filename) 'file (oref obj tables)))
+
 (defmethod semanticdb-file-name-non-directory :STATIC
   ((dbclass semanticdb-project-database-file))
   "Return the file name DBCLASS will use.
