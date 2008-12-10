@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-lang.el,v 1.6 2008/12/09 21:16:54 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-lang.el,v 1.7 2008/12/10 22:11:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -44,8 +44,8 @@
   "Kinds of Exuberent CTags available.")
 
 (defvar-mode-local c-mode semantic-ectag-lang-extra-flags
-  '("--regex-c=/^[ \t]*#[ \t]*include[ \t]*[<\"]([a-zA-Z0-9_.-]+)[>\"]/\\1/i,include/"
-    "--regex-c++=/^[ \t]*#[ \t]*include[ \t]*[<\"]([a-zA-Z0-9_.-]+)[>\"]/\\1/i,include/")
+  '("--regex-c=/^[ \t]*#[ \t]*include[ \t]*[<\"]([\\/a-zA-Z0-9_.-]+)[>\"]/\\1/i,include/"
+    "--regex-c++=/^[ \t]*#[ \t]*include[ \t]*[<\"]([\\/a-zA-Z0-9_.-]+)[>\"]/\\1/i,include/")
   "Add support for include files.
 Support C and C++ when in c-mode, because emacs and ctags sometimes dissagree
 on the major mode.")
