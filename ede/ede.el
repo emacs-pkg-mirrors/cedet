@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.116 2008/12/09 23:39:37 zappo Exp $
+;; RCS: $Id: ede.el,v 1.117 2008/12/10 05:03:13 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -463,6 +463,9 @@ Do not set this to non-nil globally.  It is used internally.")
 		     (list 'pf
 			   (list 'if (list 'obj-of-class-p
 					   obj 'ede-target)
+				 ;; @todo -I think I can change
+				 ;; this to not need ede-load-project-file
+				 ;; but I'm not sure how to test well.
 				 (list 'ede-load-project-file
 				       (list 'oref obj 'path))
 				 obj))
@@ -738,7 +741,8 @@ mode.  nil means to toggle the mode."
       (if (and ede-minor-mode (not ede-constructing)
 	       (ede-directory-project-p default-directory))
 	  (progn
-	    (ede-load-project-file default-directory)
+	    (when (not (ede-directory-get-open-project default-directory))
+	      (ede-load-project-file default-directory))
 	    (setq ede-object (ede-buffer-object))
 	    (if (and (not ede-object) (ede-current-project))
 		(ede-auto-add-to-target))
@@ -1424,11 +1428,19 @@ Return nil if the project file does not exist."
 
 ;;; EDE basic functions
 ;;
+(defun ede-add-project-to-global-list (proj)
+  "Add the project PROJ to the master list of projects."
+  (add-to-list 'ede-projects proj))
+
 ;;;###autoload
-(defun ede-load-project-file (file)
-  "Project file independent way to read in FILE."
+(defun ede-load-project-file (dir)
+  "Project file independent way to read a project in from DIR."
+  ;; Only load if something new is going on.  Flush the dirhash.
+  (ede-project-directory-remove-hash dir)
+  ;; Do the load
   ;;(message "EDE LOAD : %S" file)
-  (let* ((path (expand-file-name (file-name-directory file)))
+  (let* ((file dir)
+	 (path (expand-file-name (file-name-directory file)))
 	 (pfc (ede-directory-project-p path))
 	 (toppath nil)
 	 (o nil))
@@ -1462,7 +1474,7 @@ Return nil if the project file does not exist."
 	    (setq o (funcall (oref pfc load-type) toppath))
 	    (when (not o)
 	      (error "Project type error: :load-type failed to create a project"))
-	    (setq ede-projects (cons o ede-projects))))
+	    (ede-add-project-to-global-list o)))
       (let (tocheck found)
 	;; Now find the project file belonging to FILE!
 	(setq tocheck (list o))
@@ -1494,18 +1506,20 @@ Optional argument OBJ is an object to find the parent of."
       ;; The above case is a SHORTCUT if the project has defined
       ;; a way to calculate the project root.
       nil ;; we are at the root.
-    (ede-load-project-file
-     (concat (ede-up-directory
-	      (if obj (file-name-directory (oref obj file))
-		default-directory))
-	     "/"))))
+    (let* ((updir (ede-up-directory
+		   (if obj (oref obj directory)
+		     default-directory)))
+	   (ans (ede-directory-get-toplevel-open-project updir)))
+      (or ans
+	  (ede-load-project-file
+	   (file-name-as-directory updir))))))
 
 (defun ede-current-project (&optional dir)
   "Return the current project file.
 If optional DIR is provided, get the project for DIR instead."
-  (if dir
-      (ede-load-project-file dir)
-    (ede-load-project-file default-directory)))
+  (let* ((ldir (or dir default-directory))
+	 (ans (ede-directory-get-open-project ldir)))
+    (or ans (ede-load-project-file ldir))))
 
 (defun ede-buffer-object (&optional buffer)
   "Return the target object for BUFFER.
