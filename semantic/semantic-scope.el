@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.25 2008/12/10 02:54:54 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.26 2008/12/10 22:02:34 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -229,9 +229,14 @@ are from nesting data types."
 	   (returnlist nil)
 	   (miniscope (semantic-scope-cache "mini"))
 	   )
-	;; Step 1:
-	;;    Analyze the stack of tags we are nested in as parents.
-	;;
+      ;; In case of arg lists or some-such, throw out non-types.
+      (while (and stack (not (semantic-tag-of-class-p pparent 'type)))
+	(setq stack (cdr stack)
+	            pparent (car (cdr stack))))
+
+      ;; Step 1:
+      ;;    Analyze the stack of tags we are nested in as parents.
+      ;;
 
       ;; If we have a pparent tag, lets go there
       ;; an analyze that stack of tags.
