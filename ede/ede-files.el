@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.5 2008/12/10 13:24:08 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.6 2008/12/10 15:18:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -76,15 +76,22 @@ the current buffer."
 	   (funcall rootfcn)))
 	))))
 
+(defmethod ede-project-inode ((proj ede-project-placeholder))
+  "Get the inode of the directory project PROJ is in."
+  (if (slot-boundp proj 'dirinode)
+      (oref proj dirinode)
+    (oset proj dirinode (ede-inode-for-dir (oref proj :directory)))))
+
 (defmethod ede-find-subproject-for-directory ((proj ede-project-placeholder)
 					      dir)
   "Find a subproject of PROJ that corresponds to DIR."
-  (let ((ans nil))
+  (let ((ans nil)
+	(inode (ede-inode-for-dir dir)))
     (ede-map-subprojects 
      proj
      (lambda (SP)
        (when (not ans)
-	 (if (string= (oref SP :directory) dir)
+	 (if (equal (ede-project-inode SP) inode)
 	     (setq ans SP)
 	   (ede-find-subproject-for-directory SP dir)))))
     ans))
@@ -94,13 +101,37 @@ the current buffer."
 ;; These routines match some directory name to one of the many pre-existing
 ;; open projects.  This should avoid hitting the disk, or asking lots of questions
 ;; if used throughout the other routines.
+(defvar ede-inode-directory-hash (make-hash-table
+				  ;; Note on test.  Can we compare inodes or something?
+				  :test 'equal)
+  "A hash of directory names and inodes.")
+
+(defun ede-put-inode-dir-hash (dir inode)
+  "Add to the EDE project hash DIR associated with INODE."
+  (when (fboundp 'puthash)
+    (puthash dir inode ede-inode-directory-hash)
+    inode))
+
+(defun ede-get-inode-dir-hash (dir)
+  "Get the EDE project hash DIR associated with INODE."
+  (when (fboundp 'gethash)
+    (gethash dir ede-inode-directory-hash)
+    ))
+
+(defun ede-inode-for-dir (dir)
+  "Return the inode for the directory DIR."
+  (let ((hashnode (ede-get-inode-dir-hash (expand-file-name dir))))
+    (or hashnode
+	(let ((fattr (file-attributes dir)))
+	  (ede-put-inode-dir-hash dir (nth 10 fattr))))))
 
 (defun ede-directory-get-open-project (dir)
   "Return an already open project that is managing DIR."
-  (let* ((ft (file-name-as-directory (expand-file-name dir)))
+  (let* ((inode (ede-inode-for-dir dir))
+	 (ft (file-name-as-directory (expand-file-name dir)))
 	 (proj (ede-directory-get-toplevel-open-project ft))
 	 (ans proj))
-    (when (and proj (not (string= ft (oref proj :directory))))
+    (when (and proj (not (equal inode (ede-project-inode proj))))
       (setq ans (ede-find-subproject-for-directory proj ft)))
     ans))
 
@@ -110,13 +141,25 @@ the current buffer."
 	(all ede-projects)
 	(ans nil))
     (while (and all (not ans))
-      (let ((pd (oref (car all) :directory)))
+      ;; Do the check.
+      (let ((pd (oref (car all) :directory))	    
+	    )
 	(cond
-	 ;; Exact match.
-	 ((string= ft pd)
+	 ;; Exact text match.
+	 ((string= pd ft)
 	  (setq ans (car all)))
 	 ;; Some sub-directory
 	 ((string-match (concat "^" (regexp-quote pd)) ft)
+	  (setq ans (car all)))
+	 ;; Exact inode match.  Useful with symlinks or complex automounters.
+	 ((let ((pin (ede-project-inode (car all)))
+		(inode (ede-inode-for-dir dir)))
+	    (equal pin inode))
+	  (setq ans (car all)))
+	 ;; Subdir via truename - slower by far, but faster than a traditional lookup.
+	 ((let ((ftn (file-truename ft))
+		(ptd (file-truename (oref (car all) :directory))))
+	    (string-match (concat "^" (regexp-quote ptd)) ftn))
 	  (setq ans (car all)))
 	 ))
       (setq all (cdr all)))
