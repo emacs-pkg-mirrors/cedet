@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.122 2008/10/14 23:46:12 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.123 2008/12/10 22:10:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -197,6 +197,10 @@ If one doesn't exist, create it."
   ((file :initarg :file
 	 :documentation "File name relative to the parent database.
 This is for the file whose tags are stored in this TABLE object.")
+   (buffer :initform nil
+	   :documentation "The buffer associated with this table.
+If nil, the table's buffer is no in Emacs.  If it has a value, then
+it is in Emacs.")
    (dirty :initform nil
 	  :documentation
 	  "Non nil if this table needs to be `Saved'.")
@@ -237,12 +241,7 @@ For C/C++, the C preprocessor macros can be saved here.")
 (defmethod semanticdb-in-buffer-p ((obj semanticdb-table))
   "Return a buffer associated with OBJ.
 If the buffer is in memory, return that buffer."
-  ;; Extract the buffer from the tag structure.
-  ;; This is faster than lots of find-files and other things
-  ;; that mess with the file-system.
-  (let ((tag1 (car (semanticdb-get-tags obj))))
-    (and (semantic-tag-p tag1)
-	 (semantic-tag-in-buffer-p tag1))))
+  (oref obj buffer))
 
 (defmethod semanticdb-get-buffer ((obj semanticdb-table))
   "Return a buffer associated with OBJ.
@@ -511,17 +510,16 @@ other than :table."
 (defmethod semanticdb-refresh-table ((obj semanticdb-table))
   "If the tag list associated with OBJ is loaded, refresh it.
 This will call `semantic-fetch-tags' if that file is in memory."
-  (let ((ff (semanticdb-full-filename obj)))
-    (if (find-buffer-visiting ff)
-	(save-excursion
-	  (semanticdb-set-buffer obj)
-	  (semantic-fetch-tags)))))
+  (when (semanticdb-in-buffer-p obj)
+    (save-excursion
+      (semanticdb-set-buffer obj)
+      (semantic-fetch-tags))))
 
 (defmethod semanticdb-needs-refresh-p ((obj semanticdb-table))
   "Return non-nil of OBJ's tag list is out of date.
 The file associated with OBJ does not need to be in a buffer."
   (let* ((ff (semanticdb-full-filename obj))
-	 (buff (find-buffer-visiting ff))
+	 (buff (semanticdb-in-buffer-p obj))
 	 )
     (if buff
 	(save-excursion
@@ -829,10 +827,12 @@ DONTLOAD does not affect the creation of new database objects."
       (cond
        ((and tab
 	     ;; Is this in a buffer?
-	     (find-buffer-visiting (semanticdb-full-filename tab))
+	     ;;(find-buffer-visiting (semanticdb-full-filename tab))
+	     (semanticdb-in-buffer-p tab)
 	     )
 	(save-excursion
-	  (set-buffer (find-buffer-visiting (semanticdb-full-filename tab)))
+	  ;;(set-buffer (find-buffer-visiting (semanticdb-full-filename tab)))
+	  (semanticdb-set-buffer tab)
 	  (semantic-fetch-tags)
 	  ;; Return the table.
 	  tab))
