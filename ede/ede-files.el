@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.2 2008/12/09 23:53:09 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.3 2008/12/10 03:23:34 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -85,10 +85,11 @@ the current buffer."
   "Return an already open project that is managing DIR."
   (let ((all ede-projects)
 	(ans nil))
-
-    
-
-    ))
+    (while (and all (not ans))
+      (when (string= dir (oref (car all) :directory))
+	(setq ans (car all)))
+      (setq all (cdr all)))
+    ans))
 
 ;;; DIRECTORY-PROJECT-P
 ;;
@@ -103,9 +104,15 @@ the current buffer."
   "Reset the directory hash for DIR.
 Do this whenever a new project is created, as opposed to loaded."
   (when (fboundp 'remhash)
-    (remhash dir ede-project-directory-hash)
-    ;; @todo - remove from all subdirs of DIR also!
-    ))
+    (remhash (file-name-as-directory dir) ede-project-directory-hash)
+    ;; All but hidden subdirectories.
+    (let ((subdirs (directory-files-and-attributes dir nil "[^.]" nil)))
+      (dolist (SD subdirs)
+	(when (eq (car (cdr SD)) t)
+	  ;; A subdirectory, recurse...
+	  (ede-project-directory-remove-hash
+	   (expand-file-name (car SD) dir)))
+	))))
 
 (defun ede-directory-project-from-hash (dir)
   "If there is an already loaded project for DIR, return it from the hash."
