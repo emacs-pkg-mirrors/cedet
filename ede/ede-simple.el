@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-simple.el,v 1.8 2008/12/09 23:54:54 zappo Exp $
+;; X-RCS: $Id: ede-simple.el,v 1.9 2008/12/10 05:05:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -110,6 +110,11 @@ Each directory needs a a project file to control it.")
 	(make-directory ede-simple-save-directory)
       (error "No save directory for new project")))
   (eieio-persistent-save proj))
+
+(defmethod ede-find-subproject-for-directory ((proj ede-simple-project)
+					      dir)
+  "Return PROJ, for handling all subdirs below DIR."
+  proj)
 
 ;;; TEST
 ;;
