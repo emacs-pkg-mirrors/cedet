@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.4 2008/12/10 05:05:38 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.5 2008/12/10 13:24:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -134,19 +134,17 @@ the current buffer."
 (defun ede-project-directory-remove-hash (dir)
   "Reset the directory hash for DIR.
 Do this whenever a new project is created, as opposed to loaded."
+  ;; TODO - Use maphash, and delete by regexp, not by dir searching!
+
   (when (fboundp 'remhash)
     (remhash (file-name-as-directory dir) ede-project-directory-hash)
-    ;; All but hidden subdirectories.
-    (let ((subdirs
-	   (condition-case nil
-	       (directory-files-and-attributes dir nil "[^.]" nil)
-	     (file-error nil))))
-      (dolist (SD subdirs)
-	(when (eq (car (cdr SD)) t)
-	  ;; A subdirectory, recurse...
-	  (ede-project-directory-remove-hash
-	   (expand-file-name (car SD) dir)))
-	))))
+    ;; Look for all subdirs of D, and remove them.
+    (let ((match (concat "^" (regexp-quote dir))))
+      (maphash (lambda (K O)
+		 (when (string-match match K)
+		   (remhash K ede-project-directory-hash)))
+	       ede-project-directory-hash))
+    ))
 
 (defun ede-directory-project-from-hash (dir)
   "If there is an already loaded project for DIR, return it from the hash."
@@ -162,7 +160,8 @@ Do this whenever a new project is created, as opposed to loaded."
 (defun ede-directory-project-p (dir)
   "Return a project description object if DIR has a project.
 This depends on an up to date `ede-project-class-files' variable."
-  (let ((match (ede-directory-project-from-hash dir)))
+  (let* ((dirtest (expand-file-name dir))
+	 (match (ede-directory-project-from-hash dirtest)))
     (cond
      ((eq match 'nomatch)
       nil)
@@ -172,13 +171,13 @@ This depends on an up to date `ede-project-class-files' variable."
 	    (ret nil))
 	;; Loop over all types, loading in the first type that we find.
 	(while (and types (not ret))
-	  (if (ede-dir-to-projectfile (car types) dir)
+	  (if (ede-dir-to-projectfile (car types) dirtest)
 	      (progn
 		;; We found one!  Require it now since we will need it.
 		(require (oref (car types) file))
 		(setq ret (car types))))
 	  (setq types (cdr types)))
-	(ede-directory-project-add-description-to-hash dir (or ret 'nomatch))
+	(ede-directory-project-add-description-to-hash dirtest (or ret 'nomatch))
 	ret)))))
 
 ;;; TOPLEVEL
