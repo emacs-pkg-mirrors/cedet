@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-debug.el,v 1.5 2008/09/03 03:13:38 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-debug.el,v 1.6 2008/12/11 13:54:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -241,7 +241,7 @@ with the command:
 	 (t
 	  (princ "\nSemantic has found the datatype ")
 	  (semantic-analyzer-debug-insert-tag dt)
-	  (if (or (not (eq ots dt))
+	  (if (or (not (semantic-equivalent-tag-p ots dt))
 		  (not (save-excursion
 			 (set-buffer orig-buffer)
 			 (semantic-analyze-dereference-metatype
