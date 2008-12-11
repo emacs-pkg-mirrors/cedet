@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-list.el,v 1.2 2008/12/05 03:54:15 zappo Exp $
+;; X-RCS: $Id: semantic-symref-list.el,v 1.3 2008/12/11 13:35:59 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -80,6 +80,7 @@
     (define-key km "+" 'semantic-symref-list-toggle-showing)
     (define-key km "n" 'semantic-symref-list-next-line)
     (define-key km "p" 'semantic-symref-list-prev-line)
+    (define-key km "q" 'semantic-symref-hide-buffer)
     km)
   "Keymap used in `semantic-symref-results-mode'.")
 
@@ -107,6 +108,11 @@ RESULTS is an object of class `semantic-symref-results'."
   (goto-char (point-min))
   (run-hooks 'semantic-symref-results-mode-hook)
   )
+
+(defun semantic-symref-hide-buffer ()
+  "Hide buffer with sematinc-symref results"
+  (interactive)
+  (bury-buffer))
 
 (defcustom semantic-symref-results-summary-function 'semantic-format-tag-prototype
   "*Function to use when creating items in Imenu.
@@ -208,7 +214,7 @@ BUTTON is the button that was clicked."
 			 'line (car hits))
 	  (setq text (cdr text)
 		hits (cdr hits))))
-      (toggle-read-only -1)
+      (toggle-read-only 1)
       )
      ((eq state 'open)
       (toggle-read-only -1)
