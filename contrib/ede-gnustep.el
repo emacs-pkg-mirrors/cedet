@@ -4,7 +4,7 @@
 
 ;; Author: Marco (Bj) Bardelli <bardelli.marco@gmail.com>
 ;; Keywords: project, make, gnustep, gnustep-make
-;; RCS: $Id: ede-gnustep.el,v 1.4 2008/10/21 17:42:49 safanaj Exp $
+;; RCS: $Id: ede-gnustep.el,v 1.5 2008/12/11 04:00:47 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -376,7 +376,7 @@ making a tar file.")
 ;;; Code:
 ;(defalias 'ede-proj-load 'ede-step-load)
 (defun ede-step-load (project &optional rootproj)
-  "Load a project file PROJECT.
+  "Load a project file from PROJECT directory.
 If optional ROOTPROJ is provided then ROOTPROJ is the root project
 for the tree being read in.  If ROOTPROJ is nil, then assume that
 the PROJECT being read in is the root project."
@@ -394,6 +394,7 @@ the PROJECT being read in is the root project."
 		(error "Corrupt project file"))
 	    (setq ret (eval ret))
 	    (oset ret file (concat project "ProjStep.ede"))
+	    (oset ret directory project)
 	    (oset ret rootproject rootproj)
 	    )
 	(kill-buffer " *tmp proj read*"))
