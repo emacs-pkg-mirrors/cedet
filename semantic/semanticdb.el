@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.123 2008/12/10 22:10:14 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.124 2008/12/12 04:25:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -241,7 +241,10 @@ For C/C++, the C preprocessor macros can be saved here.")
 (defmethod semanticdb-in-buffer-p ((obj semanticdb-table))
   "Return a buffer associated with OBJ.
 If the buffer is in memory, return that buffer."
-  (oref obj buffer))
+  (let ((buff (oref obj buffer)))
+    (if (buffer-live-p buff)
+	buff
+      (oset obj buffer nil))))
 
 (defmethod semanticdb-get-buffer ((obj semanticdb-table))
   "Return a buffer associated with OBJ.
