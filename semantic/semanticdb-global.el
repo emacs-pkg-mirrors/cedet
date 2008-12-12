@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-global.el,v 1.1 2008/12/12 03:36:02 zappo Exp $
+;; X-RCS: $Id: semanticdb-global.el,v 1.2 2008/12/12 04:14:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,9 +56,17 @@ in a GNU Global supported hierarchy."
   (when (stringp mode)
     (setq mode (intern mode)))
 
-  ;; @todo - setup a hook to turn on per-buffer.
+  (let ((ih (mode-local-value mode 'semantic-init-mode-hooks)))
+    (eval `(setq-mode-local
+	    ,mode semantic-init-mode-hooks
+	    (cons 'semanticdb-enable-gnu-global-hook ih))))
 
   )
+
+(defun semanticdb-enable-gnu-global-hook ()
+  "Add support for GNU Global in the current buffer via semantic-init-hook.
+MODE is the major mode to support."
+  (semanticdb-enable-gnu-global-in-buffer t))
 
 (defun semanticdb-enable-gnu-global-in-buffer (&optional dont-err-if-not-available)
   "Enable a GNU Global database in the current buffer.
@@ -66,9 +74,16 @@ Argument DONT-ERR-IF-NOT-AVAILABLE will throw an error if GNU Global
 is not available for this directory."
   (interactive "P")
   (if (cedet-gnu-global-root)
-      (setq semanticdb-project-system-databases
-	    (cons (semanticdb-project-database-global "global")
-		  semanticdb-project-system-databases))
+      (setq
+       ;; Add to the system database list.
+       semanticdb-project-system-databases
+       (cons (semanticdb-project-database-global "global")
+	     semanticdb-project-system-databases)
+       ;; Apply the throttle.
+       semanticdb-find-default-throttle
+       (append semanticdb-find-default-throttle
+	       '(omniscience))
+       )
     (if dont-err-if-not-available
 	(message "No Global support in %s" default-directory)
       (error "No Global support in %s" default-directory))
@@ -86,21 +101,12 @@ is not available for this directory."
   ()
   "Database representing a GNU Global tags file.")
 
-;; TODO - We need an "enable" command to turn it on in apropriate projects for any mode.
-;;
-;; Create the database, and add it to searchable databases for global mode.
-;(defvar-mode-local c-mode semanticdb-project-system-databases
-;  (list 
-;   (semanticdb-project-database-global "global"))
-;  "Search global for symbols.")
-
-;; NOTE: Be sure to modify this to the best advantage of your
-;;       language.
-;(defvar-mode-local YOUR-MAJOR-mode semanticdb-find-default-throttle
-;  '(project omniscience)
-;  "Search project files, then search this omniscience database.
-;It is not necessary to to system or recursive searching because of
-;the omniscience database.")
+(defmethod semanticdb-equivalent-mode ((table semanticdb-table-global) &optional buffer)
+  "Return t, pretend that this table's mode is equivalent to BUFFER.
+Equivalent modes are specified by by `semantic-equivalent-major-modes'
+local variable."
+  ;; @todo - hack alert!
+  t)
 
 ;;; Filename based methods
 ;;
@@ -166,12 +172,17 @@ Returns a table of all matching tags."
   (if tags (call-next-method)
     (let* ((semantic-symref-tool 'global)
 	   (result (semantic-symref-find-tags-by-completion prefix 'project))
+	   (faketags nil)
 	   )
       (when result
-	;; (semantic-symref-result-get-tags result t)
-	;; We can't do the above.  We need to find each hit individually.  GRUMP!
-	)
-      result)))
+	(dolist (T (oref result :hit-text))	
+	  ;; We should look up each tag one at a time, but I'm lazy!
+	  ;; Doing this may be good enough.
+	  (setq faketags (cons
+			  (semantic-tag T 'function :faux t)
+			  faketags))
+	  )
+	faketags))))
 
 ;;; Deep Searches
 ;;
@@ -225,7 +236,7 @@ If optional arg STANDARDFILE is non nil, use a standard file w/ global enabled."
 
     (let* ((db (semanticdb-project-database-global "global"))
 	   (tab (semanticdb-file-table db (buffer-file-name)))
-	   (result (semanticdb-deep-find-tags-by-name-method tab searchfor))
+	   (result (semanticdb-deep-find-tags-for-completion-method tab searchfor))
 	   (ab (data-debug-new-buffer "*SemanticDB Gnu Global Result*"))
 	   )
       (data-debug-insert-thing result "?" "")
