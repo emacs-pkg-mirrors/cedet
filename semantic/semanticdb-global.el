@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-global.el,v 1.2 2008/12/12 04:14:14 zappo Exp $
+;; X-RCS: $Id: semanticdb-global.el,v 1.3 2008/12/12 12:44:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -242,6 +242,6 @@ If optional arg STANDARDFILE is non nil, use a standard file w/ global enabled."
       (data-debug-insert-thing result "?" "")
       )))
 
-(provide 'semanticdb-el)
+(provide 'semanticdb-global)
 
-;;; semanticdb-el.el ends here
+;;; semanticdb-global.el ends here
