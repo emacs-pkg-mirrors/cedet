@@ -259,6 +259,11 @@ Returns an object of class `semantic-symref-result'."
 	      :type list
 	      :documentation
 	      "The list of files hit.")
+   (hit-text :initarg :hit-text
+	     :type list
+	     :documentation
+	     "If the result doesn't provide full lines, then fill in hit-text.
+GNU Global does completion search this way.")
    (hit-lines :initarg :hit-lines
 	      :type list
 	      :documentation
@@ -424,7 +429,10 @@ The symref TOOL should already contain the search criteria."
 	)
     (when answer
       (let ((answersym (if (eq (oref tool :resulttype) 'file)
-			   :hit-files :hit-lines)))
+			   :hit-files
+			 (if (stringp (car answer))
+			     :hit-text
+			   :hit-lines))))
 	(semantic-symref-result (oref tool searchfor)
 				answersym
 				answer
