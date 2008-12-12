@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.17 2008/11/29 15:09:46 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.18 2008/12/12 04:26:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -43,7 +43,7 @@
   "List of files with analyzer completion test points.")
 
 ;;;###autoload
-(defun semantic-ia-utest (arg)
+(defun semantic-ia-utest (&optional arg)
   "Run the semantic ia unit test against stored sources.
 Argument ARG specifies which set of tests to run.
  1 - ia utests
