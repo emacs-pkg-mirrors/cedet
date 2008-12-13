@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.31 2008/12/13 12:32:58 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.32 2008/12/13 16:56:49 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -290,7 +290,10 @@ Also extracts information about all methods specific to this generic."
       (signal 'wrong-type-argument '(generic-p generic)))
   (with-output-to-temp-buffer "*Help*"
     (prin1 generic)
-    (princ " is a generic function.")
+    (princ " is a generic function")
+    (when (generic-primary-only-p generic)
+      (princ " with only primary methods"))
+    (princ ".")
     (terpri)
     (terpri)
     (let ((d (documentation generic)))
@@ -443,6 +446,7 @@ Optional argument HISTORYVAR is the variable to use as history."
 		  "G aft"))
 	 (idxarray (make-vector (length slots) 0))
 	 (primaryonly 0)
+	 (oneprimary 0)
 	 (staticonly 0)
 	 )
     (switch-to-buffer-other-window buff)
@@ -457,7 +461,7 @@ Optional argument HISTORYVAR is the variable to use as history."
     (terpri)
     (dolist (M meth)
       (let ((mtree (get M 'eieio-method-tree))
-	    (P nil)
+	    (P nil) (numP)
 	    (!P nil))
 	(dolist (S slots)
 	  (let ((num (length (aref mtree (symbol-value S)))))
@@ -467,12 +471,13 @@ Optional argument HISTORYVAR is the variable to use as history."
 	    (princ "\t")
 	    (when (< 0 num)
 	      (if (eq S 'method-primary)
-		  (setq P t)
+		  (setq P t numP num)
 		(setq !P t)))
 	    ))
 	;; Is this a primary-only impl method?
 	(when (and P (not !P))
 	  (setq primaryonly (1+ primaryonly))
+	  (if (= numP 1) (setq oneprimary (1+ oneprimary)))
 	  (princ "* ")
 	  )
 	(prin1 M)
@@ -500,6 +505,12 @@ Optional argument HISTORYVAR is the variable to use as history."
     (princ "\t")
     (princ (format "%d" (* (/ (float primaryonly) (float methidx)) 100)))
     (princ "% of total methods")
+    (terpri)
+    (princ "Only One Primary Impl: ")
+    (prin1 oneprimary)
+    (princ "\t")
+    (princ (format "%d" (* (/ (float oneprimary) (float primaryonly)) 100)))
+    (princ "% of total primary methods")
     (terpri)
     ))
 
