@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.171 2008/12/09 19:38:59 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.172 2008/12/13 16:58:54 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -120,6 +120,9 @@ since EIEIO does not support all CLOS tags.")
 Set this to t permanently if a program is functioning well to get a
 small speed increase.  This variable is also used internally to handle
 default setting for optimization purposes.")
+
+(defvar eieio-optimize-primary-methods-flag t
+  "Non-nil means to optimize the method dispatch on primary methods.")
 
 ;; State Variables
 (defvar this nil
@@ -239,6 +242,22 @@ CLASS is a symbol."
 Only methods have the symbol `eieio-method-obarray' as a property (which
 contains a list of all bindings to that method type.)"
   `(and (fboundp ,method) (get ,method 'eieio-method-obarray)))
+
+(defun generic-primary-only-p (method)
+  "Return t if symbol METHOD is a generic function with only primary methods.
+Only methods have the symbol `eieio-method-obarray' as a property (which
+contains a list of all bindings to that method type.)
+Methods with only primary implementations are executed in an optimized way."
+  (and (generic-p method)
+       (let ((M (get method 'eieio-method-tree)))
+	 (and (< 0 (length (aref M method-primary)))
+	      (not (aref M method-static))
+	      (not (aref M method-before))
+	      (not (aref M method-after))
+	      (not (aref M method-generic-before))
+	      (not (aref M method-generic-primary))
+	      (not (aref M method-generic-after))))
+       ))
 
 (defmacro class-option-assoc (list option)
   "Return from LIST the found OPTION.  Nil if it doesn't exist."
@@ -1132,6 +1151,24 @@ DOC-STRING is the documentation attached to METHOD."
      ,doc-string
      (eieio-generic-call (quote ,method) local-args)))
 
+(defsubst eieio-defgeneric-reset-generic-form (method)
+  "Setup METHOD to call the generic form."
+  (let ((doc-string (documentation method)))
+    (fset method (eieio-defgeneric-form method doc-string))))
+
+(defun eieio-defgeneric-form-primary-only (method doc-string)
+  "The lambda form that would be used as the function defined on METHOD.
+All methods should call the same EIEIO function for dispatch.
+DOC-STRING is the documentation attached to METHOD."
+  `(lambda (&rest local-args)
+     ,doc-string
+     (eieio-generic-call-primary-only (quote ,method) local-args)))
+
+(defsubst eieio-defgeneric-reset-generic-form-primary-only (method)
+  "Setup METHOD to call the generic form."
+  (let ((doc-string (documentation method)))
+    (fset method (eieio-defgeneric-form-primary-only method doc-string))))
+
 (defun eieio-defgeneric (method doc-string)
   "Engine part to `defgeneric' macro defining METHOD with DOC-STRING."
   (if (and (fboundp method) (not (generic-p method))
@@ -1145,10 +1182,10 @@ DOC-STRING is the documentation attached to METHOD."
     ;; This defun tells emacs where the first definition of this
     ;; method is defined.
     `(defun ,method nil)
-    ;; Apply the actual body of this function.
-    (fset method (eieio-defgeneric-form method doc-string))
     ;; Make sure the method tables are installed.
     (eieiomt-install method)
+    ;; Apply the actual body of this function.
+    (fset method (eieio-defgeneric-form method doc-string))
     ;; Return the method
     'method))
 
@@ -1245,6 +1282,16 @@ Summary:
       (eieiomt-add method (append (list 'lambda (reverse argfix)) body)
 		   key argclass))
     )
+
+  ;; Optimizing step:
+  ;;
+  ;; If this method, after this setup, only has primary methods, then
+  ;; we can setup the generic that way.
+  (when eieio-optimize-primary-methods-flag
+    (if (generic-primary-only-p method)
+	(eieio-defgeneric-reset-generic-form-primary-only method)
+      (eieio-defgeneric-reset-generic-form method)))
+
   method)
 
 ;;; Slot type validation
@@ -1923,6 +1970,80 @@ This should only be called from a generic function."
 	    (signal
 	     'no-method-definition
 	     (list method args))))
+      ;; Right Here... it could be that lastval is returned when
+      ;; rvalever is nil.  Is that right?
+      rval)))
+
+(defun eieio-generic-call-primary-only (method args)
+  "Call METHOD with ARGS for methods with only :PRIMARY implementations.
+ARGS provides the context on which implementation to use.
+This should only be called from a generic function.
+
+This method is like `eieio-geneirc-call', but only
+implementations in the :PRIMARY slot are queried.  After many
+years of use, it appears that over 90% of methods in use
+have :PRIMARY implementations only.  We can therefore optimize
+for this common case to improve performance."
+  ;; We must expand our arguments first as they are always
+  ;; passed in as quoted symbols
+  (let ((newargs nil) (mclass nil)  (lambdas nil)
+	(eieio-generic-call-methodname method)
+	(eieio-generic-call-arglst args)
+	(firstarg nil)
+	)
+    ;; get a copy
+    (setq newargs args
+	  firstarg (car newargs))
+
+    ;; Determine the class to use.
+    (cond ((eieio-object-p firstarg)
+	   (setq mclass (object-class-fast firstarg)))
+	  (t
+	   (error "EIEIO Error: Improperly classified method %s as primary only"
+		  method)
+	  ))
+    ;; Make sure the class is a valid class
+    ;; mclass can be nil (meaning a generic for should be used.
+    ;; mclass cannot have a value that is not a class, however.
+    (when (null mclass)
+      (error "Cannot dispatch method %S on class %S" method mclass)
+      )
+
+    ;; :primary methods
+    (setq lambdas (eieio-generic-form method method-primary mclass))
+    (setq primarymethodlist  ;; Re-use even with bad name here
+	  (eieiomt-method-list method method-primary mclass))
+
+    ;; Now loop through all occurances forms which we must execute
+    ;; (which are happily sorted now) and execute them all!
+    (let* ((rval nil) (lastval nil) (rvalever nil)
+	   (scoped-class (cdr lambdas))
+	   (eieio-generic-call-key method-primary)
+	   ;; Use the cdr, as the first element is the fcn
+	   ;; we are calling right now.
+	   (eieio-generic-call-next-method-list (cdr primarymethodlist))
+	   )
+
+      (if (or (not lambdas) (not (car lambdas)))
+
+	  ;; No methods found for this impl...
+	  (if (eieio-object-p (car args))
+	      (setq rval (apply 'no-applicable-method (car args) method args)
+		    rvalever t)
+	    (signal
+	     'no-method-definition
+	     (list method args)))
+
+	;; Do the regular implementation here.
+
+	(run-hook-with-args 'eieio-pre-method-execution-hooks
+			    lambdas)
+	
+	(setq lastval (apply (car lambdas) newargs))
+	(setq rval lastval
+	      rvalever t)
+	)
+
       ;; Right Here... it could be that lastval is returned when
       ;; rvalever is nil.  Is that right?
       rval)))
