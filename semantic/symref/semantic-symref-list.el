@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-list.el,v 1.3 2008/12/11 13:35:59 zappo Exp $
+;; X-RCS: $Id: semantic-symref-list.el,v 1.4 2008/12/13 17:25:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -52,6 +52,23 @@
     ;; Gather results and tags
     (message "Gathering References...")
     (setq res (semantic-symref-find-references-by-name (semantic-tag-name ct)))
+    (semantic-symref-produce-list-on-results res)))
+
+;;;###autoload
+(defun semantic-symref-symbol (sym)
+  "Find references to the symbol SYM."
+  (interactive "sSymbol: ")
+  (semantic-fetch-tags)
+  (let ((res nil)
+	)
+    ;; Gather results and tags
+    (message "Gathering References...")
+    (setq res (semantic-symref-find-references-by-name sym))
+    (semantic-symref-produce-list-on-results res)))
+
+
+(defun semantic-symref-produce-list-on-results (res)
+  "Produce a symref list mode buffer on the results RES."
     (when (not res) (error "No references found"))
     (semantic-symref-result-get-tags res t)
     (message "Gathering References...done")
@@ -62,7 +79,7 @@
       (switch-to-buffer-other-window buff)
       (set-buffer buff)
       (semantic-symref-results-mode res))
-    ))
+    )
 
 ;;; RESULTS MODE
 ;;
