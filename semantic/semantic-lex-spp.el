@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.26 2008/11/14 12:20:24 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.27 2008/12/13 17:22:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -421,7 +421,7 @@ Argument BEG and END specify the bounds of SYM in the buffer."
   "Non-nil means do replacements when finding keywords.
 Disable this only to prevent recursive expansion issues.")
 
-(defun semantix-lex-spp-analyzer-push-tokens-for-symbol (str beg end)
+(defun semantic-lex-spp-analyzer-push-tokens-for-symbol (str beg end)
   "Push lexical tokens for the symbol or keyword STR.
 STR occurs in the current buffer between BEG and END."
   (let (sym val)
@@ -463,7 +463,7 @@ STR occurs in the current buffer between BEG and END."
   (let ((str (match-string 0))
 	(beg (match-beginning 0))
 	(end (match-end 0)))
-    (semantix-lex-spp-analyzer-push-tokens-for-symbol str beg end)))
+    (semantic-lex-spp-analyzer-push-tokens-for-symbol str beg end)))
 
 (defun semantic-lex-spp-first-token-arg-list (token)
   "If TOKEN is a semantic-list, turn it into a an SPP ARG LIST."
