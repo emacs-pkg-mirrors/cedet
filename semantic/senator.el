@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.129 2008/11/29 11:16:32 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.130 2008/12/13 17:23:13 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2374,6 +2374,7 @@ If ARG is nil, then toggle."
   "Move backward to the beginning of a defun.
 Use semantic tags to navigate.
 ARG is the number of tags to navigate (not yet implemented)."
+  (senator-parse)
   (let* ((senator-highlight-found nil)
          ;; Step at beginning of next tag with class specified in
          ;; `senator-step-at-tag-classes'.
@@ -2389,6 +2390,7 @@ ARG is the number of tags to navigate (not yet implemented)."
   "Move forward to next end of defun.
 Use semantic tags to navigate.
 ARG is the number of tags to navigate (not yet implemented)."
+  (senator-parse)
   (let* ((senator-highlight-found nil)
          ;; Step at end of next tag with class specified in
          ;; `senator-step-at-tag-classes'.
@@ -2407,6 +2409,7 @@ ARG is the number of tags to navigate (not yet implemented)."
 The defun visible is the one that contains point or follows point.
 Use semantic tags to navigate."
   (interactive)
+  (senator-parse)
   (save-excursion
     (widen)
     (senator-end-of-defun)
