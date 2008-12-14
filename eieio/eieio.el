@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.172 2008/12/13 16:58:54 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.173 2008/12/14 03:36:27 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -259,6 +259,22 @@ Methods with only primary implementations are executed in an optimized way."
 	      (not (aref M method-generic-after))))
        ))
 
+(defun generic-primary-only-one-p (method)
+  "Return t if symbol METHOD is a generic function with only primary methods.
+Only methods have the symbol `eieio-method-obarray' as a property (which
+contains a list of all bindings to that method type.)
+Methods with only primary implementations are executed in an optimized way."
+  (and (generic-p method)
+       (let ((M (get method 'eieio-method-tree)))
+	 (and (= 1 (length (aref M method-primary)))
+	      (not (aref M method-static))
+	      (not (aref M method-before))
+	      (not (aref M method-after))
+	      (not (aref M method-generic-before))
+	      (not (aref M method-generic-primary))
+	      (not (aref M method-generic-after))))
+       ))
+
 (defmacro class-option-assoc (list option)
   "Return from LIST the found OPTION.  Nil if it doesn't exist."
   `(car-safe (cdr (memq ,option ,list))))
@@ -418,7 +434,7 @@ It creates an autoload function for CNAME's constructor."
 	;; Create an autoload on top of our constructor function.
 	(autoload cname filename doc nil nil)
 	(autoload (intern (concat (symbol-name cname) "-p")) filename "" nil nil)
-	(autoload (intern (concat (symbol-name cname) "child--p")) filename "" nil nil)
+	(autoload (intern (concat (symbol-name cname) "child-p")) filename "" nil nil)
 
 	))))
 
@@ -1169,6 +1185,62 @@ DOC-STRING is the documentation attached to METHOD."
   (let ((doc-string (documentation method)))
     (fset method (eieio-defgeneric-form-primary-only method doc-string))))
 
+(defun eieio-defgeneric-form-primary-only-one (method doc-string
+						      classpredicate
+						      class
+						      impl
+						      )
+  "The lambda form that would be used as the function defined on METHOD.
+All methods should call the same EIEIO function for dispatch.
+DOC-STRING is the documentation attached to METHOD.
+CLASSPREDICATE is a predicate indicating that the first arg is legal.
+CLASS is the class symbol needed for private method access.
+IMPL is the symbol holding the method implementation."
+  ;; NOTE: I tried out byte compiling this little fcn.  Turns out it
+  ;; is faster to execute this for not byte-compiled.  ie, install this,
+  ;; then measure calls going through here.  I wonder why.
+;  (require 'bytecomp)
+;  (let ((byte-compile-free-references nil))
+;    (byte-compile-lambda
+     `(lambda (&rest local-args)
+	,doc-string
+	;; This is a cool cheat.  Usually we need to look up in the
+	;; method table to find out if there is a method or not.  We can
+	;; instead make that determination at load time when there is
+	;; only one method.  If the first arg is not a child of the class
+	;; of that one implementation, then clearly, there is no method def.
+	(when
+	    ,(if (eq class eieio-default-superclass)
+		 `(not (eieio-object-p (car local-args)))
+	       `(not (,classpredicate (car local-args))))
+	  (signal 'no-method-definition (list method local-args)))
+	;; Fill in inter-call variables then evaluate the method.
+	(let ((scoped-class ,class)
+	      (eieio-generic-call-next-method-list nil)
+	      (eieio-generic-call-key method-primary)
+	      (eieio-generic-call-methodname ,(list 'quote method))
+	      (eieio-generic-call-arglist local-args)
+	      )
+	  (apply ,(list 'quote impl) local-args)
+	  ))
+     ;)))
+     )
+
+(defsubst eieio-defgeneric-reset-generic-form-primary-only-one (method)
+  "Setup METHOD to call the generic form."
+  (let* ((doc-string (documentation method))
+	 (M (get method 'eieio-method-tree))
+	 (entry (car (aref M method-primary)))
+	 (cname (symbol-name (car entry)))
+	 (classpredicate (intern (concat cname "-child-p")))
+	 )
+    (fset method (eieio-defgeneric-form-primary-only-one
+		  method doc-string
+		  classpredicate
+		  (car entry)
+		  (cdr entry)
+		  ))))
+
 (defun eieio-defgeneric (method doc-string)
   "Engine part to `defgeneric' macro defining METHOD with DOC-STRING."
   (if (and (fboundp method) (not (generic-p method))
@@ -1283,13 +1355,17 @@ Summary:
 		   key argclass))
     )
 
-  ;; Optimizing step:
-  ;;
-  ;; If this method, after this setup, only has primary methods, then
-  ;; we can setup the generic that way.
   (when eieio-optimize-primary-methods-flag
+    ;; Optimizing step:
+    ;;
+    ;; If this method, after this setup, only has primary methods, then
+    ;; we can setup the generic that way.
     (if (generic-primary-only-p method)
-	(eieio-defgeneric-reset-generic-form-primary-only method)
+	;; If there is only one primary method, then we can go one more
+	;; optimization step.
+	(if (generic-primary-only-one-p method)
+	    (eieio-defgeneric-reset-generic-form-primary-only-one method)
+	  (eieio-defgeneric-reset-generic-form-primary-only method))
       (eieio-defgeneric-reset-generic-form method)))
 
   method)
@@ -1990,6 +2066,7 @@ for this common case to improve performance."
 	(eieio-generic-call-methodname method)
 	(eieio-generic-call-arglst args)
 	(firstarg nil)
+	(primarymethodlist nil)
 	)
     ;; get a copy
     (setq newargs args
