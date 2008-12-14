@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.32 2008/12/13 16:56:49 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.33 2008/12/14 03:37:49 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -292,7 +292,13 @@ Also extracts information about all methods specific to this generic."
     (prin1 generic)
     (princ " is a generic function")
     (when (generic-primary-only-p generic)
-      (princ " with only primary methods"))
+      (princ " with only ")
+      (when (generic-primary-only-on-p generic)
+	(princ "one "))
+      (princ "primary method")
+      (when (not (generic-primary-only-one-p generic))
+	(princ "s"))
+      )
     (princ ".")
     (terpri)
     (terpri)
@@ -477,7 +483,9 @@ Optional argument HISTORYVAR is the variable to use as history."
 	;; Is this a primary-only impl method?
 	(when (and P (not !P))
 	  (setq primaryonly (1+ primaryonly))
-	  (if (= numP 1) (setq oneprimary (1+ oneprimary)))
+	  (when (= numP 1)
+	    (setq oneprimary (1+ oneprimary))
+	    (princ "*"))
 	  (princ "* ")
 	  )
 	(prin1 M)
