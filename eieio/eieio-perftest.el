@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: eieio-perftest.el,v 1.1 2008/12/13 16:59:35 zappo Exp $
+;; X-RCS: $Id: eieio-perftest.el,v 1.2 2008/12/14 03:37:03 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -87,6 +87,60 @@
 	       gen prim
 	       (if (> gen prim) pcentf pcents)
 	       (if (> gen prim) "faster" "slower")))
+    
+    ))
+
+;;;###autoload
+(defun eieio-perftest-onemethodcall ()
+  "Test and time performance of method invocation."
+  (interactive)
+  (let ((end nil) (start nil)
+	(idx 0)
+	(two (eieio-perftest-2 "test"))
+	(gen nil)
+	(prim nil)
+	(one nil)
+	)
+    (eieio-defgeneric-reset-generic-form 'eieio-perftest-meth-2)
+    (setq start (current-time))
+    (while (> 10000 idx)
+      (assert (= (eieio-perftest-meth-2 two) 2))
+      (setq idx (1+ idx)))
+    (setq end (current-time))
+    (setq gen (semantic-elapsed-time start end))
+
+    (eieio-defgeneric-reset-generic-form-primary-only 'eieio-perftest-meth-2)
+    (setq start (current-time))
+    (setq idx 0)
+    (while (> 10000 idx)
+      (assert (= (eieio-perftest-meth-2 two) 2))
+      (setq idx (1+ idx)))
+    (setq end (current-time))
+    (setq prim (semantic-elapsed-time start end))
+
+    (eieio-defgeneric-reset-generic-form-primary-only-one 'eieio-perftest-meth-2)
+    (setq start (current-time))
+    (setq idx 0)
+    (while (> 10000 idx)
+      (assert (= (eieio-perftest-meth-2 two) 2))
+      (setq idx (1+ idx)))
+    (setq end (current-time))
+    (setq one (semantic-elapsed-time start end))
+
+    (let ((pcentf (* 100.0 (/ prim gen)))
+	  (pcents (* 100.0 (/ gen prim)))
+	  (1centf (* 100.0 (/ one gen)))
+	  (1cents (* 100.0 (/ gen one)))
+	  )
+
+      (message "Gen: %1.4f  Prim: %1.4f is %1.2f%% %s One: %1.4f is %1.2f%% %s"
+	       gen prim
+	       (if (> gen prim) pcentf pcents)
+	       (if (> gen prim) "faster" "slower")
+	       one
+	       (if (> gen one) 1centf 1cents)
+	       (if (> gen one) "faster" "slower")
+	       ))
     
     ))
 
