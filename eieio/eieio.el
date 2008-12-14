@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.173 2008/12/14 03:36:27 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.174 2008/12/14 04:47:05 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -1186,22 +1186,20 @@ DOC-STRING is the documentation attached to METHOD."
     (fset method (eieio-defgeneric-form-primary-only method doc-string))))
 
 (defun eieio-defgeneric-form-primary-only-one (method doc-string
-						      classpredicate
 						      class
 						      impl
 						      )
   "The lambda form that would be used as the function defined on METHOD.
 All methods should call the same EIEIO function for dispatch.
 DOC-STRING is the documentation attached to METHOD.
-CLASSPREDICATE is a predicate indicating that the first arg is legal.
 CLASS is the class symbol needed for private method access.
 IMPL is the symbol holding the method implementation."
   ;; NOTE: I tried out byte compiling this little fcn.  Turns out it
   ;; is faster to execute this for not byte-compiled.  ie, install this,
   ;; then measure calls going through here.  I wonder why.
-;  (require 'bytecomp)
-;  (let ((byte-compile-free-references nil))
-;    (byte-compile-lambda
+  (require 'bytecomp)
+  (let ((byte-compile-free-references nil))
+    (byte-compile-lambda
      `(lambda (&rest local-args)
 	,doc-string
 	;; This is a cool cheat.  Usually we need to look up in the
@@ -1209,34 +1207,42 @@ IMPL is the symbol holding the method implementation."
 	;; instead make that determination at load time when there is
 	;; only one method.  If the first arg is not a child of the class
 	;; of that one implementation, then clearly, there is no method def.
-	(when
-	    ,(if (eq class eieio-default-superclass)
-		 `(not (eieio-object-p (car local-args)))
-	       `(not (,classpredicate (car local-args))))
-	  (signal 'no-method-definition (list method local-args)))
-	;; Fill in inter-call variables then evaluate the method.
-	(let ((scoped-class ,class)
-	      (eieio-generic-call-next-method-list nil)
-	      (eieio-generic-call-key method-primary)
-	      (eieio-generic-call-methodname ,(list 'quote method))
-	      (eieio-generic-call-arglist local-args)
-	      )
-	  (apply ,(list 'quote impl) local-args)
-	  ))
-     ;)))
-     )
+	(if (not (eieio-object-p (car local-args)))
+	    ;; Not an object.  Just signal.
+	    (signal 'no-method-definition (list ,(list 'quote method) local-args))
+	
+	  ;; We do have an object.  Make sure it is the right type.
+	  (if ,(if (eq class eieio-default-superclass)
+		   nil ; default superclass means just an obj.  Already asked.
+		 `(not (child-of-class-p (aref (car local-args) object-class) ,class))
+		 )
+	      
+	      ;; If not the right kind of object, call no applicable
+	      (apply 'no-applicable-method (car local-args)
+		     ,(list 'quote method) local-args)
+
+	    ;; It is ok, do the call.
+	    ;; Fill in inter-call variables then evaluate the method.
+	    (let ((scoped-class ,class)
+		  (eieio-generic-call-next-method-list nil)
+		  (eieio-generic-call-key method-primary)
+		  (eieio-generic-call-methodname ,(list 'quote method))
+		  (eieio-generic-call-arglst local-args)
+		  )
+	      (apply ,(list 'quote impl) local-args)
+	      ;(,impl local-args)
+	      ))))
+     ))
+  )
 
 (defsubst eieio-defgeneric-reset-generic-form-primary-only-one (method)
   "Setup METHOD to call the generic form."
   (let* ((doc-string (documentation method))
 	 (M (get method 'eieio-method-tree))
 	 (entry (car (aref M method-primary)))
-	 (cname (symbol-name (car entry)))
-	 (classpredicate (intern (concat cname "-child-p")))
 	 )
     (fset method (eieio-defgeneric-form-primary-only-one
 		  method doc-string
-		  classpredicate
 		  (car entry)
 		  (cdr entry)
 		  ))))
@@ -2055,7 +2061,7 @@ This should only be called from a generic function."
 ARGS provides the context on which implementation to use.
 This should only be called from a generic function.
 
-This method is like `eieio-geneirc-call', but only
+This method is like `eieio-generic-call', but only
 implementations in the :PRIMARY slot are queried.  After many
 years of use, it appears that over 90% of methods in use
 have :PRIMARY implementations only.  We can therefore optimize
