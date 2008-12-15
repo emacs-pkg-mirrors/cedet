@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.119 2008/12/10 15:29:59 zappo Exp $
+;; RCS: $Id: ede.el,v 1.120 2008/12/15 01:31:04 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1254,7 +1254,11 @@ Argument THIS is the project to convert PATH to."
 	(fp (expand-file-name path)))
     (if (string-match (regexp-quote pp) fp)
 	(substring fp (match-end 0))
-      (error "Cannot convert relativize path %s" fp))))
+      (let ((pptf (file-truename pp))
+	    (fptf (file-truename fp)))
+	(if (string-match (regexp-quote pptf) fptf)
+	    (substring fptf (match-end 0))
+	  (error "Cannot convert relativize path %s" fp))))))
 
 (defmethod ede-convert-path ((this ede-target) path)
   "Convert path in a standard way for a given project.
@@ -1694,7 +1698,7 @@ Return the first non-nil value returned by PROC."
 ;; configuring items for Semantic.
 (defun ede-apply-preprocessor-map ()
   "Apply preprocessor tables onto the current buffer."
-  (when ede-object
+  (when (and ede-object (boundp 'semantic-lex-spp-macro-symbol-obarray))
     (let ((map (ede-preprocessor-map ede-object)))
       (when map
 	;; We can't do a require for the below symbol.
