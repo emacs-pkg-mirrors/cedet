@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.6 2008/02/28 15:29:43 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.7 2008/12/15 01:15:51 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -197,22 +197,26 @@ Be sure to call `pulse-reset-face' after calling pulse."
   (interactive)
   (if (not pulse-flag)
       (error "Pulse test only works on versions of Emacs that support pulsing"))
-  (message "<Press a key> Pulse one line.")
-  (read-char)
+  (when (interactive-p)
+    (message "<Press a key> Pulse one line.")
+    (read-char))
   (pulse-momentary-highlight-one-line (point))
-  (message "<Press a key> Pulse a region.")
-  (read-char)
+  (when (interactive-p)
+    (message "<Press a key> Pulse a region.")
+    (read-char))
   (pulse-momentary-highlight-region (point)
 				    (save-excursion
 				      (condition-case nil
 					  (forward-char 30)
 					(error nil))
 				      (point)))
-  (message "<Press a key> Pulse line a specific color.")
-  (read-char)
+  (when (interactive-p)
+    (message "<Press a key> Pulse line a specific color.")
+    (read-char))
   (pulse-momentary-highlight-one-line (point) 'modeline)
-  (message "<Press a key> Pulse a pre-existing overlay.")
-  (read-char)
+  (when (interactive-p)
+    (message "<Press a key> Pulse a pre-existing overlay.")
+    (read-char))
   (let* ((start (point-at-bol))
 	 (end (save-excursion
 		(end-of-line)
