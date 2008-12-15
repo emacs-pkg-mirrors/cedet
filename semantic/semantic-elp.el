@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.12 2008/12/10 22:01:15 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.13 2008/12/15 01:00:30 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -60,7 +60,9 @@
 (defvar semantic-elp-eieio-core-list
   '(
     eieio-generic-call
+    eieio-generic-call-primary-only
     eieiomt-method-list
+    eieio-generic-form
     eieio-oref
     eieio-oset
     obj-of-class-p
@@ -71,6 +73,8 @@
   '(
     ede-current-project
     ede-expand-filename
+    ede-system-include-path
+    ede-toplevel
     )
   "List of EDE functions to watch out for.")
 
@@ -594,7 +598,7 @@ Argument NAME is the name to give the ELP data object."
       (data-debug-show elpobj)
       (setq semantic-elp-last-run elpobj)
       (let ((saveas (read-file-name "Save Profile to: " (expand-file-name "~/")
-				    "semantic.elp" nil "~/semantic.elp")))
+				    "semantic.elp" nil "semantic.elp")))
 	(oset elpobj :file saveas)
 	(eieio-persistent-save elpobj)
 	)
