@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.174 2008/12/14 04:47:05 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.175 2008/12/15 17:19:18 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -1198,7 +1198,9 @@ IMPL is the symbol holding the method implementation."
   ;; is faster to execute this for not byte-compiled.  ie, install this,
   ;; then measure calls going through here.  I wonder why.
   (require 'bytecomp)
-  (let ((byte-compile-free-references nil))
+  (let ((byte-compile-free-references nil)
+	(byte-compile-warnings nil)
+	)
     (byte-compile-lambda
      `(lambda (&rest local-args)
 	,doc-string
