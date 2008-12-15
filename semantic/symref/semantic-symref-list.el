@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-list.el,v 1.4 2008/12/13 17:25:31 zappo Exp $
+;; X-RCS: $Id: semantic-symref-list.el,v 1.5 2008/12/15 01:02:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -52,7 +52,7 @@
     ;; Gather results and tags
     (message "Gathering References...")
     (setq res (semantic-symref-find-references-by-name (semantic-tag-name ct)))
-    (semantic-symref-produce-list-on-results res)))
+    (semantic-symref-produce-list-on-results res (semantic-tag-name ct))))
 
 ;;;###autoload
 (defun semantic-symref-symbol (sym)
@@ -64,17 +64,17 @@
     ;; Gather results and tags
     (message "Gathering References...")
     (setq res (semantic-symref-find-references-by-name sym))
-    (semantic-symref-produce-list-on-results res)))
+    (semantic-symref-produce-list-on-results res sym)))
 
 
-(defun semantic-symref-produce-list-on-results (res)
+(defun semantic-symref-produce-list-on-results (res str)
   "Produce a symref list mode buffer on the results RES."
     (when (not res) (error "No references found"))
     (semantic-symref-result-get-tags res t)
     (message "Gathering References...done")
     ;; Build a refrences buffer.
     (let ((buff (get-buffer-create
-		 (format "*Symref %s" (semantic-tag-name ct))))
+		 (format "*Symref %s" str)))
 	  )
       (switch-to-buffer-other-window buff)
       (set-buffer buff)
