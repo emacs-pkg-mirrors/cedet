@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: eieio-perftest.el,v 1.2 2008/12/14 03:37:03 zappo Exp $
+;; X-RCS: $Id: eieio-perftest.el,v 1.3 2008/12/15 00:55:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -79,8 +79,8 @@
     (setq end (current-time))
     (setq prim (semantic-elapsed-time start end))
 
-    (let ((pcentf (* 100.0 (/ prim gen)))
-	  (pcents (* 100.0 (/ gen prim)))
+    (let ((pcentf (* 100.0 (- 1 (/ prim gen))))
+	  (pcents (* 100.0 (- 1 (/ gen prim))))
 	  )
 
       (message "Generic: %1.4f  Primaryonly: %1.4f sec is %1.2f%% %s"
@@ -103,7 +103,7 @@
 	)
     (eieio-defgeneric-reset-generic-form 'eieio-perftest-meth-2)
     (setq start (current-time))
-    (while (> 10000 idx)
+    (while (> 20000 idx)
       (assert (= (eieio-perftest-meth-2 two) 2))
       (setq idx (1+ idx)))
     (setq end (current-time))
@@ -112,7 +112,7 @@
     (eieio-defgeneric-reset-generic-form-primary-only 'eieio-perftest-meth-2)
     (setq start (current-time))
     (setq idx 0)
-    (while (> 10000 idx)
+    (while (> 20000 idx)
       (assert (= (eieio-perftest-meth-2 two) 2))
       (setq idx (1+ idx)))
     (setq end (current-time))
@@ -121,16 +121,16 @@
     (eieio-defgeneric-reset-generic-form-primary-only-one 'eieio-perftest-meth-2)
     (setq start (current-time))
     (setq idx 0)
-    (while (> 10000 idx)
+    (while (> 20000 idx)
       (assert (= (eieio-perftest-meth-2 two) 2))
       (setq idx (1+ idx)))
     (setq end (current-time))
     (setq one (semantic-elapsed-time start end))
 
-    (let ((pcentf (* 100.0 (/ prim gen)))
-	  (pcents (* 100.0 (/ gen prim)))
-	  (1centf (* 100.0 (/ one gen)))
-	  (1cents (* 100.0 (/ gen one)))
+    (let ((pcentf (* 100.0 (- 1 (/ prim gen))))
+	  (pcents (* 100.0 (- 1 (/ gen prim))))
+	  (1centf (* 100.0 (- 1 (/ one gen))))
+	  (1cents (* 100.0 (- 1 (/ gen one))))
 	  )
 
       (message "Gen: %1.4f  Prim: %1.4f is %1.2f%% %s One: %1.4f is %1.2f%% %s"
