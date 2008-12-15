@@ -31,7 +31,7 @@
    (ede-proj-target-elisp "projects"
     :name "projects"
     :path ""
-    :source '("project-am.el" "ede-simple.el" "ede-cpp-root.el" "ede-emacs.el")
+    :source '("project-am.el" "ede-simple.el" "ede-cpp-root.el" "ede-emacs.el" "ede-linux.el")
     :aux-packages '("eieio" "cedet-files")
     )
    (ede-proj-target-elisp "aux-lisp"
