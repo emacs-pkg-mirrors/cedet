@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.7 2008/12/15 01:15:51 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.8 2008/12/15 01:26:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -318,6 +318,7 @@ To active pulse advice, use `pulse-enable-integration-advice'.")
 ;;;###autoload
 (defun pulse-toggle-integration-advice (arg)
   "Toggle activation of advised functions that will now pulse.
+Wint no ARG, toggle the pulse advice.
 With a negative ARG, disable pulse advice.
 With a positive ARG, enable pulse advice.
 Currently advised functions include:
@@ -331,20 +332,18 @@ Currently advised functions include:
 Pulsing via `pulse-line-hook-function' has also been added to
 the following hook:
   `next-error-hook'"
-  (interactive "p")
-  (if (numberp arg)
-      (if (< arg 0)
-	  (progn
-	    (setq pulse-command-advice-flag nil)
-	    (message "Pulse advice disabled")
-	    )
-	(setq pulse-command-advice-flag t)
-	(message "Pulse advice enabled")
-	)
-    (if pulse-command-advice-flag
-	(pulse-enable-integration-advice -1)
-      (pulse-enable-integration-advice 1))
-    ))
+  (interactive "P")
+  (if (null arg)
+      (setq pulse-command-advice-flag (not pulse-command-advice-flag))
+    (if (< (prefix-numeric-value arg) 0)
+	(setq pulse-command-advice-flag nil)
+      (setq pulse-command-advice-flag t)
+      )
+    )
+  (if pulse-command-advice-flag
+      (message "Pulse advice enabled")
+    (message "Pulse advice disabled"))
+  )
 
 (defadvice goto-line (after pulse-advice activate)
   "Cause the line that is `goto'd to pulse when the cursor gets there."
