@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.70 2008/11/28 03:03:33 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.71 2008/12/16 18:13:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -299,7 +299,7 @@ so that it can be called from the idle work handler."
 If BRUTISH is non nil, return all tables associated with PATH.
 Default action as described in `semanticdb-find-translate-path'."
   (if (semanticdb-find-results-p path)
-      ;; Perform the search over these results.
+      ;; nil means perform the search over these results.
       nil
     (if brutish
 	(semanticdb-find-translate-path-brutish-default path)
@@ -381,6 +381,8 @@ Default action as described in `semanticdb-find-translate-path'."
 Default action as described in `semanticdb-find-translate-path'."
   (let ((table (cond ((null path)
 		      semanticdb-current-table)
+		     ((bufferp path)
+		      (buffer-local-value 'semanticdb-current-table path))			
 		     ((semanticdb-abstract-table-child-p path)
 		      path)
 		     (t nil))))
@@ -903,13 +905,18 @@ but should be good enough for debugging assertions."
 
 (defun semanticdb-find-result-prin1-to-string (result)
   "Presuming RESULT satisfies `semanticdb-find-results-p', provide a short PRIN1 output."
-  (concat "#<FIND RESULT "
-	  (mapconcat (lambda (a)
-		       (concat "(" (object-name (car a) ) " . "
-			       "#<TAG LIST " (number-to-string (length (cdr a))) ">)"))
-		     result
-		     " ")
-	  ">"))
+  (if (< (length result) 2)
+      (concat "#<FIND RESULT "
+	      (mapconcat (lambda (a)
+			   (concat "(" (object-name (car a) ) " . "
+				   "#<TAG LIST " (number-to-string (length (cdr a))) ">)"))
+			 result
+			 " ")
+	      ">")
+    ;; Longer results should have an abreviated form.
+    (format "#<FIND RESULT %d TAGS in %d FILES>"
+	    (semanticdb-find-result-length result)
+	    (length result))))
 
 ;;;###autoload
 (defun semanticdb-find-result-with-nil-p (resultp)
