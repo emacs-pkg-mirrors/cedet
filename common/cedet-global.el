@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-global.el,v 1.3 2008/12/09 19:36:23 zappo Exp $
+;; X-RCS: $Id: cedet-global.el,v 1.4 2008/12/16 23:11:56 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -82,6 +82,12 @@ SCOPE is the scope of the search, such as 'project or 'subdirs."
     b))
 
 ;;;###autoload
+(defun cedet-gnu-global-show-root ()
+  "Show the root of a GNU Global area under the current buffer."
+  (interactive)
+  (message "%s" (cedet-gnu-global-root)))
+
+;;;###autoload
 (defun cedet-gnu-global-root (&optional dir)
   "Return the root of any GNU Global scanned project.
 If a default starting DIR is not specified, the current buffer's
@@ -109,6 +115,8 @@ If a default starting DIR is not specified, the current buffer's
       (when (inversion-check-version rev nil cedet-global-min-version)
 	(error "Version of GNU Global is %s.  Need at least %s"
 	       rev cedet-global-min-version))
+      (when (interactive-p)
+	(message "GNU Global %s  - Good enough for CEDET." rev))
       )))
 
 (defun cedet-gnu-global-scan-hits (buffer)
