@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.121 2008/12/17 03:16:40 zappo Exp $
+;; RCS: $Id: ede.el,v 1.122 2008/12/17 11:09:34 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -223,8 +223,7 @@ which files this object is interested in."
    (directory :type string
 	      :initarg :directory
 	      :documentation "Directory this project is associated with.")
-   (dirinode :type number
-	     :documentation "The inode id for :directory.")
+   (dirinode :documentation "The inode id for :directory.")
    (file :type string
 	 :initarg :file
 	 :documentation "File name where this project is stored.")
