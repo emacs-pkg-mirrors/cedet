@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.14 2008/12/10 05:06:37 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.15 2008/12/17 03:17:23 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -342,7 +342,7 @@ This knows details about or source tree."
 	    ;; Else, do the usual.
 	    (setq ans (call-next-method)))
 	  )))
-    ans))
+    (or ans (call-next-method))))
 
 (defmethod ede-project-root ((this ede-cpp-root-project))
   "Return my root."

@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-linux.el,v 1.1 2008/12/15 01:14:21 zappo Exp $
+;; X-RCS: $Id: ede-linux.el,v 1.2 2008/12/17 03:17:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -234,7 +234,7 @@ Knows about how the Linux source tree is organized."
 	      (ede-linux-file-exists-name name dir "Documentation"))
 	     (t nil)))
 	 )
-    F))
+    (or F (call-next-method))))
 
 
 (provide 'ede-linux)
