@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-global.el,v 1.4 2008/12/16 23:11:56 zappo Exp $
+;; X-RCS: $Id: cedet-global.el,v 1.5 2008/12/17 03:14:16 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -80,6 +80,26 @@ SCOPE is the scope of the search, such as 'project or 'subdirs."
 	   nil b nil
 	   flags)
     b))
+
+;;;###autoload
+(defun cedet-gnu-global-expand-filename (filename)
+  "Expand the FILENAME with GNU Global.
+Return a fully qualified filename."
+  (interactive "sFile: ")
+  (let ((ans (save-excursion
+	       (set-buffer (cedet-gnu-global-call (list "-Pa" filename)))
+	       (goto-char (point-min))
+	       (if (looking-at "global: ")
+		   (error "GNU Global not available")
+		 (split-string (buffer-string) "\n" t)))))
+    (when (interactive-p)
+      (if ans
+	  (if (= (length ans) 1)
+	      (message "%s" (car ans))
+	    (message "%s + %d others" (car ans)
+		     (length (cdr ans))))
+	(error "No file found")))
+    ans))
 
 ;;;###autoload
 (defun cedet-gnu-global-show-root ()
