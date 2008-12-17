@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.17 2008/09/07 14:36:39 zappo Exp $
+@c $Id: ede.texi,v 1.18 2008/12/17 03:22:54 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -353,6 +353,25 @@ the project files to update the internal data structures.
 
 Use @command{ede-rescan-toplevel} bound to @kbd{C-c . g} to refresh
 your system.
+
+@section EDE Find File
+
+@ede{} can help you find files in your project.  Use
+@command{ede-find-file} bound to @kbd{C-c . f}.  It will prompt you
+for a name.  You can specify the name without a directory.  EDE will
+try to find a file with that name somewhere in your project.
+
+@ede{} can use external tools to help with file finding.  Configure
+the variable @code{ede-locate-setup-options} to help EDE find external
+tools.
+
+@defvar ede-locate-setup-options
+@anchor{ede-locate-setup-options}
+List of locate objects to try out by default.
+Listed in order of preference.  If the first item cannot be used in
+a particular project, then the next one is tried.
+It is always assumed that @dfn{ede-locate-base} is at end of the list.
+@end defvar
 
 @section Speedbar
 
