@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.36 2008/12/10 21:12:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.37 2008/12/17 18:53:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -79,7 +79,7 @@ Said object must support `semantic-reset' methods.")
 
 (defmethod semanticdb-partial-synchronize ((tc semanticdb-typecache)
 					   new-tags)
-  "Reset the typecache based on a pratial reparse."
+  "Reset the typecache based on a partial reparse."
   (when (semantic-find-tags-by-class 'include new-tags)
     (oset tc includestream nil)
     (mapc 'semantic-reset (oref tc dependants))
@@ -294,6 +294,10 @@ Adds a filename and copies the tags."
 ;;; Refresh / Query API
 ;;
 ;; Queries that can be made for the typecache.
+(defmethod semanticdb-typecache-file-tags ((table semanticdb-abstract-table))
+  "No tags available from non-file based tables."
+  nil)
+
 (defmethod semanticdb-typecache-file-tags ((table semanticdb-table))
   "Update the typecache for TABLE, and return the file-tags.
 File-tags are those that belong to this file only, and excludes
@@ -313,27 +317,32 @@ all included files."
     (oref cache filestream)
     ))
 
+(defmethod semanticdb-typecache-include-tags ((table semanticdb-abstract-table))
+  "No tags available from non-file based tables."
+  nil)
+
 (defmethod semanticdb-typecache-include-tags ((table semanticdb-table))
   "Update the typecache for TABLE, and return the merged types from the include tags.
 Include-tags are the tags brought in via includes, all merged together into
 a master list."
-  (let* (;; Calc the path first.  This will have a nice side -effect of
-	 ;; getting the cache refreshed if a refresh is needed.  Most of the
-	 ;; time this value is itself cached, so the query is fast.
-	 (incpath (semanticdb-find-translate-path table nil))
-	 (idx (semanticdb-get-table-index table))	 
-	 (cache (semanticdb-get-typecache table))
+  (let* ((cache (semanticdb-get-typecache table))
 	 )
 
     ;; Make sure our file-tags list is up to date.
     (when (not (oref cache includestream))
-      (let ((incstream nil))
+      (let (;; Calc the path first.  This will have a nice side -effect of
+	    ;; getting the cache refreshed if a refresh is needed.  Most of the
+	    ;; time this value is itself cached, so the query is fast.
+	    (incpath (semanticdb-find-translate-path table nil))
+	    (incstream nil))
 	;; Get the translated path, and extract all the type tags, then merge
 	;; them all together.
 	(dolist (i incpath)
 	  ;; don't include ourselves in this crazy list.
 	  (when (and i (not (eq i table))
-		     (semanticdb-table-child-p i))
+		     ;; @todo - This eieio fcn can be slow!  Do I need it?
+		     ;; (semanticdb-table-child-p i)
+		     )
 	    (setq incstream
 		  (semanticdb-typecache-merge-streams
 		   incstream
