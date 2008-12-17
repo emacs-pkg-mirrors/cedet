@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.120 2008/12/15 01:31:04 zappo Exp $
+;; RCS: $Id: ede.el,v 1.121 2008/12/17 03:16:40 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -249,6 +249,9 @@ For Automake based projects, each directory is treated as a project.")
 	    :label "Local Targets"
 	    :group (targets)
 	    :documentation "List of top level targets in this project.")
+   (locate-obj :type (or null ede-locate-base-child)
+	       :documentation
+	       "A locate object to use as a backup to `ede-expand-filename'.")
    (tool-cache :initarg :tool-cache
 	       :type list
 	       :custom (repeat object)
@@ -515,6 +518,7 @@ Argument LIST-O-O is the list of objects to choose from."
     (define-key pmap "g" 'ede-rescan-toplevel)
     (define-key pmap "s" 'ede-speedbar)
     (define-key pmap "l" 'ede-load-project-file)
+    (define-key pmap "f" 'ede-find-file)
     (define-key pmap "C" 'ede-compile-project)
     (define-key pmap "c" 'ede-compile-target)
     (define-key pmap "\C-c" 'ede-compile-selected)
@@ -537,6 +541,7 @@ Argument LIST-O-O is the list of objects to choose from."
 ;;	 [ "Select Active Target" 'undefined nil ]
 ;;	 [ "Remove Project" 'undefined nil ]
 	 "---"
+	 [ "Find File in Project..." ede-find-file t ]
 	 ( "Customize" :filter ede-customize-forms-menu )
 	 [ "View Project Tree" ede-speedbar t ]
 	 ))
@@ -1246,35 +1251,6 @@ Do this by extracting the lowest directory name."
   (format "Target %s: with %d source files."
 	  (ede-name this) (length (oref this source))))
 
-(defmethod ede-convert-path ((this ede-project) path)
-  "Convert path in a standard way for a given project.
-Default to making it project relative.
-Argument THIS is the project to convert PATH to."
-  (let ((pp (ede-project-root-directory this))
-	(fp (expand-file-name path)))
-    (if (string-match (regexp-quote pp) fp)
-	(substring fp (match-end 0))
-      (let ((pptf (file-truename pp))
-	    (fptf (file-truename fp)))
-	(if (string-match (regexp-quote pptf) fptf)
-	    (substring fptf (match-end 0))
-	  (error "Cannot convert relativize path %s" fp))))))
-
-(defmethod ede-convert-path ((this ede-target) path)
-  "Convert path in a standard way for a given project.
-Default to making it project relative.
-Argument THIS is the project to convert PATH to."
-  (let ((proj (ede-target-parent this)))
-    (if proj
-	(let ((p (ede-convert-path proj path))
-	      (lp (or (oref this path) "")))
-	  ;; Our target THIS may have path information.
-	  ;; strip this out of the conversion.
-	  (if (string-match (concat "^" (regexp-quote lp)) p)
-	      (substring p (length lp))
-	    p))
-      (error "Parentless target %s" this))))
-
 (defmethod ede-want-file-p ((this ede-target) file)
   "Return non-nil if THIS target wants FILE."
   ;; By default, all targets reference the source object, and let it decide.
@@ -1290,37 +1266,6 @@ Argument THIS is the project to convert PATH to."
     (while (and src (not (ede-want-file-source-p (car src) file)))
       (setq src (cdr src)))
     src))
-
-;; @todo - move to ede-files ??
-(defmethod ede-expand-filename ((this ede-project) filename &optional force)
-  "Return a fully qualified file name based on project THIS.
-FILENAME should be just a filename which occurs in a directory controlled
-by this project.
-Optional argument FORCE forces the default filename to be provided even if it
-doesn't exist."
-  ;; @todo - Can Id utils do this?
-  (let ((path (ede-project-root-directory this))
-	(proj (oref this subproj))
-	(found nil))
-    (or
-     (cond ((file-exists-p (expand-file-name filename path))
-	    (expand-file-name filename path))
-	   ((file-exists-p (expand-file-name  (concat "include/" filename) path))
-	    (expand-file-name (concat "include/" filename) path))
-	   (t
-	    (while (and (not found) proj)
-	      (setq found (when (car proj)
-			    (ede-expand-filename (car proj) filename))
-		    proj (cdr proj)))
-	    found))
-     (and force (concat path filename)))))
-
-(defmethod ede-expand-filename ((this ede-target) filename &optional force)
-  "Return a fully qualified file name based on target THIS.
-FILENAME should a a filename which occurs in a directory in which THIS works.
-Optional argument FORCE forces the default filename to be provided even if it
-doesn't exist."
-  (ede-expand-filename (ede-target-parent this) filename force))
 
 (defun ede-header-file ()
   "Return the header file for the current buffer.
