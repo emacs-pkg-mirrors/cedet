@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.6 2008/12/10 15:18:27 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.7 2008/12/17 03:15:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -37,6 +37,19 @@
 (require 'ede)
 
 ;;; Code:
+;;;###autoload
+(defun ede-find-file (file)
+  "Find FILE in project.  FILE can be specified without a directory.
+There is no completion at the prompt.  FILE is searched for within
+the current EDE project."
+  (interactive "sFile: ")
+  (let ((fname (ede-expand-filename (ede-current-project) file))
+	)
+    (unless fname
+      (error "Could not find %s in %s"
+	     file
+	     (ede-project-root-directory (ede-current-project))))
+    (find-file fname)))
 
 ;;; Placeholders for ROOT directory scanning on base objects
 ;;
@@ -284,6 +297,81 @@ instead of the current project."
 	    (setq cp (ede-parent-project cp)))
 	  cp))))
 
+;;; DIRECTORY CONVERSION STUFF
+;;
+(defmethod ede-convert-path ((this ede-project) path)
+  "Convert path in a standard way for a given project.
+Default to making it project relative.
+Argument THIS is the project to convert PATH to."
+  (let ((pp (ede-project-root-directory this))
+	(fp (expand-file-name path)))
+    (if (string-match (regexp-quote pp) fp)
+	(substring fp (match-end 0))
+      (let ((pptf (file-truename pp))
+	    (fptf (file-truename fp)))
+	(if (string-match (regexp-quote pptf) fptf)
+	    (substring fptf (match-end 0))
+	  (error "Cannot convert relativize path %s" fp))))))
+
+(defmethod ede-convert-path ((this ede-target) path)
+  "Convert path in a standard way for a given project.
+Default to making it project relative.
+Argument THIS is the project to convert PATH to."
+  (let ((proj (ede-target-parent this)))
+    (if proj
+	(let ((p (ede-convert-path proj path))
+	      (lp (or (oref this path) "")))
+	  ;; Our target THIS may have path information.
+	  ;; strip this out of the conversion.
+	  (if (string-match (concat "^" (regexp-quote lp)) p)
+	      (substring p (length lp))
+	    p))
+      (error "Parentless target %s" this))))
+
+;;; FILENAME EXPANSION
+;;
+(defmethod ede-expand-filename ((this ede-project) filename &optional force)
+  "Return a fully qualified file name based on project THIS.
+FILENAME should be just a filename which occurs in a directory controlled
+by this project.
+Optional argument FORCE forces the default filename to be provided even if it
+doesn't exist."
+  (let ((path (ede-project-root-directory this))
+	(proj (oref this subproj))
+	(found nil))
+    ;; find it local.
+    (setq found
+	  (cond ((file-exists-p (expand-file-name filename path))
+		 (expand-file-name filename path))
+		((file-exists-p (expand-file-name  (concat "include/" filename) path))
+		 (expand-file-name (concat "include/" filename) path))
+		(t
+		 (while (and (not found) proj)
+		   (setq found (when (car proj)
+				 (ede-expand-filename (car proj) filename))
+			 proj (cdr proj)))
+		 found)))
+    ;; Use an external locate tool.
+    (when (not found)
+      (when (not (slot-boundp this 'locate-obj))
+	(ede-enable-locate-on-project this))
+      (when (slot-boundp this 'locate-obj)
+	(setq found (car (ede-locate-file-in-project (oref this locate-obj)
+						     filename))))
+      )
+    ;; Are we forcing this to exist?
+    (when (and (not found) force)
+      (setq found (concat path filename)))
+    ;; Return it
+    found))
+
+(defmethod ede-expand-filename ((this ede-target) filename &optional force)
+  "Return a fully qualified file name based on target THIS.
+FILENAME should a a filename which occurs in a directory in which THIS works.
+Optional argument FORCE forces the default filename to be provided even if it
+doesn't exist."
+  (ede-expand-filename (ede-target-parent this) filename force))
+
 ;;; UTILITIES
 ;;
 
@@ -296,6 +384,6 @@ Argument DIR is the directory to trim upwards."
 			  ; c:/ for DOS like systems.
 	nil
       fnd)))
-  
+
 (provide 'ede-files)
 ;;; ede-files.el ends here
