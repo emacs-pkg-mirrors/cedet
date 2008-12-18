@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.94 2008/12/03 18:01:01 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.95 2008/12/18 00:57:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1016,7 +1016,7 @@ These are constants which are of type TYPE."
   "Assemble the list of names NAMELIST into a namespace name."
   (mapconcat 'identity namelist "::"))
 
-(define-mode-local-override semantic-ctxt-scoped-types c-mode (&optional point)
+(define-mode-local-override semantic-ctxt-scoped-types c++-mode (&optional point)
   "Return a list of tags of CLASS type based on POINT.
 DO NOT return the list of tags encompassing point."
   (when point (goto-char (point)))
@@ -1031,7 +1031,7 @@ DO NOT return the list of tags encompassing point."
     (setq tagreturn tmp)
     ;; We should also find all "using" type statements and
     ;; accept those entities in as well.
-    (setq tmp (semanticdb-find-tags-by-class 'using (current-buffer)))
+    (setq tmp (semanticdb-find-tags-by-class 'using))
     (let ((idx 0)
 	  (len (semanticdb-find-result-length tmp)))
       (while (< idx len)
