@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.23 2008/10/10 21:29:49 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.24 2008/12/18 00:55:02 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -34,6 +34,7 @@
 ;; Allow interactive navigation of the analysis process, tags, etc.
 
 (require 'data-debug)
+(require 'eieio-datadebug)
 (require 'semantic-analyze)
 
 ;;; Code:
@@ -231,7 +232,7 @@ PREBUTTONTEXT is some text between prefix and the find results button."
     (put-text-property start end 'ddebug-prefix prefix)
     (put-text-property start end 'help-echo tip)
     (put-text-property start end 'ddebug-function
-		       'data-debug-insert-taglist-from-point)
+		       'data-debug-insert-find-results-from-point)
     (insert "\n")
     ))
 
@@ -367,9 +368,9 @@ Optional argument CTXT is the context to show."
       (princ "\nDirectory Part is: ")
       (princ default-directory)
       (princ "\nFound Database is: ")
-      (princ (eieio-object-print db))
+      (princ (object-print db))
       (princ "\nFound Table is: ")
-      (if tab (princ (eieio-object-print tab)) (princ "nil"))
+      (if tab (princ (object-print tab)) (princ "nil"))
       (princ "\n\nAction Summary: ")
       (cond
        ((and tab
