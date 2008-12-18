@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.18 2008/12/17 03:22:54 zappo Exp $
+@c $Id: ede.texi,v 1.19 2008/12/18 01:15:06 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -453,6 +453,8 @@ lookup for @semantic{}, improving code completion performance.
 * ede-cpp-root::        This project marks the root of a C/C++ code project.
 * ede-simple subclassing:: Create your own simple project.
 * ede-emacs::		A project for working with Emacs.
+* ede-linux::		A project for working with Linux kernels.
+* Custom Locate::       Customizing how to locate files in a simple project
 @end menu
 
 @node ede-cpp-root
@@ -594,6 +596,52 @@ source tree, and enable EDE project mode for it.
 
 It pre-populates the C Preprocessor symbol map for correct parsing,
 and has an optimized include file identification function.
+
+@node ede-linux
+@subsection ede-linux
+
+The @code{ede-linux} project will automatically identify a Linux
+Kernel source tree, and enable EDE project mode for it.
+
+It pre-populates the C Preprocessor symbol map for reasonable parsing,
+and has an optimized include file identification function.
+
+@node Custom Locate
+@subsection Custom Locate
+
+The various simple project styles all have one major drawback, which
+is that the files in the project are not completely known to EDE.
+When the EDE API is used to try and file files by some reference name
+in the project, then that could fail.
+
+@ede{} can therefore use some external locate commands, soch as the unix
+``locate'' command, or ``GNU Global''.
+
+Configuation of the tool you want to use such as @code{locate}, or
+@code{global} will need to be done without the aid of @ede{}.  Once
+configurad, however, @ede{} can use it.
+
+To enable one of these tools, set the variable
+@code{ede-locate-setup-options} with the names of different locate
+objects.  @ref{Miscellaneous commands}.
+
+Configure this in your @file{.emacs} before loading in CEDET or EDE.
+If you want to add support for GNU Global, your configuration would
+look like this:
+
+@example
+(setq ede-locate-setup-options '(ede-locate-global ede-locate-base))
+@end example
+
+That way, when a search needs to be done, it will first try using
+GLOBAL.  If global is not available for that directory, then it will
+revert to the base locate object.  The base object always fails to
+find a file.
+
+You can add your own locate tool but subclassing from
+@code{ede-locate-base}.  The subclass should also implement two
+methods.  See the code in @file{ede-locate.el} for GNU Global as a
+simple example.
 
 @node Extending EDE, Project, Project types, top
 @chapter Extending @ede{}
