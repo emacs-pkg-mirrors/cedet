@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-locate.el,v 1.1 2008/12/17 03:17:50 zappo Exp $
+;; X-RCS: $Id: ede-locate.el,v 1.2 2008/12/19 22:46:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -78,13 +78,18 @@ based on `ede-locate-setup-options'."
 	 (ans nil))
     (while (and opts (not ans))
       (when (ede-locate-ok-in-project (car opts) root)
-	(setq ans (car opts)))
+	;; If interactive, check with the user.
+	(when (interactive-p)
+	  (when (or (eq (car opts) ede-locate-base)
+		    (y-or-n-p (format "Set project locator to %s? " (car opts))))
+	    (setq ans (car opts)))))
       (setq opts (cdr opts)))
-    (when (interactive-p)
-      (when (not (y-or-n-p (format "Set project locator to %s? " ans)))
-	(error "Quit"))
-      )
+    ;; No match?  Always create the baseclass for the hashing tool.
+    (when (not ans)
+      (setq ans 'ede-locate-base))
     (oset proj locate-obj (make-instance ans "Loc" :root root))
+    (when (interactive-p)
+      (message "Satting locator to %s." ans))
     ))
 
 ;;; LOCATE BASECLASS
@@ -98,13 +103,33 @@ based on `ede-locate-setup-options'."
 	 "The last file search for with EDE locate.")
    (lastanswer :documentation
 	      "The last answer provided by the locator.")
+   (hash :documentation
+	 "Hash table of previously found files.")
    )
   "Baseclass for LOCATE feature in EDE.")
+
+(defmethod initialize-instance ((loc ede-locate-base) &rest fields)
+  "Make sure we have a hash table."
+  ;; Basic setup.
+  (call-next-method)
+  ;; Make sure we have a hash table.
+  (oset loc hash (make-hash-table :test 'equal))
+  )
 
 (defmethod ede-locate-ok-in-project :static ((loc ede-locate-base)
 					     root)
   "Is it ok to use this project type under ROOT."
   t)
+
+(defmethod ede-locate-file-in-hash ((loc ede-locate-base)
+				    filestring)
+  "For LOC, is the file FILESTRING in our hashtable?"
+  (gethash filestring (oref loc hash)))
+
+(defmethod ede-locate-add-file-to-hash ((loc ede-locate-base)
+					filestring fullfilename)
+  "For LOC, add FILESTR to the hash with FULLFILENAME."
+  (puthash filestring fullfilename (oref loc hash)))
 
 (defmethod ede-locate-file-in-project ((loc ede-locate-base)
 				       filesubstring
