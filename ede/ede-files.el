@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.7 2008/12/17 03:15:31 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.8 2008/12/19 22:50:29 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -138,15 +138,35 @@ the current buffer."
 	(let ((fattr (file-attributes dir)))
 	  (ede-put-inode-dir-hash dir (nth 10 fattr))))))
 
-(defun ede-directory-get-open-project (dir)
-  "Return an already open project that is managing DIR."
+(defun ede-directory-get-open-project (dir &optional rootreturn)
+  "Return an already open project that is managing DIR.
+Optional ROOTRETURN specifies a symbol to set to the root project.
+If DIR is the root project, then it is the same."
   (let* ((inode (ede-inode-for-dir dir))
 	 (ft (file-name-as-directory (expand-file-name dir)))
-	 (proj (ede-directory-get-toplevel-open-project ft))
+	 (proj (ede-inode-get-toplevel-open-project inode))
 	 (ans proj))
+    ;; Try file based search.
+    (when (not proj)
+      (setq proj (ede-directory-get-toplevel-open-project ft)))
+    ;; Save.
+    (when rootreturn (set rootreturn proj))
+    ;; Find subprojects.
     (when (and proj (not (equal inode (ede-project-inode proj))))
       (setq ans (ede-find-subproject-for-directory proj ft)))
     ans))
+
+(defun ede-inode-get-toplevel-open-project (inode)
+  "Return an already open toplevel project that is managing INODE.
+Does not check subprojects."
+  (let ((all ede-projects)
+	(found nil)
+	)
+    (while (and all (not found))
+      (when (equal inode (ede-project-inode (car all)))
+	(setq found (car all)))
+      (setq all (cdr all)))
+    found))
 
 (defun ede-directory-get-toplevel-open-project (dir)
   "Return an already open toplevel project that is managing DIR."
@@ -155,7 +175,7 @@ the current buffer."
 	(ans nil))
     (while (and all (not ans))
       ;; Do the check.
-      (let ((pd (oref (car all) :directory))	    
+      (let ((pd (oref (car all) :directory))
 	    )
 	(cond
 	 ;; Exact text match.
@@ -252,33 +272,38 @@ nil is returned if the current directory is not a part ofa project."
 
 (defun ede-toplevel-project (dir)
   "Starting with DIR, find the toplevel project directory."
-  (let* ((ans (ede-directory-get-toplevel-open-project dir)))
-    (if ans
-	(oref ans :directory)
-      (let* ((toppath (expand-file-name dir))
-	     (newpath toppath)
-	     (proj (ede-directory-project-p dir))
-	     (ans nil))
-	(if proj
-	    ;; If we already have a project, ask it what the root is.
-	    (setq ans (ede-project-root-directory proj)))
+  (if (and (string= dir default-directory)
+	   ede-object-root-project)
+      ;; Try the local buffer cache first.
+      ede-object-root-project
+    ;; Otherwise do it the hard way.
+    (let* ((ans (ede-directory-get-toplevel-open-project dir)))
+      (if ans
+	  (oref ans :directory)
+	(let* ((toppath (expand-file-name dir))
+	       (newpath toppath)
+	       (proj (ede-directory-project-p dir))
+	       (ans nil))
+	  (if proj
+	      ;; If we already have a project, ask it what the root is.
+	      (setq ans (ede-project-root-directory proj)))
 
-	;; If PROJ didn't know, or there is no PROJ, then
+	  ;; If PROJ didn't know, or there is no PROJ, then
 
-	;; Loop up to the topmost project, and then load that single
-	;; project, and it's sub projects.  When we are done, identify the
-	;; sub-project object belonging to file.
-	(while (and (not ans) newpath proj)
-	  (setq toppath newpath
-		newpath (ede-up-directory toppath))
-	  (when newpath
-	    (setq proj (ede-directory-project-p newpath)))
+	  ;; Loop up to the topmost project, and then load that single
+	  ;; project, and it's sub projects.  When we are done, identify the
+	  ;; sub-project object belonging to file.
+	  (while (and (not ans) newpath proj)
+	    (setq toppath newpath
+		  newpath (ede-up-directory toppath))
+	    (when newpath
+	      (setq proj (ede-directory-project-p newpath)))
 
-	  (when proj
-	    ;; We can home someone in the middle knows too.
-	    (setq ans (ede-project-root-directory proj)))
-	  )
-	(or ans toppath)))))
+	    (when proj
+	      ;; We can home someone in the middle knows too.
+	      (setq ans (ede-project-root-directory proj)))
+	    )
+	  (or ans toppath))))))
 
 ;;; TOPLEVEL PROJECT
 ;;
@@ -289,13 +314,14 @@ nil is returned if the current directory is not a part ofa project."
   "Return the ede project which is the root of the current project.
 Optional argument SUBPROJ indicates a subproject to start from
 instead of the current project."
-  (let* ((cp (or subproj (ede-current-project)))
-	 )
-    (or (and cp (ede-project-root cp))
-	(progn
-	  (while (ede-parent-project cp)
-	    (setq cp (ede-parent-project cp)))
-	  cp))))
+  (or ede-object-root-project
+      (let* ((cp (or subproj (ede-current-project)))
+	     )
+	(or (and cp (ede-project-root cp))
+	    (progn
+	      (while (ede-parent-project cp)
+		(setq cp (ede-parent-project cp)))
+	      cp)))))
 
 ;;; DIRECTORY CONVERSION STUFF
 ;;
@@ -330,16 +356,54 @@ Argument THIS is the project to convert PATH to."
 
 ;;; FILENAME EXPANSION
 ;;
+(defun ede-get-locator-object (proj)
+  "Get the locator object for project PROJ.
+Get it from the toplevel project.  If it doesn't have one, make one."
+  ;; Make sure we have a location object available for
+  ;; caching values, and for locating things more robustly.
+  (let ((top (ede-toplevel proj)))
+    (when (not (slot-boundp top 'locate-obj))
+      (ede-enable-locate-on-project this))
+    (oref top locate-obj)
+    ))
+
 (defmethod ede-expand-filename ((this ede-project) filename &optional force)
   "Return a fully qualified file name based on project THIS.
 FILENAME should be just a filename which occurs in a directory controlled
 by this project.
 Optional argument FORCE forces the default filename to be provided even if it
 doesn't exist."
-  (let ((path (ede-project-root-directory this))
+  (let* ((loc (ede-get-locator-object this))
+	 (ha (ede-locate-file-in-hash loc filename))
+	 )
+    (if ha
+	;; Save non-matches, but convert to nil.
+	(if (eq ha 'nomatch) nil ha)
+      ;; Calculate a new match.
+      (let ((calc (ede-expand-filename-impl this filename)))
+	(if calc
+	    (ede-locate-add-file-to-hash loc filename calc)
+	  
+	  ;; Is it forced?
+	  (if force
+	      (let ((dir (ede-project-root-directory this)))
+		(setq calc (expand-file-name filename dir)))
+
+	    ;; Not in calc database
+	    (ede-locate-add-file-to-hash loc filename 'nomatch)
+	    nil))))))
+
+(defmethod ede-expand-filename-impl ((this ede-project) filename &optional force)
+  "Return a fully qualified file name based on project THIS.
+FILENAME should be just a filename which occurs in a directory controlled
+by this project.
+Optional argument FORCE forces the default filename to be provided even if it
+doesn't exist."
+  (let ((loc (ede-get-locator-object this))
+	(path (ede-project-root-directory this))
 	(proj (oref this subproj))
 	(found nil))
-    ;; find it local.
+    ;; find it Locally.
     (setq found
 	  (cond ((file-exists-p (expand-file-name filename path))
 		 (expand-file-name filename path))
@@ -353,15 +417,7 @@ doesn't exist."
 		 found)))
     ;; Use an external locate tool.
     (when (not found)
-      (when (not (slot-boundp this 'locate-obj))
-	(ede-enable-locate-on-project this))
-      (when (slot-boundp this 'locate-obj)
-	(setq found (car (ede-locate-file-in-project (oref this locate-obj)
-						     filename))))
-      )
-    ;; Are we forcing this to exist?
-    (when (and (not found) force)
-      (setq found (concat path filename)))
+      (setq found (car (ede-locate-file-in-project loc filename))))
     ;; Return it
     found))
 
