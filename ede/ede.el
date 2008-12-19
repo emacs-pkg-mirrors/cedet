@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.122 2008/12/17 11:09:34 zappo Exp $
+;; RCS: $Id: ede.el,v 1.123 2008/12/19 22:45:33 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -359,6 +359,18 @@ All specific project types must derive from this project."
 ;;;###autoload
 (defvar ede-projects nil
   "A list of all active projects currently loaded in Emacs.")
+
+(defvar ede-object-root-project nil
+  "The current buffer's current root project.
+If a file is under a project, this specifies the project that is at
+the root of a project tree.")
+(make-variable-buffer-local 'ede-object-root-project)
+
+(defvar ede-object-project nil
+  "The current buffer's current project at that level.
+If a file is under a project, this specifies the project that contains the
+current target.")
+(make-variable-buffer-local 'ede-object-project)
 
 (defvar ede-object nil
   "The current buffer's target object.
@@ -746,11 +758,18 @@ mode.  nil means to toggle the mode."
 		     (<= (prefix-numeric-value arg) 0))))
       (if (and ede-minor-mode (not ede-constructing)
 	       (ede-directory-project-p default-directory))
-	  (progn
-	    (when (not (ede-directory-get-open-project default-directory))
-	      (ede-load-project-file default-directory))
+	  (let* ((ROOT nil)
+		 (proj (ede-directory-get-open-project default-directory
+						       'ROOT)))
+	    (when (not proj)
+	      ;; @todo - this could be wasteful.
+	      (setq proj (ede-load-project-file default-directory 'ROOT)))
+
+	    (setq ede-object-project proj)
+	    (setq ede-object-root-project 
+		  (or ROOT (ede-project-root proj)))
 	    (setq ede-object (ede-buffer-object))
-	    (if (and (not ede-object) (ede-current-project))
+	    (if (and (not ede-object) ede-object-project)
 		(ede-auto-add-to-target))
 	    (ede-apply-target-options))
 	;; If we fail to have a project here, turn it back off.
@@ -1383,8 +1402,9 @@ Return nil if the project file does not exist."
   (add-to-list 'ede-projects proj))
 
 ;;;###autoload
-(defun ede-load-project-file (dir)
-  "Project file independent way to read a project in from DIR."
+(defun ede-load-project-file (dir &optional rootreturn)
+  "Project file independent way to read a project in from DIR.
+Optional ROOTRETURN will return the root project for DIR."
   ;; Only load if something new is going on.  Flush the dirhash.
   (ede-project-directory-remove-hash dir)
   ;; Do the load
@@ -1425,6 +1445,10 @@ Return nil if the project file does not exist."
 	    (when (not o)
 	      (error "Project type error: :load-type failed to create a project"))
 	    (ede-add-project-to-global-list o)))
+
+      ;; Return the found root project.
+      (when rootreturn (set rootreturn o))
+
       (let (tocheck found)
 	;; Now find the project file belonging to FILE!
 	(setq tocheck (list o))
@@ -1468,12 +1492,22 @@ Optional argument OBJ is an object to find the parent of."
 (defun ede-current-project (&optional dir)
   "Return the current project file.
 If optional DIR is provided, get the project for DIR instead."
-  (let* ((ldir (or dir default-directory))
-	 (ans (ede-directory-get-open-project ldir)))
-    (or ans
-	;; No open project, if this dir pass project-p, then load.
-	(when (ede-directory-project-p ldir)
-	  (ede-load-project-file ldir)))))
+  (let ((ans nil))
+    ;; If it matches the current directory, do we have a pre-existing project?
+    (when (and (or (not dir) (string= dir default-directory))
+	       ede-object-project)
+      (setq ans ede-object-project)
+      )
+    ;; No current project.
+    (when (not ans)
+      (let* ((ldir (or dir default-directory)))
+	(setq ans (ede-directory-get-open-project ldir))
+	(or ans
+	    ;; No open project, if this dir pass project-p, then load.
+	    (when (ede-directory-project-p ldir)
+	      (setq ans (ede-load-project-file ldir))))))
+    ;; Return what we found.
+    ans))
 
 (defun ede-buffer-object (&optional buffer)
   "Return the target object for BUFFER.
@@ -1506,6 +1540,7 @@ If TARGET belongs to a subproject, return that project file."
   "Return the project which is the parent of TARGET.
 It is recommended you track the project a different way as this function
 could become slow in time."
+  ;; @todo - use ede-object-project as a starting point.
   (let ((ans nil) (projs ede-projects))
     (while (and (not ans) projs)
       (setq ans (ede-target-in-project-p (car projs) target)
