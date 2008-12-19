@@ -98,7 +98,7 @@ install scripts:
 
 ;; * This enables even more coding tools such as the nascent intellisense mode
 ;;   decoration mode, and stickyfunc mode (plus regular code helpers)
-;; (semantic-load-enable-guady-code-helpers)
+;; (semantic-load-enable-gaudy-code-helpers)
 
 ;; * This enables the use of Exuberent ctags if you have it installed.
 ;; (semantic-load-enable-all-exuberent-ctags-support)
