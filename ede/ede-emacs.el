@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-emacs.el,v 1.6 2008/12/10 05:07:40 zappo Exp $
+;; X-RCS: $Id: ede-emacs.el,v 1.7 2008/12/19 22:51:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -237,7 +237,7 @@ All files need the macros from lisp.h!"
 	(setq dirs (cdr dirs))))
     ans))
 
-(defmethod ede-expand-filename ((proj ede-emacs-project) name)
+(defmethod ede-expand-filename-impl ((proj ede-emacs-project) name)
   "Within this project PROJ, find the file NAME.
 Knows about how the Emacs source tree is organized."
   (let* ((ext (file-name-extension name))
