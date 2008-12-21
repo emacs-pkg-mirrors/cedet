@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.72 2008/12/18 00:56:51 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.73 2008/12/21 01:10:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -581,9 +581,8 @@ isn't in memory yet."
 (define-overloadable-function semanticdb-find-table-for-include (includetag &optional table)
   "For a single INCLUDETAG found in TABLE, find a `semanticdb-table' object
 INCLUDETAG is a semantic TAG of class 'include.
-TABLE as defined by `semantic-something-to-tag-table' to identify
-where the include tag came from.  TABLE is optional if INCLUDETAG has an
-overlay of :filename attribute."
+TABLE is a semanticdb table that identifies where INCLUDETAG came from.
+TABLE is optional if INCLUDETAG has an overlay of :filename attribute."
   )
 
 (defun semanticdb-find-table-for-include-default (includetag &optional table)
@@ -666,7 +665,11 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 	   ;; but when it is, this is a nice fast way to skip this step.
 	   (not (semantic-tag-include-system-p includetag))
 	   ;; Don't do this if we have an EDE project.
-	   (not (and (featurep 'ede) (ede-current-project originfiledir)))
+	   (not (and (featurep 'ede)
+		     ;; Note: We don't use originfiledir here because
+		     ;; we want to know about the source file we are
+		     ;; starting from.
+		     (ede-current-project)))
 	   )
 
       (setq roots (semanticdb-current-database-list))
