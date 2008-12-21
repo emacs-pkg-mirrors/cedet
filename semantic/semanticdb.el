@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.124 2008/12/12 04:25:59 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.125 2008/12/21 01:15:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -808,6 +808,17 @@ Always append `semanticdb-project-system-databases' if
 ;;
 ;; These routines can be used to get at tags in files w/out
 ;; having to know a lot about semanticDB.
+(defvar semanticdb-file-table-hash (make-hash-table :test 'equal)
+  "Hash table mapping file names to database tables.")
+
+(defun semanticdb-file-table-object-from-hash (file)
+  "Retrieve a DB table from the hash for FILE.
+Does not use `file-truename'."
+  (gethash file semanticdb-file-table-hash 'no-hit))
+
+(defun semanticdb-file-table-object-put-hash (file dbtable)
+  "For FILE, associate DBTABLE in the hash table."
+  (puthash file dbtable semanticdb-file-table-hash))
 
 ;;;###autoload
 (defun semanticdb-file-table-object (file &optional dontload)
@@ -816,17 +827,29 @@ If file has database tags available in the database, return it.
 If file does not have tags available, and DONTLOAD is nil,
 then load the tags for FILE, and create a new table object for it.
 DONTLOAD does not affect the creation of new database objects."
-  (setq file (file-truename file))
   ;; (message "Object Translate: %s" file)
   (when (file-exists-p file)
     (let* ((default-directory (file-name-directory file))
-	   (db (or
-		;; This line will pick up system databases.
-		(semanticdb-directory-loaded-p default-directory)
-		;; this line will make a new one if needed.
-		(semanticdb-get-database default-directory)))
-	   (tab (semanticdb-file-table db file))
-	   )
+	   (tab (semanticdb-file-table-object-from-hash file))
+	   (fullfile nil))
+
+      ;; If it is not in the cache, then extract the more traditional
+      ;; way by getting the database, and finding a table in that database.
+      ;; Once we have a table, add it to the hash.
+      (when (eq tab 'no-hit)
+	(setq fullfile (file-truename file))
+	(let ((db (or ;; This line will pick up system databases.
+		   (semanticdb-directory-loaded-p default-directory)
+		   ;; this line will make a new one if needed.
+		   (semanticdb-get-database default-directory))))
+	  (setq tab (semanticdb-file-table db fullfile))
+	  (when tab
+	    (semanticdb-file-table-object-put-hash file tab)
+	    (when (not (string= fullfile file))
+	      (semanticdb-file-table-object-put-hash fullfile tab)
+	    ))
+	  ))
+
       (cond
        ((and tab
 	     ;; Is this in a buffer?
@@ -849,16 +872,31 @@ DONTLOAD does not affect the creation of new database objects."
 	     (not (semanticdb-needs-refresh-p tab)))
 	;; A-ok!
 	tab)
-       ((find-buffer-visiting file)
+       ((or (get-file-buffer fullfile)
+	    (get-file-buffer file))
+	;; are these two calls this faster than `find-buffer-visiting'?
+
 	;; If FILE is being visited, but none of the above state is
 	;; true (meaning, there is no table object associated with it)
 	;; then it is a file not supported by Semantic, and can be safely
 	;; ignored.
 	nil)
        ((not dontload) ;; We must load the file.
-	(semanticdb-create-table-for-file-not-in-buffer file)
-	)
+	;; Full file should have been set by now.  Debug why not?
+	(when (not fullfile) (debug))
+
+	(setq tab (semanticdb-create-table-for-file-not-in-buffer fullfile))
+
+	;; Save the new table.
+	(semanticdb-file-table-object-put-hash file tab)
+	(when (not (string= fullfile file))
+	  (semanticdb-file-table-object-put-hash fullfile tab)
+	  )
+	;; Done!
+	tab)
        (t
+	;; Full file should have been set by now.  Debug why not?
+	(when (not fullfile) (debug))
 	;; We were asked not to load the file in and parse it.
 	;; Instead just create a database table with no tags
 	;; and a claim of being empty.
@@ -868,8 +906,15 @@ DONTLOAD does not affect the creation of new database objects."
 	;; the cross-references will fire and caches will
 	;; be cleaned.
 	(let ((ans (semanticdb-create-table-for-file file)))
-	  (cdr ans))
-	)
+	  (setq tab (cdr ans))
+
+	  ;; Save the new table.
+	  (semanticdb-file-table-object-put-hash file tab)
+	  (when (not (string= fullfile file))
+	    (semanticdb-file-table-object-put-hash fullfile tab)
+	    )
+	  ;; Done!
+	  tab))
        )
       )))
 
