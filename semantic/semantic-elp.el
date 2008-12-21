@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.14 2008/12/18 00:56:20 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.15 2008/12/21 01:08:15 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -50,6 +50,7 @@
     file-truename
     find-buffer-visiting
     length
+    locate-file
     nconc
     nreverse
     sort
@@ -73,9 +74,15 @@
 (defvar semantic-elp-ede-core-list
   '(
     ede-current-project
+    ede-directory-get-open-project
     ede-expand-filename
+    ede-expand-filename-impl
+    ede-locate-file-in-project
+    ede-locate-file-in-project-impl
     ede-system-include-path
     ede-toplevel
+    ede-toplevel-project
+    ede-directory-project-p
     )
   "List of EDE functions to watch out for.")
 
@@ -107,7 +114,7 @@
     semantic-tag-get-attribute
     semantic-tag-in-buffer-p
     semantic-tag-include-filename
-    semantic-tag-lessp-name-then-type
+    ;;semantic-tag-lessp-name-then-type
     semantic-tag-name
     semantic-tag-new-type
     semantic-tag-of-class-p
@@ -211,11 +218,19 @@ You may also need `semantic-elp-include-path-list'.")
     semanticdb-typecache-include-tags
     )
   "List of typecaching functions for profiling.")
+
+(defun semantic-elp-profile-typecache (tab)
+  "Profile the typecache.  Start with table TAB."
+  (let ((tc (semanticdb-get-typecache tab)))
+    (semanticdb-typecache-file-tags tab)
+    (semanticdb-typecache-include-tags tab)
+    tc))
+
 (defun semantic-elp-typecache-enable ()
   "Enable profiling for `semanticdb-get-typecache'."
-  (semantic-elp-core-enable)
+  (semantic-elp-include-path-enable)
   (elp-instrument-list semantic-elp-typecache-list)
-  (elp-set-master 'semanticdb-get-typecache)
+  (elp-set-master 'semantic-elp-profile-typecache)
   )
 
 (defvar semantic-elp-scope-list
@@ -560,9 +575,7 @@ Argument NAME is the name to give the ELP data object."
       (semantic-elp-typecache-enable)
       (progn
 	(setq start (current-time))
-	(setq tc (semanticdb-get-typecache tab))
-	(semanticdb-typecache-file-tags tab)
-	(semanticdb-typecache-include-tags tab)
+	(setq tc (semantic-elp-profile-typecache tab))
 	(setq stop (current-time)))
       (setq typecache tc))
     (semantic-elp-results "typecache")
