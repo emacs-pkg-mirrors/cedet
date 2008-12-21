@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.124 2008/12/21 15:37:21 zappo Exp $
+;; RCS: $Id: ede.el,v 1.125 2008/12/21 15:53:50 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -1802,6 +1802,30 @@ Display the results as a debug list."
     (when (ede-current-project)
       (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
       (data-debug-insert-object-slots (ede-current-project) "")
+      )))
+
+;;;###autoload
+(defun ede-adebug-project-parent ()
+  "Run adebug against the current ede parent project.
+Display the results as a debug list."
+  (interactive)
+  (require 'data-debug)
+  (let ((ab nil))
+    (when (ede-parent-project)
+      (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
+      (data-debug-insert-object-slots (ede-parent-project) "")
+      )))
+
+;;;###autoload
+(defun ede-adebug-project-root ()
+  "Run adebug against the current ede parent project.
+Display the results as a debug list."
+  (interactive)
+  (require 'data-debug)
+  (let ((ab nil))
+    (when (ede-toplevel)
+      (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
+      (data-debug-insert-object-slots (ede-toplevel) "")
       )))
 
 ;;; Hooks & Autoloads
