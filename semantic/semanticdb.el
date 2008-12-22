@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.126 2008/12/22 14:55:24 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.127 2008/12/22 15:03:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -872,6 +872,12 @@ DONTLOAD does not affect the creation of new database objects."
 	     (not (semanticdb-needs-refresh-p tab)))
 	;; A-ok!
 	tab)
+       ((and tab (not dontload))
+	;; If we found a table, it is not in a buffer, AND we can load it for a refresh,
+	;; lets do so.  We don't check 'needs refresh' because we already did that above.
+	(semanticdb-refresh-table tab)
+	tab
+	)
        ((or (and fullfile (get-file-buffer fullfile))
 	    (get-file-buffer file))
 	;; are these two calls this faster than `find-buffer-visiting'?
