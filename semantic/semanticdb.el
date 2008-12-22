@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.125 2008/12/21 01:15:25 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.126 2008/12/22 14:55:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -872,7 +872,7 @@ DONTLOAD does not affect the creation of new database objects."
 	     (not (semanticdb-needs-refresh-p tab)))
 	;; A-ok!
 	tab)
-       ((or (get-file-buffer fullfile)
+       ((or (and fullfile (get-file-buffer fullfile))
 	    (get-file-buffer file))
 	;; are these two calls this faster than `find-buffer-visiting'?
 
