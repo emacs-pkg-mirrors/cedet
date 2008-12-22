@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.175 2008/12/15 17:19:18 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.176 2008/12/22 05:13:37 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -434,7 +434,7 @@ It creates an autoload function for CNAME's constructor."
 	;; Create an autoload on top of our constructor function.
 	(autoload cname filename doc nil nil)
 	(autoload (intern (concat (symbol-name cname) "-p")) filename "" nil nil)
-	(autoload (intern (concat (symbol-name cname) "child-p")) filename "" nil nil)
+	(autoload (intern (concat (symbol-name cname) "-child-p")) filename "" nil nil)
 
 	))))
 
@@ -2083,6 +2083,10 @@ for this common case to improve performance."
     ;; Determine the class to use.
     (cond ((eieio-object-p firstarg)
 	   (setq mclass (object-class-fast firstarg)))
+	  ((not firstarg)
+	   (error "Method %s called on nil" method))
+	  ((not (eieio-object-p firstart))
+	   (error "Primary-only method %s called on something not an object" method))
 	  (t
 	   (error "EIEIO Error: Improperly classified method %s as primary only"
 		  method)
