@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.50 2008/08/23 11:56:45 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.51 2008/12/28 22:10:50 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -425,7 +425,7 @@ sources variable."
 ;;; GARBAGE PATTERNS
 ;;
 (defmethod ede-proj-makefile-garbage-patterns ((this ede-proj-project))
-  "Return a list of patterns that are considred garbage to THIS.
+  "Return a list of patterns that are considered garbage to THIS.
 These are removed with make clean."
   (let ((mc (ede-map-targets
 	     this (lambda (c) (ede-proj-makefile-garbage-patterns c))))
@@ -440,7 +440,7 @@ These are removed with make clean."
     (nreverse uniq)))
 
 (defmethod ede-proj-makefile-garbage-patterns ((this ede-proj-target))
-  "Return a list of patterns that are considred garbage to THIS.
+  "Return a list of patterns that are considered garbage to THIS.
 These are removed with make clean."
   ;; Get the  the source object from THIS, and use the specified garbage.
   (let ((src (ede-target-sourcecode this))
