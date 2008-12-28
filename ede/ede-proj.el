@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.55 2008/12/09 23:54:36 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.56 2008/12/28 22:13:40 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ of these compiler resources, and global customization thereof.")
 	     :label "Linker for combining intermediate object files."
 	     :group make
 	     :documentation
-	     "The linker to be used to link compled sources for this object.
+	     "The linker to be used to link compiled sources for this object.
 This should be a symbol, which contains the object defining the linker.
 This enables save/restore to do so by name, permitting the sharing
 of these linker resources, and global customization thereof.")
@@ -166,7 +166,7 @@ It is safe to leave this blank.")
     ("info" . ede-proj-target-makefile-info)
     ("auxiliary" . ede-proj-target-aux)
     ("scheme" . ede-proj-target-scheme)
-    ("miscelaneous" . ede-proj-target-makefile-miscelaneous)
+    ("miscellaneous" . ede-proj-target-makefile-miscelaneous)
     )
   "Alist of names to class types for available project target classes.")
 
