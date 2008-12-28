@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.125 2008/12/21 15:53:50 zappo Exp $
+;; RCS: $Id: ede.el,v 1.126 2008/12/28 22:15:17 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -766,7 +766,7 @@ mode.  nil means to toggle the mode."
 	      (setq proj (ede-load-project-file default-directory 'ROOT)))
 
 	    (setq ede-object-project proj)
-	    (setq ede-object-root-project 
+	    (setq ede-object-root-project
 		  (or ROOT (ede-project-root proj)))
 	    (setq ede-object (ede-buffer-object))
 	    (if (and (not ede-object) ede-object-project)
@@ -1172,7 +1172,7 @@ Return the new object created in its place."
   (project-interactive-select-target (ede-project-force-load this) prompt))
 
 (defmethod project-interactive-select-target ((this ede-project) prompt)
-  "Interactivly query for a target that exists in project THIS.
+  "Interactively query for a target that exists in project THIS.
 Argument PROMPT is the prompt to use when querying the user for a target."
   (let ((ob (object-assoc-list 'name (oref this targets))))
     (cdr (assoc (completing-read prompt ob nil t) ob))))
@@ -1231,7 +1231,7 @@ Argument COMMAND is the command to use for compiling the target."
   (error "Make-dist not supported by %s" (object-name this)))
 
 (defmethod project-dist-files ((this ede-project))
-  "Return a list of files that constitues a distribution of THIS project."
+  "Return a list of files that constitutes a distribution of THIS project."
   (error "Dist-files is not supported by %s" (object-name this)))
 
 (defmethod project-rescan ((this ede-project))
@@ -1260,13 +1260,13 @@ Do this by extracting the lowest directory name."
 
 ;;;###autoload
 (defmethod ede-description ((this ede-project))
-  "Return a description suitible for the minibuffer about THIS."
+  "Return a description suitable for the minibuffer about THIS."
   (format "Project %s: %d subprojects, %d targets."
 	  (ede-name this) (length (oref this subproj))
 	  (length (oref this targets))))
 
 (defmethod ede-description ((this ede-target))
-  "Return a description suitible for the minibuffer about THIS."
+  "Return a description suitable for the minibuffer about THIS."
   (format "Target %s: with %d source files."
 	  (ede-name this) (length (oref this source))))
 
@@ -1327,7 +1327,7 @@ Some projects may have multiple documentation files, so return a list."
   (ede-documentation this))
 
 (defmethod ede-buffer-documentation-files ((this ede-target) buffer)
-  "Check for some documenation files for THIS.
+  "Check for some documentation files for THIS.
 Also do a quick check to see if there is a Documentation tag in this BUFFER."
   (save-excursion
     (set-buffer buffer)
@@ -1400,6 +1400,12 @@ Return nil if the project file does not exist."
 ;;
 (defun ede-add-project-to-global-list (proj)
   "Add the project PROJ to the master list of projects."
+  (when (not proj)
+    (error "No project created to add to master list"))
+  (when (not (eieio-object-p proj))
+    (error "Attempt to add Non-object to master project list"))
+  (when (not (obj-of-class-p proj ede-project-placeholder))
+    (error "Attempt to add a non-project to the ede projects list"))
   (add-to-list 'ede-projects proj))
 
 ;;;###autoload
