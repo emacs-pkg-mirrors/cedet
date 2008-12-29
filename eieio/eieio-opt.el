@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.34 2008/12/14 03:38:54 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.35 2008/12/29 02:10:19 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -75,11 +75,15 @@ Argument CH-PREFIX is another character prefix to display."
 ;;;###autoload
 (defalias 'describe-class 'eieio-describe-class)
 ;;;###autoload
-(defun eieio-describe-class (class)
+(defun eieio-describe-class (class &optional headerfcn)
   "Describe a CLASS defined by a string or symbol.
-If CLASS is actually an object, then also display current values of that obect."
+If CLASS is actually an object, then also display current values of that obect.
+Optional HEADERFCN should be called to insert a few bits of info first."
   (interactive (list (eieio-read-class "Class: ")))
   (with-output-to-temp-buffer "*Help*"
+
+    (when headerfcn (funcall headerfcn))
+
     (if (class-option class :abstract)
 	(princ "Abstract "))
     (princ "Class ")
@@ -232,6 +236,28 @@ Outputs to the standard output."
 	    docs (cdr docs)
 	    prot (cdr prot)
 	    i (1+ i)))))
+
+;;;###autoload
+(defun eieio-describe-constructor (fcn)
+  "Describe the constructor function FCN.
+Uses `eieio-describe-class' to describe the class being constructed."
+  (interactive
+   ;; Use eieio-read-class since all constructors have the same name as
+   ;; the class they create.
+   (list (eieio-read-class "Class: ")))
+  (eieio-describe-class
+   fcn (lambda ()
+	 ;; Describe the constructor part.
+	 (princ "Object Constructor Function: ")
+	 (prin1 fcn)
+	 (terpri)
+	 (princ "Creates an object of class ")
+	 (prin1 fcn)
+	 (princ ".")
+	 (terpri)
+	 (terpri)
+	 ))
+  )
 
 ;;;###autoload
 (defun eieio-build-class-alist (&optional class instantiable-only buildlist)
