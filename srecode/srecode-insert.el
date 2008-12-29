@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.21 2008/12/29 04:44:17 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.22 2008/12/29 13:39:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,7 +85,32 @@ DICT-ENTRIES are additional dictionary values to add."
     ;; Resolve the arguments
     (srecode-resolve-arguments template dictionary)
     ;; Insert
-    (srecode-insert-method template dictionary)
+    (if (bufferp standard-output)
+	;; If there is a buffer, turn off various hooks.  This will cause
+	;; the mod hooks to be buffered up during the insert, but
+	;; prevent tools like font-lock from fontifying mid-template.
+	;; Especialy important during insertion of complex comments that
+	;; cause the new font-lock to comment-color stuff after the inserted
+	;; comment.
+	;;
+	;; I'm not sure about the motion hooks.  It seems like a good
+	;; idea though.
+	;;
+	;; Borrowed these concepts out of font-lock.
+	;;
+	;; I tried `combine-after-change-calls', but it did not have
+	;; the effect I wanted.
+	(let ((start (point)))
+	  (let ((inhibit-point-motion-hooks t)
+		(inhibit-modification-hooks t)
+		)
+	    (srecode-insert-method template dictionary)
+	    )
+	  ;; Now call those after change functions.
+	  (run-hook-with-args 'after-change-functions
+			      start (point) 0)
+	  )
+      (srecode-insert-method template dictionary))
     ;; Handle specialization of the POINT inserter.
     (when (and (bufferp standard-output)
 	       (slot-boundp 'srecode-template-inserter-point 'point)
@@ -272,8 +297,12 @@ Specify the :blank argument to enable this inserter.")
       
       (cond ((and (eq (oref sti where) 'begin) (not (bolp)))
 	     (princ "\n"))
-	    ((and (eq (oref sti where) 'end) (not (eolp)))
-	     (princ "\n"))
+	    ((eq (oref sti where) 'end)
+	     ;; If there is whitespace after pnt, then clear it out.
+	     (when (looking-at "\\s-*$")
+	       (delete-region (point) (point-at-eol)))
+	     (when (not (eolp))
+	       (princ "\n")))
 	    )
       (setq pm (point-marker))
       (when (and (eq i t) inbuff (not (eq (oref sti where) 'end)))
