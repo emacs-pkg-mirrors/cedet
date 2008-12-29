@@ -32,6 +32,11 @@
     :path ""
     :source '("srecode-test.el" "srecode-test-getset.el")
     )
+   (ede-proj-target-elisp "document"
+    :name "document"
+    :path ""
+    :source '("srecode-document.el")
+    )
    )
   :metasubproject 't
   )
