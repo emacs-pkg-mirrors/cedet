@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.176 2008/12/22 05:13:37 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.177 2008/12/29 02:26:37 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -511,8 +511,8 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		    (aset (class-v (car pname)) class-children
 			  (cons cname (aref (class-v (car pname)) class-children))))
 		  ;; Get custom groups, and store them into our local copy.
-		  (mapcar (lambda (g) (add-to-list 'groups g))
-			  (class-option (car pname) :custom-groups))
+		  (mapc (lambda (g) (add-to-list 'groups g))
+			(class-option (car pname) :custom-groups))
 		  ;; save parent in child
 		  (aset newc class-parent (cons (car pname) (aref newc class-parent))))
 	      (error "Invalid parent class %s" pname))
@@ -663,9 +663,9 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	      ((not (listp customg))
 	       (setq customg (list customg))))
 	;; The customgroup better be a symbol, or list of symbols.
-	(mapcar (lambda (cg)
-		  (if (not (symbolp cg))
-		      (signal 'invalid-slot-type (list ':group cg))))
+	(mapc (lambda (cg)
+		(if (not (symbolp cg))
+		    (signal 'invalid-slot-type (list ':group cg))))
 		customg)
 
 	;; First up, add this slot into our new class.
@@ -673,7 +673,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 			     prot initarg alloc 'defaultoverride skip-nil)
 
 	;; We need to id the group, and store them in a group list attribute.
-	(mapcar (lambda (cg) (add-to-list 'groups cg)) customg)
+	(mapc (lambda (cg) (add-to-list 'groups cg)) customg)
 
 	;; anyone can have an accessor function.  This creates a function
 	;; of the specified name, and also performs a `defsetf' if applicable
@@ -795,7 +795,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 
     ;; We have a list of custom groups.  Store them into the options.
     (let ((g (class-option-assoc options :custom-groups)))
-      (mapcar (lambda (cg) (add-to-list 'g cg)) groups)
+      (mapc (lambda (cg) (add-to-list 'g cg)) groups)
       (if (memq :custom-groups options)
 	  (setcar (cdr (memq :custom-groups options)) g)
 	(setq options (cons :custom-groups (cons g options)))))
@@ -2085,7 +2085,7 @@ for this common case to improve performance."
 	   (setq mclass (object-class-fast firstarg)))
 	  ((not firstarg)
 	   (error "Method %s called on nil" method))
-	  ((not (eieio-object-p firstart))
+	  ((not (eieio-object-p firstarg))
 	   (error "Primary-only method %s called on something not an object" method))
 	  (t
 	   (error "EIEIO Error: Improperly classified method %s as primary only"
@@ -2855,7 +2855,9 @@ Returns the documentation as a string, also."
 Returns the documentation as a string, also."
   (if (generic-p (ad-get-arg 0))
       (eieio-describe-generic (ad-get-arg 0))
-    ad-do-it))
+    (if (class-p (ad-get-arg 0))
+	(eieio-describe-constructor (ad-get-arg 0))
+      ad-do-it)))
 
 (provide 'eieio)
 ;;; eieio ends here
