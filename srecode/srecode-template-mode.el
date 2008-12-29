@@ -41,6 +41,11 @@
     table)
   "Syntax table used in semantic recoder macro buffers.")
 
+(defface srecode-separator-face
+  '((t (:weight bold :strike-through t)))
+  "Face used for decorating separators in srecode template mode."
+  :group 'srecode)
+
 (defvar srecode-font-lock-keywords
   '(
     ;; Template
@@ -78,13 +83,14 @@
      (2 font-lock-type-face))
 
     ;; Macro separators
-    ("^----$" 0 'bold)
+    ("^----\n" 0 'srecode-separator-face)
     )
   "Keywords for use with srecode macros and font-lock.")
 
 (defvar srecode-template-mode-map
   (let ((km (make-sparse-keymap)))
     (define-key km "\C-c\C-c" 'srecode-compile-templates)
+    (define-key km "\C-c\C-m" 'srecode-macro-help)
     km)
   "Keymap used in srecode mode.")
 
@@ -115,6 +121,74 @@
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.srt$" . srecode-template-mode))
 
+;;; Template Commands
+;;
+(defun srecode-macro-help ()
+  "Provide help for working with macros in a tempalte."
+  (interactive)
+  (let* ((root 'srecode-template-inserter)
+	 (myname (symbol-name root))
+	 (chl (aref (class-v root) class-children))
+	 (es (semantic-find-first-tag-by-name "escape_start" (current-buffer)))
+	 (ee (semantic-find-first-tag-by-name "escape_end" (current-buffer)))
+	 (ess (if es (car (semantic-tag-get-attribute es :default-value))
+		"{{"))
+	 (ees (if ee (car (semantic-tag-get-attribute ee :default-value))
+		"}}"))
+	 )
+    (with-output-to-temp-buffer "*SRecode Macros*"
+      (princ "Description of known SRecode Template Macros.")
+      (terpri)
+      (terpri)
+      (while chl
+	(let* ((C (car chl))
+	       (name (symbol-name C))
+	       (key (when (slot-exists-p C 'key)
+		      (oref C key)))
+	       (showexample t)
+	       )
+	  (setq chl (cdr chl))
+	  (setq chl (append (aref (class-v C) class-children) chl))
+
+	  (catch 'skip
+	    (when (eq C 'srecode-template-inserter-section-end)
+	      (throw 'skip nil))
+
+	    (when (class-abstract-p C)
+	      (throw 'skip nil))
+
+	    (princ "`")
+	    (princ name)
+	    (princ "'")
+	    (when (slot-exists-p C 'key)
+	      (when key
+		(princ " - Character Key: ")
+		(if (stringp key)
+		    (progn
+		      (setq showexample nil)
+		      (cond ((string= key "\n")
+			     (princ "\"\\n\"")
+			     )
+			    (t
+			     (prin1 key)
+			     )))
+		  (prin1 (format "%c" key))
+		  )))
+	    (terpri)
+	    (princ (documentation-property C 'variable-documentation))
+	    (terpri)
+	    (when showexample
+	      (princ "Example:")
+	      (terpri)
+	      (srecode-inserter-prin-example C ess ees)
+	      )
+
+	    (terpri)
+
+	    ) ;; catch
+	  );; let*
+	))))
+
 
 ;;; Utils
 ;;
@@ -140,7 +214,7 @@ If mmm-mode isn't available, then do nothing."
 	  nil  ;; Nothing to do.
 	;; Well, we have a mode, lets try turning on mmm-mode.
 
-	(mmm-mode-on)
+	;; (mmm-mode-on)
     
 	
 
