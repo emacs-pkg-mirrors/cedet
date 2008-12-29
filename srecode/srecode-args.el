@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-args.el,v 1.6 2008/02/16 01:47:53 zappo Exp $
+;; X-RCS: $Id: srecode-args.el,v 1.7 2008/12/29 04:40:29 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -110,12 +110,31 @@ do not contain any text from preceeding or following text."
 ;;;###autoload
 (defun srecode-semantic-handle-:time (dict)
   "Add macros into the dictionary DICT based on the current :time."
+  ;; DATE Values
   (srecode-dictionary-set-value
    dict "YEAR" (format-time-string "%Y" (current-time)))
   (srecode-dictionary-set-value
-   dict "MONTH" (format-time-string "%B" (current-time)))
+   dict "MONTHNAME" (format-time-string "%B" (current-time)))
   (srecode-dictionary-set-value
-   dict "DAY" (format-time-string "%m" (current-time)))
+   dict "MONTH" (format-time-string "%m" (current-time)))
+  (srecode-dictionary-set-value
+   dict "DAY" (format-time-string "%d" (current-time)))
+  (srecode-dictionary-set-value
+   dict "WEEKDAY" (format-time-string "%a" (current-time)))
+  ;; Time Values
+  (srecode-dictionary-set-value
+   dict "HOUR" (format-time-string "%H" (current-time)))
+  (srecode-dictionary-set-value
+   dict "HOUR12" (format-time-string "%l" (current-time)))
+  (srecode-dictionary-set-value
+   dict "AMPM" (format-time-string "%p" (current-time)))
+  (srecode-dictionary-set-value
+   dict "MINUTE" (format-time-string "%M" (current-time)))
+  (srecode-dictionary-set-value
+   dict "SECOND" (format-time-string "%S" (current-time)))
+  (srecode-dictionary-set-value
+   dict "TIMEZONE" (format-time-string "%Z" (current-time)))
+  ;; Convenience pre-packed date/time
   (srecode-dictionary-set-value
    dict "DATE" (format-time-string "%D" (current-time)))
   (srecode-dictionary-set-value
