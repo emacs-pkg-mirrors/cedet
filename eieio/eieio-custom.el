@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2005, 2007, 2008 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.25 2008/09/29 00:19:41 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.26 2008/12/29 02:21:56 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -36,11 +36,12 @@
 
 ;;; Compatibility
 ;;
-(if (featurep 'xemacs)
-    (defalias 'eieio-overlay-lists (lambda () (list (extent-list))))
-  (defalias 'eieio-overlay-lists 'overlay-lists)
+(eval-and-compile
+  (if (featurep 'xemacs)
+      (defalias 'eieio-overlay-lists (lambda () (list (extent-list))))
+    (defalias 'eieio-overlay-lists 'overlay-lists)
+    )
   )
-
 ;;; Code:
 (defclass eieio-widget-test-class nil
   ((a-string :initarg :a-string
@@ -357,8 +358,8 @@ These groups are specified with the `:group' slot flag."
     (erase-buffer)
     (let ((all (eieio-overlay-lists)))
       ;; Delete all the overlays.
-      (mapcar 'delete-overlay (car all))
-      (mapcar 'delete-overlay (cdr all)))
+      (mapc 'delete-overlay (car all))
+      (mapc 'delete-overlay (cdr all)))
     ;; Add an apply reset option at the top of the buffer.
     (eieio-custom-object-apply-reset obj)
     (widget-insert "\n\n")
