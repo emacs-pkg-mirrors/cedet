@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.20 2008/12/28 22:16:11 zappo Exp $
+@c $Id: ede.texi,v 1.21 2008/12/29 04:21:02 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -411,7 +411,7 @@ that use @ede{} to look up files.
 * Simple projects::             Projects @ede{} doesn't manage.
 @end menu
 
-@node Make and Automake projects, Automake direct projects, Project types, Project types
+@node Make and Automake projects
 @section Make and Automake projects
 
 A project of @samp{ede-project} type creates a file called
@@ -423,7 +423,7 @@ in @samp{Makefile} mode, then this project will autogenerate a
 routines will also import and maintain a configure.am script and a
 host of other files required by Automake.
 
-@node Automake direct projects, Simple projects , Make and Automake projects, Project types
+@node Automake direct projects
 @section Automake direct projects
 
 The project type that reads @file{Makefile.am} directly is derived
@@ -433,7 +433,7 @@ distributed independently.  This mode eventually became @ede{}.  The
 not generate them automatically, or create new ones.  As such, it is
 useful as a browsing tool, or as maintenance in managing file lists.
 
-@node Simple projects, Automake direct projects, Project types
+@node Simple projects
 @section Simple Projects
 
 There can be a wide array of Simple projects.  The root for simple
