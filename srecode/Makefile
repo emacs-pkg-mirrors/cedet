@@ -4,7 +4,7 @@
 # DO NOT MODIFY THIS FILE OR YOUR CHANGES MAY BE LOST.
 # EDE is the Emacs Development Environment.
 # http://cedet.sourceforge.net/ede.shtml
-# 
+#
 
 top=
 ede_FILES=Project.ede Makefile
@@ -22,12 +22,13 @@ EMACS=emacs
 doc_TEXINFOS=srecode.texi
 MAKEINFO=makeinfo
 tests_LISP=srecode-test.el srecode-test-getset.el
+document_LISP=srecode-document.el
 VERSION=0.1
 DISTDIR=$(top)srecode-$(VERSION)
 
 
 
-all: autoloads lang srecode srecode.info tests templates
+all: autoloads lang srecode srecode.info tests document templates
 
 .PHONY: autoloads
 autoloads: 
@@ -69,6 +70,15 @@ tests: $(tests_LISP)
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
+.PHONY: document
+document: $(document_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+
 .PHONY:templates
 templates:
 	cd templates; $(MAKE)
@@ -84,7 +94,7 @@ clean:
 
 dist: autoloads $(lang_SEMANTIC_GRAMMAR_EL) srecode.info
 	mkdir $(DISTDIR)
-	cp srecode-loaddefs.el $(lang_SEMANTIC_GRAMMAR) $(lang_SEMANTIC_GRAMMAR_EL) $(srecode_LISP) $(doc_TEXINFOS) srecode.info* $(tests_LISP) $(ede_FILES) $(DISTDIR)
+	cp srecode-loaddefs.el $(lang_SEMANTIC_GRAMMAR) $(lang_SEMANTIC_GRAMMAR_EL) $(srecode_LISP) $(doc_TEXINFOS) srecode.info* $(tests_LISP) $(document_LISP) $(ede_FILES) $(DISTDIR)
 	cd templates; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/templates dist
 
 Makefile: Project.ede
