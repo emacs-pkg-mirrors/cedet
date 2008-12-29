@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-dictionary.el,v 1.5 2008/05/14 02:34:10 zappo Exp $
+;; X-RCS: $Id: srecode-dictionary.el,v 1.6 2008/12/29 02:55:30 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -449,6 +449,7 @@ STATE is the current compiler state."
 		    (prin1 entry)
 		    ;(princ "\n")
 		    ))
+	     (terpri)
 	     )
 	   (oref dict namehash))
   )
