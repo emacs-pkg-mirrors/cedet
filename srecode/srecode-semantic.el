@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.8 2008/03/05 04:20:36 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.9 2008/12/29 04:45:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -120,6 +120,11 @@ Assumes the cursor is in a tag of class type.  If not, throw an error."
 
 ;;; TAG in a DICTIONARY
 ;;
+(defvar srecode-semantic-apply-tag-augment-hook nil
+  "A function called for each tag added to a dictionary.
+The hook is called with two arguments, the TAG and DICT
+to be augmented.")
+
 ;;;###autoload
 (define-overload srecode-semantic-apply-tag-to-dict (tagobj dict)
   "Insert fewatures of TAGOBJ into the dictionary DICT.
@@ -143,6 +148,8 @@ variable default values, and other things."
     (srecode-dictionary-set-value dict "NAME" (semantic-tag-name tag))
     (srecode-dictionary-set-value dict "TYPE" (semantic-format-tag-type tag nil))
   
+    (run-hook-with-args 'srecode-semantic-apply-tag-augment-hook tag dict)
+
     (cond
      ;;
      ;; FUNCTION
