@@ -4,12 +4,12 @@
 # DO NOT MODIFY THIS FILE OR YOUR CHANGES MAY BE LOST.
 # EDE is the Emacs Development Environment.
 # http://cedet.sourceforge.net/ede.shtml
-# 
+#
 
 top=../
 ede_FILES=Project.ede Makefile
 
-templates_MISC=default.srt srecode-el.srt srecode-getset-cpp.srt srecode-template.srt srecode-cpp.srt srecode-wisent.srt srecode-expandproto-cpp.srt srecode-texi.srt srecode-test.srt
+templates_MISC=default.srt srecode-el.srt srecode-getset-cpp.srt srecode-template.srt srecode-cpp.srt srecode-wisent.srt srecode-expandproto-cpp.srt srecode-texi.srt srecode-test.srt srecode-document-cpp.srt
 VERSION=0.1
 DISTDIR=$(top)srecode-$(VERSION)/templates
 
