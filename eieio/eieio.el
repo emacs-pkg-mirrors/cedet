@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.177 2008/12/29 02:26:37 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.178 2008/12/29 02:43:33 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -2833,6 +2833,7 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 (autoload 'eieio-help-mode-augmentation-maybee "eieio-opt" "For buffers thrown into help mode, augment for eieio.")
 (autoload 'eieio-browse "eieio-opt" "Create an object browser window" t)
 (autoload 'eieio-describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
+(autoload 'eieio-describe-constructor "eieio-opt" "Describe the constructor function FCN." t)
 (autoload 'describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
 (autoload 'eieio-describe-generic "eieio-opt" "Describe GENERIC defined by a string or symbol" t)
 (autoload 'describe-generic "eieio-opt" "Describe GENERIC defined by a string or symbol" t)
