@@ -376,6 +376,14 @@ programming modes."
 
   ;; Update Keybings
   (let ((oldbinding (lookup-key srecode-prefix-map binding)))
+
+    ;; During development, allow overrides.
+    (when (and oldbinding
+	       (not (eq oldbinding function))
+	       (or (eq this-command 'eval-defun) (eq this-command 'checkdoc-eval-defun))
+	       (y-or-n-p (format "Override old binding %s? " oldbinding)))
+      (setq oldbinding nil))
+
     (if (not oldbinding)
 	(define-key srecode-prefix-map binding function)
       (if (eq function oldbinding)
