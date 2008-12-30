@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.37 2008/05/03 14:23:18 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.38 2008/12/30 22:41:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -133,7 +133,10 @@ If nil, errors are still displayed, but informative messages are not."
   "Provide a mechanism for semantic tag management.
 Argument START, END, and LENGTH specify the bounds of the change."
    (setq semantic-unmatched-syntax-cache-check t)
-   (run-hook-with-args 'semantic-change-hooks start end length))
+   (let ((inhibit-point-motion-hooks t)
+	 )
+     (run-hook-with-args 'semantic-change-hooks start end length)
+     ))
 
 (defun semantic-changes-in-region (start end &optional buffer)
   "Find change overlays which exist in whole or in part between START and END.
