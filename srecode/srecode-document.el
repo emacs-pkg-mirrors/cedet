@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-document.el,v 1.2 2008/12/30 04:33:37 zappo Exp $
+;; X-RCS: $Id: srecode-document.el,v 1.3 2008/12/30 18:47:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -112,6 +112,13 @@ If the cursor is on a one line prototype, then insert post-fcn comments."
 	  (error "Not sure what to comment"))
 	 )))))
 
+(defun srecode-document-trim-whitespace (str)
+  "Strip stray whitespace from around STR."
+  (when (string-match "^\\(\\s-\\|\n\\)+" str)
+    (setq str (replace-match "" t t str)))
+  (when (string-match "\\(\\s-\\|\n\\)+$" str)
+    (setq str (replace-match "" t t str)))
+  str)
 
 ;;;###autoload
 (defun srecode-document-insert-function-comment (&optional fcn-in)
@@ -149,40 +156,81 @@ It is assumed that the comment occurs just in front of FCN-IN."
 
     ;; Find any existing doc strings.
     (semantic-go-to-tag fcn-in)
+    (beginning-of-line)
+    (forward-char -1)
 
     (let ((lextok (semantic-documentation-comment-preceeding-tag fcn-in 'lex))
+	  (doctext
+	   (srecode-document-programmer->english (semantic-tag-name fcn-in)))
 	  )
 
       (when lextok
-	(let ((s (semantic-lex-token-start lextok))
-	      (e (semantic-lex-token-end lextok))
-	      (extract nil))
+	(let* ((s (semantic-lex-token-start lextok))
+	       (e (semantic-lex-token-end lextok))
+	       (plaintext
+		(srecode-document-trim-whitespace
+		 (save-excursion
+		   (goto-char s)
+		   (semantic-doc-snarf-comment-for-tag nil))))
+	       (extract (condition-case nil
+			    (srecode-extract temp s e)
+			  (error nil))
+			)
+	       (distance (count-lines e (semantic-tag-start fcn-in)))
+	       (belongelsewhere (save-excursion
+				  (goto-char s)
+				  (back-to-indentation)
+				  (semantic-current-tag)))
+	       )
 
-	  (pulse-momentary-highlight-region s e)
+	  (when (not belongelsewhere)
 
-	  (when (not (y-or-n-p "A comment already exists.  Replace? "))
-	    (error "Quit"))
+	    (pulse-momentary-highlight-region s e)
 
-	  ;; Extract text from the existing comment.
-	  (setq extract (srecode-extract temp s e))
+	    ;; There are many possible states that comment could be in.
+	    ;; Take a guess about what the user would like to do, and ask
+	    ;; the right kind of question.
+	    (when (or (not (> distance 2))
+		      (y-or-n-p "Replace this comment? "))
 
-	  (delete-region s e)
-	  (goto-char s) ;; To avoid adding a CR.
-	  ))
-      )
+	      (when (> distance 2)
+		(goto-char e)
+		(delete-horizontal-space)
+		(delete-blank-lines))
 
-    (beginning-of-line)
+	      (cond
+	       ((and plaintext (not extract))
+		(if (y-or-n-p "Convert old-style comment to Template with old text? ")
+		    (setq doctext plaintext))
+		(delete-region s e)
+		(goto-char s))
+	       (extract
+		(when (y-or-n-p "Refresh pre-existing comment (recycle old doc)? ")
+		  (delete-region s e)
+		  (goto-char s)
+		  (setq doctext
+			(srecode-document-trim-whitespace
+			 (srecode-dictionary-lookup-name extract "DOC")))))
+	       ))
+	    )))
 
-    ;; Perform the insertion
-    (let ((srecode-semantic-selected-tag fcn-in)
-	  (srecode-semantic-apply-tag-augment-hook
-	   (lambda (tag dict)
-	     (srecode-dictionary-set-value
-	      dict "DOC" (srecode-document-programmer->english (semantic-tag-name tag)))))
-	  )
-      (srecode-insert-fcn temp dict)
-      ))
-  )
+      (beginning-of-line)
+
+      ;; Perform the insertion
+      (let ((srecode-semantic-selected-tag fcn-in)
+	    (srecode-semantic-apply-tag-augment-hook
+	     (lambda (tag dict)
+	       (srecode-dictionary-set-value
+		dict "DOC"
+		(if (eq tag fcn-in)
+		    doctext
+		  (srecode-document-programmer->english
+		   (semantic-tag-name tag)))
+		)))
+	    )
+	(srecode-insert-fcn temp dict)
+	))
+    ))
 
 ;;;###autoload
 (defun srecode-document-insert-variable-one-line-comment (&optional var-in)
