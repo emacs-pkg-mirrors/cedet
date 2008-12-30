@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-list.el,v 1.5 2008/12/15 01:02:12 zappo Exp $
+;; X-RCS: $Id: semantic-symref-list.el,v 1.6 2008/12/30 23:03:32 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -38,7 +38,12 @@
 ;;; Code:
 ;;;###autoload
 (defun semantic-symref ()
-  "Find references to the current tag."
+  "Find references to the current tag.
+This command uses the currently configured references tool within the
+current project to find references to the current tag. The
+references are the organized by file and the name of the function
+they are used in.
+Display the references in`semantic-symref-results-mode'"
   (interactive)
   (semantic-fetch-tags)
   (let ((ct (semantic-current-tag))
@@ -56,7 +61,12 @@
 
 ;;;###autoload
 (defun semantic-symref-symbol (sym)
-  "Find references to the symbol SYM."
+  "Find references to the symbol SYM.
+This command uses the currently configured references tool within the
+current project to find references to the input SYM. The
+references are the organized by file and the name of the function
+they are used in.
+Display the references in`semantic-symref-results-mode'"
   (interactive "sSymbol: ")
   (semantic-fetch-tags)
   (let ((res nil)
@@ -299,13 +309,13 @@ BUTTON is the button that was clicked."
   )
 
 (defun semantic-symref-list-next-line ()
-  "Next line in `semantic-symref-list-mode'."
+  "Next line in `semantic-symref-results-mode'."
   (interactive)
   (forward-line 1)
   (back-to-indentation))
 
 (defun semantic-symref-list-prev-line ()
-  "Next line in `semantic-symref-list-mode'."
+  "Next line in `semantic-symref-results-mode'."
   (interactive)
   (forward-line -1)
   (back-to-indentation))
