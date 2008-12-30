@@ -74,6 +74,18 @@ for push, pop, and peek for the active template.")
    )
   "Class defines storage for semantic recoder templates.")
 
+(defun srecode-flush-active-templates ()
+  "Flush the active template storage.
+Useful if something goes wrong in SRecode, and the active tempalte
+stack is broken."
+  (interactive)
+  (if (oref srecode-template active)
+      (when (y-or-n-p (format "%d active templates.  Flush? "
+			      (length (oref srecode-template active))))
+	(oset-default srecode-template active nil))
+    (message "No active templates to flush."))
+  )
+
 ;;; Inserters
 ;;
 ;; Each inserter object manages a different thing that
