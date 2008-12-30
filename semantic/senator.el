@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.130 2008/12/13 17:23:13 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.131 2008/12/30 22:43:20 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -191,6 +191,14 @@ langage behaviour."
 (defsubst senator-parse ()
   "Parse the current buffer and return the tags where to navigate."
   (semantic-fetch-tags))
+
+(defun senator-force-refresh ()
+  "Force a full refresh of the current buffer's tags.
+Throws away all the old tags, and recreates the tag database for
+this buffer."
+  (interactive)
+  (semantic-clear-toplevel-cache)
+  (senator-parse))
 
 (defsubst senator-current-tag ()
   "Return the current tag in the current buffer.
@@ -1846,6 +1854,11 @@ This is a buffer local variable.")
 (defvar senator-menu-bar
   (list
    "Senator"
+   (senator-menu-item
+    ["Force Tag Refresh"
+     senator-force-refresh
+     :active t
+     :help "Force a full reparse of the current buffer."])
    (list
     "Navigate"
     (senator-menu-item
@@ -2069,6 +2082,19 @@ This is a buffer local variable.")
        :active t
        :help "Debug why the analyzer may not be working for you."
        ])
+    )
+   (list
+    "Find References"
+    (senator-menu-item
+     ["Find This Tag"
+      semantic-symref
+      :active (semantic-current-tag)
+      :help "Find uses of the tag the cursor is in."])
+    (senator-menu-item
+     ["Find Symbol"
+      semantic-symref
+      :active t
+      :help "Find uses of any arbitrary symbol."])
     )
    (list
     "Chart"
