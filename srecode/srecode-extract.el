@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-extract.el,v 1.1 2008/12/30 04:31:35 zappo Exp $
+;; X-RCS: $Id: srecode-extract.el,v 1.2 2008/12/30 18:46:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -100,12 +100,7 @@ the dictionary entries were for that block of text."
   "Extract template ST and store extracted text in DICTIONARY.
 Optional STARTRETURN is a symbol in which the start of the first
 plain-text match occured."
-  (unwind-protect
-      (let ((c (oref st code)))
-	(srecode-push st)
-	(srecode-extract-code-stream c dictionary state))
-    ;; Poping the stack is protected
-    (srecode-pop st)))
+  (srecode-extract-code-stream (oref st code) dictionary state))
 
 (defun srecode-extract-code-stream (code dictionary state)
   "Extract CODE from buffer text into DICTIONARY.
