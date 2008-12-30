@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-document.el,v 1.1 2008/12/29 04:04:10 zappo Exp $
+;; X-RCS: $Id: srecode-document.el,v 1.2 2008/12/30 04:33:37 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -40,6 +40,8 @@
 
 (require 'srecode-insert)
 (require 'srecode-dictionary)
+(require 'srecode-extract)
+(require 'srecode-args)
 (require 'semantic)
 (require 'semantic-tag)
 (require 'semantic-doc)
@@ -78,7 +80,7 @@ If the cursor is on a one line prototype, then insert post-fcn comments."
 	(or srecode-handle-region-when-non-active-flag
 	    (eq last-command 'mouse-drag-region)
 	    (and transient-mark-mode mark-active))
-	(srecode-document-insert-group-comments)
+	(srecode-document-insert-group-comments (point) (mark))
       ;; ELSE
 
       ;; A declaration comment.  Find what it documents.
@@ -153,12 +155,16 @@ It is assumed that the comment occurs just in front of FCN-IN."
 
       (when lextok
 	(let ((s (semantic-lex-token-start lextok))
-	      (e (semantic-lex-token-end lextok)))
+	      (e (semantic-lex-token-end lextok))
+	      (extract nil))
 
 	  (pulse-momentary-highlight-region s e)
 
 	  (when (not (y-or-n-p "A comment already exists.  Replace? "))
 	    (error "Quit"))
+
+	  ;; Extract text from the existing comment.
+	  (setq extract (srecode-extract temp s e))
 
 	  (delete-region s e)
 	  (goto-char s) ;; To avoid adding a CR.
@@ -196,7 +202,8 @@ It is assumed that the comment occurs just after VAR-IN."
 	 (temp (srecode-template-get-table (srecode-table)
 					   "variable-same-line-comment"
 					   "declaration"
-					   'document)))
+					   'document))
+	 (extract dict))
     (if (not temp)
 	(error "No templates for inserting variable comments"))
 
@@ -227,6 +234,9 @@ It is assumed that the comment occurs just after VAR-IN."
 	  (when (not (y-or-n-p "A comment already exists.  Replace? "))
 	    (error "Quit"))
 
+	  ;; Extract text from the existing comment.
+	  (setq extract (srecode-extract temp s e))
+
 	  (delete-region s e)
 	  (goto-char s) ;; To avoid adding a CR.
 	  ))
@@ -247,6 +257,16 @@ It is assumed that the comment occurs just after VAR-IN."
 	  )
       (srecode-insert-fcn temp dict)
       ))
+  )
+
+(defun srecode-document-insert-group-comments (beg end)
+  "Insert group comments around the active between BEG and END.
+If the region includes only parts of some tags, expand out
+to the beginning and end of the tags on the region.
+If there is only one tag in the region, complain."
+  (interactive "r")
+  (error "Need to implement group comments")
+  ;; @TODO
   )
 
 
@@ -363,6 +383,57 @@ not account for verb parts."
     (and (<= (semantic-tag-end tag) (point-at-eol))
 	 (goto-char (semantic-tag-end tag))
 	 (< (current-column) 70))))
+
+;;; TESTS
+;;
+;;;###autoload
+(defun srecode-document-function-comment-extract-test ()
+  "Test old comment extraction.
+Dump out the extracted dictionary."
+  (interactive)
+
+  (srecode-load-tables-for-mode major-mode)
+  (srecode-load-tables-for-mode major-mode 'document)
+
+  (if (not (srecode-table))
+      (error "No template table found for mode %s" major-mode))
+  
+  (let* ((dict (srecode-create-dictionary))
+	 (temp (srecode-template-get-table (srecode-table)
+					   "function-comment"
+					   "declaration"
+					   'document))
+	 (fcn-in (semantic-current-tag)))
+
+    (if (not temp)
+	(error "No templates for function comments"))
+
+    ;; Try to figure out the tag we want to use.
+    (when (or (not fcn-in)
+	      (not (semantic-tag-of-class-p fcn-in 'function)))
+      (error "No tag of class 'function to insert comment for"))
+
+    (let ((lextok (semantic-documentation-comment-preceeding-tag fcn-in 'lex))
+	  )
+
+      (when (not lextok)
+	(error "No comment to attempt an extraction"))
+
+      (let ((s (semantic-lex-token-start lextok))
+	    (e (semantic-lex-token-end lextok))
+	    (extract nil))
+
+	(pulse-momentary-highlight-region s e)
+
+	;; Extract text from the existing comment.
+	(setq extract (srecode-extract temp s e))
+
+	(with-output-to-temp-buffer "*SRECODE DUMP*"
+	  (princ "EXTRACTED DICTIONARY FOR ")
+	  (princ (semantic-tag-name fcn-in))
+	  (princ "\n--------------------------------------------\n")
+	  (srecode-dump extract))
+	))))
 
 (provide 'srecode-document)
 ;;; srecode-document.el ends here
