@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-doc.el,v 1.10 2008/09/08 01:47:19 zappo Exp $
+;; X-RCS: $Id: semantic-doc.el,v 1.11 2008/12/30 22:40:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -67,8 +67,8 @@ If nosnarf if 'lex, then only return the lex token."
 If TAG is nil.  use the tag under point.
 Searches the space between TAG and the preceeding tag for a comment,
 and converts the comment into clean documentation.
-Optional argument NOSNARF means to return just the lexical token and
-not the string."
+Optional argument NOSNARF with a value of 'lex means to return
+just the lexical token and not the string."
   (if (not tag) (setq tag (semantic-current-tag)))
   (save-excursion
     ;; Find this tag.
