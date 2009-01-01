@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-document.el,v 1.4 2009/01/01 16:48:58 zappo Exp $
+;; X-RCS: $Id: srecode-document.el,v 1.5 2009/01/01 18:58:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -101,19 +101,55 @@ If the cursor is on a one line prototype, then insert post-fcn comments."
 
       ;; Now analyze the tag we may be on.
 
-      (when (semantic-current-tag)
-	(cond
-	 ;; A one-line variable
-	 ((and (semantic-tag-of-class-p (semantic-current-tag) 'variable)
-	       (srecode-document-one-line-tag-p (semantic-current-tag)))
-	  (srecode-document-insert-variable-one-line-comment))
-	 ;; A plain function
-	 ((semantic-tag-of-class-p (semantic-current-tag) 'function)
-	  (srecode-document-insert-function-comment))
-	 ;; Don't know.
-	 (t
-	  (error "Not sure what to comment"))
-	 )))))
+      (if (semantic-current-tag)
+	  (cond
+	   ;; A one-line variable
+	   ((and (semantic-tag-of-class-p (semantic-current-tag) 'variable)
+		 (srecode-document-one-line-tag-p (semantic-current-tag)))
+	    (srecode-document-insert-variable-one-line-comment))
+	   ;; A plain function
+	   ((semantic-tag-of-class-p (semantic-current-tag) 'function)
+	    (srecode-document-insert-function-comment))
+	   ;; Don't know.
+	   (t
+	    (error "Not sure what to comment"))
+	   )
+
+	;; ELSE, no tag.  Perhaps we should just insert a nice section
+	;; header??
+
+	(let ((title (read-string "Section Title (RET to skip): ")))
+	  
+	  (when (and (stringp title) (not (= (length title) 0)))
+	    (srecode-document-insert-section-comment title)))
+
+	))))
+
+(defun srecode-document-insert-section-comment (&optional title)
+  "Insert a section comment with TITLE."
+  (interactive "sSection Title: ")
+  
+  (srecode-load-tables-for-mode major-mode)
+  (srecode-load-tables-for-mode major-mode 'document)
+
+  (if (not (srecode-table))
+      (error "No template table found for mode %s" major-mode))
+  
+  (let* ((dict (srecode-create-dictionary))
+	 (temp (srecode-template-get-table (srecode-table)
+					   "section-comment"
+					   "declaration"
+					   'document)))
+    (if (not temp)
+	(error "No templates for inserting section comments"))
+
+    (when title
+      (srecode-dictionary-set-value
+       dict "TITLE" title))
+    
+    (srecode-insert-fcn temp dict)
+    ))
+
 
 (defun srecode-document-trim-whitespace (str)
   "Strip stray whitespace from around STR."
