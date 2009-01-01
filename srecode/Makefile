@@ -17,12 +17,12 @@ LOADDIRS=.
 lang_SEMANTIC_GRAMMAR=srecode-template.wy
 EMACS=emacs
 lang_SEMANTIC_GRAMMAR_EL=srecode-template-wy.el
-srecode_LISP=srecode.el srecode-mode.el srecode-compile.el srecode-insert.el srecode-template-mode.el srecode-semantic.el srecode-load.el srecode-template.el srecode-dictionary.el srecode-args.el srecode-table.el srecode-filters.el srecode-find.el srecode-ctxt.el srecode-getset.el srecode-cpp.el srecode-expandproto.el srecode-el.el srecode-srt.el srecode-texi.el srecode-map.el
+srecode_LISP=srecode.el srecode-mode.el srecode-compile.el srecode-insert.el srecode-template-mode.el srecode-semantic.el srecode-load.el srecode-template.el srecode-dictionary.el srecode-args.el srecode-table.el srecode-filters.el srecode-find.el srecode-ctxt.el srecode-getset.el srecode-cpp.el srecode-expandproto.el srecode-el.el srecode-srt.el srecode-texi.el srecode-map.el srecode-extract.el
 EMACS=emacs
 doc_TEXINFOS=srecode.texi
 MAKEINFO=makeinfo
 tests_LISP=srecode-test.el srecode-test-getset.el
-document_LISP=srecode-document.el
+document_LISP=srecode-document.el srecode-document-vars.el
 VERSION=0.1
 DISTDIR=$(top)srecode-$(VERSION)
 
