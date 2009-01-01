@@ -9,7 +9,7 @@
 top=../
 ede_FILES=Project.ede Makefile
 
-templates_MISC=default.srt srecode-el.srt srecode-getset-cpp.srt srecode-template.srt srecode-cpp.srt srecode-wisent.srt srecode-expandproto-cpp.srt srecode-texi.srt srecode-test.srt srecode-document-cpp.srt
+templates_MISC=default.srt srecode-el.srt srecode-getset-cpp.srt srecode-template.srt srecode-cpp.srt srecode-wisent.srt srecode-expandproto-cpp.srt srecode-texi.srt srecode-test.srt srecode-document-cpp.srt document-default.srt
 VERSION=0.1
 DISTDIR=$(top)srecode-$(VERSION)/templates
 
