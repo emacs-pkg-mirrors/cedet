@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-document.el,v 1.3 2008/12/30 18:47:00 zappo Exp $
+;; X-RCS: $Id: srecode-document.el,v 1.4 2009/01/01 16:48:58 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -42,6 +42,7 @@
 (require 'srecode-dictionary)
 (require 'srecode-extract)
 (require 'srecode-args)
+(require 'srecode-document-vars)
 (require 'semantic)
 (require 'semantic-tag)
 (require 'semantic-doc)
@@ -80,7 +81,9 @@ If the cursor is on a one line prototype, then insert post-fcn comments."
 	(or srecode-handle-region-when-non-active-flag
 	    (eq last-command 'mouse-drag-region)
 	    (and transient-mark-mode mark-active))
-	(srecode-document-insert-group-comments (point) (mark))
+	(if (> (point) (mark))
+	    (srecode-document-insert-group-comments (mark) (point))
+	  (srecode-document-insert-group-comments (point) (mark)))
       ;; ELSE
 
       ;; A declaration comment.  Find what it documents.
@@ -161,7 +164,7 @@ It is assumed that the comment occurs just in front of FCN-IN."
 
     (let ((lextok (semantic-documentation-comment-preceeding-tag fcn-in 'lex))
 	  (doctext
-	   (srecode-document-programmer->english (semantic-tag-name fcn-in)))
+	   (srecode-document-function-name-comment fcn-in))
 	  )
 
       (when lextok
@@ -224,8 +227,7 @@ It is assumed that the comment occurs just in front of FCN-IN."
 		dict "DOC"
 		(if (eq tag fcn-in)
 		    doctext
-		  (srecode-document-programmer->english
-		   (semantic-tag-name tag)))
+		  (srecode-document-parameter-comment tag))
 		)))
 	    )
 	(srecode-insert-fcn temp dict)
@@ -301,59 +303,222 @@ It is assumed that the comment occurs just after VAR-IN."
 	  (srecode-semantic-apply-tag-augment-hook
 	   (lambda (tag dict)
 	     (srecode-dictionary-set-value
-	      dict "DOC" (srecode-document-programmer->english (semantic-tag-name tag)))))
+	      dict "DOC" (srecode-document-parameter-comment
+			  tag))))
 	  )
       (srecode-insert-fcn temp dict)
       ))
   )
 
+;;;###autoload
 (defun srecode-document-insert-group-comments (beg end)
   "Insert group comments around the active between BEG and END.
 If the region includes only parts of some tags, expand out
 to the beginning and end of the tags on the region.
 If there is only one tag in the region, complain."
   (interactive "r")
-  (error "Need to implement group comments")
-  ;; @TODO
-  )
+  (srecode-load-tables-for-mode major-mode)
+  (srecode-load-tables-for-mode major-mode 'document)
+
+  (if (not (srecode-table))
+      (error "No template table found for mode %s" major-mode))
+  
+  (let* ((dict (srecode-create-dictionary))
+	 (context "declaration")
+	 (temp-start nil)
+	 (temp-end nil)
+	 (tag-start (save-excursion
+		      (goto-char beg)
+		      (or (semantic-current-tag)
+			  (semantic-find-tag-by-overlay-next))))
+	 (tag-end (save-excursion
+		    (goto-char end)
+		    (or (semantic-current-tag)
+			(semantic-find-tag-by-overlay-prev))))
+	 (parent-tag nil)
+	 (first-pos beg)
+	 (second-pos end)
+	 )
+
+    ;; If beg/end wrapped nothing, then tag-start,end would actually
+    ;; point at some odd stuff that is out of order.
+    (when (or (not tag-start) (not tag-end)
+	      (> (semantic-tag-end tag-start)
+		 (semantic-tag-start tag-end)))
+      (setq tag-start nil
+	    tag-end nil))
+
+    (when tag-start
+      ;; If tag-start and -end are the same, and it is a class or
+      ;; struct, try to find child tags inside the classdecl.
+      (cond
+       ((and (eq tag-start tag-end)
+	     tag-start
+	     (semantic-tag-of-class-p tag-start 'type))
+	(setq parent-tag tag-start)
+	(setq tag-start (semantic-find-tag-by-overlay-next beg)
+	      tag-end (semantic-find-tag-by-overlay-prev end))
+	)
+       ((eq (semantic-find-tag-parent-by-overlay tag-start) tag-end)
+	(setq parent-tag tag-end)
+	(setq tag-end (semantic-find-tag-by-overlay-prev end))
+	)
+       ((eq tag-start (semantic-find-tag-parent-by-overlay tag-end))
+	(setq parent-tag tag-start)
+	(setq tag-start (semantic-find-tag-by-overlay-next beg))
+	)
+       )
+
+      (when parent-tag
+	;; We are probably in a classdecl
+	;; @todo -could I really use (srecode-calculate-context) ?
+
+	(setq context "classdecl")
+	)
+
+      ;; Derive start and end locations based on the tags.
+      (setq first-pos (semantic-tag-start tag-start)
+	    second-pos (semantic-tag-end tag-end))
+      )
+    ;; Now load the templates
+    (setq temp-start (srecode-template-get-table (srecode-table)
+						 "group-comment-start"
+						 context
+						 'document)
+	  temp-end (srecode-template-get-table (srecode-table)
+					       "group-comment-end"
+					       context
+					       'document))
+
+    (when (or (not temp-start) (not temp-end))
+      (error "No templates for inserting group comments"))
+
+    ;; Setup the name of this group ahead of time.
+
+    ;; @todo - guess at a name based on common strings
+    ;;         of the tags in the group.
+    (srecode-dictionary-set-value
+     dict "GROUPNAME"
+     (read-string "Name of group: "))
+    
+    ;; Perform the insertion
+    ;; Do the end first so we don't need to recalculate anything.
+    ;;
+    (goto-char second-pos)
+    (end-of-line)
+    (srecode-insert-fcn temp-end dict)
+
+    (goto-char first-pos)
+    (beginning-of-line)
+    (srecode-insert-fcn temp-start dict)
+
+    ))
 
 
 ;;; Document Generation Functions
 ;;
 ;; Routines for making up English style comments.
-(defcustom srecode-document-autocomment-common-nouns-abbrevs
-  '(
-    ("sock\\(et\\)?" . "socket")
-    ("addr\\(ess\\)?" . "address")
-    ("buf\\(f\\(er\\)?\\)?" . "buffer")
-    ("cur\\(r\\(ent\\)?\\)?" . "current")
-    ("dev\\(ice\\)?" . "device")
-    ("doc" . "document")
-    ("i18n" . "internationalization")
-    ("file" . "file")
-    ("line" . "line")
-    ("l10n" . "localization")
-    ("msg\\|message" . "message")
-    ("name" . "name")
-    ("next\\|nxt" . "next")
-    ("num\\(ber\\)?" . "number")
-    ("port" . "port")
-    ("host" . "host")
-    ("obj\\|object" . "object")
-    ("previous\\|prev" . "previous")
-    ("str\\(ing\\)?" . "string")
-    ("use?r" . "user")
-    ("\\(^\\|\\s-\\)id\\($\\|\\s-\\)" . "Identifier") ;complex cause ;common syllable
-    )
-  "List of common English abbreviations or full words.
-These are nouns (as opposed to verbs) for use in creating expanded
-versions of names.This is an alist with each element of the form:
- (MATCH . RESULT)
-MATCH is a regexp to match in the type field.
-RESULT is a string."
-  :group 'document
-  :type '(repeat (cons (string :tag "Regexp")
-		       (string :tag "Doc Text"))))
+
+(defun srecode-document-function-name-comment (tag)
+  "Create documentation for the function defined in TAG.
+If we can identify a verb in the list followed by some
+name part then check the return value to see if we can use that to
+finish off the sentence.  ie. any function with 'alloc' in it will be
+allocating something based on its type."
+  (let ((al srecode-document-autocomment-return-first-alist)
+	(dropit nil)
+	(tailit nil)
+	(news "")
+	(fname (semantic-tag-name tag))
+	(retval (or (semantic-tag-type tag) "")))
+    (if (listp retval)
+	;; convert a type list into a long string to analyze.
+	(setq retval (car retval)))
+    ;; check for modifiers like static
+    (while al
+      (if (string-match (car (car al)) (downcase retval))
+	  (progn
+	    (setq news (concat news (cdr (car al))))
+	    (setq dropit t)
+	    (setq al nil)))
+      (setq al (cdr al)))
+    ;; check for verb parts!
+    (setq al srecode-document-autocomment-function-alist)
+    (while al
+      (if (string-match (car (car al)) (downcase fname))
+	  (progn
+	    (setq news
+		  (concat news (if dropit (downcase (cdr (car al)))
+				 (cdr (car al)))))
+	    ;; if we end in a space, then we are expecting a potential
+	    ;; return value.
+	    (if (= ?  (aref news (1- (length news))))
+		(setq tailit t))
+	    (setq al nil)))
+      (setq al (cdr al)))
+    ;; check for noun parts!
+    (setq al srecode-document-autocomment-common-nouns-abbrevs)
+    (while al
+      (if (string-match (car (car al)) (downcase fname))
+	  (progn
+	    (setq news
+		  (concat news (if dropit (downcase (cdr (car al)))
+				 (cdr (car al)))))
+	    (setq al nil)))
+      (setq al (cdr al)))
+    ;; add tailers to names which are obviously returning something.
+    (if tailit
+	(progn
+	  (setq al srecode-document-autocomment-return-last-alist)
+	  (while al
+	    (if (string-match (car (car al)) (downcase retval))
+		(progn
+		  (setq news
+			(concat news " "
+				;; this one may use parts of the return value.
+				(format (cdr (car al))
+					(srecode-document-programmer->english
+					 (substring retval (match-beginning 1)
+						    (match-end 1))))))
+		  (setq al nil)))
+	    (setq al (cdr al)))))
+    news))
+
+(defun srecode-document-parameter-comment (param &optional commentlist)
+  "Convert tag or string PARAM into a name,comment pair.
+Optional COMMENTLIST is list of previously existing comments to
+use instead in alist form.  If the name doesn't appear in the list of
+standard names, then englishify it instead."
+  (let ((cmt "")
+	(aso srecode-document-autocomment-param-alist)
+	(fnd nil)
+	(name (if (stringp param) param (semantic-tag-name param)))
+	(tt (if (stringp param) nil (semantic-tag-type param))))
+    ;; Make sure the type is a string.
+    (if (listp tt)
+	(setq tt (semantic-tag-name tt)))
+    ;; Find name description parts.
+    (while aso
+      (if (string-match (car (car aso)) name)
+	  (progn
+	    (setq fnd t)
+	    (setq cmt (concat cmt (cdr (car aso))))))
+      (setq aso (cdr aso)))
+    (if (/= (length cmt) 0)
+	nil
+      ;; finally check for array parts
+      (if (and (not (stringp param)) (semantic-tag-modifiers param))
+	  (setq cmt (concat cmt "array of ")))
+      (setq aso srecode-document-autocomment-param-type-alist)
+      (while (and aso tt)
+	(if (string-match (car (car aso)) tt)
+	    (setq cmt (concat cmt (cdr (car aso)))))
+	(setq aso (cdr aso))))
+    ;; Convert from programmer to english.
+    (if (not fnd)
+	(setq cmt (concat cmt " "
+			  (srecode-document-programmer->english name))))
+    cmt))
 
 (defun srecode-document-programmer->english (programmer)
   "Take PROGRAMMER and convert it into English.
