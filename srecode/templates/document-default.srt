@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: document-default.srt,v 1.1 2009/01/01 18:33:55 zappo Exp $
+;; X-RCS: $Id: document-default.srt,v 1.2 2009/01/01 19:00:23 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -26,10 +26,19 @@ set application "document"
 
 context declaration
 
+template section-comment :blank :indent
+"A comment occuring in front of a group of declarations."
+----
+{{comment_start}} {{?TITLE}}
+{{comment_prefix}}
+{{comment_prefix}} {{^}}
+{{comment_end}}
+----
+
 template function-comment :tag :indent :blank
 "A comment occuring in front of a function."
 ----
-{{comment_start}} {{NAME}} --
+{{comment_start}} {{?NAME}} --
 {{DOC:srecode-comment-prefix}}
 {{comment_end}}
 ----
@@ -37,21 +46,21 @@ template function-comment :tag :indent :blank
 template variable-same-line-comment :tag
 "A comment occuring after a veriable declaration."
 ----
-{{comment_start}} {{DOC}} {{comment_end}}
+{{comment_start}} {{?DOC}} {{comment_end}}
 ----
 
 ;; These happen to be the same as in a classdecl.
 template group-comment-start :blank :indent
 "A comment occuring in front of a group of declarations."
 ----
-{{comment_start}} {{GROUPNAME}} --
+{{comment_start}} {{?GROUPNAME}} --
 {{comment_end}}
 ----
 
 template group-comment-end :indent
 "A comment occuring at the end of a a group of declarations."
 ----
-{{comment_start}} End {{GROUPNAME}} {{comment_end}}
+{{comment_start}} End {{?GROUPNAME}} {{comment_end}}
 ----
 
 ;; Some templates only show up in classdecls.
