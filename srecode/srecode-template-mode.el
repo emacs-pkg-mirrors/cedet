@@ -84,8 +84,86 @@
 
     ;; Macro separators
     ("^----\n" 0 'srecode-separator-face)
+
+    ;; Macro Matching
+    (srecode-template-mode-macro-escape-match 1 font-lock-string-face)
+    ((lambda (limit)
+       (srecode-template-mode-font-lock-macro-helper
+	limit "\\(\\??\\w+\\)[^ \t\n{}$#@&*()]*"))
+     1 font-lock-variable-name-face)
+    ((lambda (limit)
+       (srecode-template-mode-font-lock-macro-helper
+	limit "\\([#/]\\w+\\)[^ \t\n{}$#@&*()]*"))
+     1 font-lock-keyword-face)
+    ((lambda (limit)
+       (srecode-template-mode-font-lock-macro-helper
+	limit "\\([<>]\\w*\\):\\(\\w+\\):\\(\\w+\\)"))
+     (1 font-lock-keyword-face)
+     (2 font-lock-builtin-face)
+     (3 font-lock-type-face))
+    ((lambda (limit)
+       (srecode-template-mode-font-lock-macro-helper
+	limit "\\([<>]\\w*\\):\\(\\w+\\)"))
+     (1 font-lock-keyword-face)
+     (2 font-lock-type-face))
+    ((lambda (limit)
+       (srecode-template-mode-font-lock-macro-helper
+	limit "!\\([^{}$]*\\)"))
+     1 font-lock-comment-face)
+
     )
   "Keywords for use with srecode macros and font-lock.")
+
+(defun srecode-template-mode-font-lock-macro-helper (limit expression)
+  "Match against escape characters.
+Don't scan past LIMIT.  Match with EXPRESSION."
+  (let* ((done nil)
+	 (md nil)
+	 (tags (semantic-fetch-available-tags))
+	 (est (semantic-find-first-tag-by-name "escape_start" tags))
+	 (eet (semantic-find-first-tag-by-name "escape_end" tags))
+	 (es (regexp-quote (if est (car (semantic-tag-variable-default est)) "{{")))
+	 (ee (regexp-quote (if eet (car (semantic-tag-variable-default eet)) "}}")))
+	 (regex (concat es expression ee))
+	 )
+    (while (not done)
+      (save-match-data
+	(if (re-search-forward regex limit t)
+	    (when (equal (car (srecode-calculate-context)) "code")
+	      (setq md (match-data)
+		    done t))
+	  (setq done t))))
+    (set-match-data md)
+    ;; (when md (message "Found a match!"))
+    (when md t)))
+
+(defun srecode-template-mode-macro-escape-match (limit)
+  "Match against escape characters.
+Don't scan past LIMIT."
+  (let* ((done nil)
+	 (md nil)
+	 (tags (semantic-fetch-available-tags))
+	 (est (semantic-find-first-tag-by-name "escape_start" tags))
+	 (eet (semantic-find-first-tag-by-name "escape_end" tags))
+	 (es (regexp-quote (if est (car (semantic-tag-variable-default est)) "{{")))
+	 (ee (regexp-quote (if eet (car (semantic-tag-variable-default eet)) "}}")))
+	 (regex (concat "\\(" es "\\|" ee "\\)"))
+	 )
+    (while (not done)
+      (save-match-data
+	(if (re-search-forward regex limit t)
+	    (when (equal (car (srecode-calculate-context)) "code")
+	      (setq md (match-data)
+		    done t))
+	  (setq done t))))
+    (set-match-data md)
+    ;;(when md (message "Found a match!"))
+    (when md t)))
+
+(defvar srecode-font-lock-macro-keywords nil
+  "Dynamically generated `font-lock' keywords for srecode templates.
+Once the escape_start, and escape_end sequences are known, then
+we can tell font lock about them.")
 
 (defvar srecode-template-mode-map
   (let ((km (make-sparse-keymap)))
