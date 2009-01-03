@@ -1,8 +1,8 @@
 ;;; semantic-tag.el --- tag creation and access
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.62 2008/12/30 22:41:24 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.63 2009/01/03 17:00:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1251,6 +1251,18 @@ This function is overridable with the symbol `insert-foreign-tag'."
   (semantic-foreign-tag-check foreign-tag)
   (:override)
   (message (semantic-format-tag-summarize foreign-tag)))
+
+;;; Support log modes here
+(define-mode-local-override semantic-insert-foreign-tag
+  log-edit-mode (foreign-tag)
+  "Insert foriegn tags into log-edit mode."
+  (insert (concat "(" (semantic-format-tag-name foreign-tag) "): ")))
+
+(define-mode-local-override semantic-insert-foreign-tag
+  change-log-mode (foreign-tag)
+  "Insert foriegn tags into log-edit mode."
+  (insert (concat "(" (semantic-format-tag-name foreign-tag) "): ")))
+
 
 ;;; EDEBUG display support
 ;;
