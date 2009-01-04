@@ -1,9 +1,9 @@
 ;;; srecode-srt.el --- argument handlers for SRT files
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-srt.el,v 1.4 2008/06/19 02:21:57 zappo Exp $
+;; X-RCS: $Id: srecode-srt.el,v 1.5 2009/01/04 14:25:49 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -72,10 +72,16 @@ DEFAULT is the default if RET is hit."
   "Add macros into the dictionary DICT based on the current SRT file.
 Adds the following:
 ESCAPE_START - This files value of escape_start
-ESCAPE_END - This files value of escape_end"
+ESCAPE_END - This files value of escape_end
+MODE - The mode of this buffer.  If not declared yet, guess."
   (let* ((vars (semantic-find-tags-by-class 'variable (current-buffer)))
 	 (es (semantic-find-first-tag-by-name "escape_start" (current-buffer)))
-	 (ee (semantic-find-first-tag-by-name "escape_end" (current-buffer))))
+	 (ee (semantic-find-first-tag-by-name "escape_end" (current-buffer)))
+	 (mode-var (semantic-find-first-tag-by-name "mode" (current-buffer)))
+	 (mode (if mode-var
+		   (semantic-tag-variable-default mode-var)
+		 nil))
+	 )
     (srecode-dictionary-set-value dict "ESCAPE_START"
 				  (if es
 				      (car (semantic-tag-variable-default es))
@@ -84,6 +90,16 @@ ESCAPE_END - This files value of escape_end"
 				  (if ee
 				      (car (semantic-tag-variable-default ee))
 				    "}}"))
+    (when (not mode)
+      (let* ((fname (file-name-nondirectory
+		     (buffer-file-name (current-buffer))))
+	     )
+	(when (string-match "-\\(\\w+\\)\\.srt" fname)
+	  (setq mode (concat (match-string 1 fname) "-mode")))))
+
+    (when mode
+      (srecode-dictionary-set-value dict "MAJORMODE" mode))
+	  
     ))
 
 (provide 'srecode-srt)
