@@ -31,9 +31,13 @@
     (modify-syntax-entry ?\n ">"     table) ;; Comment end
     (modify-syntax-entry ?$  "."     table) ;; Punctuation
     (modify-syntax-entry ?:  "."     table) ;; Punctuation
+    (modify-syntax-entry ?<  "."     table) ;; Punctuation
+    (modify-syntax-entry ?>  "."     table) ;; Punctuation
+    (modify-syntax-entry ?#  "."     table) ;; Punctuation
+    (modify-syntax-entry ?!  "."     table) ;; Punctuation
+    (modify-syntax-entry ??  "."     table) ;; Punctuation
     (modify-syntax-entry ?\" "\""    table) ;; String
     (modify-syntax-entry ?\- "_"     table) ;; Symbol
-    (modify-syntax-entry ?\: "_"     table) ;; Symbol
     (modify-syntax-entry ?\\ "\\"    table) ;; Quote
     (modify-syntax-entry ?\` "'"     table) ;; Prefix ` (backquote)
     (modify-syntax-entry ?\' "'"     table) ;; Prefix ' (quote)
@@ -261,10 +265,47 @@ we can tell font lock about them.")
 	))))
 
 
+;;; Misc Language Overrides
+;;
+(define-mode-local-override semantic-ia-insert-tag
+  srecode-template-mode (tag)
+  "Insert the SRecode TAG into the current buffer."
+  (insert (semantic-tag-name tag)))
+
+
 ;;; Local Context Parsing.
 ;;
 (eval-when-compile
   (require 'semantic-analyze))
+
+(defun srecode-in-macro-p (&optional point)
+  "Non-nil if POINT is inside a macro bounds.
+If the ESCAPE_START and END are different sequences,
+a simple search is used.  If ESCAPE_START and END are the same
+characteres, start at the beginning of the line, and find out
+how many occur."
+  (let ((tag (semantic-current-tag))
+	(es (regexp-quote (srecode-template-get-escape-start)))
+	(ee (regexp-quote (srecode-template-get-escape-end)))
+	(start (or point (point)))
+	)
+    (when (and tag (semantic-tag-of-class-p tag 'function))
+      (if (string= es ee)
+	  (save-excursion
+	    (beginning-of-line)
+	    (while (re-search-forward es start t 2))
+	    (if (re-search-forward es start t)
+		;; If there is a single, the the answer is yes.
+		t
+	      ;; If there wasn't another, then the answer is no.
+	      nil)
+	    )
+	;; ES And EE are not the same.
+	(save-excursion
+	  (and (re-search-backward es (semantic-tag-start tag) t)
+	       (> (re-search-forward ee (semantic-tag-end tag) t)
+		  start)))
+	))))
 
 (defun srecode-up-context-get-name (&optional point)
   "Move up one context as for `semantic-up-context', and return the name.
@@ -406,12 +447,13 @@ section or ? for an ask variable."
 	  (raw nil)
 	  )
       (when (and tag (semantic-tag-of-class-p tag 'function)
+		 (srecode-in-macro-p point)
 		 (re-search-backward es (semantic-tag-start tag) t))
 	(setq macrostart (match-end 0))
 	(goto-char macrostart)
 	;; We have a match
 	(if (not (re-search-forward ee (semantic-tag-end tag) t))
-	    (setq symbol-end start) ;; Pretend we are ok for completion
+	    (setq symbolend start) ;; Pretend we are ok for completion
 	  (if (> start (point))
 	      ;; If our starting point is after the found point, that
 	      ;; means we are not inside the macro.  Retur nil.
@@ -456,30 +498,32 @@ section or ? for an ask variable."
 	   (endsym (nth 1 prefixandbounds))
 	   (bounds (nth 2 prefixandbounds))
 	   (key (car (srecode-parse-this-macro (point))))
+	   (prefixsym nil)
 	   (prefix-var nil)
 	   (prefix-context nil)
-	   (prefix-subtemplate nil)
 	   (prefix-function nil)
 	   (prefixclass (semantic-ctxt-current-class-list))
-	   (localvar (semantic-get-all-local-variables point))
 	   (globalvar (semantic-find-tags-by-class 'variable (current-buffer)))
+	   (argtype 'macro)
+	   (scope (semantic-calculate-scope point))
 	   )
+
+      (oset scope fullscope (append (oref scope localvar) globalvar))
       
       (when prefix
 	;; First, try to find the variable for the first
 	;; entry in the prefix list.
-	(setq prefix-var (or (semantic-find-first-tag-by-name
-			      (car prefix) localvar)
-			     (semantic-find-first-tag-by-name
-			      (car prefix) globalvar)))
+	(setq prefix-var (semantic-find-first-tag-by-name
+			  (car prefix) (oref scope fullscope)))
 	
 	(cond
 	 ((and (or (not key) (string= key "?"))
 	       (> (length prefix) 1))
 	  ;; Variables can have lisp function names.
-	  (with-mode-local 'emacs-lisp-mode
-	    (let ((fcns (semanticdb-find-tags-by-name (last prefix))))
-	      (setq prefix-function (semanticdb-find-result-nth fcns 0))))
+	  (with-mode-local emacs-lisp-mode
+	    (let ((fcns (semanticdb-find-tags-by-name (car (last prefix)))))
+	      (setq prefix-function (car (semanticdb-find-result-nth fcns 0)))
+	      (setq argtype 'elispfcn)))
 	  )
 	 ((or (string= key "<") (string= key ">"))
 	  ;; Includes have second args that is the template name.
@@ -493,12 +537,14 @@ section or ? for an ask variable."
 			  (semantic-tag
 			   (symbol-name
 			    (srecode-template-current-context))
-			   'context))))
+			   'context)))
+		(setq argtype 'template))
 	    (setq prefix-context
 		  ;; Calculate from location
 		  (semantic-tag
 		   (symbol-name (srecode-template-current-context))
 		   'context))
+	    (setq argtype 'template)
 	    )
 	  ;; The last one?
 	  (when (> (length prefix) 1)
@@ -517,26 +563,82 @@ section or ? for an ask variable."
 
 	(setq prefixsym
 	      (cond ((= (length prefix) 3)
-		     (list prefix-var prefix-context prefix-function))
+		     (list (or prefix-var (nth 0 prefix))
+			   (or prefix-context (nth 1 prefix))
+			   (or prefix-function (nth 2 prefix))))
 		    ((= (length prefix) 2)
-		     (list prefix-var prefix-function))
+		     (list (or prefix-var (nth 0 prefix))
+			   (or prefix-function (nth 1 prefix))))
 		    ((= (length prefix) 1)
-		     (list prefix-var))))
+		     (list (or prefix-var (nth 0 prefix)))
+		     )))
 
 	(setq context-return
-	      (semantic-analyze-context
+	      (semantic-analyze-context-functionarg
 	       "context-for-srecode"
 	       :buffer (current-buffer)
-	       :scope nil
+	       :scope scope
 	       :bounds bounds
 	       :prefix (or prefixsym
 			   prefix)
 	       :prefixtypes nil
 	       :prefixclass prefixclass
 	       :errors nil
+	       ;; Use the functionarg analyzer class so we
+	       ;; can save the current key, and the index
+	       ;; into the macro part we are completing on.
+	       :function (list key)
+	       :index (length prefix)
+	       :argument (list argtype)
 	       ))
 
 	context-return)))
+
+(define-mode-local-override semantic-analyze-possible-completions
+  srecode-template-mode (context)
+  "Return a list of possible completions based on NONTEXT."
+  (save-excursion
+    (set-buffer (oref context buffer))
+    (let* ((prefix (car (last (oref context :prefix))))
+	   (prefixstr (cond ((stringp prefix)
+			     prefix)
+			    ((semantic-tag-p prefix)
+			     (semantic-tag-name prefix))))
+	   (completetext (cond ((semantic-tag-p prefix)
+				(semantic-tag-name prefix))
+			       ((stringp prefix)
+				prefix)
+			       ((stringp (car prefix))
+				(car prefix))))
+	   (argtype (car (oref context :argument)))
+	   (matches nil))
+
+      ;; Depending on what the analyzer is, we have different ways
+      ;; of creating completions.
+      (cond ((eq argtype 'template)
+	     (setq matches (semantic-find-tags-for-completion
+			    prefixstr (current-buffer)))
+	     (setq matches (semantic-find-tags-by-class
+			    'function matches))
+	     )
+	    ((eq argtype 'elispfcn)
+	     (with-mode-local emacs-lisp-mode
+	       (setq matches (semanticdb-find-tags-for-completion
+			      prefixstr))
+	       (setq matches (semantic-find-tags-by-class
+			      'function matches))
+	       )
+	     )
+	    ((eq argtype 'macro)
+	     (let ((scope (oref context scope)))
+	       (setq matches 
+		     (semantic-find-tags-for-completion
+		      prefixstr (oref scope fullscope))))
+	     )
+	    )
+
+      matches)))
+
 
 
 ;;; Utils
