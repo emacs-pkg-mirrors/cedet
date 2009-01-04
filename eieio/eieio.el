@@ -2,10 +2,10 @@
 ;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08 Eric M. Ludlam
+;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.178 2008/12/29 02:43:33 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.179 2009/01/04 13:41:19 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -1216,7 +1216,8 @@ IMPL is the symbol holding the method implementation."
 	  ;; We do have an object.  Make sure it is the right type.
 	  (if ,(if (eq class eieio-default-superclass)
 		   nil ; default superclass means just an obj.  Already asked.
-		 `(not (child-of-class-p (aref (car local-args) object-class) ,class))
+		 `(not (child-of-class-p (aref (car local-args) object-class)
+					 ,(list 'quote class)))
 		 )
 	      
 	      ;; If not the right kind of object, call no applicable
@@ -1225,7 +1226,7 @@ IMPL is the symbol holding the method implementation."
 
 	    ;; It is ok, do the call.
 	    ;; Fill in inter-call variables then evaluate the method.
-	    (let ((scoped-class ,class)
+	    (let ((scoped-class ,(list 'quote class))
 		  (eieio-generic-call-next-method-list nil)
 		  (eieio-generic-call-key method-primary)
 		  (eieio-generic-call-methodname ,(list 'quote method))
@@ -1234,8 +1235,8 @@ IMPL is the symbol holding the method implementation."
 	      (apply ,(list 'quote impl) local-args)
 	      ;(,impl local-args)
 	      ))))
-     ))
-  )
+     )
+  ))
 
 (defsubst eieio-defgeneric-reset-generic-form-primary-only-one (method)
   "Setup METHOD to call the generic form."
