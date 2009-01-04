@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.11 2009/01/01 19:12:47 zappo Exp $
+@c $Id: srecode.texi,v 1.12 2009/01/04 14:26:21 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -1175,6 +1175,17 @@ or structs.
 Each language typically has it's own argument.  These arguments can be
 used to fill in language specific values that will be useful.
 
+@subsubsection Argument :srt
+
+Used for SRecoder template files.
+
+@table @code
+@item ESCAPE_START
+The characters used for an escape start
+@item ESCAPE_END
+The characters used for an escape end
+@end table
+
 @subsubsection Argument :cpp
 
 @table @code
@@ -1193,6 +1204,17 @@ tags in the current buffer.
 
 Most Emacs Lisp packages have some common prefix used in a way similar
 to namespaces in other languages.
+
+@subsubsection Argument :el-custom
+
+@table @code
+@item GROUP
+The name of the Emacs Custom group that instances of @code{defcustom}
+ought to use.
+@item FACEGROUP
+The name of the Emacs Custom group that faces delcared with
+@code{defface} ought to use.
+@end table
 
 @subsubsection Argument :texi
 
