@@ -1,9 +1,9 @@
 ;;; srecode-insert --- Insert srecode templates to an output stream.
 
-;;; Copyright (C) 2005, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.22 2008/12/29 13:39:03 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.23 2009/01/04 14:23:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -133,6 +133,7 @@ Apply anything learned to the dictionary DICT."
 
 (defun srecode-resolve-argument-list (args dict &optional temp)
   "Resolve arguments in the argument list ARGS.
+ARGS is a list of symbols, such as :blank, or :file.
 Apply values to DICT.
 Optional argument TEMP is the template that is getting it's arguments resolved."
   (let ((fcn nil))
