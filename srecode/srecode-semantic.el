@@ -1,9 +1,9 @@
 ;;; srecode-semantic.el --- Semantic specific extensions to SRecode.
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.9 2008/12/29 04:45:00 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.10 2009/01/04 14:24:30 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -155,6 +155,7 @@ variable default values, and other things."
      ;; FUNCTION
      ;;
      ((eq (semantic-tag-class tag) 'function)
+      ;; FCN ARGS
       (let ((args (semantic-tag-function-arguments tag)))
 	(while args
 	  (let ((larg (car args))
@@ -172,10 +173,20 @@ variable default values, and other things."
 	    )
 	  ;; Next!
 	  (setq args (cdr args))))
+      ;; PARENTS
       (let ((p (semantic-tag-function-parent tag)))
 	(when p
 	  (srecode-dictionary-set-value dict "PARENT" p)
 	  ))
+      ;; EXCEPTIONS (java/c++)
+      (let ((exceptions (semantic-tag-get-attribute tag :throws)))
+	(while exceptions
+	  (let ((subdict (srecode-dictionary-add-section-dictionary
+			  dict "THROWS")))
+	    (srecode-dictionary-set-value subdict "NAME" (car exceptions))
+	    )	   
+	  (setq exceptions (cdr exceptions)))
+	)
       )
      ;;
      ;; VARIABLE
