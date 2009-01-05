@@ -1,9 +1,9 @@
 ;;; semantic-adebug.el --- Semantic Application Debugger
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.24 2008/12/18 00:55:02 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.25 2009/01/05 23:44:41 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -325,13 +325,16 @@ Optional argument CTXT is the context to show."
 	(ctxt (or ctxt (semantic-analyze-current-context)))
 	(end (current-time))
 	(ab nil))
-    (message "Analysis  took %.2f seconds."
-	     (semantic-elapsed-time start end))
-    (if ctxt
-	(progn
-	  (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
-	  (data-debug-insert-object-slots ctxt "]"))
-      (message "No Context to analyze here."))))
+    (if (not ctxt)
+	(message "No Analyzer Results")
+      (message "Analysis  took %.2f seconds."
+	       (semantic-elapsed-time start end))
+      (semantic-analyze-pulse ctxt)
+      (if ctxt
+	  (progn
+	    (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
+	    (data-debug-insert-object-slots ctxt "]"))
+	(message "No Context to analyze here.")))))
 
 ;;;###autoload
 (defun semantic-adebug-edebug-expr (expr)
