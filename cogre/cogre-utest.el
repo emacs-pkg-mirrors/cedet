@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-utest.el,v 1.1 2009/01/05 21:44:38 zappo Exp $
+;; X-RCS: $Id: cogre-utest.el,v 1.2 2009/01/05 21:51:32 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -27,7 +27,10 @@
 ;; These are effectively no-crash and UI tests.  I have not output tests.
 
 (require 'cedet-utests)
+(eval-when-compile
+  (require 'picture-hack))
 (require 'cogre)
+(require 'cogre-mode)
 
 ;;; Code:
 
