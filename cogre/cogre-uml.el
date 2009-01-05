@@ -1,10 +1,10 @@
 ;;; cogre-uml.el --- UML support for COGRE
 
-;;; Copyright (C) 2001, 2008 Eric M. Ludlam
+;;; Copyright (C) 2001, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.11 2008/07/03 01:41:00 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.12 2009/01/05 23:41:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -127,7 +127,7 @@ Argument CLASS is the class whose slots are referenced."
 			  ("_|_" "\\ /" " V ")
 			  (" /|" "< |" " \\|")
 			  ("|\\" "|/") ])
-   (horizontal-preference-ratio :initform .1)
+   (horizontal-preference-ratio :initform .0001)
    )
   "This type of link indicates that the two nodes reference infer inheritance.
 The `start' node is the child, and the `end' node is the parent.
