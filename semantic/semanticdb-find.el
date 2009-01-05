@@ -1,10 +1,10 @@
 ;;; semanticdb-find.el --- Searching through semantic databases.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.73 2008/12/21 01:10:49 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.74 2009/01/05 23:48:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -876,10 +876,9 @@ instead."
 		(cond ((eq find-file-match 'name)
 		       (let ((f (semanticdb-full-filename nametable)))
 			 (semantic--tag-put-property ntag :filename f)))
-		      (find-file-match
+		      ((and find-file-match ntab)
 		       (semanticdb-get-buffer ntab))
 		      )
-
 		))
 	    )
 	  (setq tmp (cdr tmp)))
