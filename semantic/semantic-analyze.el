@@ -1,10 +1,10 @@
 ;;; semantic-analyze.el --- Analyze semantic tags against local context
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.77 2008/09/07 01:41:53 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.78 2009/01/05 23:45:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -600,6 +600,13 @@ Returns an object based on symbol `semantic-analyze-context'."
 ;;
 ;; Friendly output of a context analysis.
 ;;
+(defmethod semantic-analyze-pulse ((context semantic-analyze-context))
+  "Pulse the region that CONTEXT affects."
+  (save-excursion
+    (set-buffer (oref context :buffer))
+    (let ((bounds (oref context :bounds)))
+      (pulse-momentary-highlight-region (car bounds) (cdr bounds)))))
+
 (defcustom semantic-analyze-summary-function 'semantic-format-tag-prototype
   "*Function to use when creating items in Imenu.
 Some useful functions are found in `semantic-format-tag-functions'."
@@ -658,6 +665,7 @@ Use BUFF as a source of override methods."
 (defun semantic-analyze-pop-to-context (context)
   "Display CONTEXT in a temporary buffer.
 CONTEXT's content is described in `semantic-analyze-current-context'."
+  (semantic-analyze-pulse context)
   (with-output-to-temp-buffer "*Semantic Context Analysis*"
     (princ "Context Type: ")
     (princ (object-name context))
