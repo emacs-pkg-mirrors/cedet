@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-locate.el,v 1.2 2008/12/19 22:46:48 zappo Exp $
+;; X-RCS: $Id: ede-locate.el,v 1.3 2009/01/05 23:42:40 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -45,6 +45,9 @@
 ;;
 ;; How to use:
 ;;
+;; Configure `ede-locate-setup-options' to add the types of locate
+;; features you have available.  EDE will then enable the correct one
+;; when it is available.
 
 (require 'ede)
 (eval-when-compile (require 'data-debug)
