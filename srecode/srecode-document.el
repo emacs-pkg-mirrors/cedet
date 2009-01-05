@@ -1,9 +1,9 @@
 ;;; srecode-document.el --- Documentation (comment) generation
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-document.el,v 1.5 2009/01/01 18:58:27 zappo Exp $
+;; X-RCS: $Id: srecode-document.el,v 1.6 2009/01/05 23:49:51 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -38,6 +38,7 @@
 ;; Document has now been ported to srecode, using the semantic recoder
 ;; as the templating engine.
 
+(require 'srecode-semantic)
 (require 'srecode-insert)
 (require 'srecode-dictionary)
 (require 'srecode-extract)
