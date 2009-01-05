@@ -170,6 +170,7 @@ we can tell font lock about them.")
   (let ((km (make-sparse-keymap)))
     (define-key km "\C-c\C-c" 'srecode-compile-templates)
     (define-key km "\C-c\C-m" 'srecode-macro-help)
+    (define-key km "/" 'srecode-self-insert-complete-end-macro)
     km)
   "Keymap used in srecode mode.")
 
@@ -202,6 +203,19 @@ we can tell font lock about them.")
 
 ;;; Template Commands
 ;;
+(defun srecode-self-insert-complete-end-macro ()
+  "Self insert the current key, then autocomplete the end macro."
+  (interactive)
+  (call-interactively 'self-insert-command)
+  (let ((name (save-excursion
+		(forward-char -2)
+		(srecode-up-context-get-name (point) t)))
+	(ee (srecode-template-get-escape-end)))
+    (insert name)
+    (insert ee))
+  )
+  
+
 (defun srecode-macro-help ()
   "Provide help for working with macros in a tempalte."
   (interactive)
@@ -307,11 +321,13 @@ how many occur."
 		  start)))
 	))))
 
-(defun srecode-up-context-get-name (&optional point)
+(defun srecode-up-context-get-name (&optional point find-unmatched)
   "Move up one context as for `semantic-up-context', and return the name.
 Moves point to the opening characters of the section macro text.
 If there is no upper context, return nil.
-Starts at POINT if provided."
+Starts at POINT if provided.
+If FIND-UNMATCHED is specified as non-nil, then we are looking for an unmatched
+section."
   (when point (goto-char (point)))
   (let* ((tag (semantic-current-tag))
 	 (es (regexp-quote (srecode-template-get-escape-start)))
@@ -327,7 +343,10 @@ Starts at POINT if provided."
 		(let ((endr (concat es "/" name)))
 		  (if (re-search-forward endr (semantic-tag-end tag) t)
 		      (< orig (point))
-		    (error "Unmatched Section Template"))))
+		    (if (not find-unmatched)
+			(error "Unmatched Section Template")
+		      ;; We found what we want.
+		      t))))
 	  (setq res (point)))
 	)
       ;; Restore in no result found.
