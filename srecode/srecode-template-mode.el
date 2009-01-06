@@ -108,7 +108,7 @@
      (3 font-lock-type-face))
     ((lambda (limit)
        (srecode-template-mode-font-lock-macro-helper
-	limit "\\([<>]\\w*\\):\\(\\w+\\)"))
+	limit "\\([<>?]?\\w*\\):\\(\\w+\\)"))
      (1 font-lock-keyword-face)
      (2 font-lock-type-face))
     ((lambda (limit)
@@ -207,12 +207,20 @@ we can tell font lock about them.")
   "Self insert the current key, then autocomplete the end macro."
   (interactive)
   (call-interactively 'self-insert-command)
-  (let ((name (save-excursion
-		(forward-char -2)
-		(srecode-up-context-get-name (point) t)))
-	(ee (srecode-template-get-escape-end)))
-    (insert name)
-    (insert ee))
+  (when (and (semantic-current-tag)
+	     (semantic-tag-of-class-p (semantic-current-tag) 'function)
+	     )
+    (let* ((es (srecode-template-get-escape-start))
+	   (ee (srecode-template-get-escape-end))
+	   (name (save-excursion
+		   (forward-char (- (length es)))
+		   (forward-char -1)
+		   (if (looking-at (regexp-quote es))
+		       (srecode-up-context-get-name (point) t))))
+	   )
+      (when name
+	(insert name)
+	(insert ee))))
   )
   
 
@@ -317,7 +325,9 @@ how many occur."
 	;; ES And EE are not the same.
 	(save-excursion
 	  (and (re-search-backward es (semantic-tag-start tag) t)
-	       (> (re-search-forward ee (semantic-tag-end tag) t)
+	       (>= (or (re-search-forward ee (semantic-tag-end tag) t)
+		       ;; No end match means an incomplete macro.
+		       start)
 		  start)))
 	))))
 
@@ -471,40 +481,43 @@ section or ? for an ask variable."
 	(setq macrostart (match-end 0))
 	(goto-char macrostart)
 	;; We have a match
-	(if (not (re-search-forward ee (semantic-tag-end tag) t))
-	    (setq symbolend start) ;; Pretend we are ok for completion
-	  (if (> start (point))
-	      ;; If our starting point is after the found point, that
-	      ;; means we are not inside the macro.  Retur nil.
-	      nil
-	    ;; We are inside the macro, extract the text so far.
-	    (let* ((macroend (match-beginning 0))
-		   (raw (buffer-substring-no-properties
-			 macrostart macroend))
-		   (STATE (srecode-compile-state "TMP"))
-		   (inserter (condition-case nil
-				 (srecode-compile-parse-inserter
-				  raw STATE)
-			       (error nil)))
-		   )
-	      (when inserter
-		(let ((base
-		       (cons (oref inserter :object-name)
-			     (if (and (slot-boundp inserter :secondname)
-				      (oref inserter :secondname))
-				 (split-string (oref inserter :secondname)
-					       ":")
-			       nil)))
-		      (key (oref inserter key)))
-		  (cond ((null key)
-			 ;; A plain variable
-			 (cons nil base))
-			(t
-			 ;; A complex variable thingy.
-			 (cons (format "%c" key)
-			       base)))))
-	      )
-	    ))))
+	(when (not (re-search-forward ee (semantic-tag-end tag) t))
+	  (goto-char start) ;; Pretend we are ok for completion
+	  (set-match-data (list start start))
+	  )
+
+	(if (> start (point))
+	    ;; If our starting point is after the found point, that
+	    ;; means we are not inside the macro.  Retur nil.
+	    nil
+	  ;; We are inside the macro, extract the text so far.
+	  (let* ((macroend (match-beginning 0))
+		 (raw (buffer-substring-no-properties
+		       macrostart macroend))
+		 (STATE (srecode-compile-state "TMP"))
+		 (inserter (condition-case nil
+			       (srecode-compile-parse-inserter
+				raw STATE)
+			     (error nil)))
+		 )
+	    (when inserter
+	      (let ((base
+		     (cons (oref inserter :object-name)
+			   (if (and (slot-boundp inserter :secondname)
+				    (oref inserter :secondname))
+			       (split-string (oref inserter :secondname)
+					     ":")
+			     nil)))
+		    (key (oref inserter key)))
+		(cond ((null key)
+		       ;; A plain variable
+		       (cons nil base))
+		      (t
+		       ;; A complex variable thingy.
+		       (cons (format "%c" key)
+			     base)))))
+	    )
+	  )))
     ))
 
 (define-mode-local-override semantic-analyze-current-context
