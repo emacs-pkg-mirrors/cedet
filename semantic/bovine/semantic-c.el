@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.95 2008/12/18 00:57:16 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.96 2009/01/06 12:42:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -338,7 +338,7 @@ case, we must skip it since it is the ELSE part."
 
 (define-lex-regex-analyzer semantic-lex-c-macrobits
   "Ignore various forms of #if/#else/#endif conditionals."
-  "^#\\s-*\\(if\\(def\\)?\\|endif\\)"
+  "^\\s-*#\\s-*\\(if\\(def\\)?\\|endif\\)"
   (semantic-c-end-of-macro)
   (setq semantic-lex-end-point (point))
   nil)
@@ -398,8 +398,6 @@ they are comment end characters)."
 (define-lex semantic-c-lexer
   "Lexical Analyzer for C code.
 Use semantic-cpp-lexer for parsing text inside a CPP macro."
-  semantic-lex-ignore-whitespace
-  semantic-c-lex-ignore-newline
   ;; C preprocessor features
   semantic-lex-cpp-define
   semantic-lex-cpp-undef
@@ -409,6 +407,9 @@ Use semantic-cpp-lexer for parsing text inside a CPP macro."
   semantic-lex-c-include
   semantic-lex-c-include-system
   semantic-lex-c-ignore-ending-backslash
+  ;; Whitespace handling
+  semantic-lex-ignore-whitespace
+  semantic-c-lex-ignore-newline
   ;; Non-preprocessor features
   semantic-lex-number
   ;; Must detect C strings before symbols because of possible L prefix!
