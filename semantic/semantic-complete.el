@@ -1,10 +1,10 @@
 ;;; semantic-complete.el --- Routines for performing tag completion
 
-;;; Copyright (C) 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.56 2008/12/09 19:38:14 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.57 2009/01/06 03:08:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2069,6 +2069,9 @@ will perform the completion."
   (if (and (interactive-p)
 	   (not (semantic-completion-inline-active-p)))
       (message "Inline completion not needed."))
+  ;; Since this is most likely bound to something, and not used
+  ;; at idle time, throw in a TAB for good measure.
+  (semantic-complete-inline-TAB)
   )
 
 ;;;###autoload
