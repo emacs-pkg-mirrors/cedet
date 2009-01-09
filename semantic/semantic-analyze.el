@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.78 2009/01/05 23:45:23 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.79 2009/01/09 23:04:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -253,7 +253,6 @@ are found in SEQUENCE.
 Optional argument THROWSYM specifies a symbol the throw on non-recoverable error."
   (let ((s sequence)			; copy of the sequence
 	(tmp nil)			; tmp find variable
-	(nexttype nil)			; a tag for the type next in sequence
 	(tag nil)			; tag return list
 	(tagtype nil)			; tag types return list
 	(fname nil)
@@ -436,10 +435,8 @@ if a cached copy of the return object is found."
 Returns an object based on symbol `semantic-analyze-context'."
   (let* ((semantic-analyze-error-stack nil)
 	 (context-return nil)
-	 (startpoint (point))
 	 (prefixandbounds (semantic-ctxt-current-symbol-and-bounds (or position (point))))
 	 (prefix (car prefixandbounds))
-	 (endsym (nth 1 prefixandbounds))
 	 (bounds (nth 2 prefixandbounds))
 	 ;; @todo - vv too early to really know this answer! vv
 	 (prefixclass (semantic-ctxt-current-class-list))
@@ -519,8 +516,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 			     (semantic-tag-name (car ty))
 			     (semantic-tag-type-members (car ty))))
 		  (if fcn
-		    (let ((con nil)
-			  (lp fcn))
+		    (let ((lp fcn))
 		      (while lp
 			(when (semantic-tag-get-attribute (car lp)
 							  :constructor)
