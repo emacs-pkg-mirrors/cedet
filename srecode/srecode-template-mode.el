@@ -124,7 +124,6 @@
 Don't scan past LIMIT.  Match with EXPRESSION."
   (let* ((done nil)
 	 (md nil)
-	 (tags (semantic-fetch-available-tags))
 	 (es (regexp-quote (srecode-template-get-escape-start)))
 	 (ee (regexp-quote (srecode-template-get-escape-end)))
 	 (regex (concat es expression ee))
@@ -145,7 +144,6 @@ Don't scan past LIMIT.  Match with EXPRESSION."
 Don't scan past LIMIT."
   (let* ((done nil)
 	 (md nil)
-	 (tags (semantic-fetch-available-tags))
 	 (es (regexp-quote (srecode-template-get-escape-start)))
 	 (ee (regexp-quote (srecode-template-get-escape-end)))
 	 (regex (concat "\\(" es "\\|" ee "\\)"))
@@ -228,7 +226,6 @@ we can tell font lock about them.")
   "Provide help for working with macros in a tempalte."
   (interactive)
   (let* ((root 'srecode-template-inserter)
-	 (myname (symbol-name root))
 	 (chl (aref (class-v root) class-children))
 	 (ess (srecode-template-get-escape-start))
 	 (ees (srecode-template-get-escape-end))
@@ -469,10 +466,8 @@ section or ? for an ask variable."
     (let ((tag (semantic-current-tag))
 	  (es (regexp-quote (srecode-template-get-escape-start)))
 	  (ee (regexp-quote (srecode-template-get-escape-end)))
-	  (symbolend nil)
 	  (start (point))
 	  (macrostart nil)
-	  (macroend nil)
 	  (raw nil)
 	  )
       (when (and tag (semantic-tag-of-class-p tag 'function)
@@ -524,10 +519,8 @@ section or ? for an ask variable."
   srecode-template-mode (point)
   "Provide a Semantic analysis in SRecode template mode."
     (let* ((context-return nil)
-	   (startpoint (point))
 	   (prefixandbounds (semantic-ctxt-current-symbol-and-bounds))
 	   (prefix (car prefixandbounds))
-	   (endsym (nth 1 prefixandbounds))
 	   (bounds (nth 2 prefixandbounds))
 	   (key (car (srecode-parse-this-macro (point))))
 	   (prefixsym nil)
@@ -636,12 +629,12 @@ section or ? for an ask variable."
 			     prefix)
 			    ((semantic-tag-p prefix)
 			     (semantic-tag-name prefix))))
-	   (completetext (cond ((semantic-tag-p prefix)
-				(semantic-tag-name prefix))
-			       ((stringp prefix)
-				prefix)
-			       ((stringp (car prefix))
-				(car prefix))))
+;	   (completetext (cond ((semantic-tag-p prefix)
+;				(semantic-tag-name prefix))
+;			       ((stringp prefix)
+;				prefix)
+;			       ((stringp (car prefix))
+;				(car prefix))))
 	   (argtype (car (oref context :argument)))
 	   (matches nil))
 
@@ -740,7 +733,7 @@ When optional BUFFER is provided, search that buffer."
 
 
 ;;; MMM-Mode support ??
-(condition-case foo
+(condition-case nil
     (require 'mmm-mode)
   (error (message "SRecoder Template Mode: No multi-mode not support.")))
 
