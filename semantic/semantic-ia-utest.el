@@ -1,9 +1,9 @@
 ;;; semantic-ia-utest.el --- Analyzer unit tests
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.18 2008/12/12 04:26:47 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.19 2009/01/09 23:09:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -209,19 +209,17 @@ Argument ARG specifies which set of tests to run.
 	   (catch 'failed
 	     (if (and impl proto (car impl) (car proto))
 		 (let (ct2 ref2 impl2 proto2
-			   newtarget newstart)
+			   newstart)
 		   (cond
 		    ((semantic-equivalent-tag-p (car impl) ct)
 		     ;; We are on an IMPL.  Go To the proto, and find matches.
 		     (semantic-go-to-tag (car proto))
-		     (setq newtarget (car impl)
-			   newstart (car proto))
+		     (setq newstart (car proto))
 		     )
 		    ((semantic-equivalent-tag-p (car proto) ct)
 		     ;; We are on a PROTO.  Go to the imple, and find matches
 		     (semantic-go-to-tag (car impl))
-		     (setq newtarget (car proto)
-			   newstart (car impl))
+		     (setq newstart (car impl))
 		     )
 		    (t
 		     ;; No matches is a fail.
