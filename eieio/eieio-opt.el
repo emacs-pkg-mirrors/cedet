@@ -1,9 +1,9 @@
 ;;; eieio-opt.el -- eieio optional functions (debug, printing, speedbar)
 
-;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.35 2008/12/29 02:10:19 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.36 2009/01/09 22:52:43 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -479,7 +479,6 @@ Optional argument HISTORYVAR is the variable to use as history."
 	 (idxarray (make-vector (length slots) 0))
 	 (primaryonly 0)
 	 (oneprimary 0)
-	 (staticonly 0)
 	 )
     (switch-to-buffer-other-window buff)
     (erase-buffer)
@@ -567,7 +566,7 @@ Arguments UNUSED are not used."
 	  (when pos
 	    (goto-char pos)
 	    (let* ((help-data (get-text-property (point) 'help-xref))
-		   (method (car help-data))
+		   ;(method (car help-data))
 		   (args (cdr help-data)))
 	      (when (symbolp (car args))
 		(cond ((class-p (car args))
