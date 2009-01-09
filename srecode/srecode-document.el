@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-document.el,v 1.6 2009/01/05 23:49:51 zappo Exp $
+;; X-RCS: $Id: srecode-document.el,v 1.7 2009/01/09 22:56:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -290,7 +290,7 @@ It is assumed that the comment occurs just after VAR-IN."
 					   "variable-same-line-comment"
 					   "declaration"
 					   'document))
-	 (extract dict))
+	 (extract nil))
     (if (not temp)
 	(error "No templates for inserting variable comments"))
 
@@ -568,7 +568,6 @@ Works with the following rules:
 not account for verb parts."
   (let ((ind 0)				;index in string
 	(llow nil)			;lower/upper case flag
-	(wlist nil)			;list of words after breaking
 	(newstr nil)			;new string being generated
 	(al nil))			;autocomment list
     ;;
@@ -648,8 +647,7 @@ Dump out the extracted dictionary."
   (if (not (srecode-table))
       (error "No template table found for mode %s" major-mode))
   
-  (let* ((dict (srecode-create-dictionary))
-	 (temp (srecode-template-get-table (srecode-table)
+  (let* ((temp (srecode-template-get-table (srecode-table)
 					   "function-comment"
 					   "declaration"
 					   'document))
