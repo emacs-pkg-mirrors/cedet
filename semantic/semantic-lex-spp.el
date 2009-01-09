@@ -1,8 +1,8 @@
 ;;; semantic-lex-spp.el --- Semantic Lexical Pre-processor
 
-;;; Copyright (C) 2006, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.27 2008/12/13 17:22:10 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.28 2009/01/09 23:09:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -389,27 +389,25 @@ Argument BEG and END specify the bounds of SYM in the buffer."
     (let ((arg-in nil)
 	  (arg-parsed nil)
 	  (arg-split nil)
-	  (val-rest val))
+	  )
 
       ;; Check for arguments.
       (setq arg-in (semantic-lex-spp-macro-with-args val))
 
       (when arg-in
-	(let ((new-end nil))
-	  (setq val-rest (cdr val))
-	  (save-excursion
-	    (goto-char end)
-	    (setq arg-parsed
-		  (semantic-lex-spp-one-token-and-move-for-macro
-		   (point-at-eol)))
-	    (setq end (semantic-lex-token-end arg-parsed))
+	(save-excursion
+	  (goto-char end)
+	  (setq arg-parsed
+		(semantic-lex-spp-one-token-and-move-for-macro
+		 (point-at-eol)))
+	  (setq end (semantic-lex-token-end arg-parsed))
 
-	    (when (and (listp arg-parsed) (eq (car arg-parsed) 'semantic-list))
-	      (setq arg-split
-		    ;; Use lex to split up the contents of the argument list.
-		    (semantic-lex-spp-stream-for-arglist arg-parsed)
-		    ))
-	    )))
+	  (when (and (listp arg-parsed) (eq (car arg-parsed) 'semantic-list))
+	    (setq arg-split
+		  ;; Use lex to split up the contents of the argument list.
+		  (semantic-lex-spp-stream-for-arglist arg-parsed)
+		  ))
+	  ))
 
       ;; if we have something to sub in, then do it.
       (semantic-lex-spp-macro-to-macro-stream val beg end arg-split)
