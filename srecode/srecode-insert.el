@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.23 2009/01/04 14:23:58 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.24 2009/01/09 22:57:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -143,7 +143,7 @@ Optional argument TEMP is the template that is getting it's arguments resolved."
       (if (not fcn)
 	  (error "Error resolving template argument %S" (car args)))
       (if temp
-	  (condition-case err
+	  (condition-case nil
 	      ;; Allow some to accept a 2nd argument optionally.
 	      ;; They throw an error if not available, so try again.
 	      (funcall fcn dict temp)
@@ -357,7 +357,7 @@ If there is no entry, insert nothing.")
 		    nil))
 	 (val (srecode-dictionary-lookup-name 
 	       dictionary name))
-	 (ans nil))
+	 )
     ;; Alert if a macro wasn't found.
     (when (not val)
       (message "Warning: macro %S was not found in the dictionary." name)
@@ -413,7 +413,7 @@ template file.")
   "For the template inserter INS, apply information from STATE.
 Loop over the prompts to see if we have a match."
   (let ((prompts (oref STATE prompts))
-	(ans nil))
+	)
     (while prompts
       (when (string= (semantic-tag-name (car prompts))
 		     (oref ins :object-name))
@@ -607,9 +607,7 @@ applied to the text between the section start and the
   "For the section inserter INS, parse INPUT.
 Shorten input until the END token is found.
 Return the remains of INPUT."
-  (let* ((escape_start (oref STATE escape_start))
-	 (escape_end (oref STATE escape_end))
-	 (out (srecode-compile-split-code tag input STATE
+  (let* ((out (srecode-compile-split-code tag input STATE
 					  (oref ins :object-name))))
     (oset ins template (srecode-template 
 			(object-name-string ins)
@@ -675,7 +673,7 @@ Arguments ESCAPE-START and ESCAPE-END are the current escape sequences in use."
 Finds the template with this macro function part and stores it in
 this template instance."
   (let* ((templatenamepart (oref sti :secondname))
-	 (ans nil))
+	 )
     ;; If there was no template name, throw an error
     (if (not templatenamepart)
 	(error "Include macro %s needs a template name." (oref sti :object-name)))
