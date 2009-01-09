@@ -1,9 +1,9 @@
 ;;; eieio-datadebug.el --- EIEIO extensions to the data debugger.
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: eieio-datadebug.el,v 1.3 2008/09/17 14:21:46 zappo Exp $
+;; X-RCS: $Id: eieio-datadebug.el,v 1.4 2009/01/09 22:52:13 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -25,6 +25,7 @@
 ;; Extensions to data-debug for EIEIO objects.
 ;;
 
+(require 'eieio)
 (require 'data-debug)
 
 ;;; Code:
@@ -49,8 +50,8 @@ PREFIX specifies what to insert at the start of each line."
     (setq start (point))
     (forward-char 1)
     (data-debug-insert-object-slots object
-					  (concat (make-string indent ? )
-						  "~ "))
+				    (concat (make-string indent ? )
+					    "~ "))
     (setq end (point))
     (goto-char start)
     ))
