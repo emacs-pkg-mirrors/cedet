@@ -1,6 +1,6 @@
 ;;; srecode-getset.el --- 
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
 
@@ -64,8 +64,7 @@ will be derived."
       (error "No templates for inserting get/set"))
 
   ;; Step 1: Try to derive the tag for the class we will use
-  (let* ((start (point-marker))
-	 (class (or class-in (srecode-auto-choose-class (point))))
+  (let* ((class (or class-in (srecode-auto-choose-class (point))))
 	 (inclass (eq (semantic-current-tag-of-class 'type) class))
 	 (field nil)
 	 )
