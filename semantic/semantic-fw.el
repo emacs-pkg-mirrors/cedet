@@ -1,8 +1,8 @@
 ;;; semantic-fw.el --- Framework for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.67 2008/11/28 20:03:14 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.68 2009/01/09 23:08:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -274,7 +274,7 @@ will throw a warning when it encounters this symbol."
 Mark OLDVARALIAS as obsolete, such that the byte compiler
 will throw a warning when it encounters this symbol."
   (make-obsolete-variable oldvaralias newvar)
-  (condition-case err
+  (condition-case nil
       (defvaralias oldvaralias newvar)
     (error
      ;; Only throw this warning when byte compiling things.
