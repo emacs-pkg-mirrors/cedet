@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.53 2009/01/05 23:47:15 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.54 2009/01/09 23:05:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -356,8 +356,7 @@ This will include a list of type/field names when applicable.
 Depends on `semantic-type-relation-separator-character'."
   (save-excursion
     (if point (goto-char point))
-    (let* ((start (point))
-	   (fieldsep1 (mapconcat (lambda (a) (regexp-quote a))
+    (let* ((fieldsep1 (mapconcat (lambda (a) (regexp-quote a))
 				 semantic-type-relation-separator-character
 				 "\\|"))
 	   ;; NOTE: The [ \n] expression below should used \\s-, but that
