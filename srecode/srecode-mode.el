@@ -23,6 +23,7 @@
 ;;
 ;; Depends on Semantic for minor-mode convenience functions.
 
+(require 'mode-local)
 (require 'srecode)
 (require 'srecode-insert)
 (require 'srecode-find)
@@ -310,14 +311,13 @@ Template is chosen based on the mode of the starting buffer."
 		      (car srecode-read-template-name-history))))
   (if (not (srecode-table))
       (error "No template table found for mode %s" major-mode))
-    (let ((newdict (srecode-create-dictionary))
-	  (temp (srecode-template-get-table (srecode-table) template-name)))
+    (let ((temp (srecode-template-get-table (srecode-table) template-name)))
       (if (not temp)
 	  (error "No Template named %s" template-name))
       ;; We need a template specific table, since tables chain.
       (let ((tab (oref temp :table))
 	    (names nil)
-	    (ctxt nil))
+	    )
 	(find-file (oref tab :file))
 	(setq names (semantic-find-tags-by-name (oref temp :object-name)
 						(current-buffer)))
