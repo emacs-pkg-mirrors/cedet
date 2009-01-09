@@ -5,7 +5,7 @@
 ;; Created: Dec 1999
 ;; Keywords: lisp
 ;;
-;; Copyright (C) 1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -213,7 +213,6 @@ the buffer."
 		 (if (< 0 arg) (linemark-end entry)
 		   (linemark-begin entry))
 	       (point)))
-	 (oll nil)
 	 (dir (if (< 0 arg) 1 -1))
 	 (ofun (if (> 0 arg)
 		   'linemark-previous-overlay-change
