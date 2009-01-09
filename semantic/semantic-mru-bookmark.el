@@ -1,9 +1,9 @@
 ;;; semantic-mru-bookmark.el --- Automatic bookmark tracking
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.15 2008/10/10 21:37:55 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.16 2009/01/09 23:10:13 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -199,7 +199,7 @@ Cause tags in the ring to become unlinked."
   (let* ((ring (oref semantic-mru-bookmark-ring ring))
 	 (len (ring-length ring))
 	 (idx 0)
-	 (buf (current-buffer)))
+	 )
     (while (< idx len)
       (semantic-mrub-preflush (ring-ref ring idx))
       (setq idx (1+ idx)))))
@@ -431,9 +431,8 @@ the mru bookmark stack."
   "Display a list of items in the MRU bookmarks list.
 Useful for debugging mrub problems."
   (interactive)
-  (let* ((out semantic-mru-bookmark-ring)
-	 (ab (data-debug-new-buffer "*TAG RING ADEBUG*"))
-	 )
+  (let* ((out semantic-mru-bookmark-ring))
+    (data-debug-new-buffer "*TAG RING ADEBUG*")
     (data-debug-insert-object-slots out "]")
     ))
 
