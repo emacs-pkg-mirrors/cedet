@@ -1,9 +1,9 @@
 ;;; srecode-dictionary.el --- Dictionary code for the semantic recoder.
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-dictionary.el,v 1.6 2008/12/29 02:55:30 zappo Exp $
+;; X-RCS: $Id: srecode-dictionary.el,v 1.7 2009/01/09 22:55:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -355,7 +355,7 @@ FUNCTION and DICTIONARY are as for the baseclass."
   (princ "# Compound Variable #\n")
   (let ((indent (+ 4 (or indent 0)))
 	(cmp (oref cp compiled))
-	(idx 1))
+	)
     (srecode-dump-code-list cmp (make-string indent ? ))
     ))
 
