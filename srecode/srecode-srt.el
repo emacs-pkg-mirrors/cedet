@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-srt.el,v 1.5 2009/01/04 14:25:49 zappo Exp $
+;; X-RCS: $Id: srecode-srt.el,v 1.6 2009/01/09 22:59:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -74,8 +74,7 @@ Adds the following:
 ESCAPE_START - This files value of escape_start
 ESCAPE_END - This files value of escape_end
 MODE - The mode of this buffer.  If not declared yet, guess."
-  (let* ((vars (semantic-find-tags-by-class 'variable (current-buffer)))
-	 (es (semantic-find-first-tag-by-name "escape_start" (current-buffer)))
+  (let* ((es (semantic-find-first-tag-by-name "escape_start" (current-buffer)))
 	 (ee (semantic-find-first-tag-by-name "escape_end" (current-buffer)))
 	 (mode-var (semantic-find-first-tag-by-name "mode" (current-buffer)))
 	 (mode (if mode-var
