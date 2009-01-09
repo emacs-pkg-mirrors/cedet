@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.38 2008/12/30 22:41:01 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.39 2009/01/09 23:06:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -853,7 +853,6 @@ pre-positioned to a convenient location."
 		 semantic--buffer-cache))
 	 (cachestart cachelist)
 	 (cacheend nil)
-	 (tmp oldtags)
 	 )
     ;; First in child list?
     (if (eq first (car chil))
