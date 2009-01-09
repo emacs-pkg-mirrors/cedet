@@ -307,9 +307,6 @@ Arguments ESCAPE-START and ESCAPE-END are the current escape sequences in use."
   "Compile a template tag TAG into an srecode template class.
 STATE is the current compile state as an object `srecode-compile-state'."
   (let* ((context (oref STATE context))
-	 (prompts (oref STATE prompts))
-	 (escape_start (oref STATE escape_start))
-	 (escape_end (oref STATE escape_end))
 	 (codeout  (srecode-compile-split-code
 		    tag (semantic-tag-get-attribute tag :code)
 		    STATE))
@@ -376,7 +373,6 @@ If END-NAME is specified, and the input string"
 	 (comp nil)
 	 (regex (concat "\n\\|" (regexp-quote (oref STATE escape_start))))
 	 (regexend (regexp-quote (oref STATE escape_end)))
-	 (tmp nil)
 	 )
     (while (and what (not end-token))
       (cond
@@ -387,7 +383,7 @@ If END-NAME is specified, and the input string"
 				 (match-end 0)))
 	       (namestart (match-end 0))
 	       (junk (string-match regexend what namestart))
-	       end tail name key)
+	       end tail name)
 	  ;; Add string to compiled output
 	  (when (> (length prefix) 0)
 	    (setq comp (cons prefix comp)))
@@ -514,7 +510,7 @@ A list of defined variables VARS provides a variable table."
 				   :size (length templates)))
 	(contexthash (make-hash-table :test 'equal :size 10))
 	(lp templates)
-	(name nil))
+	)
     
     (while lp
       
