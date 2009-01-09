@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.179 2009/01/04 13:41:19 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.180 2009/01/09 22:53:00 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -2205,7 +2205,6 @@ Use `next-method-p' to find out if there is a next method to call."
     )
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
 	(next (car eieio-generic-call-next-method-list))
-	(returnval nil)
 	)
     (if (or (not next) (not (car next)))
 	(apply 'no-next-method (car newargs) (cdr newargs))
