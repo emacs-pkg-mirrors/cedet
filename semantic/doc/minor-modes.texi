@@ -1,6 +1,6 @@
 @ignore
 @node Semantic Minor Modes
-@chapter Semantic Mintor Modes
+@chapter Semantic Minor Modes
 @end ignore
 
 Semantic comes with a wide range of minor-modes which use various
