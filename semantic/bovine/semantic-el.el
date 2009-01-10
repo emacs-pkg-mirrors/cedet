@@ -1,9 +1,9 @@
 ;;; semantic-el.el --- Semantic details for Emacs Lisp
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.49 2008/12/30 22:45:10 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.50 2009/01/10 00:13:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -816,7 +816,7 @@ fields and such to, but that is for some other day."
   "Return an abbreviated string describing tag."
   (let ((class (semantic-tag-class tag))
 	(name (semantic-format-tag-name tag parent color))
-	str)
+	)
     (cond
      ((eq class 'function)
       (concat "(" name ")"))
@@ -832,7 +832,7 @@ Make up something else.  When we go to write something that needs
 a real Emacs Lisp protype, we can fix it then."
   (let ((class (semantic-tag-class tag))
 	(name (semantic-format-tag-name tag parent color))
-	str)
+	)
     (cond
      ((eq class 'function)
       (let* ((args  (semantic-tag-function-arguments tag))
