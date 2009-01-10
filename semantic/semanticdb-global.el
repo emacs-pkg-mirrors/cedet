@@ -1,10 +1,10 @@
 ;;; semanticdb-global.el --- Semantic database extensions for GLOBAL
 
-;;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2008 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-global.el,v 1.3 2008/12/12 12:44:16 zappo Exp $
+;; X-RCS: $Id: semanticdb-global.el,v 1.4 2009/01/10 00:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -237,8 +237,8 @@ If optional arg STANDARDFILE is non nil, use a standard file w/ global enabled."
     (let* ((db (semanticdb-project-database-global "global"))
 	   (tab (semanticdb-file-table db (buffer-file-name)))
 	   (result (semanticdb-deep-find-tags-for-completion-method tab searchfor))
-	   (ab (data-debug-new-buffer "*SemanticDB Gnu Global Result*"))
 	   )
+      (data-debug-new-buffer "*SemanticDB Gnu Global Result*")
       (data-debug-insert-thing result "?" "")
       )))
 
