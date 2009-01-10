@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-doc.el,v 1.12 2009/01/09 23:05:53 zappo Exp $
+;; X-RCS: $Id: semantic-doc.el,v 1.13 2009/01/10 18:43:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -57,7 +57,8 @@ If nosnarf if 'lex, then only return the lex token."
 	  ;; Is there doc in the tag???
 	  doctmp
 	  ;; Check just before the definition.
-	  (semantic-documentation-comment-preceeding-tag tag nosnarf)
+	  (when (semantic-tag-with-position-p tag)
+	    (semantic-documentation-comment-preceeding-tag tag nosnarf))
 	  ;;  Lets look for comments either after the definition, but before code:
 	  ;; Not sure yet.  Fill in something clever later....
 	  nil))))))
