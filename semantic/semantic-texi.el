@@ -1,9 +1,9 @@
 ;;; semantic-texi.el --- Semantic details for Texinfo files
 
-;;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.41 2008/12/30 22:42:27 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.42 2009/01/10 00:10:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -358,7 +358,6 @@ Optional argument POINT is where to look for the environment."
   "Analysis context makes no sense for texinfo.  Return nil."
   (let* ((prefixandbounds (semantic-ctxt-current-symbol-and-bounds (point)))
 	 (prefix (car prefixandbounds))
-	 (endsym (nth 1 prefixandbounds))
 	 (bounds (nth 2 prefixandbounds))
 	 (prefixclass (semantic-ctxt-current-class-list))
 	 )
