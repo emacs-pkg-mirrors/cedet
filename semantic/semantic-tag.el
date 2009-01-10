@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.63 2009/01/03 17:00:58 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.64 2009/01/10 00:10:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -921,8 +921,7 @@ Ignoring this step will prevent several features from working correctly."
 Children are any sub-tags which contain overlays.
 The default action collects regular components of TAG, in addition
 to any components beloning to an anonymous type."
-  (let ((class (semantic-tag-class tag))
-	(explicit-children (semantic-tag-components tag))
+  (let ((explicit-children (semantic-tag-components tag))
 	(type (semantic-tag-type tag))
 	(anon-type-children nil)
 	(all-children nil))
