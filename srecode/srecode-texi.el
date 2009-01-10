@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-texi.el,v 1.6 2009/01/05 23:50:05 zappo Exp $
+;; X-RCS: $Id: srecode-texi.el,v 1.7 2009/01/10 18:49:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -163,10 +163,11 @@ Adds the following:
     ;; Extract the doc string
     (setq doc (semantic-documentation-for-tag tag))
     
-    (srecode-dictionary-set-value dict "TAGDOC"
-				  (srecode-texi-massage-to-texinfo
-				   tag (semantic-tag-buffer tag)
-				   doc))
+    (when doc
+      (srecode-dictionary-set-value dict "TAGDOC"
+				    (srecode-texi-massage-to-texinfo
+				     tag (semantic-tag-buffer tag)
+				     doc)))
     ))
 
 ;;; OVERRIDES
@@ -193,8 +194,12 @@ thingy from it using the `document' tool."
   "Massage TAG's documentation from BUFFER as STRING.
 This is to take advantage of TeXinfo's markup symbols."
   (save-excursion
-    (set-buffer buffer)
-    (srecode-texi-texify-docstring string)))
+    (if buffer 
+	(progn (set-buffer buffer)
+	       (srecode-texi-texify-docstring string))
+      ;; Else, no buffer, so lets do something else
+      (with-mode-local texinfo-mode
+	(srecode-texi-texify-docstring string)))))
 
 (define-overloadable-function srecode-texi-texify-docstring
   (docstring)
