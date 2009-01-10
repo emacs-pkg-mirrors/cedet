@@ -1,9 +1,9 @@
 ;;; pulse.el --- Pulsing Overlays
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.8 2008/12/15 01:26:28 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.9 2009/01/10 01:28:16 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -192,6 +192,7 @@ Be sure to call `pulse-reset-face' after calling pulse."
 	  nil))
     ))
 
+;;;###autoload
 (defun pulse-test ()
   "Test the lightening function for pulsing a line."
   (interactive)
