@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.97 2009/01/06 17:06:20 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.98 2009/01/10 00:13:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -936,6 +936,7 @@ Argument PARENT specifies a parent type.
 Argument COLOR specifies that the string should be colorized."
   (let ((t2 (semantic-c-tag-template-specifier token))
 	(t1 (semantic-c-tag-template token))
+	;; @todo - Need to account for a parent that is a template
 	(pt1 (if parent (semantic-c-tag-template parent)))
 	(pt2 (if parent (semantic-c-tag-template-specifier parent)))
 	)
@@ -1183,7 +1184,7 @@ DO NOT return the list of tags encompassing point."
   "Describe the Semantic features of the current C environment."
   (interactive)
   (if (not (or (eq major-mode 'c-mode) (eq major-mode 'c++-mode)))
-      (error "Not usefule to query C mode in %s mode" major-mode))
+      (error "Not useful to query C mode in %s mode" major-mode))
   (let ((gcc (when (boundp 'semantic-gcc-setup-data)
 	       semantic-gcc-setup-data))
 	)
