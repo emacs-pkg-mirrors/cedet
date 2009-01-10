@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.9 2009/01/10 00:16:41 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.10 2009/01/10 01:31:22 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -322,7 +322,7 @@ text from a file where the tag was found.")
 (defun semantic-ectag-split-signature-summary-default (summary)
   "Default behavior for splitting a Exuberent CTags SUMMARY.
 Assume comma separated list."
-  (split-string summary "[(),]" t))
+  (cedet-split-string summary "[(),]" t))
 
 (define-overloadable-function semantic-ectag-set-language-attributes (tag parents)
   "Augment TAG with additional attributes based on language.
