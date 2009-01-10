@@ -1,9 +1,9 @@
 ;;; srecode-cpp.el --- C++ specific handlers for Semantic Recoder
 
-;; Copyright (C) 2007 Eric M. Ludlam
+;; Copyright (C) 2007, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-cpp.el,v 1.2 2007/03/19 02:38:11 zappo Exp $
+;; X-RCS: $Id: srecode-cpp.el,v 1.3 2009/01/10 14:13:04 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -51,8 +51,7 @@ HEADER - Shown section if in a header file."
     ;; Strip out bad characters
     (while (string-match "\\.\\| " fsym)
       (setq fsym (replace-match "_" t t fsym)))
-    (srecode-dictionary-set-value
-     dict "FILENAME_SYMBOL" fsym)
+    (srecode-dictionary-set-value dict "FILENAME_SYMBOL" fsym)
     )
   )
 
