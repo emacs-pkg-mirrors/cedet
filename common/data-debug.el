@@ -1,9 +1,9 @@
 ;;; data-debug.el --- Datastructure Debugger
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.10 2008/12/10 22:00:05 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.11 2009/01/10 00:19:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -180,7 +180,7 @@ PREFIX specifies what to insert at the start of each line."
   "Insert the buffer found at the buffer button at POINT."
   (let ((buffer (get-text-property point 'ddebug))
 	(indent (get-text-property point 'ddebug-indent))
-	start end
+	start
 	)
     (end-of-line)
     (setq start (point))
@@ -188,7 +188,6 @@ PREFIX specifies what to insert at the start of each line."
     (data-debug-insert-buffer-props buffer
 				     (concat (make-string indent ? )
 					     "| "))
-    (setq end (point))
     (goto-char start)
     ))
 
@@ -228,7 +227,7 @@ PREFIX specifies what to insert at the start of each line."
   "Insert the buffer found at the buffer list button at POINT."
   (let ((bufferlist (get-text-property point 'ddebug))
 	(indent (get-text-property point 'ddebug-indent))
-	start end
+	start
 	)
     (end-of-line)
     (setq start (point))
@@ -236,7 +235,6 @@ PREFIX specifies what to insert at the start of each line."
     (data-debug-insert-buffer-list bufferlist
 				    (concat (make-string indent ? )
 					    "* "))
-    (setq end (point))
     (goto-char start)
     ))
 
@@ -287,7 +285,7 @@ PREFIX specifies what to insert at the start of each line."
   "Insert the process found at the process button at POINT."
   (let ((process (get-text-property point 'ddebug))
 	(indent (get-text-property point 'ddebug-indent))
-	start end
+	start
 	)
     (end-of-line)
     (setq start (point))
@@ -295,7 +293,6 @@ PREFIX specifies what to insert at the start of each line."
     (data-debug-insert-process-props process
 				     (concat (make-string indent ? )
 					     "| "))
-    (setq end (point))
     (goto-char start)
     ))
 
@@ -338,7 +335,7 @@ PREFIX specifies what to insert at the start of each line."
   "Insert the ring found at the ring button at POINT."
   (let ((ring (get-text-property point 'ddebug))
 	(indent (get-text-property point 'ddebug-indent))
-	start end
+	start
 	)
     (end-of-line)
     (setq start (point))
@@ -346,7 +343,6 @@ PREFIX specifies what to insert at the start of each line."
     (data-debug-insert-ring-contents ring
 				     (concat (make-string indent ? )
 					     "} "))
-    (setq end (point))
     (goto-char start)
     ))
 
@@ -411,7 +407,7 @@ PREFIX specifies what to insert at the start of each line."
   "Insert the stuff found at the stuff list button at POINT."
   (let ((stufflist (get-text-property point 'ddebug))
 	(indent (get-text-property point 'ddebug-indent))
-	start end
+	start
 	)
     (end-of-line)
     (setq start (point))
@@ -419,7 +415,6 @@ PREFIX specifies what to insert at the start of each line."
     (data-debug-insert-stuff-list stufflist
 				  (concat (make-string indent ? )
 					  "> "))
-    (setq end (point))
     (goto-char start)
     ))
 
@@ -803,7 +798,6 @@ Do nothing if already expanded."
   (interactive "e")
   (let* ((startwin (selected-window))
 	 (win (car (car (cdr event))))
-	 (eb (window-buffer win))
 	 )
     (select-window win t)
     (save-excursion
@@ -819,15 +813,54 @@ Do nothing if already expanded."
 ;;;###autoload
 (defun data-debug-edebug-expr (expr)
   "Dump out the contets of some expression EXPR in edebug with ddebug."
-  (interactive "sExpression: ")
-  (let ((v (eval (read expr)))
-	(ab nil))
+  (interactive
+   (list (let ((minibuffer-completing-symbol t))
+	   (read-from-minibuffer "Eval: "
+				 nil read-expression-map t
+				 'read-expression-history))
+	 ))
+  (let ((v (eval expr)))
     (if (not v)
 	(message "Expression %s is nil." expr)
-      (setq ab (data-debug-new-buffer "*expression DDEBUG*"))
+      (data-debug-new-buffer "*expression DDEBUG*")
       (data-debug-insert-thing v "?" "")
       )))
-  
+
+;;;###autoload
+(defun data-debug-eval-expression (expr)
+  "Evaluate EXPR and display the value.
+If the result is something simple, show it in the echo area.
+If the result is a list or vector, then use the data debugger to display it."
+  (interactive
+   (list (let ((minibuffer-completing-symbol t))
+	   (read-from-minibuffer "Eval: "
+				 nil read-expression-map t
+				 'read-expression-history))
+	 ))
+
+  (if (null eval-expression-debug-on-error)
+      (setq values (cons (eval expr) values))
+    (let ((old-value (make-symbol "t")) new-value)
+      ;; Bind debug-on-error to something unique so that we can
+      ;; detect when evaled code changes it.
+      (let ((debug-on-error old-value))
+	(setq values (cons (eval expr) values))
+	(setq new-value debug-on-error))
+      ;; If evaled code has changed the value of debug-on-error,
+      ;; propagate that change to the global binding.
+      (unless (eq old-value new-value)
+	(setq debug-on-error new-value))))
+
+  (if (or (consp (car values)) (vectorp (car values)))
+      (let ((v (car values)))
+	(data-debug-new-buffer "*Expression*")
+	(data-debug-insert-thing v "?" ""))
+    ;; Old style
+    (prog1
+	(prin1 (car values) t)
+      (let ((str (eval-expression-print-format (car values))))
+	(if str (princ str t))))))
+
 
 (provide 'data-debug)
 
