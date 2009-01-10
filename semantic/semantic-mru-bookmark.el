@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.17 2009/01/10 01:27:46 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.18 2009/01/10 13:31:15 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -122,11 +122,15 @@ Uses `semantic-go-to-tag' and highlighting."
   "Update the existing bookmark SBM.
 POINT is some important location.
 REASON is a symbol.  See slot `reason' on `semantic-bookmark'."
-  (with-slots (tag offset frequency) sbm
-    (setq offset (- point (semantic-tag-start tag)))
-    (setq frequency (1+ frequency))
-    )
-  (oset sbm reason reason)
+  (condition-case nil
+      (progn
+	(with-slots (tag offset frequency) sbm
+	  (setq offset (- point (semantic-tag-start tag)))
+	  (setq frequency (1+ frequency))
+	  )
+	(oset sbm reason reason))
+    ;; This can fail on XEmacs at miscelaneous times.
+    (error nil))
   )
 
 (defmethod semantic-mrub-preflush ((sbm semantic-bookmark))
