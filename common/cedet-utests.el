@@ -1,9 +1,9 @@
 ;;; cedet-utests.el --- Run all unit tests in the CEDET suite.
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.3 2008/12/01 20:35:20 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.4 2009/01/10 00:18:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -74,6 +74,11 @@
     ("srecode: templates" . srecode-utest-template-output)
     ("srecode: show maps" . srecode-get-maps)
     ("srecode: getset" . srecode-utest-getset-output)
+
+    ;; COGRE
+    ("cogre: graph" . cogre-utest)
+    ("cogre: uml" . cogre-uml-utest)
+
    )
   "Alist of all the ttests in CEDET we should run.")
 
