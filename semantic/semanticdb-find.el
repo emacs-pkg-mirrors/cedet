@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.74 2009/01/05 23:48:22 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.75 2009/01/10 00:10:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -715,8 +715,8 @@ for details on how this list is derived."
   (let ((start (current-time))
 	(p (semanticdb-find-translate-path nil arg))
 	(end (current-time))
-	(ab (data-debug-new-buffer "*SEMANTICDB FTP ADEBUG*"))
 	)
+    (data-debug-new-buffer "*SEMANTICDB FTP ADEBUG*")
     (message "Search of tags took %.2f seconds."
 	     (semantic-elapsed-time start end))
     
@@ -737,8 +737,8 @@ for details on how this list is derived."
 	 (start (current-time))
 	 (p (semanticdb-find-translate-path nil arg))
 	 (end (current-time))
-	 (ab (data-debug-new-buffer "*SEMANTICDB FTP ADEBUG*"))
 	 )
+    (data-debug-new-buffer "*SEMANTICDB FTP ADEBUG*")
     (message "Search of tags took %.2f seconds."
 	     (semantic-elapsed-time start end))
     
@@ -749,15 +749,15 @@ for details on how this list is derived."
 Examines the variable `semanticdb-find-lost-includes'."
   (interactive)
   (require 'data-debug)
-  (let ((p (semanticdb-find-translate-path nil nil))
-	(lost semanticdb-find-lost-includes)
-	ab)
+  (semanticdb-find-translate-path nil nil)
+  (let ((lost semanticdb-find-lost-includes)
+	)
 
     (if (not lost)
 	(message "There are no unknown includes for %s"
 		 (buffer-name))
     
-      (setq ab (data-debug-new-buffer "*SEMANTICDB lost-includes ADEBUG*"))
+      (data-debug-new-buffer "*SEMANTICDB lost-includes ADEBUG*")
       (data-debug-insert-tag-list lost "*")
       )))
 
@@ -802,8 +802,8 @@ PREBUTTONTEXT is some text between prefix and the overlay button."
 Examines the variable `semanticdb-find-lost-includes'."
   (interactive)
   (require 'data-debug)
-  (let ((p (semanticdb-find-translate-path nil nil))
-	(scanned semanticdb-find-scanned-include-tags)
+  (semanticdb-find-translate-path nil nil)
+  (let ((scanned semanticdb-find-scanned-include-tags)
 	(data-debug-thing-alist
 	 (cons
 	  '((lambda (thing) (and (consp thing)
@@ -813,7 +813,7 @@ Examines the variable `semanticdb-find-lost-includes'."
 						 lost duplicate))))
 	    . semanticdb-find-adebug-insert-scanned-tag-cons)
 	  data-debug-thing-alist))
-	ab)
+	)
 
     (if (not scanned)
 	(message "There are no includes scanned %s"
