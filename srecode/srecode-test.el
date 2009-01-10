@@ -1,9 +1,9 @@
 ;;; srecode-test.el --- SRecode Core Template tests.
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-test.el,v 1.3 2008/10/10 21:45:27 zappo Exp $
+;; X-RCS: $Id: srecode-test.el,v 1.4 2009/01/10 03:26:39 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -62,7 +62,7 @@ Assumes that the current buffer is the testing buffer."
       (setq start (point))
       (replace-match ""))
     (when (re-search-forward "!" nil t)
-      (push-mark (match-beginning 0))
+      (push-mark (match-beginning 0) t t)
       (replace-match ""))
     (when start (goto-char start)))
 
