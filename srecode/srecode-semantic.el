@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.11 2009/01/10 15:41:57 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.12 2009/01/10 18:48:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -325,8 +325,7 @@ inserted tag ENDS, and will leave point inside the inserted
 text based on any occurance of a point-inserter.  Templates such
 as `function' will leave point where code might be inserted."
   (srecode-load-tables-for-mode major-mode)
-  (let* ((tagobj (srecode-semantic-tag (semantic-tag-name tag) :prime tag))
-	 (ctxt (srecode-calculate-context))
+  (let* ((ctxt (srecode-calculate-context))
 	 (top (car ctxt))
 	 (tname (symbol-name (semantic-tag-class tag)))
 	 (dict (srecode-create-dictionary))
@@ -390,10 +389,15 @@ as `function' will leave point where code might be inserted."
 	     errtype top (semantic-format-tag-summarize tag)))
 
     ;; Resolve Arguments
-    (srecode-resolve-arguments temp dict)
+    (let ((srecode-semantic-selected-tag tag))
+      (srecode-resolve-arguments temp dict))
 
-    ;; Resolve TAG into the dictionary.
-    (srecode-semantic-apply-tag-to-dict tagobj dict)
+    ;; Resolve TAG into the dictionary.  We may have a :tag arg
+    ;; from the macro such that we don't need to do this.
+    (when (not (srecode-dictionary-lookup-name dict "TAG"))
+      (let ((tagobj (srecode-semantic-tag (semantic-tag-name tag) :prime tag))
+	    )
+	(srecode-semantic-apply-tag-to-dict tagobj dict)))
 
     ;; Insert dict-entries into the dictionary LAST so that previous
     ;; items can be overriden.
