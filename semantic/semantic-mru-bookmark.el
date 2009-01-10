@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.16 2009/01/09 23:10:13 zappo Exp $
+;; X-RCS: $Id: semantic-mru-bookmark.el,v 1.17 2009/01/10 01:27:46 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -46,6 +46,16 @@
 
 
 ;;; Code:
+
+;;; COMPATABILITY
+(eval-and-compile
+  (if (fboundp 'ring-size)
+      (defalias 'semantic-ring-size 'ring-size)
+    ;; Else, we need to add one
+    (defun semantic-ring-size (ring)
+      "Return the size of RING, the maximum number of elements it can contain."
+      (length (cddr ring))))
+  )
 
 ;;; TRACKING CORE
 ;;
@@ -180,7 +190,7 @@ The resulting bookmark is then sorted within the ring."
 	 (tag (semantic-mrub-find-nearby-tag (point)))
 	 (idx 0))
     (when tag
-      (while (and (not (ring-empty-p ring)) (< idx (ring-size ring)))
+      (while (and (not (ring-empty-p ring)) (< idx (semantic-ring-size ring)))
 	(if (semantic-tag-similar-p (oref (ring-ref ring idx) tag)
 				    tag)
 	    (ring-remove ring idx))
