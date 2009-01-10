@@ -1,9 +1,9 @@
 ;;; semanticdb-typecache.el --- Manage Datatypes
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.37 2008/12/17 18:53:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.38 2009/01/10 00:12:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -99,7 +99,7 @@ Said object must support `semantic-reset' methods.")
 (defun semanticdb-typecache-add-dependant (dep)
   "Add into the local typecache a dependant DEP."
   (let* ((table semanticdb-current-table)
-	 (idx (semanticdb-get-table-index table))
+	 ;;(idx (semanticdb-get-table-index table))
 	 (cache (semanticdb-get-typecache table))
 	 )
     (object-add-to-list cache 'dependants dep)))
@@ -302,7 +302,7 @@ Adds a filename and copies the tags."
   "Update the typecache for TABLE, and return the file-tags.
 File-tags are those that belong to this file only, and excludes
 all included files."
-  (let* ((idx (semanticdb-get-table-index table))	 
+  (let* (;(idx (semanticdb-get-table-index table))	 
 	 (cache (semanticdb-get-typecache table))
 	 )
 
@@ -528,7 +528,7 @@ If there isn't one, create it.
   (save-excursion
     (set-buffer buffer)
     (let* ((tab semanticdb-current-table)
-	   (idx (semanticdb-get-table-index tab))
+	   ;(idx (semanticdb-get-table-index tab))
 	   (tc (semanticdb-get-typecache tab)))
       (semanticdb-typecache-file-tags tab)
       (semanticdb-typecache-include-tags tab)
@@ -552,9 +552,8 @@ If there isn't one, create it.
   (let* ((start (current-time))
 	 (tc (semanticdb-typecache-refresh-for-buffer (current-buffer)))
 	 (end (current-time))
-	 (ab (data-debug-new-buffer "*TypeCache ADEBUG*"))
 	 )
-    
+    (data-debug-new-buffer "*TypeCache ADEBUG*")
     (message "Calculating Cache took %.2f seconds."
 	     (semantic-elapsed-time start end))
 
@@ -572,9 +571,8 @@ If there isn't one, create it.
 	 (start (current-time))
 	 (tc (semanticdb-typecache-for-database (oref tab parent-db)))
 	 (end (current-time))
-	 (ab (data-debug-new-buffer "*TypeCache ADEBUG*"))
 	 )
-    
+    (data-debug-new-buffer "*TypeCache ADEBUG*")    
     (message "Calculating Cache took %.2f seconds."
 	     (semantic-elapsed-time start end))
 
