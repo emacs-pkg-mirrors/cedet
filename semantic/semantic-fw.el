@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.68 2009/01/09 23:08:19 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.69 2009/01/10 01:44:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -399,7 +399,8 @@ calling this one."
 		 (message "Looping ... press a key to test")
 		 (semantic-throw-on-input 'test-inner-loop))
 	       'exit)))
-  (when (input-pending-p) (read-event))
+  (when (input-pending-p) 
+    (when (fboundp 'read-event) (read-event) (read-char)))
   )
 
 ;;; Special versions of Find File
