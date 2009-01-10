@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.28 2009/01/09 23:09:55 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.29 2009/01/10 01:29:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -469,8 +469,8 @@ STR occurs in the current buffer between BEG and END."
 	     (symbolp (car token))
 	     (eq 'semantic-list (car token)))
     ;; Convert TOKEN in place.
-    (let ((argsplit (split-string (semantic-lex-token-text token)
-				  "[(), ]" t)))
+    (let ((argsplit (cedet-split-string (semantic-lex-token-text token)
+					"[(), ]" t)))
       (setcar token 'spp-arg-list)
       (setcar (nthcdr 1 token) argsplit))
     ))
