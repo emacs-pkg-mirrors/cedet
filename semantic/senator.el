@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.132 2009/01/10 00:12:49 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.133 2009/01/10 13:51:55 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1299,6 +1299,7 @@ filters in `senator-search-tag-filter-functions' remain active."
 (defun senator-pulse-tag (&optional tag)
   "Pulse the current TAG."
   (interactive)
+  (senator-force-refresh)
   (let ((tag (semantic-current-tag)))
     (when tag
       (pulse-momentary-highlight-overlay (semantic-tag-overlay tag)))))
