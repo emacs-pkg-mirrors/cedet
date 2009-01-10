@@ -1,9 +1,9 @@
 ;;; semanticdb-ref.el --- Handle cross-db file references
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-ref.el,v 1.9 2008/09/17 14:26:21 zappo Exp $
+;; X-RCS: $Id: semanticdb-ref.el,v 1.10 2009/01/10 00:11:47 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -77,7 +77,7 @@ Any reference to a file that cannot be found, or whos file no longer
 refers to DBT will be removed."
   (let ((refs (oref dbt db-refs))
 	(myexpr (concat "\\<" (oref dbt file)))
-	(ok t))
+	)
     (while refs
       (let* ((ok t)
 	     (db (car refs))
