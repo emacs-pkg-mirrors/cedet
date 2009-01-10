@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.130 2009/01/04 11:28:19 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.131 2009/01/10 00:12:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -714,7 +714,7 @@ local variable."
      (null (oref table major-mode))
      ;; nil means the same as major-mode
      (and (not semantic-equivalent-major-modes)
-	  (eq major-mode (oref table major-mode)))
+	  (mode-local-use-bindings-p major-mode (oref table major-mode)))
      (and semantic-equivalent-major-modes
 	  (member (oref table major-mode) semantic-equivalent-major-modes))
      )
