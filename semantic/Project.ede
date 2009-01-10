@@ -37,7 +37,7 @@
    (ede-proj-target-elisp "tools"
     :name "tools"
     :path ""
-    :source '("document-vars.el" "document.el" "semantic-adebug.el" "semantic-chart.el" "semantic-complete.el" "semantic-debug.el" "semantic-decorate-mode.el" "semantic-decorate-include.el" "semantic-elp.el" "semantic-grammar.el" "semantic-ia-sb.el" "semantic-ia.el" "semantic-imenu.el" "semantic-mru-bookmark.el" "semantic-sb.el" "semantic-util-modes.el" "senator.el")
+    :source '("semantic-adebug.el" "semantic-chart.el" "semantic-complete.el" "semantic-debug.el" "semantic-decorate-mode.el" "semantic-decorate-include.el" "semantic-elp.el" "semantic-grammar.el" "semantic-ia-sb.el" "semantic-ia.el" "semantic-imenu.el" "semantic-mru-bookmark.el" "semantic-sb.el" "semantic-util-modes.el" "senator.el")
     :aux-packages '("eieio" "ede" "speedbar" "inversion")
     )
    (ede-proj-target-elisp "Analyzer"
