@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.10 2009/01/04 14:24:30 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.11 2009/01/10 15:41:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -184,7 +184,7 @@ variable default values, and other things."
 	  (let ((subdict (srecode-dictionary-add-section-dictionary
 			  dict "THROWS")))
 	    (srecode-dictionary-set-value subdict "NAME" (car exceptions))
-	    )	   
+	    )
 	  (setq exceptions (cdr exceptions)))
 	)
       )
@@ -194,9 +194,9 @@ variable default values, and other things."
      ((eq (semantic-tag-class tag) 'variable)
       (when (semantic-tag-variable-default tag)
 	(let ((subdict (srecode-dictionary-add-section-dictionary
-			dict "DEFAULTVALUE")))
+			dict "HAVEDEFAULT")))
 	  (srecode-dictionary-set-value
-	   dict "VALUE" (semantic-tag-variable-default tag))))
+	   subdict "VALUE" (semantic-tag-variable-default tag))))
       )
      ;;
      ;; TYPE
