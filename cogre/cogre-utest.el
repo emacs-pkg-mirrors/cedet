@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-utest.el,v 1.3 2009/01/05 23:41:29 zappo Exp $
+;; X-RCS: $Id: cogre-utest.el,v 1.4 2009/01/10 01:43:18 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -114,8 +114,13 @@ Link is created with the specified TYPE."
 
     (set-buffer (semantic-find-file-noselect
 		 (locate-library "cogre.el")))
+
+    (semantic-fetch-tags)
+
     (set-buffer (semantic-find-file-noselect
 		 (locate-library "cogre-uml.el")))
+
+    (semantic-fetch-tags)
 
     (cogre-uml-quick-class "cogre-node"))
 
