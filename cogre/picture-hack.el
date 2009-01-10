@@ -1,10 +1,10 @@
 ;;; picture-hack.el --- Updates to picture mode
 
-;;; Copyright (C) 2001 Eric M. Ludlam
+;;; Copyright (C) 2001, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: picture
-;; X-RCS: $Id: picture-hack.el,v 1.7 2005/09/30 20:07:01 zappo Exp $
+;; X-RCS: $Id: picture-hack.el,v 1.8 2009/01/10 03:28:57 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -71,6 +71,12 @@
 (unless (boundp 'picture-rectangle-h)
   (defcustom picture-rectangle-h   ?-
     "*Character `picture-draw-rectangle' uses for horizontal lines."
+    :type 'character
+    :group 'picture))
+
+(unless (boundp 'picture-rectangle-ctl)
+  (defcustom picture-rectangle-ctl   ?+
+    "*Character `picture-draw-rectangle' uses for top left corners."
     :type 'character
     :group 'picture))
 
@@ -208,6 +214,8 @@ The line is drawn in a rectilinear fashion."
 	  (if (/= y1 y2)
 	      (progn
 		(picture-set-motion ydir 0)
+		;; @todo - The CTL means TOP LEFt, but since it is +
+		;;       it is used here universally.  Fix.
 		(apply 'picture-insert picture-rectangle-ctl 1
 		       textproperties)
 		(apply 'picture-insert picture-rectangle-v (1- (abs (- y1 y2)))
