@@ -1,12 +1,12 @@
 ;;; senator.el --- SEmantic NAvigaTOR
 
-;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 by David Ponce
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.131 2008/12/30 22:43:20 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.132 2009/01/10 00:12:49 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1488,7 +1488,7 @@ Valid keywords include:
   ;; Turn spec into a list of specs if it is not so already.
   (if (and spec (not (consp (car spec)))) (setq spec (list spec)))
   (let ((menulist nil)
-	(item nil))
+	)
     (while spec
       (let* ((sym (car (car spec)))
 	     (pl (cdr (car spec)))
