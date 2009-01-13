@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.180 2009/01/09 22:53:00 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.181 2009/01/13 23:59:29 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.1"
@@ -1464,6 +1464,8 @@ created by the :initarg tag."
 (defalias 'slot-value 'eieio-oref)
 (defalias 'set-slot-value 'eieio-oset)
 
+;; @TODO - DELETE THIS AFTER FAIR WARNING
+
 ;; This alias is needed so that functions can be written
 ;; for defaults, but still behave like lambdas.
 (defmacro lambda-default (&rest cdr)
@@ -1475,6 +1477,7 @@ expression is automatically transformed into a `lambda' expression
 when copied from the defaults into a new object.  The use of
 `oref-default', however, will return a `lambda-default' expression.
 CDR is function definition and body."
+  (message "Warning: Use of `labda-default' will be obsoleted in the next version of EIEIO.")
   ;; This definition is copied directly from subr.el for lambda
   (list 'function (cons 'lambda-default cdr)))
 
@@ -1515,7 +1518,10 @@ Fills in OBJ's SLOT with it's default value."
   "Check VAL, and return what `oref-default' would provide."
   ;; check for functions to evaluate
   (if (and (listp val) (equal (car val) 'lambda))
-      (funcall val)
+      (progn
+	(message "Warning: Evaluation of `lambda' initform will be obsoleted in the next version of EIEIO.")
+	(funcall val)
+	)
     ;; check for quoted things, and unquote them
     (if (and (listp val) (eq (car val) 'quote))
 	(car (cdr val))
@@ -2533,7 +2539,9 @@ dynamically set from SLOTS."
       (while slot
 	(if (and (listp (car defaults))
 		 (eq 'lambda (car (car defaults))))
-	    (eieio-oset this (car slot) (funcall (car defaults))))
+	    (progn
+	      (message "Warning: Evaluation of `lambda' initform will be obsoleted in the next version of EIEIO.")
+	      (eieio-oset this (car slot) (funcall (car defaults)))))
 	(setq slot (cdr slot)
 	      defaults (cdr defaults))))
     ;; Shared initialize will parse our slots for us.
