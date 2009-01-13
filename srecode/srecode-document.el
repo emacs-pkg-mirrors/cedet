@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-document.el,v 1.7 2009/01/09 22:56:17 zappo Exp $
+;; X-RCS: $Id: srecode-document.el,v 1.8 2009/01/13 20:58:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -566,62 +566,64 @@ Works with the following rules:
   
   This function is designed for variables, not functions.  This does
 not account for verb parts."
-  (let ((ind 0)				;index in string
-	(llow nil)			;lower/upper case flag
-	(newstr nil)			;new string being generated
-	(al nil))			;autocomment list
-    ;;
-    ;; 1) Convert underscores
-    ;;
-    (while (< ind (length programmer))
-      (setq newstr (concat newstr
-			   (if (= (aref programmer ind) ?_)
-			       " " (char-to-string (aref programmer ind)))))
-      (setq ind (1+ ind)))
-    (setq programmer newstr
-	  newstr nil
-	  ind 0)
-    ;;
-    ;; 2) Find word brakes between case changes
-    ;;
-    (while (< ind (length programmer))
-      (setq newstr
-	    (concat newstr
-		    (let ((tc (aref programmer ind)))
-		      (if (and (>= tc ?a) (<= tc ?z))
-			  (progn
-			    (setq llow t)
-			    (char-to-string tc))
-			(if llow
+  (if (string= "" programmer)
+      ""
+    (let ((ind 0) 			;index in string
+	  (llow nil)			;lower/upper case flag
+	  (newstr nil)			;new string being generated
+	  (al nil))			;autocomment list
+      ;;
+      ;; 1) Convert underscores
+      ;;
+      (while (< ind (length programmer))
+	(setq newstr (concat newstr
+			     (if (= (aref programmer ind) ?_)
+				 " " (char-to-string (aref programmer ind)))))
+	(setq ind (1+ ind)))
+      (setq programmer newstr
+	    newstr nil
+	    ind 0)
+      ;;
+      ;; 2) Find word breaks between case changes
+      ;;
+      (while (< ind (length programmer))
+	(setq newstr
+	      (concat newstr
+		      (let ((tc (aref programmer ind)))
+			(if (and (>= tc ?a) (<= tc ?z))
 			    (progn
-			      (setq llow nil)
-			      (concat " " (char-to-string tc)))
-			  (char-to-string tc))))))
-      (setq ind (1+ ind)))
-    ;;
-    ;; 3) Expand the words if possible
-    ;;
-    (setq llow nil
-	  ind 0
-	  programmer newstr
-	  newstr nil)
-    (while (string-match (concat "^\\s-*\\([^ \t\n]+\\)") programmer)
-      (let ((ts (substring programmer (match-beginning 1) (match-end 1)))
-	    (end (match-end 1)))
-	(setq al srecode-document-autocomment-common-nouns-abbrevs)
-	(setq llow nil)
-	(while al
-	  (if (string-match (car (car al)) (downcase ts))
-	      (progn
-		(setq newstr (concat newstr (cdr (car al))))
-		;; don't terminate because we may actuall have 2 words
-		;; next to eachother we didn't identify before
-		(setq llow t)))
-	  (setq al (cdr al)))
-	(if (not llow) (setq newstr (concat newstr ts)))
-	(setq newstr (concat newstr " "))
-	(setq programmer (substring programmer end))))
-    newstr))
+			      (setq llow t)
+			      (char-to-string tc))
+			  (if llow
+			      (progn
+				(setq llow nil)
+				(concat " " (char-to-string tc)))
+			    (char-to-string tc))))))
+	(setq ind (1+ ind)))
+      ;;
+      ;; 3) Expand the words if possible
+      ;;
+      (setq llow nil
+	    ind 0
+	    programmer newstr
+	    newstr nil)
+      (while (string-match (concat "^\\s-*\\([^ \t\n]+\\)") programmer)
+	(let ((ts (substring programmer (match-beginning 1) (match-end 1)))
+	      (end (match-end 1)))
+	  (setq al srecode-document-autocomment-common-nouns-abbrevs)
+	  (setq llow nil)
+	  (while al
+	    (if (string-match (car (car al)) (downcase ts))
+		(progn
+		  (setq newstr (concat newstr (cdr (car al))))
+		  ;; don't terminate because we may actuall have 2 words
+		  ;; next to eachother we didn't identify before
+		  (setq llow t)))
+	    (setq al (cdr al)))
+	  (if (not llow) (setq newstr (concat newstr ts)))
+	  (setq newstr (concat newstr " "))
+	  (setq programmer (substring programmer end))))
+      newstr)))
 
 ;;; UTILS
 ;;
