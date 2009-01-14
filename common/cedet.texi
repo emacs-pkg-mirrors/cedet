@@ -749,6 +749,8 @@ Several tools in CEDET can support the use of GNU Global.  If you use
 GNU Global in your project, you should enable the use of it to enhance
 or speed up various tools in CEDET.
 
+You can download GNU Global from @url{http://www.gnu.org/software/global}
+
 To make sure your GNU Global installation is good, use the command
 
 @example
