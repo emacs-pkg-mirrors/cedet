@@ -25,7 +25,7 @@
    (ede-proj-target-elisp "examples"
     :name "examples"
     :path ""
-    :source '("tree.el" "call-tree.el" "chart.el" "eieio-speedbar.el" "linemark.el" "lmcompile.el")
+    :source '("chart.el" "eieio-speedbar.el" "linemark.el" "lmcompile.el")
     )
    (ede-proj-target-makefile-info "eieio.info"
     :name "eieio.info"
