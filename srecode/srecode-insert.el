@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.25 2009/01/14 02:01:38 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.26 2009/01/14 02:48:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -383,6 +383,9 @@ If SECONDNAME is nil, return VALUE."
 		   sti dictionary val fcnpart)))
        ;; Compound data value
        ((srecode-dictionary-compound-value-child-p val)
+	;; Force FCN to be a symbol
+	(when fcnpart (setq fcnpart (read fcnpart)))
+	;; Convert compound value to a string with the fcn.
 	(setq val (srecode-compound-toString val fcnpart dictionary))
 	(if (not val) (setq val ""))
 	)
