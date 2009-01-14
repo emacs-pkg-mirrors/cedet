@@ -1,7 +1,7 @@
 
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.61 2009/01/10 13:49:48 zappo Exp $
+@c $Id: eieio.texi,v 1.62 2009/01/14 00:00:20 zappo Exp $
 @c
 
 @c
@@ -22,7 +22,7 @@
 @copying
 This manual documents CEDET, a collection of other tools.
 
-Copyright @copyright{} 2007, 2008 Eric M. Ludlam
+Copyright @copyright{} 2007, 2008, 2009 Eric M. Ludlam
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -482,12 +482,15 @@ will be evaluated at instantiation time to the value of
 @c will be identified as a function call, and be executed in place.
 
 @cindex lambda-default
+
+
 Lastly, using the function @code{lambda-default} instead of
 @code{lambda} will let you specify a lambda expression to use as the
 value, without evaluation, thus:
 @example
 :initform (lambda-default () some-variablename)
 @end example
+@@TODO - This will be deleted after fair warning.
 
 will not be evaluated at instantiation time, and the value in this
 slot will instead be @code{(lambda () some-variablename)}.
@@ -510,6 +513,7 @@ Here are some examples:
  A symbol, or nil.
  @item function
  A function symbol, or a @code{lambda-default} expression.
+
  @end table
 
 @item :allocation
@@ -1556,11 +1560,6 @@ Note that we start with eieio-default-superclass.  @xref{Default Superclass}.
 
 Note: new classes are consed into the inheritance lists, so the tree
 comes out upside-down.
-
-It is also possible to use the function @code{eieio-class-tree} in the
-@file{tree.el} package.  This will create an interactive tree.  Clicking
-on nodes will allow expansion/contraction of branches, or editing of a
-class.  @xref{Class Values}.
 
 @node Class Values
 @comment  node-name,  next,  previous,  up
