@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.24 2009/01/09 22:57:29 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.25 2009/01/14 02:01:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -347,14 +347,28 @@ If there is no entry, insert nothing.")
 (defvar srecode-inserter-variable-current-dictionary nil
   "The active dictionary when calling a variable filter.")
 
+(defmethod srecode-insert-variable-secondname-handler
+  ((sti srecode-template-inserter-variable) dictionary value secondname)
+  "For VALUE handle SECONDNAME behaviors for this variable inserter.
+Return the result as a string.
+By default, treat as a function name.
+If SECONDNAME is nil, return VALUE."
+  (if secondname
+      (let ((fcnpart (read secondname)))
+	(if (fboundp fcnpart)
+	    (let ((srecode-inserter-variable-current-dictionary dictionary))
+	      (funcall fcnpart value))
+	  ;; Else, warn.
+	  (error "Variable insertion second arg %s is not a function."
+		 secondname)))
+    value))
+
 (defmethod srecode-insert-method ((sti srecode-template-inserter-variable)
 				  dictionary)
   "Insert the STI inserter."
   ;; Convert the name into a name/fcn pair
   (let* ((name (oref sti :object-name))
-	 (fcnpart (if (oref sti :secondname)
-		      (read (oref sti :secondname))
-		    nil))
+	 (fcnpart (oref sti :secondname))
 	 (val (srecode-dictionary-lookup-name 
 	       dictionary name))
 	 )
@@ -365,9 +379,8 @@ If there is no entry, insert nothing.")
     ;; If there was a functional part, call that function.
     (cond ;; Strings
        ((stringp val)
-	(if fcnpart
-	    (let ((srecode-inserter-variable-current-dictionary dictionary))
-	      (setq val (funcall fcnpart val)))))
+	(setq val (srecode-insert-variable-secondname-handler
+		   sti dictionary val fcnpart)))
        ;; Compound data value
        ((srecode-dictionary-compound-value-child-p val)
 	(setq val (srecode-compound-toString val fcnpart dictionary))
@@ -490,6 +503,55 @@ Loop over the prompts to see if we have a match."
   (princ " : \"")
   (princ (oref ins prompt))
   (princ "\"")
+  )
+
+(defclass srecode-template-inserter-width (srecode-template-inserter-variable)
+  ((key :initform ?|
+	:allocation :class
+	:documentation
+	"The character code used to identify inserters of this style.")
+   )
+  "Inserts the value of a dictionary variable with a specific width.
+The second argument specifies the width, and a pad, seperated by a colon.
+thus a specification of `10:left' will insert the value of A
+to 10 characters, with spaces added to the left.  Use `right' for adding
+spaces to the right.")
+
+(defmethod srecode-insert-variable-secondname-handler
+  ((sti srecode-template-inserter-width) dictionary value width)
+  "For VALUE handle WIDTH behaviors for this variable inserter.
+Return the result as a string.
+By default, treat as a function name."
+  (if width
+      ;; Trim or pad to new length
+      (let* ((split (split-string width ":"))
+	     (width (string-to-number (nth 0 split)))
+	     (second (nth 1 split))
+	     (pad (cond ((or (null second) (string= "right" second))
+			 'right)
+			((string= "left" second)
+			 'left)
+			(t
+			 (error "Unknown pad type %s" second)))))
+	(if (>= (length value) width)
+	    ;; Simple case - too long.
+	    (substring value 0 width)
+	  ;; We need to pad on one side or the other.
+	  (let ((padchars (make-string (- width (length value)) ? )))
+	    (if (eq pad 'left)
+		(concat padchars value)
+	      (concat value padchars)))))
+    (error "Width not specified for variable/width inserter.")))
+
+(defmethod srecode-inserter-prin-example :STATIC ((ins srecode-template-inserter-width)
+						  escape-start escape-end)
+  "Insert an example using inserter INS.
+Arguments ESCAPE-START and ESCAPE-END are the current escape sequences in use."
+  (princ "   ")
+  (princ escape-start)
+  (princ "|A:10:right")
+  (princ escape-end)
+  (terpri)
   )
 
 (defvar srecode-template-inserter-point-override nil
