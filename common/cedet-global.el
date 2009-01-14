@@ -1,9 +1,9 @@
 ;;; cedet-global.el --- GNU Global support for CEDET.
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-global.el,v 1.5 2008/12/17 03:14:16 zappo Exp $
+;; X-RCS: $Id: cedet-global.el,v 1.6 2009/01/14 00:24:32 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -122,8 +122,11 @@ If a default starting DIR is not specified, the current buffer's
 	 (buffer-substring (point) (point-at-eol)))))))
 
 ;;;###autoload
-(defun cedet-gnu-global-version-check ()
-  "Check the version of the installed GNU Global command."
+(defun cedet-gnu-global-version-check (&optional noerror)
+  "Check the version of the installed GNU Global command.
+If optional programatic argument NOERROR is non-nil, then
+instead of throwing an error if Global isn't available, then
+return nil."
   (interactive)
   (let ((b (cedet-gnu-global-call (list "--version")))
 	(rev nil))
@@ -132,12 +135,15 @@ If a default starting DIR is not specified, the current buffer's
       (goto-char (point-min))
       (re-search-forward "GNU GLOBAL \\([0-9.]+\\)" nil t)
       (setq rev (match-string 1))
-      (when (inversion-check-version rev nil cedet-global-min-version)
-	(error "Version of GNU Global is %s.  Need at least %s"
-	       rev cedet-global-min-version))
-      (when (interactive-p)
-	(message "GNU Global %s  - Good enough for CEDET." rev))
-      )))
+      (if (inversion-check-version rev nil cedet-global-min-version)
+	  (if noerror
+	      nil
+	    (error "Version of GNU Global is %s.  Need at least %s"
+		   rev cedet-global-min-version))
+	;; Else, return TRUE, as in good enough.
+	(when (interactive-p)
+	  (message "GNU Global %s  - Good enough for CEDET." rev))
+	t))))
 
 (defun cedet-gnu-global-scan-hits (buffer)
   "Scan all the hits from the GNU Global output BUFFER."
