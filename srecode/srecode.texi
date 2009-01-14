@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.12 2009/01/04 14:26:21 zappo Exp $
+@c $Id: srecode.texi,v 1.13 2009/01/14 03:10:10 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -192,7 +192,7 @@ Templates are written in @file{.srt} files.  You can learn how to
 author new @file{.srt} files @ref{Template Writing}.
 
 While the template system was designed for @srecode{} based
-applications it can be used independently for simple template
+applications it can also be used independently for simple template
 insertion during typical coding.
 
 @section Template Manager
@@ -201,6 +201,8 @@ templates is needed.  The template manager has a loader for finding
 template files, and determining which templates are relevant to the
 current buffer.  Template files are sorted by priority, with user
 templates being found first, and system level default templates last.
+Templates are also sorted by application.  Each application has it's
+own templates, and are kept seperate from the generic templates.
 
 @section Dictionary
 Dictionaries contain values associated with macro names.  A value can
@@ -223,23 +225,18 @@ arguments.
 @section Template Insertion Context
 A context can be provided for templates in a file.  This helps
 auto-selection of templates by name, or allows templates in different
-contexts to have the same name.
+contexts to have the same name.  Some standard contexts are
+@code{file}, @code{declaration}, and @code{classdecl}.
 
 A context can be automatically derived as well based on the parsing
 state from @i{Semantic}.  @inforef{Top, Semantic Manual, semantic}.
 @refill
 
-@section Multiple Positioning system
-Not written or implemented
-
-The basic idea is a way to record multiple locations so that @srecode{}
-applications can inserted multiple related templates in multiple places.
-
 @section Applications
-Commands that do a particular user task which involves writing code.
-Applications are at the top layer.  These applications have their own
-template files and logic needed to fill in dictionaries or position a
-cursor.
+Commands that do a particular user task which involves also writing
+Emacs Lisp code.  Applications are at the top layer.  These
+applications have their own template files and logic needed to fill in
+dictionaries or position a cursor.
 
 @node SRecode Minor Mode
 @chapter SRecode Minor Mode
@@ -252,17 +249,19 @@ The key prefix is @key{C-c /}.
 The most important key is bound to @code{srecode-insert} which is
 @key{C-c / /}.  @ref{Quick Start}.
 
-NOTE: At this time there isn't much in srecode-minor-mode.  The plan
-is the following:
+Major keybindings are:
 
 @table @key
 @item C-c / <lower case letter>
 Reserved for direct binding of simple templates to keys using a
 keybinding command in the template file.
 @item C-c / <upper case letter>
-Reserved for template applications (Such as get/set inserter.)
-@item C-c / <punctuation>
-@srecode{} template management keys.
+Reserved for template applications (Such as comment or get/set inserter.)
+@item C-c / E
+Edit the code of a template.
+@item C-c / .
+Insert template again.  This will cause the previously inserted
+template to be inserted again.
 @end table
 
 
@@ -299,7 +298,7 @@ set VARNAME "some value"
 
 @menu
 * String Values::       Basic Variable values
-* Multi-string Values::     Complex variable values
+* Multi-string Values:: Complex variable values
 * Section Show::        Enabling the display of a named section.
 * Special Variables::   Variables with special names
 * Automatic Loop Variables:: Variables automatically set in section loops.
@@ -475,7 +474,7 @@ contain the text ``----''.
 @node Template Section Dictionaries
 @subsection Template Section Dictionaries
 
-To add variable values to section dictionaries used withing a specific
+To add variable values to section dictionaries used within a specific
 template, you can add them to the beginning of the template
 declaration like this:
 
@@ -496,7 +495,7 @@ while it is inside section A.  The outer scoped NAME will be empty.
 
 This is particularly useful while using an include macro to pull in a
 second template.  In this way, you can pass values known from one
-template to a subordinate template where some value is not know.
+template to a subordinate template where some value is not known.
 
 From the Emacs Lisp default template file, a syntax table is just a
 variable with a specialized value.
@@ -598,8 +597,18 @@ dictionary, then the user should be queried for the NAME variable.
 If NAME appears again in the macro, the original value specified by
 the user will be inserted again.
 
-In addition, the macro @{@{^@}@} indicates that after the template is
-inserted, the cursor should be placed at that macro location.
+If the text from a dictionary value is to be placed in column format,
+you can use the ``|'' symbol to indicate you want column control.  For
+example:
+
+@example
+   | this | that |@{@{#A@}@}
+   | @{@{|THIS:4@}@} | @{@{|THAT:4@}@} |@{@{/A@}@}
+@end example
+
+For each repeated section ``#A'' the dictionary values for THIS and
+THAT will be inserted and either trimmed to, or expanded to 4
+characters in width.
 
 Macros that are prefixed with the ``#'' symbol denote a section.  A
 macro of the same name with a ``\\'' prefix denotes the end of that
@@ -823,9 +832,11 @@ You can add several dictionaries to the same section macro.
 For each dictionary added to a macro, the block of codes in the
 template will be repeated.
 
-If optional argument @var{show-only} is non-@code{nil}, then don't add a new dictionarly
-if there is already one in place.  Also, don't add @var{first}/@var{last} entries.
-These entries are not needed when we are just showing a section.
+If optional argument @var{show-only} is non-@code{nil}, then don't add
+a new dictionarly if there is already one in place.  Also, don't add
+@var{first}/@var{last} entries.  These entries are not needed when we
+are just showing a section.
+@refill
 
 Each dictionary added will automatically get values for positional macros
 which will enable @var{sections} to be enabled.
@@ -923,20 +934,20 @@ Apply anything learned to the dictionary @var{dict}.
 
 You can create new arguments for use in template files by writing new
 Emacs Lisp functions.  Doing so is easy.  Here is an example for the
-@code{:blank} argument:
+@code{:user} argument:
 
 @example
-(defun srecode-semantic-handle-:blank (dict)
-  "Add macros into the dictionary DICT specifying blank line spacing.
-The wrapgap means make sure the first and last lines of the macro
-do not contain any text from preceeding or following text."
-  (srecode-dictionary-set-value dict "BLANK" t)
+(defun srecode-semantic-handle-:user (dict)
+  "Add macros into the dictionary DICT based on the current :user."
+  (srecode-dictionary-set-value dict "AUTHOR" (user-full-name))
+  (srecode-dictionary-set-value dict "LOGIN" (user-login-name))
+   ;; ...
   )
 @end example
 
 In this case, a function with the name prefix
-@code{srecode-semantic-handle-} that ends in @code{:blank} creates a
-new argument @code{:blank} that can be used in a template.
+@code{srecode-semantic-handle-} that ends in @code{:user} creates a
+new argument @code{:user} that can be used in a template.
 
 Your argument handler must take one argument @var{dict}, which is the
 dictionary to fill in.  Inside your function, you can do whatever you
@@ -984,8 +995,9 @@ if the insertion point is not on a line by itself.
 
 @subsubsection Argument :region
 
-If there is an active region via transient-mark-mode, or
-mouse-drag-region, then the @code{REGION} section will be enabled.
+If there is an active region via @code{transient-mark-mode}, or
+@code{mouse-drag-region}, then the @code{REGION} section will be
+enabled.
 
 In addition, @code{REGIONTEXT} will be set the the text in the region,
 and that region of text will be ``killed'' from the current buffer.
@@ -1008,7 +1020,7 @@ Current Emacs users login name.
 @item UID
 Current Emacs users login name.
 @item EMACSINITFILE
-I'm not sure when this is handy, but it is this Emacs sessions' init file.
+This Emacs sessions' init file.
 @end table
 
 @subsubsection Argument :time
@@ -1141,6 +1153,8 @@ for @var{FIRST}, @var{LAST}, @var{NOTFIRST}, and @var{NOTLAST}.
 @item PARENT
 The string name of the parent of this function, if the function is a
 method of some class.
+@item THROWS
+In each @var{THROWS} entry, the @var{NAME} of the signal thrown is specified.
 @end table
 
 If @var{tag} is a variable, you will get these dictionary entries.
@@ -1149,7 +1163,7 @@ If @var{tag} is a variable, you will get these dictionary entries.
 @item DEFAULTVALUE
 Enabled if there is a @var{VALUE}.
 @item VALUE
-An entry in the @var{DEFAULTVALUE} subdictionary that represents the
+An entry in the @var{HAVEDEFAULT} subdictionary that represents the
 textual representation of the default value of this variable.
 @end table
 
@@ -1197,6 +1211,17 @@ The opposite of @code{HEADER}.
 The current filename reformatted as a C friendly symbol.
 @end table
 
+@subsection Argument :java
+
+@table @code
+@item FILENAME_AS_PACKAGE
+Converts the filename into text that would be suitable as a package
+name.
+@item FILENAME_AS_CLASS
+Converts the filename into text that would be suitable as a class-name
+for the main class in the file.
+@end table
+
 @subsubsection Argument :el
 
 Sets @code{PRENAME}.  This would be a common prefix from all the
@@ -1234,6 +1259,7 @@ additional variable @code{TAGDOC} is provided for each tag.
 The @code{TAGDOC} is filled with derived documentation from the tag in
 question, and that documentation is also reformatted to be mostly
 texinfo compatible.
+
 
 @node Developing Template Functions
 @chapter Developing Template Functions
