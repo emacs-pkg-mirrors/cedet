@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-test.el,v 1.4 2009/01/10 03:26:39 zappo Exp $
+;; X-RCS: $Id: srecode-test.el,v 1.5 2009/01/14 02:02:02 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -187,6 +187,15 @@ Random text in the new template
 bind \"a\""
     :dict-entries '( "NAME" "newtemplate" "KEY" "a" )
     )
+   (srecode-utest-output
+    "column-data" :name "column-data"
+    :output "Table of Values:
+Left Justified       | Right Justified
+FIRST                |                FIRST
+VERY VERY LONG STRIN | VERY VERY LONG STRIN
+MIDDLE               |               MIDDLE
+S                    |                    S
+LAST                 |                 LAST")
    )
   "Test point entries for the template output tests.")
 
@@ -220,9 +229,6 @@ bind \"a\""
 	)
 
       )))
-
-
-
 
 
 
