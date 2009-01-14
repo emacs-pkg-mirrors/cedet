@@ -15,7 +15,7 @@
 @copying
 This manual documents @cedet{}, a collection of other tools.
 
-Copyright @copyright{} 2007, 2008 Eric M. Ludlam
+Copyright @copyright{} 2007, 2008, 2009 Eric M. Ludlam
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -115,6 +115,7 @@ use the mailing list cedet-devel.net via the URL:
 * Code Completion::
 * Code Generation::	
 * C++ Features::	
+* GNU Global::	
 * GNU Free Documentation License::  
 * Index::                       
 @end menu
@@ -739,6 +740,70 @@ more options for the optimization of finding your header files.
 For more on this option, including include path setting, and providing
 macro to the C pre-processor, see
 @inforef{the ede-cpp-root chapter, ede-cpp-root, ede}.
+
+
+@node GNU Global
+@chapter GNU Global
+
+Several tools in CEDET can support the use of GNU Global.  If you use
+GNU Global in your project, you should enable the use of it to enhance
+or speed up various tools in CEDET.
+
+To make sure your GNU Global installation is good, use the command
+
+@example
+M-x cedet-gnu-global-version-check RET
+@end example
+
+You can wrap any CEDET / GNU Global configurations in your
+@file{.emacs} file like this:
+
+@example
+(setq cedet-global-command "global") ; Change to path of global as needed
+(when (cedet-gnu-global-version-check t)  ; Is it ok?
+    ;; Configurations for GNU Global and CEDET.
+    )
+@end example
+
+@section @ede{} and GNU Global
+
+The @ede{} project system can use GNU Global to accelerate finding
+files withing a project.  The EDE command to @code{ede-find-file}
+bound to @kbd{C-c . f} is one direct application.  @semantic{} also
+makes heavy use of of the feature to find header files.
+
+To enable it, configure the variable @code{ede-locate-setup-options}.
+Something like this can work in your @file{.emacs} file.
+
+@example
+(setq ede-locate-setup-options
+      '(ede-locate-global 
+	ede-locate-base))
+@end example
+
+@section @semantic{} Database
+
+@semantic{} can use GNU Global as a back end for database searches.
+To enable it, use:
+
+@example
+(semanticdb-enable-gnu-global-databases 'c++-mode)
+@end example
+
+where the first argument is a @code{major-mode} in which to use it.
+
+@section @semantic Symref
+
+The semantic symref tool can use GNU Global to local symbol
+references.  This tool will automatically detect GNU Global and use
+it.  You can search for references via the commands:
+
+@table @code
+@item semantic-symref
+Find references to the tag under the cursor.
+@item semantic-symref-symbol
+Find references to an arbitrary symbol.
+@end table
 
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
