@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-global.el,v 1.4 2009/01/10 00:11:34 zappo Exp $
+;; X-RCS: $Id: semanticdb-global.el,v 1.5 2009/01/14 00:32:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,6 +39,7 @@
   (require 'eieio-opt)
   )
 ;;; Code:
+;;;###autoload
 (defun semanticdb-enable-gnu-global-databases (mode)
   "Enable the use of the GNU Global SemanticDB back end for all files of MODE.
 This will add an instance of a GNU Global database to each buffer
