@@ -1,9 +1,9 @@
 ;;; srecode-args.el --- Provide some simple template arguments
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-args.el,v 1.7 2008/12/29 04:40:29 zappo Exp $
+;; X-RCS: $Id: srecode-args.el,v 1.8 2009/01/16 01:27:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -91,16 +91,11 @@ do not contain any text from preceeding or following text."
 ;;;###autoload
 (defun srecode-semantic-handle-:user (dict)
   "Add macros into the dictionary DICT based on the current :user."
-  (srecode-dictionary-set-value
-   dict "AUTHOR" (user-full-name))
-  (srecode-dictionary-set-value
-   dict "LOGIN" (user-login-name))
-  (srecode-dictionary-set-value
-   dict "EMAIL" user-mail-address)
-  (srecode-dictionary-set-value
-   dict "EMACSINITFILE" user-init-file)
-  (srecode-dictionary-set-value
-   dict "UID" (user-uid))
+  (srecode-dictionary-set-value dict "AUTHOR" (user-full-name))
+  (srecode-dictionary-set-value dict "LOGIN" (user-login-name))
+  (srecode-dictionary-set-value dict "EMAIL" user-mail-address)
+  (srecode-dictionary-set-value dict "EMACSINITFILE" user-init-file)
+  (srecode-dictionary-set-value dict "UID" (user-uid))
   )
 
 ;;; :time ARGUMENT HANDLING
@@ -176,15 +171,11 @@ do not contain any text from preceeding or following text."
 ;;;###autoload
 (defun srecode-semantic-handle-:system (dict)
   "Add macros into the dictionary DICT based on the current :system."
-    (srecode-dictionary-set-value dict "SYSTEMCONF" 
-				  system-configuration)
-    (srecode-dictionary-set-value dict "SYSTEMTYPE" 
-				  system-type)
-    (srecode-dictionary-set-value dict "SYSTEMNAME" 
-				  (system-name))
-    (srecode-dictionary-set-value dict "MAILHOST" 
-				  (or mail-host-address
-				      (system-name)))
+    (srecode-dictionary-set-value dict "SYSTEMCONF" system-configuration)
+    (srecode-dictionary-set-value dict "SYSTEMTYPE" system-type)
+    (srecode-dictionary-set-value dict "SYSTEMNAME" (system-name))
+    (srecode-dictionary-set-value dict "MAILHOST" (or mail-host-address
+						      (system-name)))
   )
 
 ;;; :kill ARGUMENT HANDLING
