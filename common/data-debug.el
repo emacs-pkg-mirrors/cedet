@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.12 2009/01/19 22:36:59 scymtym Exp $
+;; X-RCS: $Id: data-debug.el,v 1.13 2009/01/19 22:51:48 scymtym Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -498,20 +498,64 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
     )
   )
 
+;;; Symbol
+;;
+
+(defun data-debug-insert-symbol-from-point (point)
+  "Insert attached properties and possibly the value of symbol at POINT."
+  (let ((symbol (get-text-property point 'ddebug))
+	(indent (get-text-property point 'ddebug-indent))
+	start)
+    (end-of-line)
+    (setq start (point))
+    (forward-char 1)
+    (when (and (not (fboundp symbol)) (boundp symbol))
+      (data-debug-insert-thing
+       (symbol-value symbol)
+       (concat (make-string indent ? ) "> ")
+       (concat 
+	(propertize "value"
+		    'face 'font-lock-comment-face)
+	" ")))
+    (data-debug-insert-property-list 
+     (symbol-plist symbol)
+     (concat (make-string indent ? ) "> "))
+    (goto-char start))
+  )
+
+(defun data-debug-insert-symbol-button (symbol prefix prebuttontext)
+  "Insert a button representing SYMBOL.
+ PREFIX is the text that preceeds the button.
+ PREBUTTONTEXT is some text between prefix and the symbol button."
+  (let ((string
+	 (cond ((fboundp symbol)
+		(propertize (concat "#'" (symbol-name symbol))
+			    'face 'font-lock-function-name-face))
+	       ((boundp symbol)
+		(propertize (concat "'" (symbol-name symbol))
+			    'face 'font-lock-variable-name-face))
+	       (t (format "'%s" symbol)))))
+    (insert (propertize 
+	     (concat prefix prebuttontext string)
+	     'ddebug          symbol
+	     'ddebug-indent   (length prefix)
+	     'ddebug-prefix   prefix
+	     'help-echo       ""
+	     'ddebug-function
+	     'data-debug-insert-symbol-from-point)
+	    "\n"))
+  )
+
 ;;; String
 (defun data-debug-insert-string (thing prefix prebuttontext)
   "Insert one symbol THING.
 A Symbol is a simple thing, but this provides some face and prefix rules.
 PREFIX is the text that preceeds the button.
 PREBUTTONTEXT is some text between prefix and the thing."
-  (insert prefix prebuttontext)
-  (let ((start (point))
-	(end nil))
-    (insert (format "\"%s\"" thing))
-    (setq end (point))
-    (insert "\n" )
-    (put-text-property start end 'face font-lock-string-face)
-    ))
+  (insert prefix prebuttontext
+	  (propertize (format "\"%s\"" thing)
+		      'face font-lock-string-face)
+	  "\n" ))
 
 ;;; Number
 (defun data-debug-insert-number (thing prefix prebuttontext)
@@ -519,37 +563,10 @@ PREBUTTONTEXT is some text between prefix and the thing."
 A Symbol is a simple thing, but this provides some face and prefix rules.
 PREFIX is the text that preceeds the button.
 PREBUTTONTEXT is some text between prefix and the thing."
-  (insert prefix prebuttontext)
-  (let ((start (point))
-	(end nil))
-    (insert (format "%S" thing))
-    (setq end (point))
-    (insert "\n" )
-    (put-text-property start end 'face font-lock-string-face)
-    ))
-
-;;; Symbol
-(defun data-debug-insert-symbol (thing prefix prebuttontext)
-  "Insert one symbol THING.
-A Symbol is a simple thing, but this provides some face and prefix rules.
-PREFIX is the text that preceeds the button.
-PREBUTTONTEXT is some text between prefix and the thing."
-  (cond ((fboundp thing)
-	 (data-debug-insert-simple-thing
-	  thing prefix (concat prebuttontext "#'")
-	  'font-lock-function-name-face)
-	 )
-	((boundp thing)
-	 (data-debug-insert-simple-thing
-	  thing prefix (concat prebuttontext "'")
-	  'font-lock-variable-name-face))
-	(t
-	 (data-debug-insert-simple-thing
-	  thing prefix (concat prebuttontext "'")
-	  nil)
-	 )
-	)
-  )
+  (insert prefix prebuttontext
+	  (propertize (format "%S" thing)
+		      'face font-lock-string-face)
+	  "\n"))
 
 ;;; Lambda Expression
 (defun data-debug-insert-lambda-expression (thing prefix prebuttontext)
@@ -618,28 +635,28 @@ FACE is the face to use."
     ;; Overlay
     (data-debug-overlay-p . data-debug-insert-overlay-button)
 
-    ;; overlay list
+    ;; Overlay list
     ((lambda (thing) (and (consp thing) (data-debug-overlay-p (car thing)))) .
      data-debug-insert-overlay-list-button)
 
-    ;; Overlay
+    ;; Buffer
     (bufferp . data-debug-insert-buffer-button)
 
-    ;; overlay list
+    ;; Buffer list
     ((lambda (thing) (and (consp thing) (bufferp (car thing)))) .
      data-debug-insert-buffer-list-button)
 
-    ;; process
+    ;; Process
     (processp . data-debug-insert-process-button)
 
     ;; String
     (stringp . data-debug-insert-string)
 
-    ;; Numbers
+    ;; Number
     (numberp . data-debug-insert-number)
 
     ;; Symbol
-    (symbolp . data-debug-insert-symbol)
+    (symbolp . data-debug-insert-symbol-button)
 
     ;; Ring
     (ring-p . data-debug-insert-ring-button)
