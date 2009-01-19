@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.11 2009/01/10 00:19:45 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.12 2009/01/19 22:36:59 scymtym Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -385,6 +385,57 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
     )
   )
 
+
+;;; Hash-table 
+;;
+
+;;;###autoload
+(defun data-debug-insert-hash-table (hash-table prefix)
+  "Insert the contents of HASH-TABLE inserting PREFIX before each element."
+  (maphash
+   (lambda (key value)
+     (data-debug-insert-thing 
+      key prefix
+      (propertize "key " 'face font-lock-comment-face))
+     (data-debug-insert-thing 
+      value prefix
+      (propertize "val " 'face font-lock-comment-face)))
+   hash-table))
+
+(defun data-debug-insert-hash-table-from-point (point)
+  "Insert the contents of the hash-table button at POINT."
+  (let ((hash-table (get-text-property point 'ddebug))
+	(indent     (get-text-property point 'ddebug-indent))
+	start)
+    (end-of-line)
+    (setq start (point))
+    (forward-char 1)
+    (data-debug-insert-hash-table
+     hash-table
+     (concat (make-string indent ? ) "> "))
+    (goto-char start))
+  )
+
+(defun data-debug-insert-hash-table-button (hash-table prefix prebuttontext)
+  "Insert HASH-TABLE as expandable button with recursive prefix PREFIX and PREBUTTONTEXT in front of the button text."
+  (let ((string (propertize (format "%s" hash-table)
+			    'face 'font-lock-keyword-face)))
+    (insert (propertize 
+	     (concat prefix prebuttontext string)
+	     'ddebug        hash-table
+	     'ddebug-indent (length prefix)
+	     'ddebug-prefix prefix
+	     'help-echo
+	     (format "Hash-table\nTest: %s\nWeakness: %s\nElements: %d (of %d)"
+		     (hash-table-test hash-table)
+		     (if (hash-table-weakness hash-table) "yes" "no")
+		     (hash-table-count hash-table)
+		     (hash-table-size hash-table))
+	     'ddebug-function
+	     'data-debug-insert-hash-table-from-point)
+	    "\n"))
+  )
+
 ;;; list of stuff
 ;;
 ;; just a list.  random stuff inside.
@@ -597,6 +648,9 @@ FACE is the face to use."
     ((lambda (thing) (and (consp thing) (eq (car thing) 'lambda))) .
      data-debug-insert-lambda-expression)
 
+    ;; Hash-table
+    (hash-table-p . data-debug-insert-hash-table-button)
+     
     ;; List of stuff
     (listp . data-debug-insert-stuff-list-button)
     )
