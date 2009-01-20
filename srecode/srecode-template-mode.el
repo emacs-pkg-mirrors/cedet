@@ -733,27 +733,27 @@ When optional BUFFER is provided, search that buffer."
 
 
 ;;; MMM-Mode support ??
-(condition-case nil
-    (require 'mmm-mode)
-  (error (message "SRecoder Template Mode: No multi-mode not support.")))
-
-(defun srecode-template-add-submode ()
-  "Add a submode to the current template file using mmm-mode.
-If mmm-mode isn't available, then do nothing."
-  (if (not (featurep 'mmm-mode))
-      nil  ;; Nothing to do.
-    ;; Else, set up mmm-mode in this buffer.
-    (let ((submode (semantic-find-tags-by-name "mode")))
-      (if (not submode)
-	  nil  ;; Nothing to do.
-	;; Well, we have a mode, lets try turning on mmm-mode.
-
-	;; (mmm-mode-on)
-    
-	
-
-	))))
-
+;;(condition-case nil
+;;    (require 'mmm-mode)
+;;  (error (message "SRecoder Template Mode: No multi-mode not support.")))
+;;
+;;(defun srecode-template-add-submode ()
+;;  "Add a submode to the current template file using mmm-mode.
+;;If mmm-mode isn't available, then do nothing."
+;;  (if (not (featurep 'mmm-mode))
+;;      nil  ;; Nothing to do.
+;;    ;; Else, set up mmm-mode in this buffer.
+;;    (let ((submode (semantic-find-tags-by-name "mode")))
+;;      (if (not submode)
+;;	  nil  ;; Nothing to do.
+;;	;; Well, we have a mode, lets try turning on mmm-mode.
+;;
+;;	;; (mmm-mode-on)
+;;    
+;;	
+;;
+;;	))))
+;;
 
 (provide 'srecode-template-mode)
 
