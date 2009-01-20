@@ -1,8 +1,8 @@
 ;;; semantic-edit.el --- Edit Management for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.39 2009/01/09 23:06:05 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.40 2009/01/20 02:28:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -173,8 +173,7 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	  (condition-case nil
 	      (run-hook-with-args 'semantic-edits-new-change-hooks o)
 	    (error nil)))
-      (let ((newstart start) (newend end)
-	    (tmp changes-in-change))
+      (let ((tmp changes-in-change))
 	;; Find greatest bounds of all changes
 	(while tmp
 	  (when (< (semantic-overlay-start (car tmp)) start)
