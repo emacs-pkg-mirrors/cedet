@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: picture
-;; X-RCS: $Id: picture-hack.el,v 1.9 2009/01/20 02:17:51 zappo Exp $
+;; X-RCS: $Id: picture-hack.el,v 1.10 2009/01/20 03:40:43 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -79,6 +79,27 @@
     "*Character `picture-draw-rectangle' uses for top left corners."
     :type 'character
     :group 'picture))
+
+(unless (boundp 'picture-rectangle-ctr)
+  (defcustom picture-rectangle-ctr ?+
+    "*Character `picture-draw-rectangle' uses for top right corners."
+    :type 'character
+    :group 'picture)
+  )
+
+(unless (boundp 'picture-rectangle-cbr)
+  (defcustom picture-rectangle-cbr ?+
+    "*Character `picture-draw-rectangle' uses for bottom right corners."
+    :type 'character
+    :group 'picture)
+  )
+
+(unless (boundp 'picture-rectangle-cbl)
+  (defcustom picture-rectangle-cbl ?+
+    "*Character `picture-draw-rectangle' uses for bottom left corners."
+    :type 'character
+    :group 'picture)
+  )
 
 ;;; Changes to exsiting functions
 ;;
@@ -231,15 +252,27 @@ The line is drawn in a rectilinear fashion."
 	  (if (/= y1 y2)
 	      (progn
 		(picture-set-motion ydir 0)
-		;; @todo - The CTL means TOP LEFt, but since it is +
-		;;       it is used here universally.  Fix.
-		(apply 'picture-insert picture-rectangle-ctl 1
-		       textproperties)
+		(apply 'picture-insert
+		       (if (< x1 x2)
+			   (if (< y1 y2)
+			       picture-rectangle-ctr
+			     picture-rectangle-cbr)
+			 (if (< y1 y2)
+			     picture-rectangle-ctl
+			   picture-rectangle-cbl))
+		       1 textproperties)
 		(apply 'picture-insert picture-rectangle-v (1- (abs (- y1 y2)))
 		       textproperties)
 		(picture-set-motion 0 xdir)
-		(apply 'picture-insert picture-rectangle-ctl 1
-		       textproperties)
+		(apply 'picture-insert
+		       (if (< x1 x2)
+			   (if (< y1 y2)
+			       picture-rectangle-cbl
+			     picture-rectangle-ctl)
+			 (if (< y1 y2)
+			     picture-rectangle-cbr
+			   picture-rectangle-ctr))
+		       1 textproperties)
 		;;(setq halfway (1- halfway))
 		)
 	    (apply 'picture-insert picture-rectangle-h 1
@@ -257,13 +290,29 @@ The line is drawn in a rectilinear fashion."
       (if (/= x1 x2)
 	  (progn
 	    (picture-set-motion 0 xdir)
-	    (apply 'picture-insert picture-rectangle-ctl 1
-		   textproperties)
+	    (apply 'picture-insert
+		   (if (< y1 y2)
+		       (if (< x1 x2)
+			   picture-rectangle-cbl
+			 picture-rectangle-cbr
+			 )
+		     (if (< x1 x2)
+			 picture-rectangle-ctl
+		       picture-rectangle-ctr
+		       ))
+		   1 textproperties)
 	    (apply 'picture-insert picture-rectangle-h (1- (abs (- x1 x2)))
 		   textproperties)
 	    (picture-set-motion ydir 0)
-	    (apply 'picture-insert picture-rectangle-ctl 1
-		   textproperties)
+	    (apply 'picture-insert
+		   (if (< y1 y2)
+		       (if (< x1 x2)
+			   picture-rectangle-ctr
+			 picture-rectangle-ctl)
+		     (if (< x1 x2)
+			 picture-rectangle-cbr
+		       picture-rectangle-cbl))
+		   1 textproperties)
 	    ;(setq halfway (1- halfway))
 	    )
 	(apply 'picture-insert picture-rectangle-v 1
