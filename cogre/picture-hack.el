@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: picture
-;; X-RCS: $Id: picture-hack.el,v 1.8 2009/01/10 03:28:57 zappo Exp $
+;; X-RCS: $Id: picture-hack.el,v 1.9 2009/01/20 02:17:51 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -97,8 +97,25 @@ Leaves the region surrounding the rectangle."
 			      (point)))))
     ;; This line is different from the one in Emacs 21, and enables
     ;; the mark to only be pushed if it is interactivly called.
-    (if (interactive-p) (push-mark))
-    (insert-rectangle rectangle)))
+    (if (interactive-p) (push-mark (point) t))
+    ;(picture-hack-insert-rectangle rectangle)
+    
+    (let ((lines rectangle)
+	  (insertcolumn (current-column))
+	  (first t))
+      (while lines
+	(or first
+	    (progn
+	      (forward-line 1)
+	      (or (bolp) (insert ?\n))
+	      (move-to-column insertcolumn t)))
+	(setq first nil)
+	;;(insert-for-yank (car lines))
+	;; No need for the above complication, as there are no yank-handlers.
+	(insert (car lines))
+	(setq lines (cdr lines))))
+    
+    ))
 
 (if (condition-case nil
 	(and (clear-rectangle 0 0 t)
