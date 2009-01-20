@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-test.el,v 1.5 2009/01/14 02:02:02 zappo Exp $
+;; X-RCS: $Id: srecode-test.el,v 1.6 2009/01/20 03:50:19 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -223,11 +223,17 @@ LAST                 |                 LAST")
 	  (error "No template table found for mode %s" major-mode))
 
       ;; Loop over the output testpoints.
-      (cedet-utest-log-start "srecode: templates")
+      ;;(cedet-utest-log-start "srecode: templates")
+      (cedet-utest-log-setup "SRECODE Templates")
+
       (dolist (p srecode-utest-output-entries)
 	(srecode-utest-test p)
 	)
 
+      (cedet-utest-log-shutdown 
+       "SRECODE Templates"
+       nil ; How to detect a problem?
+       )
       )))
 
 
