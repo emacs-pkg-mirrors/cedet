@@ -1,9 +1,9 @@
 ;;; ede-emacs.el --- Special project for Emacs
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-emacs.el,v 1.7 2008/12/19 22:51:35 zappo Exp $
+;; X-RCS: $Id: ede-emacs.el,v 1.8 2009/01/20 02:36:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -252,7 +252,6 @@ Knows about how the Emacs source tree is organized."
 		((string-match "texi" ext)
 		 '("doc"))
 		(t nil)))
-	 (ans nil)
 	 )
     (if (not dirs) (call-next-method)
       (ede-emacs-find-in-directories name dir dirs))
