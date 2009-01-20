@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-document.el,v 1.8 2009/01/13 20:58:08 zappo Exp $
+;; X-RCS: $Id: srecode-document.el,v 1.9 2009/01/20 03:46:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -289,8 +289,7 @@ It is assumed that the comment occurs just after VAR-IN."
 	 (temp (srecode-template-get-table (srecode-table)
 					   "variable-same-line-comment"
 					   "declaration"
-					   'document))
-	 (extract nil))
+					   'document)))
     (if (not temp)
 	(error "No templates for inserting variable comments"))
 
@@ -322,7 +321,7 @@ It is assumed that the comment occurs just after VAR-IN."
 	    (error "Quit"))
 
 	  ;; Extract text from the existing comment.
-	  (setq extract (srecode-extract temp s e))
+	  (srecode-extract temp s e)
 
 	  (delete-region s e)
 	  (goto-char s) ;; To avoid adding a CR.
