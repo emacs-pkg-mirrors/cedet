@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-semantic.el,v 1.12 2009/01/10 18:48:05 zappo Exp $
+;; X-RCS: $Id: srecode-semantic.el,v 1.13 2009/01/20 23:42:54 scymtym Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -374,7 +374,7 @@ as `function' will leave point where code might be inserted."
 		    (semantic-tag-type tag) prototype ctxt))
 	(setq errtype (concat errtype " or " (semantic-tag-type tag)))
 	)
-       ;; A function might be an externally declaired method.
+       ;; A function might be an externally declared method.
        ((and (eq (semantic-tag-class tag) 'function)
 	     (semantic-tag-function-parent tag))
 	(setq temp (srecode-semantic-find-template
