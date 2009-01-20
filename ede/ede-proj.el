@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.57 2009/01/10 18:42:45 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.58 2009/01/20 02:39:53 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -418,8 +418,7 @@ Argument TARGET is the project we are completing customization on."
 (defmethod project-add-file ((this ede-proj-target) file)
   "Add to target THIS the current buffer represented as FILE."
   (let ((file (ede-convert-path this file))
-	(src (ede-target-sourcecode this))
-	(aux nil))
+	(src (ede-target-sourcecode this)))
     (while (and src (not (ede-want-file-p (car src) file)))
       (setq src (cdr src)))
     (when src
