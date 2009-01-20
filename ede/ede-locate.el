@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-locate.el,v 1.4 2009/01/06 20:43:14 zappo Exp $
+;; X-RCS: $Id: ede-locate.el,v 1.5 2009/01/20 02:36:56 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -178,6 +178,7 @@ configure the use of EDE locate.")
   (let ((lf (locate-file locate-command exec-path 
 			 '(".exe")
 			 `file-executable-p)))
+    ;; @todo - make sure lf found something.
     t))	
 
 (defmethod ede-locate-file-in-project-impl ((loc ede-locate-locate)
@@ -257,8 +258,8 @@ The search is done with the current EDE root."
   (let ((loc (ede-locate-locate
 	      "test"
 	      :root (ede-project-root-directory
-		     (ede-toplevel))))
-	(ab (data-debug-new-buffer "*EDE Locate ADEBUG*")))
+		     (ede-toplevel)))))
+    (data-debug-new-buffer "*EDE Locate ADEBUG*")
     (ede-locate-file-in-project loc file)
     (data-debug-insert-object-slots loc "]"))
   )
@@ -270,8 +271,8 @@ The search is done with the current EDE root."
   (let ((loc (ede-locate-global
 	      "test"
 	      :root (ede-project-root-directory
-		     (ede-toplevel))))
-	(ab (data-debug-new-buffer "*EDE Locate ADEBUG*")))
+		     (ede-toplevel)))))
+    (data-debug-new-buffer "*EDE Locate ADEBUG*")
     (ede-locate-file-in-project loc file)
     (data-debug-insert-object-slots loc "]"))
   )
