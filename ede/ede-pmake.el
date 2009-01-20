@@ -1,10 +1,10 @@
 ;;; ede-pmake.el --- EDE Generic Project Makefile code generator.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.51 2008/12/28 22:10:50 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.52 2009/01/20 02:37:30 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@
 (defmethod ede-proj-makefile-create ((this ede-proj-project) mfilename)
   "Create a Makefile for all Makefile targets in THIS.
 MFILENAME is the makefile to generate."
-  (let ((mt nil) tmp
+  (let ((mt nil)
 	(isdist (string= mfilename (ede-proj-dist-makefile this)))
 	(depth 0)
 	)
