@@ -343,11 +343,17 @@ If ARG is unspecified, assume 1."
   (if (interactive-p)
       (cogre-render-buffer cogre-graph)))
 
+(defun cogre-node-position ()
+  "Get the position of the node at point."
+  (let ((e (cogre-current-element (point)))
+	)
+    (if e (oref e position)
+      (error "No node at point %d" (point)))))
+
 (defun cogre-move-node-left (arg)
   "Move NODE left by ARG columns."
   (interactive "p")
-  (let* ((e (cogre-current-element (point)))
-	 (p (oref e position)))
+  (let* ((p (cogre-node-position)))
     (cogre-move-node (- (aref p 0) arg) (aref p 1))
     (if (interactive-p)
 	(cogre-render-buffer cogre-graph))))
@@ -355,8 +361,7 @@ If ARG is unspecified, assume 1."
 (defun cogre-move-node-right (arg)
   "Move NODE right by ARG columns."
   (interactive "p")
-  (let* ((e (cogre-current-element (point)))
-	 (p (oref e position)))
+  (let* ((p (cogre-node-position)))
     (cogre-move-node (+ (aref p 0) arg) (aref p 1))
     (if (interactive-p)
 	(cogre-render-buffer cogre-graph))))
@@ -364,8 +369,7 @@ If ARG is unspecified, assume 1."
 (defun cogre-move-node-up (arg)
   "Move NODE up by ARG columns."
   (interactive "p")
-  (let* ((e (cogre-current-element (point)))
-	 (p (oref e position)))
+  (let* ((p (cogre-node-position)))
     (cogre-move-node (aref p 0) (- (aref p 1) arg))
     (if (interactive-p)
 	(cogre-render-buffer cogre-graph))))
@@ -373,8 +377,7 @@ If ARG is unspecified, assume 1."
 (defun cogre-move-node-down (arg)
   "Move NODE down by ARG columns."
   (interactive "p")
-  (let* ((e (cogre-current-element (point)))
-	 (p (oref e position)))
+  (let* ((p (cogre-node-position)))
     (cogre-move-node (aref p 0) (+ (aref p 1) arg))
     (if (interactive-p)
 	(cogre-render-buffer cogre-graph))))
