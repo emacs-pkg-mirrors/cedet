@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.33 2009/01/20 02:39:03 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.34 2009/01/20 02:39:37 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -116,17 +116,17 @@ Bonus: Return a cons cell: (COMPILED . UPTODATE)."
   (let ((cb (current-buffer))
 	(comp 0)
 	(utd 0))
-    (mapcar (lambda (src)
-	      (let* ((fsrc (ede-expand-filename obj src))
-		     (elc (concat (file-name-sans-extension fsrc) ".elc"))
-		     )
-		(set-buffer cb)
-		(if (or (not (file-exists-p elc))
-			(file-newer-than-file-p fsrc elc))
-		    (progn
-		      (setq comp (1+ comp))
-		      (byte-compile-file fsrc))
-		  (setq utd (1+ utd)))))
+    (mapc (lambda (src)
+	    (let* ((fsrc (ede-expand-filename obj src))
+		   (elc (concat (file-name-sans-extension fsrc) ".elc"))
+		   )
+	      (set-buffer cb)
+	      (if (or (not (file-exists-p elc))
+		      (file-newer-than-file-p fsrc elc))
+		  (progn
+		    (setq comp (1+ comp))
+		    (byte-compile-file fsrc))
+		(setq utd (1+ utd)))))
 	    (oref obj source))
     (message "All Emacs Lisp sources are up to date in %s" (object-name obj))
     (cons comp utd)
