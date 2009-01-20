@@ -1,9 +1,9 @@
 ;;; ede-files.el --- Associate projects with files and directories.
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.9 2008/12/21 13:04:10 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.10 2009/01/20 02:36:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -83,7 +83,7 @@ the current buffer."
   (when (slot-boundp this :proj-root)
     (let ((rootfcn (oref this proj-root)))
       (when rootfcn
-	(condition-case err
+	(condition-case nil
 	    (funcall rootfcn file)
 	  (error 
 	   (funcall rootfcn)))
