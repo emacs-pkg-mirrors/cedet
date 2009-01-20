@@ -1,10 +1,10 @@
 ;;; ede.el --- Emacs Development Environment gloss
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.126 2008/12/28 22:15:17 zappo Exp $
+;; RCS: $Id: ede.el,v 1.127 2009/01/20 02:40:26 zappo Exp $
 (defconst ede-version "1.0pre5"
   "Current version of the Emacs EDE.")
 
@@ -938,7 +938,6 @@ Optional argument NAME is the name to give this project."
 If PARENT is specified, then be relative to the PARENT project.
 Specifying PARENT is useful for sub-sub projects relative to the root project."
   (let* ((parent (or parent-in (ede-parent-project proj)))
-	 (pdir nil)
 	 (dir (file-name-directory (oref proj file))))
     (if (and parent (not (eq parent proj)))
 	(file-relative-name dir (file-name-directory (oref parent file)))
@@ -1447,7 +1446,7 @@ Optional ROOTRETURN will return the root project for DIR."
 			    ede-projects))
       (if (not o)
 	  ;; If not, get it now.
-	  (let ((ede-constructing t) (afo nil))
+	  (let ((ede-constructing t))
 	    (setq o (funcall (oref pfc load-type) toppath))
 	    (when (not o)
 	      (error "Project type error: :load-type failed to create a project"))
@@ -1804,11 +1803,10 @@ If VARIABLE is not project local, just use set."
 Display the results as a debug list."
   (interactive)
   (require 'data-debug)
-  (let ((ab nil))
-    (when (ede-current-project)
-      (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
-      (data-debug-insert-object-slots (ede-current-project) "")
-      )))
+  (when (ede-current-project)
+    (data-debug-new-buffer "*Analyzer ADEBUG*")
+    (data-debug-insert-object-slots (ede-current-project) "")
+    ))
 
 ;;;###autoload
 (defun ede-adebug-project-parent ()
@@ -1816,11 +1814,10 @@ Display the results as a debug list."
 Display the results as a debug list."
   (interactive)
   (require 'data-debug)
-  (let ((ab nil))
-    (when (ede-parent-project)
-      (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
-      (data-debug-insert-object-slots (ede-parent-project) "")
-      )))
+  (when (ede-parent-project)
+    (data-debug-new-buffer "*Analyzer ADEBUG*")
+    (data-debug-insert-object-slots (ede-parent-project) "")
+    ))
 
 ;;;###autoload
 (defun ede-adebug-project-root ()
@@ -1828,11 +1825,10 @@ Display the results as a debug list."
 Display the results as a debug list."
   (interactive)
   (require 'data-debug)
-  (let ((ab nil))
-    (when (ede-toplevel)
-      (setq ab (data-debug-new-buffer "*Analyzer ADEBUG*"))
-      (data-debug-insert-object-slots (ede-toplevel) "")
-      )))
+  (when (ede-toplevel)
+    (data-debug-new-buffer "*Analyzer ADEBUG*")
+    (data-debug-insert-object-slots (ede-toplevel) "")
+    ))
 
 ;;; Hooks & Autoloads
 ;;
