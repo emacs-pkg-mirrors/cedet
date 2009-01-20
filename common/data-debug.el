@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.13 2009/01/19 22:51:48 scymtym Exp $
+;; X-RCS: $Id: data-debug.el,v 1.14 2009/01/20 02:46:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -74,7 +74,7 @@ PREFIX specifies what to insert at the start of each line."
   "Insert the overlay found at the overlay button at POINT."
   (let ((overlay (get-text-property point 'ddebug))
 	(indent (get-text-property point 'ddebug-indent))
-	start end
+	start
 	)
     (end-of-line)
     (setq start (point))
@@ -82,7 +82,6 @@ PREFIX specifies what to insert at the start of each line."
     (data-debug-insert-overlay-props overlay
 				     (concat (make-string indent ? )
 					     "| "))
-    (setq end (point))
     (goto-char start)
     ))
 
@@ -122,7 +121,7 @@ PREFIX specifies what to insert at the start of each line."
   "Insert the overlay found at the overlay list button at POINT."
   (let ((overlaylist (get-text-property point 'ddebug))
 	(indent (get-text-property point 'ddebug-indent))
-	start end
+	start
 	)
     (end-of-line)
     (setq start (point))
@@ -130,7 +129,6 @@ PREFIX specifies what to insert at the start of each line."
     (data-debug-insert-overlay-list overlaylist
 				    (concat (make-string indent ? )
 					    "* "))
-    (setq end (point))
     (goto-char start)
     ))
 
@@ -552,10 +550,15 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
 A Symbol is a simple thing, but this provides some face and prefix rules.
 PREFIX is the text that preceeds the button.
 PREBUTTONTEXT is some text between prefix and the thing."
-  (insert prefix prebuttontext
-	  (propertize (format "\"%s\"" thing)
-		      'face font-lock-string-face)
-	  "\n" ))
+  (let ((newstr thing))
+    (while (string-match "\n" newstr)
+      (setq newstr (replace-match "\\n" t t newstr)))
+    (while (string-match "\t" newstr)
+      (setq newstr (replace-match "\\t" t t newstr)))
+    (insert prefix prebuttontext
+	    (propertize (format "\"%s\"" newstr)
+			'face font-lock-string-face)
+	    "\n" )))
 
 ;;; Number
 (defun data-debug-insert-number (thing prefix prebuttontext)
@@ -867,8 +870,7 @@ Do nothing if already expanded."
 (defun data-debug-expand-or-contract-mouse (event)
   "Expand or contract anything at event EVENT."
   (interactive "e")
-  (let* ((startwin (selected-window))
-	 (win (car (car (cdr event))))
+  (let* ((win (car (car (cdr event))))
 	 )
     (select-window win t)
     (save-excursion
