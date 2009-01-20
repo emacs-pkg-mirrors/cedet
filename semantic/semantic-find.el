@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.25 2009/01/09 23:08:03 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.26 2009/01/20 02:28:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -593,7 +593,6 @@ searched.
 If SEARCH-INCLUDES has not been implemented.
 This parameter hasn't be active for a while and is obsolete."
   (let ((stream (semantic-something-to-tag-table streamorbuffer))
-        (tag  nil)                    ;current tag
 	(sl nil)			;list of tag children
 	(nl nil)			;new list
         (case-fold-search semantic-case-fold))
