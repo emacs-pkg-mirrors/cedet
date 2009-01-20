@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-utest.el,v 1.4 2009/01/10 01:43:18 zappo Exp $
+;; X-RCS: $Id: cogre-utest.el,v 1.5 2009/01/20 02:25:23 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -39,7 +39,8 @@
   "Unit test Various aspects of COGRE."
   (interactive)
 
-  (cedet-utest-log-start "cogre: graph UI tests")
+  ;(cedet-utest-log-start "cogre: graph UI tests")
+  (cedet-utest-log-setup "COGRE")
 
   ;; MAKE A GRAPH
   (cogre "TEST GRAPH")
@@ -67,20 +68,24 @@
   ;; Move Test
   (picture-goto-coordinate 12 12)
 
-  (call-interactively 'cogre-move-node-right) (sit-for 0)
-  (call-interactively 'cogre-move-node-right) (sit-for 0)
-  (call-interactively 'cogre-move-node-right) (sit-for 0)
-  (call-interactively 'cogre-move-node-right) (sit-for 0)
-  (call-interactively 'cogre-move-node-right) (sit-for 0)
-  (call-interactively 'cogre-move-node-right) (sit-for 0)
-  (call-interactively 'cogre-move-node-right) (sit-for 0)
-  (call-interactively 'cogre-move-node-up) (sit-for 0)
-  (call-interactively 'cogre-move-node-up) (sit-for 0)
-  (call-interactively 'cogre-move-node-up) (sit-for 0)
-  (call-interactively 'cogre-move-node-up) (sit-for 0)
-  (call-interactively 'cogre-move-node-up) (sit-for 0)
-  (call-interactively 'cogre-move-node-up) (sit-for 0)
+  (let ((six '(1 2 3 4 5 6)))
+    (dolist (I six)
+      (cogre-move-node-right 1)
+      (cogre-render-buffer cogre-graph)
+      (sit-for 0)
+      )
+    (dolist (I six)
+      (cogre-move-node-up 1)
+      (cogre-render-buffer cogre-graph)
+      (sit-for 0)
+      )
+    )
 
+  (cedet-utest-log " * Node Movement ... pass")
+
+  (cedet-utest-log-shutdown
+   "COGRE"
+   nil)
   )
 
 (defun cogre-utest-make-node-at (x y type name)
@@ -88,6 +93,7 @@
   (picture-goto-coordinate x y)
   (let ((cogre-default-node type))
     (call-interactively 'cogre-new-node)
+    (cogre-render-buffer cogre-graph)
     (cogre-set-element-name (cogre-node-at-point-interactive (point)) name)
     )
   )
@@ -96,7 +102,7 @@
   "Create a link between nodes located at X1/Y1 and X2/Y2.
 Link is created with the specified TYPE."
   (picture-goto-coordinate x1 y1)
-  (set-mark (point))
+  (push-mark-command (point) t)
   (let ((cogre-default-link type))
     (picture-goto-coordinate x2 y2)
     
