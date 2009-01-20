@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.69 2009/01/10 01:44:01 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.70 2009/01/20 02:32:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,12 +232,17 @@ Remove self from `post-command-hook' if it is empty."
   "Test the data cache."
   (interactive)
   (let ((data '(a b c)))
-    (semantic-cache-data-to-buffer (current-buffer) (point) (+ (point) 5)
-				   data 'moose 'exit-cache-zone)
-    (if (equal (semantic-get-cache-data 'moose) data)
-	(message "Successfully retrieved cached data.")
-      (error "Failed to retrieve cached data"))
-    ))
+    (save-excursion
+      (set-buffer (get-buffer-create " *semantic-test-data-cache*"))
+      (erase-buffer)
+      (insert "The Moose is Loose")
+      (goto-char (point-min))
+      (semantic-cache-data-to-buffer (current-buffer) (point) (+ (point) 5)
+				     data 'moose 'exit-cache-zone)
+      (if (equal (semantic-get-cache-data 'moose) data)
+	  (message "Successfully retrieved cached data.")
+	(error "Failed to retrieve cached data"))
+      )))
 
 ;;; Obsoleting various functions & variables
 ;;
