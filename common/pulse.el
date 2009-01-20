@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.9 2009/01/10 01:28:16 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.10 2009/01/20 02:43:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -193,45 +193,51 @@ Be sure to call `pulse-reset-face' after calling pulse."
     ))
 
 ;;;###autoload
-(defun pulse-test ()
-  "Test the lightening function for pulsing a line."
+(defun pulse-test (&optional no-error)
+  "Test the lightening function for pulsing a line.
+When optional NO-ERROR Don't throw an error if we can't run tests."
   (interactive)
   (if (not pulse-flag)
-      (error "Pulse test only works on versions of Emacs that support pulsing"))
-  (when (interactive-p)
-    (message "<Press a key> Pulse one line.")
-    (read-char))
-  (pulse-momentary-highlight-one-line (point))
-  (when (interactive-p)
-    (message "<Press a key> Pulse a region.")
-    (read-char))
-  (pulse-momentary-highlight-region (point)
-				    (save-excursion
-				      (condition-case nil
-					  (forward-char 30)
-					(error nil))
-				      (point)))
-  (when (interactive-p)
-    (message "<Press a key> Pulse line a specific color.")
-    (read-char))
-  (pulse-momentary-highlight-one-line (point) 'modeline)
-  (when (interactive-p)
-    (message "<Press a key> Pulse a pre-existing overlay.")
-    (read-char))
-  (let* ((start (point-at-bol))
-	 (end (save-excursion
-		(end-of-line)
-		(when (not (eobp))
-		  (forward-char 1))
-		(point)))
-	 (o (pulse-make-overlay start end))
-	 )
-    (pulse-momentary-highlight-overlay o)
-    (if (pulse-overlay-live-p o)
-	(pulse-overlay-delete o)
-      (error "Non-temporary overlay was deleted!"))
-    )
-  (message "Done!"))
+      (if no-error
+	  nil
+	(error (concat "Pulse test only works on versions of Emacs"
+		       " that support pulsing")))
+    ;; Run the tests
+    (when (interactive-p)
+      (message "<Press a key> Pulse one line.")
+      (read-char))
+    (pulse-momentary-highlight-one-line (point))
+    (when (interactive-p)
+      (message "<Press a key> Pulse a region.")
+      (read-char))
+    (pulse-momentary-highlight-region (point)
+				      (save-excursion
+					(condition-case nil
+					    (forward-char 30)
+					  (error nil))
+					(point)))
+    (when (interactive-p)
+      (message "<Press a key> Pulse line a specific color.")
+      (read-char))
+    (pulse-momentary-highlight-one-line (point) 'modeline)
+    (when (interactive-p)
+      (message "<Press a key> Pulse a pre-existing overlay.")
+      (read-char))
+    (let* ((start (point-at-bol))
+	   (end (save-excursion
+		  (end-of-line)
+		  (when (not (eobp))
+		    (forward-char 1))
+		  (point)))
+	   (o (pulse-make-overlay start end))
+	   )
+      (pulse-momentary-highlight-overlay o)
+      (if (pulse-overlay-live-p o)
+	  (pulse-overlay-delete o)
+	(error "Non-temporary overlay was deleted!"))
+      )
+    (when (interactive-p)
+      (message "Done!"))))
 
 
 ;;; Convenience Functions
