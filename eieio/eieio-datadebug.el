@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: eieio-datadebug.el,v 1.4 2009/01/09 22:52:13 zappo Exp $
+;; X-RCS: $Id: eieio-datadebug.el,v 1.5 2009/01/20 03:45:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -44,7 +44,7 @@ PREFIX specifies what to insert at the start of each line."
   "Insert the object slots found at the object button at POINT."
   (let ((object (get-text-property point 'ddebug))
 	(indent (get-text-property point 'ddebug-indent))
-	start end
+	start
 	)
     (end-of-line)
     (setq start (point))
@@ -52,7 +52,6 @@ PREFIX specifies what to insert at the start of each line."
     (data-debug-insert-object-slots object
 				    (concat (make-string indent ? )
 					    "~ "))
-    (setq end (point))
     (goto-char start)
     ))
 
@@ -131,10 +130,8 @@ PREBUTTONTEXT is some text between PREFIX and the object button."
 ;;;###autoload
 (defmethod data-debug-show ((obj eieio-default-superclass))
   "Run ddebug against any EIEIO object OBJ"
-  (let ((ab (data-debug-new-buffer 
-	     (format "*%s DDEBUG*" (object-name obj)))))
-    (data-debug-insert-object-slots obj "]"))
-  )
+  (data-debug-new-buffer (format "*%s DDEBUG*" (object-name obj)))
+  (data-debug-insert-object-slots obj "]"))
 
 ;;; DEBUG FUNCTIONS
 ;;
