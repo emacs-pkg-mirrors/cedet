@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.18 2009/01/14 00:44:36 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.19 2009/01/20 02:41:58 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -128,6 +128,12 @@ clean:
 	-print -exec $(RM) {} \;
 
 clean-all: clean clean-elc clean-info clean-grammars clean-autoloads
+
+### UNIT TEST Harness
+## Run the master CEDET unit-test suite.
+.PHONY: utest
+utest:
+	$(EMACS) -batch -l "common/cedet.el" -f cedet-utest-batch
 
 ### Install info files
 ## Thanks Stefano Sabatini for the info install patch.
