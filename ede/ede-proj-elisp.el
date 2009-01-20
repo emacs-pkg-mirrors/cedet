@@ -1,10 +1,10 @@
 ;;; ede-proj-elisp.el --- EDE Generic Project Emacs Lisp support
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.32 2008/05/04 15:25:00 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.33 2009/01/20 02:39:03 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -232,8 +232,7 @@ is found, such as a `-version' variable, or the standard header."
   "Flush the configure file (current buffer) to accomodate THIS."
   ;; Remove crufty old paths from elisp-compile
   (let ((ec (ede-expand-filename this "elisp-comp"))
-	(paths (ede-proj-elisp-packages-to-loadpath
-		(oref this aux-packages))))
+	)
     (if (file-exists-p ec)
 	(save-excursion
 	  (set-buffer (find-file-noselect ec t))
