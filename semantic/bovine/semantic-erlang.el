@@ -7,7 +7,7 @@
 ;; Author: Vladimir G. Sekissov <svg@surnet.ru>
 ;;         David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-erlang.el,v 1.6 2009/01/24 03:52:11 zappo Exp $
+;; X-RCS: $Id: semantic-erlang.el,v 1.7 2009/01/24 04:05:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,7 +37,7 @@
 (require 'semantic)
 (require 'backquote)
 (require 'semantic-erlang-by)
-(require 'erlang-edoc)
+;;(require 'erlang-edoc)
 
 ;; Depending on what elements you include specialized support for
 (eval-when-compile
