@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.66 2009/02/01 16:18:32 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.67 2009/02/01 16:23:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -674,9 +674,6 @@ This function is for internal use only."
 (defun semantic-tag-deep-copy-one-tag (tag &optional filter)
   "Make a deep copy of TAG, applying FILTER to each child-tag.
 Properties and overlay info are not copied.
-If you modify the returned copy, there will be no side effects on
-the original tag.
-
 FILTER takes TAG as an argument, and should returns a semantic-tag. 
 It is safe for FILTER to modify the input tag and return it."
   (when (not filter) (setq filter 'identity))
