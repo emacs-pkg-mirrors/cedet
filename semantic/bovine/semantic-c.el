@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.100 2009/02/01 16:26:38 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.101 2009/02/02 01:54:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -767,6 +767,8 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 	      :prototype-flag (if (nth 8 tokenpart) t)
 	      ;; Pure virtual
 	      :pure-virtual-flag (if (eq (nth 8 tokenpart) :pure-virtual-flag) t)
+	      ;; Template specifier.
+	      :template-specifier (nth 9 tokenpart)
 	      )))
 	 )
 	))
