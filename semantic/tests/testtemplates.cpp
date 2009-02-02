@@ -8,18 +8,21 @@ public:
   const V* read_ref_member_two();
 };
 
-template <class T, int U, class V>
-class ref {
-public:  
-  read_ref<T,10,V> operator->() {
-    m_// -1-
-      ;
-    // #1# ( "m_datas" )
-  }  
+namespace NS {
+  template <class T, int U, class V>
+  class ref {
+  public:  
+    read_ref<T,10,V> operator->() {
+      m_// -1-
+	;
+      // #1# ( "m_datas" )
+    }  
 
-private:
-  T m_datas[U];
-};
+  private:
+    T m_datas[U];
+  };
+
+}
 
 class FooOne {
 public:
@@ -39,6 +42,8 @@ public:
 };
 
 typedef ref<FooOne, 10,FooTwo> Test;
+
+using NS;
 
 void
 main(void) {
@@ -67,4 +72,16 @@ main(void) {
   v2->read_ref_member_two()-> // -6- 
     ;
   // #6# ( "fooOneMember" )
+
+  /* Try all these things by also specifying the namespace in the name. */
+  NS::ref<FooOne, 10, FooTwo> v3;
+  
+  v3->read_ref_member_one()-> // -7-
+    ;
+  // #7# ( "fooOneMember" )
+
+  v3->read_ref_member_two()-> // -8-
+    ;
+  // #8# ( "fooTwoMember" )
+
 }
