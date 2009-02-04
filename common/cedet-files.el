@@ -1,9 +1,9 @@
 ;;; cedet-files.el --- Common routines dealing with file names.
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-files.el,v 1.2 2008/02/14 16:02:10 zappo Exp $
+;; X-RCS: $Id: cedet-files.el,v 1.3 2009/02/04 23:08:38 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -33,21 +33,25 @@
 Obsoleted in some versions of Emacs.  Needed in others.")
 
 
-(defun cedet-directory-name-to-file-name (referencedir)
+(defun cedet-directory-name-to-file-name (referencedir &optional testmode)
   "Convert the REFERENCEDIR (a full path name) into a filename.
-Converts directory seperation characters into ! characters."
+Converts directory seperation characters into ! characters.
+Optional argument TESTMODE is used by tests to avoid conversion
+to the file's truename, and dodging platform tricks."
   (let ((file referencedir)
 	dir-sep-string)
     ;; Expand to full file name
-    (setq file (file-truename file))
+    (when (not testmode)
+      (setq file (file-truename file)))
     ;; If FILE is a directory, then force it to end in /.
     (when (file-directory-p file)
       (setq file (file-name-as-directory file)))
     ;; Handle Windows Special cases
-    (when (memq system-type '(windows-nt ms-dos))
+    (when (or (memq system-type '(windows-nt ms-dos)) testmode)
       ;; Replace any invalid file-name characters (for the
       ;; case of backing up remote files).
-      (setq file (expand-file-name (convert-standard-filename file)))
+      (when (not testmode)
+	(setq file (expand-file-name (convert-standard-filename file))))
       (setq dir-sep-string (char-to-string cedet-dir-sep-char))
       ;; Normalize DOSish file names: convert all slashes to
       ;; directory-sep-char, downcase the drive letter, if any,
@@ -67,6 +71,74 @@ Converts directory seperation characters into ! characters."
 		cedet-dir-sep-char ?!
 		(replace-regexp-in-string "!" "!!" file)))
     file))
+
+(defun cedet-file-name-to-directory-name (referencefile &optional testmode)
+  "Reverse the process of `cedet-directory-name-to-file-name'.
+Convert REFERENCEFILE to a directory name replacing ! with /.
+Optional TESTMODE is used in tests to avoid doing some platform
+specific conversions during tests."
+  (let ((file referencefile))
+    ;; Replace the ! with /
+    (setq file (subst-char-in-string ?! ?/ file))
+    ;; Occurances of // meant there was once a single !.
+    (setq file (replace-regexp-in-string "//" "!" file))
+
+    ;; Handle Windows special cases
+    (when (or (memq system-type '(windows-nt ms-dos)) testmode)
+
+      ;; Handle drive letters from DOSish file names.
+      (when (string-match "^/drive_\\([a-z]\\)/" file)
+	(let ((driveletter (match-string 1 file))
+	      )
+	  (setq file (concat driveletter ":"
+			     (substring file (match-end 1))))))
+
+      ;; Handle the \\file\name nomenclature on some windows boxes.
+      (when (string-match "^!" file)
+	(setq file (concat "//" (substring file 1))))
+      )
+    
+    file))
+
+;;; Tests
+;;
+(defvar cedet-files-utest-list
+  '(
+    ( "/home/me/src/myproj/src/foo.c" . "!home!me!src!myproj!src!foo.c" )
+    ( "c:/work/myproj/foo.el" . "!drive_c!work!myproj!foo.el" )
+    ( "//windows/proj/foo.java" . "!!windows!proj!foo.java" )
+    ( "/home/me/proj!bang/foo.c" . "!home!me!proj!!bang!foo.c" )
+    )
+  "List of different file names to test.
+Each entry is a cons cell of ( FNAME . CONVERTED )
+where FNAME is some file name, and CONVERTED is what it should be
+converted into.")
+
+;;;###autoload
+(defun cedet-files-utest ()
+  "Test out some file name conversions."
+  (interactive)
+
+  (let ((idx 0))
+    (dolist (FT cedet-files-utest-list)
+
+      (setq idx (+ idx 1))
+
+      (let ((dir->file (cedet-directory-name-to-file-name (car FT) t))
+	    (file->dir (cedet-file-name-to-directory-name (cdr FT) t))
+	    )
+
+	(unless (string= (cdr FT) dir->file)
+	  (error "Failed: %d.  Found: %S Wanted: %S"
+		 idx dir->file (cdr FT))
+	  )
+
+	(unless (string= file->dir (car FT))
+	  (error "Failed: %d.  Found: %S Wanted: %S"
+		 idx file->dir (car FT))
+	  )
+
+	))))
 
 
 (provide 'cedet-files)
