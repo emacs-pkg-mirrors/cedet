@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.10 2009/01/20 02:36:24 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.11 2009/02/04 23:22:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -89,22 +89,22 @@ the current buffer."
 	   (funcall rootfcn)))
 	))))
 
-(defmethod ede-project-inode ((proj ede-project-placeholder))
+(defmethod ede--project-inode ((proj ede-project-placeholder))
   "Get the inode of the directory project PROJ is in."
   (if (slot-boundp proj 'dirinode)
       (oref proj dirinode)
-    (oset proj dirinode (ede-inode-for-dir (oref proj :directory)))))
+    (oset proj dirinode (ede--inode-for-dir (oref proj :directory)))))
 
 (defmethod ede-find-subproject-for-directory ((proj ede-project-placeholder)
 					      dir)
   "Find a subproject of PROJ that corresponds to DIR."
   (let ((ans nil)
-	(inode (ede-inode-for-dir dir)))
+	(inode (ede--inode-for-dir dir)))
     (ede-map-subprojects 
      proj
      (lambda (SP)
        (when (not ans)
-	 (if (equal (ede-project-inode SP) inode)
+	 (if (equal (ede--project-inode SP) inode)
 	     (setq ans SP)
 	   (ede-find-subproject-for-directory SP dir)))))
     ans))
@@ -119,32 +119,32 @@ the current buffer."
 				  :test 'equal)
   "A hash of directory names and inodes.")
 
-(defun ede-put-inode-dir-hash (dir inode)
+(defun ede--put-inode-dir-hash (dir inode)
   "Add to the EDE project hash DIR associated with INODE."
   (when (fboundp 'puthash)
     (puthash dir inode ede-inode-directory-hash)
     inode))
 
-(defun ede-get-inode-dir-hash (dir)
+(defun ede--get-inode-dir-hash (dir)
   "Get the EDE project hash DIR associated with INODE."
   (when (fboundp 'gethash)
     (gethash dir ede-inode-directory-hash)
     ))
 
-(defun ede-inode-for-dir (dir)
+(defun ede--inode-for-dir (dir)
   "Return the inode for the directory DIR."
-  (let ((hashnode (ede-get-inode-dir-hash (expand-file-name dir))))
+  (let ((hashnode (ede--get-inode-dir-hash (expand-file-name dir))))
     (or hashnode
 	(let ((fattr (file-attributes dir)))
-	  (ede-put-inode-dir-hash dir (nth 10 fattr))))))
+	  (ede--put-inode-dir-hash dir (nth 10 fattr))))))
 
 (defun ede-directory-get-open-project (dir &optional rootreturn)
   "Return an already open project that is managing DIR.
 Optional ROOTRETURN specifies a symbol to set to the root project.
 If DIR is the root project, then it is the same."
-  (let* ((inode (ede-inode-for-dir dir))
+  (let* ((inode (ede--inode-for-dir dir))
 	 (ft (file-name-as-directory (expand-file-name dir)))
-	 (proj (ede-inode-get-toplevel-open-project inode))
+	 (proj (ede--inode-get-toplevel-open-project inode))
 	 (ans proj))
     ;; Try file based search.
     (when (not proj)
@@ -152,21 +152,22 @@ If DIR is the root project, then it is the same."
     ;; Save.
     (when rootreturn (set rootreturn proj))
     ;; Find subprojects.
-    (when (and proj (not (equal inode (ede-project-inode proj))))
+    (when (and proj (not (equal inode (ede--project-inode proj))))
       (setq ans (ede-find-subproject-for-directory proj ft)))
     ans))
 
-(defun ede-inode-get-toplevel-open-project (inode)
+(defun ede--inode-get-toplevel-open-project (inode)
   "Return an already open toplevel project that is managing INODE.
 Does not check subprojects."
-  (let ((all ede-projects)
-	(found nil)
-	)
-    (while (and all (not found))
-      (when (equal inode (ede-project-inode (car all)))
-	(setq found (car all)))
-      (setq all (cdr all)))
-    found))
+  (when (and (numberp inode) (/= inode 0))
+    (let ((all ede-projects)
+	  (found nil)
+	  )
+      (while (and all (not found))
+	(when (equal inode (ede--project-inode (car all)))
+	  (setq found (car all)))
+	(setq all (cdr all)))
+      found)))
 
 (defun ede-directory-get-toplevel-open-project (dir)
   "Return an already open toplevel project that is managing DIR."
@@ -185,8 +186,8 @@ Does not check subprojects."
 	 ((string-match (concat "^" (regexp-quote pd)) ft)
 	  (setq ans (car all)))
 	 ;; Exact inode match.  Useful with symlinks or complex automounters.
-	 ((let ((pin (ede-project-inode (car all)))
-		(inode (ede-inode-for-dir dir)))
+	 ((let ((pin (ede--project-inode (car all)))
+		(inode (ede--inode-for-dir dir)))
 	    (equal pin inode))
 	  (setq ans (car all)))
 	 ;; Subdir via truename - slower by far, but faster than a traditional lookup.
