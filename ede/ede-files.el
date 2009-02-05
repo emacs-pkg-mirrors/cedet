@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.11 2009/02/04 23:22:17 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.12 2009/02/05 15:11:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -131,12 +131,18 @@ the current buffer."
     (gethash dir ede-inode-directory-hash)
     ))
 
+(defvar ede--disable-inode nil
+  "Set to 't' to simulate systems w/out inode support.")
+
 (defun ede--inode-for-dir (dir)
   "Return the inode for the directory DIR."
   (let ((hashnode (ede--get-inode-dir-hash (expand-file-name dir))))
     (or hashnode
-	(let ((fattr (file-attributes dir)))
-	  (ede--put-inode-dir-hash dir (nth 10 fattr))))))
+	(if ede--disable-inode
+	    (ede--put-inode-dir-hash dir 0)
+	  (let ((fattr (file-attributes dir)))
+	    (ede--put-inode-dir-hash dir (nth 10 fattr))
+	    )))))
 
 (defun ede-directory-get-open-project (dir &optional rootreturn)
   "Return an already open project that is managing DIR.
@@ -188,7 +194,7 @@ Does not check subprojects."
 	 ;; Exact inode match.  Useful with symlinks or complex automounters.
 	 ((let ((pin (ede--project-inode (car all)))
 		(inode (ede--inode-for-dir dir)))
-	    (equal pin inode))
+	    (and (/= pin 0) (equal pin inode)))
 	  (setq ans (car all)))
 	 ;; Subdir via truename - slower by far, but faster than a traditional lookup.
 	 ((let ((ftn (file-truename ft))
