@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.40 2009/02/04 23:28:52 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.41 2009/02/05 01:26:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -380,6 +380,52 @@ name in a secondary directory."
 (defmethod semanticdb-full-filename ((obj semanticdb-project-database-file))
   "Fetch the full filename that OBJ refers to."
   (oref obj file))
+
+;;; FLUSH OLD FILES
+;;
+(defun semanticdb-cleanup-cache-files (&optional noerror)
+  "Cleanup any cache files associated with directories that no longer exist.
+Optional NOERROR prevents errors from being displayed."
+  (interactive)
+  (when (and (not semanticdb-default-save-directory)
+	     (not noerror))
+    (error "No default save directory for semantic-save files"))
+
+  (when semanticdb-default-save-directory
+
+    ;; Calculate all the cache files we have.
+    (let* ((regexp (regexp-quote semanticdb-default-file-name))
+	   (files (directory-files semanticdb-default-save-directory
+				   t regexp))
+	   (orig nil)
+	   (to-delete nil))
+      (dolist (F files)
+	(setq orig (cedet-file-name-to-directory-name
+		    (file-name-nondirectory F)))
+	(when (not (file-exists-p (file-name-directory orig)))
+	  (setq to-delete (cons F to-delete))
+	  ))
+      (if to-delete
+	(save-window-excursion
+	  (let ((buff (get-buffer-create "*Semanticdb Delete*")))
+	    (with-current-buffer buff
+	      (erase-buffer)
+	      (insert "The following Cache files appear to be obsolete.\n\n")
+	      (dolist (F to-delete)
+		(insert F "\n")))
+	    (pop-to-buffer buff t t)
+	    (fit-window-to-buffer (get-buffer-window buff) nil 1)
+	    (when (y-or-n-p "Delete Old Cache Files? ")
+	      (mapc (lambda (F)
+		      (message "Deleting to %s..." F)
+		      (delete-file F))
+		    to-delete)
+	      (message "done."))
+	    ))
+	;; No files to delete
+	(when (not noerror)
+	  (message "No obsolete semanticdb.cache files."))
+	))))
 
 (provide 'semanticdb-file)
 
