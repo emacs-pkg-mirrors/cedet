@@ -1,9 +1,9 @@
 ;;; cedet-build.el --- Build CEDET within Emacs.
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-build.el,v 1.7 2008/08/23 23:51:08 zappo Exp $
+;; X-RCS: $Id: cedet-build.el,v 1.8 2009/02/05 01:30:16 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -22,13 +22,20 @@
 
 ;;; Commentary:
 ;;
-;; Build all the CEDET parts through EDE.
+;; Build all the CEDET parts interactively through EDE.
+;;
+;; NOTE: This does not support XEmacs, which cannot use
+;;       `batch-update-autoloads' in interactive mode.
 ;;
 ;;; USAGE:
 ;;
 ;; Step 1:  Compile CEDET in a fresh Emacs:
 ;;
 ;;     emacs -Q -l cedet-build.el -f cedet-build
+;;     
+;;       or, if -Q isn't supported
+;;
+;;     emacs -q --no-site-file -l cedet-build.el -f cedet-build
 ;;
 ;;   or
 ;;
@@ -49,6 +56,10 @@
 ;;
 ;; Step 2: Check Output.
 ;;
+;;   If Compilation of grammars exceeds Emacs' stack size, exit Emacs,
+;;   and re-run the compilation steps above.  Once most of CEDET is
+;;   compiled, this problem goes away.
+
 
 ;;; Code:
 
