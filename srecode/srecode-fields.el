@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-fields.el,v 1.1 2009/02/06 03:58:11 zappo Exp $
+;; X-RCS: $Id: srecode-fields.el,v 1.2 2009/02/06 04:01:05 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -38,33 +38,32 @@
 
 ;;; Overlay Compatibility
 ;;
-
-;; @TODO - Delete everything I may not need here.
-(if (featurep 'xemacs)
-    (progn
-      (defalias 'srecode-make-overlay        'make-extent)
-      (defalias 'srecode-overlay-put         'set-extent-property)
-      (defalias 'srecode-overlay-get         'extent-property)
-      (defalias 'srecode-overlay-move        'set-extent-endpoints)
-      (defalias 'srecode-overlay-delete      'delete-extent)
-      (defalias 'srecode-overlays-at
-        (lambda (pos) 
-	  (condition-case nil
-	      (extent-list nil pos pos)
-	    (error nil))
-	  ))
-      (defalias 'srecode-overlay-start      'extent-start-position)
-      (defalias 'srecode-overlay-end        'extent-end-position)
-      )
-  (defalias 'srecode-make-overlay            'make-overlay)
-  (defalias 'srecode-overlay-put             'overlay-put)
-  (defalias 'srecode-overlay-get             'overlay-get)
-  (defalias 'srecode-overlay-move            'move-overlay)
-  (defalias 'srecode-overlay-delete          'delete-overlay)
-  (defalias 'srecode-overlays-at             'overlays-at)
-  (defalias 'srecode-overlay-start           'overlay-start)
-  (defalias 'srecode-overlay-end             'overlay-end)
-  )
+(eval-and-compile
+  (if (featurep 'xemacs)
+      (progn
+	(defalias 'srecode-make-overlay        'make-extent)
+	(defalias 'srecode-overlay-put         'set-extent-property)
+	(defalias 'srecode-overlay-get         'extent-property)
+	(defalias 'srecode-overlay-move        'set-extent-endpoints)
+	(defalias 'srecode-overlay-delete      'delete-extent)
+	(defalias 'srecode-overlays-at
+	  (lambda (pos) 
+	    (condition-case nil
+		(extent-list nil pos pos)
+	      (error nil))
+	    ))
+	(defalias 'srecode-overlay-start      'extent-start-position)
+	(defalias 'srecode-overlay-end        'extent-end-position)
+	)
+    (defalias 'srecode-make-overlay            'make-overlay)
+    (defalias 'srecode-overlay-put             'overlay-put)
+    (defalias 'srecode-overlay-get             'overlay-get)
+    (defalias 'srecode-overlay-move            'move-overlay)
+    (defalias 'srecode-overlay-delete          'delete-overlay)
+    (defalias 'srecode-overlays-at             'overlays-at)
+    (defalias 'srecode-overlay-start           'overlay-start)
+    (defalias 'srecode-overlay-end             'overlay-end)
+    ))
 
 ;;; Code:
 (defvar srecode-field-archive nil
