@@ -107,6 +107,7 @@ install scripts:
 ;; (semantic-load-enable-gaudy-code-helpers)
 
 ;; * This enables the use of Exuberent ctags if you have it installed.
+;;   If you use C++ templates or boost, you should not enable it.
 ;; (semantic-load-enable-all-exuberent-ctags-support)
 
 ;; Enable SRecode (Template management) minor-mode.
