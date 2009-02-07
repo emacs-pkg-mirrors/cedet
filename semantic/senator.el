@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.137 2009/02/02 00:13:42 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.138 2009/02/07 02:28:19 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -66,6 +66,8 @@
 ;;    C-c , C-y       `senator-yank-tag'
 ;;    C-c , C-w       `senator-kill-tag'
 ;;    C-c , M-w       `senator-copy-tag'
+;;    C-c , r         `senator-copy-tag-to-register'
+;;    C-c , t         `senator-transpose-tags-up'
 ;;
 ;; You can customize the `senator-step-at-tag-classes' to navigate (and
 ;; search) only between tags of a particular class.  (Such as
@@ -1875,6 +1877,8 @@ This is a buffer local variable.")
     (define-key km "\C-w" 'senator-kill-tag)
     (define-key km "\M-w" 'senator-copy-tag)
     (define-key km "\C-y" 'senator-yank-tag)
+    (define-key km "r"    'senator-copy-tag-to-register)
+    (define-key km "t"    'senator-transpose-tags-up)
     (define-key km "-"    'senator-fold-tag)
     (define-key km "+"    'senator-unfold-tag)
     (define-key km "?"    'senator-pulse-tag)
@@ -2016,6 +2020,19 @@ This is a buffer local variable.")
        :active (semantic-current-tag)
        :help "Copy the current tag to a register"
        ])
+    (senator-menu-item
+     [ "Transpose Tag Up"
+       senator-transpose-tags-up
+       :active (semantic-current-tag)
+       :help "Transpose the current tag up"
+       ])
+    (senator-menu-item
+     [ "Transpose Tag Down"
+       senator-transpose-tags-down
+       :active (semantic-current-tag)
+       :help "Transpose the current tag down"
+       ])
+
     )
    (list
     "Tag Properties"
@@ -2582,7 +2599,10 @@ used by add log.")
   (let ((ft (semantic-obtain-foreign-tag)))
     (when ft
       (ring-insert senator-tag-ring ft)
-      (message (semantic-format-tag-summarize ft)))
+      (kill-ring-save (semantic-tag-start ft) (semantic-tag-end ft))
+      (when (interactive-p)
+	(message "Use C-y to yank text.  Use `senator-yank-tag' for prototype insert."))
+      )
     ft))
 (semantic-alias-obsolete 'senator-copy-token 'senator-copy-tag)
 
@@ -2593,7 +2613,10 @@ the kill ring.  Retrieve that text with \\[yank]."
   (interactive)
   (let ((ct (senator-copy-tag))) ;; this handles the reparse for us.
     (kill-region (semantic-tag-start ct)
-                 (semantic-tag-end ct))))
+                 (semantic-tag-end ct))
+    (when (interactive-p)
+      (message "Use C-y to yank text.  Use `senator-yank-tag' for prototype insert."))
+    ))
 (semantic-alias-obsolete 'senator-kill-token 'senator-kill-tag)
 
 (defun senator-yank-tag ()
@@ -2604,7 +2627,11 @@ yanked to."
   (or (ring-empty-p senator-tag-ring)
       (let ((ft (ring-ref senator-tag-ring 0)))
           (semantic-foreign-tag-check ft)
-          (semantic-insert-foreign-tag ft))))
+          (semantic-insert-foreign-tag ft)
+	  (when (interactive-p)
+	    (message "Use C-y to recover the yank the text of %s."
+		     (semantic-tag-name ft)))
+	  )))
 (semantic-alias-obsolete 'senator-yank-token 'senator-yank-tag)
 
 (defun senator-copy-tag-to-register (register &optional kill-flag)
