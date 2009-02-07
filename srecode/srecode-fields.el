@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-fields.el,v 1.2 2009/02/06 04:01:05 zappo Exp $
+;; X-RCS: $Id: srecode-fields.el,v 1.3 2009/02/07 20:02:09 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,10 +28,13 @@
 ;; mini-buffer prompts, it could instead use in-buffer fields.
 ;;
 ;; A template-region specifies an area in which the fields exist.  If
-;; the cursor exits the region, all fields are cancelled.
+;; the cursor exits the region, all fields are cleared.
 ;;
-;; Each field is independent, but some are linked together.  Typing in
-;; one will cause the matching ones to change in step.
+;; Each field is independent, but some are linked together by name.
+;; Typing in one will cause the matching ones to change in step.
+;;
+;; Each field has 2 overlays.  The second overlay allows control in
+;; the character just after the field, but does not highlight it.
 
 ;; Keep this library independent of SRecode proper.
 (require 'eieio)
@@ -571,14 +574,13 @@ It is filled with some text."
 	(error "Linkage Test: tail-insert string on dissimilar fields is now the same"))
 
       ;; Cleanup
-      ;(srecode-delete reg)
+      (srecode-delete reg)
       )
 
     (set-buffer-modified-p nil)
 
     (message "Testing done.")
     ))
-
 
 (provide 'srecode-fields)
 ;;; srecode-fields.el ends here
