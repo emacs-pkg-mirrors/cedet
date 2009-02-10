@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.10 2009/01/20 02:43:00 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.11 2009/02/10 15:54:30 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -55,15 +55,22 @@
 ;;
 ;; Pulse is a part of CEDET.  http://cedet.sf.net
 
-(defcustom pulse-flag
+
+(defun  pulse-available-p ()
+  "Return non-nil if pulsing is available on the current frame."
   (condition-case nil
       (let ((v (color-values (face-background 'default))))
 	(numberp (car-safe v)))
-    (error nil))
+    (error nil)))
+
+(defcustom pulse-flag (pulse-available-p)
   "*Non-nil means to pulse the overlay face for momentary highlighting.
 Pulsing involves a bright highlight that slowly shifts to the background
 color.  Non-nil just means to highlight with an unchanging color for a short
-time."
+time.
+
+If `pulse-flag' is non-nil, but `pulse-available-p' is nil, then
+this flag is ignored."
   :group 'pulse
   :type 'boolean)
 
@@ -197,7 +204,7 @@ Be sure to call `pulse-reset-face' after calling pulse."
   "Test the lightening function for pulsing a line.
 When optional NO-ERROR Don't throw an error if we can't run tests."
   (interactive)
-  (if (not pulse-flag)
+  (if (or (not pulse-flag) (not (pulse-available-p)))
       (if no-error
 	  nil
 	(error (concat "Pulse test only works on versions of Emacs"
@@ -251,7 +258,7 @@ When optional NO-ERROR Don't throw an error if we can't run tests."
 Optional argument FACE specifies the fact to do the highlighting."
   (pulse-overlay-put o 'original-face (pulse-overlay-get o 'face))
   (setq pulse-momentary-overlay o)
-  (if (not pulse-flag)
+  (if (or (not pulse-flag) (not (pulse-available-p)))
       ;; Provide a face... clear on next command
       (progn
 	(pulse-overlay-put o 'face (or face 'pulse-highlight-start-face))
