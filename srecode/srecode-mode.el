@@ -60,6 +60,7 @@
   (let ((km (make-sparse-keymap)))
     ;; Basic template codes
     (define-key km "/" 'srecode-insert)
+    (define-key km [insert] 'srecode-insert)
     (define-key km "." 'srecode-insert-again)
     (define-key km "E" 'srecode-edit)
     ;; Template indirect binding
@@ -128,11 +129,18 @@
 (defvar srecode-minor-menu nil
   "Menu keymap build from `srecode-menu-bar'.")
 
+(defcustom srecode-takeover-INS-key nil
+  "Use the insert key for inserting templates."
+  :group 'srecode
+  :type 'boolean)
+
 (defvar srecode-mode-map
   (let ((km (make-sparse-keymap)))
     (define-key km srecode-prefix-key srecode-prefix-map)
     (easy-menu-define srecode-minor-menu km "Srecode Minor Mode Menu"
                       srecode-menu-bar)
+    (when srecode-takeover-INS-key
+      (define-key km [insert] srecode-prefix-map))
     km)
   "Keymap for srecode minor mode.")
 
