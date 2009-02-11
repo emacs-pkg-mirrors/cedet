@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.13 2009/01/14 03:10:10 zappo Exp $
+@c $Id: srecode.texi,v 1.14 2009/02/11 02:28:10 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -238,6 +238,12 @@ Emacs Lisp code.  Applications are at the top layer.  These
 applications have their own template files and logic needed to fill in
 dictionaries or position a cursor.
 
+@section Field Editing
+If the variable @code{srecode-insert-with-fields-p} is set, then
+variables that would normally ask a question, will instead create
+``fields'' in the buffer.  A field-editing layer provides simple
+interaction through the fields.
+
 @node SRecode Minor Mode
 @chapter SRecode Minor Mode
 
@@ -264,6 +270,34 @@ Insert template again.  This will cause the previously inserted
 template to be inserted again.
 @end table
 
+@section Field Editing
+
+By default, when inserting a template, if the user needs to enter text
+to fill in a part of the template, then the minibuffer is used to
+query for that information.  SRecode also supports a field-edting mode
+that can be used instead.  To enable it set:
+
+@defvar srecode-insert-with-fields-p
+@anchor{srecode-insert-with-fields-p}
+Non-@code{nil} means to insert editable fields with the template.
+When this is @code{nil}, then questions are asked in the mini-buffer.
+When fields are used, areas are shown with overlays that can
+be TABbed between for quick inline-editing.
+@end defvar
+
+Field editing mode is supported in newever versions of Emacs.  You
+will not be prompted to fill in values while the template is
+inserted.  Instead, short regions will be highlighted, and the cursor
+placed in a field.  Typing in the field will then fill in the value.
+Several fields might be linked together.  In that case, typing in one
+area will modify the other linked areas.  Pressing TAB will move
+between editable fields in the template.
+
+Once the cursor moves out of the are inserted by the template, all the
+fields are cancelled.
+
+Of note: Some conveniences in templates, such as completion, or
+character restrictins are lost when using field editing mode.
 
 @node Template Writing
 @chapter Template Writing
@@ -784,7 +818,7 @@ the @ref{Template Argument Dictionary Entries} section.
 * Create a Dictionary::
 * Setting Dictionary Values::	Basic dictionary values
 * Compound Dictionary Values::	Complex dictionary values
-* Argument Resolution::	        Automatic argument resolution
+* Argument Resolution::	        Automatic template argument resolution
 * Creating new Arguments::      Create new arguments for use in templates
 * Template Argument Dictionary Entries:: Catalog of arguments
 @end menu
@@ -918,10 +952,11 @@ aspect of the compound value."
 @node Argument Resolution
 @section Argument Resolution
 
-Additional dictionary entries can be set via template arguments in the
-template declaration.  You can resolve an argument list into a
-dictionary with this routine:
+Some dictionary entries can be set via template arguments in the
+template declaration.  For examples of template arguments, see
+@ref{Template Argument Dictionary Entries}.
 
+  You can resolve an argument list into a dictionary with:
 
 @defun srecode-resolve-arguments temp dict
 @anchor{srecode-resolve-arguments}
@@ -1268,9 +1303,9 @@ You can develop your own custom template insertion functions.
 Doing so is relatively simple, and requires that you write an Emacs
 Lisp command.
 
-If the built in commands don't insert provide enough options, you will
-need to write your own function in order to provide your dictionaries
-with the values needed for custom templates.
+If the built in commands don't provide enough options, you will need
+to write your own function in order to provide your dictionaries with
+the values needed for custom templates.
 
 In this way, you can build your own code generator for any language
 based on a set of predefined macros whos values you need to derive
@@ -1393,7 +1428,7 @@ In order for the @srecode{} function
 @code{srecode-semantic-insert-tag} to work, you can create templates
 similar to those mentioned above, except with @code{-tag} appended to
 the end.  This lets a template like @code{function} have user
-conveniences while referencing @code{function-tag}, while also
+conveniences when referencing @code{function-tag}, while also
 allowing the tag inserter to do it's job with a simpler template.
 
 @section Context: Classdef
