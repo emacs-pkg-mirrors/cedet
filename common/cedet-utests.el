@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.7 2009/01/24 05:59:30 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.8 2009/02/11 01:08:01 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,6 +30,10 @@
 ;;; Code:
 (defvar cedet-utest-test-alist
   '(
+    ;;
+    ;; COMMON
+    ;;
+
     ;; Test inversion
     ("inversion" . inversion-unit-test)
 
@@ -37,7 +41,7 @@
     ("ezimage associations" . ezimage-image-association-dump)
     ("ezimage images" . ezimage-image-dump)
 
-    ;; WORKGING interactive tests.
+    ;; Workging interactive tests.
     ("working: wait-for-keypress" .
      (lambda ()
        (if (cedet-utest-noninteractive)
@@ -45,10 +49,15 @@
 	 (working-wait-for-keypress))))
     ("working: sleep" . working-verify-sleep)
 
-    ;; PULSE
+    ;; Pulse
     ("pulse interactive test" . (lambda () (pulse-test t)))
 
-    ;; The EIEIO unit test suite.
+    ;; Files
+    ("cedet file conversion" . cedet-files-utest)
+
+    ;;
+    ;; EIEIO
+    ;;
     ("eieio" . (lambda () (let ((lib (locate-library "eieio-tests.el"
 						     t)))
 			    (load-file lib))))
@@ -60,7 +69,16 @@
 			(if (cedet-utest-noninteractive)
 			    (message " ** Skipping test in noninteractive mode.")
 			  (chart-test-it-all))))
-    ;; SEMANTIC tests
+    ;;
+    ;; EDE
+    ;;
+    
+    ;; @todo - Currently handled in the integration tests.  Need
+    ;;         some simpler unit tests here.
+
+    ;;
+    ;; SEMANTIC
+    ;;
     ("semantic: lex spp table write" .
      (lambda ()
        (let* ((sem (locate-library "semantic.el"))
@@ -80,12 +98,17 @@
 	   (message " ** Skipping test in noninteractive mode.")
 	 (semantic-test-throw-on-input))))
 
-    ;; SRecode
+    ;;
+    ;; SRECODE
+    ;;
+    ("srecode: fields" . srecode-field-utest)
     ("srecode: templates" . srecode-utest-template-output)
     ("srecode: show maps" . srecode-get-maps)
     ("srecode: getset" . srecode-utest-getset-output)
 
+    ;;
     ;; COGRE
+    ;;
     ("cogre: graph" . cogre-utest)
     ("cogre: uml" . cogre-uml-utest)
 
