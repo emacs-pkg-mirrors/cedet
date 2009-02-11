@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.14 2009/02/11 02:28:10 zappo Exp $
+@c $Id: srecode.texi,v 1.15 2009/02/11 02:35:59 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -252,8 +252,11 @@ simple access to different templates or template applications.
 
 The key prefix is @key{C-c /}.
 
+If the variable @code{srecode-takeover-INS-key} is set, the the key
+@key{<insert>} can also be used.
+
 The most important key is bound to @code{srecode-insert} which is
-@key{C-c / /}.  @ref{Quick Start}.
+@key{C-c / /}, or @key{insert insert}.  @ref{Quick Start}.
 
 Major keybindings are:
 
