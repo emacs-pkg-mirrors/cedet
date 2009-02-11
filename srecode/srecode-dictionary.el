@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-dictionary.el,v 1.8 2009/01/16 01:27:37 zappo Exp $
+;; X-RCS: $Id: srecode-dictionary.el,v 1.9 2009/02/11 00:43:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -332,7 +332,12 @@ The root dictionary is usually for a current or active insertion."
   "Convert the compound dictionary value CP to a string.
 If FUNCTION is non-nil, then FUNCTION is somehow applied to an aspect
 of the compound value.  The FUNCTION could be a fraction
-of some function symbol with a logical prefix excluded."
+of some function symbol with a logical prefix excluded.
+
+If you subclass `srecode-dictionary-compound-value' then this
+method could return nil, but if it does that, it must insert
+the value itself using `princ', or by detecting if the current
+standard out is a buffer, and using `insert'."
   (object-name cp))
 
 (defmethod srecode-dump ((cp srecode-dictionary-compound-value)
