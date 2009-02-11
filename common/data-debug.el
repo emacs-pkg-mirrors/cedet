@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.15 2009/01/24 01:03:01 scymtym Exp $
+;; X-RCS: $Id: data-debug.el,v 1.16 2009/02/11 01:11:42 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -35,11 +35,19 @@
     (eval-and-compile
       (defalias 'data-debug-overlay-properties 'extent-properties)
       (defalias 'data-debug-overlay-p 'extentp)
+      (if (not (fboundp 'propertize))
+	  (defun dd-propertize (string &rest properties)
+	    "Mimic 'propertize' in from Emacs 23."
+	    (add-text-properties 0 (length string) properties string)
+	    string
+	    )
+	(defalias 'dd-propertize 'propertize))
       )
   ;; Regular Emacs
   (eval-and-compile
     (defalias 'data-debug-overlay-properties 'overlay-properties)
     (defalias 'data-debug-overlay-p 'overlayp)
+    (defalias 'dd-propertize 'propertize)
     )
   )
 
@@ -394,10 +402,10 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
    (lambda (key value)
      (data-debug-insert-thing 
       key prefix
-      (propertize "key " 'face font-lock-comment-face))
+      (dd-propertize "key " 'face font-lock-comment-face))
      (data-debug-insert-thing 
       value prefix
-      (propertize "val " 'face font-lock-comment-face)))
+      (dd-propertize "val " 'face font-lock-comment-face)))
    hash-table))
 
 (defun data-debug-insert-hash-table-from-point (point)
@@ -416,9 +424,9 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
 
 (defun data-debug-insert-hash-table-button (hash-table prefix prebuttontext)
   "Insert HASH-TABLE as expandable button with recursive prefix PREFIX and PREBUTTONTEXT in front of the button text."
-  (let ((string (propertize (format "%s" hash-table)
+  (let ((string (dd-propertize (format "%s" hash-table)
 			    'face 'font-lock-keyword-face)))
-    (insert (propertize 
+    (insert (dd-propertize 
 	     (concat prefix prebuttontext string)
 	     'ddebug        hash-table
 	     'ddebug-indent (length prefix)
@@ -512,7 +520,7 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
        (symbol-value symbol)
        (concat (make-string indent ? ) "> ")
        (concat 
-	(propertize "value"
+	(dd-propertize "value"
 		    'face 'font-lock-comment-face)
 	" ")))
     (data-debug-insert-property-list 
@@ -527,13 +535,13 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
  PREBUTTONTEXT is some text between prefix and the symbol button."
   (let ((string
 	 (cond ((fboundp symbol)
-		(propertize (concat "#'" (symbol-name symbol))
+		(dd-propertize (concat "#'" (symbol-name symbol))
 			    'face 'font-lock-function-name-face))
 	       ((boundp symbol)
-		(propertize (concat "'" (symbol-name symbol))
+		(dd-propertize (concat "'" (symbol-name symbol))
 			    'face 'font-lock-variable-name-face))
 	       (t (format "'%s" symbol)))))
-    (insert (propertize 
+    (insert (dd-propertize 
 	     (concat prefix prebuttontext string)
 	     'ddebug          symbol
 	     'ddebug-indent   (length prefix)
@@ -556,7 +564,7 @@ PREBUTTONTEXT is some text between prefix and the thing."
     (while (string-match "\t" newstr)
       (setq newstr (replace-match "\\t" t t newstr)))
     (insert prefix prebuttontext
-	    (propertize (format "\"%s\"" newstr)
+	    (dd-propertize (format "\"%s\"" newstr)
 			'face font-lock-string-face)
 	    "\n" )))
 
@@ -567,8 +575,8 @@ A Symbol is a simple thing, but this provides some face and prefix rules.
 PREFIX is the text that preceeds the button.
 PREBUTTONTEXT is some text between prefix and the thing."
   (insert prefix prebuttontext
-	  (propertize (format "%S" thing)
-		      'face font-lock-string-face)
+	  (dd-propertize (format "%S" thing)
+			 'face font-lock-string-face)
 	  "\n"))
 
 ;;; Lambda Expression
