@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-fields.el,v 1.3 2009/02/07 20:02:09 zappo Exp $
+;; X-RCS: $Id: srecode-fields.el,v 1.4 2009/02/11 00:31:26 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -44,28 +44,30 @@
 (eval-and-compile
   (if (featurep 'xemacs)
       (progn
-	(defalias 'srecode-make-overlay        'make-extent)
-	(defalias 'srecode-overlay-put         'set-extent-property)
-	(defalias 'srecode-overlay-get         'extent-property)
-	(defalias 'srecode-overlay-move        'set-extent-endpoints)
-	(defalias 'srecode-overlay-delete      'delete-extent)
+	(defalias 'srecode-make-overlay   'make-extent)
+	(defalias 'srecode-overlay-put    'set-extent-property)
+	(defalias 'srecode-overlay-get    'extent-property)
+	(defalias 'srecode-overlay-move   'set-extent-endpoints)
+	(defalias 'srecode-overlay-delete 'delete-extent)
+	(defalias 'srecode-overlay-p      'extentp)
+	(defalias 'srecode-overlay-start  'extent-start-position)
+	(defalias 'srecode-overlay-end    'extent-end-position)
 	(defalias 'srecode-overlays-at
 	  (lambda (pos) 
 	    (condition-case nil
 		(extent-list nil pos pos)
 	      (error nil))
 	    ))
-	(defalias 'srecode-overlay-start      'extent-start-position)
-	(defalias 'srecode-overlay-end        'extent-end-position)
 	)
-    (defalias 'srecode-make-overlay            'make-overlay)
-    (defalias 'srecode-overlay-put             'overlay-put)
-    (defalias 'srecode-overlay-get             'overlay-get)
-    (defalias 'srecode-overlay-move            'move-overlay)
-    (defalias 'srecode-overlay-delete          'delete-overlay)
-    (defalias 'srecode-overlays-at             'overlays-at)
-    (defalias 'srecode-overlay-start           'overlay-start)
-    (defalias 'srecode-overlay-end             'overlay-end)
+    (defalias 'srecode-make-overlay   'make-overlay)
+    (defalias 'srecode-overlay-put    'overlay-put)
+    (defalias 'srecode-overlay-get    'overlay-get)
+    (defalias 'srecode-overlay-move   'move-overlay)
+    (defalias 'srecode-overlay-delete 'delete-overlay)
+    (defalias 'srecode-overlays-at    'overlays-at)
+    (defalias 'srecode-overlay-p      'overlayp)
+    (defalias 'srecode-overlay-start  'overlay-start)
+    (defalias 'srecode-overlay-end    'overlay-end)
     ))
 
 ;;; Code:
@@ -97,8 +99,9 @@ Has virtual :start and :end initializers.")
   "Initialize OLAID, being sure it archived."
   ;; Extract :start and :end from the olaid list.
   (let ((newargs nil)
+	(smarker (make-marker))
 	start end
-	ol)
+	)
 
     (while args
       (cond ((eq (car args) :start)
@@ -118,12 +121,25 @@ Has virtual :start and :end initializers.")
 	     (setq args (cdr args)))
 	    ))
 
-    (setq ol (srecode-make-overlay start end (current-buffer) nil t))
+    (move-marker smarker start (current-buffer))
+    (oset olaid overlay (cons smarker (- end start)))
+    
+    (call-next-method olaid (nreverse newargs))
+
+    ))
+
+(defmethod srecode-overlaid-activate ((olaid srecode-overlaid))
+  "Activate the overlaid area."
+  (let* ((ola (oref olaid overlay))
+	 (start (car ola))
+	 (end (+ start (cdr ola)))
+	 (ol (srecode-make-overlay start end (current-buffer) nil t)))
+
     (srecode-overlay-put ol 'srecode olaid)
     
     (oset olaid overlay ol)
 
-    (call-next-method olaid (nreverse newargs))))
+    ))
 
 (defmethod srecode-delete ((olaid srecode-overlaid))
   "Delete the overlay from OLAID."
@@ -190,26 +206,41 @@ If SET-TO is a string, then replace the text of OLAID wit SET-TO."
 (defmethod initialize-instance ((ir srecode-template-inserted-region)
 				&rest args)
   "Initialize IR, capturing the active fields, and creating the overlay."
-  ;; Initailize myself first.
-  (call-next-method)
   ;; Fill in the fields
   (oset ir fields srecode-field-archive)
   (setq srecode-field-archive nil)
+
+  ;; Initailize myself first.
+  (call-next-method)
+  )
+
+(defmethod srecode-overlaid-activate ((ir srecode-template-inserted-region))
+  "Activate the template area for IR."
+  ;; Activate all our fields
+
+  (dolist (F (oref ir fields))
+    (srecode-overlaid-activate F))
+
+  ;; Activate our overlay.
+  (call-next-method)
+
   ;; Position the cursor at the first field
   (let ((first (car (oref ir fields))))
     (goto-char (srecode-overlay-start (oref first overlay))))
+
   ;; Set ourselves up as 'active'
   (oset ir active-region ir)
+
   ;; Setup the post command hook.
   (add-hook 'post-command-hook 'srecode-field-post-command t t)
   )
 
-(defmethod srecode-delete ((olaid srecode-template-inserted-region))
+(defmethod srecode-delete ((ir srecode-template-inserted-region))
   "Call into our base, but also clear out the fields."
   ;; Clear us out of the baseclass.
-  (oset olaid active-region nil)
+  (oset ir active-region nil)
   ;; Clear our fields.
-  (mapc 'srecode-delete (oref olaid fields))
+  (mapc 'srecode-delete (oref ir fields))
   ;; Call to our base
   (call-next-method)
   ;; Clear our hook.
@@ -235,6 +266,7 @@ If SET-TO is a string, then replace the text of OLAID wit SET-TO."
 
 ;;; FIELDS
 ;;
+;;;###autoload
 (defclass srecode-field (srecode-overlaid)
   ((tail :documentation 
 	 "Overlay used on character just after this field.
@@ -244,6 +276,14 @@ Used to provide useful keybindings there.")
 	 "The name of this field.
 Usually initialized from the dictionary entry name that
 the users needs to edit.")
+   (prompt :initarg :prompt
+	   :documentation
+	   "A prompt string to use if this were in the minibuffer.
+Display when the cursor enters this field.")
+   (read-fcn :initarg :read-fcn
+	     :documentation
+	     "A function that would be used to read a string.
+Try to use this to provide useful completion when available.")
    )
   "Representation of one field.")
 
@@ -260,7 +300,11 @@ the users needs to edit.")
 (defmethod initialize-instance ((field srecode-field) &optional args)
   "Initialize FIELD, being sure it archived."
   (add-to-list 'srecode-field-archive field t)
+  (call-next-method)
+  )
 
+(defmethod srecode-overlaid-activate ((field srecode-field))
+  "Activate the FIELD area."
   (call-next-method)
 
   (let* ((ol (oref field overlay))
@@ -277,10 +321,10 @@ the users needs to edit.")
 
     (srecode-overlay-put tail 'srecode field)
     (srecode-overlay-put tail 'keymap srecode-field-keymap)
-    ;(srecode-overlay-put tail 'face 'region)
+    (srecode-overlay-put tail 'face 'srecode-field-face)
     (oset field tail tail)
     )
-)
+  )
 
 (defmethod srecode-delete ((olaid srecode-field))
   "Delete our secondary overlay."
@@ -291,25 +335,45 @@ the users needs to edit.")
   (call-next-method)
   )
 
+(defvar srecode-field-replication-max-size 100
+  "Maximum size of a field before cancelling replication.")
+
 (defun srecode-field-mod-hook (ol after start end &optional pre-len)
   "Modification hook for the field overlay.
 OL is the overlay.
 AFTER is non-nil if it is called after the change.
 START and END are the bounds of the change.
 PRE-LEN is used in the after mode for the length of the changed text."
-  (when after
+  (when (and after (not undo-in-progress))
     (let* ((field (srecode-overlay-get ol 'srecode))
-	   (new-text (srecode-overlaid-text field))
-	   (allfields (oref (srecode-active-template-region) fields))
-	   (name (oref field name)))
-      (dolist (F allfields)
-	(when (and (not (eq F field))
-		   (string= name (oref F name)))
-	  ;; If we find other fields with the same name, then keep
-	  ;; then all together.
-	  (srecode-overlaid-text F new-text)
-	  ))))
-  )
+	   (inhibit-point-motion-hooks t)
+	   (inhibit-modification-hooks t)
+	   )
+      ;; First, fixup the two overlays, in case they got confused.
+      (let ((main (oref field overlay))
+	    (tail (oref field tail)))
+	(srecode-overlay-move main
+			      (srecode-overlay-start main)
+			      (1- (srecode-overlay-end tail)))
+	(srecode-overlay-move tail
+			      (1- (srecode-overlay-end tail))
+			      (srecode-overlay-end tail)))
+      ;; Now capture text from the main overlay, and propagate it.
+      (let* ((new-text (srecode-overlaid-text field))
+	     (region (srecode-active-template-region))
+	     (allfields (when region (oref region fields)))
+	     (name (oref field name)))
+	(dolist (F allfields)
+	  (when (and (not (eq F field))
+		     (string= name (oref F name)))
+	    (if (> (length new-text) srecode-field-replication-max-size)
+		(message "Field size too large for replication.")
+	      ;; If we find other fields with the same name, then keep
+	      ;; then all together.  Disable change hooks to make sure
+	      ;; we don't get a recursive edit.
+	      (srecode-overlaid-text F new-text)
+	      ))))
+	)))
 
 (defun srecode-field-behind-hook (ol after start end &optional pre-len)
   "Modification hook for the field overlay.
@@ -382,6 +446,53 @@ PRE-LEN is used in the after mode for the length of the changed text."
   (let* ((f (srecode-overlaid-at-point 'srecode-field)))
     (goto-char (srecode-overlay-start (oref f overlay)))))
 
+;;; COMPOUND VALUE
+;;
+(defclass srecode-field-value (srecode-dictionary-compound-value)
+  ((firstinserter :initarg :firstinserter
+		  :documentation
+		  "The inserter object for the first occurance of this field.")
+   (defaultvalue :initarg :defaultvalue
+     :documentation
+     "The default value for this inserter.")
+   )
+  "When inserting values with editable field mode, a dictionary value.
+Compound values allow a field to be stored in the dictionary for when
+it is referenced a second time.  This compound value can then be
+inserted with a new editable field.")
+
+(defmethod srecode-compound-toString((cp srecode-field-value)
+				     function
+				     dictionary)
+  "Convert this field into an insertable string."
+  ;; If we are not in a buffer, then this is not supported.
+  (when (not (bufferp standard-output))
+    (error "FIELDS invoked while inserting template to non-buffer."))
+
+  (if function
+      (error "@todo: Cannot mix field insertion with functions.")
+
+    ;; Otherwise, apply the function to the tag itself.
+    ;; We know we are in a buffer, so we can perform the insertion.
+    (let* ((dv (oref cp defaultvalue))
+	   (sti (oref cp firstinserter))
+	   (start (point))
+	   (name (oref sti :object-name)))
+
+      (if (or (not dv) (string= dv ""))
+	  (insert name)
+	(insert dv))
+
+      (srecode-field name :name name
+		     :start start
+		     :end (point)
+		     :prompt (oref sti prompt)
+		     :read-fcn (oref sti read-fcn)
+		     )
+      ))
+  ;; Returning nil is a signal that we have done the insertion ourselves.
+  nil)
+
 ;;; TESTS
 ;;
 ;; Test out field modification w/out using srecode templates.
@@ -417,13 +528,21 @@ It is filled with some text."
 			     :start 6
 			     :end 8))
 
+      (when (or (not (slot-boundp f 'overlay)) (not (oref f overlay)))
+	(error "Field test: Overlay info not created for field"))
+
+      (when (srecode-overlay-p (oref f overlay))
+	(error "Overlay created during creation"))
+
+      (srecode-overlaid-activate f)
+
+      (when (not (srecode-overlay-p (oref f overlay)))
+	(error "Overlay not created during activation"))
+
       (when (not (= (length srecode-field-archive) 1))
 	(error "Field test: Incorrect number of elements in the field archive"))
       (when (not (eq f (car srecode-field-archive)))
 	(error "Field test: Field did not auto-add itself to the field archive"))
-
-      (when (or (not (slot-boundp f 'overlay)) (not (oref f overlay)))
-	(error "Field test: Overlay not created for field"))
 
       (when (not (srecode-overlay-get (oref f overlay) 'keymap))
 	(error "Field test: Overlay keymap not set"))
@@ -458,6 +577,8 @@ It is filled with some text."
       (setq reg (srecode-template-inserted-region "REG"
 						  :start 4
 						  :end 40))
+
+      (srecode-overlaid-activate reg)
 
       ;; Make sure it was cleared.
       (when srecode-field-archive
@@ -531,6 +652,7 @@ It is filled with some text."
 	   (f3 (srecode-field "Test3" :name "NOTTEST" :start 35 :end 40))
 	   (reg (srecode-template-inserted-region "REG" :start 4 :end 40))
 	   )
+      (srecode-overlaid-activate reg)
       
       (when (not (string= (srecode-overlaid-text f1)
 			  (srecode-overlaid-text f2)))
@@ -579,7 +701,7 @@ It is filled with some text."
 
     (set-buffer-modified-p nil)
 
-    (message "Testing done.")
+    (message "   All field tests passed.")
     ))
 
 (provide 'srecode-fields)
