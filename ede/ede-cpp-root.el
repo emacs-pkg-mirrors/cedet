@@ -1,9 +1,9 @@
 ;;; ede-cpp-root.el --- A simple way to wrap a C++ project with a single root
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.16 2008/12/19 22:51:15 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.17 2009/02/12 03:02:29 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -58,7 +58,9 @@
 ;;     :include-path '( "/include" "../include" "/c/include" )
 ;;     :system-include-path '( "/usr/include/c++/3.2.2/" )
 ;;     :spp-table '( ("MOOSE" . "")
-;;                   ("CONST" . "const") ) )
+;;                   ("CONST" . "const") )
+;;     :spp-files '( "include/config.h" )
+;;     ) 
 ;;
 ;;  In this case each item in the include path list is searched.  If
 ;;  the directory starts with "/", then that expands to the project
@@ -76,6 +78,11 @@
 ;;  The :spp-table provides a list of project specific #define style
 ;;  macros that are unique to this project, passed in to the compiler
 ;;  on the command line, or are in special headers.
+;;
+;;  The :spp-files option is like :spp-table, except you can provide a
+;;  file name for a header in your project where most of your CPP
+;;  macros reside.  Doing this can be easier than listing everything in
+;;  the :spp-table option.
 ;;
 ;; If you want to override the file-finding tool with your own
 ;; function you can do this:
@@ -128,6 +135,10 @@
 ;; 	      :class-sym 'ede-cpp-root)
 ;; 	     t)
 ;; 
+;;; TODO
+;;
+;; Add an option for setting semantic-lex-c-preprocessor-symbol-file
+;; to something per project.
 
 (require 'ede)
 
@@ -225,10 +236,19 @@ semantic path is not modified.")
 	      :type list
 	      :documentation
 	      "C Preprocessor macros for your files.
+Preprocessor symbols will be used while parsing your files.
 These macros might be passed in through the command line compiler, or
 are critical symbols derived from header files.  Providing header files
 macro values through this slot improves accuracy and performance.
-See `semantic-lex-c-preprocessor-symbol-map' for more.")
+Use `:spp-files' to use these files directly.")
+   (spp-files :initarg :spp-files
+	      :initform nil
+	      :type list
+	      :documentation
+	      "C header file with Preprocessor macros for your files.
+The PreProcessor symbols appearing in these files will be used while
+parsing files in this project.
+See `semantic-lex-c-preprocessor-symbol-map' for more on how this works.")
    (header-match-regexp :initarg :header-match-regexp
 			:initform
 			"\\.\\(h\\(h\\|xx\\|pp\\|\\+\\+\\)?\\|H\\)$\\|\\<\\w+$"
@@ -361,7 +381,7 @@ Also set up the lexical preprocessor map."
   (when (and (featurep 'semantic-c) (featurep 'semantic-lex-spp))
     (setq semantic-lex-spp-project-macro-symbol-obarray
 	  (semantic-lex-make-spp-table (oref project spp-table)))
-    ))  
+    ))
 
 ;;; C++ special options.
 ;;
@@ -372,7 +392,21 @@ Also set up the lexical preprocessor map."
   
 (defmethod ede-preprocessor-map ((this ede-cpp-root-project))
   "Get the pre-processor map for project THIS."
-  (oref this spp-table))
+  (let ((spp (oref this spp-table))
+	(root (ede-project-root this))
+	)
+    (mapc
+     (lambda (F)
+       (let ((table (semanticdb-file-table-object
+		     (ede-expand-filename root F)))
+	     )
+	 (when (not table)
+	   (message "Cannot file file %s in project." F))
+	 (when (and table (semanticdb-needs-refresh-p table))
+	   (semanticdb-refresh-table table))
+	 (setq spp (append spp (oref table lexical-table)))))
+     (oref this spp-files))
+    spp))
 
 (defmethod ede-system-include-path ((this ede-cpp-root-target))
   "Get the system include path used by project THIS."
