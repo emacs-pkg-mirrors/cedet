@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.67 2009/02/01 16:23:14 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.68 2009/02/12 16:14:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -843,6 +843,10 @@ The return protection is a symbol, 'public, 'protection, and 'private."
 	     (or (cdr (assoc prot '(("public" . public)
 				    ("protected" . protected)
 				    ("private" . private))))
+		 (when (equal prot "unspecified")
+		   (if (semantic-tag-of-type-p tag "class")
+		       'private
+		     'public))
 		 'public))))
     ))
 
