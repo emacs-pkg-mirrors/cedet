@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.52 2009/02/02 01:38:33 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.53 2009/02/12 16:14:25 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -334,7 +334,7 @@ opt-class-protection
   : class-protection
     ( ,$1 )
   | ;;EMPTY - Same as private
-    ( "private" )
+    ( "unspecified" )
   ;
 
 namespaceparts
