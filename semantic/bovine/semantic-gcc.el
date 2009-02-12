@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.7 2009/01/10 01:31:09 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.8 2009/02/12 02:07:19 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -98,7 +98,9 @@ Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
 		   (cdr (assoc '--host fields))))
 	 (prefix (cdr (assoc '--prefix fields)))
 	 (include-root (concat prefix "/include"))
-	 (include-cpp (concat include-root "/c++/" ver))
+	 (include-cpp (concat prefix
+			      (or (cdr (assoc '--with-gxx-include-dir fields))
+				  (concat "/include/c++/" ver))))
 	 (include-cpp-sys (concat include-cpp "/" host))
 	 (cppconfig (concat include-cpp-sys "/bits/c++config.h"))
 	 )
