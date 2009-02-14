@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.58 2009/01/09 23:04:43 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.59 2009/02/14 18:05:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2054,7 +2054,9 @@ The result is inserted as a replacement of the text that was there."
 `semantic-analyze-possible-completions' is used to determine the
 possible values.
 The function returns immediately, leaving the buffer in a mode that
-will perform the completion."
+will perform the completion.
+Configure `semantic-complete-inline-analyzer-displayor-class' to change
+how completion options are displayed."
   (interactive)
   ;; Only do this if we are not already completing something.
   (if (not (semantic-completion-inline-active-p))
@@ -2075,7 +2077,9 @@ will perform the completion."
 `semantic-analyze-possible-completions' is used to determine the
 possible values.
 The function returns immediately, leaving the buffer in a mode that
-will perform the completion."
+will perform the completion.
+Configure `semantic-complete-inline-analyzer-idle-displayor-class'
+to change how completion options are displayed."
   (interactive)
   ;; Only do this if we are not already completing something.
   (if (not (semantic-completion-inline-active-p))
@@ -2098,7 +2102,6 @@ use `semantic-complete-analyze-inline' to complete."
 	     (semantic-analyze-current-context))
     (semantic-complete-analyze-inline)
     ))
-
 
 ;;;###autoload
 (defun semantic-complete-inline-project ()
