@@ -116,6 +116,7 @@ use the mailing list cedet-devel.net via the URL:
 * Code Generation::	
 * C++ Features::	
 * GNU Global::	
+* Maintenance::	Maintaining your CEDET Data files
 * GNU Free Documentation License::  
 * Index::                       
 @end menu
@@ -810,6 +811,20 @@ Find references to the tag under the cursor.
 @item semantic-symref-symbol
 Find references to an arbitrary symbol.
 @end table
+
+
+@node Maintenance
+@chapter Maintenance
+
+Most of the CEDET tools do their best to maintain their data files and
+caches.  It is useful, however, to periodically run:
+
+@example
+M-x semanticdb-cleanup-cache-files RET
+@end example
+
+to delete old database cache files that may no longer be associated
+with directories on your system.
 
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
