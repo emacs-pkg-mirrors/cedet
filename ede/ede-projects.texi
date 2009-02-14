@@ -1,6 +1,6 @@
 @c -*-texinfo-*-
 @c
-@c $Id: ede-projects.texi,v 1.4 2008/09/07 14:35:31 zappo Exp $
+@c $Id: ede-projects.texi,v 1.5 2009/02/14 15:28:57 zappo Exp $
 @c
 
 @c The next line is for the back-search to see what node this one
@@ -19,6 +19,8 @@
 *  ede-project ::
 *   ede-cpp-root-project ::
 *   ede-emacs-project ::
+*   ede-linux-project ::
+*   ede-maven-project ::
 *   ede-simple-project ::
 *   ede-simple-base-project ::
 *   ede-proj-project ::
@@ -72,6 +74,12 @@ Default Value: @code{"1.0"}
 The version number used when distributing files.
 @refill
 
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
 @item :file
 Type: @code{string}
 
@@ -83,9 +91,17 @@ File name where this project is stored.
 @end table
 @subsection Specialized Methods
 
+@deffn Method ede--project-inode :AFTER proj 
+Get the inode of the directory project @var{PROJ} is in.
+@end deffn
+
 @deffn Method ede-project-root :AFTER this 
 If a project knows it's root, return it here.
 Allows for one-project-object-for-a-tree type systems.
+@end deffn
+
+@deffn Method ede-find-subproject-for-directory :AFTER proj dir 
+Find a subproject of @var{PROJ} that corresponds to @var{DIR}.
 @end deffn
 
 @deffn Method ede-project-root-directory :AFTER this &optional file 
@@ -126,7 +142,7 @@ Make sure placeholder @var{THIS} is replaced with the real thing, and pass throu
 @item ede-project
 @table @asis
 @item Children:
-@w{@xref{ede-cpp-root-project},} @w{@xref{ede-emacs-project},} @w{@xref{ede-simple-project},} @w{@xref{ede-simple-base-project},} @w{@xref{ede-proj-project},} @w{@xref{project-am-makefile},} @w{@xref{ede-step-project}.} 
+@w{@xref{ede-cpp-root-project},} @w{@xref{ede-emacs-project},} @w{@xref{ede-linux-project},} @w{@xref{ede-maven-project},} @w{@xref{ede-simple-project},} @w{@xref{ede-simple-base-project},} @w{@xref{ede-proj-project},} @w{@xref{project-am-makefile},} @w{@xref{ede-step-project}.} 
 @end table
 
 @end table
@@ -144,6 +160,12 @@ Make sure placeholder @var{THIS} is replaced with the real thing, and pass throu
 @item Slots:
 
 @table @code
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
 @item :file
 Type: @code{string}
 
@@ -286,6 +308,11 @@ This function also applies PROC to sub-sub projects.
 See also @dfn{ede-map-subprojects}.
 @end deffn
 
+@deffn Method project-update-version :AFTER ot 
+The @code{:version} of the project @var{OT} has been updated.
+Handle saving, or other detail.
+@end deffn
+
 @deffn Method ede-buffer-header-file :AFTER this buffer 
 Return @code{nil}, projects don't have header files.
 @end deffn
@@ -307,15 +334,15 @@ Retrieves the slot @code{keybindings} from an object of class @code{ede-project}
 @end deffn
 
 @deffn Method ede-description :AFTER this 
-Return a description suitible for the minibuffer about @var{THIS}.
-@end deffn
-
-@deffn Method project-make-dist :AFTER this 
-Build a distribution for the project based on @var{THIS} project.
+Return a description suitable for the minibuffer about @var{THIS}.
 @end deffn
 
 @deffn Method eieio-speedbar-object-children :AFTER this 
 Return the list of speedbar display children for @var{THIS}.
+@end deffn
+
+@deffn Method project-make-dist :AFTER this 
+Build a distribution for the project based on @var{THIS} project.
 @end deffn
 
 @deffn Method ede-system-include-path :AFTER this 
@@ -343,6 +370,12 @@ Return a list of menu items for building project @var{OBJ}.
 If optional argument @var{CURRENT} is non-@code{nil}, return sub-menu code.
 @end deffn
 
+@deffn Method ede-update-version-in-source :AFTER this version 
+Change occurrences of a version string in sources.
+In project @var{THIS}, cycle over all targets to give them a chance to set
+their sources to @var{VERSION}.
+@end deffn
+
 @deffn Method project-new-target :AFTER proj &rest args 
 Create a new target.  It is up to the project @var{PROJ} to get the name.
 @end deffn
@@ -360,6 +393,14 @@ Return a string to use as a speedbar button for @var{OBJECT}.
 For @var{THIS}, execute @var{PROC} on all buffers belonging to @var{THIS}.
 @end deffn
 
+@deffn Method ede-expand-filename-impl :AFTER this filename &optional force 
+Return a fully qualified file name based on project @var{THIS}.
+@var{FILENAME} should be just a filename which occurs in a directory controlled
+by this project.
+Optional argument @var{FORCE} forces the default filename to be provided even if it
+doesn't exist.
+@end deffn
+
 @deffn Method eieio-done-customizing :AFTER proj 
 Call this when a user finishes customizing @var{PROJ}.
 @end deffn
@@ -375,7 +416,7 @@ files in the project.
 @end deffn
 
 @deffn Method project-interactive-select-target :AFTER this prompt 
-Interactivly query for a target that exists in project @var{THIS}.
+Interactively query for a target that exists in project @var{THIS}.
 Argument @var{PROMPT} is the prompt to use when querying the user for a target.
 @end deffn
 
@@ -397,7 +438,7 @@ Commit any change to @var{PROJ} to its file.
 @end deffn
 
 @deffn Method project-dist-files :AFTER this 
-Return a list of files that constitues a distribution of @var{THIS} project.
+Return a list of files that constitutes a distribution of @var{THIS} project.
 @end deffn
 
 @deffn Method ede-object-menu :BEFORE this 
@@ -444,6 +485,12 @@ No children
 @item Slots:
 
 @table @code
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
 @item :file
 Type: @code{string}
 
@@ -495,10 +542,21 @@ Type: @code{list} @*
 Default Value: @code{nil}
 
 C Preprocessor macros for your files.
+Preprocessor symbols will be used while parsing your files.
 These macros might be passed in through the command line compiler, or
 are critical symbols derived from header files.  Providing header files
 macro values through this slot improves accuracy and performance.
-See @code{semantic-lex-c-preprocessor-symbol-map} for more.
+Use `:spp-files' to use these files directly.
+@refill
+
+@item :spp-files
+Type: @code{list} @*
+Default Value: @code{nil}
+
+C header file with Preprocessor macros for your files.
+The PreProcessor symbols appearing in these files will be used while
+parsing files in this project.
+See @code{semantic-lex-c-preprocessor-symbol-map} for more on how this works.
 @refill
 
 @item :header-match-regexp
@@ -553,13 +611,17 @@ Get the system include path used by project @var{THIS}.
 Return my root.
 @end deffn
 
-@deffn Method ede-expand-filename :AFTER proj name 
-Within this project @var{PROJ}, find the file @var{NAME}.
-This knows details about or source tree.
+@deffn Method ede-find-subproject-for-directory :AFTER proj dir 
+Return @var{PROJ}, for handling all subdirs below @var{DIR}.
 @end deffn
 
 @deffn Method ede-project-root-directory :AFTER this 
 Return my root.
+@end deffn
+
+@deffn Method ede-expand-filename-impl :AFTER proj name 
+Within this project @var{PROJ}, find the file @var{NAME}.
+This knows details about or source tree.
 @end deffn
 
 @deffn Method ede-find-target :AFTER proj buffer 
@@ -568,7 +630,7 @@ If one doesn't exist, create a new one for this directory.
 @end deffn
 
 
-@node ede-emacs-project, ede-simple-project, ede-cpp-root-project, Project
+@node ede-emacs-project, ede-linux-project, ede-cpp-root-project, Project
 @comment  node-name,  next,  previous,  up
 @section ede-emacs-project
 @pjindex ede-emacs-project
@@ -603,6 +665,12 @@ No children
 @item Slots:
 
 @table @code
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
 @item :file
 Type: @code{string}
 
@@ -635,13 +703,17 @@ Make sure the @code{:file} is fully expanded.
 Return my root.
 @end deffn
 
-@deffn Method ede-expand-filename :AFTER proj name 
-Within this project @var{PROJ}, find the file @var{NAME}.
-Knows about how the Emacs source tree is organized.
+@deffn Method ede-find-subproject-for-directory :AFTER proj dir 
+Return @var{PROJ}, for handling all subdirs below @var{DIR}.
 @end deffn
 
 @deffn Method ede-project-root-directory :AFTER this &optional file 
 Return the root for @var{THIS} Emacs project with file.
+@end deffn
+
+@deffn Method ede-expand-filename-impl :AFTER proj name 
+Within this project @var{PROJ}, find the file @var{NAME}.
+Knows about how the Emacs source tree is organized.
 @end deffn
 
 @deffn Method ede-find-target :AFTER proj buffer 
@@ -650,7 +722,186 @@ If one doesn't exist, create a new one for this directory.
 @end deffn
 
 
-@node ede-simple-project, ede-simple-base-project, ede-emacs-project, Project
+@node ede-linux-project, ede-maven-project, ede-emacs-project, Project
+@comment  node-name,  next,  previous,  up
+@section ede-linux-project
+@pjindex ede-linux-project
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-project-placeholder}.}
+@table @code
+@item @w{@xref{ede-project}.}
+@table @code
+@item ede-linux-project
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-linux-project
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
+@item :file
+Type: @code{string}
+
+File name where this project is stored.
+@refill
+
+@item :targets
+Type: @code{list}
+
+List of top level targets in this project.
+@refill
+
+@item :tool-cache
+Type: @code{list}
+
+List of tool cache configurations in this project.
+This allows any tool to create, manage, and persist project-specific settings.
+@refill
+
+@end table
+
+@end table
+@subsection Specialized Methods
+
+@deffn Method initialize-instance :AFTER this &rest fields 
+Make sure the @code{:file} is fully expanded.
+@end deffn
+
+@deffn Method ede-project-root :AFTER this 
+Return my root.
+@end deffn
+
+@deffn Method ede-find-subproject-for-directory :AFTER proj dir 
+Return @var{PROJ}, for handling all subdirs below @var{DIR}.
+@end deffn
+
+@deffn Method ede-project-root-directory :AFTER this &optional file 
+Return the root for @var{THIS} Linux project with file.
+@end deffn
+
+@deffn Method ede-expand-filename-impl :AFTER proj name 
+Within this project @var{PROJ}, find the file @var{NAME}.
+Knows about how the Linux source tree is organized.
+@end deffn
+
+@deffn Method ede-find-target :AFTER proj buffer 
+Find an EDE target in @var{PROJ} for @var{BUFFER}.
+If one doesn't exist, create a new one for this directory.
+@end deffn
+
+
+@node ede-maven-project, ede-simple-project, ede-linux-project, Project
+@comment  node-name,  next,  previous,  up
+@section ede-maven-project
+@pjindex ede-maven-project
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-project-placeholder}.}
+@table @code
+@item @w{@xref{ede-project}.}
+@table @code
+@item ede-maven-project
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-maven-project
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
+@item :file
+Type: @code{string}
+
+File name where this project is stored.
+@refill
+
+@item :targets
+Type: @code{list}
+
+List of top level targets in this project.
+@refill
+
+@item :tool-cache
+Type: @code{list}
+
+List of tool cache configurations in this project.
+This allows any tool to create, manage, and persist project-specific settings.
+@refill
+
+@end table
+
+@end table
+@subsection Specialized Methods
+
+@deffn Method initialize-instance :AFTER this &rest fields 
+Make sure the @code{:targets} is setup.
+@end deffn
+
+@deffn Method ede-project-root :AFTER this 
+Return my root.
+@end deffn
+
+@deffn Method ede-find-subproject-for-directory :AFTER proj dir 
+Return @var{PROJ}, for handling all subdirs below @var{DIR}.
+@end deffn
+
+@deffn Method ede-project-root-directory :AFTER this &optional file 
+Return the root for @var{THIS} Maven project with file.
+@end deffn
+
+@deffn Method ede-find-target :AFTER proj buffer 
+Find an EDE target in @var{PROJ} for @var{BUFFER}.
+If one doesn't exist, create a new one for this directory.
+@end deffn
+
+
+@node ede-simple-project, ede-simple-base-project, ede-maven-project, Project
 @comment  node-name,  next,  previous,  up
 @section ede-simple-project
 @pjindex ede-simple-project
@@ -685,6 +936,12 @@ No children
 @item Slots:
 
 @table @code
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
 @item :file
 Type: @code{string}
 
@@ -708,6 +965,10 @@ This allows any tool to create, manage, and persist project-specific settings.
 
 @end table
 @subsection Specialized Methods
+
+@deffn Method ede-find-subproject-for-directory :AFTER proj dir 
+Return @var{PROJ}, for handling all subdirs below @var{DIR}.
+@end deffn
 
 @deffn Method ede-commit-project :AFTER proj 
 Commit any change to @var{PROJ} to its file.
@@ -784,6 +1045,12 @@ No children
 @item Slots:
 
 @table @code
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
 @item :file
 Type: @code{string}
 
@@ -932,7 +1199,7 @@ Optional argument @var{FORCE} will force items to be regenerated.
 @end deffn
 
 @deffn Method ede-proj-makefile-garbage-patterns :AFTER this 
-Return a list of patterns that are considred garbage to @var{THIS}.
+Return a list of patterns that are considered garbage to @var{THIS}.
 These are removed with make clean.
 @end deffn
 
@@ -1033,6 +1300,12 @@ No children
 @item Slots:
 
 @table @code
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
 @item :file
 Type: @code{string}
 
@@ -1127,6 +1400,12 @@ No children
 @item Slots:
 
 @table @code
+@item :directory
+Type: @code{string}
+
+Directory this project is associated with.
+@refill
+
 @item :file
 Type: @code{string}
 
@@ -1174,7 +1453,7 @@ Type: @code{symbol} @*
 Default Value: @code{user}
 
 Installation domain specification.
-The variable GNUSTEP_INSTALLATION_DOMAIN is setted at this value.
+The variable GNUSTEP_INSTALLATION_DOMAIN is set at this value.
 @refill
 
 @item :preamble
