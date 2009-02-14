@@ -1,4 +1,6 @@
-Semantic 2.0 is a major new version.
+Semantic 2.0 is a major new version.  This NEWS file covers changes
+since Semantic 1.4, which was many years ago.  See the ChangeLog for
+differences between various beta and prerelease versions.
 
 * Versioning
 
@@ -353,6 +355,10 @@ Depends on `inversion' for save file compatibility tests.
 
 *** `semanticdb-project-database-file'
 File based project database type.
+
+*** `semanticdb-cleanup-cache-files'
+New command to tidy up cache files against directories that no longer
+exist.
 
 ** semanticdb-search.el
 All old search routines have been moved into this file.
