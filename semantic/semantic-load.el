@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.65 2009/01/31 18:19:43 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.66 2009/02/14 16:25:08 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -72,6 +72,9 @@ This includes:
   (global-semantic-idle-scheduler-mode 1)
 
   (global-semanticdb-minor-mode 1)
+
+  ;; @todo - Enable this
+  ;; (semanticdb-cleanup-cache-files t)
 
   ;; Don't do the loads from semantic-load twice.
   (when (null semantic-load-system-cache-loaded)
