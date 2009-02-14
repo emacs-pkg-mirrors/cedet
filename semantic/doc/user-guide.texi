@@ -25,7 +25,7 @@
 @copying
 This is the Semantic User's Manual
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -1195,6 +1195,8 @@ Perform prompt completion to do in buffer completion.
 possible values.
 The function returns immediately, leaving the buffer in a mode that
 will perform the completion.
+Configure @code{semantic-complete-inline-analyzer-idle-displayor-class}
+to change how completion options are displayed.
 @end deffn
 
 @deffn Option semantic-complete-inline-analyzer-idle-displayor-class
