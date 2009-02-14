@@ -1,6 +1,6 @@
 @c -*-texinfo-*-
 @c
-@c $Id: ede-targets.texi,v 1.3 2008/09/07 14:36:09 zappo Exp $
+@c $Id: ede-targets.texi,v 1.4 2009/02/14 15:29:27 zappo Exp $
 @c
 
 @c The next line is for the back-search to see what node this one
@@ -16,6 +16,16 @@
 @c (eieiodoc-class ede-target "tg")
 @menu
 * ede-target ::
+*  ede-cpp-root-target ::
+*  ede-emacs-target-c ::
+*  ede-emacs-target-el ::
+*  ede-emacs-target-misc ::
+*  ede-linux-target-c ::
+*  ede-linux-target-misc ::
+*  ede-maven-target-java ::
+*  ede-maven-target-c ::
+*  ede-maven-target-misc ::
+*  ede-simple-target ::
 *  ede-proj-target ::
 *   ede-proj-target-makefile ::
 *    semantic-ede-proj-target-grammar ::
@@ -29,30 +39,20 @@
 *    ede-proj-target-makefile-info ::
 *   ede-proj-target-aux ::
 *   ede-proj-target-scheme ::
-*  ede-cpp-root-target ::
-*  ede-emacs-target-c ::
-*  ede-emacs-target-el ::
-*  ede-emacs-target-misc ::
-*  ede-simple-target ::
 *  project-am-target ::
 *   project-am-objectcode ::
 *    project-am-program ::
 *    project-am-lib ::
+*   project-am-header ::
+*    project-am-header-noinst ::
+*    project-am-header-inst ::
 *   project-am-lisp ::
 *   project-am-texinfo ::
 *   project-am-man ::
-*  ede-step-target ::
-*   ede-step-target-ctool ::
-*   ede-step-target-tool ::
-*   ede-step-target-clibrary ::
-*   ede-step-target-library ::
-*   ede-step-target-application ::
-*   ede-step-target-documentation ::
-*   ede-step-target-subproject ::
 @end menu
 
 
-@node ede-target, ede-proj-target,  , Targets
+@node ede-target, ede-cpp-root-target,  , Targets
 @comment  node-name,  next,  previous,  up
 @section ede-target
 @tgindex ede-target
@@ -67,7 +67,7 @@
 @item ede-target
 @table @asis
 @item Children:
-@w{@xref{ede-proj-target},} @w{@xref{ede-cpp-root-target},} @w{@xref{ede-emacs-target-c},} @w{@xref{ede-emacs-target-el},} @w{@xref{ede-emacs-target-misc},} @w{@xref{ede-simple-target},} @w{@xref{project-am-target},} @w{@xref{ede-step-target}.} 
+@w{@xref{ede-cpp-root-target},} @w{@xref{ede-emacs-target-c},} @w{@xref{ede-emacs-target-el},} @w{@xref{ede-emacs-target-misc},} @w{@xref{ede-linux-target-c},} @w{@xref{ede-linux-target-misc},} @w{@xref{ede-maven-target-java},} @w{@xref{ede-maven-target-c},} @w{@xref{ede-maven-target-misc},} @w{@xref{ede-simple-target},} @w{@xref{ede-proj-target},} @w{@xref{project-am-target}.} 
 @end table
 
 @end table
@@ -166,7 +166,7 @@ Argument @var{FNND} is an argument.
 @end deffn
 
 @deffn Method ede-buffer-documentation-files :AFTER this buffer 
-Check for some documenation files for @var{THIS}.
+Check for some documentation files for @var{THIS}.
 Also do a quick check to see if there is a Documentation tag in this @var{BUFFER}.
 @end deffn
 
@@ -188,7 +188,7 @@ Retrieves the slot @code{keybindings} from an object of class @code{ede-target}
 @end deffn
 
 @deffn Method ede-description :AFTER this 
-Return a description suitible for the minibuffer about @var{THIS}.
+Return a description suitable for the minibuffer about @var{THIS}.
 @end deffn
 
 @deffn Method eieio-speedbar-object-children :AFTER this 
@@ -217,6 +217,10 @@ If optional argument @var{CURRENT} is non-@code{nil}, return sub-menu code.
 
 @deffn Method ede-want-file-p :AFTER this file 
 Return non-@code{nil} if @var{THIS} target wants @var{FILE}.
+@end deffn
+
+@deffn Method ede-update-version-in-source :AFTER this version 
+In sources for @var{THIS}, change version numbers to @var{VERSION}.
 @end deffn
 
 @deffn Method project-delete-target :AFTER ot 
@@ -272,7 +276,511 @@ Retrieves the slot @code{menu} from an object of class @code{ede-target}
 @end deffn
 
 
-@node ede-proj-target, ede-proj-target-makefile, ede-target, Targets
+@node ede-cpp-root-target, ede-emacs-target-c, ede-target, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-cpp-root-target
+@tgindex ede-cpp-root-target
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-cpp-root-target
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-cpp-root-target
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+@subsection Specialized Methods
+
+@deffn Method ede-preprocessor-map :AFTER this 
+Get the pre-processor map for project @var{THIS}.
+@end deffn
+
+@deffn Method ede-system-include-path :AFTER this 
+Get the system include path used by project @var{THIS}.
+@end deffn
+
+
+@node ede-emacs-target-c, ede-emacs-target-el, ede-cpp-root-target, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-emacs-target-c
+@tgindex ede-emacs-target-c
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-emacs-target-c
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-emacs-target-c
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+@subsection Specialized Methods
+
+@deffn Method ede-preprocessor-map :AFTER this 
+Get the pre-processor map for Emacs C code.
+All files need the macros from lisp.h!
+@end deffn
+
+
+@node ede-emacs-target-el, ede-emacs-target-misc, ede-emacs-target-c, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-emacs-target-el
+@tgindex ede-emacs-target-el
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-emacs-target-el
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-emacs-target-el
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+
+@node ede-emacs-target-misc, ede-linux-target-c, ede-emacs-target-el, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-emacs-target-misc
+@tgindex ede-emacs-target-misc
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-emacs-target-misc
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-emacs-target-misc
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+
+@node ede-linux-target-c, ede-linux-target-misc, ede-emacs-target-misc, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-linux-target-c
+@tgindex ede-linux-target-c
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-linux-target-c
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-linux-target-c
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+@subsection Specialized Methods
+
+@deffn Method ede-preprocessor-map :AFTER this 
+Get the pre-processor map for Linux C code.
+All files need the macros from lisp.h!
+@end deffn
+
+
+@node ede-linux-target-misc, ede-maven-target-java, ede-linux-target-c, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-linux-target-misc
+@tgindex ede-linux-target-misc
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-linux-target-misc
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-linux-target-misc
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+
+@node ede-maven-target-java, ede-maven-target-c, ede-linux-target-misc, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-maven-target-java
+@tgindex ede-maven-target-java
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-maven-target-java
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-maven-target-java
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+
+@node ede-maven-target-c, ede-maven-target-misc, ede-maven-target-java, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-maven-target-c
+@tgindex ede-maven-target-c
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-maven-target-c
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-maven-target-c
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+
+@node ede-maven-target-misc, ede-simple-target, ede-maven-target-c, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-maven-target-misc
+@tgindex ede-maven-target-misc
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-maven-target-misc
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-maven-target-misc
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+
+@node ede-simple-target, ede-proj-target, ede-maven-target-misc, Targets
+@comment  node-name,  next,  previous,  up
+@section ede-simple-target
+@tgindex ede-simple-target
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item ede-simple-target
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type ede-simple-target
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+
+@node ede-proj-target, ede-proj-target-makefile, ede-simple-target, Targets
 @comment  node-name,  next,  previous,  up
 @section ede-proj-target
 @tgindex ede-proj-target
@@ -343,7 +851,7 @@ of these compiler resources, and global customization thereof.
 Type: @code{(or null symbol)} @*
 Default Value: @code{nil}
 
-The linker to be used to link compled sources for this object.
+The linker to be used to link compiled sources for this object.
 This should be a symbol, which contains the object defining the linker.
 This enables save/restore to do so by name, permitting the sharing
 of these linker resources, and global customization thereof.
@@ -423,7 +931,7 @@ Converts all symbols into the objects to be used.
 @end deffn
 
 @deffn Method ede-proj-makefile-garbage-patterns :AFTER this 
-Return a list of patterns that are considred garbage to @var{THIS}.
+Return a list of patterns that are considered garbage to @var{THIS}.
 These are removed with make clean.
 @end deffn
 
@@ -908,7 +1416,7 @@ Relative to the path of the project it belongs to.
 Type: @code{list} @*
 Default Value: @code{nil}
 
-Libraries, such as "m" or "Xt" which this program dependso on.
+Libraries, such as "m" or "Xt" which this program depends on.
 The linker flag "-l" is automatically prepended.  Do not include a "lib"
 prefix, or a ".so" suffix.
 
@@ -1333,7 +1841,7 @@ Relative to the path of the project it belongs to.
 Type: @code{string} @*
 Default Value: @code{""}
 
-Miscelaneous sources which have a specialized makefile.
+Miscellaneous sources which have a specialized makefile.
 The sub-makefile is used to build this target.
 @refill
 
@@ -1426,7 +1934,7 @@ Results in --add-missing being passed to automake.
 @end deffn
 
 @deffn Method object-write :AFTER this 
-Before commiting any change to @var{THIS}, make sure the mainmenu is first.
+Before committing any change to @var{THIS}, make sure the mainmenu is first.
 @end deffn
 
 @deffn Method ede-proj-makefile-sourcevar :AFTER this 
@@ -1522,7 +2030,7 @@ Return the variable name for @var{THIS}'s sources.
 @end deffn
 
 
-@node ede-proj-target-scheme, ede-cpp-root-target, ede-proj-target-aux, Targets
+@node ede-proj-target-scheme, project-am-target, ede-proj-target-aux, Targets
 @comment  node-name,  next,  previous,  up
 @section ede-proj-target-scheme
 @tgindex ede-proj-target-scheme
@@ -1587,264 +2095,7 @@ Tweak the configure file (current buffer) to accomodate @var{THIS}.
 @end deffn
 
 
-@node ede-cpp-root-target, ede-emacs-target-c, ede-proj-target-scheme, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-cpp-root-target
-@tgindex ede-cpp-root-target
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item ede-cpp-root-target
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-cpp-root-target
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@end table
-
-@end table
-@subsection Specialized Methods
-
-@deffn Method ede-preprocessor-map :AFTER this 
-Get the pre-processor map for project @var{THIS}.
-@end deffn
-
-@deffn Method ede-system-include-path :AFTER this 
-Get the system include path used by project @var{THIS}.
-@end deffn
-
-
-@node ede-emacs-target-c, ede-emacs-target-el, ede-cpp-root-target, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-emacs-target-c
-@tgindex ede-emacs-target-c
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item ede-emacs-target-c
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-emacs-target-c
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@end table
-
-@end table
-@subsection Specialized Methods
-
-@deffn Method ede-preprocessor-map :AFTER this 
-Get the pre-processor map for Emacs C code.
-All files need the macros from lisp.h!
-@end deffn
-
-
-@node ede-emacs-target-el, ede-emacs-target-misc, ede-emacs-target-c, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-emacs-target-el
-@tgindex ede-emacs-target-el
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item ede-emacs-target-el
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-emacs-target-el
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@end table
-
-@end table
-
-@node ede-emacs-target-misc, ede-simple-target, ede-emacs-target-el, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-emacs-target-misc
-@tgindex ede-emacs-target-misc
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item ede-emacs-target-misc
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-emacs-target-misc
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@end table
-
-@end table
-
-@node ede-simple-target, project-am-target, ede-emacs-target-misc, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-simple-target
-@tgindex ede-simple-target
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item ede-simple-target
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-simple-target
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@end table
-
-@end table
-
-@node project-am-target, project-am-objectcode, ede-simple-target, Targets
+@node project-am-target, project-am-objectcode, ede-proj-target-scheme, Targets
 @comment  node-name,  next,  previous,  up
 @section project-am-target
 @tgindex project-am-target
@@ -1861,7 +2112,7 @@ Relative to the path of the project it belongs to.
 @item project-am-target
 @table @asis
 @item Children:
-@w{@xref{project-am-objectcode},} @w{@xref{project-am-lisp},} @w{@xref{project-am-texinfo},} @w{@xref{project-am-man}.} 
+@w{@xref{project-am-objectcode},} @w{@xref{project-am-header},} @w{@xref{project-am-lisp},} @w{@xref{project-am-texinfo},} @w{@xref{project-am-man}.} 
 @end table
 
 @end table
@@ -2006,12 +2257,6 @@ There are no default header files.
 Return @code{t} if object @var{THIS} lays claim to the file in @var{BUFFER}.
 @end deffn
 
-@deffn Method ede-sb-expand :AFTER this depth 
-Expand node describing something built into objectcode.
-TEXT is the text clicked on.  TOKEN is the object we are expanding from.
-INDENT is the current indentatin level.
-@end deffn
-
 
 @node project-am-program, project-am-lib, project-am-objectcode, Targets
 @comment  node-name,  next,  previous,  up
@@ -2080,12 +2325,8 @@ Additional LD args.
 Rescan object @var{THIS}.
 @end deffn
 
-@deffn Method ede-sb-button :AFTER this depth 
-Create a speedbar button for object @var{THIS} at @var{DEPTH}.
-@end deffn
 
-
-@node project-am-lib, project-am-lisp, project-am-program, Targets
+@node project-am-lib, project-am-header, project-am-program, Targets
 @comment  node-name,  next,  previous,  up
 @section project-am-lib
 @tgindex project-am-lib
@@ -2146,12 +2387,194 @@ Relative to the path of the project it belongs to.
 Rescan object @var{THIS}.
 @end deffn
 
-@deffn Method ede-sb-button :AFTER this depth 
-Create a speedbar button for object @var{THIS} at @var{DEPTH}.
+
+@node project-am-header, project-am-header-noinst, project-am-lib, Targets
+@comment  node-name,  next,  previous,  up
+@section project-am-header
+@tgindex project-am-header
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item @w{@xref{project-am-target}.}
+@table @code
+@item project-am-header
+@table @asis
+@item Children:
+@w{@xref{project-am-header-noinst},} @w{@xref{project-am-header-inst}.} 
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type project-am-header
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+@subsection Specialized Methods
+
+@deffn Method project-rescan :AFTER this 
+Rescan the Header sources.
 @end deffn
 
 
-@node project-am-lisp, project-am-texinfo, project-am-lib, Targets
+@node project-am-header-noinst, project-am-header-inst, project-am-header, Targets
+@comment  node-name,  next,  previous,  up
+@section project-am-header-noinst
+@tgindex project-am-header-noinst
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item @w{@xref{project-am-target}.}
+@table @code
+@item @w{@xref{project-am-header}.}
+@table @code
+@item project-am-header-noinst
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type project-am-header-noinst
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+@subsection Specialized Methods
+
+@deffn Method project-am-macro :AFTER this 
+Return the default macro to 'edit' for this object.
+@end deffn
+
+
+@node project-am-header-inst, project-am-lisp, project-am-header-noinst, Targets
+@comment  node-name,  next,  previous,  up
+@section project-am-header-inst
+@tgindex project-am-header-inst
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item eieio-speedbar
+@table @code
+@item eieio-speedbar-directory-button
+@table @code
+@item @w{@xref{ede-target}.}
+@table @code
+@item @w{@xref{project-am-target}.}
+@table @code
+@item @w{@xref{project-am-header}.}
+@table @code
+@item project-am-header-inst
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type project-am-header-inst
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :name
+Type: @code{string}
+
+Name of this target.
+@refill
+
+@item :path
+Type: @code{string}
+
+The path to the sources of this target.
+Relative to the path of the project it belongs to.
+@refill
+
+@end table
+
+@end table
+@subsection Specialized Methods
+
+@deffn Method project-am-macro :AFTER this 
+Return the default macro to 'edit' for this object.
+@end deffn
+
+
+@node project-am-lisp, project-am-texinfo, project-am-header-inst, Targets
 @comment  node-name,  next,  previous,  up
 @section project-am-lisp
 @tgindex project-am-lisp
@@ -2199,11 +2622,6 @@ The path to the sources of this target.
 Relative to the path of the project it belongs to.
 @refill
 
-@item :lisp
-
-List of lisp files to build.
-@refill
-
 @end table
 
 @end table
@@ -2219,16 +2637,6 @@ Rescan the lisp sources.
 
 @deffn Method ede-buffer-mine :AFTER this buffer 
 Return @code{t} if object @var{THIS} lays claim to the file in @var{BUFFER}.
-@end deffn
-
-@deffn Method ede-sb-button :AFTER this depth 
-Create a speedbar button for object @var{THIS} at @var{DEPTH}.
-@end deffn
-
-@deffn Method ede-sb-expand :AFTER this depth 
-Expand node describing lisp code.
-TEXT is the text clicked on.  TOKEN is the object we are expanding from.
-INDENT is the current indentatin level.
 @end deffn
 
 
@@ -2307,16 +2715,6 @@ Default target t- use when compling a texinfo file.
 Return @code{t} if object @var{THIS} lays claim to the file in @var{BUFFER}.
 @end deffn
 
-@deffn Method ede-sb-button :AFTER this depth 
-Create a speedbar button for object @var{THIS} at @var{DEPTH}.
-@end deffn
-
-@deffn Method ede-sb-expand :AFTER this depth 
-Expand node describing a texinfo manual.
-TEXT is the text clicked on.  TOKEN is the object we are expanding from.
-INDENT is the current indentatin level.
-@end deffn
-
 @deffn Method ede-documentation :AFTER this 
 Return a list of files that provides documentation.
 Documentation is not for object @var{THIS}, but is provided by @var{THIS} for other
@@ -2324,7 +2722,7 @@ files in the project.
 @end deffn
 
 
-@node project-am-man, ede-step-target, project-am-texinfo, Targets
+@node project-am-man,  , project-am-texinfo, Targets
 @comment  node-name,  next,  previous,  up
 @section project-am-man
 @tgindex project-am-man
@@ -2389,591 +2787,4 @@ Rescan object @var{THIS}.
 Return @code{t} if object @var{THIS} lays claim to the file in @var{BUFFER}.
 @end deffn
 
-@deffn Method ede-sb-button :AFTER this depth 
-Create a speedbar button for object @var{THIS} at @var{DEPTH}.
-@end deffn
-
-
-@node ede-step-target, ede-step-target-ctool, project-am-man, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-step-target
-@tgindex ede-step-target
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item ede-step-target
-@table @asis
-@item Children:
-@w{@xref{ede-step-target-ctool},} @w{@xref{ede-step-target-tool},} @w{@xref{ede-step-target-clibrary},} @w{@xref{ede-step-target-library},} @w{@xref{ede-step-target-application},} @w{@xref{ede-step-target-documentation},} @w{@xref{ede-step-target-subproject}.} 
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-step-target
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@item :makefile
-Type: @code{string} @*
-Default Value: @code{"GNUmakefile"}
-
-File name of generated Makefile.
-@refill
-
-@item :type
-Type: @code{symbol} @*
-Default Value: @code{ctool}
-
-Type of GNUstep-Make target.
-@refill
-
-@item :include-dirs
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Include directories like cpp flags -I.
-Include some dir via the -I preprocessor flag, for this target.
-@refill
-
-@item :auxsource
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Auxilliary source files included in this target.
-Each of these is considered equivalent to a source file, but it is not
-distributed, and each should have a corresponding rule to build it.
-@refill
-
-@end table
-
-@end table
-@subsection Specialized Methods
-
-@deffn Method project-compile-target :AFTER obj &optional command 
-Compile the current target @var{OBJ}.
-Argument @var{COMMAND} is the command to use for compiling the target.
-@end deffn
-
-@deffn Method project-rescan :AFTER this readstream 
-Rescan target @var{THIS} from the read list @var{READSTREAM}.
-@end deffn
-
-@deffn Method project-debug-target :AFTER obj 
-Run the current project target @var{OBJ} in a debugger.
-@end deffn
-
-@deffn Method project-remove-file :AFTER target file 
-For @var{TARGET}, remove @var{FILE}.
-@var{FILE} must be massaged by @dfn{ede-convert-path}.
-@end deffn
-
-@deffn Method ede-buffer-mine :AFTER this buffer 
-Return @code{t} if object @var{THIS} lays claim to the file in @var{BUFFER}.
-@end deffn
-
-@deffn Method project-delete-target :AFTER this 
-Delete the current target @var{THIS} from it's parent project.
-@end deffn
-
-@deffn Method ede-proj-makefile-target-name :AFTER this 
-Return the name of the main target for @var{THIS} target.
-@end deffn
-
-@deffn Method eieio-done-customizing :AFTER target 
-Call this when a user finishes customizing this object.
-Argument @var{TARGET} is the project we are completing customization on.
-@end deffn
-
-@deffn Method project-add-file :AFTER this file 
-Add to target @var{THIS} the current buffer represented as @var{FILE}.
-@end deffn
-
-
-@node ede-step-target-ctool, ede-step-target-tool, ede-step-target, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-step-target-ctool
-@tgindex ede-step-target-ctool
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item @w{@xref{ede-step-target}.}
-@table @code
-@item ede-step-target-ctool
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-step-target-ctool
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@item :cflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@item :ldflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@end table
-
-@end table
-
-@node ede-step-target-tool, ede-step-target-clibrary, ede-step-target-ctool, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-step-target-tool
-@tgindex ede-step-target-tool
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item @w{@xref{ede-step-target}.}
-@table @code
-@item ede-step-target-tool
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-step-target-tool
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@item :type
-Type: @code{symbol} @*
-Default Value: @code{(quote tool)}
-
-@xref{ede-step-target}.
-@item :cflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@item :ldflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@end table
-
-@end table
-
-@node ede-step-target-clibrary, ede-step-target-library, ede-step-target-tool, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-step-target-clibrary
-@tgindex ede-step-target-clibrary
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item @w{@xref{ede-step-target}.}
-@table @code
-@item ede-step-target-clibrary
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-step-target-clibrary
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@item :type
-Type: @code{symbol} @*
-Default Value: @code{(quote clibrary)}
-
-@xref{ede-step-target}.
-@item :cflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@item :ldflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@end table
-
-@end table
-
-@node ede-step-target-library, ede-step-target-application, ede-step-target-clibrary, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-step-target-library
-@tgindex ede-step-target-library
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item @w{@xref{ede-step-target}.}
-@table @code
-@item ede-step-target-library
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-step-target-library
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@item :type
-Type: @code{symbol} @*
-Default Value: @code{(quote library)}
-
-@xref{ede-step-target}.
-@item :cflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@item :ldflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@end table
-
-@end table
-
-@node ede-step-target-application, ede-step-target-documentation, ede-step-target-library, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-step-target-application
-@tgindex ede-step-target-application
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item @w{@xref{ede-step-target}.}
-@table @code
-@item ede-step-target-application
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-step-target-application
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@item :type
-Type: @code{symbol} @*
-Default Value: @code{(quote application)}
-
-@xref{ede-step-target}.
-@item :cflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@item :ldflags
-Type: @code{list} @*
-Default Value: @code{nil}
-
-Not Documented
-@refill
-
-@end table
-
-@end table
-
-@node ede-step-target-documentation, ede-step-target-subproject, ede-step-target-application, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-step-target-documentation
-@tgindex ede-step-target-documentation
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item @w{@xref{ede-step-target}.}
-@table @code
-@item ede-step-target-documentation
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-step-target-documentation
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@item :type
-Type: @code{symbol} @*
-Default Value: @code{(quote documentation)}
-
-@xref{ede-step-target}.
-@end table
-
-@end table
-
-@node ede-step-target-subproject,  , ede-step-target-documentation, Targets
-@comment  node-name,  next,  previous,  up
-@section ede-step-target-subproject
-@tgindex ede-step-target-subproject
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item eieio-speedbar
-@table @code
-@item eieio-speedbar-directory-button
-@table @code
-@item @w{@xref{ede-target}.}
-@table @code
-@item @w{@xref{ede-step-target}.}
-@table @code
-@item ede-step-target-subproject
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type ede-step-target-subproject
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :name
-Type: @code{string}
-
-Name of this target.
-@refill
-
-@item :path
-Type: @code{string}
-
-The path to the sources of this target.
-Relative to the path of the project it belongs to.
-@refill
-
-@end table
-
-@end table
 
