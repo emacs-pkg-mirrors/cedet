@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.40 2009/01/31 13:11:47 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.41 2009/02/15 13:16:23 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -78,6 +78,7 @@
   '(("bin" project-am-program "bin_PROGRAMS" t)
     ("sbin" project-am-program "sbin_PROGRAMS" t)
     ("lib" project-am-lib "noinst_LIBS" t)
+    ("libraries" project-am-lib "noinst_LIBRARIES" t)
     ("headernoinst" project-am-header-noinst "noinst_HEADERS")
     ("headerinst" project-am-header-inst "pgkinclude_HEADERS")
     ("texinfo" project-am-texinfo "info_TEXINFOS")
