@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.10 2009/01/10 01:31:22 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.11 2009/02/16 16:02:04 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -89,7 +89,10 @@ Convert the output tags into Semantic tags."
 	 )
     (save-excursion
       (set-buffer buff)
-      (funcall mode)
+      (condition-case nil
+	  ;; Sometimes this might throw an error.  Be safe.
+	  (funcall mode)
+	(error (message "Error attempting to use mode settings with CTAGS.")))
       (semantic-ectag-parse-tags))
     ))
 
@@ -289,7 +292,8 @@ parents running forward, such as namespace/namespace/class"
 	      ;; to our :parent tag, so both should do that.
 	      ;; There is something extra here though..  It should
 	      ;; be possible to use this info to do a reparenting operation.
-	      ((string= field "class")
+	      ((or (string= field "class")
+		   (string= field "struct"))
 	       (push str attr)
 	       (push :parent attr))
 	      ((string= field "namespace")
