@@ -102,12 +102,12 @@ install scripts:
 ;;   imenu support, and the semantic navigator
 (semantic-load-enable-code-helpers)
 
-;; * This enables even more coding tools such as the nascent intellisense mode
+;; * This enables even more coding tools such as intellisense mode
 ;;   decoration mode, and stickyfunc mode (plus regular code helpers)
 ;; (semantic-load-enable-gaudy-code-helpers)
 
 ;; * This enables the use of Exuberent ctags if you have it installed.
-;;   If you use C++ templates or boost, you should not enable it.
+;;   If you use C++ templates or boost, you should NOT enable it.
 ;; (semantic-load-enable-all-exuberent-ctags-support)
 
 ;; Enable SRecode (Template management) minor-mode.
