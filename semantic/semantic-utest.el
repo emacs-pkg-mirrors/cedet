@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.9 2009/01/24 03:37:11 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.10 2009/02/17 03:05:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -363,6 +363,63 @@ t2:t1 #1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Data for PHP tests
+
+(defvar semantic-utest-PHP-buffer-contents
+  "<?php
+
+function fun1(){
+   return \"fun1\";
+}
+
+function fun2($arg1){
+   $output = \"argument to fun2: \" . $arg1;
+   return $output;
+}
+
+class aClass {
+   public function fun1($a, $b){
+      return $a;
+   }
+
+   public function fun2($a, $b){
+      return $b;
+   }
+}
+?> "
+  )
+
+(defvar semantic-utest-PHP-name-contents
+  '(("fun1" function nil
+     nil (overlay 9 45 "phptest.php"))
+    ("fun2" function
+     (:arguments (("$arg1" variable nil (reparse-symbol formal_parameters) (overlay 61 66 "phptest.php"))))
+     nil
+     (overlay 47 132 "phptest.php"))
+    ("aClass" type
+     (:members (("fun1" function
+		 (:typemodifiers ("public") :arguments
+				 (("$a" variable nil (reparse-symbol formal_parameters) (overlay 174 176 "phptest.php"))
+				  ("$b" variable nil (reparse-symbol formal_parameters) (overlay 178 180 "phptest.php"))))
+
+		 nil
+		 (overlay 153 204 "phptest.php"))
+
+		("fun2" function
+		 (:typemodifiers ("public") :arguments
+				 (("$a" variable nil (reparse-symbol formal_parameters) (overlay 230 232 "phptest.php"))
+				  ("$b" variable nil (reparse-symbol formal_parameters) (overlay 234 236 "phptest.php"))
+				  ))
+		 nil
+		 (overlay 209 260 "phptest.php"))) :type "class")
+     nil
+     (overlay 135 262 "phptest.php"))
+    )
+  "Expected results from the PHP Unit test"
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Data for Csharp C# tests
 
 (defvar semantic-utest-Csharp-buffer-contents
@@ -417,7 +474,7 @@ class someClass {
 (defun semantic-utest-makebuffer (filename contents)
   "Create a buffer for FILENAME for use in a unit test.
 Pre-fill the buffer with CONTENTS."
-  (let ((buff (find-file-noselect filename)))
+  (let ((buff (semantic-find-file-noselect filename)))
     (set-buffer buff)
     (setq buffer-offer-save nil)
     (font-lock-mode -1) ;; Font lock has issues in Emacs 23
@@ -547,10 +604,19 @@ INSERTME is the text to be inserted after the deletion."
     (semantic-utest-generic "HTML" "/tmp/tst.html" semantic-utest-Html-buffer-contents  semantic-utest-Html-name-contents   '("fun2") "<!--1-->" "<!--deleted line-->")
     ))
 
+(defun semantic-utest-PHP()
+  (interactive)
+  (if (fboundp 'php-mode)
+      (semantic-utest-generic "PHP" "/tmp/phptest.php" semantic-utest-PHP-buffer-contents semantic-utest-PHP-name-contents '("fun1") "fun2" "%^@")
+    (message "Skipping PHP Test.  No php-mode loaded."))
+  )
+
 ;look at http://mfgames.com/linux/csharp-mode
 (defun semantic-utest-Csharp() ;; hmm i dont even know how to edit a scharp file. need a csharp mode implementation i suppose
   (interactive)
-  (semantic-utest-generic "C#" "/tmp/csharptest.cs" semantic-utest-Csharp-buffer-contents  semantic-utest-Csharp-name-contents   '("fun2") "//1" "//deleted line")
+  (if (fboundp 'csharp-mode)
+      (semantic-utest-generic "C#" "/tmp/csharptest.cs" semantic-utest-Csharp-buffer-contents  semantic-utest-Csharp-name-contents   '("fun2") "//1" "//deleted line")
+    (message "Skipping C# test.  No csharp-mode loaded."))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -564,16 +630,16 @@ INSERTME is the text to be inserted after the deletion."
 ;hello_world()->
 ;    io:format("Hello World ~n"). 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun semantic-utest-Erlang()
-  (interactive)
-  (semantic-utest-generic "Erlang" "/tmp/tst.erl" semantic-utest-Erlang-buffer-contents  semantic-utest-Erlang-name-contents   '("fun2") "//1" "//deleted line")
-  )
-
-;texi is also supported
-(defun semantic-utest-Texi()
-  (interactive)
-  (semantic-utest-generic "texi" "/tmp/tst.texi" semantic-utest-Texi-buffer-contents  semantic-utest-Texi-name-contents   '("fun2") "//1" "//deleted line")
-  )
+;(defun semantic-utest-Erlang()
+;  (interactive)
+;  (semantic-utest-generic "Erlang" "/tmp/tst.erl" semantic-utest-Erlang-buffer-contents  semantic-utest-Erlang-name-contents   '("fun2") "//1" "//deleted line")
+;  )
+;
+;;texi is also supported
+;(defun semantic-utest-Texi()
+;  (interactive)
+;  (semantic-utest-generic "texi" "/tmp/tst.texi" semantic-utest-Texi-buffer-contents  semantic-utest-Texi-name-contents   '("fun2") "//1" "//deleted line")
+;  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -596,8 +662,10 @@ INSERTME is the text to be inserted after the deletion."
   (semantic-utest-Scheme)
   (cedet-utest-log " * Html tests...")
   (semantic-utest-Html)
-  ;(cedet-utest-log " * Csharp tests...")
-  ;(semantic-utest-Csharp)
+  (cedet-utest-log " * PHP tests...")
+  (semantic-utest-PHP)
+  (cedet-utest-log " * Csharp tests...")
+  (semantic-utest-Csharp)
 
   (cedet-utest-log-shutdown "multi-lang parsing")
   )
