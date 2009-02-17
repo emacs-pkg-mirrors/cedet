@@ -82,4 +82,10 @@ int tail_fcn tail_fail(q);
 
 int __gthrw_(foo) (int arg1) { }
 
+/* TEST: macros using macros */
+#define macro_foo foo
+#define mf_declare int macro_foo
+
+mf_declare;
+
 /* END */
