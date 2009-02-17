@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.101 2009/02/02 01:54:16 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.102 2009/02/17 03:51:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -200,7 +200,7 @@ Return the the defined symbol as a special spp lex token."
 	    (semantic-lex-spp-stream-for-macro (save-excursion
 						 (semantic-c-end-of-macro)
 						 (point))))
-	   (cooked-stream nil)
+	   ;(cooked-stream nil)
 	   )
 
       ;; If this symbol refers to some other symbol, do a replacement.
@@ -220,32 +220,55 @@ Return the the defined symbol as a special spp lex token."
       ;; Magical spp variable for end point.
       (setq semantic-lex-end-point (point))
 
-      ;; Merge the stream
-      (while raw-stream
-	(cond ((eq (semantic-lex-token-class (car raw-stream)) 'hashhash)
-	       ;; handle hashhash, by skipping it.
-	       (setq raw-stream (cdr raw-stream))
-	       ;; Now merge the symbols.
-	       (let ((prev-tok (car cooked-stream))
-		     (next-tok (car raw-stream)))
-		 (setq cooked-stream (cdr cooked-stream))
-		 (push (semantic-lex-token
-			'spp-symbol-merge
-			(semantic-lex-token-start prev-tok)
-			(semantic-lex-token-end next-tok)
-			(list prev-tok next-tok))
-		       cooked-stream)
-		 ))
-	      (t
-	       (push (car raw-stream) cooked-stream))
-	      )
-	(setq raw-stream (cdr raw-stream))
-	)
-
-      ;; Return the stream.
-      ;; raw-stream
-      (nreverse cooked-stream)
+      (semantic-lex-spp-merge-streams raw-stream)
       )))
+
+(defun semantic-lex-spp-merge-streams (raw-stream)
+  "Merge elements from the RAW-STREAM together.
+Handle ## concatenation, and nested replacements.
+Return the cooked stream."
+  (let ((cooked-stream nil))
+
+    ;; Merge the stream
+    (while raw-stream
+      (cond ((eq (semantic-lex-token-class (car raw-stream)) 'hashhash)
+	     ;; handle hashhash, by skipping it.
+	     (setq raw-stream (cdr raw-stream))
+	     ;; Now merge the symbols.
+	     (let ((prev-tok (car cooked-stream))
+		   (next-tok (car raw-stream)))
+	       (setq cooked-stream (cdr cooked-stream))
+	       (push (semantic-lex-token
+		      'spp-symbol-merge
+		      (semantic-lex-token-start prev-tok)
+		      (semantic-lex-token-end next-tok)
+		      (list prev-tok next-tok))
+		     cooked-stream)
+	       ))
+	    ((eq (semantic-lex-token-class (car raw-stream)) 'spp-replace-replace)
+	     (let ((sublst (car (cdr (car raw-stream))))
+		   )
+
+	       (when (eq (semantic-lex-token-class (car raw-stream)) 'spp-arg-list)
+		 ;; @TODO - need to handle args here.
+		 (setq sublst (cdr sublst)))
+
+	       ;; Do the replacement, but merge first.
+	       (setq sublst (semantic-lex-spp-merge-streams sublst))
+
+	       (while sublst
+		 (push (car sublst) cooked-stream)
+		 (setq sublst (cdr sublst)))
+	       ))
+	    (t
+	     (push (car raw-stream) cooked-stream))
+	    )
+      (setq raw-stream (cdr raw-stream))
+      )
+
+    (nreverse cooked-stream))
+  )
+
 
 (define-lex-spp-macro-undeclaration-analyzer semantic-lex-cpp-undef
   "A #undef of a symbol.
