@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.29 2009/01/10 01:29:27 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.30 2009/02/17 03:56:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +38,16 @@
 ;;
 ;; Use `semantic-push-parser-warning' for situations where there are likely
 ;; macros that are undefined unexpectedly, or other problem.
+;;
+;; Try to handle the case of:
+;;
+;; #define NN namespace nn {
+;; #define NN_END }
+;; 
+;; NN
+;;   int mydecl() {}
+;; NN_END
+;; 
 
 (require 'semantic-lex)
 
