@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.102 2009/02/17 03:51:53 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.103 2009/02/17 20:19:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -223,53 +223,6 @@ Return the the defined symbol as a special spp lex token."
       (semantic-lex-spp-merge-streams raw-stream)
       )))
 
-(defun semantic-lex-spp-merge-streams (raw-stream)
-  "Merge elements from the RAW-STREAM together.
-Handle ## concatenation, and nested replacements.
-Return the cooked stream."
-  (let ((cooked-stream nil))
-
-    ;; Merge the stream
-    (while raw-stream
-      (cond ((eq (semantic-lex-token-class (car raw-stream)) 'hashhash)
-	     ;; handle hashhash, by skipping it.
-	     (setq raw-stream (cdr raw-stream))
-	     ;; Now merge the symbols.
-	     (let ((prev-tok (car cooked-stream))
-		   (next-tok (car raw-stream)))
-	       (setq cooked-stream (cdr cooked-stream))
-	       (push (semantic-lex-token
-		      'spp-symbol-merge
-		      (semantic-lex-token-start prev-tok)
-		      (semantic-lex-token-end next-tok)
-		      (list prev-tok next-tok))
-		     cooked-stream)
-	       ))
-	    ((eq (semantic-lex-token-class (car raw-stream)) 'spp-replace-replace)
-	     (let ((sublst (car (cdr (car raw-stream))))
-		   )
-
-	       (when (eq (semantic-lex-token-class (car raw-stream)) 'spp-arg-list)
-		 ;; @TODO - need to handle args here.
-		 (setq sublst (cdr sublst)))
-
-	       ;; Do the replacement, but merge first.
-	       (setq sublst (semantic-lex-spp-merge-streams sublst))
-
-	       (while sublst
-		 (push (car sublst) cooked-stream)
-		 (setq sublst (cdr sublst)))
-	       ))
-	    (t
-	     (push (car raw-stream) cooked-stream))
-	    )
-      (setq raw-stream (cdr raw-stream))
-      )
-
-    (nreverse cooked-stream))
-  )
-
-
 (define-lex-spp-macro-undeclaration-analyzer semantic-lex-cpp-undef
   "A #undef of a symbol.
 Remove the symbol from the semantic preprocessor.
@@ -475,7 +428,7 @@ Use semantic-cpp-lexer for parsing text inside a CPP macro."
 
 (define-lex-simple-regex-analyzer semantic-lex-cpp-hashhash
   "Match ## inside a CPP macro as special."
-  "##" 'hashhash)
+  "##" 'spp-concat)
 
 (define-lex semantic-cpp-lexer
   "Lexical Analyzer for CPP macros in C code."
