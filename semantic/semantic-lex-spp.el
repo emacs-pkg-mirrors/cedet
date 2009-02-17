@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.30 2009/02/17 03:56:20 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.31 2009/02/17 20:18:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,25 @@
 ;; semantic language setup function:
 ;;
 ;; (add-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook nil t)
+;;
+;;
+;; Special Lexical Tokens:
+;;
+;; There are several special lexical tokens that are used by the
+;; Semantic PreProcessor lexer.  They are:
+;;
+;; Declarations:
+;;   spp-macro-def - A definition of a lexical macro.
+;;   spp-macro-undef - A removal of a definition of a lexical macro.
+;;   spp-system-include - A system level include file
+;;   spp-include - An include file
+;;   spp-concat - A lexical token representing textual concatenation
+;;
+;; Operational tokens:
+;;   spp-replace-replace - Indicates a macro replacement that requiers
+;;      substitution.
+;;   spp-arg-list - Represents an argument list to a macro.
+;;   spp-symbol-merge - A request for multiple symbols to be textually merged.
 ;;
 ;;; TODO:
 ;;
@@ -388,6 +407,55 @@ If BUFFER is not provided, use the current buffer."
 	(princ "\n")
 	))))
 
+;;; Macro Merging
+;;
+
+(defun semantic-lex-spp-merge-streams (raw-stream)
+  "Merge elements from the RAW-STREAM together.
+Handle spp-concat symbol concatenation.
+Handle Nested macro replacements.
+Return the cooked stream."
+  (let ((cooked-stream nil))
+
+    ;; Merge the stream
+    (while raw-stream
+      (cond ((eq (semantic-lex-token-class (car raw-stream)) 'spp-concat)
+	     ;; handle hashhash, by skipping it.
+	     (setq raw-stream (cdr raw-stream))
+	     ;; Now merge the symbols.
+	     (let ((prev-tok (car cooked-stream))
+		   (next-tok (car raw-stream)))
+	       (setq cooked-stream (cdr cooked-stream))
+	       (push (semantic-lex-token
+		      'spp-symbol-merge
+		      (semantic-lex-token-start prev-tok)
+		      (semantic-lex-token-end next-tok)
+		      (list prev-tok next-tok))
+		     cooked-stream)
+	       ))
+	    ((eq (semantic-lex-token-class (car raw-stream)) 'spp-replace-replace)
+	     (let ((sublst (car (cdr (car raw-stream))))
+		   )
+
+	       (when (eq (semantic-lex-token-class (car raw-stream)) 'spp-arg-list)
+		 ;; @TODO - need to handle args here.
+		 (setq sublst (cdr sublst)))
+
+	       ;; Do the replacement, but merge first.
+	       (setq sublst (semantic-lex-spp-merge-streams sublst))
+
+	       (while sublst
+		 (push (car sublst) cooked-stream)
+		 (setq sublst (cdr sublst)))
+	       ))
+	    (t
+	     (push (car raw-stream) cooked-stream))
+	    )
+      (setq raw-stream (cdr raw-stream))
+      )
+
+    (nreverse cooked-stream))
+  )
 
 ;;; Analyzers
 ;;
@@ -608,7 +676,9 @@ of type `spp-macro-undef' is to be created."
   "*Non-nil means to pre-parse headers as we go.
 For languages that use the Semantic pre-processor, this can
 improve the accuracy of parsed files where include files
-can change the state of what's parsed in the current file."
+can change the state of what's parsed in the current file.
+
+Note: Note implemented yet"
   :group 'semantic
   :type 'boolean)
 
