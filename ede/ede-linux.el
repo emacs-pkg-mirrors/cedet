@@ -1,9 +1,9 @@
 ;;; ede-linux.el --- Special project for Linux
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-linux.el,v 1.3 2008/12/19 22:51:51 zappo Exp $
+;; X-RCS: $Id: ede-linux.el,v 1.4 2009/02/18 14:24:59 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -200,8 +200,9 @@ If one doesn't exist, create a new one for this directory."
 All files need the macros from lisp.h!"
   (let* ((proj (ede-target-parent this))
 	 (root (ede-project-root proj))
-	 (table (semanticdb-file-table-object
-		 (ede-expand-filename root "include/linux/version.h")))
+	 (versionfile (ede-expand-filename root "include/linux/version.h"))
+	 (table (when (and versionfile (file-exists-p versionfile))
+		  (semanticdb-file-table-object versionfile)))
 	 (filemap '( ("__KERNEL__" . "")
 		     ))
 	 )
