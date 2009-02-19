@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.34 2009/01/10 00:20:53 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.35 2009/02/19 03:41:23 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.3"
@@ -78,6 +78,7 @@
   '(
     (alpha  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*alpha\\([0-9]+\\)?$" 3)
     (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*beta\\([0-9]+\\)?$" 3)
+    (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*(beta\\([0-9]+\\)?)" 3)
     (prerelease "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*pre\\([0-9]+\\)?$" 3)
     (full   "^\\([0-9]+\\)\\.\\([0-9]+\\)$" 2)
     (fullsingle "^\\([0-9]+\\)$" 1)
