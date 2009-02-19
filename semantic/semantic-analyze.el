@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.79 2009/01/09 23:04:18 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.80 2009/02/19 03:16:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -423,10 +423,13 @@ if a cached copy of the return object is found."
 					     (cdr bounds)
 					     answer
 					     'current-context
-					     'exit-cache-zone))
-	    ;; Check for interactivity
-	    (when (interactive-p)
-	      (semantic-analyze-pop-to-context answer))))
+					     'exit-cache-zone)))
+	  ;; Check for interactivity
+	  (when (interactive-p)
+	    (if answer
+		(semantic-analyze-pop-to-context answer)
+	      (message "No Context."))
+	    ))
       
 	answer))))
 
@@ -445,33 +448,78 @@ Returns an object based on symbol `semantic-analyze-context'."
 	 (function nil)
 	 (fntag nil)
 	 arg fntagend argtag
+	 assign asstag
 	 )
 
-    ;; @todo: below check not good for case like this:
-    ;;        myfunc(a,-!-
-    ;;        where there are no bounds, but we might be able
-    ;;        to provide some "context" to the local area.
+    ;; Pattern for Analysis:
+    ;;
+    ;; Step 1: Calculate DataTypes in Scope:
+    ;;
+    ;;  a) Calculate the scope (above)
+    ;;
+    ;; Step 2: Parse context
+    ;;
+    ;; a) Identify function being called, or variable assignment,
+    ;;    and find source tags for those references
+    ;; b) Identify the prefix (text cursor is on) and find the source
+    ;;    tags for those references.
+    ;;
+    ;; Step 3: Assemble an object
+    ;;
+
+    ;; Step 2 a:
+   
+    (setq function (semantic-ctxt-current-function))
+
+    (when function
+      ;; Calculate the argument for the function if there is one.
+      (setq arg (semantic-ctxt-current-argument))
+
+      ;; Find a tag related to the function name.
+      (condition-case err
+	  (setq fntag
+		(semantic-analyze-find-tag-sequence function scope))
+	(error (semantic-analyze-push-error err)))
+
+      ;; fntag can have the last entry as just a string, meaning we
+      ;; could not find the core datatype.  In this case, the searches
+      ;; below will not work.
+      (when (stringp (car (last fntag)))
+	;; Take a wild guess!
+	(setcar (last fntag) (semantic-tag (car (last fntag)) 'function))
+	)
+
+      (when fntag
+	(let ((fcn (semantic-find-tags-by-class 'function fntag)))
+	  (when (not fcn)
+	    (let ((ty (semantic-find-tags-by-class 'type fntag)))
+	      (when ty
+		;; We might have a constructor with the same name as
+		;; the found datatype.
+		(setq fcn (semantic-find-tags-by-name
+			   (semantic-tag-name (car ty))
+			   (semantic-tag-type-members (car ty))))
+		(if fcn
+		    (let ((lp fcn))
+		      (while lp
+			(when (semantic-tag-get-attribute (car lp)
+							  :constructor)
+			  (setq fcn (cons (car lp) fcn)))
+			(setq lp (cdr lp))))
+		  ;; Give up, go old school
+		  (setq fcn fntag))
+		)))
+	  (setq fntagend (car (reverse fcn))
+		argtag
+		(when (semantic-tag-p fntagend)
+		  (nth (1- arg) (semantic-tag-function-arguments fntagend)))
+		fntag fcn))))
+
+    ;; Step 2 b:
+
+    ;; Only do work if we have bounds (meaning a prefix to complete)
     (when bounds
-      ;; Don't do the work if there are no bounds.
 
-
-      ;; Pattern for Analysis:
-      ;;
-      ;; Step 1: Calculate DataTypes in Scope:
-      ;;
-      ;;  a) Calculate the scope (above)
-      ;;
-      ;; Step 2: Parse context
-      ;;
-      ;; a) Identify function being called, or variable assignment,
-      ;;    and find source tags for those references
-      ;; b) Identify the prefix (text cursor is on) and find the source
-      ;;    tags for those references.
-      ;;
-      ;; Step 3: Assemble an object
-      ;;
-
-      ;; Step 2:
       (if debug-on-error
 	  (catch 'unfindable
 	    ;; If debug on error is on, allow debugging in this fcn.
@@ -485,111 +533,72 @@ Returns an object based on symbol `semantic-analyze-context'."
 	    (setq prefix (semantic-analyze-find-tag-sequence
 			  prefix scope 'prefixtypes))
 	  (error (semantic-analyze-push-error err))))
+      )
 
+    ;; Step 3:
 
-      (setq function (semantic-ctxt-current-function))
-      (when function
-	;; If we have a function, then we can get the argument
-	(setq arg (semantic-ctxt-current-argument))
+    (cond
+     (fntag
+      ;; If we found a tag for our function, we can go into
+      ;; functional context analysis mode, meaning we have a type
+      ;; for the argument.
+      (setq context-return
+	    (semantic-analyze-context-functionarg
+	     "functionargument"
+	     :buffer (current-buffer)
+	     :function fntag
+	     :index arg
+	     :argument (list argtag)
+	     :scope scope
+	     :prefix prefix
+	     :prefixclass prefixclass
+	     :bounds bounds
+	     :prefixtypes prefixtypes
+	     :errors semantic-analyze-error-stack)))
 
-	(condition-case err
-	    (setq fntag
-		  (semantic-analyze-find-tag-sequence function scope))
-	  (error (semantic-analyze-push-error err)))
-
-	;; fntag can have the last entry as just a string, meaning we
-	;; could not find the core datatype.  In this case, the searches
-	;; below will not work.
-	(when (stringp (car (last fntag)))
-	    ;; Take a wild guess!
-          (setcar (last fntag) (semantic-tag (car (last fntag)) 'function))
-	  )
-
-	(when fntag
-	  (let ((fcn (semantic-find-tags-by-class 'function fntag)))
-	    (when (not fcn)
-	      (let ((ty (semantic-find-tags-by-class 'type fntag)))
-		(when ty
-		  ;; We might have a constructor with the same name as
-		  ;; the found datatype.
-		  (setq fcn (semantic-find-tags-by-name
-			     (semantic-tag-name (car ty))
-			     (semantic-tag-type-members (car ty))))
-		  (if fcn
-		    (let ((lp fcn))
-		      (while lp
-			(when (semantic-tag-get-attribute (car lp)
-							  :constructor)
-			  (setq fcn (cons (car lp) fcn)))
-			(setq lp (cdr lp))))
-		    ;; Give up, go old school
-		    (setq fcn fntag))
-		  )))
-	    (setq fntagend (car (reverse fcn))
-		  argtag
-		  (when (semantic-tag-p fntagend)
-		    (nth (1- arg) (semantic-tag-function-arguments fntagend)))
-		  fntag fcn))))
-
-      ;; Step 3:
-
-      (if fntag
-	  ;; If we found a tag for our function, we can go into
-	  ;; functional context analysis mode, meaning we have a type
-	  ;; for the argument.
-	  (setq context-return
-		(semantic-analyze-context-functionarg
-		 "functionargument"
-		 :buffer (current-buffer)
-		 :function fntag
-		 :index arg
-		 :argument (list argtag)
-		 :scope scope
-		 :prefix prefix
-		 :prefixclass prefixclass
-		 :bounds bounds
-		 :prefixtypes prefixtypes
-		 :errors semantic-analyze-error-stack))
-
-	;; No function, try assignment
-	(let ((assign (semantic-ctxt-current-assignment))
-	      (asstag nil))
-	  (if assign
-	      ;; We have an assignment
-	      (condition-case err
-		  (setq asstag (semantic-analyze-find-tag-sequence
-				assign scope))
-		(error (semantic-analyze-push-error err))))
+      ;; No function, try assignment
+     ((and (setq assign (semantic-ctxt-current-assignment))
+	   ;; We have some sort of an assignment
+	   (condition-case err
+	       (setq asstag (semantic-analyze-find-tag-sequence
+			     assign scope))
+	     (error (semantic-analyze-push-error err)
+		    nil)))
 	  
-	  (if asstag
-	      (setq context-return
-		    (semantic-analyze-context-assignment
-		     "assignment"
-		     :buffer (current-buffer)
-		     :assignee asstag
-		     :scope scope
-		     :bounds bounds
-		     :prefix prefix
-		     :prefixclass prefixclass
-		     :prefixtypes prefixtypes
-		     :errors semantic-analyze-error-stack))
+      (setq context-return
+	    (semantic-analyze-context-assignment
+	     "assignment"
+	     :buffer (current-buffer)
+	     :assignee asstag
+	     :scope scope
+	     :bounds bounds
+	     :prefix prefix
+	     :prefixclass prefixclass
+	     :prefixtypes prefixtypes
+	     :errors semantic-analyze-error-stack)))
 	  
-	    ;; TODO: Identify return value condition.
+     ;; TODO: Identify return value condition.
+     ;;((setq return .... what to do?)
+     ;;  ...)
 
-	    ;; Nothing in particular
-	    (setq context-return
-		  (semantic-analyze-context
-		   "context"
-		   :buffer (current-buffer)
-		   :scope scope
-		   :bounds bounds
-		   :prefix prefix
-		   :prefixclass prefixclass
-		   :prefixtypes prefixtypes
-		   :errors semantic-analyze-error-stack)))))
+     (bounds
+      ;; Nothing in particular
+      (setq context-return
+	    (semantic-analyze-context
+	     "context"
+	     :buffer (current-buffer)
+	     :scope scope
+	     :bounds bounds
+	     :prefix prefix
+	     :prefixclass prefixclass
+	     :prefixtypes prefixtypes
+	     :errors semantic-analyze-error-stack)))
 
-      ;; Return our context.
-      context-return)))
+     (t (setq context-return nil))
+     )
+
+    ;; Return our context.
+    context-return))
 
 
 ;;; DEBUG OUTPUT 
@@ -601,7 +610,8 @@ Returns an object based on symbol `semantic-analyze-context'."
   (save-excursion
     (set-buffer (oref context :buffer))
     (let ((bounds (oref context :bounds)))
-      (pulse-momentary-highlight-region (car bounds) (cdr bounds)))))
+      (when bounds
+	(pulse-momentary-highlight-region (car bounds) (cdr bounds))))))
 
 (defcustom semantic-analyze-summary-function 'semantic-format-tag-prototype
   "*Function to use when creating items in Imenu.
