@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.17 2009/02/12 03:02:29 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.18 2009/02/19 03:37:38 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -82,7 +82,8 @@
 ;;  The :spp-files option is like :spp-table, except you can provide a
 ;;  file name for a header in your project where most of your CPP
 ;;  macros reside.  Doing this can be easier than listing everything in
-;;  the :spp-table option.
+;;  the :spp-table option.  The files listed in :spp-files should not
+;;  start with a /, and are relative to something in :include-path.;;  
 ;;
 ;; If you want to override the file-finding tool with your own
 ;; function you can do this:
@@ -331,6 +332,22 @@ If one doesn't exist, create a new one for this directory."
   (save-match-data
     (string-match (oref proj header-match-regexp) name)))
 
+(defmethod ede-cpp-root-translate-file ((proj ede-cpp-root-project) filename)
+  "For PROJ, translate a user specified FILENAME.
+This is for project include paths and spp source files."
+  ;; Step one: Root of this project.
+  (let ((dir (file-name-directory (oref proj file))))
+
+    ;; Step two: Analyze first char, and rehost
+    (if (and (not (string= filename "")) (= (aref filename 0) ?/))
+	;; Check relative to root of project
+	(setq filename (expand-file-name (substring filename 1)
+					 dir))
+      ;; Relative to current directory.
+      (setq filename (expand-file-name filename)))
+
+    filename))
+
 (defmethod ede-expand-filename-impl ((proj ede-cpp-root-project) name)
   "Within this project PROJ, find the file NAME.
 This knows details about or source tree."
@@ -340,8 +357,7 @@ This knows details about or source tree."
   (let ((ans (call-next-method)))
     (unless ans
       (let* ((lf (oref proj locate-fcn))
-	     (file (oref proj file))
-	     (dir (file-name-directory file)))
+	     (dir (file-name-directory (oref proj file))))
 	(if lf
 	    (setq ans (funcall lf name dir))
 	  (if (ede-cpp-root-header-file-p proj name)
@@ -349,12 +365,9 @@ This knows details about or source tree."
 	      (let ((ip (oref proj include-path))
 		    (tmp nil))
 		(while ip
-		  (setq tmp (car ip))
-		  (if (and (not (string= tmp "")) (= (aref tmp 0) ?/))
-		      ;; Check relative to root
-		      (setq tmp (expand-file-name (substring tmp 1)
-						  dir))
-		    (setq tmp (expand-file-name tmp)))
+		  ;; Translate
+		  (setq tmp (ede-cpp-root-translate-file proj (car ip)))
+		  ;; Test this name.
 		  (setq tmp (expand-file-name name tmp))
 		  (if (file-exists-p tmp)
 		      (setq ans tmp))
@@ -397,11 +410,12 @@ Also set up the lexical preprocessor map."
 	)
     (mapc
      (lambda (F)
-       (let ((table (semanticdb-file-table-object
-		     (ede-expand-filename root F)))
-	     )
+       (let* ((expfile (ede-expand-filename root F))
+	      (table (when expfile
+		       (semanticdb-file-table-object expfile)))
+	      )
 	 (when (not table)
-	   (message "Cannot file file %s in project." F))
+	   (message "Cannot find file %s in project." F))
 	 (when (and table (semanticdb-needs-refresh-p table))
 	   (semanticdb-refresh-table table))
 	 (setq spp (append spp (oref table lexical-table)))))
