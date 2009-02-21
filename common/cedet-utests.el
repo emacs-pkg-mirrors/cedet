@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.8 2009/02/11 01:08:01 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.9 2009/02/21 17:51:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -79,15 +79,7 @@
     ;;
     ;; SEMANTIC
     ;;
-    ("semantic: lex spp table write" .
-     (lambda ()
-       (let* ((sem (locate-library "semantic.el"))
-	      (dir (file-name-directory sem)))
-       (save-excursion
-	 (set-buffer (find-file-noselect
-		      (expand-file-name "tests/testsppreplace.c"
-					dir)))
-	 (semantic-lex-spp-write-test)))))
+    ("semantic: lex spp table write" . semantic-lex-spp-write-utest)
     ("semantic: multi-lang parsing" . semantic-utest-main)
     ("semantic: C preprocessor" . semantic-utest-c)
     ("semantic: analyzer tests" . semantic-ia-utest)
