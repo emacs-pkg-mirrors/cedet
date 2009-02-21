@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.52 2009/01/20 02:37:30 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.53 2009/02/21 12:11:52 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -55,13 +55,15 @@ MFILENAME is the makefile to generate."
   (let ((mt nil)
 	(isdist (string= mfilename (ede-proj-dist-makefile this)))
 	(depth 0)
+	(orig-buffer nil)
+	(buff-to-kill nil)
 	)
     ;; Find out how deep this project is.
     (let ((tmp this))
       (while (setq tmp (ede-parent-project tmp))
 	(setq depth (1+ depth))))
     ;; Collect the targets that belong in a makefile.
-    (mapcar
+    (mapc
      (lambda (obj)
        (if (and (obj-of-class-p obj 'ede-proj-target-makefile)
 		(string= (oref obj makefile) mfilename))
@@ -71,7 +73,8 @@ MFILENAME is the makefile to generate."
     (setq mt (nreverse mt))
     ;; Add in the header part of the Makefile*
     (save-excursion
-      (set-buffer (find-file-noselect mfilename))
+      (setq orig-buffer (get-file-buffer mfilename))
+      (set-buffer (setq buff-to-kill (find-file-noselect mfilename)))
       (goto-char (point-min))
       (if (and
 	   (not (eobp))
@@ -208,7 +211,11 @@ MFILENAME is the makefile to generate."
 	)
        (t (error "Unknown makefile type when generating Makefile")))
       ;; Put the cursor in a nice place
-      (goto-char (point-min)))))
+      (goto-char (point-min)))
+    ;; If we have an original buffer, then don't kill it.
+    (when (not orig-buffer)
+      (kill-buffer buff-to-kill))
+    ))
 
 ;;; VARIABLE insertion
 ;;
