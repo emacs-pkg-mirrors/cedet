@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.32 2009/02/21 17:51:12 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.33 2009/02/22 15:39:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -128,12 +128,12 @@ The searcy priority is:
       (setq semantic-lex-spp-dynamic-macro-symbol-obarray
 	    (make-vector 13 0))))
 
-(defun semantic-lex-spp-symbol-set (name value &optional obarray)
+(defun semantic-lex-spp-symbol-set (name value &optional obarray-in)
   "Set value of spp symbol with NAME to VALUE and return VALUE.
-If optional OBARRAY is non-nil, then use that obarray instead of
+If optional OBARRAY-IN is non-nil, then use that obarray instead of
 the dynamic map."
   (if (and (stringp value) (string= value "")) (setq value nil))
-  (set (intern name (or obarray
+  (set (intern name (or obarray-in
 			(semantic-lex-spp-dynamic-map)))
        value))
 
@@ -620,6 +620,9 @@ Don't go past MAX."
     (if (not ans)
 	(progn (goto-char max)
 	       nil)
+      (when (> (semantic-lex-token-end (car ans)) max)
+	(let ((bounds (semantic-lex-token-bounds (car ans))))
+	  (setcdr bounds max)))
       (goto-char (semantic-lex-token-end (car ans)))
       (car ans))
     ))
