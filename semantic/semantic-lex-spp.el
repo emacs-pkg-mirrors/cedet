@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.33 2009/02/22 15:39:09 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.34 2009/02/22 15:55:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -262,8 +262,7 @@ ARGVALUES are values for any arg list, or nil."
 			 val)))
    
    ;; Ok, the rest of these are various types of syntax.
-   ;; This is a poor solution.  We should really have some sort of
-   ;; stream merging.
+   ;; Conveniences for users that type in their symbol table.
    ((semantic-lex-spp-extract-regex-and-compare
      semantic-lex-punctuation val)
     (semantic-lex-token 'punctuation beg end val))
@@ -344,90 +343,75 @@ Argument VAL is the value of some macro to be converted into a stream.
 BEG and END are the token bounds of the macro to be expanded
 that will somehow gain a much longer token stream.
 ARGVALUES are values for any arg list, or nil."
-  (cond
-   ;; If val is nil, then just skip it.
-   ((null val)
-    t)
-   ;; If it is a token, then return that token rebuilt.
-   ((and (consp val) (car val) (symbolp (car val)))
-    (semantic-lex-push-token
-     (semantic-lex-token (car val) beg end (semantic-lex-token-text val)))
-    )
-   ;; If it is a list of tokens, then push each token one at a time.
-   ((and (consp val) (consp (car val)) (car (car val))
-	 (symbolp (car (car val))))
-    (let ((arglist (semantic-lex-spp-macro-with-args val))
-	  (argalist nil)
-	  (val-tmp nil)
-	  (v nil)
-	  )
-      ;; Skip the arg list.
-      (when arglist (setq val (cdr val)))
+  (let ((arglist (semantic-lex-spp-macro-with-args val))
+	(argalist nil)
+	(val-tmp nil)
+	(v nil)
+	)
+    ;; Skip the arg list.
+    (when arglist (setq val (cdr val)))
 
-      ;; Push args into the replacement list.
-      (dolist (A arglist)
-	(semantic-lex-spp-symbol-set A (car argvalues))
-	(setq argalist (cons (cons A (car argvalues)) argalist))
-	(setq argvalues (cdr argvalues)))
+    ;; Push args into the replacement list.
+    (dolist (A arglist)
+      (semantic-lex-spp-symbol-set A (car argvalues))
+      (setq argalist (cons (cons A (car argvalues)) argalist))
+      (setq argvalues (cdr argvalues)))
 
-      ;; Set val-tmp after stripping arguments.
-      (setq val-tmp val)
+    ;; Set val-tmp after stripping arguments.
+    (setq val-tmp val)
 
-      ;; Push everything else onto the list.
-      (while val-tmp
-	(setq v (car val-tmp))
-	(setq val-tmp (cdr val-tmp))
+    ;; Push everything else onto the list.
+    (while val-tmp
+      (setq v (car val-tmp))
+      (setq val-tmp (cdr val-tmp))
 
-	(let* ((txt (car (cdr v)))
-	       (sym (semantic-lex-spp-symbol txt))
-	       (macro-and-args
-		(when sym
-		  (semantic-lex-spp-macro-with-args (symbol-value sym)))
-		)
-	       (next-tok-class (semantic-lex-token-class (car val-tmp)))
+      (let* ((txt (car (cdr v)))
+	     (sym (semantic-lex-spp-symbol txt))
+	     (macro-and-args
+	      (when sym
+		(semantic-lex-spp-macro-with-args (symbol-value sym)))
+	      )
+	     (next-tok-class (semantic-lex-token-class (car val-tmp)))
+	     )
+	(cond
+	 ((eq (car v) 'spp-symbol-merge)
+	  ;; We need to merge the tokens in the 'text segement together,
+	  ;; and produce a single symbol from it.
+	  (let ((newsym
+		 (mapconcat (lambda (tok)
+			      (semantic-lex-spp-one-token-to-txt tok))
+			    txt
+			    "")))
+	    (semantic-lex-push-token
+	     (semantic-lex-token 'symbol beg end newsym))
+	    ))
+	 ((and (eq (car v) 'symbol) sym
+	       (or (and macro-and-args (eq next-tok-class 'semantic-list))
+		   (not macro-and-args))
 	       )
-	  (cond
-	   ((eq (car v) 'spp-symbol-merge)
-	    ;; We need to merge the tokens in the 'text segement together,
-	    ;; and produce a single symbol from it.
-	    (let ((newsym
-		   (mapconcat (lambda (tok)
-				(semantic-lex-spp-one-token-to-txt tok))
-			      txt
-			      "")))
-	      (semantic-lex-push-token
-	       (semantic-lex-token 'symbol beg end newsym))
-	      ))
-	   ((and (eq (car v) 'symbol) sym
-		 (or (and macro-and-args (eq next-tok-class 'semantic-list))
-		     (not macro-and-args))
-		 )
-	    ;; Special arg symbol
-	    (semantic-lex-spp-macro-to-macro-stream
-	     (symbol-value sym)
-	     beg end nil)
-	    )
-	   ((eq (car v) 'semantic-list)
-	    ;; Push our arg list onto the semantic list.
-	    (when argalist
-	      (setq txt (concat txt))
-	      (put-text-property 0 1 'macros argalist txt))
-	    (semantic-lex-push-token
-	     (semantic-lex-token (car v) beg end txt))
-	    )
-	   (t
-	    ;; Nothing new.
-	    (semantic-lex-push-token
-	     (semantic-lex-token (car v) beg end txt))
-	    )
-	   )))
+	  ;; Special arg symbol
+	  (semantic-lex-spp-macro-to-macro-stream
+	   (symbol-value sym)
+	   beg end nil)
+	  )
+	 ((eq (car v) 'semantic-list)
+	  ;; Push our arg list onto the semantic list.
+	  (when argalist
+	    (setq txt (concat txt))
+	    (put-text-property 0 1 'macros argalist txt))
+	  (semantic-lex-push-token
+	   (semantic-lex-token (car v) beg end txt))
+	  )
+	 (t
+	  ;; Nothing new.
+	  (semantic-lex-push-token
+	   (semantic-lex-token (car v) beg end txt))
+	  )
+	 )))
       
-      (dolist (A arglist)
-	(semantic-lex-spp-symbol-remove A))
-
-      t))
-   (t nil)
-   ))
+    (dolist (A arglist)
+      (semantic-lex-spp-symbol-remove A))
+    ))
 
 ;;; Macro Merging
 ;;
@@ -440,7 +424,6 @@ Handle spp-concat symbol concatenation.
 Handle Nested macro replacements.
 Return the cooked stream."
   (let ((cooked-stream nil))
-
     ;; Merge the stream
     (while raw-stream
       (cond ((eq (semantic-lex-token-class (car raw-stream)) 'spp-concat)
@@ -497,9 +480,21 @@ Argument VAL is the value of some macro to be converted into a stream.
 BEG and END are the token bounds of the macro to be expanded
 that will somehow gain a much longer token stream.
 ARGVALUES are values for any arg list, or nil."
-  (or (semantic-lex-spp-token-macro-to-macro-stream val beg end argvalues)
-      (semantic-lex-spp-simple-macro-to-macro-stream val beg end argvalues)
-      ))
+  (cond
+   ;; If val is nil, then just skip it.
+   ((null val) t)
+   ;; If it is a token, then return that token rebuilt.
+   ((and (consp val) (car val) (symbolp (car val)))
+    (semantic-lex-push-token
+     (semantic-lex-token (car val) beg end (semantic-lex-token-text val))))
+   ;; Test for a token list.
+   ((and (consp val) (consp (car val)) (car (car val))
+	 (symbolp (car (car val))))
+    (semantic-lex-spp-token-macro-to-macro-stream val beg end argvalues))
+   ;; Test for miscellaneous strings.
+   ((stringp val)
+    (semantic-lex-spp-simple-macro-to-macro-stream val beg end argvalues))
+   ))
 
 ;;; --------------------------------------------------------
 ;;;
