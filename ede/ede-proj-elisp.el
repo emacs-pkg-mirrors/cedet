@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.35 2009/01/31 13:12:47 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.36 2009/02/24 00:46:25 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -59,14 +59,15 @@ A lisp target may be one general program with many separate lisp files in it.")
   (ede-compiler
    "ede-emacs-compiler"
    :name "emacs"
-   :variables '(("EMACS" . "emacs"))
+   :variables '(("EMACS" . "emacs")
+		("EMACSFLAGS" . "-batch --no-site-file"))
    :commands
    '("@echo \"(add-to-list 'load-path nil)\" > $@-compile-script"
      "for loadpath in . ${LOADPATH}; do \\"
      "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
      "done;"
      "@echo \"(setq debug-on-error t)\" >> $@-compile-script"
-     "\"$(EMACS)\" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^"
+     "\"$(EMACS)\" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^"
      )
    :autoconf '("AM_PATH_LISPDIR")
    :sourcetype '(ede-source-emacs)
