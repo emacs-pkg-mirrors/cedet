@@ -16,6 +16,7 @@ LOADDEFS=ede-loaddefs.el
 LOADDIRS=.
 init_LISP=ede-load.el
 EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
 ede_LISP=ede.el ede-dired.el ede-source.el ede-util.el ede-system.el ede-speedbar.el ede-srecode.el ede-files.el ede-locate.el
 proj-project_LISP=ede-proj.el ede-pmake.el ede-pconf.el ede-proj-elisp.el ede-proj-misc.el ede-proj-obj.el ede-proj-prog.el ede-proj-archive.el ede-proj-shared.el ede-proj-info.el ede-proj-scheme.el ede-proj-aux.el ede-proj-comp.el
 projects_LISP=project-am.el ede-simple.el ede-cpp-root.el ede-emacs.el ede-linux.el
@@ -46,7 +47,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: ede
 ede: $(ede_LISP)
@@ -55,7 +56,7 @@ ede: $(ede_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: proj-project
 proj-project: $(proj-project_LISP)
@@ -64,7 +65,7 @@ proj-project: $(proj-project_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: projects
 projects: $(projects_LISP)
@@ -73,7 +74,7 @@ projects: $(projects_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: aux-lisp
 aux-lisp: $(aux-lisp_LISP)
@@ -82,7 +83,7 @@ aux-lisp: $(aux-lisp_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 ede.info: $(ede_info_TEXINFOS)
 	$(MAKEINFO) $<
