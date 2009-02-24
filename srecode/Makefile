@@ -19,6 +19,7 @@ EMACS=emacs
 lang_SEMANTIC_GRAMMAR_EL=srecode-template-wy.el
 srecode_LISP=srecode.el srecode-mode.el srecode-compile.el srecode-insert.el srecode-template-mode.el srecode-semantic.el srecode-load.el srecode-template.el srecode-dictionary.el srecode-args.el srecode-table.el srecode-filters.el srecode-find.el srecode-ctxt.el srecode-getset.el srecode-cpp.el srecode-expandproto.el srecode-el.el srecode-srt.el srecode-texi.el srecode-map.el srecode-extract.el srecode-java.el srecode-fields.el
 EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
 doc_TEXINFOS=srecode.texi
 MAKEINFO=makeinfo
 tests_LISP=srecode-test.el srecode-test-getset.el
@@ -56,7 +57,7 @@ srecode: $(srecode_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 srecode.info: $(doc_TEXINFOS)
 	$(MAKEINFO) $<
@@ -68,7 +69,7 @@ tests: $(tests_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: document
 document: $(document_LISP)
@@ -77,7 +78,7 @@ document: $(document_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY:templates
 templates:
