@@ -16,6 +16,7 @@ LOADPATH= ../../ede/ ../../common/ ../ ../../eieio/\
 by_SEMANTIC_GRAMMAR_EL=semantic-c-by.el semantic-make-by.el semantic-scm-by.el semantic-erlang-by.el
 bovinator_LISP=semantic-bovine.el bovine-grammar.el bovine-debug.el bovine-grammar-macros.el
 EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
 examples_MISC=semantic-skel.el skeleton.by
 languages_LISP=semantic-c.el semantic-el.el semantic-make.el semantic-scm.el semantic-java.el semantic-erlang.el semantic-gcc.el
 VERSION=2.0pre6
@@ -42,7 +43,7 @@ bovinator: $(bovinator_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 examples: 
 	@
@@ -54,7 +55,7 @@ languages: $(languages_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 tags: 
 
