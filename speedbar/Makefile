@@ -4,7 +4,7 @@
 # DO NOT MODIFY THIS FILE OR YOUR CHANGES MAY BE LOST.
 # EDE is the Emacs Development Environment.
 # http://cedet.sourceforge.net/ede.shtml
-# 
+#
 
 top=
 ede_FILES=Project.ede Makefile
@@ -15,6 +15,7 @@ LOADDEFS=speedbar-loaddefs.el
 LOADDIRS=.
 init_LISP=speedbar-load.el
 EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
 speedbar_LISP=dframe.el speedbar.el
 info_TEXINFOS=speedbar.texi
 MAKEINFO=makeinfo
@@ -44,7 +45,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: speedbar
 speedbar: $(speedbar_LISP)
@@ -53,7 +54,7 @@ speedbar: $(speedbar_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 speedbar.info: $(info_TEXINFOS)
 	$(MAKEINFO) $<
@@ -65,7 +66,7 @@ opt: $(opt_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 images: 
 	@
