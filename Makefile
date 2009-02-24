@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.20 2009/01/29 02:58:26 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.21 2009/02/24 03:17:19 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -41,6 +41,7 @@ tests
 
 ## Path to your Emacs
 EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
 
 ## Your shell (On Windows/Cygwin I recommend to use bash)
 #SHELL=bash
@@ -66,7 +67,7 @@ DIST_FILE=$(DIST_DIR).tar.gz
 
 __BUILD_AUTOLOADS=$(patsubst %,%-autoloads,$(CEDET_PACKAGES))
 __CLEAN_AUTOLOADS=$(patsubst %,clean-%,$(__BUILD_AUTOLOADS))
-__DOMAKE=$(MAKE) $(MFLAGS) EMACS="$(EMACS)" SHELL="$(SHELL)"
+__DOMAKE=$(MAKE) $(MFLAGS) EMACS="$(EMACS)" EMACSFLAGS="$(EMACSFLAGS)" SHELL="$(SHELL)"
 
 ## Build
 ##
@@ -93,7 +94,7 @@ $(__BUILD_AUTOLOADS):
 
 recompile: autoloads
 	cd $(CEDET_HOME) && \
-	"$(EMACS)" -batch -q --no-site-file -l common/cedet.el \
+	"$(EMACS)" $(EMACSFLAGS) -l common/cedet.el \
 	-f batch-byte-recompile-directory $(CEDET_PACKAGES)
 
 ## Cleanup
@@ -134,7 +135,7 @@ clean-all: clean clean-elc clean-info clean-grammars clean-autoloads
 ## Run the master CEDET unit-test suite.
 .PHONY: utest
 utest:
-	$(EMACS) -batch -l "common/cedet.el" -f cedet-utest-batch
+	$(EMACS) $(EMACSFLAGS) -l "common/cedet.el" -f cedet-utest-batch
 
 ### Install info files
 ## Thanks Stefano Sabatini for the info install patch.
