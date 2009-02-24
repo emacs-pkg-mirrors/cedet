@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-locate.el,v 1.6 2009/01/28 19:38:20 zappo Exp $
+;; X-RCS: $Id: ede-locate.el,v 1.7 2009/02/24 03:14:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -35,7 +35,7 @@
 ;; projects are completely controlled by EDE, such sh the Project.ede
 ;; based projects.
 ;;
-;; For other projects, have a "quick hack" to support these location
+;; For other projects, haveing a "quick hack" to support these location
 ;; routines is handy.
 ;;
 ;; The baseclass `ede-locate-base' provides the abstract interface to
@@ -52,7 +52,8 @@
 (require 'ede)
 (eval-when-compile (require 'data-debug)
 		   (require 'eieio-datadebug)
-		   (require 'cedet-global))
+		   (require 'cedet-global)
+		   (require 'cedet-idutils))
 
 ;; Older [X]Emacs don't have locate
 (condition-case nil
@@ -70,7 +71,8 @@ It is always assumed that `ede-locate-base' is at end of the list."
   :type '(repeat
 	  (choice (const :tag "None" ede-locate-base)
 		  (const :tag "locate" ede-locate-locate)
-		  (const :tag "GNU Global" ede-locate-global)))
+		  (const :tag "GNU Global" ede-locate-global)
+		  (const :tag "ID Utils" ede-locate-idutils)))
   )
 
 ;;;###autoload
@@ -86,13 +88,14 @@ based on `ede-locate-setup-options'."
     (while (and opts (not ans))
       (when (ede-locate-ok-in-project (car opts) root)
 	;; If interactive, check with the user.
-	(when (interactive-p)
-	  (when (or (eq (car opts) ede-locate-base)
-		    (y-or-n-p (format "Set project locator to %s? " (car opts))))
-	    (setq ans (car opts)))))
+	(when (or (not (interactive-p))
+		  (y-or-n-p (format "Set project locator to %s? " (car opts))))
+	  (setq ans (car opts))))
       (setq opts (cdr opts)))
     ;; No match?  Always create the baseclass for the hashing tool.
     (when (not ans)
+      (when (interactive-p)
+	(message "Setting locator to ede-locate-base"))
       (setq ans 'ede-locate-base))
     (oset proj locate-obj (make-instance ans "Loc" :root root))
     (when (interactive-p)
@@ -238,11 +241,43 @@ variable `cedet-global-command'.")
   "Locate with LOC occurances of FILESUBSTRING under PROJECTROOT.
 Searches are done under the current root of the EDE project
 that crated this ede locat object."
-  (let ((default-directory (oref loc root))
-	(ans (cedet-gnu-global-expand-filename filesubstring))
-	)
+  (let ((default-directory (oref loc root)))
+    (cedet-gnu-global-expand-filename filesubstring)))
 
-    ans))
+;;; IDUTILS
+;;
+(defclass ede-locate-idutils (ede-locate-base)
+  ()
+  "EDE Locator using IDUtils.
+Configure EDE's use of IDUtils through the cedet-idutils.el
+file name searching variable `cedet-idutils-file-command'.")
+
+(defmethod initialize-instance ((loc ede-locate-idutils)
+				&rest slots)
+  "Make sure that we can use IDUtils."
+  ;; Get ourselves initialized.
+  (call-next-method)
+  ;; Do the checks.
+  (cedet-idutils-version-check)
+  (when (not (cedet-idutils-support-for-directory (oref loc root)))
+    (error "Cannot use IDUtils in %s"
+	   (oref loc root)))
+  )
+
+(defmethod ede-locate-ok-in-project :static ((loc ede-locate-idutils)
+					     root)
+  "Is it ok to use this project type under ROOT."
+  (cedet-idutils-version-check)
+  (when (cedet-idutils-support-for-directory root)
+    root))
+
+(defmethod ede-locate-file-in-project-impl ((loc ede-locate-idutils)
+					    filesubstring)
+  "Locate with LOC occurances of FILESUBSTRING under PROJECTROOT.
+Searches are done under the current root of the EDE project
+that crated this ede locat object."
+  (let ((default-directory (oref loc root)))
+    (cedet-idutils-expand-filename filesubstring)))
 
 ;;; TESTS
 ;;
@@ -261,10 +296,23 @@ The search is done with the current EDE root."
   )
 
 (defun ede-locate-test-global (file)
-  "Test EDE Locate on FILE using LOCATE type.
+  "Test EDE Locate on FILE using GNU Global type.
 The search is done with the current EDE root."
   (interactive "sFile: ")
   (let ((loc (ede-locate-global
+	      "test"
+	      :root (ede-project-root-directory
+		     (ede-toplevel)))))
+    (data-debug-new-buffer "*EDE Locate ADEBUG*")
+    (ede-locate-file-in-project loc file)
+    (data-debug-insert-object-slots loc "]"))
+  )
+
+(defun ede-locate-test-idutils (file)
+  "Test EDE Locate on FILE using ID Utils type.
+The search is done with the current EDE root."
+  (interactive "sFile: ")
+  (let ((loc (ede-locate-idutils
 	      "test"
 	      :root (ede-project-root-directory
 		     (ede-toplevel)))))
