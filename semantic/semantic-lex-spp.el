@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.34 2009/02/22 15:55:53 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.35 2009/02/24 01:32:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,6 +46,7 @@
 ;;   spp-system-include - A system level include file
 ;;   spp-include - An include file
 ;;   spp-concat - A lexical token representing textual concatenation
+;;           of symbol parts.
 ;;
 ;; Operational tokens:
 ;;   spp-replace-replace - Indicates a macro replacement that requiers
@@ -57,6 +58,8 @@
 ;;
 ;; Use `semantic-push-parser-warning' for situations where there are likely
 ;; macros that are undefined unexpectedly, or other problem.
+;;
+;; TODO:
 ;;
 ;; Try to handle the case of:
 ;;
@@ -342,39 +345,112 @@ exampe, in c:
 Argument VAL is the value of some macro to be converted into a stream.
 BEG and END are the token bounds of the macro to be expanded
 that will somehow gain a much longer token stream.
-ARGVALUES are values for any arg list, or nil."
+ARGVALUES are values for any arg list, or nil.
+See comments in code for information about how token streams are processed
+and what valid VAL values are."
+  
+  ;; A typical VAL value might be either a stream of tokens.
+  ;; Tokens saved into a macro stream always includes the text from the
+  ;; buffer, since the locations specified probably don't represent
+  ;; that text anymore, or even the same buffer.
+  ;;
+  ;; CASE 1: Simple token stream
+  ;;
+  ;; #define SUPER mysuper::
+  ;;  ==>
+  ;;((symbol "mysuper" 480 . 487)
+  ;; (punctuation ":" 487 . 488)
+  ;; (punctuation ":" 488 . 489))
+  ;;
+  ;; CASE 2: Token stream with argument list
+  ;;
+  ;; #define INT_FCN(name) int name (int in)
+  ;;  ==>
+  ;; ((spp-arg-list ("name") 558 . 564)
+  ;;  (INT "int" 565 . 568)
+  ;;  (symbol "name" 569 . 573)
+  ;;  (semantic-list "(int in)" 574 . 582))
+  ;;
+  ;; In the second case, a macro with an argument list as the a rgs as the
+  ;; first entry.
+  ;;
+  ;; CASE 3: Symbol text merge
+  ;;
+  ;; #define TMP(a) foo_ ## a
+  ;;   ==>
+  ;; ((spp-arg-list ("a") 20 . 23)
+  ;;  (spp-symbol-merge ((symbol "foo_" 24 . 28) (symbol "a" 32 . 33))
+  ;; 		          24 . 33))
+  ;;
+  ;; Usually in conjunction with a macro with an argument, merging symbol
+  ;; parts is a way of fabricating new symbols from pieces inside the macro.
+  ;; These macros use `spp-symbol-merge' tokens whose TEXT part is another
+  ;; token stream.  This sub-stream ought to consist of only 2 SYMBOL pieces,
+  ;; though I suppose keywords might be ok.  The end result of this example
+  ;; merge symbol would be (symbol "foo_A" 24 . 33) where A is the symbol
+  ;; passed in from the arg list "a".
+  ;;
+  ;; CASE 4: Nested token streams
+  ;;
+  ;; #define FOO(f) f
+  ;; #define BLA bla FOO(foo)
+  ;;  ==>
+  ;; ((symbol "bla" 82 . 85)
+  ;;  (spp-replace-replace ((spp-arg-list ("f") 64 . 67) (symbol "f" 68 . 69))
+  ;;                       86 . 89)
+  ;;  (semantic-list "(foo)" 89 . 94))
+  ;;
+  ;; Nested token streams use the `spp-replace-replace' token.  The
+  ;; TEXT part is another token stream.  The nested token stream
+  ;; can be any valid stream acceptible to this function.
+
   (let ((arglist (semantic-lex-spp-macro-with-args val))
 	(argalist nil)
 	(val-tmp nil)
 	(v nil)
 	)
-    ;; Skip the arg list.
-    (when arglist (setq val (cdr val)))
+    ;; CASE 2: Dealing with the arg list.
+    (when arglist
+      ;;  Skip the arg list.
+      (setq val (cdr val))
 
-    ;; Push args into the replacement list.
-    (dolist (A arglist)
-      (semantic-lex-spp-symbol-set A (car argvalues))
-      (setq argalist (cons (cons A (car argvalues)) argalist))
-      (setq argvalues (cdr argvalues)))
+      ;; Push args into the replacement list.
+      (dolist (A arglist)
+	(semantic-lex-spp-symbol-set A (car argvalues))
+	(setq argalist (cons (cons A (car argvalues)) argalist))
+	(setq argvalues (cdr argvalues)))
+
+      )
 
     ;; Set val-tmp after stripping arguments.
     (setq val-tmp val)
 
-    ;; Push everything else onto the list.
+    ;; CASE 1: Push everything else onto the list.
+    ;;   Once the arg list is stripped off, CASE 2 is the same
+    ;;   as CASE 1.
     (while val-tmp
       (setq v (car val-tmp))
       (setq val-tmp (cdr val-tmp))
 
-      (let* ((txt (car (cdr v)))
-	     (sym (semantic-lex-spp-symbol txt))
+      (let* (;; The text of the current lexical token.
+	     (txt (car (cdr v)))
+	     ;; Try to convert txt into a macro declaration.  If it is
+	     ;; not a macro, use nil.
+	     (txt-macro-or-nil (semantic-lex-spp-symbol txt))
+	     ;; If our current token is a macro, then pull off the argument
+	     ;; list.
 	     (macro-and-args
-	      (when sym
-		(semantic-lex-spp-macro-with-args (symbol-value sym)))
+	      (when txt-macro-or-nil
+		(semantic-lex-spp-macro-with-args (symbol-value txt-macro-or-nil)))
 	      )
+	     ;; We need to peek at the next token when testing for
+	     ;; used macros with arg lists.
 	     (next-tok-class (semantic-lex-token-class (car val-tmp)))
 	     )
+
 	(cond
-	 ((eq (car v) 'spp-symbol-merge)
+	 ;; CASE 3: Merge symbols together.
+	 ((eq (semantic-lex-token-class v) 'spp-symbol-merge)
 	  ;; We need to merge the tokens in the 'text segement together,
 	  ;; and produce a single symbol from it.
 	  (let ((newsym
@@ -385,30 +461,43 @@ ARGVALUES are values for any arg list, or nil."
 	    (semantic-lex-push-token
 	     (semantic-lex-token 'symbol beg end newsym))
 	    ))
-	 ((and (eq (car v) 'symbol) sym
+
+	 ;; CASE 2: Argument replacement.   If a discovered symbol is in
+	 ;;    the active list of arguments, then we need to substitute
+	 ;;    in the new value.
+	 ((and (eq (semantic-lex-token-class v) 'symbol) txt-macro-or-nil
 	       (or (and macro-and-args (eq next-tok-class 'semantic-list))
 		   (not macro-and-args))
 	       )
-	  ;; Special arg symbol
+	  ;; Don't recurse directly into this same fcn, because it is
+	  ;; convenient to have plain string replacements too.
 	  (semantic-lex-spp-macro-to-macro-stream
-	   (symbol-value sym)
+	   (symbol-value txt-macro-or-nil)
 	   beg end nil)
 	  )
-	 ((eq (car v) 'semantic-list)
+
+	 ;; This is a HACK for the C parser.  The 'macros text
+	 ;; property is some storage so that the parser can do
+	 ;; some C specific text manipulations.
+	 ((eq (semantic-lex-token-class v) 'semantic-list)
 	  ;; Push our arg list onto the semantic list.
 	  (when argalist
-	    (setq txt (concat txt))
+	    (setq txt (concat txt)) ; Copy the text.
 	    (put-text-property 0 1 'macros argalist txt))
 	  (semantic-lex-push-token
-	   (semantic-lex-token (car v) beg end txt))
+	   (semantic-lex-token (semantic-lex-token-class v) beg end txt))
 	  )
+
+	 ;; CASE 1: Just another token in the stream.
 	 (t
 	  ;; Nothing new.
 	  (semantic-lex-push-token
-	   (semantic-lex-token (car v) beg end txt))
+	   (semantic-lex-token (semantic-lex-token-class v) beg end txt))
 	  )
 	 )))
       
+    ;; CASE 2: The arg list we pushed onto the symbol table
+    ;;         must now be removed.
     (dolist (A arglist)
       (semantic-lex-spp-symbol-remove A))
     ))
