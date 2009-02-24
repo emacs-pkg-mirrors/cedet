@@ -116,6 +116,7 @@ use the mailing list cedet-devel.net via the URL:
 * Code Generation::	
 * C++ Features::	
 * GNU Global::	
+* ID Utils::	
 * Maintenance::	Maintaining your CEDET Data files
 * GNU Free Documentation License::  
 * Index::                       
@@ -803,6 +804,59 @@ all your files.
 
 The semantic symref tool can use GNU Global to local symbol
 references.  This tool will automatically detect GNU Global and use
+it.  You can search for references via the commands:
+
+@table @code
+@item semantic-symref
+Find references to the tag under the cursor.
+@item semantic-symref-symbol
+Find references to an arbitrary symbol.
+@end table
+
+@node ID Utils
+@chapter ID Utils
+
+Several tools in CEDET can support the use of ID Utils.  If you use
+ID Utils in your project, you should enable the use of it to enhance
+or speed up various tools in CEDET.
+
+You can download ID Utils from @url{http://www.gnu.org/software/idutils/}
+
+To make sure your ID Utils installation is good, use the command
+
+@example
+M-x cedet-idutils-version-check RET
+@end example
+
+You can wrap any CEDET / ID Utils configurations in your
+@file{.emacs} file like this:
+
+@example
+(when (cedet-idutils-version-check t)  ; Is it ok?
+    ;; Configurations for ID Utils and CEDET.
+    )
+@end example
+
+@section @ede{} and ID Utils
+
+The @ede{} project system can use ID Utils to accelerate finding
+files within a project.  The EDE command to @code{ede-find-file}
+bound to @kbd{C-c . f} is one direct application.  @semantic{} also
+makes heavy use of of the feature to find header files.
+
+To enable it, configure the variable @code{ede-locate-setup-options}.
+Something like this can work in your @file{.emacs} file.
+
+@example
+(setq ede-locate-setup-options
+      '(ede-locate-idutils
+        ede-locate-base))
+@end example
+
+@section @semantic Symref
+
+The semantic symref tool can use ID Utils to local symbol
+references.  This tool will automatically detect ID Utils and use
 it.  You can search for references via the commands:
 
 @table @code
