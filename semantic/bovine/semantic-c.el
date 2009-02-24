@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.103 2009/02/17 20:19:17 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.104 2009/02/24 01:33:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -200,17 +200,7 @@ Return the the defined symbol as a special spp lex token."
 	    (semantic-lex-spp-stream-for-macro (save-excursion
 						 (semantic-c-end-of-macro)
 						 (point))))
-	   ;(cooked-stream nil)
 	   )
-
-      ;; If this symbol refers to some other symbol, do a replacement.
-      (when (and (consp raw-stream) (consp (car raw-stream))
-		 (eq (car (car raw-stream)) 'spp-replace-replace)
-		 (not (string= name (semantic-lex-token-text (car raw-stream))))
-		 )
-
-	;; extract the replacement.
-	(setq raw-stream (car (cdr (car raw-stream)))))
 
       ;; Only do argument checking if the paren was immediatly after
       ;; the macro name.
@@ -220,6 +210,7 @@ Return the the defined symbol as a special spp lex token."
       ;; Magical spp variable for end point.
       (setq semantic-lex-end-point (point))
 
+      ;; Handled nexted macro streams.
       (semantic-lex-spp-merge-streams raw-stream)
       )))
 
@@ -469,9 +460,9 @@ as for the parent."
       (let* ((last-lexical-token lse)
 	     (macroexpand (stringp (car (cdr last-lexical-token)))))
 	(if macroexpand
-	    (progn
+  	    (progn
 	      ;; It is a macro expansion.  Do something special.
-	      ;(message "MOOSE %S %S, %S : %S" start end nonterminal lse)
+	      ;;(message "MOOSE %S %S, %S : %S" start end nonterminal lse)
 	      (semantic-c-parse-lexical-token
 	       lse nonterminal depth returnonerror)
 	      )
