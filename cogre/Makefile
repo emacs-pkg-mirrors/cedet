@@ -19,6 +19,7 @@ LOADDEFS=cogre-loaddefs.el
 LOADDIRS=.
 init_LISP=cogre-load.el
 EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
 dot_LISP=wisent-dot.el
 Mode_LISP=cogre-mode.el
 info_TEXINFOS=cogre.texi
@@ -60,7 +61,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: dot
 dot: $(dot_LISP)
@@ -69,7 +70,7 @@ dot: $(dot_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: Mode
 Mode: $(Mode_LISP)
@@ -78,7 +79,7 @@ Mode: $(Mode_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 cogre.info: $(info_TEXINFOS)
 	$(MAKEINFO) $<
@@ -93,7 +94,7 @@ hacks: $(hacks_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: COGRE
 COGRE: $(COGRE_LISP)
@@ -102,7 +103,7 @@ COGRE: $(COGRE_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: tests
 tests: $(tests_LISP)
@@ -111,7 +112,7 @@ tests: $(tests_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 tags: 
 
