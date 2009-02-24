@@ -11,6 +11,7 @@ ede_FILES=Project.ede Makefile
 
 ctags_LISP=semantic-ectag-util.el semantic-ectag-lang.el semantic-ectag-parse.el semanticdb-ectag.el
 EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
 LOADPATH= ../bovine/ ../../eieio/ ../ ../../common/
 VERSION=2.0pre6
 DISTDIR=$(top)semantic-$(VERSION)/ctags
@@ -26,7 +27,7 @@ ctags: $(ctags_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 tags: 
 
