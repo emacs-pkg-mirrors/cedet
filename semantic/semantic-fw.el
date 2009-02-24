@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.72 2009/02/22 15:32:34 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.73 2009/02/24 00:57:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -435,7 +435,7 @@ FILE, NOWARN, RAWFILE, and WILDCARDS are passed into `find-file-noselect'"
 	      ;; XEmacs only has nil as an option?
 	      nil
 	    ;; Emacs 23 has the spiffy :safe option, nil otherwise.
-	    (if (inversion-check-version emacs-version nil '(full 23 0))
+	    (if (inversion-check-version emacs-version nil '(full 22 0))
 		nil
 	      :safe)))
 	 ;; ... or eval variables
