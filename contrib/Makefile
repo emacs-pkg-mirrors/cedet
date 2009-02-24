@@ -17,6 +17,7 @@ LOADDEFS=contrib-loaddefs.el
 LOADDIRS=.
 init_LISP=cedet-contrib-load.el
 EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
 setup_LISP=cedet-contrib.el
 wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-ruby.wy wisent-php.wy
 EMACS=emacs
@@ -45,7 +46,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: setup
 setup: $(setup_LISP)
@@ -54,7 +55,7 @@ setup: $(setup_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: wy
 wy: $(wy_SEMANTIC_GRAMMAR)
@@ -73,7 +74,7 @@ lisp: $(lisp_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 tags: 
 
