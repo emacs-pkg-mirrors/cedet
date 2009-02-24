@@ -78,6 +78,21 @@ a tool that can be used for symbol referencing.")
 
 ;;; TOOL SETUP
 ;;
+(defvar semantic-symref-tool-alist
+  '( ( (lambda (rootdir) (file-exists-p (expand-file-name "GPATH" rootdir))) .
+       global)
+     ( (lambda (rootdir) (file-exists-p (expand-file-name "ID" rootdir))) .
+       idutils)
+    )
+  "Alist of tools usable by `semantic-symref'.
+Each entry is of the form:
+   ( PREDICATE . KEY )
+Where PREDICATE is a function that takes a directory name for the
+root of a project, and returns non-nil if the tool represented by KEY
+is supported.
+
+If no tools are supported, then 'grep is assumed.")
+
 (defun semantic-symref-detect-symref-tool ()
   "Detect the symref tool to use for the current buffer."
   (if (not (eq semantic-symref-tool 'detect))
@@ -87,19 +102,17 @@ a tool that can be used for symbol referencing.")
 		       (ede-toplevel)))
 	   (rootdir (if rootproj
 			(ede-project-root-directory rootproj)
-		      default-directory)))
-      (setq semantic-symref-tool
-	    (cond
-	     ((file-exists-p (expand-file-name "GPATH" rootdir))
-	      'global)
-	     ((file-exists-p (expand-file-name "ID" rootdir))
-	      'idutils)
-	     ;; ADD NEW ONES HERE...
+		      default-directory))
+	   (tools semantic-symref-tool-alist))
+      (while (and tools (eq semantic-symref-tool 'detect))
+	(when (funcall (car (car tools)) rootdir)
+	  (setq semantic-symref-tool (cdr (car tools))))
+	(setq tools (cdr tools)))
 
-	     ;; The default is grep.
-	     (t
-	      'grep)))
-      )))
+      (when (eq semantic-symref-tool 'detect)
+	(setq semantic-symref-tool 'grep))
+
+      semantic-symref-tool)))
 
 (defun semantic-symref-instantiate (&rest args)
   "Instantiate a new symref search object.
