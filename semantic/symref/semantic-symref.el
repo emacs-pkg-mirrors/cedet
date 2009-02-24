@@ -92,8 +92,9 @@ a tool that can be used for symbol referencing.")
 	    (cond
 	     ((file-exists-p (expand-file-name "GPATH" rootdir))
 	      'global)
+	     ((file-exists-p (expand-file-name "ID" rootdir))
+	      'idutils)
 	     ;; ADD NEW ONES HERE...
-
 
 	     ;; The default is grep.
 	     (t
