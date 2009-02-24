@@ -17,6 +17,7 @@ LOADDEFS=semantic-loaddefs.el
 LOADDIRS=. bovine wisent ctags symref
 init_LISP=semantic-load.el
 EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
 semantic_LISP=semantic.el semantic-fw.el semantic-lex.el semantic-lex-spp.el semantic-edit.el semantic-util.el semantic-tag.el semantic-tag-ls.el semantic-find.el semantic-sort.el semantic-tag-file.el semantic-tag-write.el semantic-doc.el semantic-idle.el
 utils_LISP=semantic-ast.el semantic-ctxt.el semantic-decorate.el semantic-dep.el semantic-format.el semantic-scope.el
 Database_LISP=semanticdb.el semanticdb-mode.el semanticdb-debug.el semanticdb-ebrowse.el semanticdb-el.el semanticdb-file.el semanticdb-find.el semanticdb-mk.el semanticdb-ref.el semanticdb-search.el semanticdb-typecache.el semanticdb-javascript.el semanticdb-global.el
@@ -54,7 +55,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: semantic
 semantic: $(semantic_LISP)
@@ -63,7 +64,7 @@ semantic: $(semantic_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: utils
 utils: $(utils_LISP)
@@ -72,7 +73,7 @@ utils: $(utils_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: Database
 Database: $(Database_LISP)
@@ -81,7 +82,7 @@ Database: $(Database_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: tools
 tools: $(tools_LISP)
@@ -90,7 +91,7 @@ tools: $(tools_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: Analyzer
 Analyzer: $(Analyzer_LISP)
@@ -99,7 +100,7 @@ Analyzer: $(Analyzer_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: Languages
 Languages: $(Languages_LISP)
@@ -108,7 +109,7 @@ Languages: $(Languages_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: maintenance
 maintenance: $(maintenance_LISP)
@@ -117,7 +118,7 @@ maintenance: $(maintenance_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: metagrammar
 metagrammar: $(metagrammar_SEMANTIC_GRAMMAR)
@@ -136,7 +137,7 @@ tests: $(tests_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 example: 
 	@
