@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-debug.el,v 1.6 2009/01/20 02:30:35 zappo Exp $
+;; X-RCS: $Id: semanticdb-debug.el,v 1.7 2009/02/25 19:41:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -34,8 +34,8 @@
   "Dump a list of all databases in Emacs memory."
   (interactive)
   (require 'data-debug)
-  (let ((data-debug-new-buffer "*SEMANTICDB*")
-	(db semanticdb-database-list))
+  (let ((db semanticdb-database-list))
+    (data-debug-new-buffer "*SEMANTICDB*")
     (data-debug-insert-stuff-list db "*")))
 
 ;;;###autoload
