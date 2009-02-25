@@ -1,9 +1,9 @@
 ;;; ede-simple.el --- Overlay an EDE structure on an existing project
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-simple.el,v 1.9 2008/12/10 05:05:57 zappo Exp $
+;; X-RCS: $Id: ede-simple.el,v 1.10 2009/02/25 23:08:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -82,12 +82,13 @@ The directory has three parts:
   "Load a project of type `Simple' for the directory DIR.
 Return nil if there isn't one.
 ROOTPROJ is nil, since we will only create a single EDE project here."
-  (let ((pf (ede-simple-projectfile-for-dir dir)))
+  (let ((pf (ede-simple-projectfile-for-dir dir))
+	(obj nil))
     (when pf
-      (eieio-persistent-read pf)
-      (oset pf :directory dir)
+      (setq obj (eieio-persistent-read pf))
+      (oset obj :directory dir)
       )
-    ))
+    obj))
 
 (defclass ede-simple-target (ede-target)
   ()
