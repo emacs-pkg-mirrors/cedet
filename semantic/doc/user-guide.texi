@@ -788,9 +788,10 @@ to account for it.
 @chapter SymRef - Symbol References
 @cindex symref
 
-@semantic{} can interfaces with external symbol reference tools, like GNU
-Global.  The symref tool interface can use one of these external tools
-to collect locations where different tags or symbols may be used.
+@semantic{} can interfaces with external symbol reference tools, like
+GNU Global and IDUtils.  The symref tool interface can use one of
+these external tools to collect locations where different tags or
+symbols may be used.
 
 There are two main command into the symref system.  They are:
 
@@ -829,6 +830,22 @@ You must manage those yourself.  The symref tool is not meant to
 replace the standard grep-like interface available with GNU Global.
 It is meant to be a starting point for tools that can take advantage
 of reference information.
+
+To add support for a new tool, use semantic-symref-global.el as a
+starting point.  Then update @code{semantic-symref-tool-alist} to
+allow the new tool to be detected.
+
+@defun semantic-symref-tool-alist
+@anchor{semantic-symref-tool-alist}
+Alist of tools usable by @dfn{semantic-symref}.
+Each entry is of the form:
+   ( @var{PREDICATE} . @var{KEY} )
+Where @var{PREDICATE} is a function that takes a directory name for the
+root of a project, and returns non-@code{nil} if the tool represented by @var{KEY}
+is supported.
+
+If no tools are supported, then @code{'grep} is assumed.
+@end defun
 
 @@TODO - This mode is supposed to be the starting point of refactoring
 tools.  Doc those features here once they are written.
