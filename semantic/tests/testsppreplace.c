@@ -88,4 +88,10 @@ int __gthrw_(foo) (int arg1) { }
 
 mf_declare;
 
+/* TEST: macros with args using macros */
+#define Amacro(A) (int A)
+#define mf_Amacro(B) int B Amacro(B)
+
+mf_Amacro(noodle);
+
 /* END */
