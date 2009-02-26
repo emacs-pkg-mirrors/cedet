@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.23 2009/02/12 22:50:57 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.24 2009/02/26 03:29:21 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -34,15 +34,17 @@
 (require 'semantic)
 
 (defvar semantic-ia-utest-file-list
-  '( "tests/testdoublens.cpp"
-     "tests/testsubclass.cpp"
-     "tests/testtypedefs.cpp"
-     "tests/teststruct.cpp"
-     "tests/testtemplates.cpp"
-     "tests/testfriends.cpp"
-     "tests/testusing.cpp"
-     "tests/testjavacomp.java"
-     )
+  '(
+    "tests/testdoublens.cpp"
+    "tests/testsubclass.cpp"
+    "tests/testtypedefs.cpp"
+    "tests/teststruct.cpp"
+    "tests/testtemplates.cpp"
+    "tests/testfriends.cpp"
+    "tests/testusing.cpp"
+    "tests/testsppcomplete.c"
+    "tests/testjavacomp.java"
+    )
   "List of files with analyzer completion test points.")
 
 (defvar semantic-ia-utest-error-log-list nil
