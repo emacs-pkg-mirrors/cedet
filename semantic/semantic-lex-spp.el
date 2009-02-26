@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.35 2009/02/24 01:32:49 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.36 2009/02/26 03:14:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -49,8 +49,6 @@
 ;;           of symbol parts.
 ;;
 ;; Operational tokens:
-;;   spp-replace-replace - Indicates a macro replacement that requiers
-;;      substitution.
 ;;   spp-arg-list - Represents an argument list to a macro.
 ;;   spp-symbol-merge - A request for multiple symbols to be textually merged.
 ;;
@@ -395,14 +393,12 @@ and what valid VAL values are."
   ;; #define FOO(f) f
   ;; #define BLA bla FOO(foo)
   ;;  ==>
-  ;; ((symbol "bla" 82 . 85)
-  ;;  (spp-replace-replace ((spp-arg-list ("f") 64 . 67) (symbol "f" 68 . 69))
-  ;;                       86 . 89)
+  ;; ((INT "int" 82 . 85)
+  ;;  (symbol "FOO" 86 . 89)
   ;;  (semantic-list "(foo)" 89 . 94))
   ;;
-  ;; Nested token streams use the `spp-replace-replace' token.  The
-  ;; TEXT part is another token stream.  The nested token stream
-  ;; can be any valid stream acceptible to this function.
+  ;; Nested token FOO shows up in the table of macros, and gets replace
+  ;; inline.  This is the same as case 2.
 
   (let ((arglist (semantic-lex-spp-macro-with-args val))
 	(argalist nil)
@@ -415,11 +411,11 @@ and what valid VAL values are."
       (setq val (cdr val))
 
       ;; Push args into the replacement list.
-      (dolist (A arglist)
-	(semantic-lex-spp-symbol-set A (car argvalues))
-	(setq argalist (cons (cons A (car argvalues)) argalist))
-	(setq argvalues (cdr argvalues)))
-
+      (let ((AV argvalues))
+	(dolist (A arglist)
+	  (semantic-lex-spp-symbol-set A (car AV))
+	  (setq argalist (cons (cons A (car AV)) argalist))
+	  (setq AV (cdr AV))))
       )
 
     ;; Set val-tmp after stripping arguments.
@@ -469,12 +465,20 @@ and what valid VAL values are."
 	       (or (and macro-and-args (eq next-tok-class 'semantic-list))
 		   (not macro-and-args))
 	       )
-	  ;; Don't recurse directly into this same fcn, because it is
-	  ;; convenient to have plain string replacements too.
-	  (semantic-lex-spp-macro-to-macro-stream
-	   (symbol-value txt-macro-or-nil)
-	   beg end nil)
-	  )
+	  (let ((AV nil))
+	    (when macro-and-args
+	      (setq AV
+		    (semantic-lex-spp-stream-for-arglist (car val-tmp)))
+	      ;; We used up these args.  Pull from the stream.
+	      (setq val-tmp (cdr val-tmp))
+	      )
+
+	    ;; Don't recurse directly into this same fcn, because it is
+	    ;; convenient to have plain string replacements too.
+	    (semantic-lex-spp-macro-to-macro-stream
+	     (symbol-value txt-macro-or-nil)
+	     beg end AV)
+	    ))
 
 	 ;; This is a HACK for the C parser.  The 'macros text
 	 ;; property is some storage so that the parser can do
@@ -528,24 +532,6 @@ Return the cooked stream."
 		      (semantic-lex-token-end next-tok)
 		      (list prev-tok next-tok))
 		     cooked-stream)
-	       ))
-	    ((eq (semantic-lex-token-class (car raw-stream)) 'spp-replace-replace)
-
-	     ;; macro-to-macro-stream ??
-
-	     (let ((sublst (car (cdr (car raw-stream))))
-		   )
-
-	       (when (eq (semantic-lex-token-class (car raw-stream)) 'spp-arg-list)
-		 ;; @TODO - need to handle args here.
-		 (setq sublst (cdr sublst)))
-
-	       ;; Do the replacement, but merge first.
-	       (setq sublst (semantic-lex-spp-merge-streams sublst))
-
-	       (while sublst
-		 (push (car sublst) cooked-stream)
-		 (setq sublst (cdr sublst)))
 	       ))
 	    (t
 	     (push (car raw-stream) cooked-stream))
@@ -644,23 +630,22 @@ STR occurs in the current buffer between BEG and END."
 	   (semantic-lex-spp-symbol-p str))
       (setq sym (semantic-lex-spp-symbol str)
 	    val (symbol-value sym))
+
+      ;; Do direct replacements of single value macros of macros.
+      ;; This solves issues with a macro containing one symbol that
+      ;; is another macro, and get arg lists passed around.
+      (while (and val (consp val)
+		  (semantic-lex-token-p (car val))
+		  (eq (length val) 1)
+		  (eq (semantic-lex-token-class (car val)) 'symbol)
+		  (semantic-lex-spp-symbol-p (semantic-lex-token-text (car val)))
+		  )
+	(setq str (semantic-lex-token-text (car val)))
+	(setq sym (semantic-lex-spp-symbol str)
+	      val (symbol-value sym))
+	)
+
       (semantic-lex-spp-anlyzer-do-replace sym val beg end))
-     ;;
-     ;; A macro that needs a raw replacement, not a full textual replacemnet.
-     ((and (not semantic-lex-spp-replacements-enabled)
-	   (semantic-lex-spp-symbol-p str)
-	   ;; Get sym values
-	   (setq sym (semantic-lex-spp-symbol str))
-	   (setq val (symbol-value sym))
-	   ;; Is it a list of lex tags?
-	   (consp val) (consp (car val))
-	   )
-      ;; We are inside a stream for assignment into another lexical
-      ;; symbol.  Push a magic keyword.
-      ;;(message "push %S" val)
-      (semantic-lex-push-token
-       (semantic-lex-token 'spp-replace-replace beg end val))
-      )
      ;; Anything else.
      (t
       ;; A regular keyword.
@@ -736,12 +721,7 @@ EOS is the end of the stream to lex for this macro."
     (while (< (point) eos)
       (let* ((tok (semantic-lex-spp-one-token-and-move-for-macro eos))
 	     (str (when tok
-		    (cond
-		     ((eq (semantic-lex-token-class tok) 'spp-replace-replace)
-		      (car (cdr tok))
-		      )
-		     (t
-		      (semantic-lex-token-text tok)))))
+		    (semantic-lex-token-text tok)))
 	     )
 	(if str
 	    (push (semantic-lex-token (semantic-lex-token-class tok)
