@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.104 2009/02/24 01:33:37 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.105 2009/02/26 03:11:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -441,7 +441,9 @@ Use semantic-cpp-lexer for parsing text inside a CPP macro."
   semantic-lex-number
   ;; Must detect C strings before symbols because of possible L prefix!
   semantic-lex-c-string
-  semantic-lex-spp-replace-or-symbol-or-keyword
+  ;; Parsing inside a macro means that we don't do macro replacement.
+  ;; semantic-lex-spp-replace-or-symbol-or-keyword
+  semantic-lex-symbol-or-keyword
   semantic-lex-charquote
   semantic-lex-paren-or-list
   semantic-lex-close-paren
