@@ -1,8 +1,8 @@
 ;;; semantic-lex.el --- Lexical Analyzer builder
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.53 2008/10/21 01:12:11 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.54 2009/02/26 03:11:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -319,8 +319,10 @@ PROPERTY set."
 
 ;;; Type table handling.
 ;;
-;; The lexical type table manages types that occur in a grammar
-;; file with the %type declaration.
+;; The lexical type table manages types that occur in a grammar file
+;; with the %type declaration.  Types represent different syntaxes.
+;; See code for `semantic-lex-preset-default-types' for the classic
+;; types of syntax.
 (defvar semantic-lex-types-obarray nil
   "Buffer local types obarray for the lexical analyzer.")
 (make-variable-buffer-local 'semantic-lex-types-obarray)
@@ -456,6 +458,9 @@ PROPERTY set."
      property)
     types))
 
+;;; Lexical Analyzer framework settings
+;;
+
 ;;;###autoload
 (defvar semantic-lex-analyzer 'semantic-flex
   "The lexical analyzer used for a given buffer.
@@ -929,13 +934,12 @@ macro expansion.)"
 This is an exhaustively robust check."
   (and (consp thing)
        (symbolp (car thing))
-       (or (and (= (length thing) 3)
-		(numberp (nth 1 thing))
-		(numberp (nth 2 thing)))
-	   (and (= (length thing) 4)
-		(stringp (nth 1 thing))
+       (or (and (numberp (nth 1 thing))
+		(numberp (nthcdr 2 thing)))
+	   (and (stringp (nth 1 thing))
 		(numberp (nth 2 thing))
-		(numberp (nth 3 thing)))))
+		(numberp (nthcdr 3 thing)))
+	   ))
   )
 
 (defun semantic-lex-token-with-text-p (thing)
