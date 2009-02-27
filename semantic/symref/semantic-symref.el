@@ -83,6 +83,8 @@ a tool that can be used for symbol referencing.")
        global)
      ( (lambda (rootdir) (file-exists-p (expand-file-name "ID" rootdir))) .
        idutils)
+     ( (lambda (rootdir) (file-exists-p (expand-file-name "cscope.out" rootdir))) .
+       cscope )
     )
   "Alist of tools usable by `semantic-symref'.
 Each entry is of the form:
