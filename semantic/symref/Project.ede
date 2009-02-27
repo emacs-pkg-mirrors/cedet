@@ -7,7 +7,7 @@
    (ede-proj-target-elisp "symref"
     :name "symref"
     :path ""
-    :source '("semantic-symref.el" "semantic-symref-global.el" "semantic-symref-grep.el" "semantic-symref-list.el" "semantic-symref-idutils.el")
+    :source '("semantic-symref.el" "semantic-symref-global.el" "semantic-symref-grep.el" "semantic-symref-list.el" "semantic-symref-idutils.el" "semantic-symref-cscope.el")
     :aux-packages '("eieio" "semantic" "semantic-el" "mode-local" "ede" "speedbar")
     )
    )
