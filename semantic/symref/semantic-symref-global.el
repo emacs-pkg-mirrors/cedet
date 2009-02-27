@@ -1,9 +1,9 @@
 ;;; semantic-symref-global.el --- Use GNU Global for symbol references
 
-;; Copyright (C) 2008 Eric Ludlam
+;; Copyright (C) 2008, 2009 Eric Ludlam
 
 ;; Author: Eric Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-symref-global.el,v 1.6 2008/12/13 17:24:35 zappo Exp $
+;; X-RCS: $Id: semantic-symref-global.el,v 1.7 2009/02/27 05:00:20 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -33,7 +33,7 @@
   (
    )
   "A symref tool implementation using GNU Global.
-The gnu GLOBAL command can be used to generate lists of tags in a way
+The GNU Global command can be used to generate lists of tags in a way
 similar to that of `grep'.  This tool will parse the output to generate
 the hit list.
 
