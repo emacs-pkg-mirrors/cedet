@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-locate.el,v 1.7 2009/02/24 03:14:45 zappo Exp $
+;; X-RCS: $Id: ede-locate.el,v 1.8 2009/02/27 04:59:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -53,7 +53,8 @@
 (eval-when-compile (require 'data-debug)
 		   (require 'eieio-datadebug)
 		   (require 'cedet-global)
-		   (require 'cedet-idutils))
+		   (require 'cedet-idutils)
+		   (require 'cedet-cscope))
 
 ;; Older [X]Emacs don't have locate
 (condition-case nil
@@ -72,7 +73,8 @@ It is always assumed that `ede-locate-base' is at end of the list."
 	  (choice (const :tag "None" ede-locate-base)
 		  (const :tag "locate" ede-locate-locate)
 		  (const :tag "GNU Global" ede-locate-global)
-		  (const :tag "ID Utils" ede-locate-idutils)))
+		  (const :tag "ID Utils" ede-locate-idutils)
+		  (const :tag "CScope" ede-locate-cscope)))
   )
 
 ;;;###autoload
@@ -279,6 +281,41 @@ that crated this ede locat object."
   (let ((default-directory (oref loc root)))
     (cedet-idutils-expand-filename filesubstring)))
 
+;;; CSCOPE
+;;
+(defclass ede-locate-cscope (ede-locate-base)
+  ()
+  "EDE Locator using Cscope.
+Configure EDE's use of Cscope through the cedet-cscope.el
+file name searching variable `cedet-cscope-file-command'.")
+
+(defmethod initialize-instance ((loc ede-locate-cscope)
+				&rest slots)
+  "Make sure that we can use Cscope."
+  ;; Get ourselves initialized.
+  (call-next-method)
+  ;; Do the checks.
+  (cedet-cscope-version-check)
+  (when (not (cedet-cscope-support-for-directory (oref loc root)))
+    (error "Cannot use Cscope in %s"
+	   (oref loc root)))
+  )
+
+(defmethod ede-locate-ok-in-project :static ((loc ede-locate-cscope)
+					     root)
+  "Is it ok to use this project type under ROOT."
+  (cedet-cscope-version-check)
+  (when (cedet-cscope-support-for-directory root)
+    root))
+
+(defmethod ede-locate-file-in-project-impl ((loc ede-locate-cscope)
+					    filesubstring)
+  "Locate with LOC occurances of FILESUBSTRING under PROJECTROOT.
+Searches are done under the current root of the EDE project
+that crated this ede locat object."
+  (let ((default-directory (oref loc root)))
+    (cedet-cscope-expand-filename filesubstring)))
+
 ;;; TESTS
 ;;
 ;; Some testing routines.
@@ -313,6 +350,19 @@ The search is done with the current EDE root."
 The search is done with the current EDE root."
   (interactive "sFile: ")
   (let ((loc (ede-locate-idutils
+	      "test"
+	      :root (ede-project-root-directory
+		     (ede-toplevel)))))
+    (data-debug-new-buffer "*EDE Locate ADEBUG*")
+    (ede-locate-file-in-project loc file)
+    (data-debug-insert-object-slots loc "]"))
+  )
+
+(defun ede-locate-test-cscope (file)
+  "Test EDE Locate on FILE using CScope type.
+The search is done with the current EDE root."
+  (interactive "sFile: ")
+  (let ((loc (ede-locate-cscope
 	      "test"
 	      :root (ede-project-root-directory
 		     (ede-toplevel)))))
