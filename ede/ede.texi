@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.22 2009/02/14 19:30:35 zappo Exp $
+@c $Id: ede.texi,v 1.23 2009/02/27 22:13:02 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -618,6 +618,8 @@ The various simple project styles all have one major drawback, which
 is that the files in the project are not completely known to EDE.
 When the EDE API is used to try and file files by some reference name
 in the project, then that could fail.
+
+@@TODO - Add ID Utils and CScope examples
 
 @ede{} can therefore use some external locate commands, such as the unix
 ``locate'' command, or ``GNU Global''.
