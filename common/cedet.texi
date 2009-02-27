@@ -117,7 +117,8 @@ use the mailing list cedet-devel.net via the URL:
 * C++ Features::	
 * GNU Global::	
 * ID Utils::	
-* Maintenance::	Maintaining your CEDET Data files
+* CScope::	
+* Maintenance::	Maintaining your @cedet{} Data files
 * GNU Free Documentation License::  
 * Index::                       
 @end menu
@@ -643,7 +644,7 @@ Once installed, you can jump right in to writing your Lisp and
 @node C++ Features
 @chapter C++ Features
 
-If you are using CEDET With C++, then there are a few C++ specific
+If you are using @cedet{} With C++, then there are a few C++ specific
 options you may need to update.
 
 @section C Pre-processor
@@ -747,9 +748,9 @@ macro to the C pre-processor, see
 @node GNU Global
 @chapter GNU Global
 
-Several tools in CEDET can support the use of GNU Global.  If you use
+Several tools in @cedet{} can support the use of GNU Global.  If you use
 GNU Global in your project, you should enable the use of it to enhance
-or speed up various tools in CEDET.
+or speed up various tools in @cedet{}.
 
 You can download GNU Global from @url{http://www.gnu.org/software/global}
 
@@ -759,13 +760,13 @@ To make sure your GNU Global installation is good, use the command
 M-x cedet-gnu-global-version-check RET
 @end example
 
-You can wrap any CEDET / GNU Global configurations in your
+You can wrap any @cedet{} / GNU Global configurations in your
 @file{.emacs} file like this:
 
 @example
 (setq cedet-global-command "global") ; Change to path of global as needed
 (when (cedet-gnu-global-version-check t)  ; Is it ok?
-    ;; Configurations for GNU Global and CEDET.
+    ;; Configurations for GNU Global and CEDET
     )
 @end example
 
@@ -816,9 +817,9 @@ Find references to an arbitrary symbol.
 @node ID Utils
 @chapter ID Utils
 
-Several tools in CEDET can support the use of ID Utils.  If you use
+Several tools in @cedet{} can support the use of ID Utils.  If you use
 ID Utils in your project, you should enable the use of it to enhance
-or speed up various tools in CEDET.
+or speed up various tools in @cedet{}.
 
 You can download ID Utils from @url{http://www.gnu.org/software/idutils/}
 
@@ -828,12 +829,12 @@ To make sure your ID Utils installation is good, use the command
 M-x cedet-idutils-version-check RET
 @end example
 
-You can wrap any CEDET / ID Utils configurations in your
+You can wrap any @cedet{} / ID Utils configurations in your
 @file{.emacs} file like this:
 
 @example
 (when (cedet-idutils-version-check t)  ; Is it ok?
-    ;; Configurations for ID Utils and CEDET.
+    ;; Configurations for ID Utils and @cedet{}.
     )
 @end example
 
@@ -866,11 +867,94 @@ Find references to the tag under the cursor.
 Find references to an arbitrary symbol.
 @end table
 
+@node CScope
+@chapter CScope
+
+Several tools in @cedet{} can support the use of CScope.  If you use
+CScope in your project, you can enable the use of it to enhance
+or speed up various tools in @cedet{}.
+
+You can download CScope from @url{http://cscope.sourceforge.net/}
+
+To make sure your CScope installation is good, use the command
+
+@example
+M-x cedet-cscope-version-check RET
+@end example
+
+You can wrap any @cedet{} / CScope configurations in your
+@file{.emacs} file like this:
+
+@example
+(when (cedet-cscope-version-check t)  ; Is it ok?
+    ;; Configurations for CScope and CEDET.
+    )
+@end example
+
+@section Detecting CScope
+
+CScope is detected by the presense of a @file{cscope.out} file at the
+ROOT of your current project, as specified by @ede{}.  CScope the program
+supports multiple @file{cscope.out} files spread out through your
+project, but this is not detecte by @cedet{}.  It will also use a
+@file{cscope.out} in the same directory as your sources if you do not
+use @ede{}
+
+If you use CScope and need this feature, please consider fixing it.
+Contact the cedet-devel mailing list.
+
+@section @ede{} and CScope
+
+The @ede{} project system can use CScope to accelerate finding
+files within a project.  The EDE command to @code{ede-find-file}
+bound to @kbd{C-c . f} is one direct application.  @semantic{} also
+makes heavy use of of the feature to find header files for C and C++.
+
+To enable it, configure the variable @code{ede-locate-setup-options}.
+Something like this can work in your @file{.emacs} file.
+
+@example
+(setq ede-locate-setup-options
+      '(ede-locate-cscope
+        ede-locate-base))
+@end example
+
+@section @semantic{} Database
+
+@@TODO
+
+@semantic{} can could use CScope as a back end for database searches,
+but this has not been implemented yet.  
+
+@ignore
+@example
+(semanticdb-enable-cscope-databases 'c++-mode)
+@end example
+
+where the first argument is a @code{major-mode} in which to use it.
+
+CScope will then be used for project-wide searches as a backup when
+pre-existing @semantic{} database searches may not have parsed all
+your files.
+@end ignore
+
+@section @semantic Symref
+
+The semantic symref tool can use CScope to local symbol references.
+This tool will automatically detect CScope and use it.  You can search
+for references via the commands:
+
+@table @code
+@item semantic-symref
+Find references to the tag under the cursor.
+@item semantic-symref-symbol
+Find references to an arbitrary symbol.
+@end table
 
 @node Maintenance
 @chapter Maintenance
 
-Most of the CEDET tools do their best to maintain their data files and
+Most of the @cedet{} tools do their best to maintain their data files and
 caches.  It is useful, however, to periodically run:
 
 @example
