@@ -9,7 +9,7 @@
 top=../
 ede_FILES=Project.ede Makefile
 
-symref_LISP=semantic-symref.el semantic-symref-global.el semantic-symref-grep.el semantic-symref-list.el semantic-symref-idutils.el
+symref_LISP=semantic-symref.el semantic-symref-global.el semantic-symref-grep.el semantic-symref-list.el semantic-symref-idutils.el semantic-symref-cscope.el
 EMACS=emacs
 EMACSFLAGS=-batch --no-site-file
 LOADPATH= ../../speedbar/ ../../ede/ ../../common/ ../bovine/ ../ ../../eieio/
