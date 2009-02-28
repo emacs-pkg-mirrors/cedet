@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.12 2009/02/05 15:11:45 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.13 2009/02/28 02:40:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -240,15 +240,17 @@ Do this whenever a new project is created, as opposed to loaded."
     (puthash dir desc ede-project-directory-hash)
     desc))
 
-(defun ede-directory-project-p (dir)
+(defun ede-directory-project-p (dir &optional force)
   "Return a project description object if DIR has a project.
+Optional argument FORCE means to ignore a hash-hit of 'nomatch.
 This depends on an up to date `ede-project-class-files' variable."
   (let* ((dirtest (expand-file-name dir))
 	 (match (ede-directory-project-from-hash dirtest)))
     (cond
-     ((eq match 'nomatch)
+     ((and (eq match 'nomatch) (not force))
       nil)
-     (match match)
+     ((and match (not (eq match 'nomatch)))
+      match)
      (t
       (let ((types ede-project-class-files)
 	    (ret nil))
