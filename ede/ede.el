@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.128 2009/01/29 02:56:31 zappo Exp $
+;; RCS: $Id: ede.el,v 1.129 2009/02/28 02:40:56 zappo Exp $
 (defconst ede-version "1.0pre6"
   "Current version of the Emacs EDE.")
 
@@ -1398,14 +1398,16 @@ Return nil if the project file does not exist."
 ;;; EDE basic functions
 ;;
 (defun ede-add-project-to-global-list (proj)
-  "Add the project PROJ to the master list of projects."
+  "Add the project PROJ to the master list of projects.
+On success, return the added project."
   (when (not proj)
     (error "No project created to add to master list"))
   (when (not (eieio-object-p proj))
     (error "Attempt to add Non-object to master project list"))
   (when (not (obj-of-class-p proj ede-project-placeholder))
     (error "Attempt to add a non-project to the ede projects list"))
-  (add-to-list 'ede-projects proj))
+  (add-to-list 'ede-projects proj)
+  proj)
 
 ;;;###autoload
 (defun ede-load-project-file (dir &optional rootreturn)
@@ -1440,7 +1442,8 @@ Optional ROOTRETURN will return the root project for DIR."
       (setq toppath (ede-toplevel-project path))
       ;; We found the top-most directory.  Check to see if we already
       ;; have an object defining it's project.
-      (setq pfc (ede-directory-project-p toppath))
+      (setq pfc (ede-directory-project-p toppath t))
+
       ;; See if it's been loaded before
       (setq o (object-assoc (ede-dir-to-projectfile pfc toppath) 'file
 			    ede-projects))
