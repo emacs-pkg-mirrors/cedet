@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: cedet-update-changelog.el,v 1.5 2009/01/20 02:50:32 zappo Exp $
+;; X-RCS: $Id: cedet-update-changelog.el,v 1.6 2009/03/01 04:39:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,6 +61,7 @@
 
 (defun cuc-update-changelog (dir)
   "Update the changelog in DIR."
+  (interactive "DDir: ")
   (find-file (concat dir "ChangeLog"))
   (goto-char (point-min))
   (sit-for 0)

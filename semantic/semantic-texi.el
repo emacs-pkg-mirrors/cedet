@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.42 2009/01/10 00:10:20 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.43 2009/03/01 04:39:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -237,6 +237,21 @@ The cursor should be on the @ sign."
 ;;
 ;; How to treat texi as a language?
 ;;
+(defvar semantic-texi-environment-regexp
+  (if (string-match texinfo-environment-regexp "@menu")
+      ;; Make sure our Emacs has menus in it.
+      texinfo-environment-regexp
+    ;; If no menus, then merge in the menu concept.
+    (when (string-match "cartouche" texinfo-environment-regexp)
+      (concat (substring texinfo-environment-regexp
+			 0 (match-beginning 0))
+	      "menu\\|"
+	       (substring texinfo-environment-regexp
+			 (match-beginning 0)))))
+  "Regular expression for matching texinfo enviroments.
+uses `texinfo-environment-regexp', but makes sure that it
+can handle the @menu environment.")
+
 (define-mode-local-override semantic-up-context texinfo-mode ()
   "Handle texinfo constructs which do not use parenthetical nesting."
   (let ((done nil))
@@ -253,7 +268,7 @@ The cursor should be on the @ sign."
     ;; Use the texinfo support to find block start/end constructs.
     (save-excursion
       (while (and (not done)
-		  (re-search-backward texinfo-environment-regexp nil t))
+		  (re-search-backward  semantic-texi-environment-regexp nil t))
 	;; For any hit, if we find an @end foo, then jump to the
 	;; matching @foo.  If it is not an end, then we win!
 	(if (not (looking-at "@end\\s-+\\(\\w+\\)"))
@@ -340,12 +355,12 @@ the text of any child nodes, but including any defuns."
 Optional argument POINT is where to look for the environment."
   (save-excursion
     (when point (goto-char (point)))
-    (while (and (or (not (looking-at texinfo-environment-regexp))
+    (while (and (or (not (looking-at  semantic-texi-environment-regexp))
 		    (looking-at "@end"))
 		(not (semantic-up-context)))
       )
-    (when (looking-at texinfo-environment-regexp)
-       (match-string 1))))
+    (when (looking-at  semantic-texi-environment-regexp)
+      (match-string 1))))
 
 
 ;;; Analyzer

@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.27 2009/02/11 00:50:00 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.28 2009/03/01 04:39:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,7 +41,9 @@
   "Non-nil means to insert editable fields with the template.
 When this is nil, then questions are asked in the mini-buffer.
 When fields are used, areas are shown with overlays that can
-be TABbed between for quick inline-editing."
+be TABbed between for quick inline-editing.
+
+NOTE: This feature does not yet work with XEmacs."
   :group 'srecode
   :type 'boolean)
 

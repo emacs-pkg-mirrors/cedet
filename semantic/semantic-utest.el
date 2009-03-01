@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.10 2009/02/17 03:05:22 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.11 2009/03/01 04:39:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -568,7 +568,10 @@ INSERTME is the text to be inserted after the deletion."
 
 (defun semantic-utest-Python()
   (interactive)
-  (semantic-utest-generic "Python" "/tmp/pytest.py" semantic-utest-Python-buffer-contents  semantic-utest-Python-name-contents   '("fun2") "#1" "#deleted line")  )
+  (if (fboundp 'python-mode)
+      (semantic-utest-generic "Python" "/tmp/pytest.py" semantic-utest-Python-buffer-contents  semantic-utest-Python-name-contents   '("fun2") "#1" "#deleted line")
+    (message "Skilling Python test: NO major mode."))
+  )
 
 
 (defun semantic-utest-Javascript()

@@ -20,6 +20,8 @@ Add a CVS tag
     - cvs -d <username>@cedet.cvs.sourceforge.net:/cvsroot/cedet co cedet
     - mv cedet cedet-<branchname>  # (such as cedet-1p0beta3)
     - cd cedet-branchname
+    - touch `find . -name Makefile`
+    - make dist # Test out that basic stuff is working before tagging.
     - cvs tag -b <branchname>     
 
   * update new sandbox to branch
@@ -39,6 +41,8 @@ Update Changelogs
   * Update the Log from CVS
     - M-x load-file RET cedet-update-changelog.el RET
     - M-x cuc-update-all-changelogs RET
+    - M-x cuc-update-changelog RET tests RET
+       -> The tests directory isn't done automatically.
 
 Build a DIST file
 

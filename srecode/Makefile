@@ -9,6 +9,7 @@
 top=
 ede_FILES=Project.ede Makefile
 
+Misc_AUX=ChangeLog
 EMACS=emacs
 LOADPATH= ../common/  ../ede/ ../semantic/ ../eieio/\
     ../speedbar/ ../semantic/bovine/ ../semantic/wisent/
@@ -95,7 +96,7 @@ clean:
 
 dist: autoloads $(lang_SEMANTIC_GRAMMAR_EL) srecode.info
 	mkdir $(DISTDIR)
-	cp srecode-loaddefs.el $(lang_SEMANTIC_GRAMMAR) $(lang_SEMANTIC_GRAMMAR_EL) $(srecode_LISP) $(doc_TEXINFOS) srecode.info* $(tests_LISP) $(document_LISP) $(ede_FILES) $(DISTDIR)
+	cp $(Misc_AUX) srecode-loaddefs.el $(lang_SEMANTIC_GRAMMAR) $(lang_SEMANTIC_GRAMMAR_EL) $(srecode_LISP) $(doc_TEXINFOS) srecode.info* $(tests_LISP) $(document_LISP) $(ede_FILES) $(DISTDIR)
 	cd templates; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/templates dist
 
 Makefile: Project.ede
