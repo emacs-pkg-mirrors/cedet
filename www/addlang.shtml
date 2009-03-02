@@ -401,7 +401,7 @@ M-x semantic-analyze-debug-assist
 
 <p>The next step is to code up an argument for your language.  In the
    image to the left, the :time and :user keywords are template
-   arguments.  They map to functions
+   arguments.  They map to Emacs Lisp functions
    called <tt>srecode-semantic-handle-:time</tt>
    and <tt>srecode-semantic-handle-:user</tt>.  These functions fill
    in the dictionary we values calculated from the Emacs environment.
