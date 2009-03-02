@@ -28,8 +28,17 @@ to see what I do in analog land.
 <br clear="both">
 <table width=100% class=BAR><tr><td>
 <FONT SIZE=-2>
-Copyright(C) 1997,98,99,2000,01,02,03,04,05,06,07 Eric M. Ludlam<BR>
+Copyright(C) 1997,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam<BR>
 Verbatim copying and distribution is permitted in any medium,
 provided this notice is preserved.<BR>
 </FONT>
 </td></tr></table>
+<!-- This block here ends what was started in pagestart.html -->
+</td>
+<td background="img-gen/box-right.jpg" width="5">&nbsp;</td>
+</table>
+<table cellspacing=0 border=0 width=100%><tr>
+   <td background="img-gen/footer-left.jpg" width="786" height="45">&nbsp;</td>
+   <td background="img-gen/footer-mid.jpg" height="45">&nbsp;</td>
+   <td background="img-gen/footer-right.jpg" width="44" height="45">&nbsp;</td>
+</table>
