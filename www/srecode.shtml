@@ -7,9 +7,10 @@
 <td><font color=black>"Template Manager and autormatic Code Authoring system."</font></td></tr>
 </table>
 
-<P>SRecode is an infrastructure for managing Emacs based templates
-  which, in turn, are used to write code, possibly based off of
-  <a href="semantic.shtml">Semantic</a> generated tags.
+<P><img src="img-gen/srecode-cpp-template.jpg" align=right border=1>
+  SRecode is an infrastructure for managing Emacs based templates
+  which, in turn, are used to write code, possibly based off
+  of <a href="semantic.shtml">Semantic</a> generated tags.
 
 <p>SRecode is not just another templating system for Emacs like
   skeleton or tempo.  The core SRecode template system is not more
@@ -37,28 +38,25 @@
   create an object system via UML and then write it out into most
   languages that have SRecode template support.
 
-<p>SRecode is currently only available via CEDET/CVS and will be part
-  of CEDET 1.0pre5 when that is made availab.  SRecode is already
-  powerful enough to build compilable C, ELisp, and Texi programs from
-  a simple list of Semantic tags with no other user interaction.
+<p>If you want to use SRecode for an application, be sure to
+  susbscribe to
+  the <a href="http://lists.sourceforge.net/lists/listinfo/cedet-devel">cedet-devel</a>
+  mailing list to get help when the info manual doesn't answer your
+  questions.
 
-  If you want to use SRecode for an application, be sure
-  to susbscribe to the cedet-devel mailing list to get help when the
-  info manual doesn't answer your questions.
+<p>The image on the right shows a small section of the C/C++ base
+   template.  It shows the basic format of the SRecode template
+   language.  It includes some basic variable settings, and the
+   "empty" template.  The "empty" template is activated if a file is
+   empty.  That template includes the "header_guard" template.
+   Automatic section variable HEADER includes it if the empty file is
+   a .h file.  All variables used in these templates are automatic, so
+   you do not need to answer questions when inserting these.
+
 
 </p>
 
-<table width=100% class=BAR><tr><td>
-<h2>I Feel Adventurous!</h2>
-</td></tr></table>
-
-You can get SReocode from the 
-<a href="http://sourceforge.net/cvs/?group_id=17886">
-CEDET CVS repository</a> or you can
-<a href="http://cedet.cvs.sourceforge.net/cedet/cedet/srecode/">
-Browse the sources</a>.
-
-
+<!--#include file="download.php"-->
 
 <!--#include file="footer.fsf.shtml"-->
 
