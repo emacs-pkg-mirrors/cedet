@@ -6,6 +6,8 @@ ol,ul,p,body,td,tr,th,form {font-family : helvetica,sans-serif; }
 
 table.BAR { background-color: #bfbfbf; border-top: medium solid black; border-bottom: medium solid black}
 td.BAR { background-color: #bfbfbf; }
+tt { font-family : courier }
+pre { background-color: #dfdfdf; font-family : courier }
 
 table.SPEEDBAR { background-color: none; border: medium solid black}
 
