@@ -19,9 +19,9 @@
    applications built on top of CEDET can work in a language agnostic
    way.
 
-<p>This document is set up to describe how to add support for a
-   language, and is sorted so as maximize the number of features
-   provided by your efforts.
+<p>This document is set up to describe at a high level how to add
+   support for a language, and is sorted so as maximize the number of
+   features provided by your efforts.
 
 <p>
 <table width=100% class=BAR>
@@ -45,8 +45,9 @@
 </table>
 
 <p>The most critical feature to start with is to write a tagging
-   parser for <b>CEDET</b> for your language.  A parser for you
-   language can take one of several forms.
+   parser for <b>CEDET</b> for your language.  The tagging system used
+   by <b>CEDET</b> is in the tool
+   called <a href="semantic.shtml">Semantic</a>.
 
 <p>The very first step in this process is to make sure there is a
    traditional Emacs major-mode for the language.  This major mode
@@ -54,8 +55,8 @@
    identify strings and comments, and has an accurate representation
    of all parenthetical expressions.
 
-<p>The tagging system used by <b>CEDET</b> is in the tool
-   called <a href="semantic.shtml">Semantic</a>.
+<p>The next step is to choose how to parse your language.  A parser
+   for you language can take one of several forms.
 
 <h4>Writing a lexer/grammar in <a href="semantic.shtml">Semantic</a></h4>
 
