@@ -3,39 +3,36 @@
 <table align=right cellspacing=0 cellpadding=0 class=SPEEDBAR><tr><td>
 <table bgcolor=white cellspacing=0 cellpadding=1 width=210>
 
-<tr><td align=center>&nbsp<a href="/"    ><b><font size=+1>CEDET</font></b></a>&nbsp</td></tr>
-
-<tr><td  class=BAR><img src=dir-minus.gif>&nbsp<b>Libraries</b>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=eieio.shtml   ><b>EIEIO    </b></a>&nbsp</td></tr>
-<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=visbookmark.shtml><b><font size=-1>Vis Bookmarks</font></b></a>&nbsp</td></tr>
-<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=highlightcompile.shtml><b><font size=-1>LM Compile</font></b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=semantic.shtml><b>Semantic </b></a>&nbsp</td></tr>
-<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=intellisense.shtml><b><font size=-1>Intellisense</font></b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=srecode.shtml><b>SRecode </b></a>&nbsp</td></tr>
-
-<tr><td  class=BAR><img src=dir-minus.gif>&nbsp <b>Tools    </b>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=speedbar.shtml><b>Speedbar </b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=ede.shtml     ><b>EDE      </b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=cogre.shtml   ><b>COGRE    </b></a>&nbsp</td></tr>
-
-<tr><td  class=BAR><img src=dir-minus.gif>&nbsp <b>Download</b>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<b>1.0 Pre Releases</b>&nbsp</td></tr>
-<!-- tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB  href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=338764><b>1.0pre4</b></a>&nbsp</td></tr -->
-<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=513873><b>1.0pre4</b></a>&nbsp</td></tr>
-<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=338764><b>1.0pre3</b></a>&nbsp</td></tr>
-<!-- <tr><td >&nbsp&nbsp</td></tr> -->
-<tr><td  class=BAR><img src=dir-minus.gif>&nbsp <b>Other   </b>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=checkdoc.shtml><b>Checkdoc</b></a>&nbsp</td></tr>
-
-<tr><td  class=BAR><img src=dir-minus.gif>&nbsp<b>Project Information</b>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://www.sourceforge.net/projects/cedet"><b>Project</b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/project/showfiles.php?group_id=17886"><b>Releases</b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/mail/?group_id=17886"><b>Mailing Lists</b></a>&nbsp</td></tr>
-<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href="http://lists.sourceforge.net/lists/listinfo/cedet-devel"><b><font size=-1>cedet-devel</font></b></a>&nbsp</td></tr>
-<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href="http://lists.sourceforge.net/lists/listinfo/cedet-semantic"><b><font size=-1>cedet-semantic</font></b></a>&nbsp</td></tr>
-<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href="http://lists.sourceforge.net/lists/listinfo/cedet-eieio"><b><font size=-1>cedet-eieio</font></b></a>&nbsp</td></tr>
-<!-- tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/projects/rte"><b>RPMs</b></a>&nbsp</td></tr -->
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/donate/index.php?group_id=17886"><b>Donate</b></a>&nbsp</td></tr>
+<tr><td align=center>&nbsp<a href="/"><b><font size=+1>CEDET</font></b></a>&nbsp</td></tr>
+<tr><td class=BAR><img src=dir-minus.gif>&nbsp<b>Tools</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="setup.shtml"><b>Simple Setup</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="projects.shtml"><b>Project Management</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="intellisense.shtml"><b>Smart Completion</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="symref.shtml"><b>Find References</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="codegen.shtml"><b>Code Generation</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="uml.shtml"><b>UML Graphs</b></a></a>&nbsp</td></tr>
+<tr><td class=BAR><img src=dir-minus.gif>&nbsp<b>Developer Tools</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="ede.shtml"><b>EDE</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="semantic.shtml"><b>Semantic</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="srecode.shtml"><b>SRecode</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="cogre.shtml"><b>Cogre</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="speedbar.shtml"><b>Speedbar</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="eieio.shtml"><b>EIEIO</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="misc.shtml"><b>Misc Tools</b></a></a>&nbsp</td></tr>
+<tr><td class=BAR><img src=dir-minus.gif>&nbsp<a class=SB href="http://sourceforge.net/project/showfiles.php?group_id=17886"><b>Releases</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=664893"><b>1.0pre6</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=513873"><b>1.0pre4</b></a></a>&nbsp</td></tr>
+<tr><td class=BAR><img src=dir-minus.gif>&nbsp<a class=SB href="http://www.sourceforge.net"><b>Source Forge</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://www.sourceforge.net/projects/cedet"><b>Project</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/mail/?group_id=17886"><b>Mailing Lists</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href="http://lists.sourceforge.net/lists/listinfo/cedet-devel"><b><font size=-1>cedet-devel</font></b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href="http://lists.sourceforge.net/lists/listinfo/cedet-semantic"><b><font size=-1>cedet-semantic</font></b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href="http://lists.sourceforge.net/lists/listinfo/cedet-eieio"><b><font size=-1>cedet-eieio</font></b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/donate/index.php?group_id=17886"><b>Donate</b></a></a>&nbsp</td></tr>
+<tr><td class=BAR><img src=dir-minus.gif>&nbsp<b>More Tools</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://jdee.sf.net"><b>JDEE</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://ecb.sf.net"><b>ECB</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://www.dr-qubit.org/emacs.php"><b>CompletionUI</b></a></a>&nbsp</td></tr>
 <tr><td >&nbsp</td></tr>
 
 <tr><td class=BAR>
