@@ -56,8 +56,8 @@ int main() {
   int q = M->
 </pre></tt>
 
-<p>If the cursor is just after the <tt>m-></tt>, the first thing
-  Semantic does is identify <tt>m</tt> as the variable of
+<p>If the cursor is just after the <tt>M-></tt>, the first thing
+  Semantic does is identify <tt>M</tt> as the variable of
   type <tt>struct Moose</tt>.  The datatype <tt>Moose</tt> is then
   looked up in any databases available to this file.  Logically, it
   would examine and find the <tt>Moose</tt> in the
