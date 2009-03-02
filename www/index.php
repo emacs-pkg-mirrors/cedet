@@ -164,8 +164,9 @@
 <p>In many ways, <b>CEDET</b> is a big pile of infrastructure with a
    thin user interface sitting on it.  Consider helping <b>CEDET</b>
    by using the infrastructure to build better or more user interface
-   tools.  Join
-   the <a href="http://lists.sourceforge.net/lists/listinfo/cedet-devel">cedet-devel</a>
+   tools.  You can also help by adding more support for different
+   languages.  Join the
+   <a href="http://lists.sourceforge.net/lists/listinfo/cedet-devel">cedet-devel</a>
    mailing list to learn more.
 
 <br clear=all>
