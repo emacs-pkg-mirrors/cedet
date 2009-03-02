@@ -53,7 +53,7 @@
 int main() {
   struct Moose M;
 
-  int q = m->
+  int q = M->
 </pre></tt>
 
 <p>If the cursor is just after the <tt>m-></tt>, the first thing
