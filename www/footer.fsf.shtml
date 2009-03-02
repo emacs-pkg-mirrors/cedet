@@ -21,12 +21,14 @@
 <A HREF="eric.shtml">Eric's homepage</A><BR>
 <A HREF="index.php">Return to CEDET.</A><BR>
 Send mail to
-<A HREF="mailto:zappo@gnu.org">zappo@gnu.org</A> to contact me.<br>
+<a href="http://lists.sourceforge.net/lists/listinfo/cedet-devel">cedet-devel</a>
+to contact the developers.<br>
 Visit
 <A HREF="http://www.siege-engine.com">Siege-engine.com</a>
 to see what I do in analog land.
 <br clear="both">
-<table width=100% class=BAR><tr><td>
+<table width=100%><tr><td>
+<hr>
 <FONT SIZE=-2>
 Copyright(C) 1997,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam<BR>
 Verbatim copying and distribution is permitted in any medium,
