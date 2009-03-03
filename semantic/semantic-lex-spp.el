@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.36 2009/02/26 03:14:41 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.37 2009/03/03 23:43:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -629,7 +629,8 @@ STR occurs in the current buffer between BEG and END."
      ((and semantic-lex-spp-replacements-enabled
 	   (semantic-lex-spp-symbol-p str))
       (setq sym (semantic-lex-spp-symbol str)
-	    val (symbol-value sym))
+	    val (symbol-value sym)
+	    count 0)
 
       ;; Do direct replacements of single value macros of macros.
       ;; This solves issues with a macro containing one symbol that
@@ -639,10 +640,12 @@ STR occurs in the current buffer between BEG and END."
 		  (eq (length val) 1)
 		  (eq (semantic-lex-token-class (car val)) 'symbol)
 		  (semantic-lex-spp-symbol-p (semantic-lex-token-text (car val)))
+		  (< count 10)
 		  )
 	(setq str (semantic-lex-token-text (car val)))
 	(setq sym (semantic-lex-spp-symbol str)
 	      val (symbol-value sym))
+	(setq count (1+ count))
 	)
 
       (semantic-lex-spp-anlyzer-do-replace sym val beg end))
