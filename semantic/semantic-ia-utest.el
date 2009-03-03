@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.24 2009/02/26 03:29:21 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.25 2009/03/03 12:13:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -32,6 +32,8 @@
 ;;; Code:
 (require 'cedet-utests)
 (require 'semantic)
+(require 'semantic-analyze)
+(require 'semantic-analyze-refs)
 
 (defvar semantic-ia-utest-file-list
   '(
@@ -107,11 +109,13 @@ Argument ARG specifies which set of tests to run.
 	  )
 	(setq fl (cdr fl)))
 
-      (cedet-utest-log-shutdown 
+      (cedet-utest-log-shutdown
        "ANALYZER"
        (when semantic-ia-utest-error-log-list
-	 (format "%s Failures found." 
+	 (format "%s Failures found."
 		 (length semantic-ia-utest-error-log-list))))
+      (when semantic-ia-utest-error-log-list
+	(error "Failures found during analyzer unit tests"))
       ))
   )
 
@@ -352,12 +356,15 @@ Argument ARG specifies which set of tests to run.
 			 )
 	    )
 
-	(setq actual (list (mapcar
-			    'file-name-nondirectory
-			    (semantic-symref-result-get-files actual-result))
-			   (mapcar
-			    'semantic-format-tag-canonical-name
-			    (semantic-symref-result-get-tags actual-result))))
+	(setq actual (list (sort (mapcar
+				  'file-name-nondirectory
+				  (semantic-symref-result-get-files actual-result))
+				 'string<)
+			   (sort
+			    (mapcar
+			     'semantic-format-tag-canonical-name
+			     (semantic-symref-result-get-tags actual-result))
+			    'string<)))
 
       
 	(if (equal desired actual)
