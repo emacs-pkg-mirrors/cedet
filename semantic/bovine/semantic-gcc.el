@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.8 2009/02/12 02:07:19 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.9 2009/03/04 03:46:06 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -27,7 +27,7 @@
 
 ;;; Code:
 
-(defun semantic-gcc-query (&optional gcc-cmd)
+(defun semantic-gcc-query (gcc-cmd &rest gcc-option)
   "Query gcc.  Return a list of configurations.
 GCC-CMD is an optional command to execute instead of \"gcc\""
   ;; $ gcc -v
@@ -37,18 +37,27 @@ GCC-CMD is an optional command to execute instead of \"gcc\""
       (set-buffer buff)
       (erase-buffer)
       (condition-case nil
-	  (call-process (or gcc-cmd "gcc") nil buff nil "-v")
+          (apply 'call-process gcc-cmd nil buff nil gcc-option)
 	(error ;; Some bogus directory for the first time perhaps?
 	 (let ((default-directory (expand-file-name "~/")))
 	   (condition-case nil
-	       (call-process (or gcc-cmd "gcc") nil buff nil "-v")
+               (apply 'call-process gcc-cmd nil buff nil gcc-option)
 	     (error ;; gcc doesn't exist???
 	      nil)))))
       (prog1
 	  (buffer-string)
 	(kill-buffer buff)
-	)))
-  )
+        ))))
+
+(defun semantic-cpp-defs (str)
+  "Convert CPP output STR into an list of cons cells, representing defines for C++ language"
+  (let ((lines (split-string str "\n"))
+        (lst nil))
+    (dolist (L lines)
+      (let ((dat (split-string L)))
+        (when (= (length dat) 3)
+          (add-to-list 'lst (cons (nth 1 dat) (nth 2 dat))))))
+    lst))
 
 (defun semantic-gcc-fields (str)
   "Convert GCC output STR into an alist of fields."
@@ -92,7 +101,8 @@ It should also include other symbols GCC was compiled with.")
 Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
   (interactive)
   (let* ((fields (or semantic-gcc-setup-data
-		     (semantic-gcc-fields (semantic-gcc-query))))
+                     (semantic-gcc-fields (semantic-gcc-query "gcc" "-v"))))
+         (defines (semantic-cpp-defs (semantic-gcc-query "cpp" "-E" "-dM" "-x" "c++" "/dev/null")))
 	 (ver (cdr (assoc 'version fields)))
 	 (host (or (cdr (assoc 'target fields))
 		   (cdr (assoc '--host fields))))
@@ -119,6 +129,10 @@ Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
     (if (boundp 'semantic-lex-c-preprocessor-symbol-file)
 	(add-to-list 'semantic-lex-c-preprocessor-symbol-file cppconfig)
       (setq semantic-lex-c-preprocessor-symbol-file (list cppconfig)))
+    (if (not (boundp 'semantic-lex-c-preprocessor-symbol-map))
+        (setq semantic-lex-c-preprocessor-symbol-map nil))
+    (dolist (D defines)
+      (add-to-list 'semantic-lex-c-preprocessor-symbol-map D))
     (when (featurep 'semantic-c)
       (semantic-c-reset-preprocessor-symbol-map))
     nil))
