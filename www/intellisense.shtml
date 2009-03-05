@@ -6,8 +6,8 @@
 <tr><td><h2><font color=black>Smart Completion</font></h2></td></tr>
 </table>
 
-<p><img src="img-gen/smartcomplete.jpg" border=1 align=right>
-  CEDET's <a href="intellisense.shtml">smart code completion</a>, is
+<img src="img-gen/semantic-ia-complete-menu.png" border=1 align=right>
+<p>  CEDET's <a href="intellisense.shtml">smart code completion</a>, is
   sometimes known as "Intellisense".  The CEDET infrastructure for
   parsing and tagging files, and analyzing source code is one of the
   most accurate completion tools for C++ anywhere.  It will correctly
@@ -69,6 +69,11 @@ int main() {
   are offered.  That could be fields of type <tt>int</tt>, or other
   structures or classes that might also have ints in them.
 
+<p>The image below shows the smart completion engine working with Qt.
+
+<center>
+<img src="img-gen/semantic-ia-complete-menu-qt4.png" border=1>
+</center>
 <p>
 
 <table width=100% class=BAR><tr><td>
