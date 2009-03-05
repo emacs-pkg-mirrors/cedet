@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.25 2009/02/01 16:11:05 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.26 2009/03/05 03:26:52 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -233,14 +233,16 @@ Argument SCOPE is the scope object with additional items in which to search."
         (lasttypedeclaration type-declaration)
 	(nexttype (semantic-analyze-dereference-metatype type scope type-declaration))
 	(idx 0))
-    (while (and nexttype (not (eq (car nexttype) lasttype)))
-      (setq lasttype (car nexttype) 
-            lasttypedeclaration (cadr nexttype))
-      (setq nexttype (semantic-analyze-dereference-metatype lasttype scope lasttypedeclaration))
-      (setq idx (1+ idx))
-      (when (> idx 20) (error "Possible metatype recursion for %S"
-			      (semantic-tag-name lasttype)))
-      )
+    (catch 'metatype-recursion
+      (while (and nexttype (not (eq (car nexttype) lasttype)))
+	(setq lasttype (car nexttype) 
+	      lasttypedeclaration (cadr nexttype))
+	(setq nexttype (semantic-analyze-dereference-metatype lasttype scope lasttypedeclaration))
+	(setq idx (1+ idx))
+	(when (> idx 20) (message "Possible metatype recursion for %S"
+				  (semantic-tag-name lasttype))
+	      (throw 'metatype-recursion nil))
+	))
     lasttype))
 
 (define-overloadable-function semantic-analyze-dereference-metatype (type scope &optional type-declaration)
