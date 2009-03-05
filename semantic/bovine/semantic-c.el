@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.105 2009/02/26 03:11:48 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.106 2009/03/05 03:15:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -62,6 +62,32 @@ This function does not do any hidden buffer changes."
   )
 
 ;;; Code:
+
+
+;;; Include Paths
+;;
+(defcustom-mode-local-semantic-dependency-system-include-path
+  c-mode semantic-c-dependency-system-include-path
+  '("/usr/include")
+  "The system include path used by the C langauge.")
+
+(defcustom semantic-default-c-path nil
+  "Default set of include paths for C code.
+Used by `semantic-dep' to define an include path.
+NOTE: In process of obsoleting this."
+  :group 'c
+  :group 'semantic
+  :type '(repeat (string :tag "Path")))
+
+(defvar-mode-local c-mode semantic-dependency-include-path
+  semantic-default-c-path
+  "System path to search for include files.")
+
+;;; Compile Options
+;;
+;; Compiler options need to show up after path setup, but before
+;; the preprocessor section.
+
 (when (member system-type '(gnu gnu/linux darwin cygwin))
   (semantic-gcc-setup))
 
@@ -746,26 +772,10 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   "Reconstitute the token TAG with the template SPECIFIER."
   (semantic-tag-put-attribute tag :template (or specifier ""))
   tag)
+
 
 ;;; Override methods & Variables
 ;;
-(defcustom-mode-local-semantic-dependency-system-include-path
-  c-mode semantic-c-dependency-system-include-path
-  '("/usr/include")
-  "The system include path used by the C langauge.")
-
-(defcustom semantic-default-c-path nil
-  "Default set of include paths for C code.
-Used by `semantic-dep' to define an include path.
-NOTE: In process of obsoleting this."
-  :group 'c
-  :group 'semantic
-  :type '(repeat (string :tag "Path")))
-
-(defvar-mode-local c-mode semantic-dependency-include-path
-  semantic-default-c-path
-  "System path to search for include files.")
-
 (define-mode-local-override semantic-format-tag-name
   c-mode (tag &optional parent color)
   "Convert TAG to a string that is the print name for TAG.
