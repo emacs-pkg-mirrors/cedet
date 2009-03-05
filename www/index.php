@@ -117,7 +117,7 @@
 
 <h4>Code Generation</h4>
 
-<p><img src="img-gen/srecode-fields.jpg" border=1 align=right>
+<p><img src="img-gen/srecode-fields.png" border=1 align=right>
    Generate code with a
    powerful <a href="codegen.shtml">language-independent template
    system</a>.  The template system in <b>CEDET</b> is a framework

@@ -6,7 +6,7 @@
 <tr><td><h2><font color=black>Code Generation</font></h2></td></tr>
 </table>
 
-<p><img src="img-gen/srecode-fields.jpg" border=1 align=right>
+<p><img src="img-gen/srecode-fields.png" border=1 align=right>
    The template system in <b>CEDET</b> is a framework
    designed for code-generating application developers.  Even so, the
    base system and templates can also be used to insert small
