@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.19 2009/02/27 22:12:26 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.20 2009/03/05 02:39:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -141,8 +141,20 @@
 ;; 
 ;;; TODO
 ;;
-;; Add an option for setting semantic-lex-c-preprocessor-symbol-file
-;; to something per project.
+;; Need a way to reconfigure a project, and have it affect all open buffers.
+;; From Tobias Gerdin:
+;;   
+;;   >>3) Is there any way to refresh a ede-cpp-root-project dynamically? I have
+;;   >>some file open part of the project, fiddle with the include paths and would
+;;   >>like the open buffer to notice this when I re-evaluate the
+;;   >>ede-cpp-root-project constructor.
+;;   >
+;;   > Another good idea.  The easy way is to "revert-buffer" as needed.  The
+;;   > ede "project local variables" does this already, so it should be easy
+;;   > to adapt something.
+;;   
+;;   I actually tried reverting the buffer but Semantic did not seem to pick
+;;   up the differences (the "include summary" reported the same include paths).
 
 (require 'ede)
 
