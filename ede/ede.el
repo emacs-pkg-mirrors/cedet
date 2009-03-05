@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.129 2009/02/28 02:40:56 zappo Exp $
+;; RCS: $Id: ede.el,v 1.130 2009/03/05 01:58:10 zappo Exp $
 (defconst ede-version "1.0pre6"
   "Current version of the Emacs EDE.")
 
@@ -403,7 +403,9 @@ Do not set this to non-nil globally.  It is used internally.")
   "Save a cache of EDE objects that Emacs has seen before."
   (interactive)
   (let ((p ede-projects)
-	(c ede-project-cache-files))
+	(c ede-project-cache-files)
+	(recentf-exclude '(ignore))
+	)
     (condition-case nil
 	(progn
 	  (set-buffer (find-file-noselect ede-project-placeholder-cache-file t))
