@@ -19,6 +19,12 @@
    tagging parser written for CEDET, and a thin adaptation layer for
    the language.
 
+<p>In addition, the same engine used for smart completion enables
+   smart function prototype help which will correctly display a
+   prototype for the method of the correct class you are working
+   with.  It also enables you to jump to the correct declaration of
+   what is referenced under point.
+
 <p>The image to the right shows smart completion configured to use
    tooltips in a CEDET unit test source file going through a templated
    smart pointer.
