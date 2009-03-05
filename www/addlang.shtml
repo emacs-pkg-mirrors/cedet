@@ -264,7 +264,7 @@ M-: (semantic-get-local-variables) RET
 <tr><td><h3><font color=black>Step 5: Smart Completion</font></h3></td></tr>
 </table>
 
-<p><img src="img-gen/smartcomplete.jpg" border=1 align=right>The next
+<p><img src="img-gen/semantic-ia-complete-menu.png" border=1 align=right>The next
    set of commands you may need to override for you language is
    probably for the smart completion tool.  Getting this tool to work
    for you language is a tricky proposition, and there are no hard and
