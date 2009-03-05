@@ -63,10 +63,10 @@
 <br clear=all>
 
 </p>
-<img src="img-gen/semantic-ia-complete-menu.png" border=1 align=right>
 <h4>Smart Completion</h4>
 
-<p>Write code with <a href="intellisense.shtml">smart code completion</a>,
+<p><img src="img-gen/semantic-ia-complete-menu.png" border=1 align=right>
+   Write code with <a href="intellisense.shtml">smart code completion</a>,
    sometimes known as "Intellisense".  The CEDET infrastructure for
    parsing and tagging files, and analyzing source code is one of the
    most accurate completion tools for C++ anywhere.  It will correctly
@@ -81,7 +81,9 @@
 <p>The image to the right shows smart completion configured to use
    tooltips in a CEDET unit test source file going through a templated
    smart pointer.
+<br clear=all>
 
+</p>
 <h4>Smart Help/Jump</h4>
 
 <p>Smart help shows the prototype of the variable or method under
@@ -150,8 +152,37 @@
    called 'COGRE', diagramming and browsing itself.  Optional unicode
    character support is enabled for the special characters.
     
+</p>
 <br clear=all>
 
+<h4>Advanced Code Browsing</h4>
+
+<p><a href="http://ecb.sf.net">
+   <img src="http://ecb.sourceforge.net/screenshots/1.png" border=0
+	align=right width=50% height=50%></a>
+   With the <b>CEDET</b> parsing backend, advanced code browsing tools
+   like <a href="http://ecb.sf.net">ECB</a> can be used.  ECB, or the
+   Emacs Code Browser provides an advanced set of UI windows docked to
+   your Emacs frame.  The extra windows provide a wide range of
+   features, including:
+<ul>
+<li> A list of functions, classes, and methods in the current file
+<li> A code analyzer/completions list
+<li> A current definition display
+<li> A directory tree,
+<li> A list of source files in the current directory,
+<li> A history of recently visited files,
+<li> and many others
+</ul>
+
+<p>The <a href="http://ecb.sf.net">ECB</a> image on the right shows a
+   sample of ECB from
+   the <a href="http://ecb.sourceforge.net/screenshots/index.html">ECB
+   screenshots area</a> on SourceForge.  ECB is NOT a part
+   of <b>CEDET</b>, and must be downloaded and installed seperately.
+
+</p>
+<br clear=all>
 <h4>Install and Configure CEDET</h4>
 
 <p><img src="img-gen/setup.jpg" border=1
