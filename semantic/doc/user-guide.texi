@@ -575,6 +575,19 @@ Uses @dfn{semantic-analyze-current-context} output to identify an accurate
 origin of the code at point.
 @end deffn
 
+@defun semantic-ia-fast-mouse-jump evt
+@anchor{semantic-ia-fast-mouse-jump}
+Jump to the tag referred to by the point clicked on.
+This command is meant to be bound to a mouse event.
+@end defun
+
+You can use the mouse jump version by adding a configuration like this
+into your @file{.emacs} file.
+
+@example
+(global-set-key '[(S-mouse-1)] 'mouse-jump)
+@end example
+
 @node Speedbar Analysis
 @section Speedbar Analysis
 
