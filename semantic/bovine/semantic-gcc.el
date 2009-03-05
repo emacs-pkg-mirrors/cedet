@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.9 2009/03/04 03:46:06 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.10 2009/03/05 03:16:26 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -107,28 +107,34 @@ Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
 	 (host (or (cdr (assoc 'target fields))
 		   (cdr (assoc '--host fields))))
 	 (prefix (cdr (assoc '--prefix fields)))
-	 (include-root (concat prefix "/include"))
-	 (include-cpp (concat prefix
-			      (or (cdr (assoc '--with-gxx-include-dir fields))
-				  (concat "/include/c++/" ver))))
-	 (include-cpp-sys (concat include-cpp "/" host))
-	 (cppconfig (concat include-cpp-sys "/bits/c++config.h"))
-	 )
+	 (try-paths (list "/usr/include" (concat prefix "/include")
+			  (concat prefix "/include/c++/" ver)
+			  (concat prefix "/include/c++/" ver "/" host )
+			  )))
     ;; Remember so we don't have to call GCC twice.
     (setq semantic-gcc-setup-data fields)
-    ;; Now setup include paths
-    (semantic-add-system-include "/usr/include" 'c-mode)
-    (semantic-add-system-include "/usr/include" 'c++-mode)
-    (semantic-add-system-include include-root 'c-mode)
-    (semantic-add-system-include include-root 'c++-mode)
-    (semantic-add-system-include include-cpp 'c-mode)
-    (semantic-add-system-include include-cpp 'c++-mode)
-    (semantic-add-system-include include-cpp-sys 'c-mode)
-    (semantic-add-system-include include-cpp-sys 'c++-mode)
-    ;; Setup the core macro header
-    (if (boundp 'semantic-lex-c-preprocessor-symbol-file)
-	(add-to-list 'semantic-lex-c-preprocessor-symbol-file cppconfig)
-      (setq semantic-lex-c-preprocessor-symbol-file (list cppconfig)))
+    ;; If this option is specified, try it both with and without prefix, and with and without host
+    (if (assoc '--with-gxx-include-dir fields)
+        (let ((gxx-include-dir (cdr (assoc '--with-gxx-include-dir fields))))
+          (nconc try-paths (list gxx-include-dir
+                                 (concat prefix gxx-include-dir)
+                                 (concat gxx-include-dir "/" host)
+                                 (concat prefix gxx-include-dir "/" host)))))
+    ;; Now setup include paths - only for those that are accessible
+    (dolist (D (remove-if-not 'file-accessible-directory-p
+                              (remove-duplicates try-paths :test 'string=)))
+      (semantic-add-system-include D 'c-mode)
+      (semantic-add-system-include D 'c++-mode)
+      (let ((cppconfig (concat D "/bits/c++config.h")))
+        ;; Presumably there will be only one of these files in the try-paths list...
+	(when (file-readable-p cppconfig)
+	  ;; Add it to the symbol file
+	  (if (boundp 'semantic-lex-c-preprocessor-symbol-file)
+	      ;; Add to the core macro header list
+	      (add-to-list 'semantic-lex-c-preprocessor-symbol-file cppconfig)
+	    ;; Setup the core macro header
+	    (setq semantic-lex-c-preprocessor-symbol-file (list cppconfig)))
+          )))
     (if (not (boundp 'semantic-lex-c-preprocessor-symbol-map))
         (setq semantic-lex-c-preprocessor-symbol-map nil))
     (dolist (D defines)
