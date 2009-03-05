@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.13 2009/02/28 02:40:10 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.14 2009/03/05 02:24:51 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -98,16 +98,28 @@ the current buffer."
 (defmethod ede-find-subproject-for-directory ((proj ede-project-placeholder)
 					      dir)
   "Find a subproject of PROJ that corresponds to DIR."
-  (let ((ans nil)
-	(inode (ede--inode-for-dir dir)))
-    (ede-map-subprojects 
-     proj
-     (lambda (SP)
-       (when (not ans)
-	 (if (equal (ede--project-inode SP) inode)
-	     (setq ans SP)
-	   (ede-find-subproject-for-directory SP dir)))))
-    ans))
+  (if ede--disable-inode
+      (let ((ans nil))
+	;; Try to find the right project w/out inodes.
+	(ede-map-subprojects 
+	 proj
+	 (lambda (SP)
+	   (when (not ans)
+	     (if (string= (file-truename dir) (oref SP :directory))
+		 (setq ans SP)
+	       (ede-find-subproject-for-directory SP dir)))))
+	ans)
+    ;; We can use inodes, so lets try it.
+    (let ((ans nil)
+	  (inode (ede--inode-for-dir dir)))
+      (ede-map-subprojects 
+       proj
+       (lambda (SP)
+	 (when (not ans)
+	   (if (equal (ede--project-inode SP) inode)
+	       (setq ans SP)
+	     (ede-find-subproject-for-directory SP dir)))))
+      ans)))
 
 ;;; DIRECTORY IN OPEN PROJECT
 ;;
@@ -151,21 +163,25 @@ If DIR is the root project, then it is the same."
   (let* ((inode (ede--inode-for-dir dir))
 	 (ft (file-name-as-directory (expand-file-name dir)))
 	 (proj (ede--inode-get-toplevel-open-project inode))
-	 (ans proj))
+	 (ans nil))
     ;; Try file based search.
     (when (not proj)
       (setq proj (ede-directory-get-toplevel-open-project ft)))
+    ;; Default answer is this project
+    (setq ans proj)
     ;; Save.
     (when rootreturn (set rootreturn proj))
     ;; Find subprojects.
-    (when (and proj (not (equal inode (ede--project-inode proj))))
+    (when (and proj (or ede--disable-inode 
+			(not (equal inode (ede--project-inode proj)))))
       (setq ans (ede-find-subproject-for-directory proj ft)))
     ans))
 
 (defun ede--inode-get-toplevel-open-project (inode)
   "Return an already open toplevel project that is managing INODE.
 Does not check subprojects."
-  (when (and (numberp inode) (/= inode 0))
+  (when (or (and (numberp inode) (/= inode 0))
+	    (consp inode))
     (let ((all ede-projects)
 	  (found nil)
 	  )
