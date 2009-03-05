@@ -81,6 +81,20 @@
 <p>The image to the right shows smart completion configured to use
    tooltips in a CEDET unit test source file going through a templated
    smart pointer.
+
+<h4>Smart Help/Jump</h4>
+
+<p>Smart help shows the prototype of the variable or method under
+  point.  As with the smart completion, it will correctly identify the
+  method under point, deriving it's correct prototype by dereferencing
+  the datatypes through templates and smart pointers.
+
+<p>The smart jump feature is similar to the classic Emacs TAGS
+  feature, except it always goes to the correct location.  Using TAGS
+  on a method name makes you scan through all the possible methods
+  with the same name to find the one you want.  Using the <b>CEDET</b>
+  smart jump feature takes you to the right definition the first time.
+
 <br clear=all>
 
 <h4>Symbol References</h4>
