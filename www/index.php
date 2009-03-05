@@ -46,7 +46,7 @@
 <h4>Projects</h4>
 
 <p>
-   The <b>CEDET</b> <a href="cedet-project-menu.png">Project management system</a>
+   The <b>CEDET</b> <a href="projects.shtml">Project management system</a>
    provides a few simple keystrokes for organizing your files,
    building Makefiles or Automake files, and compiling your sources.
 
