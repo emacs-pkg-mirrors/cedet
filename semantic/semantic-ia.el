@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.29 2009/01/09 23:09:14 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.30 2009/03/05 02:31:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -344,6 +344,17 @@ origin of the code at point."
       (error "Could not find suitable jump point for %s"
 	     first))
      )))
+
+;;;###autoload
+(defun semantic-ia-fast-mouse-jump (evt)
+  "Jump to the tag referred to by the point clicked on.
+See `semantic-ia-fast-jump' for details on how it works.
+ This command is meant to be bound to a mouse event."
+  (interactive "e")
+  (semantic-ia-fast-jump
+   (save-excursion
+     (posn-set-point (event-end evt))
+     (point))))
 
 ;;; DOC/DESCRIBE
 ;;
