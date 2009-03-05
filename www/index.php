@@ -41,10 +41,12 @@
 <p>So what does an Emacs User get out of <b>CEDET</b>?  <b>CEDET</b>
    includes the following major user features:
 
+</p>
+<img src="img-gen/cedet-project-menu.png" align=right> 
 <h4>Projects</h4>
 
-<p><img src="img-gen/project-menu.jpg" align=right> 
-   The CEDET <a href="projects.shtml">Project management system</a>
+<p>
+   The CEDET <a href="cedet-project-menu.png">Project management system</a>
    provides a few simple keystrokes for organizing your files,
    building Makefiles or Automake files, and compiling your sources.
 
@@ -60,10 +62,11 @@
 <p>The image to the right shows a part of the Project management menu.
 <br clear=all>
 
+</p>
+<img src="img-gen/semantic-ia-complete-menu.png" border=1 align=right>
 <h4>Smart Completion</h4>
 
-<p><img src="img-gen/smartcomplete.jpg" border=1 align=right> Write
-   code with <a href="intellisense.shtml">smart code completion</a>,
+<p>Write code with <a href="intellisense.shtml">smart code completion</a>,
    sometimes known as "Intellisense".  The CEDET infrastructure for
    parsing and tagging files, and analyzing source code is one of the
    most accurate completion tools for C++ anywhere.  It will correctly

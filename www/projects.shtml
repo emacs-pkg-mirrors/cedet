@@ -6,7 +6,7 @@
 <tr><td><h2><font color=black>Project Management</font></h2></td></tr>
 </table>
 
-<img src="img-gen/project-menu.jpg" align=right>
+<img src="img-gen/cedet-project-menu.png" align=right>
 <p>The CEDET Project management system provides a few simple
    keystrokes for organizing your files, building Makefiles or
    Automake files, and compiling your sources.
