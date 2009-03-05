@@ -29,7 +29,7 @@
    there are additional areas that need improvement.  Many new ideas
    for integrated environments have been developed in newer products,
    such as Microsoft's Visual environment, JBuilder, or Eclipse.
-   CEDET is a project which implements several advanced features
+   <b>CEDET</b> is a project which implements several advanced features
    developers have come to expect from an Editor.
 </p>
 
@@ -46,11 +46,11 @@
 <h4>Projects</h4>
 
 <p>
-   The CEDET <a href="cedet-project-menu.png">Project management system</a>
+   The <b>CEDET</b> <a href="cedet-project-menu.png">Project management system</a>
    provides a few simple keystrokes for organizing your files,
    building Makefiles or Automake files, and compiling your sources.
 
-<p>If you don't want <b>CEDET</b> to manage your Makefiles, CEDET will
+<p>If you don't want <b>CEDET</b> to manage your Makefiles, <b>CEDET</b> will
    still be able to identify some types of projects based on
    pre-existing build configurations, such as the Emacs sources, the
    Linux kernel, or any project built using Automake.
@@ -67,7 +67,7 @@
 
 <p><img src="img-gen/semantic-ia-complete-menu.png" border=1 align=right>
    Write code with <a href="intellisense.shtml">smart code completion</a>,
-   sometimes known as "Intellisense".  The CEDET infrastructure for
+   sometimes known as "Intellisense".  The <b>CEDET</b> infrastructure for
    parsing and tagging files, and analyzing source code is one of the
    most accurate completion tools for C++ anywhere.  It will correctly
    handle inheritance scoping rules, templates, smart-pointers, and
@@ -75,11 +75,11 @@
 
 <p>Code completion is not restricted to just C or C++.  The completion
    engine is generic and works for any language that has a robust
-   tagging parser written for CEDET, and a thin adaptation layer for
+   tagging parser written for <b>CEDET</b>, and a thin adaptation layer for
    the language.
 
 <p>The image to the right shows smart completion configured to use
-   tooltips in a CEDET unit test source file going through a templated
+   tooltips in a <b>CEDET</b> unit test source file going through a templated
    smart pointer.
 <br clear=all>
 
@@ -159,12 +159,12 @@
 
 <p><a href="http://ecb.sf.net">
    <img src="http://ecb.sourceforge.net/screenshots/1.png" border=0
-	align=right width=50% height=50%></a>
-   With the <b>CEDET</b> parsing backend, advanced code browsing tools
-   like <a href="http://ecb.sf.net">ECB</a> can be used.  ECB, or the
-   Emacs Code Browser provides an advanced set of UI windows docked to
-   your Emacs frame.  The extra windows provide a wide range of
-   features, including:
+	align=right width=50% height=50%></a> With the <b>CEDET</b>
+   parsing backend, advanced code browsing tools
+   like <a href="http://ecb.sf.net"><b>ECB</b></a> can be
+   used.  <b>ECB</b>, or the <em>Emacs Code Browser</em> provides an
+   advanced set of UI windows docked to your Emacs frame.  The extra
+   windows provide a wide range of features, including:
 <ul>
 <li> A list of functions, classes, and methods in the current file
 <li> A code analyzer/completions list
@@ -175,10 +175,10 @@
 <li> and many others
 </ul>
 
-<p>The <a href="http://ecb.sf.net">ECB</a> image on the right shows a
-   sample of ECB from
+<p>The <a href="http://ecb.sf.net"><b>ECB</b></a> image on the right
+   shows a sample of <b>ECB</b> from
    the <a href="http://ecb.sourceforge.net/screenshots/index.html">ECB
-   screenshots area</a> on SourceForge.  ECB is NOT a part
+   screenshots area</a> on SourceForge.  <b>ECB</b> is NOT a part
    of <b>CEDET</b>, and must be downloaded and installed seperately.
 
 </p>
@@ -196,12 +196,12 @@
 
 <P>Alex Ott has written a great article
    called <a href="http://xtalk.msk.su/~ott/en/writings/emacs-devenv/EmacsCedet.html">
-   A Gentle Introduction to CEDET</a> that shows both the
+   A Gentle Introduction to <b>CEDET</b></a> that shows both the
    simple <b>CEDET</b> configuration process, and a wide array of
    customizations that helps tune your Emacs for programming the smart
    way.
 
-<p>The image to the right shows the CEDET internal package and
+<p>The image to the right shows the <b>CEDET</b> internal package and
    revision testing output.  Making sure all the package revisions
    needed are accurate is important, and fully automatic.
 
