@@ -35,12 +35,8 @@ Verbatim copying and distribution is permitted in any medium,
 provided this notice is preserved.<BR>
 </FONT>
 </td></tr></table>
-<!-- This block here ends what was started in pagestart.html -->
-</td>
-<td background="img-gen/box-right.jpg" width="5">&nbsp;</td>
-</table>
+
 <table cellspacing=0 border=0 width=100%><tr>
-   <td background="img-gen/footer-left.jpg" width="786" height="45">&nbsp;</td>
-   <td background="img-gen/footer-mid.jpg" height="45">&nbsp;</td>
-   <td background="img-gen/footer-right.jpg" width="44" height="45">&nbsp;</td>
+   <td background="img-gen/cedet-bottom-left.png" width="779" height="50">&nbsp;</td>
+   <td background="img-gen/cedet-bottom-middle.png" height="46">&nbsp;</td>
 </table>

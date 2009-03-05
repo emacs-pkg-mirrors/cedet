@@ -24,16 +24,14 @@ A[href]:hover { text-decoration: underline overline }
 <!--table><tr><td width="90%"><img src="cedetlogo.png" ></td>
 <td><img src="writecode.png" align=right></td></tr></table-->
 <table cellspacing=0 border=0 width=100%><tr>
-   <td background="img-gen/logo-left.jpg" width="885" height="152">&nbsp;</td>
-   <td background="img-gen/logo-mid.jpg" height="152">&nbsp;</td>
-   <td background="img-gen/logo-right.jpg" width="69" height="152">&nbsp;</td>
+   <td background="img-gen/cedet-logo-left.png" width="779" height="225">&nbsp;</td>
+   <td background="img-gen/cedet-logo-middle.png" height="225">&nbsp;</td>
+   <td background="img-gen/cedet-logo-right.png" width="27" height="225">&nbsp;</td>
 </table>
 
-<table border=0 cellspacing=0><tr>
-<td background="img-gen/box-left.jpg" width="5">&nbsp;</td>
-<td>
 
 <table border=0>
 <tr><td valign=top>
 <?php include ("rightcol.php") ?></td>
 <td valign=top>
+
