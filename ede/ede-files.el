@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.14 2009/03/05 02:24:51 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.15 2009/03/05 19:34:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -210,7 +210,7 @@ Does not check subprojects."
 	 ;; Exact inode match.  Useful with symlinks or complex automounters.
 	 ((let ((pin (ede--project-inode (car all)))
 		(inode (ede--inode-for-dir dir)))
-	    (and (/= pin 0) (equal pin inode)))
+	    (and (not (eql pin 0)) (equal pin inode)))
 	  (setq ans (car all)))
 	 ;; Subdir via truename - slower by far, but faster than a traditional lookup.
 	 ((let ((ftn (file-truename ft))
