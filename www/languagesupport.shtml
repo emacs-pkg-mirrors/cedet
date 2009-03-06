@@ -10,7 +10,7 @@
    language, detailed on the <a href="addlang.shtml">Add language
    support</a> page.  This table describes the current level of
    editing support for each of the languages.
-
+</p>
 <table cellspacing=1 border=1 class=DATA><tr class=DATA>
     <th>Langauge</th>
     <th>Grammar</th>
@@ -22,7 +22,7 @@
     <th>Code Generation</th>
 </tr><tr>
     <td>C/C++</td>
-    <td>LR - Excellent</td>
+    <td>LR - Excellent<br>&amp; CTags</td>
     <td>Complete</td>
     <td>Make/ Automake/ Makefile.am<br>ede-cpp-root</td>
     <td>Yes</td>
@@ -60,7 +60,7 @@
     <td>Scheme</td>
     <td>LR</td>
     <td>Basic</td>
-    <td>-</td>
+    <td>Automake</td>
     <td>-</td>
     <td>-</td>
     <td>?</td>
@@ -173,6 +173,24 @@
     <td>-</td>
     <td>-</td>
     <td>Yes</td>
+</tr><tr class=EVEN>
+    <td>Born Shell</td>
+    <td>CTags</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+</tr><tr>
+    <td>dot</td>
+    <td>LALR</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
 <!--/tr><tr class=EVEN>
     <td></td>
     <td></td>
