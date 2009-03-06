@@ -13,6 +13,7 @@
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="symref.shtml"><b>Find References</b></a></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="codegen.shtml"><b>Code Generation</b></a></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="uml.shtml"><b>UML Graphs</b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="languagesupport.shtml"><b>Language Support</b></a></a>&nbsp</td></tr>
 <tr><td class=BAR><img src=dir-minus.gif>&nbsp<b>Developer Primers</b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="addlang.shtml"><b>Add a Language</b></a></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="addtool.shtml"><b>Add external tool</b></a></a>&nbsp</td></tr>
@@ -33,6 +34,7 @@
 <tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href="http://lists.sourceforge.net/lists/listinfo/cedet-devel"><b><font size=-1>cedet-devel</font></b></a></a>&nbsp</td></tr>
 <tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href="http://lists.sourceforge.net/lists/listinfo/cedet-semantic"><b><font size=-1>cedet-semantic</font></b></a></a>&nbsp</td></tr>
 <tr><td >&nbsp&nbsp<img src=tag.png>&nbsp<a class=SB href="http://lists.sourceforge.net/lists/listinfo/cedet-eieio"><b><font size=-1>cedet-eieio</font></b></a></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="https://sourceforge.net/project/screenshots.php?group_id=17886"><b>Screenshots</b></a></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/donate/index.php?group_id=17886"><b>Donate</b></a></a>&nbsp</td></tr>
 <tr><td class=BAR><img src=dir-minus.gif>&nbsp<b>More Tools</b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://jdee.sf.net"><b>JDEE</b></a></a>&nbsp</td></tr>
