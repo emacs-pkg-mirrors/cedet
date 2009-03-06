@@ -73,6 +73,7 @@
       ( "Find References" . "symref.shtml" )
       ( "Code Generation" . "codegen.shtml" )
       ( "UML Graphs" . "uml.shtml" )
+      ( "Language Support" . "languagesupport.shtml")
       ;( "Vis Bookmarks" . "visbookmark.shtml" )
       )
     ( "Developer Primers"
@@ -102,6 +103,7 @@
 	( "cedet-semantic" . [ mail "cedet-semantic" ] )
 	( "cedet-eieio" . [ mail "cedet-eieio" ] )
 	)
+      ( "Screenshots" . "https://sourceforge.net/project/screenshots.php?group_id=17886" )
       ( "Donate" . "http://sourceforge.net/donate/index.php?group_id=17886" )
       )
     ( "More Tools"
