@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.11 2009/03/06 02:13:34 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.12 2009/03/06 11:49:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -114,7 +114,7 @@
 ;;;###autoload
 (defun cedet-utest (&optional exit-on-error)
   "Run the CEDET unittests.
-Exit-on-error causes an error to be thrown on an error, instead
+EXIT-ON-ERROR causes the test suite to exit on an error, instead
 of just logging the error."
   (interactive)
   (if (or (not (featurep 'semanticdb-mode))
@@ -143,8 +143,10 @@ of just logging the error."
       ;; Cleanup stray input and events that are in the way.
       ;; Not doing this causes sit-for to not refresh the screen.
       ;; Doing this causes the user to need to press keys more frequently.
-      (when (input-pending-p)
-	(when (fboundp 'read-event) (read-event) (read-char)))
+      (when (and (interactive-p) (input-pending-p))
+	(if (fboundp 'read-event)
+	    (read-event)
+	  (read-char)))
 
       (cedet-utest-add-log-item-done notes err)
       (when (and exit-on-error err)
