@@ -1,9 +1,9 @@
 ;;; semantic-symref-grep.el --- Symref implementation using find/grep
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-grep.el,v 1.3 2008/12/13 17:23:49 zappo Exp $
+;; X-RCS: $Id: semantic-symref-grep.el,v 1.4 2009/03/06 01:57:58 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -131,7 +131,7 @@ Moves cursor to end of the match."
 	 (when (re-search-forward "^\\([^\n]+\\)$" nil t)
 	   (match-string 1)))
 	(t
-	 (when (re-search-forward "^\\([^:\n]+\\):\\([0-9]+\\):" nil t)
+	 (when (re-search-forward  "^\\(?:[a-zA-Z]:\\)?\\([^:\n]+\\):\\([0-9]+\\):" nil t)
 	   (cons (string-to-number (match-string 2))
 		 (match-string 1))
 	   ))))
