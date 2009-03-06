@@ -615,7 +615,9 @@ is t to display the done string, or the number to display."
   (working-status-timeout .1 "Working Test: Press a key" "done"
     (while (sit-for 10)))
   (when (input-pending-p)
-    (when (fboundp 'read-event) (read-event) (read-char)))
+    (if (fboundp 'read-event)
+	(read-event)
+      (read-char)))
   )
 
 (defun working-verify-sleep ()
