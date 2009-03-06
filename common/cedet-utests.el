@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.10 2009/03/05 03:30:24 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.11 2009/03/06 02:13:34 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -108,18 +108,25 @@
    )
   "Alist of all the ttests in CEDET we should run.")
 
+(defvar cedet-running-master-tests nil
+  "Non-nil when CEDET-utest is running all the tests.")
+
 ;;;###autoload
 (defun cedet-utest (&optional exit-on-error)
   "Run the CEDET unittests.
 Exit-on-error causes an error to be thrown on an error, instead
 of just logging the error."
   (interactive)
+  (if (or (not (featurep 'semanticdb-mode))
+	  (not (semanticdb-minor-mode-p)))
+      (error "CEDET Tests require: M-x semantic-load-enable-minimum-features"))
   (cedet-utest-log-setup "ALL TESTS")
   (let ((tl cedet-utest-test-alist)
 	(notes nil)
 	(err nil)
 	(start (current-time))
 	(end nil)
+	(cedet-running-master-tests t)
 	)
     (dolist (T tl)
       (cedet-utest-add-log-item-start (car T))
@@ -132,8 +139,17 @@ of just logging the error."
 	 (setq err (format "ERROR: %S" Cerr))
 	 ;;(message "Error caught: %s" Cerr)
 	 ))
+
+      ;; Cleanup stray input and events that are in the way.
+      ;; Not doing this causes sit-for to not refresh the screen.
+      ;; Doing this causes the user to need to press keys more frequently.
+      (when (input-pending-p)
+	(when (fboundp 'read-event) (read-event) (read-char)))
+
       (cedet-utest-add-log-item-done notes err)
       (when (and exit-on-error err)
+	(message "to debug this test point, execute:")
+	(message "%S" (cdr T))
 	(message "\n ** Exiting Test Suite. ** \n")
 	(throw 'cedet-utest-exit-on-error t)
 	)
@@ -199,8 +215,9 @@ Optional argument TITLE is the title of this testing session."
     (save-excursion
       (set-buffer cedet-utest-buffer)
       (setq cedet-utest-last-log-item nil)
-      (erase-buffer)
-      (insert "Setting up "
+      (when (not cedet-running-master-tests)
+	(erase-buffer))
+      (insert "\n\nSetting up "
 	      (or title "")
 	      " tests to run @ " (current-time-string) "\n\n"))
     (let ((oframe (selected-frame)))
@@ -246,7 +263,7 @@ ERRORCONDITION is some error that may have occured durinig testing."
 	      "     Elapsed Time "
 	      (number-to-string
 	       (cedet-utest-elapsed-time startime endtime))
-	      " Seconds"))
+	      " Seconds\n * "))
     ))
 
 (defun cedet-utest-show-log-end ()
