@@ -4,7 +4,13 @@
 <!--
 ol,ul,p,body,td,tr,th,form {font-family : helvetica,sans-serif; } 
 
-table.BAR { background-color: #bfbfbf; border-top: medium solid black; border-bottom: medium solid black}
+table.BAR { background-color: #bfbfbf; border-top: medium solid black; border-bottom: medium solid black; }
+table.DATA { background-color: #fafafa; border-collapse: collapse; border-top: solid black 2px; border-bottom: solid black 2px; border-left: solid black 2px; border-right: solid black 2px; }
+tr.DATA { background-color: #dddddd;}
+th { border-right: solid black 1px;  padding: 5px;}
+tr.EVEN { background-color: #eeeeee;}
+
+
 td.BAR { background-color: #bfbfbf; }
 tt { font-family : courier }
 pre { background-color: #dfdfdf; font-family : courier }
