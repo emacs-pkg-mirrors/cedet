@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.12 2009/03/06 11:49:48 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.13 2009/03/06 11:55:15 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -47,7 +47,7 @@
        (if (cedet-utest-noninteractive)
 	   (message " ** Skipping test in noninteractive mode.")
 	 (working-wait-for-keypress))))
-    ("working: sleep" . working-verify-sleep)
+    ;("working: sleep" . working-verify-sleep)
 
     ;; Pulse
     ("pulse interactive test" . (lambda () (pulse-test t)))
