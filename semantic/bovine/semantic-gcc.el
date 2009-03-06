@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.11 2009/03/06 00:00:24 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.12 2009/03/06 11:39:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -197,6 +197,7 @@ gcc version 2.95.2 19991024 (release)"
     )
   "A bunch of sample gcc -v outputs that fail to provide the info we want.")
 
+;;;###autoload
 (defun semantic-gcc-test-output-parser ()
   "Test the output parser against some collected strings."
   (interactive)
