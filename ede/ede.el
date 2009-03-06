@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.130 2009/03/05 01:58:10 zappo Exp $
+;; RCS: $Id: ede.el,v 1.131 2009/03/06 00:13:45 zappo Exp $
 (defconst ede-version "1.0pre6"
   "Current version of the Emacs EDE.")
 
@@ -794,7 +794,7 @@ ONOFF indicates enabling or disabling the mode."
 If ARG is negative, disable.  Toggle otherwise."
   (interactive "P")
   (if (not arg)
-      (if (member 'ede-turn-on-hook find-file-hook)
+      (if (member 'ede-turn-on-hook find-file-hooks)
 	  (global-ede-mode -1)
 	(global-ede-mode 1))
     (if (or (eq arg t) (> arg 0))
@@ -1488,37 +1488,30 @@ Optional argument OBJ is an object to find the parent of."
   (let* ((proj (or obj ede-object-project)) ;; Current project.
 	 (root (if obj (ede-project-root obj)
 		 ede-object-root-project)))
-    (if
-	;; This case is a SHORTCUT if the project has defined
-	;; a way to calculate the project root.
-	(and root proj (eq root proj))
+    ;; This case is a SHORTCUT if the project has defined
+    ;; a way to calculate the project root.
+    (if (and root proj (eq root proj))
 	nil ;; we are at the root.
       ;; Else, we may have a nil proj or root.
       (let* ((thisdir (if obj (oref obj directory)
 			default-directory))
-	     (updir (ede-up-directory thisdir))
-	     (ans nil)
-	     )
-	;; If there was no root, perhaps we can derive it from
-	;; updir now.
-	(when (not root)
-	  (setq root (ede-directory-get-toplevel-open-project updir)))
-
-	;; This lets us find a subproject under root based on updir.
-	(when root
-	  (setq ans (ede-find-subproject-for-directory
-		     root updir)))
-
-	;; Try the all structure based search.
-	(setq ans (ede-directory-get-open-project updir))
-
-	;; Load up the project file as a last resort.
-	;; Last resort since it uses file-truename, and other
-	;; slow features.
-	(when (and (not ans) (ede-directory-project-p updir))
-	  (setq ans (ede-load-project-file
-		     (file-name-as-directory updir))))
-	ans))))
+	     (updir (ede-up-directory thisdir)))
+        (when updir
+          ;; If there was no root, perhaps we can derive it from
+          ;; updir now.
+          (let ((root (or root (ede-directory-get-toplevel-open-project updir))))
+            (or
+             ;; This lets us find a subproject under root based on updir.
+	     (and root
+		  (ede-find-subproject-for-directory root updir))
+             ;; Try the all structure based search.
+             (ede-directory-get-open-project updir)
+             ;; Load up the project file as a last resort.
+             ;; Last resort since it uses file-truename, and other
+             ;; slow features.
+             (and (ede-directory-project-p updir)
+                  (ede-load-project-file
+                   (file-name-as-directory updir))))))))))
 
 (defun ede-current-project (&optional dir)
   "Return the current project file.
