@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.30 2009/03/05 02:31:41 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.31 2009/03/06 16:39:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,6 +31,11 @@
 ;; analyzer to provide things such as completion lists, summaries,
 ;; locations, or documentation.
 ;;
+
+;;; TODO
+;;
+;; fast-jump.  For a virtual method, offer some of the possible
+;; implementations in various sub-classes.
 
 (require 'senator)
 (require 'semantic-analyze)
@@ -110,19 +115,22 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	      (senator-complete-symbol)
 	      ))
       ;; Use try completion to seek a common substring.
-      (let ((tc (try-completion pre syms)))
-	(if (and (stringp tc) (not (string= tc pre)))
+      (let ((tc (try-completion (or pre "")  syms)))
+	(if (and (stringp tc) (not (string= tc (or pre ""))))
 	    (let ((tok (semantic-find-first-tag-by-name
 			tc syms)))
+	      ;; Delete what came before...
+	      (when (and (car (oref a bounds)) (cdr (oref a bounds)))
+		(delete-region (car (oref a bounds))
+			       (cdr (oref a bounds)))
+		(goto-char (car (oref a bounds))))
 	      ;; We have some new text.  Stick it in.
-	      (delete-region (car (oref a bounds))
-			     (cdr (oref a bounds)))
-	      (goto-char (car (oref a bounds)))
 	      (if tok
 		  (semantic-ia-insert-tag tok)
 		(insert tc)))
 	  ;; We don't have new text.  Show all completions.
-	  (goto-char (cdr (oref a bounds)))
+	  (when (cdr (oref a bounds))
+	    (goto-char (cdr (oref a bounds))))
 	  (with-output-to-temp-buffer "*Completions*"
 	    (display-completion-list
 	     (mapcar semantic-ia-completion-format-tag-function syms))
