@@ -42,7 +42,7 @@
    (ede-proj-target-aux "misc"
     :name "misc"
     :path ""
-    :source '("README" "TODO" "ede-proj-skel.el" "ChangeLog")
+    :source '("README" "ede-proj-skel.el" "ChangeLog")
     )
    (ede-proj-target-makefile-info "ede"
     :name "ede.info"
