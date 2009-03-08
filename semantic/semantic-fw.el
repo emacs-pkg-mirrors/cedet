@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.74 2009/03/06 11:48:46 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.75 2009/03/08 16:17:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,7 +43,16 @@
           (and (extent-live-p o)
                (not (extent-detached-p o))
                (bufferp (extent-buffer o)))))
-      (defalias 'semantic-make-overlay            'make-extent)
+      (defalias 'semantic-make-overlay
+	(lambda (beg end &optional buffer &rest rest)
+	  "Xemacs `make-extent', supporting the front/rear advance options."
+	  (let ((ol (make-extent beg end buffer)))
+	    (when rest
+	      (set-extent-property ol 'start-open (car rest))
+	      (setq rest (cdr rest)))
+	    (when rest
+	      (set-extent-property ol 'end-open (car rest)))
+	    ol)))
       (defalias 'semantic-overlay-put             'set-extent-property)
       (defalias 'semantic-overlay-get             'extent-property)
       (defalias 'semantic-overlay-properties      'extent-properties)
