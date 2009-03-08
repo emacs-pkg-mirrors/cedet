@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.22 2009/03/08 12:50:16 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.23 2009/03/08 16:31:53 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -84,7 +84,7 @@ $(CEDET_PACKAGES):
 
 .PHONY: ebuild
 ebuild:
-	$(EMACS) -q --no-site-file -l cedet-build.el -f cedet-build
+	$(EMACS) -q -batch --no-site-file -l cedet-build.el -f cedet-build
 
 ## Update
 ##
