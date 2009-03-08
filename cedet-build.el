@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-build.el,v 1.8 2009/02/05 01:30:16 zappo Exp $
+;; X-RCS: $Id: cedet-build.el,v 1.9 2009/03/08 12:50:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -36,6 +36,10 @@
 ;;       or, if -Q isn't supported
 ;;
 ;;     emacs -q --no-site-file -l cedet-build.el -f cedet-build
+;;
+;;       or, if you have minimal make available, this is in the Makefile
+;;
+;;     make ebuild
 ;;
 ;;   or
 ;;
