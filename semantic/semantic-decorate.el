@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.17 2009/01/09 23:05:41 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.18 2009/03/08 16:14:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -209,7 +209,7 @@ generated secondary overlay."
       nil
     (let* ((os (semantic-tag-start tag))
 	   (oe (semantic-tag-end tag))
-	   (o (semantic-make-overlay os oe (semantic-tag-buffer tag)))
+	   (o (semantic-make-overlay os oe (semantic-tag-buffer tag) t))
 	   (attr (semantic-tag-secondary-overlays tag))
 	   )
       (semantic--tag-put-property tag 'secondary-overlays (cons o attr))
