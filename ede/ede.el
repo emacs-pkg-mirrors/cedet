@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.131 2009/03/06 00:13:45 zappo Exp $
+;; RCS: $Id: ede.el,v 1.132 2009/03/08 19:52:18 zappo Exp $
 (defconst ede-version "1.0pre6"
   "Current version of the Emacs EDE.")
 
@@ -759,7 +759,7 @@ mode.  nil means to toggle the mode."
 	    (not (or (and (null arg) ede-minor-mode)
 		     (<= (prefix-numeric-value arg) 0))))
       (if (and ede-minor-mode (not ede-constructing)
-	       (ede-directory-project-p default-directory))
+	       (ede-directory-project-p default-directory t))
 	  (let* ((ROOT nil)
 		 (proj (ede-directory-get-open-project default-directory
 						       'ROOT)))
