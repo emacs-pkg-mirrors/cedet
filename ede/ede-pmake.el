@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.53 2009/02/21 12:11:52 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.54 2009/03/08 12:51:49 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -103,6 +103,9 @@ MFILENAME is the makefile to generate."
 
       (cond
        ((eq (oref this makefile-type) 'Makefile)
+	;; Make sure the user has the right kind of make
+	(ede-make-check-version)
+
 	(let* ((targ (if isdist (oref this targets) mt))
 	       (sp (oref this subproj))
 	       (df (apply 'append
@@ -171,6 +174,8 @@ MFILENAME is the makefile to generate."
 		(oref this include-file))
 	  ;; Some C inference rules
 	  ;; Dependency rules borrowed from automake.
+	  ;;
+	  ;; NOTE: This is GNU Make specific.
 	  (if (and (oref this automatic-dependencies) df)
 	      (insert "DEPS_MAGIC := $(shell mkdir .deps > /dev/null "
 		      "2>&1 || :)\n"
