@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-grep.el,v 1.5 2009/03/06 11:52:04 zappo Exp $
+;; X-RCS: $Id: semantic-symref-grep.el,v 1.6 2009/03/08 15:36:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -29,6 +29,7 @@
 ;; can be used in small projects to find symbol references.
 
 (require 'semantic-symref)
+(require 'grep)
 
 ;;; Code:
 
@@ -46,12 +47,77 @@ and those hits returned.")
 (eval-when-compile (require 'ede))
 
 (defvar semantic-symref-filepattern-alist
-  '((c-mode . "*.[ch]")
+  '((c-mode "*.[ch]")
     (c++-mode "*.[chCH]" "*.[ch]pp" "*.cc" "*.hh")
-    (emacs-lisp-mode . "*.el")
+    (html-mode "*.s?html" "*.php")
     )
   "List of major modes and file extension pattern regexp.
 See find -regex man page for format.")
+
+(defun semantic-symref-derive-find-filepatterns (&optional mode)
+  "Derive a list of file patterns for the current buffer.
+Looks first in `semantic-symref-filepattern-alist'.  If it is not
+there, it then looks in `auto-mode-alist', and attempts to derive something
+from that.
+Optional argument MODE specifies the `major-mode' to test."
+  ;; First, try the filepattern alist.
+  (let* ((mode (or mode major-mode))
+	 (pat (cdr (assoc mode semantic-symref-filepattern-alist))))
+    (when (not pat)
+      ;; No hit, try auto-mode-alist.
+      (dolist (X auto-mode-alist)
+	(when (eq (cdr X) mode)
+	  ;; Only take in simple patterns, so try to convert this one.
+	  (let ((Xp
+		 (cond ((string-match "\\\\\\.\\([^\\'>]+\\)\\\\'" (car X))
+			(concat "*." (match-string 1 (car X))))
+		       (t nil))))
+	    (when Xp
+	      (setq pat (cons Xp pat))))
+	  )))
+    ;; Convert the list into some find-flags.
+    (cond ((= (length pat) 1)
+	   (concat "-name \"" (car pat) "\""))
+	  ((consp pat)
+	   (concat "\\( "
+		   (mapconcat (lambda (s)
+				(concat "-name \"" s "\""))
+			      pat
+			      " -o ")
+		   " \\)"))
+	  (t
+	   (error "Configuration for `semantic-symref-tool-grep' needed for %s" major-mode))
+	  )))
+
+(defvar semantic-symref-grep-expand-keywords
+  (condition-case nil
+      (let* ((kw (copy-alist grep-expand-keywords))
+	     (C (assoc "<C>" kw))
+	     (R (assoc "<R>" kw)))
+	(setcdr C 'grepflags)
+	(setcdr R 'greppattern)
+	kw)
+    (error nil))
+  "Grep expand keywords used when expanding templates for symref.")
+
+(defun semantic-symref-grep-use-template (rootdir filepattern grepflags greppattern)
+  "Use the grep template expand feature to create a grep command.
+ROOTDIR is the root location to run the `find' from.
+FILEPATTERN is a string represeting find flags for searching file patterns.
+GREPFLAGS are flags passed to grep, such as -n or -l.
+GREPPATTERN is the pattren used by grep."
+  ;; We have grep-compute-defaults.  Lets use it.
+  (grep-compute-defaults)
+  (let* ((grep-expand-keywords semantic-symref-grep-expand-keywords)
+	 (cmd (grep-expand-template grep-find-template
+				    greppattern
+				    filepattern
+				    rootdir)))
+    ;; For some reason, my default has no <D> in it.
+    (when (string-match "find \\(\\.\\)" cmd)
+      (setq cmd (replace-match rootdir t t cmd 1)))
+    ;;(message "New command: %s" cmd)
+    cmd))
 
 (defmethod semantic-symref-perform-search ((tool semantic-symref-tool-grep))
   "Perform a search with Grep."
@@ -76,20 +142,9 @@ See find -regex man page for format.")
 		   ((eq (oref tool :searchscope) 'target)
 		    default-directory)
 		   ))
-	 (cmds (cond ((stringp pat)
-		      (concat "-name \"" pat "\""))
-		     ((consp pat)
-		      (concat "\\( "
-			      (mapconcat (lambda (s)
-					   (concat "-name \"" s "\""))
-					 pat
-					 " -o ")
-			      " \\)"))
-		     (t
-		      (error "semantic-symref-tool-grep - Needs to be configured for %s" major-mode))
-		     ))
+	 (filepattern (semantic-symref-derive-find-filepatterns))
 	 ;; Grep based flags.
-	 (grepflgs (cond ((eq (oref tool :resulttype) 'file)
+	 (grepflags (cond ((eq (oref tool :resulttype) 'file)
 			  "-l ")
 			 (t "-n ")))
 	 (greppat (cond ((eq (oref tool :searchtype) 'regexp)
@@ -105,20 +160,20 @@ See find -regex man page for format.")
       (set-buffer b)
       (erase-buffer)
       (setq default-directory rootdir)
-      ;; find . -type f -print0 | xargs -0 -e grep -nH -e 
-      (call-process "sh" nil b nil
-		    "-c"
-		    (concat "find "
-			    default-directory
-			    " -type f "
-			    cmds
-			    " -print0 "
-			    "| xargs -0 -e grep -H "
-			    grepflgs
-			    "-e "
-			    greppat)
-		    )
-      )
+
+      (if (not (fboundp 'grep-compute-defaults))
+
+	  ;; find . -type f -print0 | xargs -0 -e grep -nH -e 
+	  ;; Note : I removed -e as it is not posix, nor necessary it seems.
+
+	  (let ((cmd (concat "find " default-directory " -type f " filepattern " -print0 "
+			     "| xargs -0 grep -H " grepflags "-e " greppat)))
+	    ;;(message "Old command: %s" cmd)
+	    (call-process "sh" nil b nil "-c" cmd)
+	    )
+	(let ((cmd (semantic-symref-grep-use-template rootdir filepattern grepflags greppat)))
+	  (call-process "sh" nil b nil "-c" cmd))
+	))
     (setq ans (semantic-symref-parse-tool-output tool b))
     ;; Return the answer
     ans))
