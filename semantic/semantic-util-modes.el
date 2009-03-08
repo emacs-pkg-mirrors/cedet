@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.68 2009/03/03 01:39:46 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.69 2009/03/08 16:16:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1212,7 +1212,7 @@ function was called, move the overlay."
       (when (not ol)
 	;; No overlay in this buffer.  Make one.
 	(setq ol (semantic-make-overlay (point-min) (point-min)
-					(current-buffer) nil nil))
+					(current-buffer) t nil))
 	(semantic-overlay-put ol 'highlight-func t)
 	(semantic-overlay-put ol 'face 'semantic-highlight-func-current-tag-face)
 	(semantic-overlay-put ol 'keymap semantic-highlight-func-mode-map)
