@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.15 2009/03/05 19:34:35 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.16 2009/03/08 19:59:51 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -302,8 +302,13 @@ nil is returned if the current directory is not a part ofa project."
       ;; Try the local buffer cache first.
       (oref ede-object-root-project :directory)
     ;; Otherwise do it the hard way.
-    (let* ((ans (ede-directory-get-toplevel-open-project dir)))
-      (if ans
+    (let* ((thisdir (ede-directory-project-p dir))
+	   (ans (ede-directory-get-toplevel-open-project dir)))
+      (if (and ans ;; We have an answer
+	       (or (not thisdir) ;; this dir isn't setup
+		   (and (object-of-class-p ;; Same as class for this dir?
+			 ans (oref thisdir :class-sym)))
+		   ))
 	  (oref ans :directory)
 	(let* ((toppath (expand-file-name dir))
 	       (newpath toppath)
