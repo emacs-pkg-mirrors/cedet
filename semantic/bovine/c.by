@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.53 2009/02/12 16:14:25 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.54 2009/03/08 21:07:50 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -533,6 +533,12 @@ template-var
  ;; (*).  Example map<ClassX, ClassY, *size_var_ptr> sized_map_var.
   | opt-stars opt-ref namespace-symbol
     ( ,$3 )
+ ;; Some code can compile down into a number, but starts out as an
+ ;; expression, such as "sizeof(a)", or (sizeof(a)/sizeof(b))
+  | semantic-list
+    ( $1 )
+  | SIZEOF semantic-list
+    ( $2 )
   ;
 
 opt-template-equal
