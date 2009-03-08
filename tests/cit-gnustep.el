@@ -50,7 +50,7 @@
     (progn
       (message "I noticed that you didn't load `GNUstep.sh' for the GNUstep-Make Environment ...")
       (message "I'll compile this simple examle via gcc ... but, use gnustep ... is better ;)")
-      (compile "gcc -o Prog main.c")))
+      (compile "sh -c \"gcc -o Prog main.c\"")))
 )
 
 (provide 'cit-gnustep)
