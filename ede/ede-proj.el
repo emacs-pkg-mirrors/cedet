@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.58 2009/01/20 02:39:53 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.59 2009/03/08 12:54:29 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 
 (eval-and-compile '(require 'ede))
 (require 'ede-proj-comp)
+(require 'ede-make)
 
 ;;; Class Definitions:
 (defclass ede-proj-target (ede-target)
@@ -453,7 +454,7 @@ FILE must be massaged by `ede-convert-path'."
 	(error "Try `ede-update-version' before making a distribution"))
     (ede-proj-setup-buildenvironment this)
     (if (string= pm "Makefile.am") (setq pm "Makefile"))
-    (compile (concat "make -f " pm " dist"))
+    (compile (concat ede-make-command " -f " pm " dist"))
     ))
 
 (defmethod project-dist-files ((this ede-proj-project))
@@ -470,7 +471,7 @@ Argument COMMAND is the command to use when compiling."
 	(default-directory (file-name-directory (oref proj file))))
     (ede-proj-setup-buildenvironment proj)
     (if (string= pm "Makefile.am") (setq pm "Makefile"))
-    (compile (concat "make -f " pm " all"))))
+    (compile (concat ede-make-command" -f " pm " all"))))
 
 ;;; Target type specific compilations/debug
 ;;
@@ -484,7 +485,7 @@ Argument COMMAND is the command to use for compiling the target."
   "Compile the current target program OBJ.
 Optional argument COMMAND is the s the alternate command to use."
   (ede-proj-setup-buildenvironment (ede-current-project))
-  (compile (concat "make -f " (oref obj makefile) " "
+  (compile (concat ede-make-command " -f " (oref obj makefile) " "
 		   (ede-proj-makefile-target-name obj))))
 
 (defmethod project-debug-target ((obj ede-proj-target))
