@@ -2,7 +2,7 @@
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
 ;; Joakim Verona <joakim@verona.se>
-;; X-RCS: $Id: ede-proj-maven2.el,v 1.2 2009/03/08 20:04:38 zappo Exp $
+;; X-RCS: $Id: ede-proj-maven2.el,v 1.3 2009/03/08 20:11:43 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -194,6 +194,12 @@ Argument COMMAND is the command to use when compiling."
   (let ((default-directory (ede-project-root-directory obj)))
     (compile "mvn install")))
 
+(defmethod project-compile-target ((obj ede-maven2-target-java) &optional command)
+  "Compile the current target OBJ.
+Argument COMMAND is the command to use for compiling the target."
+  (message "mvn install to be executed here %s" obj)
+  (let* ((default-directory (oref obj :path)))
+    (compile "mvn install")))
 
 ;;; File Stuff
 ;;
