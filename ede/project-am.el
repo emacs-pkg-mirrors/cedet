@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.41 2009/02/15 13:16:23 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.42 2009/03/08 12:54:08 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -49,6 +49,8 @@
   (require 'eieio "eieio.el")
   (require 'ede "ede.el"))
 
+(require 'ede-make)
+
 (eval-when-compile (require 'ede-speedbar "ede-speedbar.el"))
 (eval-when-compile (require 'compile))
 
@@ -64,7 +66,7 @@
   :group 'project-am
   :type 'string)
 
-(defcustom project-am-compile-target-command "make -k %s"
+(defcustom project-am-compile-target-command (concat ede-make-command " -k %s")
   "*Default command used to compile a project."
   :group 'project-am
   :type 'string)
