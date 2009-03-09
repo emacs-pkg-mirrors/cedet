@@ -23,6 +23,10 @@ namespace animal {
 
     void doNothing();
 
+    enum moose_enum {
+      NAME1, NAME2, NAME3 };
+      
+
   protected:
 
     bool fIsValid;
