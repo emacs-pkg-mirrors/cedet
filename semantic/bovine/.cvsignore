@@ -1,6 +1,3 @@
 *-compile-script
 grammar-make-script
-semantic-c-by.el
-semantic-erlang-by.el
-semantic-make-by.el
-semantic-scm-by.el
+*-by.el
