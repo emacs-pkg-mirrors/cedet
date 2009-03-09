@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.27 2009/01/09 23:10:46 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.28 2009/03/09 00:29:44 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -393,11 +393,9 @@ implicit \"object\"."
     ;; the names in typelist.
     (while typelist
       (let ((tt (semantic-tag-type (car typelist))))
-	(if (and (stringp tt) (string= tt "namespace"))
-	    ;; By using the typecache, our namespaces are pre-merged.
-	    (setq typelist2 (cons (car typelist) typelist2))
-	  ;; Not a namespace.  Leave it off...
-	  ;; (setq typelist2 (cons (car typelist) typelist2))
+	(when (and (stringp tt) (string= tt "namespace"))
+	  ;; By using the typecache, our namespaces are pre-merged.
+	  (setq typelist2 (cons (car typelist) typelist2))
 	  ))
       (setq typelist (cdr typelist)))
 
@@ -425,6 +423,15 @@ implicit \"object\"."
 							      miniscope)
 			  currentscope))
       (setq parentlist (cdr parentlist)))
+
+    ;; Loop over all the items, and collect any type constants.
+    (let ((constants nil))
+      (dolist (T currentscope)
+	(setq constants (append constants
+				(semantic-analyze-type-constants T)))
+	)
+
+      (setq currentscope (append currentscope constants)))
 
     currentscope))
 
