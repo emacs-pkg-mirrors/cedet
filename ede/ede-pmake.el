@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.54 2009/03/08 12:51:49 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.55 2009/03/09 23:06:58 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -471,9 +471,7 @@ These are removed with make clean."
   (newline)
   (insert (ede-name this) ":")
   (newline)
-  (insert "\tcd "
-	  (directory-file-name (ede-subproject-relative-path this))
-	  "; $(MAKE)")
+  (insert "\t$(MAKE) -C " (directory-file-name (ede-subproject-relative-path this)))
   (newline)
   (newline)
   )
@@ -510,6 +508,8 @@ Argument THIS is the target that should insert stuff."
 		"\trm -f "
 		(mapconcat (lambda (c) c) junk " ")
 		"\n\n"))
+    ;; @TODO: ^^^ Clean should also recurse. ^^^
+
     (insert ".PHONY: dist\n")
     (insert "\ndist:")
     (ede-proj-makefile-insert-dist-dependencies this)
@@ -546,8 +546,7 @@ Argument THIS is the target that should insert stuff."
     (ede-map-subprojects
      this (lambda (sproj)
 	    (let ((rp (directory-file-name (ede-subproject-relative-path sproj))))
-	      (insert "\tcd " rp
-		      "; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/" rp
+	      (insert "\t$(MAKE) " rp " $(MFLAGS) DISTDIR=$(DISTDIR)/" rp
 		      " dist"
 		      "\n"))))
 
@@ -648,7 +647,7 @@ Argument TARGETS are the targets we should depend on for TAGS."
     ;; Now recurse into all subprojects
     (setq tg (oref this subproj))
     (while tg
-      (insert "\tcd " (ede-subproject-relative-path (car tg)) "; make $(MFLAGS) $@\n")
+      (insert "\t$(MAKE) -C " (ede-subproject-relative-path (car tg)) " $(MFLAGS) $@\n")
       (setq tg (cdr tg)))
     (insert "\n")))
 
