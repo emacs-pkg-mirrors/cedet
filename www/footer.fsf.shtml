@@ -8,10 +8,9 @@
 </td></tr></table>
 
 <table align=right><tr><td>
-<a href="http://www.sourceforge.net">
-<IMG src="http://sourceforge.net/sflogo.php?group_id=14932&type=1"
-     width="88" height="31" border="0" alt="SourceForge Logo">
-</a><br>
+<a href="http://sourceforge.net/projects/cedet">
+<img src="http://sflogo.sourceforge.net/sflogo.php?group_id=17886&type=12" width="120" height="30" border="0" alt="Get CEDET at SourceForge.net." /></a>
+<br>
 <a href="http://sourceforge.net/donate/index.php?group_id=17886">
 <IMG src="http://sourceforge.net/images/x-click-but7.gif"
      width=72 height=29 alt="Donate With Paypal">
