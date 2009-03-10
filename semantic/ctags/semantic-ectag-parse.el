@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.12 2009/03/10 01:01:00 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.13 2009/03/10 01:51:46 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -68,7 +68,7 @@ Convert the output tags into Semantic tags."
       (when (consp semantic-ectag-collect-errors)
 	(insert "\n\nFound the following ctags config errors:\n")
 	(dolist (E semantic-ectag-collect-errors)
-	  (insert "  * " E)))
+	  (insert "  * " E "\n")))
       )
 
     tags)
@@ -86,6 +86,7 @@ Convert the output tags into Semantic tags."
 	 (arg-list (append
 		    xtra
 		    (list
+		     (concat "--language-force=" lang)
 		     "--sort=no"	   ;; Don't resort the names.
 		     "--excmd=number" ;; add line numbers
 		     "--fields=aKStsim" ;; Add extra info
@@ -228,13 +229,14 @@ where TAG is the new tag, P1, P2, and Pn is the list of
 parents running forward, such as namespace/namespace/class"
   (let* ((elements (split-string line "\t"))
 	 (ect-class (nth 3 elements))
-	 (class (intern ect-class))
+	 (class-split (split-string ect-class " " t))
+	 (class (intern (car class-split)))
 	 (prototype nil)
 	 (const nil)
 	 (type nil)
 
 	 (class-sym (cond
-		     ((member class '(function variable label))
+		     ((member class '(function variable label program))
 		      class)
 		     ((eq class 'prototype)
 		      (setq prototype t)
@@ -246,19 +248,26 @@ parents running forward, such as namespace/namespace/class"
 		      'variable)
 		     ((eq class 'include)
 		      'include)
-		     ((eq class 'macro)
+		     ((or (eq class 'macro) (eq class 'define))
 		      (setq const t)
 		      'variable)
 		     ((eq class 'enumerator)
 		      (setq const t)
 		      'variable)
-		     ((eq class 'define)
-		      (setq const t)
+		     ((eq class 'declaration)
+		      'variable)
+		     ((or (eq class 'subroutine) (eq class 'procedure))
+		      ;; @todo - functions (the plural) for pascal?
+		      'function)
+		     ((eq class 'local)
+		      ;; @TODO - local variables??
+		      ;; These get assigned into other tags, and should
+		      ;; be accessed via semantic-get-local-variables
 		      'variable)
 		     (t
 		      (message "CTAG: Unknown output kind %s" class)
 		      (when semantic-ectag-collect-errors
-			(let ((msg (format "Unknown class: %s" class)))
+			(let ((msg (format "Unknown class: %S" class)))
 			  (if (eq semantic-ectag-collect-errors t)
 			      (setq semantic-ectag-collect-errors (list msg))
 			    (add-to-list 'semantic-ectag-collect-errors msg ))))
