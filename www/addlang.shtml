@@ -91,9 +91,10 @@
 
 <h4>Integrate an external parsing tool</h4>
 
-<p>You can also pull in an external tool like Exuberant CTags to parse
-   your files.  This can be handy to bootstrap support for
-   your language.  External parsing tools often have issues where the
+<p>You can also pull in an external tool
+   like <a href="http://ctags.sourceforge.net/">Exuberant CTags</a> to
+   parse your files.  This can be handy to bootstrap support for your
+   language.  External parsing tools often have issues where the
    actual extents of the TAG in your buffer is unknown.  They also
    have problems in that the buffer must be saved before they can
    work.
@@ -106,8 +107,7 @@
 <p>Exuberant CTags is already partially supported by Semantic.
    Extending ECtags support to new languages can be straight forward.
    See the file <tt>cedet/semantic/ctags/semantic-ectag-lang.el</tt>
-   for an example of extended C support, and for born shell script
-   support.
+   for an example of sh script support.
 
 <p>
 <table width=100% class=BAR>
