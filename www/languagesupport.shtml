@@ -22,7 +22,7 @@
     <th>Code Generation</th>
 </tr><tr>
     <td>C/C++</td>
-    <td>LR - Excellent<br>&amp; CTags</td>
+    <td>LL - Excellent<br>&amp; CTags</td>
     <td>Complete</td>
     <td>Make/ Automake/ Makefile.am<br>ede-cpp-root</td>
     <td>Yes</td>
@@ -40,7 +40,7 @@
     <td>Some</td>
 </tr><tr>
     <td>Emacs Lisp</td>
-    <td>LR & `read'</td>
+    <td>LL & `read'</td>
     <td>Yes</td>
     <td>Make</td>
     <td>Yes</td>
@@ -49,7 +49,7 @@
     <td>With Tests</td>
 </tr><tr class=EVEN>
     <td>Make</td>
-    <td>LR</td>
+    <td>LL</td>
     <td>Basic</td>
     <td>N/A</td>
     <td>-</td>
@@ -58,7 +58,7 @@
     <td>EDE Generates makefiles</td>
 </tr><tr>
     <td>Scheme</td>
-    <td>LR</td>
+    <td>LL</td>
     <td>Basic</td>
     <td>Automake</td>
     <td>-</td>
@@ -67,7 +67,7 @@
     <td>-</td>
 </tr><tr class=EVEN>
     <td>Erlang</td>
-    <td>LR</td>
+    <td>LL</td>
     <td>-</td>
     <td>-</td>
     <td>-</td>
