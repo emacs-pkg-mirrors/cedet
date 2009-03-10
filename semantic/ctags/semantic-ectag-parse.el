@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.11 2009/02/16 16:02:04 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.12 2009/03/10 01:01:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -41,6 +41,9 @@
 (defvar semantic-ectag-lang-extra-flags nil
   "Extra flags to pass to Exuberent CTags for a particular language.")
 
+(defvar semantic-ectag-collect-errors nil
+  "When non-nil, collect errors.")
+
 ;;;###autoload
 (defun semantic-ectag-parse-buffer ()
   "Execute Exuberent CTags on this buffer.
@@ -50,17 +53,23 @@ Convert the output tags into Semantic tags."
   (when (not semantic-ectag-lang)
     (error "Exuberent CTag support for Semantic not configured for %s"
 	   major-mode))
-  (let ((start (current-time))
-	(tags
-	 (semantic-ectag-parse-file-with-mode (buffer-file-name) major-mode))
-	(end (current-time)))
+  (let* ((semantic-ectag-collect-errors (interactive-p))
+	 (start (current-time))
+	 (tags
+	  (semantic-ectag-parse-file-with-mode (buffer-file-name) major-mode))
+	 (end (current-time)))
 
     (when (interactive-p)
       (message "Parsed %d tags in %d seconds."
 	       (length tags)
 	       (semantic-elapsed-time start end))
       (data-debug-new-buffer (concat "*" (buffer-name) " ADEBUG*"))
-      (data-debug-insert-tag-list tags "* "))
+      (data-debug-insert-tag-list tags "* ")
+      (when (consp semantic-ectag-collect-errors)
+	(insert "\n\nFound the following ctags config errors:\n")
+	(dolist (E semantic-ectag-collect-errors)
+	  (insert "  * " E)))
+      )
 
     tags)
   )
@@ -105,92 +114,93 @@ Convert the output tags into Semantic tags."
 	)
     (while (not (eobp))
       (let* ((ptag (semantic-ectag-parse-one-tag
-		   (buffer-substring (point) (point-at-eol))))
+		    (buffer-substring (point) (point-at-eol))))
 	     (tag (car ptag))
 	     (parents (cdr ptag))
 	     )
 
-	;; Set some language specific attributes.
-	(semantic-ectag-set-language-attributes tag parents)
+	(when ptag
+	  ;; Set some language specific attributes.
+	  (semantic-ectag-set-language-attributes tag parents)
 
-	;; At this point, we have to guess if TAG is embedded into one
-	;; of the parents in the parent stack.  There are three cases:
-	;;
-	;; 1) Old Lineage - "parent" matches pname exactly.
-	;;    --> embed into the end of the parent tag stack.
-	;; 2) Mixed Lineage - "parent" matches only part of the parent tag stack.
-	;;    --> Find the partial match, reset to there, and
-	;;        then embed the tag into the correct parent.
-	;; 3) New Lineage - "parent" does not match pname at all.
-	;;    --> Start over.
-	;;
-	;; Note that old/mixed/new lineage are a mixture of the same basic
-	;; algorithm to scan the list of known parents to find the match.
-	;;
+	  ;; At this point, we have to guess if TAG is embedded into one
+	  ;; of the parents in the parent stack.  There are three cases:
+	  ;;
+	  ;; 1) Old Lineage - "parent" matches pname exactly.
+	  ;;    --> embed into the end of the parent tag stack.
+	  ;; 2) Mixed Lineage - "parent" matches only part of the parent tag stack.
+	  ;;    --> Find the partial match, reset to there, and
+	  ;;        then embed the tag into the correct parent.
+	  ;; 3) New Lineage - "parent" does not match pname at all.
+	  ;;    --> Start over.
+	  ;;
+	  ;; Note that old/mixed/new lineage are a mixture of the same basic
+	  ;; algorithm to scan the list of known parents to find the match.
+	  ;;
 
-	(if (not parents)
-	    (progn
-	      ;; Push the tag into our list.
-	      (push tag tags)
+	  (if (not parents)
+	      (progn
+		;; Push the tag into our list.
+		(push tag tags)
 
-	      (if (semantic-tag-of-class-p tag 'type)
-		  ;; Merge stacks, and also
-		  (setq ptag-stack (list tag)
-			pname (list (semantic-tag-name tag)))
-		;; Flush embedded parantage
-		(setq ptag-stack nil
-		      pname nil))
-	      )
-
-	  ;; If we have parents, lets look them up.
-	  (let ((oldnames pname)
-		(newnames parents)
-		(oldstack ptag-stack)
-		(newstack nil)
-		(add-to-this-parent nil)
-		(pushed-parent-list nil)
+		(if (semantic-tag-of-class-p tag 'type)
+		    ;; Merge stacks, and also
+		    (setq ptag-stack (list tag)
+			  pname (list (semantic-tag-name tag)))
+		  ;; Flush embedded parantage
+		  (setq ptag-stack nil
+			pname nil))
 		)
-	    (while (and oldstack (string= (car oldnames) (car newnames)))
-	      (setq newstack (cons (car oldstack) newstack)
-		    oldstack (cdr oldstack)
-		    oldnames (cdr oldnames)
-		    newnames (cdr newnames)))
 
-	    ;; Push this tag into the last parent we found.
-	    (setq add-to-this-parent (car newstack))
-	    (setq pushed-parent-list newnames)
-
-	    ;; Do special stuff with type tags.
-	    (when (semantic-tag-of-class-p tag 'type)
-	      ;; Fill in the intermediate stack with NIL.
-	      (while newnames
-		(setq newnames (cdr newnames)
-		      newstack (cons nil newstack)))
-	      ;; Add TAG to the end for matching the next tag in
-	      ;; the list.
-	      (setq newstack (cons tag newstack)))
-
-	    ;; Set back into ptag-stack.
-	    (setq ptag-stack (nreverse newstack))
-	    
-	    ;; Fix up the name list too
-	    (if (semantic-tag-of-class-p tag 'type)
-		(setq pname (append parents (list (semantic-tag-name tag))))
-	      (setq pname parents))
-
-	    ;; Set the lineage of the new tag.
-	    (if (not add-to-this-parent)
-		;; No parent to add to.
-		(progn
-		  (push tag tags)
-		  (semantic-ectag-add-parent tag parents)
+	    ;; If we have parents, lets look them up.
+	    (let ((oldnames pname)
+		  (newnames parents)
+		  (oldstack ptag-stack)
+		  (newstack nil)
+		  (add-to-this-parent nil)
+		  (pushed-parent-list nil)
 		  )
-	      ;; Add TAG to the correct parent, and save name
-	      (semantic-ectag-add-child add-to-this-parent tag)
-	      (semantic-ectag-add-parent tag pushed-parent-list)
+	      (while (and oldstack (string= (car oldnames) (car newnames)))
+		(setq newstack (cons (car oldstack) newstack)
+		      oldstack (cdr oldstack)
+		      oldnames (cdr oldnames)
+		      newnames (cdr newnames)))
+
+	      ;; Push this tag into the last parent we found.
+	      (setq add-to-this-parent (car newstack))
+	      (setq pushed-parent-list newnames)
+
+	      ;; Do special stuff with type tags.
+	      (when (semantic-tag-of-class-p tag 'type)
+		;; Fill in the intermediate stack with NIL.
+		(while newnames
+		  (setq newnames (cdr newnames)
+			newstack (cons nil newstack)))
+		;; Add TAG to the end for matching the next tag in
+		;; the list.
+		(setq newstack (cons tag newstack)))
+
+	      ;; Set back into ptag-stack.
+	      (setq ptag-stack (nreverse newstack))
+	    
+	      ;; Fix up the name list too
+	      (if (semantic-tag-of-class-p tag 'type)
+		  (setq pname (append parents (list (semantic-tag-name tag))))
+		(setq pname parents))
+
+	      ;; Set the lineage of the new tag.
+	      (if (not add-to-this-parent)
+		  ;; No parent to add to.
+		  (progn
+		    (push tag tags)
+		    (semantic-ectag-add-parent tag parents)
+		    )
+		;; Add TAG to the correct parent, and save name
+		(semantic-ectag-add-child add-to-this-parent tag)
+		(semantic-ectag-add-parent tag pushed-parent-list)
+		)
 	      )
-	    )
-	  )
+	    ))
       
 	(end-of-line)
 	(condition-case nil (forward-char 1) (error nil))))
@@ -224,7 +234,7 @@ parents running forward, such as namespace/namespace/class"
 	 (type nil)
 
 	 (class-sym (cond
-		     ((member class '(function variable))
+		     ((member class '(function variable label))
 		      class)
 		     ((eq class 'prototype)
 		      (setq prototype t)
@@ -242,8 +252,18 @@ parents running forward, such as namespace/namespace/class"
 		     ((eq class 'enumerator)
 		      (setq const t)
 		      'variable)
+		     ((eq class 'define)
+		      (setq const t)
+		      'variable)
 		     (t
-		      (error "Unknown ctag output kind %s" class))))
+		      (message "CTAG: Unknown output kind %s" class)
+		      (when semantic-ectag-collect-errors
+			(let ((msg (format "Unknown class: %s" class)))
+			  (if (eq semantic-ectag-collect-errors t)
+			      (setq semantic-ectag-collect-errors (list msg))
+			    (add-to-list 'semantic-ectag-collect-errors msg ))))
+		      'unknown
+		      )))
 
 	 (attr (semantic-ectag-split-fields (nthcdr 4 elements)))
 	 (line (string-to-number (nth 2 elements)))
@@ -259,19 +279,23 @@ parents running forward, such as namespace/namespace/class"
 			    ))
 	 (parents nil)
 	 )
-    (while attr
-      ;; Loop over each attribute, adding it into the tag.
-      (cond ((eq (car attr) :parent)
-	     (setq parents (semantic-analyze-split-name (car (cdr attr))))
-	     (when (stringp parents)
-	       (setq parents (list parents))))
-	    (t
-	     (semantic-tag-put-attribute tag (car attr) (car (cdr attr)))))
-      (setq attr (cdr (cdr attr)))
-      )
-    ;; Now return the new tag.
-    (cons tag parents)
-    ))
+    (if (eq class-sym 'unknown)
+	;; Unknown type.. let it through nicely.
+	nil
+      ;; Else, keep parsing.
+      (while attr
+	;; Loop over each attribute, adding it into the tag.
+	(cond ((eq (car attr) :parent)
+	       (setq parents (semantic-analyze-split-name (car (cdr attr))))
+	       (when (stringp parents)
+		 (setq parents (list parents))))
+	      (t
+	       (semantic-tag-put-attribute tag (car attr) (car (cdr attr)))))
+	(setq attr (cdr (cdr attr)))
+	)
+      ;; Now return the new tag.
+      (cons tag parents)
+      )))
 
 (defun semantic-ectag-split-fields (fields)
   "Convert FIELDS into a list of Semantic tag attributes."
