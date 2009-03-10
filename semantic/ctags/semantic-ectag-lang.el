@@ -1,9 +1,9 @@
 ;;; semantic-ectag-lang.el --- Exuberent Ctags per-language support
 
-;; Copyright (C) 2008 Eric M. Ludlam
+;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-lang.el,v 1.7 2008/12/10 22:11:47 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-lang.el,v 1.8 2009/03/10 00:34:19 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -28,105 +28,46 @@
 ;;  * Specification of tag 'kind' to get
 ;;  * Signature parsing.
 
-;;; Code:
 (require 'semantic-fw)
 (require 'semantic-ectag-parse)
 
-;;; C/C++ Mode
-;;
-(defvar-mode-local c-mode semantic-ectag-lang "c"
-  "Language name for Exuberent CTags.")
-
-(defvar-mode-local c++-mode semantic-ectag-lang "c++"
-  "Language name for Exuberent CTags.")
-
-(defvar-mode-local c-mode semantic-ectag-lang-kind "cdegmnpsufvt"
-  "Kinds of Exuberent CTags available.")
-
-(defvar-mode-local c-mode semantic-ectag-lang-extra-flags
-  '("--regex-c=/^[ \t]*#[ \t]*include[ \t]*[<\"]([\\/a-zA-Z0-9_.-]+)[>\"]/\\1/i,include/"
-    "--regex-c++=/^[ \t]*#[ \t]*include[ \t]*[<\"]([\\/a-zA-Z0-9_.-]+)[>\"]/\\1/i,include/")
-  "Add support for include files.
-Support C and C++ when in c-mode, because emacs and ctags sometimes dissagree
-on the major mode.")
-
-(define-mode-local-override
-  semantic-ectag-split-signature-summary c-mode (summary)
-  "Convert the SUMMARY of function arguments into a list of tags.
-These tags can be used as the argument list for a C function."
-  (let* ((split (semantic-ectag-split-signature-summary-default summary))
-	 (arg nil) (args nil))
-    (dolist (S split)
-      (setq arg
-	    (cond
-	     ((string-match
-	       "^\\(struct\\|enum\\|union\\)\\s-+\\(\\w+\\)$" S)
-	      ;; Two words, but first is "CLASS" or something.
-	      (semantic-tag-new-variable
-	       ""
-	       (semantic-tag-new-type 
-		(match-string 2 S)
-		(match-string 1 S) nil nil)))
-	     ((string-match
-	       "^\\(struct\\|enum\\|union\\)\\s-+\\(\\w+\\)\\s-+\\(\\w+\\)$" S)
-	      ;; Three words, first is "CLASS" or something.
-	      (semantic-tag-new-variable
-	       (match-string 3 S)
-	       (semantic-tag-new-type 
-		(match-string 2 S)
-		(match-string 1 S) nil nil)))
-	     ((string-match "^\\(\\w+\\)\\s-+\\(\\w+\\)$" S)
-	      ;; Two words, a simple type and name.
-	      (semantic-tag-new-variable
-	       (match-string 2 S)
-	       (match-string 1 S)))
-	     ((string-match "^\\(\\w+\\)$" S)
-	      ;; Only one word is a simple type.
-	      (semantic-tag-new-variable
-	       "" 
-	       (match-string 1 S)))
-	     ))
-      (setq args (cons arg args))
-      )
-    (nreverse args)))
-
-(define-mode-local-override
-  semantic-ectag-set-language-attributes c-mode (tag parents)
-  "Set some C specific attributs in TAG.
-Uses PARENTS to determine if it is a constructor or destructor."
-  (let ((lastname (car (reverse parents)))
-	(name (semantic-tag-name tag))
-	)
-    (when (string= lastname name)
-      (semantic-tag-put-attribute tag :constructor-flag t))
-    (when (string= (concat "~" lastname) name)
-      (setcar tag lastname)
-      (semantic-tag-put-attribute tag :destructor-flag t))
-    ))
-
-;;; Emacs Lisp Mode
-;;
-(defvar-mode-local emacs-lisp-mode semantic-ectag-lang "lisp"
-  "Language name for Exuberent CTags.")
-
-(defvar-mode-local emacs-lisp-mode semantic-ectag-lang-kind "f"
-  "Kinds of Exuberent CTags available.")
-
-;;; SH Script mode
-;;
-(defvar-mode-local sh-mode semantic-ectag-lang "sh"
-  "Language name for Exuberent CTags.")
-
-(defvar-mode-local sh-mode semantic-ectag-lang-kind "f"
-  "Kinds of Exuberent CTags available.")
-
-;;;###autoload
-(defun semantic-default-sh-setup ()
-  "Set up a buffer for Semantic parsing for SH language using CTags."
+;;; Code:
+(defun semantic-ectag-simple-setup ()
+  "Default way to add exuberent ctags support in a language hook.
+Any mode that has `semantic-ectag-lang' and `semantic-ectag-lang-kind'
+can be support with this simple setup."
   (semantic-ectag-setup-parse-table)
-  (setq imenu-create-index-function 'semantic-create-imenu-index
-	)
-  )
+  (setq imenu-create-index-function 'semantic-create-imenu-index))
+
+(defmacro semantic-ectag-add-languge-support (mode name kinds)
+  "Add simple language support via exuberent ctags.
+MODE is the mode to support.
+NAME is the exuberent ctags language name.
+KINDS are the kinds of tags to generate from exuberent ctags."
+  `(progn
+       (defvar-mode-local ,mode semantic-ectag-lang ,name
+	 "Language name for Exuberent CTags.")
+       (defvar-mode-local ,mode semantic-ectag-lang-kind ,kinds
+	 "Kinds of Exuberent CTags available.")))
+
+;;; MODE SUPPORT
+;;
+(semantic-ectag-add-languge-support sh-mode "sh" "f")
+(semantic-ectag-add-languge-support asm-mode "asm" "dlmt")
+;(semantic-ectag-add-languge-support asp-mode "asp" "cfsv")
+;(semantic-ectag-add-languge-support awk-mode "awk" "f")
+(semantic-ectag-add-languge-support basic-mode "basic" "cfltvg")
+(semantic-ectag-add-languge-support cobol-mode "cobol" "dfgpPs")
+;(semantic-ectag-add-languge-support eiffel-mode "eiffel" "cfl")
+(semantic-ectag-add-languge-support fortran-mode "fortran" "bcefiklLmnpstv")
+(semantic-ectag-add-languge-support lua-mode "lua" "f")
+(semantic-ectag-add-languge-support pascal-mode "pascal" "fp")
+(semantic-ectag-add-languge-support perl-mode "perl" "cflpsd")
+(semantic-ectag-add-languge-support rexx-mode "rexx" "s")
+;(semantic-ectag-add-languge-support sql-mode "sql" "s")
+(semantic-ectag-add-languge-support tcl-mode "tcl" "cmp")
+(semantic-ectag-add-languge-support vera-mode "vera" "cdfgmPTv")
+(semantic-ectag-add-languge-support verilog-mode "verilog" "cfm")
 
 ;;; BUFFER PARSING HOOKS
 ;;
@@ -135,23 +76,32 @@ Uses PARENTS to determine if it is a constructor or destructor."
 ;; fcn instead.
 
 ;;;###autoload
-(defun semantic-load-enable-all-exuberent-ctags-support ()
-  "Enable all ectag supported backend support features.
-This includes:
-  * semanticdb backend support 
-  * buffer parsing using ectags for somoe modes.
-
-Any mode that has been tested to work will be added to this function."
+(defun semantic-load-enable-primary-exuberent-ctags-support ()
+  "Enable all ectag supported parsers for new languages.
+This is support for any langauge that does not have a regular
+semantic parser."
   (interactive)
 
   ;; Make sure that the version of ctags installed will work.
   (semantic-ectag-test-version)
 
-  ;; Semanticdb backend support only.
-  (semanticdb-enable-exuberent-ctags 'c-mode)
-
   ;; Mode Hooks for enabling parsing with ectag as the main parser.
-  (add-hook 'sh-mode-hook 'semantic-default-sh-setup)
+  (add-hook 'sh-mode-hook 'semantic-ectag-simple-setup)
+
+  ;; Support for the following is untested.  Once tested, move up
+  ;; to the tested section.
+  ;;(add-hook 'asm-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'basic-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'cobol-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'fortran-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'lua-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'pascal-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'perl-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'rexx-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'tcl-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'vera-mode-hook 'semantic-ectag-simple-setup)
+  ;;(add-hook 'verilog-mode-hook 'semantic-ectag-simple-setup)
+
   )
 
 (provide 'semantic-ectag-lang)
