@@ -111,10 +111,8 @@
   ;; Do a EDE GNUstep-Make Project
   (make-directory (concat cedet-integ-target "_ede_GSMake") t)
   (find-file (expand-file-name "README" (concat cedet-integ-target "_ede_GSMake"))) ;; only to change dir
-  (setq oldval ede-auto-add-method
-	ede-auto-add-method 'always)
-  (cit-ede-step-test)
-  (setq ede-auto-add-method oldval)
+  (let ((ede-auto-add-method 'always))
+    (cit-ede-step-test))
 
   ;; Leave a message
   (let ((b (set-buffer (get-buffer-create "*PASSED*"))))
@@ -240,7 +238,7 @@ are found, but don't error if they are not their."
        ))
 
     (setq actual (cdr actual))
-    ))
+    )
 
 (defun cit-compile-and-wait ()
   "Compile our current project, but wait for it to finish."
