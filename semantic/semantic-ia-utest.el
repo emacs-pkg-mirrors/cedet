@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.25 2009/03/03 12:13:50 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.26 2009/03/12 22:48:49 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -73,6 +73,11 @@ Argument ARG specifies which set of tests to run.
 
       (while fl
 
+	;; Make sure we have the files we think we have.
+	(when (not (file-exists-p (car fl)))
+	  (error "Cannot find unit test file: %s" (car fl)))
+
+	;; Run the tests.
 	(let ((fb (find-buffer-visiting (car fl)))
 	      (b (semantic-find-file-noselect (car fl) t)))
 
