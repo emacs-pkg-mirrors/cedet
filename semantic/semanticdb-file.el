@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.41 2009/02/05 01:26:27 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.42 2009/03/13 02:07:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -297,7 +297,11 @@ Argument OBJ is the object to write."
       )
     
     ;; Do it!
-    (call-next-method)
+    (condition-case tableerror
+	(call-next-method)
+      (error 
+       (message "Error Writing Table: %s" (object-name obj))
+       (error "%S" (car (cdr foo)))))
 
     ;; Clear the dirty bit.
     (oset obj dirty nil)
