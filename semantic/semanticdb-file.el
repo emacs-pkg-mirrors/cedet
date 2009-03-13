@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.43 2009/03/13 02:12:11 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.44 2009/03/13 02:13:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -307,7 +307,8 @@ Argument OBJ is the object to write."
       (error 
        (when semanticdb-data-debug-on-write-error
 	 (data-debug-new-buffer (concat "*SEMANTICDB ERROR*"))
-	 (data-debug-insert-thing obj "*" ""))
+	 (data-debug-insert-thing obj "*" "")
+	 (setq semanticdb-data-debug-on-write-error nil))
        (message "Error Writing Table: %s" (object-name obj))
        (error "%S" (car (cdr tableerror)))))
     
