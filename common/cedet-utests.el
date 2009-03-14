@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.15 2009/03/14 14:30:27 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.16 2009/03/14 15:17:44 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -180,6 +180,10 @@ of just logging the error."
 	      ;; first time.
 	      (setq-default semanticdb-new-database-class 'semanticdb-project-database)
 	      (message "Disabling existing Semantic Database Caches.")
+
+	      ;; Disabling the srecoder map, we won't load a pre-existing one
+	      ;; and will be forced to bootstrap a new one.
+	      (setq srecode-map-save-file nil)
 
 	      ;; Run the tests
 	      (cedet-utest t)
