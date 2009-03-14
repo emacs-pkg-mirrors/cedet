@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.106 2009/03/05 03:15:03 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.107 2009/03/14 15:18:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,18 +101,32 @@ NOTE: In process of obsoleting this."
      )
   "List of symbols to include by default.")
 
+(defvar semantic-c-in-reset-preprocessor-table nil
+  "Non-nil while resetting the preprocessor symbol map.
+Used to prevent a reset while trying to parse files that are
+part of the preprocessor map.")
+
 (defun semantic-c-reset-preprocessor-symbol-map ()
   "Reset the C preprocessor symbol map based on all input variables."
-  (let ((filemap nil))
-    (dolist (sf semantic-lex-c-preprocessor-symbol-file)
-      ;; Global map entries
-      (let* ((table (semanticdb-file-table-object sf)))
-	(when table
-	  (when (semanticdb-needs-refresh-p table)
-	    (semanticdb-refresh-table table))
-	  (setq filemap (append filemap (oref table lexical-table)))
-	  )
-	))
+  (let ((filemap nil)
+	)
+    (when (and (not semantic-c-in-reset-preprocessor-table)
+	       (featurep 'semanticdb-mode)
+	       (semanticdb-minor-mode-p))
+      (let ( ;; Don't use external parsers.  We need the internal one.
+	    (semanticdb-out-of-buffer-create-table-fcn nil)
+	    ;; Don't recurse while parsing these files the first time.
+	    (semantic-c-in-reset-preprocessor-table t)
+	    )
+	(dolist (sf semantic-lex-c-preprocessor-symbol-file)
+	  ;; Global map entries
+	  (let* ((table (semanticdb-file-table-object sf)))
+	    (when table
+	      (when (semanticdb-needs-refresh-p table)
+		(semanticdb-refresh-table table))
+	      (setq filemap (append filemap (oref table lexical-table)))
+	      )
+	    ))))
 
     (setq-mode-local c-mode
 		     semantic-lex-spp-macro-symbol-obarray
