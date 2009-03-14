@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.13 2009/03/06 11:55:15 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.14 2009/03/14 13:19:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -273,7 +273,8 @@ ERRORCONDITION is some error that may have occured durinig testing."
   (unless (cedet-utest-noninteractive)
     (let* ((cb (current-buffer))
 	   (cf (selected-frame))
-	   (bw (get-buffer-window cedet-utest-buffer t))
+	   (bw (or (get-buffer-window cedet-utest-buffer t)
+		   (get-buffer-window (switch-to-buffer cedet-utest-buffer) t)))
 	   (lf (window-frame bw))
 	   )
       (select-frame lf)
