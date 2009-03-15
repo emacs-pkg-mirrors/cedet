@@ -63,4 +63,8 @@ int foo;
 /* TEST: macros with args using macros */
 int noodle(int noodle);
 
+/* TEST: Double macro using the argument stack. */
+int that_foo(int i);
+int this_foo(int i);
+
 /* End */
