@@ -94,4 +94,12 @@ mf_declare;
 
 mf_Amacro(noodle);
 
+/* TEST: Double macro using the argument stack. */
+#define MACRO0(name) int that_ ## name(int i);
+#define MACRO1(name) int this_ ## name(int i);
+#define MACRO2(name) MACRO0(name) MACRO1(name)
+
+MACRO2(foo)
+
+
 /* END */
