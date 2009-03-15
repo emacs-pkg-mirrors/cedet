@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.37 2009/03/03 23:43:31 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.38 2009/03/15 02:49:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -91,6 +91,10 @@ tokens during lexical analysis.  During analysis symbols can be
 added and removed from this symbol table.")
 (make-variable-buffer-local 'semantic-lex-spp-dynamic-macro-symbol-obarray)
 
+(defvar semantic-lex-spp-dynamic-macro-symbol-obarray-stack nil
+  "A stack of obarrays for temporarilly scoped macro values.")
+(make-variable-buffer-local 'semantic-lex-spp-dynamic-macro-symbol-obarray-stack)
+
 ;;; MACRO TABLE UTILS
 ;;
 ;; The dynamic macro table is a buffer local variable that is modified
@@ -129,6 +133,12 @@ The searcy priority is:
       (setq semantic-lex-spp-dynamic-macro-symbol-obarray
 	    (make-vector 13 0))))
 
+(defsubst semantic-lex-spp-dynamic-map-stack ()
+  "Return the dynamic macro map for the current buffer."
+  (or semantic-lex-spp-dynamic-macro-symbol-obarray-stack
+      (setq semantic-lex-spp-dynamic-macro-symbol-obarray-stack
+	    (make-vector 13 0))))
+
 (defun semantic-lex-spp-symbol-set (name value &optional obarray-in)
   "Set value of spp symbol with NAME to VALUE and return VALUE.
 If optional OBARRAY-IN is non-nil, then use that obarray instead of
@@ -144,6 +154,43 @@ If optional OBARRAY is non-nil, then use that obarray instead of
 the dynamic map."
   (unintern name (or obarray
 		     (semantic-lex-spp-dynamic-map))))
+
+(defun semantic-lex-spp-symbol-push (name value)
+  "Push macro NAME with VALUE into the map.
+Reverse with `semantic-lex-spp-symbol-pop'."
+  (let* ((map (semantic-lex-spp-dynamic-map))
+	 (stack (semantic-lex-spp-dynamic-map-stack))
+	 (mapsym (intern name map))
+	 (stacksym (intern name stack))
+	 (mapvalue (when (boundp mapsym) (symbol-value mapsym)))
+	 )
+    (when (boundp mapsym)
+      ;; Make sure there is a stack
+      (if (not (boundp stacksym)) (set stacksym nil))
+      ;; If there is a value to push, then push it.
+      (set stacksym (cons mapvalue (symbol-value stacksym)))
+      )
+    ;; Set our new value here.
+    (set mapsym value)
+    ))
+
+(defun semantic-lex-spp-symbol-pop (name)
+  "Pop macro NAME from the stackmap into the orig map.
+Reverse with `semantic-lex-spp-symbol-pop'."
+  (let* ((map (semantic-lex-spp-dynamic-map))
+	 (stack (semantic-lex-spp-dynamic-map-stack))
+	 (mapsym (intern name map))
+	 (stacksym (intern name stack))
+	 (oldvalue nil)
+	 )
+    (if (or (not (boundp stacksym) )
+	    (= (length (symbol-value stacksym)) 0))
+	;; Nothing to pop, remove it.
+	(unintern name map)
+      ;; If there is a value to pop, then add it to the map.
+      (set mapsym (car (symbol-value stacksym)))
+      (set stacksym (cdr (symbol-value stacksym)))
+      )))
 
 (defsubst semantic-lex-spp-symbol-stream (name)
   "Return replacement stream of macro with NAME."
@@ -217,9 +264,10 @@ For use with semanticdb restoration of state."
 In this case, reset the dynamic macro symbol table if
 START is (point-min).
 END is not used."
-  (if (= start (point-min))
-      (setq semantic-lex-spp-dynamic-macro-symbol-obarray nil))
-  )
+  (when (= start (point-min))
+    (setq semantic-lex-spp-dynamic-macro-symbol-obarray nil
+	  semantic-lex-spp-dynamic-macro-symbol-obarray-stack nil)
+    ))
 
 ;;; MACRO EXPANSION: Simple cases
 ;;
@@ -413,9 +461,11 @@ and what valid VAL values are."
       ;; Push args into the replacement list.
       (let ((AV argvalues))
 	(dolist (A arglist)
-	  (semantic-lex-spp-symbol-set A (car AV))
-	  (setq argalist (cons (cons A (car AV)) argalist))
-	  (setq AV (cdr AV))))
+	  (let* ((argval (car AV)))
+
+	    (semantic-lex-spp-symbol-push A argval)
+	    (setq argalist (cons (cons A argval) argalist))
+	    (setq AV (cdr AV)))))
       )
 
     ;; Set val-tmp after stripping arguments.
@@ -503,7 +553,7 @@ and what valid VAL values are."
     ;; CASE 2: The arg list we pushed onto the symbol table
     ;;         must now be removed.
     (dolist (A arglist)
-      (semantic-lex-spp-symbol-remove A))
+      (semantic-lex-spp-symbol-pop A))
     ))
 
 ;;; Macro Merging
