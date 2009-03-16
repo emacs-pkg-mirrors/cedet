@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.14 2009/03/16 09:35:04 ottalex Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.15 2009/03/16 09:39:08 ottalex Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -53,28 +53,26 @@ Convert the output tags into Semantic tags."
   (when (not semantic-ectag-lang)
     (error "Exuberent CTag support for Semantic not configured for %s"
            major-mode))
-  ;; TODO: make proper detection of local file name, and use it to process file
-  (when (not (file-remote-p (buffer-file-name)))
-    (let* ((semantic-ectag-collect-errors (interactive-p))
-           (start (current-time))
-           (tags
-            (semantic-ectag-parse-file-with-mode (buffer-file-name) major-mode))
-           (end (current-time)))
+  (let* ((semantic-ectag-collect-errors (interactive-p))
+         (start (current-time))
+         (tags
+          (semantic-ectag-parse-file-with-mode (buffer-file-name) major-mode))
+         (end (current-time)))
 
-      (when (interactive-p)
-        (message "Parsed %d tags in %d seconds."
-                 (length tags)
-                 (semantic-elapsed-time start end))
-        (data-debug-new-buffer (concat "*" (buffer-name) " ADEBUG*"))
-        (data-debug-insert-tag-list tags "* ")
-        (when (consp semantic-ectag-collect-errors)
-          (insert "\n\nFound the following ctags config errors:\n")
-          (dolist (E semantic-ectag-collect-errors)
-            (insert "  * " E "\n")))
-        )
+    (when (interactive-p)
+      (message "Parsed %d tags in %d seconds."
+               (length tags)
+               (semantic-elapsed-time start end))
+      (data-debug-new-buffer (concat "*" (buffer-name) " ADEBUG*"))
+      (data-debug-insert-tag-list tags "* ")
+      (when (consp semantic-ectag-collect-errors)
+        (insert "\n\nFound the following ctags config errors:\n")
+        (dolist (E semantic-ectag-collect-errors)
+          (insert "  * " E "\n")))
+      )
 
-      tags)
-    ))
+    tags)
+  )
 
 (defun semantic-ectag-parse-file-with-mode (filename mode)
   "Execute Exuberent CTags on FILENAME using major mode MODE settings."
