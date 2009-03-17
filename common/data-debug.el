@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.16 2009/02/11 01:11:42 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.17 2009/03/17 00:49:59 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -442,6 +442,57 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
 	    "\n"))
   )
 
+;;; Widget
+;;
+;; Widgets have a long list of properties
+;;;###autoload
+(defun data-debug-insert-widget-properties (widget prefix)
+  "Insert the contents of WIDGET inserting PREFIX before each element."
+  (let ((type (car widget))
+	(rest (cdr widget)))
+    (while rest
+      (data-debug-insert-thing (car (cdr rest))
+			       prefix
+			       (concat
+				(dd-propertize (format "%s" (car rest))
+					       'face font-lock-comment-face)
+				" : "))
+      (setq rest (cdr (cdr rest))))
+    ))
+
+(defun data-debug-insert-widget-from-point (point)
+  "Insert the contents of the widget button at POINT."
+  (let ((widget (get-text-property point 'ddebug))
+	(indent (get-text-property point 'ddebug-indent))
+	start)
+    (end-of-line)
+    (setq start (point))
+    (forward-char 1)
+    (data-debug-insert-widget-properties
+     widget (concat (make-string indent ? ) "# "))
+    (goto-char start))
+  )
+
+(defun data-debug-insert-widget (widget prefix prebuttontext)
+  "Insert one WIDGET.
+A Symbol is a simple thing, but this provides some face and prefix rules.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the thing."
+  (let ((string (dd-propertize (format "#<WIDGET %s>" (car widget))
+			       'face 'font-lock-keyword-face)))
+    (insert (dd-propertize
+	     (concat prefix prebuttontext string)
+	     'ddebug        widget
+	     'ddebug-indent (length prefix)
+	     'ddebug-prefix prefix
+	     'help-echo
+	     (format "Widget\nType: %s\n# Properties: %d"
+		     (car widget)
+		     (/ (1- (length widget)) 2))
+	     'ddebug-function
+	     'data-debug-insert-widget-from-point)
+	    "\n")))
+
 ;;; list of stuff
 ;;
 ;; just a list.  random stuff inside.
@@ -581,7 +632,7 @@ PREBUTTONTEXT is some text between prefix and the thing."
 
 ;;; Lambda Expression
 (defun data-debug-insert-lambda-expression (thing prefix prebuttontext)
-  "Insert one symbol THING.
+  "Insert one lambda expression THING.
 A Symbol is a simple thing, but this provides some face and prefix rules.
 PREFIX is the text that preceeds the button.
 PREBUTTONTEXT is some text between prefix and the thing."
@@ -678,6 +729,9 @@ FACE is the face to use."
 
     ;; Hash-table
     (hash-table-p . data-debug-insert-hash-table-button)
+
+    ;; Widgets
+    (widgetp . data-debug-insert-widget)
      
     ;; List of stuff
     (listp . data-debug-insert-stuff-list-button)
