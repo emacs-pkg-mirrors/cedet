@@ -6,7 +6,7 @@
 <tr><td><h2><font color=black>Symbol References</font></h2></td></tr>
 </table>
 
-<p><img src="img-gen/symref.jpg" border=1 align=right> 
+<p><img src="img-gen/symref.png" border=1 align=right> 
    
    <b>CEDET</b> can Analyze where symbols are referenced in your code
    base.  The Symbol References tool in <b>CEDET</b> can use external

@@ -101,7 +101,7 @@
 
 <h4>Symbol References</h4>
 
-<p><img src="img-gen/symref.jpg" border=1 align=right>Analyze
+<p><img src="img-gen/symref.png" border=1 align=right>Analyze
    where <a href="symref.shtml">symbols are referenced</a> in your
    code base.  The Symbol References tool in <b>CEDET</b> can use
    external tools such as GNU Global, ID Utils, CScope, or even
@@ -158,8 +158,8 @@
 <h4>Advanced Code Browsing</h4>
 
 <p><a href="http://ecb.sf.net">
-   <img src="http://ecb.sourceforge.net/screenshots/1.png" border=0
-	align=right width=50% height=50%></a> With the <b>CEDET</b>
+   <img src="img-gen/ecb.png" border=0
+	align=right width="500" height="335"></a> With the <b>CEDET</b>
    parsing backend, advanced code browsing tools
    like <a href="http://ecb.sf.net"><b>ECB</b></a> can be
    used.  <b>ECB</b>, or the <em>Emacs Code Browser</em> provides an
@@ -185,7 +185,7 @@
 <br clear=all>
 <h4>Install and Configure CEDET</h4>
 
-<p><img src="img-gen/setup.jpg" border=1
+<p><img src="img-gen/setup.png" border=1
    align=right><a href="setup.shtml">Setting up a tool as large and
    complex as <b>CEDET</b></a> can seem daunting.  Fortunately, a
    minimal <b>CEDET</b> initialization can take up only a couple lines

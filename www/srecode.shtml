@@ -7,7 +7,7 @@
 <td><font color=black>"Template Manager and autormatic Code Authoring system."</font></td></tr>
 </table>
 
-<P><img src="img-gen/srecode-cpp-template.jpg" align=right border=1>
+<P><img src="img-gen/srecode-cpp-template.png" align=right border=1>
   SRecode is an infrastructure for managing Emacs based templates
   which, in turn, are used to write code, possibly based off
   of <a href="semantic.shtml">Semantic</a> generated tags.

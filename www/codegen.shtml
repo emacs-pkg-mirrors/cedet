@@ -92,7 +92,7 @@
 <h3>Overriding Templates</h3>
 </td></tr></table>
 
-<p><img src="img-gen/srecode-cpp-template.jpg" align=right border=1>
+<p><img src="img-gen/srecode-cpp-template.png" align=right border=1>
 
    Every development project is different.  The default code
    generating templates won't fit everyone's code.  As a user, you can
