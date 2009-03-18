@@ -175,10 +175,8 @@
 <li> and many others
 </ul>
 
-<p>The <a href="http://ecb.sf.net"><b>ECB</b></a> image on the right
-   shows a sample of <b>ECB</b> from
-   the <a href="http://ecb.sourceforge.net/screenshots/index.html">ECB
-   screenshots area</a> on SourceForge.  <b>ECB</b> is NOT a part
+<p>The <a href="http://ecb.sf.net"><b>ECB</b></a> image on the right shows a sample
+   of <b>ECB</b> (<a href="img-gen/ecb.png">in full size</a>).  <b>ECB</b> is NOT a part
    of <b>CEDET</b>, and must be downloaded and installed seperately.
 
 </p>
