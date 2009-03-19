@@ -13,7 +13,7 @@ symref_LISP=semantic-symref.el semantic-symref-global.el semantic-symref-grep.el
 EMACS=emacs
 EMACSFLAGS=-batch --no-site-file
 LOADPATH= ../../speedbar/ ../../ede/ ../../common/ ../bovine/ ../ ../../eieio/
-VERSION=2.0pre6
+VERSION=2.0pre7
 DISTDIR=$(top)semantic-$(VERSION)/symref
 
 
