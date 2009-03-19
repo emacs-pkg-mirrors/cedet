@@ -28,7 +28,7 @@ misc_MISC=INSTALL ChangeLog
 hacks_LISP=picture-hack.el
 COGRE_LISP=cogre.el cogre-uml.el uml-create.el
 tests_LISP=cogre-utest.el
-VERSION=0.7
+VERSION=0.8
 DISTDIR=$(top)COGRE-$(VERSION)
 
 
