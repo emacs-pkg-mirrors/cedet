@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.22 2009/01/09 23:08:46 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.23 2009/03/21 20:13:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -81,6 +81,7 @@ list of possible completions."
   "Create buttons in speedbar which define the current analysis at POINT.
 DIRECTORY is the current directory, which is ignored, and ZERO is 0."
   (let ((analysis nil)
+	(scope nil)
 	(buffer nil)
 	(completions nil)
 	(cf (selected-frame))
@@ -94,8 +95,9 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
 	  (setq buffer (current-buffer))
 	  (setq mode-local-active-mode major-mode)
 	  (save-excursion
-	    ;; We usd to cache the last analysis, but the analyzer
-	    ;; now has a newer and improved analysis cache system.
+	    ;; Get the current scope
+	    (setq scope (semantic-calculate-scope (point)))
+	    ;; Get the analysis
 	    (setq analysis (semantic-analyze-current-context (point)))
 	    (setq cnt (semantic-find-tag-by-overlay))
 	    (when analysis
@@ -112,19 +114,21 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
     (speedbar-make-tag-line 'bracket ?  nil nil
 			    (buffer-name buffer)
 			    nil nil 'speedbar-file-face 0)
+
+    (when cnt
+      (semantic-ia-sb-string-list cnt
+				  'speedbar-tag-face
+				  'semantic-sb-token-jump))
     (when analysis
-      ;; Now insert information about the context
-      ;;     (insert "Context:\n")
-      ;;     (speedbar-insert-button (object-name-string analysis)
-      ;; 			    'speedbar-tag-face
-      ;; 			    nil nil nil nil)
-      (when cnt
-	(semantic-ia-sb-string-list cnt
-				    'speedbar-tag-face
-				    'semantic-sb-token-jump))
       ;; If this analyzer happens to point at a complete symbol, then
       ;; see if we can dig up some documentation for it.
-      (semantic-ia-sb-show-doc analysis)
+      (semantic-ia-sb-show-doc analysis))
+
+    ;; Show local variables
+    (when scope
+      (semantic-ia-sb-show-scope scope))
+
+    (when analysis
       ;; Let different classes draw more buttons.
       (semantic-ia-sb-more-buttons analysis)
       (when completions
@@ -148,18 +152,20 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
 	))
     ))
 
-(defmethod semantic-ia-sb-more-buttons ((context semantic-analyze-context))
-  "Show a set of speedbar buttons specific to CONTEXT."
-  (let* ((scope (oref context scope))
-	 (localvars (when scope
-		      (oref scope localvar)))
-	 )
+(defun semantic-ia-sb-show-scope (scope)
+  "Show SCOPE information."
+  (let ((localvars (when scope
+		     (oref scope localvar)))
+	)
     (when localvars
       (speedbar-insert-separator "Local Variables")
       (semantic-ia-sb-string-list localvars
 				  'speedbar-tag-face
 				  ;; This is from semantic-sb
-				  'semantic-sb-token-jump)))
+				  'semantic-sb-token-jump))))
+
+(defmethod semantic-ia-sb-more-buttons ((context semantic-analyze-context))
+  "Show a set of speedbar buttons specific to CONTEXT."
   (let ((prefix (oref context prefix)))
     (when prefix
       (speedbar-insert-separator "Prefix")
