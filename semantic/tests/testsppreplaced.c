@@ -67,4 +67,21 @@ int noodle(int noodle);
 int that_foo(int i);
 int this_foo(int i);
 
+/* TEST: The G++ namespace macro hack.  Not really part of SPP. */
+namespace baz {
+
+  int bazfnc(int b) { }
+
+}
+
+namespace foo { namespace bar {
+
+    int foo_bar_func(int a) { }
+
+  } 
+}
+
+
+
+
 /* End */

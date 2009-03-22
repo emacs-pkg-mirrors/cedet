@@ -101,5 +101,18 @@ mf_Amacro(noodle);
 
 MACRO2(foo)
 
+/* TEST: The G++ namespace macro hack.  Not really part of SPP. */
+_GLIBCXX_BEGIN_NAMESPACE(baz)
+
+  int bazfnc(int b) { }
+
+_GLIBCXX_END_NAMESPACE;
+
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(foo,bar)
+
+  int foo_bar_func(int a) { }
+
+_GLIBCXX_END_NESTED_NAMESPACE;
+
 
 /* END */
