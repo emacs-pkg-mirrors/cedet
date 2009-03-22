@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.17 2009/03/17 00:49:59 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.18 2009/03/22 21:47:13 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -555,6 +555,60 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
     )
   )
 
+;;; vector of stuff
+;;
+;; just a vector.  random stuff inside.
+;;;###autoload
+(defun data-debug-insert-stuff-vector (stuffvector prefix)
+  "Insert all the parts of STUFFVECTOR.
+PREFIX specifies what to insert at the start of each line."
+  (let ((idx 0))
+    (while (< idx (length stuffvector))
+      (data-debug-insert-thing
+       ;; Some vectors may put a value in the CDR
+       (aref stuffvector idx)
+       prefix
+       "")
+      (setq idx (1+ idx)))))
+
+(defun data-debug-insert-stuff-vector-from-point (point)
+  "Insert the stuff found at the stuff vector button at POINT."
+  (let ((stuffvector (get-text-property point 'ddebug))
+	(indent (get-text-property point 'ddebug-indent))
+	start
+	)
+    (end-of-line)
+    (setq start (point))
+    (forward-char 1)
+    (data-debug-insert-stuff-vector stuffvector
+				  (concat (make-string indent ? )
+					  "[ "))
+    (goto-char start)
+    ))
+
+(defun data-debug-insert-stuff-vector-button (stuffvector
+					    prefix
+					    prebuttontext)
+  "Insert a button representing STUFFVECTOR.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the stuff vector button."
+  (let* ((start (point))
+	 (end nil)
+	 (str (format "#<vector o' stuff: %d entries>" (length stuffvector)))
+	 (tip str))
+    (insert prefix prebuttontext str)
+    (setq end (point))
+    (put-text-property (- end (length str)) end 'face 'font-lock-variable-name-face)
+    (put-text-property start end 'ddebug stuffvector)
+    (put-text-property start end 'ddebug-indent (length prefix))
+    (put-text-property start end 'ddebug-prefix prefix)
+    (put-text-property start end 'help-echo tip)
+    (put-text-property start end 'ddebug-function
+		       'data-debug-insert-stuff-vector-from-point)
+    (insert "\n")
+    )
+  )
+
 ;;; Symbol
 ;;
 
@@ -735,6 +789,9 @@ FACE is the face to use."
      
     ;; List of stuff
     (listp . data-debug-insert-stuff-list-button)
+
+    ;; Vector of stuff
+    (vectorp . data-debug-insert-stuff-vector-button)
     )
   "Alist of methods used to insert things into an Ddebug buffer.")
 
