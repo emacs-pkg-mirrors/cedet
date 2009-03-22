@@ -105,8 +105,8 @@ Argument OLDFUN is removed NEWFUN is substituted in."
   (cogre-substitute 'previous-line 'picture-move-up)
   ;; File IO
   (define-key cogre-mode-map "\C-x\C-s" 'cogre-save-graph)
-
   )
+
 
 (easy-menu-define
   cogre-mode-menu cogre-mode-map "Connected Graph Menu"
@@ -127,6 +127,16 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     [ "Save Graph" cogre-save-graph t ]
     [ "Save Graph As" cogre-save-graph-as t ]
     ))
+
+(defvar cogre-tool-bar-map
+  (let ((tool-bar-map (make-sparse-keymap)))
+    (tool-bar-add-item "cogre-class" 'cogre-new-node 'class)
+    (tool-bar-add-item "cogre-package" 'cogre-new-node 'package)
+    (tool-bar-add-item "cogre-isa" 'cogre-new-link 'inherit)
+    (tool-bar-add-item "cogre-hasa" 'cogre-new-link 'aggregate)
+    tool-bar-map)
+  "The tool-bar used for COGRE mode.")
+
 
 (defmethod cogre-insert-class-list ((graph cogre-graph))
   "Return a list of classes GRAPH will accept."
@@ -184,6 +194,7 @@ Argument MENU-DEF is the easy-menu definition."
   (setq major-mode 'cogre-mode
 	mode-name "Cogre")
   (use-local-map cogre-mode-map)
+  (set (make-local-variable 'tool-bar-map) cogre-tool-bar-map)
   (setq truncate-lines t)
   (set (make-local-variable 'transient-mark-mode) nil)
   (run-hooks 'cogre-mode-hook)
@@ -236,12 +247,10 @@ NODETYPE is the eieio class name for the node to insert."
   (interactive (list (point) (cogre-default-node nil current-prefix-arg)))
   (save-excursion
     (goto-char point)
-    (if (not nodetype) (setq nodetype 'cogre-node))
     (let* ((x (current-column))
 	   (y (cogre-current-line))
 	   (n (make-instance nodetype (oref nodetype name-default)
-			     :position (vector x y)))
-	   )
+			     :position (vector x y))))
       (if (interactive-p)
 	  (cogre-render-buffer cogre-graph))
       ;; Return the node.
