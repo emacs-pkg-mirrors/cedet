@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.108 2009/03/22 15:26:43 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.109 2009/03/22 17:16:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -734,6 +734,7 @@ the regular parser."
 			       :typemodifiers mods
 			       :dereference (length (nth 3 cur))
 			       :pointer (nth 1 cur)
+			       :reference (semantic-tag-get-attribute tag :reference)
 			       :documentation (semantic-tag-docstring tag) ;doc
 			       )
 			      vl))
