@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.25 2009/03/19 00:42:23 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.26 2009/03/22 18:02:54 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -267,19 +267,43 @@ If run interactively, query for a new node to make the default.
 If called non-interactivly there is no default, query for one.
 If NODE is supplied, use that.
 If there is a PREFIX argument, then force a query for one."
-  (interactive (list (eieio-read-subclass "Node Type: "
-					  cogre-node
-					  'cogre-node-history
-					  t)
-		     current-prefix-arg))
+  (interactive (list
+		
+		;; Check the last key.  Fake keys from toolbar/menu-bar can
+		;; force our hand for some node types.
+		(let* ((ksym (if (symbolp last-input-event)
+				 (symbol-name last-input-event)
+			       'unknown))
+		       (name (concat "cogre-" ksym))
+		       (sym (intern-soft name)))
+		  (if (and sym (child-of-class-p sym cogre-node))
+		      ;; The input key defines the type of node to use this time.
+		      sym
+		    ;; ELSE, read it in.
+		    (eieio-read-subclass "Node Type: "
+					 cogre-node
+					 'cogre-node-history
+					 t)
+		    current-prefix-arg))))
+
+  (when (and (not (interactive-p)) (not node) (symbolp last-input-event))
+    ;; Check the last key.  Fake keys from toolbar/menu-bar can
+    ;; force our hand for some node types.
+    (let* ((ksym (symbol-name last-input-event))
+	   (name (concat "cogre-" ksym))
+	   (sym (intern-soft name)))
+      (when (and sym (child-of-class-p sym cogre-node))
+	;; The input key defines the type of node to use this time.
+	(setq node sym))))
+
   ;; Save whatever is being set.
   (if node (setq cogre-default-node node))
   ;; If we are not interactive, then check the prefix.
   (if (or prefix (not cogre-default-node))
       (setq cogre-default-node (eieio-read-subclass "Node Type: "
-				      cogre-node
-				      'cogre-node-history
-				      t)))
+						    cogre-node
+						    'cogre-node-history
+						    t)))
   ;; Return the cached node.
   cogre-default-node
   )
@@ -298,11 +322,34 @@ If run interactively, query for a new link to make the default.
 If called non-interactivly there is no default, query for one.
 If LINK is supplied, use that.
 If there is a PREFIX argument, then force a query for one."
-  (interactive (list (eieio-read-subclass "Link Type: "
-					  cogre-link
-					  'cogre-link-history
-					  t)
-		     current-prefix-arg))
+  (interactive (list
+		;; Check the last key.  Fake keys from toolbar/menu-bar can
+		;; force our hand for some link types.
+		(let* ((ksym (if (symbolp last-input-event)
+				 (symbol-name last-input-event)
+			       'unknown))
+		       (name (concat "cogre-" ksym))
+		       (sym (intern-soft name)))
+		  (if (and sym (child-of-class-p sym cogre-link))
+		      ;; The input key defines the type of link to use this time.
+		      sym
+		    ;; Else, read it in.
+		    (eieio-read-subclass "Link Type: "
+					 cogre-link
+					 'cogre-link-history
+					 t)
+		     current-prefix-arg))))
+
+  (when (and (not (interactive-p)) (not link) (symbolp last-input-event))
+    ;; Check the last key.  Fake keys from toolbar/menu-bar can
+    ;; force our hand for some link types.
+    (let* ((ksym (symbol-name last-input-event))
+	   (name (concat "cogre-" ksym))
+	   (sym (intern-soft name)))
+      (when (and sym (child-of-class-p sym cogre-link))
+	;; The input key defines the type of link to use this time.
+	(setq link sym))))
+
   ;; Save whatever is being set.
   (if link (setq cogre-default-link link))
   ;; If we are not interactive, then check the prefix.
