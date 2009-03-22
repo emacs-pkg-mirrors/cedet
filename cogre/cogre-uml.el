@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.14 2009/01/24 02:29:48 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.15 2009/03/22 18:02:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -134,7 +134,7 @@ The `start' node is the child, and the `end' node is the parent.
 This is supposed to infer that START inherits from END.")
 
 ;;;###autoload
-(defclass cogre-aggrigate (cogre-link)
+(defclass cogre-aggregate (cogre-link)
   ((start-glyph :initform [ ("/\\ " "\\/" )
 			    ("/\\ " "\\/" )
 			    ("<>") ("<>") ])
@@ -153,7 +153,7 @@ Line-drawing uses line-drawing codes on page 2500."
   (interactive)
   (oset-default cogre-inherit end-glyph [ ("\u25b3") ("\u25bd")
 					  ("\u25c1") ("\u25b7") ])
-  (oset-default cogre-aggrigate start-glyph
+  (oset-default cogre-aggregate start-glyph
 		[ ("\u25c6") ("\u25c6") ("\u25c6") ("\u25c6") ] )
 
   ;; "\u25c7" - open box like "\u25c6"
