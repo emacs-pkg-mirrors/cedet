@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.109 2009/03/22 17:16:36 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.110 2009/03/23 02:17:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -407,7 +407,7 @@ Go to the next line."
 
 (define-lex-regex-analyzer semantic-lex-c-namespace-begin-macro
   "Handle G++'s namespace macros which the pre-processor can't handle."
-  "\\(_GLIBCXX_BEGIN_NAMESPACE\\)(\\s-*\\(\\w+\\)\\s-*)"
+  "\\(_GLIBCXX_BEGIN_NAMESPACE\\)(\\s-*\\(\\(?:\\w\\|\\s_\\)+\\)\\s-*)"
   (let* ((nsend (match-end 1))
 	 (sym-start (match-beginning 2))
 	 (sym-end (match-end 2))
@@ -432,7 +432,7 @@ Go to the next line."
 
 (define-lex-regex-analyzer semantic-lex-c-namespace-begin-nested-macro
   "Handle G++'s namespace macros which the pre-processor can't handle."
-  "\\(_GLIBCXX_BEGIN_NESTED_NAMESPACE\\)(\\s-*\\(\\w+\\)\\s-*,\\s-*\\(\\w+\\)\\s-*)"
+  "\\(_GLIBCXX_BEGIN_NESTED_NAMESPACE\\)(\\s-*\\(\\(?:\\w\\|\\s_\\)+\\)\\s-*,\\s-*\\(\\(?:\\w\\|\\s_\\)+\\)\\s-*)"
   (goto-char (match-end 0))
   (let* ((nsend (match-end 1))
 	 (sym-start (match-beginning 2))
