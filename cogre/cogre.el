@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.26 2009/03/22 18:02:54 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.27 2009/03/23 02:00:51 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -253,6 +253,22 @@ Optional argument GRAPH-CLASS indicates the type of graph to create."
 ;; of node/link, or whatever.  By using these functions in `interactive'
 ;; commands, a set of defaults can be specified which are used
 ;; continuously.
+(defun cogre-last-event-element-type (class)
+  "Return a symbol representing the last event or command.
+Return nil if that event is not related to some cogre element
+that is a subclass of CLASS."
+  (let* ((event last-command-event)
+	 (ksym (if (symbolp event)
+		   (downcase (symbol-name event))
+		 'unknown))
+	 (name (concat "cogre-" ksym))
+	 (sym (intern-soft name)))
+    (if (and sym (child-of-class-p sym class))
+	;; The input key defines the type of node to use this time.
+	sym
+      ;; No match
+      nil)))
+
 (defvar cogre-node-history nil
   "The history for reading in node class names.")
 
@@ -271,30 +287,21 @@ If there is a PREFIX argument, then force a query for one."
 		
 		;; Check the last key.  Fake keys from toolbar/menu-bar can
 		;; force our hand for some node types.
-		(let* ((ksym (if (symbolp last-input-event)
-				 (symbol-name last-input-event)
-			       'unknown))
-		       (name (concat "cogre-" ksym))
-		       (sym (intern-soft name)))
-		  (if (and sym (child-of-class-p sym cogre-node))
-		      ;; The input key defines the type of node to use this time.
-		      sym
+		(or (cogre-last-event-element-type cogre-node)
 		    ;; ELSE, read it in.
 		    (eieio-read-subclass "Node Type: "
 					 cogre-node
 					 'cogre-node-history
-					 t)
-		    current-prefix-arg))))
+					 t))
+		;; The prefix
+		current-prefix-arg))
 
-  (when (and (not (interactive-p)) (not node) (symbolp last-input-event))
+  (when (and (not (interactive-p)) (not node) (symbolp last-command-event))
     ;; Check the last key.  Fake keys from toolbar/menu-bar can
     ;; force our hand for some node types.
-    (let* ((ksym (symbol-name last-input-event))
-	   (name (concat "cogre-" ksym))
-	   (sym (intern-soft name)))
-      (when (and sym (child-of-class-p sym cogre-node))
-	;; The input key defines the type of node to use this time.
-	(setq node sym))))
+    (let ((sym (cogre-last-event-element-type cogre-node)))
+      ;; The input key defines the type of node to use this time.
+      (when sym (setq node sym))))
 
   ;; Save whatever is being set.
   (if node (setq cogre-default-node node))
@@ -325,30 +332,19 @@ If there is a PREFIX argument, then force a query for one."
   (interactive (list
 		;; Check the last key.  Fake keys from toolbar/menu-bar can
 		;; force our hand for some link types.
-		(let* ((ksym (if (symbolp last-input-event)
-				 (symbol-name last-input-event)
-			       'unknown))
-		       (name (concat "cogre-" ksym))
-		       (sym (intern-soft name)))
-		  (if (and sym (child-of-class-p sym cogre-link))
-		      ;; The input key defines the type of link to use this time.
-		      sym
+		(or (cogre-last-event-element-type cogre-link)
 		    ;; Else, read it in.
 		    (eieio-read-subclass "Link Type: "
 					 cogre-link
 					 'cogre-link-history
-					 t)
-		     current-prefix-arg))))
+					 t))
+		current-prefix-arg))
 
-  (when (and (not (interactive-p)) (not link) (symbolp last-input-event))
+  (when (and (not (interactive-p)) (not link) (symbolp last-command-event))
     ;; Check the last key.  Fake keys from toolbar/menu-bar can
     ;; force our hand for some link types.
-    (let* ((ksym (symbol-name last-input-event))
-	   (name (concat "cogre-" ksym))
-	   (sym (intern-soft name)))
-      (when (and sym (child-of-class-p sym cogre-link))
-	;; The input key defines the type of link to use this time.
-	(setq link sym))))
+    (let ((sym (cogre-last-event-element-type cogre-link)))
+      (when sym (setq link sym))))
 
   ;; Save whatever is being set.
   (if link (setq cogre-default-link link))
