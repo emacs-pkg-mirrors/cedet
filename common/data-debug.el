@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.19 2009/03/23 23:26:44 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.20 2009/03/23 23:41:18 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -692,8 +692,24 @@ PREFIX is the text that preceeds the button.
 PREBUTTONTEXT is some text between prefix and the thing."
   (let ((txt (prin1-to-string thing)))
     (data-debug-insert-simple-thing
-     txt prefix prebuttontext 'font-lock-keyword))
+     txt prefix prebuttontext 'font-lock-keyword-face))
   )
+
+;;; nil thing
+(defun data-debug-insert-nil (thing prefix prebuttontext)
+  "Insert one simple THING with a face.
+PREFIX is the text that preceeds the button.
+PREBUTTONTEXT is some text between prefix and the thing.
+FACE is the face to use."
+  (insert prefix prebuttontext)
+  (insert ": ")
+  (let ((start (point))
+	(end nil))
+    (insert "nil")
+    (setq end (point))
+    (insert "\n" )
+    (put-text-property start end 'face 'font-lock-variable-name-face)
+    ))
 
 ;;; simple thing
 (defun data-debug-insert-simple-thing (thing prefix prebuttontext face)
@@ -710,7 +726,7 @@ FACE is the face to use."
     (put-text-property start end 'face face)
     ))
 
-;;; simple thing
+;;; custom thing
 (defun data-debug-insert-custom (thingstring prefix prebuttontext face)
   "Insert one simple THINGSTRING with a face.
 Use for simple items that need a custom insert.
@@ -729,6 +745,9 @@ FACE is the face to use."
 
 (defvar data-debug-thing-alist
   '(
+    ;; nil
+    (null . data-debug-insert-nil)
+
     ;; eieio object
     ((lambda (thing) (object-p thing)) . data-debug-insert-object-button)
 
