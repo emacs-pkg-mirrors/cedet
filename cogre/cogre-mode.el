@@ -62,51 +62,51 @@ This has the `overline' property set to display borders between sections
 within a box."
   :group 'cogre)
 
-(defvar cogre-mode-map nil
-  "Keymap used for COGRE mode.")
-
-(defun cogre-substitute (oldfun newfun)
-  "Substitue a key binding in ghe `cogre-mode-map'.
+(defun cogre-substitute (km oldfun newfun)
+  "Substitue in KM, a key binding in ghe `cogre-mode-map'.
 Argument OLDFUN is removed NEWFUN is substituted in."
-  (substitute-key-definition oldfun newfun cogre-mode-map global-map))
+  (substitute-key-definition oldfun newfun km global-map))
 
-(if cogre-mode-map
-    nil
-  (setq cogre-mode-map (make-keymap))
-  (suppress-keymap cogre-mode-map)
-  ;; Structure Information
-  (define-key cogre-mode-map "\C-m" 'cogre-activate-element)
-  ;; Structure changes
-  (define-key cogre-mode-map "R" 'cogre-refresh)
-  (define-key cogre-mode-map "N" 'cogre-new-node)
-  (define-key cogre-mode-map "L" 'cogre-new-link)
-  (define-key cogre-mode-map "D" 'cogre-delete)
-  ;; Changing and Setting Defaults
-  (define-key cogre-mode-map "\C-c\C-n" 'cogre-default-node)
-  (define-key cogre-mode-map "\C-c\C-l" 'cogre-default-link)
-  ;; Modifications
-  (define-key cogre-mode-map "n" 'cogre-set-element-name)
-  (define-key cogre-mode-map "l" 'cogre-edit-label)
-  ;; Move nodes around
-  (define-key cogre-mode-map [(meta left)] 'cogre-move-node-left)
-  (define-key cogre-mode-map [(meta right)] 'cogre-move-node-right)
-  (define-key cogre-mode-map [(meta down)] 'cogre-move-node-down)
-  (define-key cogre-mode-map [(meta up)] 'cogre-move-node-up)
-  (define-key cogre-mode-map "\M-b" 'cogre-move-node-left)
-  (define-key cogre-mode-map "\M-f" 'cogre-move-node-right)
-  (define-key cogre-mode-map "\M-n" 'cogre-move-node-down)
-  (define-key cogre-mode-map "\M-p" 'cogre-move-node-up)
-  ;; Cursor Movement
-  (define-key cogre-mode-map "\C-i" 'cogre-next-node)
-  (define-key cogre-mode-map "\M-\C-i" 'cogre-prev-node)
-  (cogre-substitute 'forward-char  'picture-forward-column)
-  (cogre-substitute 'backward-char 'picture-backward-column)
-  (cogre-substitute 'next-line     'picture-move-down)
-  (cogre-substitute 'previous-line 'picture-move-up)
-  ;; File IO
-  (define-key cogre-mode-map "\C-x\C-s" 'cogre-save-graph)
-  )
-
+(defvar cogre-mode-map
+  (let ((km (make-keymap)))
+    (suppress-keymap km)
+    ;; Structure Information
+    (define-key km "\C-m" 'cogre-activate-element)
+    ;; Structure changes
+    (define-key km "R" 'cogre-refresh)
+    (define-key km "N" 'cogre-new-node)
+    (define-key km "L" 'cogre-new-link)
+    (define-key km "D" 'cogre-delete)
+    ;; Changing and Setting Defaults
+    (define-key km "\C-c\C-n" 'cogre-default-node)
+    (define-key km "\C-c\C-l" 'cogre-default-link)
+    ;; Modifications
+    (define-key km "n" 'cogre-set-element-name)
+    (define-key km "l" 'cogre-edit-label)
+    ;; Move nodes around
+    (define-key km [(meta left)] 'cogre-move-node-left)
+    (define-key km [(meta right)] 'cogre-move-node-right)
+    (define-key km [(meta down)] 'cogre-move-node-down)
+    (define-key km [(meta up)] 'cogre-move-node-up)
+    (define-key km "\M-b" 'cogre-move-node-left)
+    (define-key km "\M-f" 'cogre-move-node-right)
+    (define-key km "\M-n" 'cogre-move-node-down)
+    (define-key km "\M-p" 'cogre-move-node-up)
+    ;; Cursor Movement
+    (define-key km "\C-i" 'cogre-next-node)
+    (define-key km "\M-\C-i" 'cogre-prev-node)
+    (cogre-substitute km 'forward-char  'picture-forward-column)
+    (cogre-substitute km 'backward-char 'picture-backward-column)
+    (cogre-substitute km 'next-line     'picture-move-down)
+    (cogre-substitute km 'previous-line 'picture-move-up)
+    ;; File IO
+    (define-key km "\C-x\C-s" 'cogre-save-graph)
+    ;; Mouse Manipulations
+    (define-key km [down-mouse-1] 'cogre-down-mouse-1)
+    (define-key km [down-mouse-2] 'cogre-down-mouse-2)
+    (define-key km [down-mouse-3] 'cogre-down-mouse-3)
+    km)
+  "Keymap used for COGRE mode.")
 
 (easy-menu-define
   cogre-mode-menu cogre-mode-map "Connected Graph Menu"
@@ -126,6 +126,23 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     [ "Refresh" cogre-refresh t ]
     [ "Save Graph" cogre-save-graph t ]
     [ "Save Graph As" cogre-save-graph-as t ]
+    ))
+
+(easy-menu-define
+  cogre-mode-create-popup-menu cogre-mode-map "Connected Graph Insert Menu"
+  '("Insert"
+    [ "Class" cogre-new-node t]
+    [ "Package" cogre-new-node t]
+    [ "Inherit" cogre-new-link t]
+    [ "Aggregate" cogre-new-link t]
+    ))
+
+(easy-menu-define
+  cogre-mode-update-popup-menu cogre-mode-map "Connected Graph Update Menu"
+  '("Update"
+    [ "Rename" cogre-set-element-name t ]
+    [ "View/Edit" cogre-activate-element t ]    
+    [ "Delete" cogre-delete t ]
     ))
 
 (defvar cogre-tool-bar-map
@@ -341,23 +358,28 @@ If ARG is unspecified, assume 1."
       (cogre-render-buffer cogre-graph))
   )
 
-(defun cogre-move-node (x y)
-  "Set NODE to postion X, Y."
+(defun cogre-move-node (x y &optional node)
+  "Set a node to postion X, Y.
+If NODE is not provided, then calculate from current position."
   (interactive "nX: \nnY: ")
   (let ((inhibit-point-motion-hooks t)
-	(e (cogre-current-element (point))))
+	(e (or node (cogre-current-element (point)))))
     (cogre-erase e)
     (cogre-move e x y)
-    (picture-goto-coordinate x y))
+    (let ((pos (oref e position)))
+      (picture-goto-coordinate (aref pos 0) (aref pos 1))))
   (if (interactive-p)
       (cogre-render-buffer cogre-graph)))
 
-(defun cogre-node-position ()
-  "Get the position of the node at point."
+(defun cogre-node-position (&optional noerror)
+  "Get the position of the node at point.
+Optional NOERROR means don't throw an error if there was no node."
   (let ((e (cogre-current-element (point)))
 	)
     (if e (oref e position)
-      (error "No node at point %d" (point)))))
+      (if noerror
+	  nil
+	(error "No node at point %d" (point))))))
 
 (defun cogre-move-node-left (arg)
   "Move NODE left by ARG columns."
@@ -390,6 +412,131 @@ If ARG is unspecified, assume 1."
     (cogre-move-node (aref p 0) (+ (aref p 1) arg))
     (if (interactive-p)
 	(cogre-render-buffer cogre-graph))))
+
+;;; Mouse Handlers
+;;
+;; Cogre is mostly keyboard driven.  The mouse will make dragging
+;; existing things around easier.
+
+(defun cogre-down-mouse-1 (event)
+  "Handle a mouse-down-1 EVENT in `cogre' mode.
+Clicking and dragging on a node will move the node."
+  (interactive "@e")
+  (let* ((echo-keystrokes 10000)	; don't show pressed keys.
+	 (start-pos (posn-col-row (event-end event)))
+	 (x1        (car start-pos))
+	 (y1        (cdr start-pos))
+	 )
+
+    ;; Make sure the text character exists for this point.
+    (picture-mouse-set-point event)
+
+    ;; Did we click on a node?
+    (let* ((node (cogre-current-element (point))))
+
+      (cond
+       ((not node)
+	;; No node.  Do nothing.
+	nil)
+       ((cogre-node-child-p node)
+	;; We have a node.  Drag it.
+	(track-mouse
+
+	  (while (progn
+		   (setq event (read-event))
+		   (mouse-movement-p event))
+
+	    (let* ((next-pos (posn-col-row (event-end event)))
+		   (x2       (car next-pos))
+		   (y2       (cdr  next-pos))
+		   (dx (- x2 x1))
+		   (dy (- y2 y1))
+		   (p (oref node position))
+		   )
+
+	      ;; We have a node.  Start dragging.
+	      (cogre-move-node (+ (aref p 0) dx) (+ (aref p 1) dy) node)
+
+	      ;; Always redraw.
+	      (cogre-render-buffer cogre-graph)
+
+	      (setq x1 x2
+		    y1 y2
+		    start-pos next-pos)
+	    ))))
+       ((cogre-link-child-p node)
+	;; Implement something good here someday.
+	nil)
+       (t
+	nil)
+
+       ))))
+
+(defun cogre-down-mouse-2 (event)
+  "Handle a mouse-down-2 EVENT in `cogre' mode.
+Clicking and dragging on a node will move the node."
+  (interactive "@e")
+  (let* ((echo-keystrokes 10000)	; don't show pressed keys.
+	 (start-pos (posn-col-row (event-end event)))
+	 (x1        (car start-pos))
+	 (y1        (cdr start-pos))
+	 )
+
+    ;; Make sure the text character exists for this point.
+    (picture-mouse-set-point event)
+
+    ;; Did we click on a node?
+    (let* ((node (cogre-current-element (point))))
+
+      (if (and node (cogre-node-child-p node))
+	  (progn
+	    (message "Drag POINT to node to create a link.")
+	    ;; Create a link by dragging from this node to another.
+	    (track-mouse
+
+	      (while (progn
+		       (setq event (read-event))
+		       (mouse-movement-p event))
+		
+		;; We need some way to indicate the drag.
+		(picture-mouse-set-point event)
+
+		(message "Drag POINT to node to create a link.")
+		))
+	    (let ((endnode (cogre-current-element (point))))
+	      (if endnode
+		  (progn
+		    (make-instance 'cogre-inherit :start node :end endnode)
+		    (cogre-render-buffer cogre-graph)
+		    )
+		;; else, a bug
+		(message "You must drop the link onto another node."))
+	      ))
+	(message "Click on a node and drag to create a link.")
+	;; Eat the next event
+	(read-event)
+	;; Repeat the message
+	(message "Click on a node and drag to create a link.")
+	))))
+
+(defun cogre-down-mouse-3 (event)
+  "Handle a popup menu EVENT in `cogre' mode.
+Pops up a context menu of various activities to perform."
+  (interactive "@e")
+  (let* ((startwin (selected-window))
+	 ;; This line has an issue in XEmacs.
+	 (win (semantic-event-window event))
+	 )
+    (select-window win t)
+    (save-excursion
+      (picture-mouse-set-point event)
+      (sit-for 0)
+      (let ((node (cogre-current-element (point))))
+	(if node
+	    (popup-menu cogre-mode-update-popup-menu)
+	  (popup-menu cogre-mode-create-popup-menu)))
+      )
+    (select-window startwin)))
 
 (provide 'cogre-mode)
 
