@@ -58,6 +58,11 @@
     :path ""
     :source '("cogre-utest.el")
     )
+   (ede-proj-target-makefile-miscelaneous "icons"
+    :name "icons"
+    :path ""
+    :source '("cogre-class.xpm" "cogre-hasa.xpm" "cogre-isa.xpm" "cogre-package.xpm")
+    )
    )
   :web-site-url "http://cedet.sourceforge.net/cogre.shtml"
   :web-site-directory "/r@scp:shell.sourceforge.net:cedet/htdocs"
