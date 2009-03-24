@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.110 2009/03/23 02:17:48 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.111 2009/03/24 10:46:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -98,6 +98,7 @@ NOTE: In process of obsoleting this."
   '( ("__THROW" . "")
      ("__const" . "const")
      ("__restrict" . "")
+     ("__declspec" . ((spp-arg-list ("foo") 1 . 2)))
      )
   "List of symbols to include by default.")
 
