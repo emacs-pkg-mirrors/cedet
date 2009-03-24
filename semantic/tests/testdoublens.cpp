@@ -67,3 +67,26 @@ namespace A {
       ;
   }
 }
+
+// Double namespace example from Hannu Koivisto
+//
+// This is tricky because the parent class "Foo" is found within the
+// scope of B, so the scope calculation needs to put that together
+// before searching for parents in scope.
+namespace a {
+  namespace b {
+
+    class Bar : public Foo
+    {
+      int baz();
+    };
+
+    int Bar::baz()
+    {
+      return dum// -5- 
+	// #5# ( "dumdum" )
+	;
+    }
+
+  } // namespace b
+} // namespace a
