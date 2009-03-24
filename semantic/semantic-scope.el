@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.28 2009/03/09 00:29:44 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.29 2009/03/24 00:23:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -602,7 +602,7 @@ whose tags can be searched when needed, OR it may be a scope object."
 ;;;###autoload
 (defun semantic-calculate-scope (&optional point)
   "Calculate the scope at POINT.
-If POINT is not provided, then use the current location of `point'.
+If POINT is not provided, then use the current location of point.
 The class returned from the scope calculation is variable
 `semantic-scope-cache'."
   (interactive)
@@ -645,14 +645,26 @@ The class returned from the scope calculation is variable
 		   (scope (when (or scopetypes parents)
 			    (semantic-analyze-scoped-tags scopetypes scopecache))
 			  )
-		   (fullscope (append scopetypes scope parents))
 		   ;; Step 3:
 		   (localvar (condition-case nil
 				 (semantic-get-all-local-variables)
 			       (error nil)))
 		   )
+
+	      ;; Try looking for parents again.
+	      (when (not parentinherited)
+		(setq parentinherited (semantic-analyze-scope-lineage-tags
+				       parents (append scopetypes scope)))
+		(when parentinherited
+		  (oset scopecache parentinheritance parentinherited)
+		  ;; Try calculating the scope again with the new inherited parent list.
+		  (setq scope (when (or scopetypes parents)
+				(semantic-analyze-scoped-tags scopetypes scopecache))
+			)))
+	      
+	      ;; Fill out the scope.
 	      (oset scopecache scope scope)
-	      (oset scopecache fullscope fullscope)
+	      (oset scopecache fullscope (append scopetypes scope parents))
 	      (oset scopecache localvar localvar)
 	      )))
 	;; Make sure we become dependant on the typecache.
