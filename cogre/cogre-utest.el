@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-utest.el,v 1.6 2009/01/28 19:38:49 zappo Exp $
+;; X-RCS: $Id: cogre-utest.el,v 1.7 2009/03/24 00:27:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -59,7 +59,7 @@
   (cedet-utest-log " * Create Nodes ... pass")
   
   ;; Create a link.
-  (cogre-utest-link-at 2 2 12 12 'cogre-aggrigate)
+  (cogre-utest-link-at 2 2 12 12 'cogre-aggregate)
 
   (cogre-render-buffer cogre-graph)
   
