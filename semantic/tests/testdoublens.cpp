@@ -90,3 +90,46 @@ namespace a {
 
   } // namespace b
 } // namespace a
+
+// Three namespace example from Hannu Koivisto
+//
+// This one is special in that the name e::Foo, where "e" is in
+// the scope, and not referenced from the global namespace.  This
+// wasn't previously handled, so the fullscope needed to be added
+// to the list of things searched when in split-name decent search mode
+// for scopes.
+
+namespace d {
+  namespace e {
+
+    class Foo
+    {
+    public:
+      int write();
+    };
+
+  } // namespace d
+} // namespace e
+
+
+namespace d {
+  namespace f {
+
+    class Bar
+    {
+    public:
+      int baz();
+
+    private:
+      e::Foo &foo;
+    };
+
+    int Bar::baz()
+    {
+      return foo.w// -6-
+	// #6# ( "write" )
+	;
+    }
+
+  } // namespace f
+} // namespace d
