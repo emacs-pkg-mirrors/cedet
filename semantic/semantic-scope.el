@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.29 2009/03/24 00:23:05 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.30 2009/03/25 02:57:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -690,11 +690,10 @@ hits in order, with the first tag being in the closest scope."
 		;; C parser will turn function calls into
 		;; assumed int return function prototypes.  Yuck!
 		(semantic-find-tags-by-name name (oref scope localvar)))
-	       (sc
-		(semantic-find-tags-by-name name (oref scope fullscope)))
+	       (fullscoperaw (oref scope fullscope))
+	       (sc (semantic-find-tags-by-name name fullscoperaw))
 	       (typescoperaw  (oref scope typescope))
-	       (tsc
-		(semantic-find-tags-by-name name typescoperaw))
+	       (tsc (semantic-find-tags-by-name name typescoperaw))
 	       )
 	  (setq ans
 		(if class
@@ -703,13 +702,17 @@ hits in order, with the first tag being in the closest scope."
 		  (append lv sc tsc))
 		)
 
-	  (when (and (not ans) (oref scope typescope))
+	  (when (and (not ans) (or typescoperaw fullscoperaw))
 	    (let ((namesplit (semantic-analyze-split-name name)))
 	      (when (consp namesplit)
 		;; It may be we need to hack our way through type typescope.
 		(while namesplit
-		  (setq ans (semantic-find-tags-by-name (car namesplit)
-							typescoperaw))
+		  (setq ans (append
+			     (semantic-find-tags-by-name (car namesplit)
+							 typescoperaw)
+			     (semantic-find-tags-by-name (car namesplit)
+							 fullscoperaw)
+			     ))
 		  (if (not ans)
 		      (setq typescoperaw nil)
 		    (when (cdr namesplit)
