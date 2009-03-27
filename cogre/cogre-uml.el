@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.15 2009/03/22 18:02:20 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.16 2009/03/27 01:39:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,8 +36,8 @@
 ;;;###autoload
 (defclass cogre-package (cogre-node)
   ((name-default :initform "Package")
-   (blank-lines-top :initform 0)
-   (blank-lines-bottom :initform 0)
+   (blank-lines-top :initform 1)
+   (blank-lines-bottom :initform 1)
    (alignment :initform left)
    (subgraph :initarg :subgraph
 	     :initform nil
@@ -54,8 +54,27 @@ within them.  They can be linked by dependency links.")
 (defmethod cogre-node-slots ((package cogre-package))
   "Return a list containing the list of classes in PACKAGE.
 The `subgraph' slot must be scanned for this information."
-  (list nil)
+  nil
   )
+
+(defmethod cogre-node-rebuild ((node cogre-package))
+  "Create the text rectangle for the COGRE package.
+Calls the base method, and takes the return argument and
+tweaks the faces."
+  (let* ((rect (call-next-method))
+	 (first (car rect))
+	 (second (car (cdr rect))))
+    ;; Tweak the first string.
+    (when (> (length first) 7)
+      (remove-text-properties 5 (length first) '(face) first)
+      (setcar rect first)
+      (cogre-string-merge-faces 5 (length second)
+				'cogre-box-first-face
+				second)
+      (setcar (cdr rect) second)
+      )
+    ;; Return it.
+    rect))
 
 ;;;###autoload
 (defclass cogre-class (cogre-node)
