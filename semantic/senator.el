@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.139 2009/03/27 11:28:32 ottalex Exp $
+;; X-RCS: $Id: senator.el,v 1.140 2009/03/27 12:19:01 ottalex Exp $
 
 ;; This file is not part of Emacs
 
@@ -1250,7 +1250,8 @@ filters in `senator-search-tag-filter-functions' remain active."
   (let ((face (intern (concat "fg:" color))))
     (when (not (facep face))
       (make-face face)
-;;      (set-face-attribute face nil :foreground color))
+;;      (set-face-attribute face nil :foreground color)
+      )
     (senator-set-face face)))
 
 (defun senator-set-background (color &optional tag)
@@ -1259,7 +1260,8 @@ filters in `senator-search-tag-filter-functions' remain active."
   (let ((face (intern (concat "bg:" color))))
     (when (not (facep face))
       (make-face face)
-;;      (set-face-attribute face nil :background color))
+;;      (set-face-attribute face nil :background color)
+      )
     (senator-set-face face)))
 
 (defun senator-clear-tag (&optional tag)
