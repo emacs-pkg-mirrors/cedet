@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.80 2009/02/19 03:16:58 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.81 2009/03/27 00:01:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -405,6 +405,9 @@ When overriding this function, your override will be called while
 cursor is at POSITION.  In addition, your function will not be called
 if a cached copy of the return object is found."
   (interactive "d")
+  ;; Only do this in a Semantic enabled buffer.
+  (when (not (semantic-active-p))
+    (error "Cannot analyze buffers not supported by Semantic."))
   ;; Always refresh out tags in a safe way before doing the
   ;; context.
   (semantic-refresh-tags-safe)
