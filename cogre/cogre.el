@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.28 2009/03/27 01:39:05 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.29 2009/03/27 03:48:06 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -214,6 +214,17 @@ Links are lines drawn between two nodes, or possibly loose in space
 as an intermediate step.  Some links have text describing what they
 do, and most links have special markers on one end or another, such as
 arrows or circles.")
+
+;;; Links
+;;
+;;;###autoload
+(defclass cogre-arrow (cogre-link)
+  ((end-glyph :initform [ (" ^ " "/|\\")
+			  (" | " "\\|/" " V ")
+			  (" ,-" "<--" " `-")
+			  ("-. " "-->" "-' " ) ])
+   )
+  "This type of link is a simple arrow.")
 
 ;;; Connecte Graph variables
 ;;
