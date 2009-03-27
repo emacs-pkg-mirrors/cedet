@@ -26,9 +26,9 @@ info_TEXINFOS=cogre.texi
 MAKEINFO=makeinfo
 misc_MISC=INSTALL ChangeLog
 hacks_LISP=picture-hack.el
-COGRE_LISP=cogre.el cogre-uml.el uml-create.el
+COGRE_LISP=cogre.el cogre-uml.el uml-create.el cogre-periodic.el
 tests_LISP=cogre-utest.el
-icons_MISC=cogre-class.xpm cogre-hasa.xpm cogre-isa.xpm cogre-package.xpm
+icons_MISC=cogre-class.xpm cogre-hasa.xpm cogre-isa.xpm cogre-package.xpm cogre-node.xpm cogre-instance.xpm cogre-arrow.xpm cogre-link.xpm
 VERSION=0.8
 DISTDIR=$(top)COGRE-$(VERSION)
 
