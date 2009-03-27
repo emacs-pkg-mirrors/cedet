@@ -111,6 +111,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
 (easy-menu-define
   cogre-mode-menu cogre-mode-map "Connected Graph Menu"
   '("Graph"
+    [ "Refresh" cogre-refresh t ]
     ("Insert" :filter cogre-insert-forms-menu)
     ("Navigate"
      ["Next Element" cogre-next-node t ]
@@ -123,7 +124,6 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     ("Change" :filter cogre-change-forms-menu)
     "--"
     [ "Delete" cogre-delete (cogre-current-element) ]
-    [ "Refresh" cogre-refresh t ]
     [ "Save Graph" cogre-save-graph t ]
     [ "Save Graph As" cogre-save-graph-as t ]
     ))
@@ -133,8 +133,22 @@ Argument OLDFUN is removed NEWFUN is substituted in."
   '("Insert"
     [ "Class" cogre-new-node t]
     [ "Package" cogre-new-node t]
+    [ "Instance" cogre-new-node t]
+    [ "Node" cogre-new-node t]
+    "--"
+    [ "Link" cogre-new-link t]
+    [ "Arrow" cogre-new-link t]
     [ "Inherit" cogre-new-link t]
     [ "Aggregate" cogre-new-link t]
+    ))
+
+(easy-menu-define
+  cogre-mode-new-link-popup-menu cogre-mode-map "New Link Menu"
+  '("New Link Type"
+    [ "Link" cogre-select-a-link t]
+    [ "Arrow" cogre-select-a-link t]
+    [ "Inherit" cogre-select-a-link t]
+    [ "Aggregate" cogre-select-a-link t]
     ))
 
 (easy-menu-define
@@ -147,8 +161,12 @@ Argument OLDFUN is removed NEWFUN is substituted in."
 
 (defvar cogre-tool-bar-map
   (let ((tool-bar-map (make-sparse-keymap)))
+    (tool-bar-add-item "cogre-node" 'cogre-new-node 'node)
     (tool-bar-add-item "cogre-class" 'cogre-new-node 'class)
     (tool-bar-add-item "cogre-package" 'cogre-new-node 'package)
+    (tool-bar-add-item "cogre-instance" 'cogre-new-node 'instance)
+    (tool-bar-add-item "cogre-link" 'cogre-new-link 'link)
+    (tool-bar-add-item "cogre-arrow" 'cogre-new-link 'arrow)
     (tool-bar-add-item "cogre-isa" 'cogre-new-link 'inherit)
     (tool-bar-add-item "cogre-hasa" 'cogre-new-link 'aggregate)
     tool-bar-map)
@@ -268,8 +286,9 @@ NODETYPE is the eieio class name for the node to insert."
 	   (y (cogre-current-line))
 	   (n (make-instance nodetype (oref nodetype name-default)
 			     :position (vector x y))))
-      (if (interactive-p)
-	  (cogre-render-buffer cogre-graph))
+      (when (interactive-p)
+	(cogre-render n)
+	)
       ;; Return the node.
       n)))
 
@@ -282,13 +301,11 @@ LINKTYPE is the eieio class name for the link to insert."
 		     (cogre-node-at-point-interactive (point))
 		     (cogre-default-link nil current-prefix-arg)))
   (if (not linktype) (setq linktype cogre-link))
-  (prog1
-      ;; Return the link.
-      (make-instance linktype "Link" :start mark :end point)
+  (let ((l (make-instance linktype "Link" :start mark :end point)))
 
-    (if (interactive-p)
-	(cogre-render-buffer cogre-graph))
-    ))
+    (when (interactive-p)
+      (cogre-render l))
+    l))
 
 (defvar cogre-delete-dont-ask nil
   "Track if we should ask about deleting an object from the graph.")
@@ -354,8 +371,8 @@ If ARG is unspecified, assume 1."
 				       nil (oref e object-name)))))
   (cogre-erase node)
   (oset node object-name (cogre-unique-name cogre-graph name))
-  (if (interactive-p)
-      (cogre-render-buffer cogre-graph))
+  (when (interactive-p)
+    (cogre-render node))
   )
 
 (defun cogre-move-node (x y &optional node)
@@ -365,11 +382,16 @@ If NODE is not provided, then calculate from current position."
   (let ((inhibit-point-motion-hooks t)
 	(e (or node (cogre-current-element (point)))))
     (cogre-erase e)
+    (if (<= x 0) (setq x 1))
+    (if (<= y 0) (setq y 1))
     (cogre-move e x y)
     (let ((pos (oref e position)))
-      (picture-goto-coordinate (aref pos 0) (aref pos 1))))
-  (if (interactive-p)
-      (cogre-render-buffer cogre-graph)))
+      (picture-goto-coordinate (aref pos 0) (aref pos 1)))
+    ;; Do the service of redrawing the modified pieces.
+    (let ((links (cogre-node-links e)))
+      (cogre-render e)
+      (mapc 'cogre-render links))
+    (picture-goto-coordinate x y)))
 
 (defun cogre-node-position (&optional noerror)
   "Get the position of the node at point.
@@ -386,32 +408,28 @@ Optional NOERROR means don't throw an error if there was no node."
   (interactive "p")
   (let* ((p (cogre-node-position)))
     (cogre-move-node (- (aref p 0) arg) (aref p 1))
-    (if (interactive-p)
-	(cogre-render-buffer cogre-graph))))
+    ))
 
 (defun cogre-move-node-right (arg)
   "Move NODE right by ARG columns."
   (interactive "p")
   (let* ((p (cogre-node-position)))
     (cogre-move-node (+ (aref p 0) arg) (aref p 1))
-    (if (interactive-p)
-	(cogre-render-buffer cogre-graph))))
+    ))
 
 (defun cogre-move-node-up (arg)
   "Move NODE up by ARG columns."
   (interactive "p")
   (let* ((p (cogre-node-position)))
     (cogre-move-node (aref p 0) (- (aref p 1) arg))
-    (if (interactive-p)
-	(cogre-render-buffer cogre-graph))))
+    ))
 
 (defun cogre-move-node-down (arg)
   "Move NODE down by ARG columns."
   (interactive "p")
   (let* ((p (cogre-node-position)))
     (cogre-move-node (aref p 0) (+ (aref p 1) arg))
-    (if (interactive-p)
-	(cogre-render-buffer cogre-graph))))
+    ))
 
 ;;; Mouse Handlers
 ;;
@@ -457,13 +475,13 @@ Clicking and dragging on a node will move the node."
 	      ;; We have a node.  Start dragging.
 	      (cogre-move-node (+ (aref p 0) dx) (+ (aref p 1) dy) node)
 
-	      ;; Always redraw.
-	      (cogre-render-buffer cogre-graph)
-
 	      (setq x1 x2
 		    y1 y2
 		    start-pos next-pos)
-	    ))))
+	    )))
+	;; Always redraw when we are done.
+	(cogre-render-buffer cogre-graph t)
+	)
        ((cogre-link-child-p node)
 	;; Implement something good here someday.
 	nil)
@@ -471,6 +489,16 @@ Clicking and dragging on a node will move the node."
 	nil)
 
        ))))
+
+(defvar cogre-down-mouse-2-link-selector nil
+  "The link type to use when using mouse 2.
+Set by menu operations.")
+
+(defun cogre-select-a-link ()
+  "Select a link type from a popup menu."
+  (interactive)
+  (setq cogre-down-mouse-2-link-selector
+	(cogre-default-link)))
 
 (defun cogre-down-mouse-2 (event)
   "Handle a mouse-down-2 EVENT in `cogre' mode.
@@ -503,10 +531,14 @@ Clicking and dragging on a node will move the node."
 
 		(message "Drag POINT to node to create a link.")
 		))
-	    (let ((endnode (cogre-current-element (point))))
+	    (let ((endnode (cogre-current-element (point)))
+		  (cogre-down-mouse-2-link-selector nil))
 	      (if endnode
 		  (progn
-		    (make-instance 'cogre-inherit :start node :end endnode)
+		    (popup-menu cogre-mode-new-link-popup-menu)
+		    (make-instance (or cogre-down-mouse-2-link-selector
+				       'cogre-link)
+				   :start node :end endnode)
 		    (cogre-render-buffer cogre-graph)
 		    )
 		;; else, a bug
