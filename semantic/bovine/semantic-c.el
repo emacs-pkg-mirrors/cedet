@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.111 2009/03/24 10:46:40 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.112 2009/03/27 23:26:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -109,34 +109,35 @@ part of the preprocessor map.")
 
 (defun semantic-c-reset-preprocessor-symbol-map ()
   "Reset the C preprocessor symbol map based on all input variables."
-  (let ((filemap nil)
-	)
-    (when (and (not semantic-c-in-reset-preprocessor-table)
-	       (featurep 'semanticdb-mode)
-	       (semanticdb-minor-mode-p))
-      (let ( ;; Don't use external parsers.  We need the internal one.
-	    (semanticdb-out-of-buffer-create-table-fcn nil)
-	    ;; Don't recurse while parsing these files the first time.
-	    (semantic-c-in-reset-preprocessor-table t)
-	    )
-	(dolist (sf semantic-lex-c-preprocessor-symbol-file)
-	  ;; Global map entries
-	  (let* ((table (semanticdb-file-table-object sf)))
-	    (when table
-	      (when (semanticdb-needs-refresh-p table)
-		(semanticdb-refresh-table table))
-	      (setq filemap (append filemap (oref table lexical-table)))
+  (when (featurep 'semantic-c)
+    (let ((filemap nil)
+	  )
+      (when (and (not semantic-c-in-reset-preprocessor-table)
+		 (featurep 'semanticdb-mode)
+		 (semanticdb-minor-mode-p))
+	(let ( ;; Don't use external parsers.  We need the internal one.
+	      (semanticdb-out-of-buffer-create-table-fcn nil)
+	      ;; Don't recurse while parsing these files the first time.
+	      (semantic-c-in-reset-preprocessor-table t)
 	      )
-	    ))))
+	  (dolist (sf semantic-lex-c-preprocessor-symbol-file)
+	    ;; Global map entries
+	    (let* ((table (semanticdb-file-table-object sf)))
+	      (when table
+		(when (semanticdb-needs-refresh-p table)
+		  (semanticdb-refresh-table table))
+		(setq filemap (append filemap (oref table lexical-table)))
+		)
+	      ))))
 
-    (setq-mode-local c-mode
-		     semantic-lex-spp-macro-symbol-obarray
-		     (semantic-lex-make-spp-table
-		      (append semantic-lex-c-preprocessor-symbol-map-builtin
-			      semantic-lex-c-preprocessor-symbol-map
-			      filemap))
-		     )
-    ))
+      (setq-mode-local c-mode
+		       semantic-lex-spp-macro-symbol-obarray
+		       (semantic-lex-make-spp-table
+			(append semantic-lex-c-preprocessor-symbol-map-builtin
+				semantic-lex-c-preprocessor-symbol-map
+				filemap))
+		       )
+      )))
 
 ;;;###autoload
 (defcustom semantic-lex-c-preprocessor-symbol-map nil
@@ -212,12 +213,6 @@ if `semantic-c-member-of-autocast' is nil :
   foo->[here completion will list method of Foo]"
   :group 'c
   :type 'boolean)
-
-;; XEmacs' autoload can't seem to byte compile the above because it
-;; directly includes the entire defcustom.  To safely execute those,
-;; it needs this next line to bootstrap in user settings w/out
-;; loading in semantic-c.el at bootstrap time.
-(semantic-c-reset-preprocessor-symbol-map)
 
 (define-lex-spp-macro-declaration-analyzer semantic-lex-cpp-define
   "A #define of a symbol with some value.
@@ -1467,6 +1462,8 @@ DO NOT return the list of tags encompassing point."
       )))
 
 (provide 'semantic-c)
+
+(semantic-c-reset-preprocessor-symbol-map)
 
 ;;; semantic-c.el ends here
 
