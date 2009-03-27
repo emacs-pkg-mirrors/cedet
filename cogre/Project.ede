@@ -49,7 +49,7 @@
    (ede-proj-target-elisp "COGRE"
     :name "COGRE"
     :path ""
-    :source '("cogre.el" "cogre-uml.el" "uml-create.el")
+    :source '("cogre.el" "cogre-uml.el" "uml-create.el" "cogre-periodic.el")
     :versionsource '("cogre.el")
     :aux-packages '("eieio" "semantic" "semantic-el" "inversion" "speedbar")
     )
@@ -61,7 +61,7 @@
    (ede-proj-target-makefile-miscelaneous "icons"
     :name "icons"
     :path ""
-    :source '("cogre-class.xpm" "cogre-hasa.xpm" "cogre-isa.xpm" "cogre-package.xpm")
+    :source '("cogre-class.xpm" "cogre-hasa.xpm" "cogre-isa.xpm" "cogre-package.xpm" "cogre-node.xpm" "cogre-instance.xpm" "cogre-arrow.xpm" "cogre-link.xpm")
     )
    )
   :web-site-url "http://cedet.sourceforge.net/cogre.shtml"
