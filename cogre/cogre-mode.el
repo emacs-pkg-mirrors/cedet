@@ -234,6 +234,7 @@ Argument MENU-DEF is the easy-menu definition."
   (set (make-local-variable 'transient-mark-mode) nil)
   (run-hooks 'cogre-mode-hook)
   (cogre-render-buffer cogre-graph t)
+  (buffer-disable-undo)
   )
 (put 'cogre-mode 'semantic-match-any-mode t)
 
