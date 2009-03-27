@@ -7,7 +7,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.32 2009/03/19 00:54:07 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.33 2009/03/27 22:27:50 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -75,6 +75,9 @@
 ;;
 
 ;;; Code:
+(when (featurep 'cedet)
+  (error "CEDET Version %s already loaded." cedet-version))
+
 (eval-when-compile
   (require 'cl)
   )
