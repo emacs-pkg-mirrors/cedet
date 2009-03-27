@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.27 2009/03/23 02:00:51 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.28 2009/03/27 01:39:05 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -883,6 +883,25 @@ This can change the current file assocaited with the current graph."
 
 ;;; Low Level Rendering and status
 ;;
+(defun cogre-string-merge-faces (start end face string)
+  "Merge in new face with pre-existing faces on the string.
+START and END are positions to apply FACE in STRING."
+  (alter-text-property start end 'face
+		       (lambda (current-face)
+			 (let ((cf
+				(cond ((facep current-face)
+				       (list current-face))
+				      ((listp current-face)
+				       current-face)
+				      (t nil)))
+			       (nf
+				(cond ((facep face)
+				       (list face))
+				      ((listp face)
+				       face)
+				      (t nil))))
+			   (append cf nf)))
+		       string))
 
 (defun cogre-string-with-face (string face element &optional length align)
   "Using text STRING, apply FACE to that text.
@@ -922,22 +941,8 @@ Return the new string."
 	))
   ;; Add our faces on.  Preserve previously applied faces.
   (when face
-    (alter-text-property 0 (length string) 'face
-			 (lambda (current-face)
-			   (let ((cf
-				  (cond ((facep current-face)
-					 (list current-face))
-					((listp current-face)
-					 current-face)
-					(t nil)))
-				 (nf
-				  (cond ((facep face)
-					 (list face))
-					((listp face)
-					 face)
-					(t nil))))
-			     (append cf nf)))
-			 string))
+    (cogre-string-merge-faces  0 (length string) face string)
+    )
   ;; Add on other properties.
   (add-text-properties 0 (length string)
 		       (list 'rear-nonsticky t
