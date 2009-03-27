@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.16 2009/03/27 01:39:52 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.17 2009/03/27 03:47:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -50,12 +50,6 @@ the package node.")
   "A Package node.
 Packages represent other class diagrams, and list the major nodes
 within them.  They can be linked by dependency links.")
-
-(defmethod cogre-node-slots ((package cogre-package))
-  "Return a list containing the list of classes in PACKAGE.
-The `subgraph' slot must be scanned for this information."
-  nil
-  )
 
 (defmethod cogre-node-rebuild ((node cogre-package))
   "Create the text rectangle for the COGRE package.
@@ -141,11 +135,35 @@ Argument CLASS is the class whose slots are referenced."
    ))
 
 ;;;###autoload
+(defclass cogre-instance (cogre-node)
+  ((name-default :initform "Instance")
+   (blank-lines-top :initform 1)
+   (blank-lines-bottom :initform 1)
+   (alignment :initform left)
+   )
+  "An instance node.
+Instances are used in instance diagrams.
+Instances are linked together with plain links.")
+
+(defmethod cogre-node-widest-string ((node cogre-instance))
+  "Return the widest string in NODE."
+  (+ (length (oref node object-name)) 1))
+
+(defmethod cogre-node-title ((node cogre-instance))
+  "Return a list of strings representing the title of the NODE.
+For example: ( \"Title\" ) or ( \"<Type>\" \"Title\" )"
+  (let ((name (concat ":" (oref node object-name))))
+    (cogre-string-merge-faces 0 (length name) 'underline name)
+    (list name)))
+
+;;; Links
+;;
+;;;###autoload
 (defclass cogre-inherit (cogre-link)
   ((end-glyph :initform [ (" ^ " "/_\\")
 			  ("_|_" "\\ /" " V ")
 			  (" /|" "< |" " \\|")
-			  ("|\\" "|/") ])
+			  ("|\\ " "| >" "|/ ") ])
    (horizontal-preference-ratio :initform .0001)
    )
   "This type of link indicates that the two nodes reference infer inheritance.
@@ -168,12 +186,17 @@ This is supposed to infer that START contains END.")
   "Enable use of UNICODE symbols to create COGRE graphs.
 Inheritance uses math triangle on page 25a0.
 Aggregation uses math square on edge 25a0.
-Line-drawing uses line-drawing codes on page 2500."
+Line-drawing uses line-drawing codes on page 2500.
+See http://unicode.org/charts/symbols.html."
   (interactive)
-  (oset-default cogre-inherit end-glyph [ ("\u25b3") ("\u25bd")
-					  ("\u25c1") ("\u25b7") ])
+  (oset-default cogre-inherit end-glyph
+		[ ("\u25b3") ("\u25bd") ("\u25c1") ("\u25b7") ])
   (oset-default cogre-aggregate start-glyph
 		[ ("\u25c6") ("\u25c6") ("\u25c6") ("\u25c6") ] )
+  ;; Nice idea, but too small.  Oh well.  Maybe someone else
+  ;; can design something better.
+  (oset-default cogre-arrow end-glyph
+  		[ ("\u2191") ("\u2193") ("\u2190") ("\u2192") ] )
 
   ;; "\u25c7" - open box like "\u25c6"
   (setq picture-rectangle-v ?\u2502)
