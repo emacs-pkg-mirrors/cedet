@@ -3,7 +3,7 @@
 <!--#include file="pagestart.php"-->
 
 <table width="100%" class="BAR">
-<tr><td><h2><font color="black">CEDET Supported Language</font></h2></td></tr>
+<tr><td><h2><font color="black">CEDET Supported Languages</font></h2></td></tr>
 </table>
 
 <p>There are many levels of "support" that <b>CEDET</b> can give a
@@ -11,11 +11,18 @@
    support</a> page.  This table describes the current level of
    editing support for each of the languages.
 </p>
+
+<p>Slots in this table where a "?" appears indicates that it might
+   work, but no one has tried it.  If you use the listed langauge, try
+   out the feature
+   and <a href="http://lists.sourceforge.net/lists/listinfo/cedet-devel">let
+   me know</a>.
+</p>
 <table cellspacing="1" border="1" class="DATA"><tr class="DATA">
     <th>Langauge</th>
     <th>Grammar</th>
     <th>Basic<br>Overrides</th>
-    <th>EDE Support</th>
+    <th>Project Support</th>
     <th>Context Parsing</th>
     <th>Smart completion</th>
     <th>Symbol References</th>
@@ -55,7 +62,7 @@
     <td>-</td>
     <td>Custom/Simple</td>
     <td>?</td>
-    <td>EDE Generates makefiles</td>
+    <td>Generate makefiles</td>
 </tr><tr>
     <td>Scheme</td>
     <td>LL</td>
