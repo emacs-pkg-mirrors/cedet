@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.16 2009/03/14 15:17:44 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.17 2009/03/28 12:06:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -104,6 +104,7 @@
     ;;
     ("cogre: graph" . cogre-utest)
     ("cogre: uml" . cogre-uml-utest)
+    ("cogre: periodic & export" . cogre-periodic-utest)
 
    )
   "Alist of all the ttests in CEDET we should run.")
