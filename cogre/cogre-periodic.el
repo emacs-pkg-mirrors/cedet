@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-periodic.el,v 1.2 2009/03/27 03:54:16 zappo Exp $
+;; X-RCS: $Id: cogre-periodic.el,v 1.3 2009/03/28 11:50:44 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -38,31 +38,46 @@
   ;; Setup the graph.
   (switch-to-buffer (get-buffer-create "*Graph Periodic*"))
   (erase-buffer)
+  (kill-all-local-variables)
   (cogre "Periodic")
   ;; Put out the base items.
   (let ((n1 (cogre-periodic-make-node-at 2 1 'cogre-node "cogre-node"))
 	(n2 (cogre-periodic-make-node-at 40 1 'cogre-node "cogre-node (2)")))
     (cogre-periodic-link-at n1 n2 'cogre-link))
   ;; Put out some UML class diagram elements items.
-  (let ((p1 (cogre-periodic-make-node-at 2 6 'cogre-package "cogre-package"))
-	(c1 (cogre-periodic-make-node-at 25 6 'cogre-class "cogre-class"))
-	(c2 (cogre-periodic-make-node-at 23 15 'cogre-class "cogre-class (2)"))
-	)
+  (let ((p1 (cogre-periodic-make-node-at 2 7 'cogre-package "cogre-package"))
+	(c1 (cogre-periodic-make-node-at 25 7 'cogre-class "cogre-class"))
+	(c2 (cogre-periodic-make-node-at
+	     23 18 'cogre-class "cogre-class (2)"
+	     :attributes
+	     (list
+	      (semantic-tag-new-variable "fAttr" "int")
+	      (semantic-tag-new-variable "fNice" "int")
+	      )
+	     :methods
+	     (list
+	      (semantic-tag-new-function "getAttr" "int" nil)
+	      (semantic-tag-new-function "setAttr" "void"
+					 (list (semantic-tag-new-variable
+						"attr" "int"))))
+	     )))
     (cogre-periodic-link-at p1 c1 'cogre-aggregate)
     (cogre-periodic-link-at c2 c1 'cogre-inherit))
   ;; Instance Diagram
-  (let ((i1 (cogre-periodic-make-node-at 45 6 'cogre-instance "cogre-instance"))
-	(i2 (cogre-periodic-make-node-at 45 20 'cogre-instance "cogre-instance (2)"))
+  (let ((i1 (cogre-periodic-make-node-at 45 7 'cogre-instance "cogre-instance"))
+	(i2 (cogre-periodic-make-node-at 45 28 'cogre-instance "cogre-instance (2)"))
 	)
     (cogre-periodic-link-at i1 i2 'cogre-arrow))
   
   (cogre-render-buffer cogre-graph)
   )
 
-(defun cogre-periodic-make-node-at (x y type name)
-  "Create a node at X,Y with TYPE and NAME."
+(defun cogre-periodic-make-node-at (x y type name &rest
+				      fields)
+  "Create a node at X,Y with TYPE and NAME.
+Optional FIELDS are fields to pass into the constructor."
   (picture-goto-coordinate x y)
-  (let ((node (cogre-new-node (point) type)))
+  (let ((node (apply 'cogre-new-node (point) type fields)))
     (cogre-set-element-name node name)
     node))
 
