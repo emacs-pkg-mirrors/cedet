@@ -340,6 +340,17 @@ LINKTYPE is the eieio class name for the link to insert."
 
 ;;; Navigation
 ;;
+(defun cogre-goto-element (elt)
+  "Move the cursor onto the element ELT."
+  (if (obj-of-class-p elt cogre-node)
+      ;; We have a node
+      (let ((p (oref elt position)))
+	(picture-goto-coordinate (aref p 0) (aref p 1)))
+    ;; Else, we have a link
+    (with-slots (stop-position) elt
+      (apply 'picture-goto-coordinate stop-position)
+      )))
+
 (defun cogre-next-node (&optional arg)
   "Move forward ARG nodes in the hierarchy.
 If ARG is unspecified, assume 1."
@@ -356,13 +367,7 @@ If ARG is unspecified, assume 1."
 	(if (< ni 0) (setq ni (+ l ni))
 	  (if (>= ni l) (setq ni (- ni l))))
 	(setq next (nth ni e))))
-    (if (obj-of-class-p next cogre-node)
-	(let ((p (oref next position)))
-	  (picture-goto-coordinate (aref p 0) (aref p 1)))
-      ;; Else, we have a link
-      (with-slots (stop-position) next
-	(apply 'picture-goto-coordinate stop-position)
-	))))
+    (cogre-goto-element next)))
 
 (defun cogre-prev-node (&optional arg)
   "Move backward ARG nodes in the hierarchy.
@@ -372,6 +377,13 @@ If ARG is unspecified, assume 1."
 
 ;;; Node Modification
 ;;
+(defun cogre-render-node-after-erase (node)
+  "Redraw the node NODE after it was erased.
+It will redraw the links too."
+  (let ((links (cogre-node-links node)))
+    (cogre-render node)
+    (mapc 'cogre-render links)))
+
 (defun cogre-set-element-name (node name)
   "Set the name of the current NODE to NAME."
   (interactive (let ((e (cogre-node-at-point-interactive)))
@@ -380,7 +392,9 @@ If ARG is unspecified, assume 1."
   (cogre-erase node)
   (oset node object-name (cogre-unique-name cogre-graph name))
   (when (interactive-p)
-    (cogre-render node))
+    (cogre-render-node-after-erase node)
+    (cogre-goto-element node)
+    )
   )
 
 (defun cogre-move-node (x y &optional node)
@@ -396,9 +410,7 @@ If NODE is not provided, then calculate from current position."
     (let ((pos (oref e position)))
       (picture-goto-coordinate (aref pos 0) (aref pos 1)))
     ;; Do the service of redrawing the modified pieces.
-    (let ((links (cogre-node-links e)))
-      (cogre-render e)
-      (mapc 'cogre-render links))
+    (cogre-render-node-after-erase e)
     (picture-goto-coordinate x y)))
 
 (defun cogre-node-position (&optional noerror)
