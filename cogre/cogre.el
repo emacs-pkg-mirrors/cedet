@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.29 2009/03/27 03:48:06 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.30 2009/03/28 02:07:59 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -546,7 +546,7 @@ START and END cover the region with the property."
   (cogre-node-rectangle node)
   (with-slots (position rectangle) node
     (picture-goto-coordinate (aref position 0) (aref position 1))
-    (picture-insert-rectangle rectangle nil)
+    (cogre-picture-insert-rectangle rectangle)
     )
   (call-next-method))
 
@@ -838,17 +838,19 @@ Reverses `cogre-graph-pre-serialize'."
 	  ;; Ok, splat the glyph
 	  (if cogre-erase-mode
 	      (progn
-		(cogre-erase-rectangle x1 y1
-				       (length (car startrect))
-				       (length startrect))
-		(cogre-erase-rectangle x2 y2
-				       (length (car endrect))
-				       (length endrect))
+		(when startrect
+		  (cogre-erase-rectangle x1 y1
+					 (length (car startrect))
+					 (length startrect)))
+		(when endrect
+		  (cogre-erase-rectangle x2 y2
+					 (length (car endrect))
+					 (length endrect)))
 		)
 	    (picture-goto-coordinate x1 y1)
-	    (picture-insert-rectangle startrect nil)
+	    (cogre-picture-insert-rectangle startrect)
 	    (picture-goto-coordinate x2 y2)
-	    (picture-insert-rectangle endrect nil)
+	    (cogre-picture-insert-rectangle endrect)
 	    )
 	  ))))
   (call-next-method))
