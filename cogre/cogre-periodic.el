@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-periodic.el,v 1.3 2009/03/28 11:50:44 zappo Exp $
+;; X-RCS: $Id: cogre-periodic.el,v 1.4 2009/03/28 12:05:51 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -87,6 +87,20 @@ Link is created with the specified TYPE."
   (make-instance type :start node1 :end node2)
   )
 
+;;; TESTS
+;;
+;;;###autoload
+(defun cogre-periodic-utest ()
+  "Run the cogre periodic table for unit testing.
+Also test various output mechanisms from the periodic table."
+  (interactive)
+  ;; Create the table.
+  (cogre-periodic)
+  (sit-for 0)
+  ;; ASCII output
+  (cogre-export-ascii)
+  (sit-for 0)
+  )
 
 (provide 'cogre-periodic)
 ;;; cogre-periodic.el ends here
