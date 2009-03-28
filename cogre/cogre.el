@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.31 2009/03/28 11:48:39 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.32 2009/03/28 12:15:51 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -225,9 +225,9 @@ arrows or circles.")
 ;;;###autoload
 (defclass cogre-arrow (cogre-link)
   ((end-glyph :initform [ (" ^ " "/|\\")
-			  (" | " "\\|/" " V ")
-			  (" ,-" "<--" " `-")
-			  ("-. " "-->" "-' " ) ])
+			  ("\\|/" " V ")
+			  ("<")
+			  (">") ])
    )
   "This type of link is a simple arrow.")
 
@@ -861,11 +861,11 @@ Reverses `cogre-graph-pre-serialize'."
 		(when startrect
 		  (cogre-erase-rectangle x1 y1
 					 (length (car startrect))
-					 (length startrect)))
+					 (1- (length startrect))))
 		(when endrect
 		  (cogre-erase-rectangle x2 y2
 					 (length (car endrect))
-					 (length endrect)))
+					 (1- (length endrect))))
 		)
 	    (picture-goto-coordinate x1 y1)
 	    (cogre-picture-insert-rectangle startrect)
