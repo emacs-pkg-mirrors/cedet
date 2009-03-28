@@ -231,6 +231,7 @@ Argument MENU-DEF is the easy-menu definition."
   (use-local-map cogre-mode-map)
   (set (make-local-variable 'tool-bar-map) cogre-tool-bar-map)
   (setq truncate-lines t)
+  (setq indent-tabs-mode nil)
   (set (make-local-variable 'transient-mark-mode) nil)
   (run-hooks 'cogre-mode-hook)
   (cogre-render-buffer cogre-graph t)
