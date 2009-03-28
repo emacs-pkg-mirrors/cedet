@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.30 2009/03/28 02:07:59 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.31 2009/03/28 11:48:39 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -59,6 +59,11 @@
   :group 'cogre
   :type 'number)
 
+;; Export Variables
+(defvar cogre-node-rebuild-method nil
+  "A method used when exporting a graph to some other format.")
+
+;; Compatibility
 (defun cogre-noninteractive ()
   "Return non-nil if running non-interactively."
   (if (featurep 'xemacs)
@@ -378,9 +383,10 @@ If there is a PREFIX argument, then force a query for one."
 
 ;;; Utilities
 ;;
-(defun cogre-map-elements (function)
-  "Map FUNCTION onto all current graph elements."
-  (cogre-map-graph-elements cogre-graph function))
+(defun cogre-map-elements (function &optional graph)
+  "Map FUNCTION onto all GRAPH elements.
+If GRAPH is not supplied, use the current graph."
+  (cogre-map-graph-elements (or graph cogre-graph) function))
 
 (defun cogre-map-graph-elements (graph function)
   "For elements of GRAPH, call FUNCTION.
@@ -473,8 +479,8 @@ with dirty flags set."
       (if erase
 	  (progn
 	    (erase-buffer)
-	    (cogre-map-elements (lambda (e) (cogre-set-dirty e t)))))
-      (cogre-map-elements 'cogre-render))
+	    (cogre-map-elements (lambda (e) (cogre-set-dirty e t)) graph)))
+      (cogre-map-elements 'cogre-render graph))
     (picture-goto-coordinate x y)))
 
 (defmethod cogre-render ((element cogre-graph-element))
@@ -551,6 +557,20 @@ START and END cover the region with the property."
   (call-next-method))
 
 (defmethod cogre-node-rebuild ((node cogre-node))
+  "Create a new value for `:rectangle' in NODE.
+The `:rectangle' slot is inserted with rectangle commands.
+A Rectangle is basically a list of equal length strings.
+Those strings must have the proper face values on them.
+Always make the width 2 greater than the widest string.
+
+This function calls `cogre-node-rebuild-default', unless the
+current output device has been changed with by
+setting``cogre-node-rebuild-method'."
+  (if cogre-node-rebuild-method
+      (funcall cogre-node-rebuild-method node)
+    (cogre-node-rebuild-default node)))
+
+(defmethod cogre-node-rebuild-default ((node cogre-node))
   "Create a new value for `:rectangle' in NODE.
 The `:rectangle' slot is inserted with rectangle commands.
 A Rectangle is basically a list of equal length strings.
@@ -875,10 +895,10 @@ This can change the current file assocaited with the current graph."
 
 (defmethod cogre-save ((graph cogre-graph))
   "Save the current graph."
-  (cogre-map-elements 'cogre-element-pre-serialize)
+  (cogre-map-elements 'cogre-element-pre-serialize graph)
   (unwind-protect
       (eieio-persistent-save cogre-graph)
-    (cogre-map-elements 'cogre-element-post-serialize))
+    (cogre-map-elements 'cogre-element-post-serialize graph))
   )
 
 ;;;###autoload
