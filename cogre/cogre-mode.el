@@ -126,6 +126,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     [ "Delete" cogre-delete (cogre-current-element) ]
     [ "Save Graph" cogre-save-graph t ]
     [ "Save Graph As" cogre-save-graph-as t ]
+    [ "Export as ASCII" cogre-export-ascii t ]
     ))
 
 (easy-menu-define
@@ -236,6 +237,8 @@ Argument MENU-DEF is the easy-menu definition."
   (run-hooks 'cogre-mode-hook)
   (cogre-render-buffer cogre-graph t)
   (buffer-disable-undo)
+  (set (make-local-variable 'font-lock-global-modes) nil)
+  (font-lock-mode -1)
   )
 (put 'cogre-mode 'semantic-match-any-mode t)
 
@@ -277,17 +280,20 @@ The default ELEMENT is the one found under the cursor."
 
 ;;; Insert/Delete
 ;;
-(defun cogre-new-node (point nodetype)
+(defun cogre-new-node (point nodetype &rest fields)
   "Insert a new node at the current point.
 Argument POINT is a position to insert this node to.
-NODETYPE is the eieio class name for the node to insert."
+NODETYPE is the eieio class name for the node to insert.
+Optional FIELDS are additional constructor fields to pass
+in to the created node."
   (interactive (list (point) (cogre-default-node nil current-prefix-arg)))
   (save-excursion
     (goto-char point)
     (let* ((x (current-column))
 	   (y (cogre-current-line))
-	   (n (make-instance nodetype (oref nodetype name-default)
-			     :position (vector x y))))
+	   (n (apply 'make-instance nodetype (oref nodetype name-default)
+		     :position (vector x y)
+		     fields)))
       (when (interactive-p)
 	(cogre-render n)
 	)
