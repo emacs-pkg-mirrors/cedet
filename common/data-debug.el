@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.20 2009/03/23 23:41:18 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.21 2009/03/28 12:46:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -892,6 +892,7 @@ If PARENT is non-nil, it is somehow related as a parent to thing."
   (set-syntax-table data-debug-mode-syntax-table)
   (use-local-map data-debug-map)
   (run-hooks 'data-debug-hook)
+  (buffer-disable-undo)
   (set (make-local-variable 'font-lock-global-modes) nil)
   (font-lock-mode -1)
   )
