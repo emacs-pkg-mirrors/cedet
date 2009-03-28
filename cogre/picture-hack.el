@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: picture
-;; X-RCS: $Id: picture-hack.el,v 1.12 2009/03/28 02:07:20 zappo Exp $
+;; X-RCS: $Id: picture-hack.el,v 1.13 2009/03/28 02:11:10 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -123,12 +123,10 @@ Leaves the region surrounding the rectangle."
 	;; Clear the old text.
 	(if (> (- (point-at-eol) (point)) (length (car lines)))
 	    (delete-char (length (car lines)))
-	  (delete-char (- (point-at-eol) (point)))))
+	  (delete-char (- (point-at-eol) (point))))
 
 	(insert (car lines))
-	(setq lines (cdr lines))))
-    
-    )
+	(setq lines (cdr lines)))) ))
 
 ;;; Changes to exsiting functions
 ;;
