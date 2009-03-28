@@ -20,10 +20,8 @@
    style comments fully filled out from the local context, or insert
    get/set methods for variables in a class.
 
-<p>The image to the right shows a simple class declaration inserted
-   with the experimental "fields" feature enabled.  Typing in one
-   field updates the others that match the same template dictionary
-   macro.
+<p>The image to the right shows a simple class declaration inserted.
+</p>
 
 <br clear="all">
 <p>
