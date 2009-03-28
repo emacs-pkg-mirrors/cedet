@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.112 2009/03/27 23:26:39 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.113 2009/03/28 02:02:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -122,10 +122,12 @@ part of the preprocessor map.")
 	      )
 	  (dolist (sf semantic-lex-c-preprocessor-symbol-file)
 	    ;; Global map entries
-	    (let* ((table (semanticdb-file-table-object sf)))
+	    (let* ((table (semanticdb-file-table-object sf t)))
 	      (when table
 		(when (semanticdb-needs-refresh-p table)
-		  (semanticdb-refresh-table table))
+		  (condition-case nil
+		      (semanticdb-refresh-table table)
+		    (error nil)))
 		(setq filemap (append filemap (oref table lexical-table)))
 		)
 	      ))))
