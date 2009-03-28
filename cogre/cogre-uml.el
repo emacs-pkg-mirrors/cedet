@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.17 2009/03/27 03:47:44 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.18 2009/03/28 11:49:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -51,14 +51,14 @@ the package node.")
 Packages represent other class diagrams, and list the major nodes
 within them.  They can be linked by dependency links.")
 
-(defmethod cogre-node-rebuild ((node cogre-package))
+(defmethod cogre-node-rebuild-default ((node cogre-package))
   "Create the text rectangle for the COGRE package.
 Calls the base method, and takes the return argument and
 tweaks the faces."
   (let* ((rect (call-next-method))
 	 (first (car rect))
 	 (second (car (cdr rect))))
-    ;; Tweak the first string.
+    ;; Tweak the first and second string iff it is long enough.
     (when (> (length first) 7)
       (remove-text-properties 5 (length first) '(face) first)
       (setcar rect first)
@@ -109,22 +109,25 @@ within them.  Classes can have attribute links, and class hierarchy links.")
   "For CLASS convert a Semantic style token STOKEN into a uml definition.
 It also adds properties that enable editing, and interaction with
 this node.  Optional argument TEXT is a preformatted string."
-  (let ((newtext 
-	 (or text
-	     (concat (car stoken) ":"
-		     (cond ((stringp (nth 2 stoken))
-			    (nth 2 stoken))
-			   ((listp (nth 2 stoken))
-			    (car (nth 2 stoken)))
-			   (t ""))))))
-    ;; Add in some useful properties
-    (add-text-properties 0 (length newtext)
-			 (list 'semantic stoken
+  (if (semantic-tag-p stoken)
+      (semantic-format-tag-uml-concise-prototype stoken)
+    ;; Else, old style COGRE tag thing.
+    (let ((newtext 
+	   (or text
+	       (concat (car stoken) ":"
+		       (cond ((stringp (nth 2 stoken))
+			      (nth 2 stoken))
+			     ((listp (nth 2 stoken))
+			      (car (nth 2 stoken)))
+			     (t ""))))))
+      ;; Add in some useful properties
+      (add-text-properties 0 (length newtext)
+			   (list 'semantic stoken
 			       
-			       )
-			 newtext)
-    ;; Return the string
-    newtext))
+				 )
+			   newtext)
+      ;; Return the string
+      newtext)))
 
 (defmethod cogre-node-slots ((class cogre-class))
   "Return a list of each section, including title, attributes, and methods.
