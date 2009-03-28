@@ -76,11 +76,12 @@
 <p>Code completion is not restricted to just C or C++.  The completion
    engine is generic and works for any language that has a robust
    tagging parser written for <b>CEDET</b>, and a thin adaptation layer for
-   the language.
+   the language. See the <a href="languagesupport.shtml">language
+   support page</a> to see if your language is supported.
 
-<p>The image to the right shows smart completion configured to use
-   tooltips in a <b>CEDET</b> unit test source file going through a templated
-   smart pointer.
+<p>The image to the right shows smart completion configured to use a
+   popup menu in a <b>CEDET</b> unit test source file going through a
+   templated smart pointer.
 <br clear="all">
 
 </p>
@@ -134,9 +135,7 @@
    get/set methods for variables in a class.
 
 <p>The image to the right shows a simple class declaration inserted
-   with the experimental "fields" feature enabled.  Typing in one
-   field updates the others that match the same template dictionary
-   macro.
+   into an empty buffer.
 
 <br clear="all">
 
