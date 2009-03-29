@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.29 2009/03/29 12:06:35 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.30 2009/03/29 16:10:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,16 +36,6 @@
   (require 'srecode-fields))
 
 ;;; Code:
-
-(defcustom srecode-insert-with-fields-p nil
-  "Non-nil means to insert editable fields with the template.
-When this is nil, then questions are asked in the mini-buffer.
-When fields are used, areas are shown with overlays that can
-be TABbed between for quick inline-editing.
-
-"
-  :group 'srecode
-  :type 'boolean)
 
 (defcustom srecode-insert-ask-variable-method 'ask
   "Determine how to ask for a dictionary value when inserting a template.
