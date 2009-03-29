@@ -99,8 +99,6 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     (cogre-substitute km 'backward-char 'picture-backward-column)
     (cogre-substitute km 'next-line     'picture-move-down)
     (cogre-substitute km 'previous-line 'picture-move-up)
-    ;; File IO
-    (define-key km "\C-x\C-s" 'cogre-save-graph)
     ;; Mouse Manipulations
     (define-key km [down-mouse-1] 'cogre-down-mouse-1)
     (define-key km [down-mouse-2] 'cogre-down-mouse-2)
@@ -124,13 +122,14 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     ("Change" :filter cogre-change-forms-menu)
     "--"
     [ "Delete" cogre-delete (cogre-current-element) ]
-    [ "Save Graph" cogre-save-graph t ]
-    [ "Save Graph As" cogre-save-graph-as t ]
     [ "Export as ASCII" cogre-export-ascii t ]
     ))
 
+(defvar cogre-popup-map (make-sparse-keymap)
+  "Map for popup menus.")
+
 (easy-menu-define
-  cogre-mode-create-popup-menu cogre-mode-map "Connected Graph Insert Menu"
+  cogre-mode-create-popup-menu cogre-popup-map "Connected Graph Insert Menu"
   '("Insert"
     [ "Class" cogre-new-node t]
     [ "Package" cogre-new-node t]
@@ -144,7 +143,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     ))
 
 (easy-menu-define
-  cogre-mode-new-link-popup-menu cogre-mode-map "New Link Menu"
+  cogre-mode-new-link-popup-menu cogre-popup-map "New Link Menu"
   '("New Link Type"
     [ "Link" cogre-select-a-link t]
     [ "Arrow" cogre-select-a-link t]
@@ -153,7 +152,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     ))
 
 (easy-menu-define
-  cogre-mode-update-popup-menu cogre-mode-map "Connected Graph Update Menu"
+  cogre-mode-update-popup-menu cogre-popup-map "Connected Graph Update Menu"
   '("Update"
     [ "Rename" cogre-set-element-name t ]
     [ "View/Edit" cogre-activate-element t ]    
@@ -233,14 +232,49 @@ Argument MENU-DEF is the easy-menu definition."
   (set (make-local-variable 'tool-bar-map) cogre-tool-bar-map)
   (setq truncate-lines t)
   (setq indent-tabs-mode nil)
-  (set (make-local-variable 'transient-mark-mode) nil)
-  (run-hooks 'cogre-mode-hook)
-  (cogre-render-buffer cogre-graph t)
   (buffer-disable-undo)
+  (set (make-local-variable 'transient-mark-mode) nil)
+  (setq write-contents-functions 'cogre-save-hook)
+  ;; Convert contents from save file.
+  (cogre-convert-buffer-contents-on-init)
+  ;; Tail setup.
+  (run-hooks 'cogre-mode-hook)
+  ;; Misc issues
   (set (make-local-variable 'font-lock-global-modes) nil)
   (font-lock-mode -1)
+  ;; Force the redraw AFTER disabling font lock
+  (cogre-render-buffer cogre-graph t)
   )
 (put 'cogre-mode 'semantic-match-any-mode t)
+
+;;;###autoload
+(add-to-list 'auto-mode-alist (cons "\\.cgr\\'" 'cogre-mode))
+
+(defun cogre-convert-buffer-contents-on-init ()
+  "Convert the buffer contents into a graph.
+If it is already drawing a graph, then don't convert."
+  (when (not (eieio-object-p cogre-graph))
+    ;; Convert the contents
+    (if (and (buffer-file-name) (file-exists-p (buffer-file-name)))
+	(let ((cogre-loading-from-file t))
+	  ;; Convert this file into a graph.
+	  (setq cogre-graph (eieio-persistent-read (buffer-file-name)))
+	  (oset cogre-graph file (buffer-file-name))
+	  (cogre-map-elements 'cogre-element-post-serialize)
+	  )
+      ;; Else, just initialize into a graph.
+      (let ((name (file-name-sans-extension (buffer-file-name))))
+	(setq cogre-graph (cogre-graph name :name name))
+	(oset cogre-graph file (buffer-file-name)))
+      )
+    (set-buffer-modified-p nil) ))
+
+(defun cogre-save-hook ()
+  "Hook called when writing out a cogre buffer to disk."
+  (cogre-save cogre-graph)
+  (set-buffer-modified-p nil)
+  (clear-visited-file-modtime)
+  t)
 
 ;;; Interactive utility functions
 ;;
