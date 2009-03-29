@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.18 2009/03/28 11:49:28 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.19 2009/03/29 20:18:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -70,8 +70,36 @@ tweaks the faces."
     ;; Return it.
     rect))
 
+(defclass cogre-scoped-node (cogre-node)
+  ((package-name :initform nil
+		 :initarg :package-name
+		 :type (or null string)
+		 :custom string
+		 :documentation
+		 "The package name of this node.
+Package names are displayed in italic at the top of the node above the name
+in UML, usuall like this:
+   +---------------+
+   | <<mypackage>> |
+   | NameOfNode    |          
+   | ...           |")
+   )
+  "A UML node that has a package specifier within which it is scoped."
+  :abstract t)
+
+(defmethod cogre-node-title ((node cogre-scoped-node))
+  "Return the title of a scoped node.
+If there is no package name, it is (\"name\").  If there
+is a package, it is ( \"<package>\" \"name\")."
+  (if (oref node package-name)
+      (let* ((p (oref node package-name))
+	     (s (concat "<" p ">")))
+	(cogre-string-merge-faces 1 (+ (length p) 1) 'italic s)
+	(list s (oref node object-name)))
+    (list (oref node object-name))))
+
 ;;;###autoload
-(defclass cogre-class (cogre-node)
+(defclass cogre-class (cogre-scoped-node)
   ((name-default :initform "Class")
    (blank-lines-top :initform 0)
    (blank-lines-bottom :initform 0)
@@ -138,7 +166,7 @@ Argument CLASS is the class whose slots are referenced."
    ))
 
 ;;;###autoload
-(defclass cogre-instance (cogre-node)
+(defclass cogre-instance (cogre-scoped-node)
   ((name-default :initform "Instance")
    (blank-lines-top :initform 1)
    (blank-lines-bottom :initform 1)
@@ -148,16 +176,18 @@ Argument CLASS is the class whose slots are referenced."
 Instances are used in instance diagrams.
 Instances are linked together with plain links.")
 
-(defmethod cogre-node-widest-string ((node cogre-instance))
-  "Return the widest string in NODE."
-  (+ (length (oref node object-name)) 1))
-
 (defmethod cogre-node-title ((node cogre-instance))
   "Return a list of strings representing the title of the NODE.
 For example: ( \"Title\" ) or ( \"<Type>\" \"Title\" )"
-  (let ((name (concat ":" (oref node object-name))))
+  (let* ((prev (call-next-method))
+	 (name (concat ":" (oref node object-name))))
     (cogre-string-merge-faces 0 (length name) 'underline name)
-    (list name)))
+    (if (= (length prev) 1)
+	;; It's just us.
+	(list name)
+      ;; Else, we probably have a package name.
+      (setcar (cdr prev) name)
+      prev)))
 
 ;;; Links
 ;;
