@@ -271,6 +271,11 @@ If it is already drawing a graph, then don't convert."
 
 (defun cogre-save-hook ()
   "Hook called when writing out a cogre buffer to disk."
+  (when (and (buffer-file-name (current-buffer))
+	     (not (slot-boundp cogre-graph 'file)))
+    (oset cogre-graph file (buffer-file-name (current-buffer))))
+  (when (not (slot-boundp cogre-graph 'file))
+    (error "Cannot save graph.  File not set in graph object.  (programmer error?)"))
   (cogre-save cogre-graph)
   (set-buffer-modified-p nil)
   (clear-visited-file-modtime)
