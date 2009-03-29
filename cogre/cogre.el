@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.35 2009/03/29 19:48:43 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.36 2009/03/29 20:16:34 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -596,11 +596,12 @@ Always make the width 2 greater than the widest string."
 			node width align)
 		       rect)
 	    top-lines (1- top-lines)))
-    (setq title (nreverse title))
     (while title
       (let ((face (cond ((and first (null (cdr title)))
+			 (setq first nil)
 			 '(cogre-box-first-face cogre-box-last-face))
 			(first
+			 (setq first nil)
 			 'cogre-box-first-face)
 			((and (null (cdr title))
 			      (not (and (null slots)
@@ -664,18 +665,23 @@ Each list will be prefixed with a line before it."
 
 (defmethod cogre-node-widest-string ((node cogre-node))
   "Return the widest string in NODE."
-  (let ((namel (length (oref node object-name)))
+  (let ((names (cogre-node-title node))
 	(slots (cogre-node-slots node))
-	(names nil)
+	(str nil)
 	(ws 0))
+    (while names
+      (setq str (car names))
+      (when (> (length str) ws)
+	(setq ws (length str)))
+      (setq names (cdr names)))
     (while slots
-      (setq names (car slots))
-      (while names
-	(if (> (length (car names)) ws)
-	    (setq ws (length (car names))))
-	(setq names (cdr names)))
+      (setq str (car slots))
+      (while str
+	(if (> (length (car str)) ws)
+	    (setq ws (length (car str))))
+	(setq str (cdr str)))
       (setq slots (cdr slots)))
-    (if (> ws namel) ws namel)))
+    ws))
     
 
 (defun cogre-node-horizontal-distance (node1 node2)
