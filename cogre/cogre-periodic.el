@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-periodic.el,v 1.4 2009/03/28 12:05:51 zappo Exp $
+;; X-RCS: $Id: cogre-periodic.el,v 1.5 2009/03/29 20:19:06 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -46,7 +46,9 @@
     (cogre-periodic-link-at n1 n2 'cogre-link))
   ;; Put out some UML class diagram elements items.
   (let ((p1 (cogre-periodic-make-node-at 2 7 'cogre-package "cogre-package"))
-	(c1 (cogre-periodic-make-node-at 25 7 'cogre-class "cogre-class"))
+	(c1 (cogre-periodic-make-node-at
+	     25 7 'cogre-class "cogre-class"
+	     :package-name "package"))
 	(c2 (cogre-periodic-make-node-at
 	     23 18 'cogre-class "cogre-class (2)"
 	     :attributes
@@ -65,7 +67,9 @@
     (cogre-periodic-link-at c2 c1 'cogre-inherit))
   ;; Instance Diagram
   (let ((i1 (cogre-periodic-make-node-at 45 7 'cogre-instance "cogre-instance"))
-	(i2 (cogre-periodic-make-node-at 45 28 'cogre-instance "cogre-instance (2)"))
+	(i2 (cogre-periodic-make-node-at
+	     45 28 'cogre-instance "cogre-instance (2)"
+	     :package-name "mypack"))
 	)
     (cogre-periodic-link-at i1 i2 'cogre-arrow))
   
