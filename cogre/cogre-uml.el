@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.19 2009/03/29 20:18:46 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.20 2009/03/29 20:24:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -71,9 +71,9 @@ tweaks the faces."
     rect))
 
 (defclass cogre-scoped-node (cogre-node)
-  ((package-name :initform nil
+  ((package-name :initform ""
 		 :initarg :package-name
-		 :type (or null string)
+		 :type string
 		 :custom string
 		 :documentation
 		 "The package name of this node.
@@ -91,7 +91,7 @@ in UML, usuall like this:
   "Return the title of a scoped node.
 If there is no package name, it is (\"name\").  If there
 is a package, it is ( \"<package>\" \"name\")."
-  (if (oref node package-name)
+  (if (not (string= (oref node package-name) ""))
       (let* ((p (oref node package-name))
 	     (s (concat "<" p ">")))
 	(cogre-string-merge-faces 1 (+ (length p) 1) 'italic s)
