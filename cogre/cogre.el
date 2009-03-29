@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.36 2009/03/29 20:16:34 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.37 2009/03/29 20:24:59 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -416,7 +416,7 @@ customizing the object, or performing some complex task."
   (cogre-set-dirty element t)
   (save-excursion
     (set-buffer cogre-custom-originating-graph-buffer)
-    (cogre-render-buffer cogre-graph))
+    (cogre-render-buffer cogre-graph t))
   )
 
 (defmethod cogre-add-element ((graph cogre-graph) elt)
