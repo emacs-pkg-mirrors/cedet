@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.32 2009/03/28 12:15:51 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.33 2009/03/29 16:13:05 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -249,7 +249,7 @@ arrows or circles.")
 ;;
 ;;;###autoload
 (defun cogre (name &optional graph-class)
-  "Create a new graph with the Connected Graph Editor.
+  "Create a new graph not associated with a buffer.
 The new graph will be given NAME.  See `cogre-mode' for details.
 Optional argument GRAPH-CLASS indicates the type of graph to create."
   (interactive "sGraph Name: ")
@@ -472,15 +472,19 @@ If optional argument ERASE is non-nil, then erase the buffer,
 and render everything.  If ERASE is nil, then only redraw items
 with dirty flags set."
   (let ((inhibit-read-only t)
+	(inhibit-modification-hooks t)
+	(inhibit-point-motion-hooks t)
 	(x (current-column))
 	(y (1- (picture-current-line)))
-	(inhibit-point-motion-hooks t))
+	(oldmod (buffer-modified-p (current-buffer)))
+	)
     (save-excursion
       (if erase
 	  (progn
 	    (erase-buffer)
 	    (cogre-map-elements (lambda (e) (cogre-set-dirty e t)) graph)))
       (cogre-map-elements 'cogre-render graph))
+    (unless oldmod (set-buffer-modified-p nil))
     (picture-goto-coordinate x y)))
 
 (defmethod cogre-render ((element cogre-graph-element))
@@ -878,20 +882,6 @@ Reverses `cogre-graph-pre-serialize'."
 ;;; Files
 ;;
 ;; Save and restore graphs to disk
-(defun cogre-save-graph-as (file)
-  "Save the current graph into FILE.
-This can change the current file assocaited with the current graph."
-  (interactive "fFile: ")
-  (oset cogre-graph file file)
-  (cogre-save cogre-graph))
-
-(defun cogre-save-graph (file)
-  "Save the current graph to FILE."
-  (interactive (list
-		(eieio-persistent-save-interactive cogre-graph
-						   "Save In: "
-						   (oref cogre-graph name))))
-  (cogre-save cogre-graph))
 
 (defmethod cogre-save ((graph cogre-graph))
   "Save the current graph."
@@ -899,20 +889,7 @@ This can change the current file assocaited with the current graph."
   (unwind-protect
       (eieio-persistent-save cogre-graph)
     (cogre-map-elements 'cogre-element-post-serialize graph))
-  )
-
-;;;###autoload
-(defun cogre-load-graph (file)
-  "Load a graph from FILE into a new graph buffer."
-  (interactive "fFile: ")
-  (let ((graph nil)
-	(cogre-loading-from-file t))
-    (setq graph (eieio-persistent-read file))
-    (oset graph file file)
-    (cogre (oref graph name))
-    (setq cogre-graph graph)
-    (cogre-map-elements 'cogre-element-post-serialize)
-    (cogre-render-buffer graph t)))
+  t)
 
 ;;; Low Level Rendering and status
 ;;
