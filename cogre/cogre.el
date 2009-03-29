@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.33 2009/03/29 16:13:05 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.34 2009/03/29 19:35:45 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -514,9 +514,7 @@ Reverses `cogre-graph-pre-serialize'."
 (defmethod cogre-entered ((element cogre-graph-element) start end)
   "Method called when the cursor enters ELEMENT.
 START and END cover the region with the property."
-  (when (not (cogre-noninteractive))
-    (message "%s" (object-name element)))
-  )
+  nil)
 
 (defmethod cogre-left ((element cogre-graph-element) start end)
   "Method called when the cursor exits ELEMENT.
