@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.34 2009/03/29 19:35:45 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.35 2009/03/29 19:48:43 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -276,7 +276,7 @@ that is a subclass of CLASS."
   (let* ((event last-command-event)
 	 (ksym (if (symbolp event)
 		   (downcase (symbol-name event))
-		 'unknown))
+		 "unknown"))
 	 (name (concat "cogre-" ksym))
 	 (sym (intern-soft name)))
     (if (and sym (child-of-class-p sym class))
