@@ -1,10 +1,10 @@
  ;;; cogre-uml.el --- UML support for COGRE
 
-;;; Copyright (C) 2001, 2002, 2003, 2004, 2007 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2004, 2007, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.15 2007/04/15 14:58:55 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.16 2009/03/30 02:02:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,6 +34,7 @@
 (require 'semanticdb-find)
 
 ;;; Code:
+;;;###autoload
 (defclass cogre-semantic-uml-graph (cogre-graph)
   nil
   "This graph is for semantic oriented UML diagrams.")
