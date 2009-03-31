@@ -134,12 +134,8 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     [ "Class" cogre-new-node t]
     [ "Package" cogre-new-node t]
     [ "Instance" cogre-new-node t]
+    [ "Note" cogre-new-node t]
     [ "Node" cogre-new-node t]
-    "--"
-    [ "Link" cogre-new-link t]
-    [ "Arrow" cogre-new-link t]
-    [ "Inherit" cogre-new-link t]
-    [ "Aggregate" cogre-new-link t]
     ))
 
 (easy-menu-define
@@ -165,6 +161,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     (tool-bar-add-item "cogre-class" 'cogre-new-node 'class)
     (tool-bar-add-item "cogre-package" 'cogre-new-node 'package)
     (tool-bar-add-item "cogre-instance" 'cogre-new-node 'instance)
+    (tool-bar-add-item "cogre-note" 'cogre-new-node 'note)
     (tool-bar-add-item "cogre-link" 'cogre-new-link 'link)
     (tool-bar-add-item "cogre-arrow" 'cogre-new-link 'arrow)
     (tool-bar-add-item "cogre-isa" 'cogre-new-link 'inherit)
