@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-ascii.el,v 1.1 2009/03/28 11:47:12 zappo Exp $
+;; X-RCS: $Id: cogre-ascii.el,v 1.2 2009/03/31 08:52:54 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -131,7 +131,7 @@ Calls the base method, and takes the return argument and
 tweaks the faces."
   (let* ((rect (call-next-method))
 	 (first (car rect))
-	 (second (car (cdr rect))))
+	 )
     ;; Tweak the first and second string if it is long enough.
     (when (> (length first) 7)
       (let* ((backlen (- (length first) 4))
@@ -146,7 +146,24 @@ tweaks the faces."
     ;; Return it.
     rect))
     
-
+(defmethod cogre-node-rebuild-ascii ((node cogre-note))
+  "Create the text rectangle for the COGRE package.
+Calls the base method, and takes the return argument and
+tweaks the faces."
+  (let* ((rect (call-next-method))
+	 (first (car rect))
+	 (second (car (cdr rect))))
+    ;; Tweak the first and second string iff it is long enough.
+    (aset first 0 ? )
+    (aset first 1 ?,)
+    (aset first 2 ?+)
+    (setcar rect first)
+    (aset second 0 ?+)
+    (aset second 1 ?-)
+    (aset second 2 ?+)
+    (setcar (cdr rect) second)
+    ;; Return it.
+    rect))
 
 (provide 'cogre-ascii)
 ;;; cogre-ascii.el ends here
