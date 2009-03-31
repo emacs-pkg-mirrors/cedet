@@ -506,11 +506,37 @@ Clicking and dragging on a node will move the node."
     (picture-mouse-set-point event)
 
     ;; Did we click on a node?
-    (let* ((node (cogre-current-element (point))))
+    (let* ((node (cogre-current-element (point)))
+	   (auto-hscroll-mode nil))
 
       (cond
        ((not node)
-	;; No node.  Do nothing.
+	;; We didn't click on anything.  Drag the whole graph
+	;; around.
+	(track-mouse
+
+	  (while (progn
+		   (setq event (read-event))
+		   (mouse-movement-p event))
+
+	    (let* ((next-pos (posn-col-row (event-end event)))
+		   (x2       (car next-pos))
+		   (y2       (cdr  next-pos))
+		   (dx (- x2 x1))
+		   (dy (- y2 y1))
+		   )
+
+	      (condition-case nil
+		  (scroll-down dy)
+		(error nil))
+	      (condition-case nil
+		  (scroll-right dx)
+		(error nil))
+
+	      (setq x1 x2
+		    y1 y2
+		    start-pos next-pos)
+	    )))
 	nil)
        ((cogre-node-child-p node)
 	;; We have a node.  Drag it.
