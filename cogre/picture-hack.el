@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: picture
-;; X-RCS: $Id: picture-hack.el,v 1.13 2009/03/28 02:11:10 zappo Exp $
+;; X-RCS: $Id: picture-hack.el,v 1.14 2009/03/31 09:28:02 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -183,6 +183,21 @@ Apply TEXTPROPERTIES to the character inserted."
 				textproperties))
 	)
       (picture-move))))
+
+(defun picture-mouse-set-point (event)
+  "Move point to the position clicked on, making whitespace if necessary.
+Location is determined from EVENT.
+Different from the default in that it handles hscrolling."
+  (interactive "e")
+  (let* ((pos (posn-col-row (event-start event)))
+	 (hs (window-hscroll))
+	 (x (+ (car pos) hs))
+	 (y (cdr pos))
+	 (current-row (count-lines (window-start) (line-beginning-position))))
+    (unless (equal x (current-column))
+      (picture-forward-column (- x (current-column))))
+    (unless (equal y current-row)
+      (picture-move-down (- y current-row)))))
 
 ;;; New functions
 ;;
