@@ -101,8 +101,11 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     (cogre-substitute km 'previous-line 'picture-move-up)
     ;; Mouse Manipulations
     (define-key km [down-mouse-1] 'cogre-down-mouse-1)
+    (define-key km [drag-mouse-1] 'ignore)
     (define-key km [down-mouse-2] 'cogre-down-mouse-2)
+    (define-key km [drag-mouse-2] 'ignore)
     (define-key km [down-mouse-3] 'cogre-down-mouse-3)
+    (define-key km [drag-mouse-3] 'ignore)
     km)
   "Keymap used for COGRE mode.")
 
