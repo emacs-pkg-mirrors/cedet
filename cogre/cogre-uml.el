@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.20 2009/03/29 20:24:34 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.21 2009/03/31 08:52:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -70,6 +70,31 @@ tweaks the faces."
     ;; Return it.
     rect))
 
+;;;###autoload
+(defclass cogre-note (cogre-node)
+  ((name-default :initform "Note...")
+   (blank-lines-top :initform 1)
+   (blank-lines-bottom :initform 1)
+   (alignment :initform left)
+   )
+  "An note node.
+Notes are used to add annotations inside a graph.
+Notes are generally linked to some node, and are supposed to look
+like a little pieces of paper.")
+
+(defmethod cogre-node-rebuild-default ((node cogre-note))
+  "Create the text rectangle for the COGRE package.
+Calls the base method, and takes the return argument and
+tweaks the faces."
+  (let* ((rect (call-next-method))
+	 (first (car rect)))
+    (remove-text-properties 0 1 '(face) first)
+    (aset first 0 ?/)
+    (setcar rect first)
+    ;; Return it.
+    rect))
+
+;;;###autoload
 (defclass cogre-scoped-node (cogre-node)
   ((package-name :initform ""
 		 :initarg :package-name
