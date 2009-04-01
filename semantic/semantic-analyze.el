@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.81 2009/03/27 00:01:19 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.82 2009/04/01 04:39:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -256,6 +256,7 @@ Optional argument THROWSYM specifies a symbol the throw on non-recoverable error
 	(tag nil)			; tag return list
 	(tagtype nil)			; tag types return list
 	(fname nil)
+	(miniscope (clone scope))
 	)
     ;; First order check.  Is this wholely contained in the typecache?
     (setq tmp (semanticdb-typecache-find sequence))
@@ -297,8 +298,9 @@ Optional argument THROWSYM specifies a symbol the throw on non-recoverable error
       (let* ((tmptype
 	      ;; In some cases the found TMP is a type,
 	      ;; and we can use it directly.
-	      (cond ((eq (semantic-tag-class tmp) 'type)
-		     tmp)
+	      (cond ((semantic-tag-of-class-p tmp 'type)
+		     (or (semantic-analyze-type tmp miniscope)
+			 tmp))
 		    (t
 		     (semantic-analyze-tag-type tmp scope))))
 	     (typefile
@@ -330,6 +332,12 @@ Optional argument THROWSYM specifies a symbol the throw on non-recoverable error
 	  (semantic--tag-put-property tmp :filename fname))
 	(setq tag (cons tmp tag))
 	(setq tagtype (cons tmptype tagtype))
+	;; Add new types into the miniscope.
+	(let ((rawscope
+	       (apply 'append
+		      (mapcar 'semantic-tag-type-members
+			      tagtype))))
+	  (oset miniscope fullscope rawscope))
 	)
       (setq s (cdr s)))
 
@@ -388,6 +396,76 @@ searches use the same arguments."
 	       tagclass)
 	      )))))
      )))
+
+;;; SHORT ANALYSIS
+;;
+;; Create a mini-analysis of just the symbol under point.
+;;
+;;;###autoload
+(define-overloadable-function semantic-analyze-current-symbol
+  (analyzehookfcn &optional position)
+  "Call ANALYZEHOOKFCN after analyzing the symbol under POSITION.
+The ANALYZEHOOKFCN is called with the current symbol bounds, and the
+analyzed prefix.  It should take the arguments (START END PREFIX).
+The ANALYZEHOOKFCN is only called if some sort of prefix with bounds was
+found under POSITION.
+
+The results of ANALYZEHOOKFCN is returned, or nil if there was nothing to
+call it with.
+
+For regular analysis, you should call `semantic-analyze-current-context'
+to calculate the context information.  The purpose for this function is
+to provide a large number of non-cached analysis for filtering symbols."
+  ;; Only do this in a Semantic enabled buffer.
+  (when (not (semantic-active-p))
+    (error "Cannot analyze buffers not supported by Semantic."))
+  ;; Always refresh out tags in a safe way before doing the
+  ;; context.
+  (semantic-refresh-tags-safe)
+  ;; Do the rest of the analysis.
+  (save-match-data
+    (save-excursion
+      (:override)))
+  )
+
+(defun semantic-analyze-current-symbol-default (analyzehookfcn position)
+  "Call ANALYZEHOOKFCN on the analyzed symbol at POSITION."
+  (let* ((semantic-analyze-error-stack nil)
+	 (LLstart (current-time))
+	 (prefixandbounds (semantic-ctxt-current-symbol-and-bounds (or position (point))))
+	 (prefix (car prefixandbounds))
+	 (bounds (nth 2 prefixandbounds))
+	 (scope (semantic-calculate-scope position))
+	 (end nil)
+	 )
+        ;; Only do work if we have bounds (meaning a prefix to complete)
+    (when bounds
+
+      (if debug-on-error
+	  (catch 'unfindable
+	    ;; If debug on error is on, allow debugging in this fcn.
+	    (setq prefix (semantic-analyze-find-tag-sequence
+			  prefix scope 'prefixtypes 'unfindable)))
+	;; Debug on error is off.  Capture errors and move on
+	(condition-case err
+	    ;; NOTE: This line is duplicated in
+	    ;;       semantic-analyzer-debug-global-symbol
+	    ;;       You will need to update both places.
+	    (setq prefix (semantic-analyze-find-tag-sequence
+			  prefix scope 'prefixtypes))
+	  (error (semantic-analyze-push-error err))))
+
+      (setq end (current-time))
+      (message "Analysis took %.2f sec" (semantic-elapsed-time LLstart end))
+
+      )
+    (when prefix
+      (prog1
+	  (funcall analyzehookfcn (car bounds) (cdr bounds) prefix)
+	(setq end (current-time))
+	(message "hookfcn took %.5f sec" (semantic-elapsed-time LLstart end)))
+	
+	)))
 
 ;;; MAIN ANALYSIS
 ;;
