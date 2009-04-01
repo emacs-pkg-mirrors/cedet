@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.53 2009/03/31 00:32:20 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.54 2009/04/01 04:48:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -805,6 +805,38 @@ specific to a major mode.  For example, in jde mode:
 (make-obsolete-overload 'semantic-eldoc-current-symbol-info
                         'semantic-idle-summary-current-symbol-info)
 
+(define-semantic-idle-service semantic-idle-summary
+  "Display a tag summary of the lexical token under the cursor.
+Call `semantic-idle-summary-current-symbol-info' for getting the
+current tag to display information."
+  (or (eq major-mode 'emacs-lisp-mode)
+      (not (semantic-idle-summary-useful-context-p))
+      (let* ((found (semantic-idle-summary-current-symbol-info))
+             (str (cond ((stringp found) found)
+                        ((semantic-tag-p found)
+                         (funcall semantic-idle-summary-function
+                                  found nil t))))
+	     )
+	;; Show the message with eldoc functions
+        (require 'eldoc)
+        (unless (and str (boundp 'eldoc-echo-area-use-multiline-p)
+                     eldoc-echo-area-use-multiline-p)
+          (let ((w (1- (window-width (minibuffer-window)))))
+            (if (> (length str) w)
+                (setq str (substring str 0 w)))))
+        (eldoc-message str))))
+
+(semantic-alias-obsolete 'semantic-summary-mode
+			 'semantic-idle-summary-mode)
+(semantic-alias-obsolete 'global-semantic-summary-mode
+			 'global-semantic-idle-summary-mode)
+
+;;; Current symbol highlight
+;;
+;; This mode will use context analysis to perform highlighting
+;; of all uses of the symbol that is under the cursor.
+;;
+;; This is to mimic the Eclipse tool of a similar nature.
 (defvar semantic-idle-summary-highlight-face 'region
   "Face used for the summary highlight.")
 
@@ -860,35 +892,36 @@ visible, then highlight it."
 	       ))))
     nil))
 
-(define-semantic-idle-service semantic-idle-summary
-  "Display a tag summary of the lexical token under the cursor.
-Call `semantic-idle-summary-current-symbol-info' for getting the
-current tag to display information."
-  (or (eq major-mode 'emacs-lisp-mode)
-      (not (semantic-idle-summary-useful-context-p))
-      (let* ((found (semantic-idle-summary-current-symbol-info))
-             (str (cond ((stringp found) found)
-                        ((semantic-tag-p found)
-                         (funcall semantic-idle-summary-function
-                                  found nil t))))
-	     )
-	;; Highlight it?  Protect against problems.
+(define-semantic-idle-service semantic-idle-tag-highlight
+  "Highlight the tag, and references of the sumbol under point.
+Call `semantic-analyze-current-context' to find the reference tag.
+Call `semantic-symref-hits-in-region' to identify local references."
+  (when (semantic-idle-summary-useful-context-p)
+    (let* ((ctxt (semantic-analyze-current-context))
+	   (Hbounds (when ctxt (oref ctxt bounds)))
+	   (target (when ctxt (car (reverse (oref ctxt prefix)))))
+	   (tag (semantic-current-tag))
+	   ;; We use pulse, but we don't want the flashy version,
+	   ;; just the stable version.
+	   (pulse-flag nil))
+      (when ctxt
+	;; Highlight the original tag?  Protect against problems.
 	(condition-case nil
-	    (semantic-idle-summary-maybe-highlight found)
+	    (semantic-idle-summary-maybe-highlight target)
 	  (error nil))
-	;; Show the message with eldoc functions
-        (require 'eldoc)
-        (unless (and str (boundp 'eldoc-echo-area-use-multiline-p)
-                     eldoc-echo-area-use-multiline-p)
-          (let ((w (1- (window-width (minibuffer-window)))))
-            (if (> (length str) w)
-                (setq str (substring str 0 w)))))
-        (eldoc-message str))))
+	;; Identify all hits in this current tag.
+	(when (semantic-tag-p target)
+	  (semantic-symref-hits-in-region
+	   target (lambda (start end prefix)
+		    (when (/= start (car Hbounds))
+		      (pulse-momentary-highlight-region
+		       start end))
+		    (semantic-throw-on-input 'symref-highlight)
+		    )
+	   (semantic-tag-start tag)
+	   (semantic-tag-end tag)))
+	))))
 
-(semantic-alias-obsolete 'semantic-summary-mode
-			 'semantic-idle-summary-mode)
-(semantic-alias-obsolete 'global-semantic-summary-mode
-			 'global-semantic-idle-summary-mode)
 
 ;;; Completion Popup Mode
 ;;
