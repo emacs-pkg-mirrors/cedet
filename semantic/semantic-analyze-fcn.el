@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.26 2009/03/05 03:26:52 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.27 2009/04/01 04:38:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -149,21 +149,30 @@ Almost all searches use the same arguments."
 ;;
 ;; Finding a data type by name within a project.
 ;;
-(defun semantic-analyze-tag-type-to-name (tag)
+(defun semantic-analyze-type-to-name (type)
   "Get the name of TAG's type.
 The TYPE field in a tag can be nil (return nil)
 or a string, or a non-positional tag."
-  (let ((tt (semantic-tag-type tag)))
-    (cond ((semantic-tag-p tt)
-	   (semantic-tag-name tt))
-	  ((stringp tt)
-	   tt)
-	  ((listp tt)
-	   (car tt))
-	  (t nil))))
+  (cond ((semantic-tag-p type)
+	 (semantic-tag-name type))
+	((stringp type)
+	 type)
+	((listp type)
+	 (car type))
+	(t nil)))
 
 (defun semantic-analyze-tag-type (tag &optional scope nometaderef)
   "Return the semantic tag for a type within the type of TAG.
+TAG can be a variable, function or other type of tag.
+The behavior of TAG's type is defined by `semantic-analyze-type'.
+Optional SCOPE represents a calculated scope in which the
+types might be found.  This can be nil.
+If NOMETADEREF, then do not dereference metatypes.  This is
+used by the analyzer debugger."
+  (semantic-analyze-type (semantic-tag-type tag) scope nometaderef))
+
+(defun semantic-analyze-type (type-declaration &optional scope nometaderef)
+  "Return the semantic tag for TYPE-DECLARATION.
 TAG can be a variable, function or other type of tag.
 The type of tag (such as a class or struct) is a name.
 Lookup this name in database, and return all slots/fields
@@ -172,8 +181,7 @@ Optional SCOPE represents a calculated scope in which the
 types might be found.  This can be nil.
 If NOMETADEREF, then do not dereference metatypes.  This is
 used by the analyzer debugger."
-  (let ((type-declaration (semantic-tag-type tag))
-	(name nil)
+  (let ((name nil)
 	(typetag nil)
 	)
 
@@ -192,7 +200,7 @@ used by the analyzer debugger."
 
       ;; Not an anonymous type.  Look up the name of this type
       ;; elsewhere, and report back.
-      (setq name (semantic-analyze-tag-type-to-name tag))
+      (setq name (semantic-analyze-type-to-name type-declaration))
 
       (if (and name (not (string= name "")))
 	  (progn
