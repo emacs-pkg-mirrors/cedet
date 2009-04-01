@@ -40,6 +40,15 @@ int test_fcn () {
   MyFoo.// -3-
     // #3# ( "Mumble" "get" )
     ;
+
+  Name1::Name2::F//-4-
+    // #4# ( "Foo" )
+    ;
+  
+  // @TODO - get this working...
+  Name1::stage2_Foo::M//-5-
+    /// #5# ( "Mumble" )
+    ;
 }
 
 
@@ -62,8 +71,8 @@ namespace A {
 
   void bar::xx()
   {
-    myFoo.// -4- <--- cursor is here after the dot
-      // #4# ( "aa" "bb" )
+    myFoo.// -6- <--- cursor is here after the dot
+      // #6# ( "aa" "bb" )
       ;
   }
 }
@@ -83,8 +92,8 @@ namespace a {
 
     int Bar::baz()
     {
-      return dum// -5- 
-	// #5# ( "dumdum" )
+      return dum// -7- 
+	// #7# ( "dumdum" )
 	;
     }
 
@@ -126,8 +135,8 @@ namespace d {
 
     int Bar::baz()
     {
-      return foo.w// -6-
-	// #6# ( "write" )
+      return foo.w// -8-
+	// #8# ( "write" )
 	;
     }
 
