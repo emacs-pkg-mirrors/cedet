@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.82 2009/04/01 04:39:50 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.83 2009/04/01 13:07:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -299,6 +299,13 @@ Optional argument THROWSYM specifies a symbol the throw on non-recoverable error
 	      ;; In some cases the found TMP is a type,
 	      ;; and we can use it directly.
 	      (cond ((semantic-tag-of-class-p tmp 'type)
+		     ;; update the miniscope when we need to analyze types directly.
+		     (let ((rawscope
+			    (apply 'append
+				   (mapcar 'semantic-tag-type-members
+					   tagtype))))
+		       (oset miniscope fullscope rawscope))
+		     ;; Now analayze the type to remove metatypes.
 		     (or (semantic-analyze-type tmp miniscope)
 			 tmp))
 		    (t
@@ -332,12 +339,6 @@ Optional argument THROWSYM specifies a symbol the throw on non-recoverable error
 	  (semantic--tag-put-property tmp :filename fname))
 	(setq tag (cons tmp tag))
 	(setq tagtype (cons tmptype tagtype))
-	;; Add new types into the miniscope.
-	(let ((rawscope
-	       (apply 'append
-		      (mapcar 'semantic-tag-type-members
-			      tagtype))))
-	  (oset miniscope fullscope rawscope))
 	)
       (setq s (cdr s)))
 
