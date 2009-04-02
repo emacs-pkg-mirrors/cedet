@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-fields.el,v 1.9 2009/04/02 01:44:58 zappo Exp $
+;; X-RCS: $Id: srecode-fields.el,v 1.10 2009/04/02 01:50:20 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -472,54 +472,6 @@ PRE-LEN is used in the after mode for the length of the changed text."
   (interactive)
   (when (y-or-n-p "Exit field-editing mode? ")
     (srecode-delete (srecode-active-template-region))))
-
-;;; COMPOUND VALUE
-;;
-;;;###autoload
-(defclass srecode-field-value (srecode-dictionary-compound-value)
-  ((firstinserter :initarg :firstinserter
-		  :documentation
-		  "The inserter object for the first occurance of this field.")
-   (defaultvalue :initarg :defaultvalue
-     :documentation
-     "The default value for this inserter.")
-   )
-  "When inserting values with editable field mode, a dictionary value.
-Compound values allow a field to be stored in the dictionary for when
-it is referenced a second time.  This compound value can then be
-inserted with a new editable field.")
-
-(defmethod srecode-compound-toString((cp srecode-field-value)
-				     function
-				     dictionary)
-  "Convert this field into an insertable string."
-  ;; If we are not in a buffer, then this is not supported.
-  (when (not (bufferp standard-output))
-    (error "FIELDS invoked while inserting template to non-buffer."))
-
-  (if function
-      (error "@todo: Cannot mix field insertion with functions.")
-
-    ;; No function.  Perform a plain field insertion.
-    ;; We know we are in a buffer, so we can perform the insertion.
-    (let* ((dv (oref cp defaultvalue))
-	   (sti (oref cp firstinserter))
-	   (start (point))
-	   (name (oref sti :object-name)))
-
-      (if (or (not dv) (string= dv ""))
-	  (insert name)
-	(insert dv))
-
-      (srecode-field name :name name
-		     :start start
-		     :end (point)
-		     :prompt (oref sti prompt)
-		     :read-fcn (oref sti read-fcn)
-		     )
-      ))
-  ;; Returning nil is a signal that we have done the insertion ourselves.
-  nil)
 
 ;;; TESTS
 ;;
