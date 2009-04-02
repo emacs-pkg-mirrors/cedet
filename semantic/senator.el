@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.140 2009/03/27 12:19:01 ottalex Exp $
+;; X-RCS: $Id: senator.el,v 1.141 2009/04/02 01:05:25 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1260,7 +1260,7 @@ filters in `senator-search-tag-filter-functions' remain active."
   (let ((face (intern (concat "bg:" color))))
     (when (not (facep face))
       (make-face face)
-;;      (set-face-attribute face nil :background color)
+      ;;(set-face-attribute face nil :background color)
       )
     (senator-set-face face)))
 
@@ -1746,6 +1746,17 @@ minor mode entry."
    :save global-semantic-idle-summary-mode
    )
  '((semantic-idle-summary-function)
+   )
+ )
+
+(senator-register-mode-menu-entry
+ "Idle Symbol Highlight"
+ '(semantic-idle-tag-highlight-mode
+   :help "Highlight symbols matching symbol under point in idle time."
+   )
+ '(global-semantic-idle-tag-highlight-mode
+   :help "Highlight symbols matching symbol under point in idle time in all buffers."
+   :save global-semantic-idle-tag-highlight-mode
    )
  )
 
