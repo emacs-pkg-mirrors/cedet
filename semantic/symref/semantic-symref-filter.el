@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-filter.el,v 1.2 2009/04/02 01:06:56 zappo Exp $
+;; X-RCS: $Id: semantic-symref-filter.el,v 1.3 2009/04/02 01:51:18 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -31,6 +31,9 @@
 ;; This file provides utilities for filtering down to accurate matches
 ;; starting at a basic filter level that doesn't use symref, up to filters
 ;; across symref results.
+
+(eval-when-compile
+  (require 'srecode-fields))
 
 ;;; Code:
 
@@ -97,6 +100,57 @@ tag that contains point, and return that."
 		 Lcount (semantic-tag-name target)
 		 (semantic-elapsed-time start (current-time))))
       Lcount)))
+
+;;;###autoload
+(defun semantic-symref-rename-local-variable ()
+  "Fancy way to rename the local variable under point.
+Depends on the SRecode Field editing API."
+  (interactive)
+  ;; Do the replacement as needed.
+  (let* ((ctxt (semantic-analyze-current-context))
+	 (target (car (reverse (oref ctxt prefix))))
+	 (tag (semantic-current-tag))
+	 )
+
+    (when (or (not target)
+	      (not (semantic-tag-with-position-p target)))
+      (error "Cannot identify symbol under point"))
+
+    (when (not (semantic-tag-of-class-p target 'variable))
+      (error "Can only rename variables"))
+    
+    (when (or (< (semantic-tag-start target) (semantic-tag-start tag))
+	      (> (semantic-tag-end target) (semantic-tag-end tag)))
+      (error "Can only rename variables declared in %s"
+	     (semantic-tag-name tag)))
+
+    ;; I think we're good for this example.  Give it a go through
+    ;; our fancy interface from SRecode.
+    (require 'srecode-fields)
+
+    ;; Make sure there is nothing active.
+    (let ((ar (srecode-active-template-region)))
+      (when ar (srecode-delete ar)))
+
+    (let ((srecode-field-archive nil)
+	  (region nil)
+	  )
+      (semantic-symref-hits-in-region
+       target (lambda (start end prefix)
+		;; For every valid hit, create one field.
+		(srecode-field "LOCAL" :name "LOCAL" :start start :end end))
+       (semantic-tag-start tag) (semantic-tag-end tag))
+
+      ;; Now that the fields are setup, create the region.
+      (setq region (srecode-template-inserted-region
+		    "REGION" :start (semantic-tag-start tag)
+		    :end (semantic-tag-end tag)))
+
+      ;; Activate the region.
+      (srecode-overlaid-activate region)
+
+      )
+    ))
 
 (provide 'semantic-symref-filter)
 ;;; semantic-symref-filter.el ends here
