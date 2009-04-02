@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.27 2009/04/02 01:08:21 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.28 2009/04/02 01:09:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -444,7 +444,6 @@ Argument ARG specifies which set of tests to run.
 	     (goto-char (point-min))
 	     (save-match-data
 	       (when (re-search-forward regex-p nil t)
-		 (setq tag (semantic-current-tag))
 		 (goto-char (match-beginning 1))
 		 (setq desired (read (buffer-substring (point) (point-at-eol))))
 		 (setq start (match-beginning 0))
@@ -480,7 +479,7 @@ Argument ARG specifies which set of tests to run.
 	  ))
 
       (setq idx (1+ idx))
-      (setq tag nil))
+      )
     
     (if fail
 	(progn
