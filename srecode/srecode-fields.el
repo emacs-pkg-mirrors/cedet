@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-fields.el,v 1.8 2009/04/02 01:38:06 zappo Exp $
+;; X-RCS: $Id: srecode-fields.el,v 1.9 2009/04/02 01:44:58 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -311,6 +311,7 @@ Try to use this to provide useful completion when available.")
     (define-key km "\C-e" 'srecode-field-end)
     (define-key km "\C-a" 'srecode-field-start)
     (define-key km "\M-m" 'srecode-field-start)
+    (define-key km "\C-c\C-c" 'srecode-field-exit-ask)
     km)
   "Keymap applied to field overlays.")
 
@@ -465,6 +466,12 @@ PRE-LEN is used in the after mode for the length of the changed text."
   (interactive)
   (let* ((f (srecode-overlaid-at-point 'srecode-field)))
     (goto-char (srecode-overlay-start (oref f overlay)))))
+
+(defun srecode-field-exit-ask ()
+  "Ask if the user wants to exit field-editing mini-mode."
+  (interactive)
+  (when (y-or-n-p "Exit field-editing mode? ")
+    (srecode-delete (srecode-active-template-region))))
 
 ;;; COMPOUND VALUE
 ;;
