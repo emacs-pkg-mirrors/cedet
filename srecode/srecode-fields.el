@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-fields.el,v 1.7 2009/03/29 12:05:33 zappo Exp $
+;; X-RCS: $Id: srecode-fields.el,v 1.8 2009/04/02 01:38:06 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -214,6 +214,7 @@ If SET-TO is a string, then replace the text of OLAID wit SET-TO."
   ((fields :documentation
 	   "A list of field overlays in this region.")
    (active-region :allocation :class
+		  :initform nil
 		  :documentation
 		  "The template region currently being handled.")
    )
