@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.83 2009/04/01 13:07:23 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.84 2009/04/02 00:49:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -457,14 +457,15 @@ to provide a large number of non-cached analysis for filtering symbols."
 	  (error (semantic-analyze-push-error err))))
 
       (setq end (current-time))
-      (message "Analysis took %.2f sec" (semantic-elapsed-time LLstart end))
+      ;;(message "Analysis took %.2f sec" (semantic-elapsed-time LLstart end))
 
       )
     (when prefix
       (prog1
 	  (funcall analyzehookfcn (car bounds) (cdr bounds) prefix)
-	(setq end (current-time))
-	(message "hookfcn took %.5f sec" (semantic-elapsed-time LLstart end)))
+	;;(setq end (current-time))
+	;;(message "hookfcn took %.5f sec" (semantic-elapsed-time LLstart end))
+	)
 	
 	)))
 
