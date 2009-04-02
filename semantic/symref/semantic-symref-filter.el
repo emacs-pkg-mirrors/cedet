@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-filter.el,v 1.1 2009/04/01 04:45:45 zappo Exp $
+;; X-RCS: $Id: semantic-symref-filter.el,v 1.2 2009/04/02 01:06:56 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -76,6 +76,7 @@ Search occurs in the current buffer between START and END."
 		   (funcall hookfcn start end prefix)))))
 	   (point)))))))
 
+;;;###autoload
 (defun semantic-symref-test-count-hits-in-tag ()
   "Lookup in the current tag the symbol under point.
 the count all the other references to the same symbol within the
@@ -84,6 +85,7 @@ tag that contains point, and return that."
   (let* ((ctxt (semantic-analyze-current-context))
 	 (target (car (reverse (oref ctxt prefix))))
 	 (tag (semantic-current-tag))
+	 (start (current-time))
 	 (Lcount 0))
     (when (semantic-tag-p target)
       (semantic-symref-hits-in-region
@@ -91,7 +93,9 @@ tag that contains point, and return that."
        (semantic-tag-start tag)
        (semantic-tag-end tag))
       (when (interactive-p)
-	(message "Found %d occurances of %s" Lcount (semantic-tag-name target)))
+	(message "Found %d occurances of %s in %.2f seconds"
+		 Lcount (semantic-tag-name target)
+		 (semantic-elapsed-time start (current-time))))
       Lcount)))
 
 (provide 'semantic-symref-filter)
