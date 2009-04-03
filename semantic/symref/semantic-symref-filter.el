@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-filter.el,v 1.3 2009/04/02 01:51:18 zappo Exp $
+;; X-RCS: $Id: semantic-symref-filter.el,v 1.4 2009/04/03 13:03:10 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -54,6 +54,7 @@ Return non-nil for a match."
 ;; The following does filtering in-buffer only, and not against
 ;; a symref results object.
 ;;
+;;;###autoload
 (defun semantic-symref-hits-in-region (target hookfcn start end)
   "Find all occurances of the symbol TARGET that match TARGET the tag.
 For each match, call HOOKFCN.
