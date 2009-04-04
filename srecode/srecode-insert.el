@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: srecode-insert.el,v 1.30 2009/03/29 16:10:25 zappo Exp $
+;; X-RCS: $Id: srecode-insert.el,v 1.31 2009/04/04 03:09:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,15 +94,19 @@ DICT-ENTRIES are additional dictionary values to add."
     ))
 
 ;;;###autoload
-(defun srecode-insert-fcn (template dictionary &optional stream)
-  "Insert TEMPLATE using DICTIONARY into STREAM."
+(defun srecode-insert-fcn (template dictionary &optional stream skipresolver)
+  "Insert TEMPLATE using DICTIONARY into STREAM.
+Optional SKIPRESOLVER means to avoid refreshing the tag list,
+or resolving any template arguments.  It is assumed the caller
+has set everything up already."
   ;; Perform the insertion.
   (let ((standard-output (or stream (current-buffer)))
 	(end-mark nil))
-    ;; Make sure the semantic tags are up to date.
-    (semantic-fetch-tags)
-    ;; Resolve the arguments
-    (srecode-resolve-arguments template dictionary)
+    (unless skipresolver
+      ;; Make sure the semantic tags are up to date.
+      (semantic-fetch-tags)
+      ;; Resolve the arguments
+      (srecode-resolve-arguments template dictionary))
     ;; Insert
     (if (bufferp standard-output)
 	;; If there is a buffer, turn off various hooks.  This will cause
