@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.21 2009/03/31 08:52:28 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.22 2009/04/04 15:32:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -108,6 +108,11 @@ in UML, usuall like this:
    | <<mypackage>> |
    | NameOfNode    |          
    | ...           |")
+   (package-delimiters :allocation :class
+		       :initform ( "<<" . ">>" )
+		       :documentation
+		       "Decoration delimiters for left/right side of package name.
+It is a list of the form ( \"LEFTDELIM\" . \"RIGHTDELIM\").")
    )
   "A UML node that has a package specifier within which it is scoped."
   :abstract t)
@@ -118,7 +123,8 @@ If there is no package name, it is (\"name\").  If there
 is a package, it is ( \"<package>\" \"name\")."
   (if (not (string= (oref node package-name) ""))
       (let* ((p (oref node package-name))
-	     (s (concat "<" p ">")))
+	     (delim (oref node package-delimiters))
+	     (s (concat (car delim) p (cdr delim))))
 	(cogre-string-merge-faces 1 (+ (length p) 1) 'italic s)
 	(list s (oref node object-name)))
     (list (oref node object-name))))
@@ -240,21 +246,32 @@ The `start' node is the owner of the aggregation, the `end' node is
 the item being aggregated.
 This is supposed to infer that START contains END.")
 
+;;;###autoload
 (defun cogre-uml-enable-unicode ()
   "Enable use of UNICODE symbols to create COGRE graphs.
 Inheritance uses math triangle on page 25a0.
 Aggregation uses math square on edge 25a0.
 Line-drawing uses line-drawing codes on page 2500.
-See http://unicode.org/charts/symbols.html."
+See http://unicode.org/charts/symbols.html.
+
+The unicode symbols can be differing widths.  This will make the
+cogre chart a little screwy somteims.  Your mileage may vary."
   (interactive)
   (oset-default cogre-inherit end-glyph
 		[ ("\u25b3") ("\u25bd") ("\u25c1") ("\u25b7") ])
   (oset-default cogre-aggregate start-glyph
-		[ ("\u25c6") ("\u25c6") ("\u25c6") ("\u25c6") ] )
+		[ ("\u2b25") ("\u2b25") ("\u25c6") ("\u25c6") ] )
   ;; Nice idea, but too small.  Oh well.  Maybe someone else
   ;; can design something better.
   (oset-default cogre-arrow end-glyph
   		[ ("\u2191") ("\u2193") ("\u2190") ("\u2192") ] )
+
+  ;; Set the special single-char << and >> thingies.
+  (let ((delim '( "\u226a" . "\u226b" )))
+    (oset-default cogre-scoped-node package-delimiters delim)
+    ;; Note: I should use some sort of eieio looping to do this change.
+    (oset-default cogre-class package-delimiters delim)
+    (oset-default cogre-instance package-delimiters delim))
 
   ;; "\u25c7" - open box like "\u25c6"
   (setq picture-rectangle-v ?\u2502)
