@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-srecode.el,v 1.1 2009/04/04 14:46:29 zappo Exp $
+;; X-RCS: $Id: cogre-srecode.el,v 1.2 2009/04/04 15:34:22 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -25,14 +25,12 @@
 ;; Basic SRecode support for COGRE related activities.
 
 (require 'srecode)
+(require 'srecode-dictionary)
 
 ;;; Code:
 ;;;###autoload
 (defun cogre-srecode-setup ()
   "Update various paths to get SRecode to identify COGRE macros."
-
-  ;; Make sure we have a good version of graphviz-dot-mode
-  (inversion-require 'graphviz-dot-mode "0.3.2")
 
   (let* ((lib (locate-library "cogre.el" t))
 	 (ededir (file-name-directory lib))
@@ -67,9 +65,7 @@
     ))
 
 ;;;###autoload
-(eval-after-load "graphviz-dot-mode"
-  (cogre-srecode-setup))
-
+(eval-after-load "srecode-map" (cogre-srecode-setup))
 
 ;;;###autoload
 (defun srecode-semantic-handle-:dot (dict)
