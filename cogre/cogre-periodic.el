@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-periodic.el,v 1.5 2009/03/29 20:19:06 zappo Exp $
+;; X-RCS: $Id: cogre-periodic.el,v 1.6 2009/04/04 15:31:43 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,6 +30,28 @@
 ;;; Code:
 (require 'cogre-utest)
 (require 'cogre-uml)
+
+(defvar cogre-periodic-node-name-list
+  '( ( "cogre-node" cogre-node )
+     ( "cogre-node (2)" cogre-node )
+     ( "cogre-package" cogre-package )
+     ( "cogre-class" cogre-class )
+     ( "cogre-class (2)" cogre-class )
+     ( "cogre-instance" cogre-instance )
+     ( "cogre-instance (2)" cogre-instance )
+    )
+  "List of node names and classes in the graph.
+Used for testing purposes in conversion routines.")
+
+(defvar cogre-periodic-link-connectivity-list
+  '(
+    ( "cogre-node" "cogre-node2" cogre-link )
+    ( "cogre-package" "cogre-class" 'cogre-aggregate )
+    ( "cogre-class (2)" "cogre-class" cogre-inherit )
+    ( "cogre-instance" "cogre-instance (2)" cogre-arrow)
+    )
+  "List of link connectivity from the periodic table graph.
+Used for testing purpses in conversion routines.")
 
 ;;;###autoload
 (defun cogre-periodic ()
