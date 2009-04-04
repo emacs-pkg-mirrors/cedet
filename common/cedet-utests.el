@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.17 2009/03/28 12:06:10 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.18 2009/04/04 16:16:24 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -104,10 +104,10 @@
     ;;
     ("cogre: graph" . cogre-utest)
     ("cogre: uml" . cogre-uml-utest)
-    ("cogre: periodic & export" . cogre-periodic-utest)
-
+    ("cogre: periodic & ascii" . cogre-periodic-utest)
+    ("cogre: conversion/export tests" . cogre-export-utest)
    )
-  "Alist of all the ttests in CEDET we should run.")
+  "Alist of all the tests in CEDET we should run.")
 
 (defvar cedet-running-master-tests nil
   "Non-nil when CEDET-utest is running all the tests.")
