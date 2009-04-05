@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-srecode.el,v 1.2 2009/04/04 15:34:22 zappo Exp $
+;; X-RCS: $Id: cogre-srecode.el,v 1.3 2009/04/05 03:15:50 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -97,10 +97,10 @@
      ((semantic-tag-of-class-p tag 'node)
       (let ((A (semantic-tag-get-attribute tag :attributes)))
 	(while A
-	  (cogre-srecode-add-attr (substring (symbol-name (car A)) 1)
-				  (car (cdr A))
+	  (cogre-srecode-add-attr (semantic-tag-name (car A))
+				  (semantic-tag-get-attribute (car A) :value)
 				  dict)
-	  (setq A (cdr (cdr A)))))				
+	  (setq A (cdr A))))
       )
      ((semantic-tag-of-class-p tag 'link)
       (srecode-dictionary-set-value
@@ -109,10 +109,10 @@
       ;(cogre-srecode-add-attr "arrowtail" (semantic-tag-get-attribute tag :arrowtail) dict)
       (let ((A (semantic-tag-get-attribute tag :attributes)))
 	(while A
-	  (cogre-srecode-add-attr (substring (symbol-name (car A)) 1)
-				  (car (cdr A))
+	  (cogre-srecode-add-attr (semantic-tag-name (car A))
+				  (semantic-tag-get-attribute (car A) :value)
 				  dict)
-	  (setq A (cdr (cdr A)))))
+	  (setq A (cdr A))))
       )
      )
     ))
