@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.22 2009/04/04 15:32:44 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.23 2009/04/05 03:16:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -228,7 +228,7 @@ For example: ( \"Title\" ) or ( \"<Type>\" \"Title\" )"
 			  ("_|_" "\\ /" " V ")
 			  (" /|" "< |" " \\|")
 			  ("|\\ " "| >" "|/ ") ])
-   (horizontal-preference-ratio :initform .0001)
+   (horizontal-preference-ratio :initform .1)
    )
   "This type of link indicates that the two nodes reference infer inheritance.
 The `start' node is the child, and the `end' node is the parent.
