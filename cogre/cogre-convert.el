@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-convert.el,v 1.3 2009/04/05 01:52:35 zappo Exp $
+;; X-RCS: $Id: cogre-convert.el,v 1.4 2009/04/05 03:15:34 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -50,8 +50,12 @@
 ;;  3) Promote the generic API, and write semantic-tag converter.
 
 (require 'cogre-srecode)
+(require 'cedet-graphviz)
 
 ;;; Code:
+(defvar cogre-export-max-y nil
+  "Max y value in the current chart.")
+
 ;;;###autoload
 (defun cogre-export-dot ()
   "Export the current COGRE graph to DOT notation.
@@ -63,6 +67,7 @@ DOT is a part of GraphViz."
 	 (name (oref g name))
 	 (fname (concat name ".dot"))
 	 (ede-auto-add-method 'never)
+	 (cogre-export-max-y (count-lines (point-min) (point-max)))
 	 )
     ;; Force graphviz mode to be loaded, just in case the user didn't.
     (condition-case nil
@@ -111,8 +116,10 @@ DOT is a part of GraphVis."
     (cogre-export-dot)
     ;; Convert from dot to png
     (cedet-graphviz-translate-file (current-buffer)
-				   fname
-				   "png")
+				   (expand-file-name fname)
+				   "png"
+				   "-y"
+				   "-n")
     (let ((ede-auto-add-method 'never))
       (find-file fname))
     ))
@@ -129,25 +136,47 @@ DOT is a part of GraphVis."
 (defun cogre-tag-put-dot-attribute (tag attribute value)
   "Get the attributes in TAG, and set ATTRIBUTE to VALUE.
 This works similarly to `semantic-tag-put-attribute'."
-  (let* ((plist (semantic-tag-get-attribute tag :attributes)))
-    (semantic-tag-put-attribute tag :attributes
-				(plist-put plist attribute value))
+  (let* ((lst (semantic-tag-get-attribute tag :attributes))
+	 (atag (semantic-find-first-tag-by-name attribute lst)))
+    (cond
+     ;; If there is one, just change the value.
+     (atag
+      (semantic-tag-put-attribute atag :value value))
+     ;; No list at all.  Make one.
+     ((null lst)
+      (semantic-tag-put-attribute
+       tag :attributes
+       (list (semantic-tag attribute 'attribute :value value))))
+     ;; Add to the existing list.
+     (t
+      (add-to-list 'lst
+		   (semantic-tag attribute 'attribute :value value)
+		   t)))
     tag))
 
 ;;; NODES
 (defmethod cogre-export-dot-method ((node cogre-node))
   "Convert NODE into DOT syntax of semantic tags."
-  (semantic-tag (oref node :object-name)
-		'node
-		:attributes
-		(list
-		 :shape (cogre-export-dot-shape node)
-		 :label (cogre-export-dot-label node)
-		 )
-		)
-  ;; For dot language,
-  ;; attr 'pos' is position in points
+  (semantic-tag
+   (oref node :object-name)
+   'node
+   :attributes
+   (list
+    (semantic-tag "shape" 'attribute :value (cogre-export-dot-shape node))
+    (semantic-tag "label" 'attribute :value (cogre-export-dot-label node))
+    ;; Position in points.
+    (semantic-tag "pos" 'attriute :value (cogre-export-dot-pos node))
+    )
+   )
   )
+
+(defmethod cogre-export-dot-pos ((node cogre-node))
+  "Return a DOT compatible position."
+  (let* ((pos (oref node position))
+	 (scale 12))
+    (format "%d,%d" (* scale (aref pos 0))
+	    ;; Dot does stuff upside-down, so we need to invert Y
+	    (* scale (- cogre-export-max-y (aref pos 1))))))
 
 (defmethod cogre-export-dot-shape ((node cogre-node))
   "Convert NODE into DOT syntax of semantic tags."
@@ -199,8 +228,8 @@ This works similarly to `semantic-tag-put-attribute'."
 		  :to (oref start :object-name)
 		  :attributes
 		  ( list
-		    :arrowhead "none"
-		    :arrowtail "none"
+		    (semantic-tag "arrowhead" 'attribute :value "none")
+		    (semantic-tag "arrowtail" 'attribute :value "none")
 		    )
 		  )))
 		
@@ -208,21 +237,21 @@ This works similarly to `semantic-tag-put-attribute'."
   "Convert LINK into DOT syntax of semantic tags."
   (let ((tag (call-next-method))
 	(end (oref link end)))
-    (cogre-tag-put-dot-attribute tag :arrowtail "empty")
-    (cogre-tag-put-dot-attribute tag :arrowsize "2")
+    (cogre-tag-put-dot-attribute tag "arrowtail" "empty")
+    (cogre-tag-put-dot-attribute tag "arrowsize" "2")
     ;(cogre-tag-put-dot-attribute tag :sametail (oref end :object-name))
     tag))
 		
 (defmethod cogre-export-dot-method ((link cogre-aggregate))
   "Convert LINK into DOT syntax of semantic tags."
   (let ((tag (call-next-method)))
-    (cogre-tag-put-dot-attribute tag :arrowhead "diamond")
+    (cogre-tag-put-dot-attribute tag "arrowhead" "diamond")
     tag))
 		
 (defmethod cogre-export-dot-method ((link cogre-arrow))
   "Convert LINK into DOT syntax of semantic tags."
   (let ((tag (call-next-method)))
-    (cogre-tag-put-dot-attribute tag :arrowhead "open")
+    (cogre-tag-put-dot-attribute tag "arrowhead" "open")
     tag))
 
 ;;; TESTS
@@ -278,7 +307,9 @@ table as an example."
 		     (error "Unexpected node %S in conversion" n))
 		   )
 		  ((semantic-tag-of-class-p M 'link)
-		   (if (string= n (car (car L)))
+		   ;; Links go backward from COGRE to dot.
+		   (if (string= (semantic-tag-get-attribute M :to)
+				(car (car L)))
 		       (setq L (cdr L))
 		     (message "Expected link %S to %S"
 			      (car (car L)) (car (cdr (car L))))
