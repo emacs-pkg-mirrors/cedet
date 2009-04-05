@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-convert.el,v 1.2 2009/04/04 15:35:16 zappo Exp $
+;; X-RCS: $Id: cogre-convert.el,v 1.3 2009/04/05 01:52:35 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -93,6 +93,29 @@ DOT is a part of GraphViz."
       (message "Converted graph into %d dot nodes."
 	       (length (semantic-tag-get-attribute graphtag :members)))
       )))
+
+(defun cogre-export-dot-png ()
+  "Export the current COGRE graph to DOT, then convert that to PNG.
+DOT is a part of GraphVis."
+  (interactive)
+  ;; Make sure things are installed ok.
+  (cedet-graphviz-dot-version-check)
+  ;; Run dot to create the file.  The graph was already
+  ;; verified.
+  (let* ((def (file-name-nondirectory (concat (oref cogre-graph :name)
+					      ".png")))
+	 (fname (read-file-name "Write to: "
+				default-directory nil nil def))
+	 )
+    ;; Convert to dot
+    (cogre-export-dot)
+    ;; Convert from dot to png
+    (cedet-graphviz-translate-file (current-buffer)
+				   fname
+				   "png")
+    (let ((ede-auto-add-method 'never))
+      (find-file fname))
+    ))
 
 (defmethod cogre-export-dot-method ((g cogre-graph))
   "Convert G into DOT syntax of semantic tags."
