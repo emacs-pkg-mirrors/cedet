@@ -125,7 +125,11 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     ("Change" :filter cogre-change-forms-menu)
     "--"
     [ "Delete" cogre-delete (cogre-current-element) ]
-    [ "Export as ASCII" cogre-export-ascii t ]
+    ("Export to..."
+     [ "ASCII" cogre-export-ascii t ]
+     [ "DOT" cogre-export-dot t ]
+     [ ".png" cogre-export-dot-png t ]
+     )
     ))
 
 (defvar cogre-popup-map (make-sparse-keymap)
