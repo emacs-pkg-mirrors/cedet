@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-convert.el,v 1.5 2009/04/06 01:54:16 zappo Exp $
+;; X-RCS: $Id: cogre-convert.el,v 1.6 2009/04/06 02:02:26 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -101,6 +101,7 @@ DOT is a part of GraphViz."
 
 (defun cogre-export-dot-png ()
   "Export the current COGRE graph to DOT, then convert that to PNG.
+The png file is then displayed in an Emacs buffer.
 DOT is a part of GraphVis."
   (interactive)
   ;; Make sure things are installed ok.
@@ -125,7 +126,9 @@ DOT is a part of GraphVis."
     ))
 
 (defun cogre-export-dot-postscript-print ()
-  "Export the current COGRE graph to DOT, then convert that to PNG.
+  "Print the current graph.
+This is done by exporting the current COGRE graph to DOT, then
+convert that to Postscript before printing.
 DOT is a part of GraphVis."
   (interactive)
   ;; Make sure things are installed ok.
@@ -196,6 +199,7 @@ This works similarly to `semantic-tag-put-attribute'."
 
 (defcustom cogre-dot-node-position-scale (cons 6 12)
   "The scale to use when converting between COGRE and DOT position values.
+This is of the format ( XSCALE . YSCALE ).
 DOT uses points, where as COGRE uses characters."
   :group 'cogre
   :type 'cons)
