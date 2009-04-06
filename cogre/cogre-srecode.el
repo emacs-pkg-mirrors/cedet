@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-srecode.el,v 1.4 2009/04/06 01:52:27 zappo Exp $
+;; X-RCS: $Id: cogre-srecode.el,v 1.5 2009/04/06 02:28:18 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -45,6 +45,12 @@
     (srecode-map-update-map t)
     
     ))
+
+(defun cogre-srecode-load-tables ()
+  "Load tables COGRE needs for SREcode."
+  ;; We don't call this unless we need it.  Load in the templates.
+  (srecode-load-tables-for-mode 'graphviz-dot-mode)
+  )
 
 (defvar cogre-srecode-current-graph nil
   "The current COGRE graph to add to SRecode.")
