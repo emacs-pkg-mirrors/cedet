@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.wy,v 1.8 2009/04/05 01:51:55 zappo Exp $
+;; X-RCS: $Id: wisent-dot.wy,v 1.9 2009/04/06 01:53:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -105,6 +105,7 @@ graph-contents
   | graph-attributes
   | subgraph
   | node
+  | graphgeneric
   | named-node
   | links
   ;
@@ -112,6 +113,11 @@ graph-contents
 subgraph
   : SUBGRAPH symbol BRACE_BLOCK
     (TAG $2 'graph :members (EXPANDFULL $3 graph-contents))
+  ;
+
+graphgeneric
+  : GRAPH BRACKET_BLOCK SEMI
+    (TAG "GRAPH" 'generic-graph :attributes (EXPANDFULL $2 node-description))
   ;
 
 node
@@ -150,7 +156,7 @@ links
 
 name
   : symbol
-    ( list $1 )
+    ( identity $1 )
   | string
     ( read $1 ) ;; This un-strings it.
   ;
