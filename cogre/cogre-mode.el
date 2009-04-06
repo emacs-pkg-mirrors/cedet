@@ -112,7 +112,8 @@ Argument OLDFUN is removed NEWFUN is substituted in."
 (easy-menu-define
   cogre-mode-menu cogre-mode-map "Connected Graph Menu"
   '("Graph"
-    [ "Refresh" cogre-refresh t ]
+    ["Refresh" cogre-refresh t ]
+    ["Layout (dot)" cogre-layout t ]
     ("Insert" :filter cogre-insert-forms-menu)
     ("Navigate"
      ["Next Element" cogre-next-node t ]
@@ -125,6 +126,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     ("Change" :filter cogre-change-forms-menu)
     "--"
     [ "Delete" cogre-delete (cogre-current-element) ]
+    [ "PS Print" cogre-export-dot-postscript-print t ]
     ("Export to..."
      [ "ASCII" cogre-export-ascii t ]
      [ "DOT" cogre-export-dot t ]
