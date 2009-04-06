@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.wy,v 1.9 2009/04/06 01:53:11 zappo Exp $
+;; X-RCS: $Id: wisent-dot.wy,v 1.10 2009/04/06 02:56:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,7 +34,7 @@
 %start dot_file
 ;; Needed for EXPANDFULL
 %start graph-contents
-%start node-description
+%start attribute-block
 
 ;;; KEYWORDS
 %type    <keyword>
@@ -117,25 +117,39 @@ subgraph
 
 graphgeneric
   : GRAPH BRACKET_BLOCK SEMI
-    (TAG "GRAPH" 'generic-graph :attributes (EXPANDFULL $2 node-description))
+    (TAG "GRAPH" 'generic-graph :attributes (EXPANDFULL $2 attribute-block))
   ;
 
 node
   : NODE BRACKET_BLOCK SEMI
-    (TAG "NODE" 'generic-node :attributes (EXPANDFULL $2 node-description))
+    (TAG "NODE" 'generic-node :attributes (EXPANDFULL $2 attribute-block))
   ;
 
 graph-attributes
   : GRAPH BRACKET_BLOCK SEMI
-    (TAG "GRAPH" 'graph-attributes :attributes (EXPANDFULL $2 node-description))
+    (TAG "GRAPH" 'graph-attributes :attributes (EXPANDFULL $2 attribute-block))
   ;
 
 named-node
   : name BRACKET_BLOCK SEMI
-    (TAG $1 'node :attributes (EXPANDFULL $2 node-description))
+    (TAG $1 'node :attributes (EXPANDFULL $2 attribute-block))
   ;
 
-node-description
+links
+  : name DILINK name opt-link-attributes opt-semi
+    (TAG $1 'link :to $3 :attributes $4)
+  | name LINK name opt-link-attributes opt-semi
+    (TAG $1 'link :to $3 :attributes $4)
+  ;
+
+name
+  : symbol
+    ( identity $1 )
+  | string
+    ( read $1 ) ;; This un-strings it.
+  ;
+
+attribute-block
   : LBRACKET 
     ()
   | RBRACKET
@@ -147,20 +161,6 @@ node-description
     (TAG $1 'attribute :value $3)
   ;
 
-links
-  : name DILINK name opt-link-attributes opt-semi
-    (TAG $1 'link :to $3 :attributes $4)
-  | BRACE_BLOCK
- ;; Links in braces get properties.  Deal with this later.
-  ;
-
-name
-  : symbol
-    ( identity $1 )
-  | string
-    ( read $1 ) ;; This un-strings it.
-  ;
-
 opt-semi
   : SEMI
     ()
@@ -169,7 +169,7 @@ opt-semi
 
 opt-link-attributes
   : BRACKET_BLOCK
-    (EXPANDFULL $1 node-description)
+    (EXPANDFULL $1 attribute-block)
   | ;; Empty
   ;
 
