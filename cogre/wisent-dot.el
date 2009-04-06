@@ -1,10 +1,10 @@
 ;;; wisent-dot.el --- GraphViz DOT parser
 
-;; Copyright (C) 2003, 2004 Eric M. Ludlam
+;; Copyright (C) 2003, 2004, 2009 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.el,v 1.9 2005/09/30 20:07:07 zappo Exp $
+;; X-RCS: $Id: wisent-dot.el,v 1.10 2009/04/06 02:10:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -59,7 +59,7 @@
 (require 'semantic)
 (require 'wisent-dot-wy)
 
-(define-mode-overload-implementation semantic-tag-components
+(define-mode-local-override semantic-tag-components
   graphviz-dot-mode (tag)
   "Return the children of tag TAG."
   (cond
