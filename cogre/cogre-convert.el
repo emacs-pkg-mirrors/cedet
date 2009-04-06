@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-convert.el,v 1.6 2009/04/06 02:02:26 zappo Exp $
+;; X-RCS: $Id: cogre-convert.el,v 1.7 2009/04/06 02:27:48 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -51,7 +51,7 @@
 
 (require 'cogre-srecode)
 (require 'cedet-graphviz)
-
+(eval-when-compile (require 'ps-print))
 ;;; Code:
 (defvar cogre-export-max-y nil
   "Max y value in the current chart.")
@@ -71,7 +71,11 @@ DOT is a part of GraphViz."
 	 )
     ;; Force graphviz mode to be loaded, just in case the user didn't.
     (condition-case nil
-	(inversion-require 'graphviz-dot-mode "0.3.2")
+	(progn
+	  ;; graphviz-dot-mode doesn't have a provide statement
+	  (when (not (fboundp 'graphviz-dot-mode))
+	    (load-library "graphviz-dot-mode"))
+	  (inversion-test 'graphviz-dot-mode "0.3.2"))
       (error
        (error "You need to install graphviz-dot-mode.el to use dot-export feature")))
 
@@ -84,6 +88,8 @@ DOT is a part of GraphViz."
 	   (members (semantic-tag-get-attribute graphtag :members))
 	   (cogre-srecode-current-graph g)
 	   )
+      ;; Load our tables.
+      (cogre-srecode-load-tables)
 
       ;; Start it out.
       (srecode-insert "file:cogre")
@@ -99,6 +105,7 @@ DOT is a part of GraphViz."
 	       (length (semantic-tag-get-attribute graphtag :members)))
       )))
 
+;;;###autoload
 (defun cogre-export-dot-png ()
   "Export the current COGRE graph to DOT, then convert that to PNG.
 The png file is then displayed in an Emacs buffer.
@@ -114,17 +121,20 @@ DOT is a part of GraphVis."
 				default-directory nil nil def))
 	 )
     ;; Convert to dot
-    (cogre-export-dot)
-    ;; Convert from dot to png
-    (cedet-graphviz-translate-file (current-buffer)
-				   (expand-file-name fname)
-				   "png"
-				   "-y"
-				   "-n")
+    (save-window-excursion
+      (cogre-export-dot)
+      ;; Convert from dot to png
+      (cedet-graphviz-translate-file (current-buffer)
+				     (expand-file-name fname)
+				     "png"
+				     "-y"
+				     "-n"))
+
     (let ((ede-auto-add-method 'never))
       (find-file fname))
     ))
 
+;;;###autoload
 (defun cogre-export-dot-postscript-print ()
   "Print the current graph.
 This is done by exporting the current COGRE graph to DOT, then
