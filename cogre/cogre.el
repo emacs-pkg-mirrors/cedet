@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.37 2009/03/29 20:24:59 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.38 2009/04/06 02:09:48 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -427,15 +427,20 @@ customizing the object, or performing some complex task."
   "Delete from GRAPH the element ELT."
   (object-remove-from-list graph 'elements elt))
 
+(defun cogre-find-node-by-name (name &optional graph)
+  "Find a cogre node by NAME in GRAPH.
+If GRAPH is nil, use the current graph."
+  (object-assoc name :object-name (oref (or graph cogre-graph) elements)))
+
 (defmethod cogre-unique-name ((graph cogre-graph) name)
   "Within GRAPH, make NAME unique."
   (let ((newname name)
-	(obj (object-assoc name :object-name (oref graph elements)))
+	(obj (cogre-find-node-by-name name graph))
 	(inc 1))
     (while obj
       (setq newname (concat name (int-to-string inc)))
       (setq inc (1+ inc))
-      (setq obj (object-assoc newname :object-name (oref graph elements))))
+      (setq obj (cogre-find-node-by-name newname graph)))
     newname))
 
 (defmethod cogre-set-dirty ((element cogre-graph-element) dirty-state)
