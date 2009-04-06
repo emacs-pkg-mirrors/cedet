@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: cogre.texi,v 1.3 2009/03/29 19:48:24 zappo Exp $
+@c $Id: cogre.texi,v 1.4 2009/04/06 02:02:12 zappo Exp $
 @c
 @setfilename cogre.info
 @set TITLE COGRE: COnnected GRaph Editor 
@@ -43,6 +43,7 @@ Warning: Very little in this manual has been written.
 @menu
 * Getting Started::       Graphs, Nodes, and Links
 * Class Diagrams::        Creating Class diagrams
+* Export::                Exporting your graph to different formats.
 * Semantic Support::      Emacs can make diagrams for you
 * Index::
 @end menu
@@ -194,6 +195,66 @@ Nodes and links are @EIEIO{} objects, and can be customized.  Press
 @chapter Class Diagrams
 
 Add text here
+
+@node Export
+@chapter Export
+
+COGRE can export your graph into different formats.  The simplest
+format is into an all ASCII diagram:
+
+@defun cogre-export-ascii
+@anchor{cogre-export-ascii}
+Export the current diagram into an @var{ASCII} buffer.
+@end defun
+
+Other formats are supported through the configuration of Graphviz
+tools.  You will need to install and configure Graphviz to use these
+features.  The CEDET variables controlling how dot and neato are
+called are:
+
+@defun cedet-graphviz-dot-command
+@anchor{cedet-graphviz-dot-command}
+Command name for the Graphviz @var{DOT} executable.
+@end defun
+
+@defun cedet-graphviz-neato-command
+@anchor{cedet-graphviz-neato-command}
+Command name for the Graphviz @var{NEATO} executable.
+@end defun
+
+Also, when converting to and from DOT formatted files, a scaling
+factor needs to be applied as the DOT coordinates (in points) are
+converted into character sized units for COGRE.
+
+@defun cogre-dot-node-position-scale
+@anchor{cogre-dot-node-position-scale}
+The scale to use when converting between @var{COGRE} and @var{DOT} position values.
+This is of the format ( @var{XSCALE} . @var{YSCALE} ).
+@var{DOT} uses points, where as @var{COGRE} uses characters.
+@end defun
+
+Here are some handy exporting commands.
+
+@defun cogre-export-dot
+@anchor{cogre-export-dot}
+Export the current @var{COGRE} graph to @var{DOT} notation.
+@var{DOT} is a part of GraphViz.
+@end defun
+
+@defun cogre-export-dot-png
+@anchor{cogre-export-dot-png}
+Export the current @var{COGRE} graph to @var{DOT}, then convert that to @var{PNG}.
+The png file is then displayed in an Emacs buffer.
+@var{DOT} is a part of GraphVis.
+@end defun
+
+@defun cogre-export-dot-postscript-print
+@anchor{cogre-export-dot-postscript-print}
+Print the current graph.
+This is done by exporting the current @var{COGRE} graph to @var{DOT}, then
+convert that to Postscript before printing.
+@var{DOT} is a part of GraphVis.
+@end defun
 
 @node Semantic Support
 @chapter Semantic Support
