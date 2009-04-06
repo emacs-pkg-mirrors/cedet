@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-convert.el,v 1.4 2009/04/05 03:15:34 zappo Exp $
+;; X-RCS: $Id: cogre-convert.el,v 1.5 2009/04/06 01:54:16 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -124,6 +124,30 @@ DOT is a part of GraphVis."
       (find-file fname))
     ))
 
+(defun cogre-export-dot-postscript-print ()
+  "Export the current COGRE graph to DOT, then convert that to PNG.
+DOT is a part of GraphVis."
+  (interactive)
+  ;; Make sure things are installed ok.
+  (cedet-graphviz-dot-version-check)
+  ;; Run dot to create the file.  The graph was already
+  ;; verified.
+
+  ;; Convert to dot
+  (cogre-export-dot)
+
+  ;; Convert from dot to postscript
+  (save-excursion
+    (set-buffer
+     (cedet-graphviz-translate-file (current-buffer)
+				    nil
+				    "ps"
+				    "-n"))
+    (require 'ps-print)
+    (let ((ps-spool-buffer (current-buffer)))
+      (ps-do-despool nil))
+    ))
+
 (defmethod cogre-export-dot-method ((g cogre-graph))
   "Convert G into DOT syntax of semantic tags."
   (semantic-tag (oref g :name)
@@ -170,13 +194,20 @@ This works similarly to `semantic-tag-put-attribute'."
    )
   )
 
+(defcustom cogre-dot-node-position-scale (cons 6 12)
+  "The scale to use when converting between COGRE and DOT position values.
+DOT uses points, where as COGRE uses characters."
+  :group 'cogre
+  :type 'cons)
+
 (defmethod cogre-export-dot-pos ((node cogre-node))
   "Return a DOT compatible position."
   (let* ((pos (oref node position))
-	 (scale 12))
-    (format "%d,%d" (* scale (aref pos 0))
+	 (scalex (car cogre-dot-node-position-scale))
+	 (scaley (cdr cogre-dot-node-position-scale)))
+    (format "%d,%d" (* scalex (aref pos 0))
 	    ;; Dot does stuff upside-down, so we need to invert Y
-	    (* scale (- cogre-export-max-y (aref pos 1))))))
+	    (* scaley (- cogre-export-max-y (aref pos 1))))))
 
 (defmethod cogre-export-dot-shape ((node cogre-node))
   "Convert NODE into DOT syntax of semantic tags."
