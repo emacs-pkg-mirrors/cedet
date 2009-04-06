@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-graphviz.el,v 1.4 2009/04/06 14:09:05 zappo Exp $
+;; X-RCS: $Id: cedet-graphviz.el,v 1.5 2009/04/06 14:43:02 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -99,7 +99,7 @@ return nil."
     (save-excursion
       (set-buffer b)
       (goto-char (point-min))
-      (re-search-forward "dot \\(?:- graphviz \\)version \\([0-9.]+\\)" nil t)
+      (re-search-forward "dot \\(?:- graphviz \\)?version \\([0-9.]+\\)" nil t)
       (setq rev (match-string 1))
       (if (inversion-check-version rev nil cedet-graphviz-min-version)
 	  (if noerror
