@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-graphviz.el,v 1.1 2009/04/05 03:10:42 zappo Exp $
+;; X-RCS: $Id: cedet-graphviz.el,v 1.2 2009/04/06 01:51:31 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -73,20 +73,18 @@
 
 (defun cedet-graphviz-translate-file (bufferin fileout &optional outputformat &rest flags)
   "Translate BUFFERIN to FILEOUT with OUTPUTFORMAT.
-If FILEOUT is nil, then the buffer's file name is recast with a new extension.
+If FILEOUT is nil, then the output of neato is the translation.
 The OUTPUTFORMAT is one of the dot names for an output, such as png.
 The -T is appended in this function.  If OUTPUTFORMAT is not supplied, then
 ps is assumed.
 The rest of the argument FLAGS are more flags to pass to dot."
   (let* ((T (or outputformat "ps"))
 	 (infile (buffer-file-name bufferin))
-	 (outfile (or fileout
-		      (concat (file-name-sans-extension infile) "." T)))
 	 )
     (cedet-graphviz-neato-call (append
 				flags
-				(list (concat "-T" T)
-				      (concat "-o" outfile))
+				(list (concat "-T" T))
+				(if fileout (list (concat "-o" fileout)))
 				(list infile)))))
 
 ;;;###autoload
