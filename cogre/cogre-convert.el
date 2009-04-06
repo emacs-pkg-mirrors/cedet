@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-convert.el,v 1.7 2009/04/06 02:27:48 zappo Exp $
+;; X-RCS: $Id: cogre-convert.el,v 1.8 2009/04/06 16:11:45 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -254,12 +254,22 @@ DOT uses points, where as COGRE uses characters."
 
 (defmethod cogre-export-dot-label ((node cogre-class))
   "Convert NODE into DOT syntax of semantic tags."
-  (concat "{" (call-next-method) "||}"))
+  (concat "{" (call-next-method) "|"
+	  (cogre-export-dot-fieldslist node) "|"
+	  (cogre-export-dot-methodlist node) "}"))
+
+(defmethod cogre-export-dot-methodlist ((node cogre-class))
+  "Get a list of methods on NODE.  Return as \n separated list."
+  (mapconcat (lambda (s) (cogre-uml-stoken->uml node s)) (oref node methods) "\\n"))
+
+(defmethod cogre-export-dot-fieldslist ((node cogre-class))
+  "Get a list of fields on NODE.  Return as \n separated list."
+  (mapconcat (lambda (s) (cogre-uml-stoken->uml node s)) (oref node attributes) "\\n"))
 
 (defmethod cogre-export-dot-label ((node cogre-instance))
   "Convert NODE into DOT syntax of semantic tags."
   (let ((title (call-next-method)))
-    (if (string-match "\\n" title)
+    (if (string-match "\\\\n" title)
 	(replace-match "n:" t t title)
       (concat ":" title))))
 
