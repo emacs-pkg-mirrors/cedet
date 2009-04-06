@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-srecode.el,v 1.3 2009/04/05 03:15:50 zappo Exp $
+;; X-RCS: $Id: cogre-srecode.el,v 1.4 2009/04/06 01:52:27 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -79,6 +79,32 @@
   (let ((subdict (srecode-dictionary-add-section-dictionary dict "ATTRIBUTES")))
     (srecode-dictionary-set-value subdict "LABEL" label)
     (srecode-dictionary-set-value subdict "VALUE" value)))
+
+(define-mode-local-override srecode-calculate-context
+  graphviz-dot-mode ()
+  "Calculate a context for SRecode.
+This fcn is very sparing of fetching tags."
+  (if (= (point-min) (point-max))
+      (list "file" "empty")
+
+    (let ((ct (semantic-find-tag-by-overlay))
+	  )
+
+      (when (not ct)
+	(semantic-fetch-tags)
+	(setq ct (semantic-find-tag-by-overlay)))
+      
+      (cond ((not ct)
+	     (list "declaration" "graph")
+	     )
+	    ((semantic-tag-of-class-p (car ct) 'digraph)
+	     (list "declaration" "node")
+	     )
+	    ((semantic-tag-of-class-p (car (cdr ct)) 'node)
+	     (list "attribute")
+	     ))
+      )
+    ))
 
 (define-mode-local-override srecode-semantic-apply-tag-to-dict
   graphviz-dot-mode (tagobj dict)
