@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-layout.el,v 1.1 2009/04/06 01:51:47 zappo Exp $
+;; X-RCS: $Id: cogre-layout.el,v 1.2 2009/04/06 02:08:58 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -29,6 +29,7 @@
 (require 'cogre-convert)
 
 ;;; Code:
+;;;###autoload
 (defun cogre-layout ()
   "Layout the current graph.
 This function depends on a current version of `graphviz-dot-mode'.
