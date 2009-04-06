@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.el,v 1.10 2009/04/06 02:10:20 zappo Exp $
+;; X-RCS: $Id: wisent-dot.el,v 1.11 2009/04/06 02:57:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,25 +32,6 @@
 ;; This depends on graphics dot mode by
 ;;   Pieter E.J. Pareit <pieter.pareit@planetinternet.be>
 ;;   http://users.skynet.be/ppareit/graphviz-dot-mode.el
-;;   with the following patch:
-;;
-;;
-;; *** graphviz-dot-mode.el	2003/03/23 17:14:22	1.1
-;; --- graphviz-dot-mode.el	2003/03/26 03:39:21
-;; ***************
-;; *** 98,103 ****
-;; --- 98,109 ----
-;;       (modify-syntax-entry ?/ ". 124b" st)
-;;       (modify-syntax-entry ?* ". 23" st)
-;;       (modify-syntax-entry ?\n "> b" st)
-;; +     (modify-syntax-entry ?= "." st)
-;; +     (modify-syntax-entry ?, "." st)
-;; +     (modify-syntax-entry ?\; "." st)
-;; +     (modify-syntax-entry ?- "." st)
-;; +     (modify-syntax-entry ?> "." st)
-;; +     (modify-syntax-entry ?< "." st)
-;;       st)
-;;     "Syntax table for `graphviz-dot-mode'.")
 ;;   
 
 
@@ -77,9 +58,17 @@
   "Setup buffer for parse."
   (wisent-dot-wy--install-parser)
 
-  (setq 
+  (setq
    ;; Lexical Analysis
    semantic-lex-analyzer 'wisent-dot-lexer
+   semantic-lex-syntax-modifications
+   '(
+     (?- ".")
+     (?= ".")
+     (?, ".")
+     (?> ".")
+     (?< ".")
+     )
    ;; Parsing
    ;; Environment
    semantic-imenu-summary-function 'semantic-format-tag-name
