@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.38 2009/04/06 02:09:48 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.39 2009/04/07 00:33:11 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -81,8 +81,7 @@
 	 :documentation
 	 "The name of this graph.
 The save file name is based on this name.")
-   (buffer :initarg :buffer
-	   :initform nil
+   (buffer :initform nil
 	   :type (or null buffer)
 	   :documentation
 	   "When this graph is active, this is the buffer the graph is
@@ -96,6 +95,12 @@ displayed in.")
   "A Connected Graph.
 a connected graph contains a series of nodes and links which are
 rendered in a buffer, or serialized to disk.")
+
+(defmethod initialize-instance ((G cogre-graph) fields)
+  "Initialize ELT's name before the main FIELDS are initialized."
+  (call-next-method)
+  (oset G buffer (current-buffer))
+  )
 
 ;;;###autoload
 (defclass cogre-graph-element (eieio-named)
@@ -253,10 +258,10 @@ arrows or circles.")
 The new graph will be given NAME.  See `cogre-mode' for details.
 Optional argument GRAPH-CLASS indicates the type of graph to create."
   (interactive "sGraph Name: ")
+  (switch-to-buffer (get-buffer-create (concat "*Graph " name "*")))
   (let ((newgraph (if graph-class
 		      (funcall graph-class name :name name)
 		    (cogre-graph name :name name))))
-    (switch-to-buffer (get-buffer-create (concat "*Graph " name "*")))
     (setq cogre-graph newgraph)
     ;;(toggle-read-only 1)
     (require 'cogre-mode)
