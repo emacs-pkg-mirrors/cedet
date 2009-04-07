@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.el,v 1.11 2009/04/06 02:57:30 zappo Exp $
+;; X-RCS: $Id: wisent-dot.el,v 1.12 2009/04/07 00:34:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,7 +29,10 @@
 ;; The language is declaritive and the whole thing is parsed.
 ;; The result could be used as a data structure representing a graph.
 
-;; This depends on graphics dot mode by
+;; This depends on A dot mode 
+;;
+;; It will work with either cogre-dot-mode, or if available, the much
+;; nicer graphviz-dot-mode by
 ;;   Pieter E.J. Pareit <pieter.pareit@planetinternet.be>
 ;;   http://users.skynet.be/ppareit/graphviz-dot-mode.el
 ;;   
@@ -86,6 +89,8 @@
 
 ;;;###autoload
 (add-hook 'graphviz-dot-mode-hook 'wisent-dot-setup-parser)
+;;;###autoload
+(add-hook 'cogre-dot-mode-hook 'wisent-dot-setup-parser)
 
 (provide 'wisent-dot)
 
