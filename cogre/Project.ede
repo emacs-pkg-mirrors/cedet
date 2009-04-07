@@ -23,8 +23,8 @@
    (ede-proj-target-elisp "dot"
     :name "dot"
     :path ""
-    :source '("wisent-dot.el")
-    :aux-packages '("wisent")
+    :source '("wisent-dot.el" "cogre-dot-mode.el")
+    :aux-packages '("wisent" "mode-local")
     )
    (ede-proj-target-elisp "Mode"
     :name "Mode"
