@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-convert.el,v 1.8 2009/04/06 16:11:45 zappo Exp $
+;; X-RCS: $Id: cogre-convert.el,v 1.9 2009/04/07 00:36:24 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -67,21 +67,13 @@ DOT is a part of GraphViz."
 	 (name (oref g name))
 	 (fname (concat name ".dot"))
 	 (ede-auto-add-method 'never)
-	 (cogre-export-max-y (count-lines (point-min) (point-max)))
 	 )
-    ;; Force graphviz mode to be loaded, just in case the user didn't.
-    (condition-case nil
-	(progn
-	  ;; graphviz-dot-mode doesn't have a provide statement
-	  (when (not (fboundp 'graphviz-dot-mode))
-	    (load-library "graphviz-dot-mode"))
-	  (inversion-test 'graphviz-dot-mode "0.3.2"))
-      (error
-       (error "You need to install graphviz-dot-mode.el to use dot-export feature")))
-
     ;; Load in the file
     (switch-to-buffer (find-file fname))
     (erase-buffer)
+
+    ;; Get a parsing mode running here.
+    (cogre-dot-mode)
     
     ;; Convert G into this buffer.
     (let* ((graphtag (cogre-export-dot-method g))
@@ -163,12 +155,15 @@ DOT is a part of GraphVis."
 
 (defmethod cogre-export-dot-method ((g cogre-graph))
   "Convert G into DOT syntax of semantic tags."
-  (semantic-tag (oref g :name)
-		'digraph
-		:members 
-		(cogre-map-elements 'cogre-export-dot-method g)
-		)
-  )
+  (save-excursion
+    (set-buffer (oref g buffer))
+    (let ((cogre-export-max-y (count-lines (point-min) (point-max))))
+      (semantic-tag (oref g :name)
+		    'digraph
+		    :members 
+		    (cogre-map-elements 'cogre-export-dot-method g)
+		    )
+      )))
 
 (defun cogre-tag-put-dot-attribute (tag attribute value)
   "Get the attributes in TAG, and set ATTRIBUTE to VALUE.
@@ -327,58 +322,55 @@ Basic DOT doesn't require much, so we'll use the periodic
 table as an example."
   (interactive)
 
-  (if (not (locate-library "graphviz-dot-mode"))
-      (message "Skipping COGRE export to DOT test.  Can't find graphviz-dot-mode.")
-
-    ;; Step one, create the graph.
-    (if (get-buffer "*Graph Periodic*")
-	(switch-to-buffer "*Graph Periodic*")
-      (cogre-periodic))
-    ;; Step 2, convert.
-    (message "Converting graph %s to DOT structure." (oref cogre-graph name))
-    (let* ((graphtag (cogre-export-dot-method cogre-graph))
-	   (members (semantic-tag-get-attribute graphtag :members))
-	   )
+  ;; Step one, create the graph.
+  (if (get-buffer "*Graph Periodic*")
+      (switch-to-buffer "*Graph Periodic*")
+    (cogre-periodic))
+  ;; Step 2, convert.
+  (message "Converting graph %s to DOT structure." (oref cogre-graph name))
+  (let* ((graphtag (cogre-export-dot-method cogre-graph))
+	 (members (semantic-tag-get-attribute graphtag :members))
+	 )
     
-      (when (not graphtag)
-	(error "Conversions failed to make anything"))
+    (when (not graphtag)
+      (error "Conversions failed to make anything"))
 
-      (when (not (string= (semantic-tag-name graphtag) "Periodic"))
-	(error "Converted graph has wrong name: %S" (semantic-tag-name graphtag)))
-      (when (not (semantic-tag-of-class-p graphtag 'digraph))
-	(error "Converted graph is not a digraph"))
+    (when (not (string= (semantic-tag-name graphtag) "Periodic"))
+      (error "Converted graph has wrong name: %S" (semantic-tag-name graphtag)))
+    (when (not (semantic-tag-of-class-p graphtag 'digraph))
+      (error "Converted graph is not a digraph"))
 
-      (let ((N cogre-periodic-node-name-list)
-	    (L cogre-periodic-link-connectivity-list)
-	    )
-	(while members
+    (let ((N cogre-periodic-node-name-list)
+	  (L cogre-periodic-link-connectivity-list)
+	  )
+      (while members
 
-	  (let* ((M (car members))
-		 (n (semantic-tag-name M)))
+	(let* ((M (car members))
+	       (n (semantic-tag-name M)))
 
-	    (cond ((semantic-tag-of-class-p M 'node)
-		   (if (string= n (car (car N)))
-		       (setq N (cdr N))
-		     (error "Unexpected node %S in conversion" n))
-		   )
-		  ((semantic-tag-of-class-p M 'link)
-		   ;; Links go backward from COGRE to dot.
-		   (if (string= (semantic-tag-get-attribute M :to)
-				(car (car L)))
-		       (setq L (cdr L))
-		     (message "Expected link %S to %S"
-			      (car (car L)) (car (cdr (car L))))
-		     (error "Unexpected link from %S to %S in conversion"
-			    n (semantic-tag-get-attribute M :to)))
-		   )
-		  (t
-		   (error "Unknown dot tag %S" M)))
+	  (cond ((semantic-tag-of-class-p M 'node)
+		 (if (string= n (car (car N)))
+		     (setq N (cdr N))
+		   (error "Unexpected node %S in conversion" n))
+		 )
+		((semantic-tag-of-class-p M 'link)
+		 ;; Links go backward from COGRE to dot.
+		 (if (string= (semantic-tag-get-attribute M :to)
+			      (car (car L)))
+		     (setq L (cdr L))
+		   (message "Expected link %S to %S"
+			    (car (car L)) (car (cdr (car L))))
+		   (error "Unexpected link from %S to %S in conversion"
+			  n (semantic-tag-get-attribute M :to)))
+		 )
+		(t
+		 (error "Unknown dot tag %S" M)))
 
-	    )
-	  (setq members (cdr members)))
-	)
+	  )
+	(setq members (cdr members)))
+      )
 
-      (message "Graph Conversion to DOT success."))))
+    (message "Graph Conversion to DOT success.")))
 
 (provide 'cogre-convert)
 ;;; cogre-convert.el ends here
