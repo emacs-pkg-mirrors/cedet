@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-periodic.el,v 1.6 2009/04/04 15:31:43 zappo Exp $
+;; X-RCS: $Id: cogre-periodic.el,v 1.7 2009/04/07 01:45:09 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -39,6 +39,7 @@
      ( "cogre-class (2)" cogre-class )
      ( "cogre-instance" cogre-instance )
      ( "cogre-instance (2)" cogre-instance )
+     ( "Notes about COGRE" cogre-note )
     )
   "List of node names and classes in the graph.
 Used for testing purposes in conversion routines.")
@@ -95,6 +96,9 @@ Used for testing purpses in conversion routines.")
 	)
     (cogre-periodic-link-at i1 i2 'cogre-arrow))
   
+  ;; Notes?
+  (cogre-periodic-make-node-at 4 27 'cogre-note "Notes about COGRE")
+
   (cogre-render-buffer cogre-graph)
   )
 
