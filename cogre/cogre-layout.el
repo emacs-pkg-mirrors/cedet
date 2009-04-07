@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-layout.el,v 1.2 2009/04/06 02:08:58 zappo Exp $
+;; X-RCS: $Id: cogre-layout.el,v 1.3 2009/04/07 00:36:44 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -32,8 +32,7 @@
 ;;;###autoload
 (defun cogre-layout ()
   "Layout the current graph.
-This function depends on a current version of `graphviz-dot-mode'.
-This function also depends on graphviz `dot' program."
+This function depends on graphviz `dot' program."
   (interactive)
   (let ((tags nil)
 	(elts nil)
@@ -48,8 +47,8 @@ This function also depends on graphviz `dot' program."
 	;; Pump it through DOT, extract the output.
 	(set-buffer
 	 (cedet-graphviz-dot-call (list (buffer-file-name))))
-	;; Put the output into graphviz-dot-mode
-	(graphviz-dot-mode)
+	;; Put the output into dot-mode
+	(cogre-dot-mode)
 	;; For some reason, the above mode change doesn't trigger
 	;; the semantic new buffer function.  Do it here.
 	(semantic-new-buffer-fcn)
