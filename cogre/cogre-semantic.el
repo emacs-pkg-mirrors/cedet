@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-semantic.el,v 1.1 2009/04/09 01:12:54 zappo Exp $
+;; X-RCS: $Id: cogre-semantic.el,v 1.2 2009/04/09 02:14:39 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -133,6 +133,105 @@ an existing COGRE node, see @TODO - do that."
     )
    (t
     (error "COGRE can only convert language datatypes into class nodes"))))
+
+;;; USER-UTILITY
+;; 
+;; Previous version of cogre-uml-quick-class used a different class
+;; hierarchy.  This implementation uses the new peer back-end to various
+;; nodes to build up the tree.
+;;
+;; Also, use new Semantic analyzer features to identify the
+;; classes we want to build.
+
+(defvar cogre-class-history nil
+  "History for inputting class names.")
+
+(defun cogre-read-class-name ()
+  "Read in a class name to be used by a cogre node."
+  (let ((finddefaultlist (semantic-find-tag-by-overlay))
+	class prompt stream
+	)
+    ;; Assume the top most item is the all encompassing class.
+    (if finddefaultlist
+	(setq class (car finddefaultlist)))
+    ;; Make sure our class is really a class
+    (if (not (and
+	      class
+	      (eq (semantic-tag-class class) 'type)
+	      (string= (semantic-tag-type class) "class")))
+	(setq class nil)
+      (setq class (semantic-tag-name class)))
+    ;; Create a prompt
+    (setq prompt (if class (concat "Class (default " class "): ") "Class: "))
+    ;; Get the stream used for completion.
+    (let ((types (semanticdb-strip-find-results
+		  (semanticdb-brute-find-tags-by-class 'type)
+		  ;; Don't find-file-match.  Just need names.
+		  )))
+      (setq stream (semantic-find-tags-by-type "class" types)))
+    ;; Do the query
+    (completing-read prompt stream
+		     nil nil nil 'cogre-class-history
+		     class)
+    ))
+
+;;;###autoload
+(defun cogre-uml-quick-class (class)
+  "Create a new UML diagram based on CLASS showing only immediate lineage.
+The parent to CLASS, CLASS, and all of CLASSes children will be shown."
+  (interactive (list (cogre-read-class-name)))
+  
+  (let* ((classes (semanticdb-strip-find-results
+		   (semanticdb-brute-deep-find-tags-by-name class) t))
+	 (class-tok (car classes))
+	 (parent (semantic-tag-type-superclasses class-tok))
+	 (ptags nil)
+	 (children
+	  (semanticdb-strip-find-results
+	   (semanticdb-find-nonterminal-by-function
+	    (lambda (stream sp si)
+	      (semantic-brute-find-tag-by-function
+	       (lambda (tok)
+		 (and (eq (semantic-tag-class tok) 'type)
+		      (or (member class
+				  (semantic-tag-type-superclasses tok))
+			  (member class
+				  (semantic-tag-type-interfaces tok)))))
+	       stream sp si))
+	    nil nil nil t t)))
+	 )
+
+    (save-excursion
+      ;; Go to our token, and then look up the parents.
+      (semantic-go-to-tag class-tok)
+      (let ((ctxt (semantic-calculate-scope)))
+	(dolist (P parent)
+	  (push (semantic-analyze-find-tag P 'type (oref ctxt scope))
+		ptags))
+	))
+
+    ;; Create a graph.
+    (cogre (semantic-tag-name class-tok))
+
+    ;; Create this class
+    (let ((CT (cogre-semantic-tag-to-node class-tok)))
+
+      ;; Create all the parent nodes in the graph, then connect
+      ;; them to C.
+      (dolist (P ptags)
+	(when P
+	  (let ((pn (cogre-semantic-tag-to-node P)))
+	    (make-instance 'cogre-inherit :start CT :end pn))))
+      
+      ;; Create all the children nodes, and align them.
+      (dolist (C children)
+	(let ((cn (cogre-semantic-tag-to-node C)))
+	(make-instance 'cogre-inherit :start cn :end CT))))
+      
+    ;; Run the layout engine.
+    (cogre-layout)
+
+    ))
 
 (provide 'cogre-semantic)
 ;;; cogre-semantic.el ends here
