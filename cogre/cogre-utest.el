@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-utest.el,v 1.7 2009/03/24 00:27:50 zappo Exp $
+;; X-RCS: $Id: cogre-utest.el,v 1.8 2009/04/09 01:06:19 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -109,28 +109,6 @@ Link is created with the specified TYPE."
     (call-interactively 'cogre-new-link)
     ))
 
-;;; TEST FOR QUICK-CLASS
-;;
-;;;###autoload
-(defun cogre-uml-utest ()
-  "Quick test for UML chart generation."
-  (interactive)
-
-  (save-excursion
-
-    (set-buffer (semantic-find-file-noselect
-		 (locate-library "cogre.el")))
-
-    (semantic-fetch-tags)
-
-    (set-buffer (semantic-find-file-noselect
-		 (locate-library "cogre-uml.el")))
-
-    (semantic-fetch-tags)
-
-    (cogre-uml-quick-class "cogre-node"))
-
-  )
 
 (provide 'cogre-utest)
 ;;; cogre-utest.el ends here
