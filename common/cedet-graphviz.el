@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-graphviz.el,v 1.5 2009/04/06 14:43:02 zappo Exp $
+;; X-RCS: $Id: cedet-graphviz.el,v 1.6 2009/04/09 02:10:06 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -80,12 +80,14 @@ ps is assumed.
 The rest of the argument FLAGS are more flags to pass to dot."
   (let* ((T (or outputformat "ps"))
 	 (infile (buffer-file-name bufferin))
-	 )
-    (cedet-graphviz-neato-call (append
-				flags
-				(list (concat "-T" T))
-				(if fileout (list (concat "-o" fileout)))
-				(list infile)))))
+	 (allflags (append flags
+			   (list (concat "-T" T))
+			   (if fileout (list (concat "-o" fileout)))
+			   (list infile))
+		   ))
+    (if (member "-n" flags)
+	(cedet-graphviz-neato-call allflags)
+      (cedet-graphviz-dot-call allflags))))
 
 ;;;###autoload
 (defun cedet-graphviz-dot-version-check (&optional noerror)
