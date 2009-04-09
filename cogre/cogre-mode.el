@@ -414,7 +414,10 @@ into `senator-tag-ring'."
   (let* ((cogre-export-max-y (count-lines (point-min) (point-max)))
 	 (tag (cogre-export-dot-method element))
 	 )
-    (semantic--tag-put-property tag :cogre (clone element))
+    ;; While cloning the old element, disable the graph.
+    (semantic--tag-put-property
+     tag :cogre (clone element (oref element :object-name)))
+      
     (ring-insert senator-tag-ring tag)
     ))
 
@@ -433,7 +436,8 @@ and translate into COGRE nodes."
 	    ;; If this was previously a cogre node, then clone it
 	    ;; and move it and insert.
 	    (progn
-	      (setq elt (clone elt :position (vector x y)))
+	      (setq elt (clone elt (oref elt :object-name)
+			       :position (vector x y)))
 	      ;; We need to make the name unique, and add to the
 	      ;; graph, as clone won't call initialize.
 	      (let ((n (oref elt object-name)))
