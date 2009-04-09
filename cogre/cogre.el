@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.39 2009/04/07 00:33:11 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.40 2009/04/09 01:03:12 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -70,7 +70,42 @@
       (noninteractive)
     noninteractive))
 
-;;; Classes
+;;; PEER Classes
+;;
+;; Each cogre element, and the graph is an abstract representation of
+;; something.  The peer would then be an object that handles a
+;; concrete represenatation of something else.  
+;;
+;; For example, a `note' node might be linked to a comment in some
+;; code.  Updating the node should update the file or updating the
+;; file should update the node.
+;;
+;; As the different types of nodes might be linked to different kinds
+;; of things, an abstract handler for peers is needed so COGRE can do
+;; many kinds of jobs.
+
+(defclass cogre-element-peer ()
+  (
+   )
+  "COGRE Elements, such as nodes an links all have a peer.
+While graph elements can have a nil peer, if there is one, it
+must be a subclass of this class.
+
+The peer provides services to the graph that allows that graph
+to be linked to other items in the system defined by the peers.
+Subclasses should define slots to store their data."
+  :abstract t)
+
+(defmethod cogre-peer-update-from-source ((peer cogre-element-peer) element)
+  "Update the PEER object, and ELEMENT from environment."
+  nil)
+
+(defmethod cogre-peer-update-from-element ((peer cogre-element-peer) element)
+  "Update the PEER object, from the ELEMENT data, changing the environment."
+  nil)
+
+;;; GRAPH Classes
+;;
 ;;;###autoload
 (defclass cogre-graph (eieio-persistent)
   ((extension :initform ".cgr") ;; Override the default
@@ -86,6 +121,11 @@ The save file name is based on this name.")
 	   :documentation
 	   "When this graph is active, this is the buffer the graph is
 displayed in.")
+   (peer :initarg :peer
+	 :initform nil
+	 :type (or null cogre-element-peer)
+	 :documentation
+	 "The peer for this graph.")
    (elements :initarg :elements
 	     :initform nil
 	     :type list
@@ -126,6 +166,11 @@ Any given element may have several entries of details which are
 modifiable.
 Examples could be Add/Removing/Renaming slots, or changing linkages."
 	 )
+   (peer :initarg :peer
+	 :initform nil
+	 :type (or null cogre-element-peer)
+	 :documentation
+	 "The peer for this graph.")
    )
   "A Graph Element.
 Graph elements are anything that is drawn into a `cogre-graph'.
