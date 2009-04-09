@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.23 2009/04/05 03:16:37 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.24 2009/04/09 02:15:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -135,12 +135,6 @@ is a package, it is ( \"<package>\" \"name\")."
    (blank-lines-top :initform 0)
    (blank-lines-bottom :initform 0)
    (alignment :initform left)
-   (class :initarg :class
-	  :initform nil
-	  :type (or string list)
-	  :custom sexp
-	  :documentation
-	  "The semantic token representing the class this is drawing.")
    (attributes :initarg :attributes
 	       :initform nil
 	       :type list
