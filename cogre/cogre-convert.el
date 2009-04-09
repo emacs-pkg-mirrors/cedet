@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-convert.el,v 1.10 2009/04/09 01:04:32 zappo Exp $
+;; X-RCS: $Id: cogre-convert.el,v 1.11 2009/04/09 02:13:11 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -111,16 +111,20 @@ DOT is a part of GraphVis."
 					      ".png")))
 	 (fname (read-file-name "Write to: "
 				default-directory nil nil def))
+	 (keeplayout (y-or-n-p "Keep current Layout? "))
 	 )
     ;; Convert to dot
     (save-window-excursion
       (cogre-export-dot)
       ;; Convert from dot to png
-      (cedet-graphviz-translate-file (current-buffer)
-				     (expand-file-name fname)
-				     "png"
-				     "-y"
-				     "-n"))
+      (if keeplayout
+	  (cedet-graphviz-translate-file (current-buffer)
+					 (expand-file-name fname)
+					 "png"
+					 "-n")
+	(cedet-graphviz-translate-file (current-buffer)
+				       (expand-file-name fname)
+				       "png")))
 
     (let ((ede-auto-add-method 'never))
       (find-file fname))
@@ -137,21 +141,27 @@ DOT is a part of GraphVis."
   (cedet-graphviz-dot-version-check)
   ;; Run dot to create the file.  The graph was already
   ;; verified.
+  (let ((keeplayout (y-or-n-p "Keep current Layout? ")))
 
-  ;; Convert to dot
-  (cogre-export-dot)
+    ;; Convert to dot
+    (cogre-export-dot)
 
-  ;; Convert from dot to postscript
-  (save-excursion
-    (set-buffer
-     (cedet-graphviz-translate-file (current-buffer)
-				    nil
-				    "ps"
-				    "-n"))
-    (require 'ps-print)
-    (let ((ps-spool-buffer (current-buffer)))
-      (ps-do-despool nil))
-    ))
+    ;; Convert from dot to postscript
+    (save-excursion
+      (set-buffer
+       (if keeplayout
+	   (cedet-graphviz-translate-file (current-buffer)
+					  nil
+					  "ps"
+					  "-n")
+	 (cedet-graphviz-translate-file (current-buffer)
+					nil
+					"ps")))
+
+      (require 'ps-print)
+      (let ((ps-spool-buffer (current-buffer)))
+	(ps-do-despool nil))
+      )))
 
 ;;;###autoload
 (defmethod cogre-export-dot-method ((g cogre-graph))
