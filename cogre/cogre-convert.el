@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-convert.el,v 1.9 2009/04/07 00:36:24 zappo Exp $
+;; X-RCS: $Id: cogre-convert.el,v 1.10 2009/04/09 01:04:32 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -153,6 +153,7 @@ DOT is a part of GraphVis."
       (ps-do-despool nil))
     ))
 
+;;;###autoload
 (defmethod cogre-export-dot-method ((g cogre-graph))
   "Convert G into DOT syntax of semantic tags."
   (save-excursion
