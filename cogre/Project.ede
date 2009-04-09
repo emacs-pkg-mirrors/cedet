@@ -49,7 +49,7 @@
    (ede-proj-target-elisp "COGRE"
     :name "COGRE"
     :path ""
-    :source '("cogre.el" "cogre-uml.el" "uml-create.el" "cogre-periodic.el" "cogre-ascii.el" "cogre-srecode.el" "cogre-convert.el" "cogre-layout.el")
+    :source '("cogre.el" "cogre-uml.el" "cogre-periodic.el" "cogre-ascii.el" "cogre-srecode.el" "cogre-convert.el" "cogre-layout.el" "cogre-semantic.el")
     :versionsource '("cogre.el")
     :aux-packages '("eieio" "semantic" "semantic-el" "inversion" "speedbar" "srecode")
     )
