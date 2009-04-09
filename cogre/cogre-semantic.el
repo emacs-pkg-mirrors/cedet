@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-semantic.el,v 1.2 2009/04/09 02:14:39 zappo Exp $
+;; X-RCS: $Id: cogre-semantic.el,v 1.3 2009/04/09 02:21:39 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -181,8 +181,11 @@ an existing COGRE node, see @TODO - do that."
 The parent to CLASS, CLASS, and all of CLASSes children will be shown."
   (interactive (list (cogre-read-class-name)))
   
-  (let* ((classes (semanticdb-strip-find-results
-		   (semanticdb-brute-deep-find-tags-by-name class) t))
+  (let* ((classes
+	  (semantic-find-tags-by-type
+	   "class" (semanticdb-strip-find-results
+		    (semanticdb-find-tags-by-class
+		     'type (semanticdb-brute-deep-find-tags-by-name class) t))))
 	 (class-tok (car classes))
 	 (parent (semantic-tag-type-superclasses class-tok))
 	 (ptags nil)
