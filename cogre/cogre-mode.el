@@ -80,9 +80,13 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     ;; Changing and Setting Defaults
     (define-key km "\C-c\C-n" 'cogre-default-node)
     (define-key km "\C-c\C-l" 'cogre-default-link)
+    ;; Kill/Yank operations
+    (define-key km "\C-k" 'cogre-kill-element)
+    (define-key km "\C-w" 'cogre-kill-element)
+    (define-key km "\M-w" 'cogre-copy-element)
+    (define-key km "\C-y" 'cogre-yank-element)
     ;; Modifications
     (define-key km "n" 'cogre-set-element-name)
-    (define-key km "l" 'cogre-edit-label)
     ;; Move nodes around
     (define-key km [(meta left)] 'cogre-move-node-left)
     (define-key km [(meta right)] 'cogre-move-node-right)
@@ -125,7 +129,11 @@ Argument OLDFUN is removed NEWFUN is substituted in."
      )
     ("Change" :filter cogre-change-forms-menu)
     "--"
-    [ "Delete" cogre-delete (cogre-current-element) ]
+    ( "Edit..."
+      [ "Kill Node" cogre-kill-element (cogre-current-element) ]
+      [ "Copy Node" cogre-copy-element (cogre-current-element) ]
+      [ "Yank Node or Tag" cogre-yank-element (not (ring-empty-p senator-tag-ring)) ]
+      [ "Delete" cogre-delete (cogre-current-element) ])
     [ "PS Print" cogre-export-dot-postscript-print t ]
     ("Export to..."
      [ "ASCII" cogre-export-ascii t ]
@@ -161,7 +169,10 @@ Argument OLDFUN is removed NEWFUN is substituted in."
   '("Update"
     [ "Rename" cogre-set-element-name t ]
     [ "View/Edit" cogre-activate-element t ]    
-    [ "Delete" cogre-delete t ]
+    "---"
+    [ "Kill Node" cogre-kill-element (cogre-current-element) ]
+    [ "Copy Node" cogre-copy-element (cogre-current-element) ]
+    [ "Yank Node or Tag" cogre-yank-element (not (ring-empty-p senator-tag-ring)) ]
     ))
 
 (defvar cogre-tool-bar-map
@@ -382,6 +393,60 @@ LINKTYPE is the eieio class name for the link to insert."
 	(cogre-erase element)
 	(cogre-delete-element cogre-graph element))
     ))
+
+;;; Kill/Yank
+;;
+(defun cogre-kill-element (element)
+  "Kill the ELEMENT under point.
+Uses `cogre-copy-element' to push it into the kill ring."
+  (interactive (list (cogre-element-at-point-interactive (point))))
+  ;; Copy the element first.
+  (cogre-copy-element element)
+  ;; Now delete the node.
+  (cogre-delete element)
+  )
+
+(defun cogre-copy-element (element)
+  "Copy the ELEMENT under point.
+Clones the object in question and places the clone in semantic-tag-format
+into `senator-tag-ring'."
+  (interactive (list (cogre-element-at-point-interactive (point))))
+  (let* ((cogre-export-max-y (count-lines (point-min) (point-max)))
+	 (tag (cogre-export-dot-method element))
+	 )
+    (semantic--tag-put-property tag :cogre (clone element))
+    (ring-insert senator-tag-ring tag)
+    ))
+
+(defun cogre-yank-element ()
+  "Yank an element into the current graph.
+Uses `senator-tag-ring'.  Will yank semantic tags from code buffers
+and translate into COGRE nodes."
+  (interactive)
+  (or (ring-empty-p senator-tag-ring)
+      (let* ((tag (ring-ref senator-tag-ring 0))
+	     (elt (semantic--tag-get-property tag :cogre))
+	     (x (current-column))
+	     (y (cogre-current-line))
+	     )
+	(if elt
+	    ;; If this was previously a cogre node, then clone it
+	    ;; and move it and insert.
+	    (progn
+	      (setq elt (clone elt :position (vector x y)))
+	      ;; We need to make the name unique, and add to the
+	      ;; graph, as clone won't call initialize.
+	      (let ((n (oref elt object-name)))
+		;; make sure our name is unique.
+		(oset elt object-name (cogre-unique-name cogre-graph n)))
+	      (cogre-add-element cogre-graph elt)
+	      )
+	  ;; It is some misc Semantic Tag.  Convert into a node.
+	  (setq elt (cogre-semantic-tag-to-node tag))
+	  (when elt
+	    (oset elt :position (vector x y)))
+	  )
+	(cogre-refresh))))
 
 ;;; Navigation
 ;;
