@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-semantic.el,v 1.3 2009/04/09 02:21:39 zappo Exp $
+;; X-RCS: $Id: cogre-semantic.el,v 1.4 2009/04/09 03:01:43 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -181,27 +181,18 @@ an existing COGRE node, see @TODO - do that."
 The parent to CLASS, CLASS, and all of CLASSes children will be shown."
   (interactive (list (cogre-read-class-name)))
   
-  (let* ((classes
-	  (semantic-find-tags-by-type
-	   "class" (semanticdb-strip-find-results
-		    (semanticdb-find-tags-by-class
-		     'type (semanticdb-brute-deep-find-tags-by-name class) t))))
+  (let* ((brute (semanticdb-brute-deep-find-tags-by-name class))
+	 (byclass (semanticdb-find-tags-by-class 'type brute))
+	 (striped (semanticdb-strip-find-results byclass t))
+	 (classes (semantic-find-tags-by-type "class" striped))
 	 (class-tok (car classes))
 	 (parent (semantic-tag-type-superclasses class-tok))
 	 (ptags nil)
+
 	 (children
 	  (semanticdb-strip-find-results
-	   (semanticdb-find-nonterminal-by-function
-	    (lambda (stream sp si)
-	      (semantic-brute-find-tag-by-function
-	       (lambda (tok)
-		 (and (eq (semantic-tag-class tok) 'type)
-		      (or (member class
-				  (semantic-tag-type-superclasses tok))
-			  (member class
-				  (semantic-tag-type-interfaces tok)))))
-	       stream sp si))
-	    nil nil nil t t)))
+	   (semanticdb-find-tags-subclasses-of-type
+	    (semantic-tag-name class-tok) (current-buffer))))
 	 )
 
     (save-excursion
