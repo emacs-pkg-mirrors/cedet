@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.40 2009/04/09 01:03:12 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.41 2009/04/10 01:39:08 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -126,6 +126,19 @@ displayed in.")
 	 :type (or null cogre-element-peer)
 	 :documentation
 	 "The peer for this graph.")
+   (detail :initarg :detail
+	   :initform 0
+	   :type number
+	   :custom (choice (const 0 :tag "Max Detail")
+			   (const 1 :tag "Less Detail")
+			   (const 2 :tag "Not Much Detail")
+			   (const 3 :tag "No Detail"))
+	   :documentation
+	   "A flag for items being rendered on how much detail to show.
+A 0 means to show everything.
+A 1 means to show a little bit less.
+A 2 means to show less than that.
+A 3 means just the package and name.")
    (elements :initarg :elements
 	     :initform nil
 	     :type list
@@ -467,6 +480,13 @@ customizing the object, or performing some complex task."
   (save-excursion
     (set-buffer cogre-custom-originating-graph-buffer)
     (cogre-render-buffer cogre-graph t))
+  )
+
+(defmethod eieio-done-customizing ((g cogre-graph))
+  "Finish customizing a graph element."
+  (save-excursion
+    (set-buffer cogre-custom-originating-graph-buffer)
+    (cogre-render-buffer g t))
   )
 
 (defmethod cogre-add-element ((graph cogre-graph) elt)
