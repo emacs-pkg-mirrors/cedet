@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.84 2009/04/02 00:49:43 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.85 2009/04/10 11:52:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -363,7 +363,7 @@ searches use the same arguments."
      ;; If the splitter gives us a list, use the sequence finder
      ;; to get the list.  Since this routine is expected to return
      ;; only one tag, return the LAST tag found from the sequence
-     ;; which is supposedly the nexted reference.
+     ;; which is supposedly the nested reference.
      ;;
      ;; Of note, the SEQUENCE function below calls this function
      ;; (recursively now) so the names that we get from the above
