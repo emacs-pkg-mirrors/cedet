@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.24 2009/04/09 02:15:35 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.25 2009/04/10 01:40:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -163,32 +163,70 @@ within them.  Classes can have attribute links, and class hierarchy links.")
 It also adds properties that enable editing, and interaction with
 this node.  Optional argument TEXT is a preformatted string."
   (if (semantic-tag-p stoken)
-      (semantic-format-tag-uml-concise-prototype stoken)
-    ;; Else, old style COGRE tag thing.
-    (let ((newtext 
-	   (or text
-	       (concat (car stoken) ":"
-		       (cond ((stringp (nth 2 stoken))
-			      (nth 2 stoken))
-			     ((listp (nth 2 stoken))
-			      (car (nth 2 stoken)))
-			     (t ""))))))
-      ;; Add in some useful properties
-      (add-text-properties 0 (length newtext)
-			   (list 'semantic stoken
-			       
-				 )
-			   newtext)
-      ;; Return the string
-      newtext)))
+      (save-excursion
+	;; Visit that tag's home so we get the correct mechanism for
+	;; converting to a prototype.
+	(when (semantic-tag-file-name stoken)
+	  (semantic-go-to-tag stoken))
+	(semantic-format-tag-uml-concise-prototype stoken nil t))
+    (error "Unknown element cogre-class node attribute or method.")))
 
 (defmethod cogre-node-slots ((class cogre-class))
   "Return a list of each section, including title, attributes, and methods.
 Argument CLASS is the class whose slots are referenced."
-  (list
-   (mapcar (lambda (s) (cogre-uml-stoken->uml class s)) (oref class attributes))
-   (mapcar (lambda (s) (cogre-uml-stoken->uml class s)) (oref class methods))
-   ))
+  (let ((detail (if (eieio-object-p cogre-graph)
+		    (oref cogre-graph :detail)
+		  0)))
+    (cond 
+     ((= detail 0)
+      ;; Show everything.
+      (list
+       (mapcar (lambda (s) (cogre-uml-stoken->uml class s)) (oref class methods))
+       (mapcar (lambda (s) (cogre-uml-stoken->uml class s)) (oref class attributes))
+       ))
+     ((= detail 3)
+      ;; Show nothing.
+      (list nil nil))
+     ((or (= detail 1) (= detail 2))
+      ;; Strip out redundant entries from the method and attribute lists.
+      (let ((name (oref class :object-name))
+	    (attr (oref class attributes))
+	    (meth (oref class methods)))
+	;; Heuristic 1 - Strip out anything with the same name as the
+	;; class itself.
+	(setq meth (semantic--find-tags-by-function
+		    (lambda (T) (not (string= (semantic-tag-name T) name)))
+		    meth))
+	;; Heuristic 2 - For each attribute, strip out any method that
+	;; is either a "get" or a "set" of that attribute.
+	;;
+	;; But only for "more detail" cases.  In even less detail cases
+	;; these methods need to stay when we strip out all the private
+	;; data.
+	(when (= detail 1)
+	  (let ((case-fold-search t))
+	    (dolist (A attr)
+	      (let* ((tn (semantic-tag-name A))
+		     (c1 (substring tn 0 1))
+		     (str (substring tn 1))
+		     (reg (concat "[gs]et\\(" 
+				  (if (string= c1 "f") str tn)
+				  "\\)")))
+		(setq meth (semantic--find-tags-by-function
+			    (lambda (T) (not (string-match reg (semantic-tag-name T))))
+			    meth))))))
+	;; Heuristic 3 - Strip out anything private or protected!
+	;; But only if less detail is desired.
+	(when (= detail 2)
+	  nil
+	  )
+	;; Heuristic 4 - Get clever.
+	
+	(list
+	 (mapcar (lambda (s) (cogre-uml-stoken->uml class s)) meth)
+	 (mapcar (lambda (s) (cogre-uml-stoken->uml class s)) attr)
+	 )
+	)))))
 
 ;;;###autoload
 (defclass cogre-instance (cogre-scoped-node)
