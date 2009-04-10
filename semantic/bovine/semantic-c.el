@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.113 2009/03/28 02:02:00 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.114 2009/04/10 11:53:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -248,7 +248,7 @@ Return the the defined symbol as a special spp lex token."
       ;; Magical spp variable for end point.
       (setq semantic-lex-end-point (point))
 
-      ;; Handled nexted macro streams.
+      ;; Handled nested macro streams.
       (semantic-lex-spp-merge-streams raw-stream)
       )))
 
@@ -1182,6 +1182,7 @@ instantiated as specified in TYPE-DECLARATION."
         (semantic-tag-set-faux type))))
   (list type type-declaration))
 
+;;; Patch here by "Raf" for instantiating templates.
 (defun semantic-c-dereference-member-of (type scope &optional type-declaration)
   "Dereference through the `->' operator of TYPE.
 Uses the return type of the '->' operator if it is contained in TYPE.
