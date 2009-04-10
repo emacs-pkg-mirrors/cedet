@@ -134,6 +134,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
       [ "Copy Node" cogre-copy-element (cogre-current-element) ]
       [ "Yank Node or Tag" cogre-yank-element (not (ring-empty-p senator-tag-ring)) ]
       [ "Delete" cogre-delete (cogre-current-element) ])
+    [ "Customize Graph" cogre-customize-graph t]
     [ "PS Print" cogre-export-dot-postscript-print t ]
     ("Export to..."
      [ "ASCII" cogre-export-ascii t ]
@@ -153,6 +154,8 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     [ "Instance" cogre-new-node t]
     [ "Note" cogre-new-node t]
     [ "Node" cogre-new-node t]
+    "---"
+    [ "Customize Graph" cogre-customize-graph t]
     ))
 
 (easy-menu-define
@@ -297,6 +300,16 @@ If it is already drawing a graph, then don't convert."
   (set-buffer-modified-p nil)
   (clear-visited-file-modtime)
   t)
+
+;;; Customzize the graph
+;;
+(defun cogre-customize-graph ()
+  "Customize the current graph."
+  (interactive)
+  (let ((b (current-buffer)))
+    (require 'eieio-custom)
+    (customize-object cogre-graph)
+    (setq cogre-custom-originating-graph-buffer b)))
 
 ;;; Interactive utility functions
 ;;
