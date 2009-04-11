@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.26 2009/04/11 00:25:46 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.27 2009/04/11 06:13:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,7 +41,7 @@
    (alignment :initform left)
    (subgraph :initarg :subgraph
 	     :initform nil
-	     :type (or null cogre-graph)
+	     :type (or null cogre-base-graph)
 	     :documentation
 	     "A graph which represents the classes within this package.
 The subgraph should be scanned to extract all the elements drawn into
@@ -163,22 +163,27 @@ within them.  Classes can have attribute links, and class hierarchy links.")
 It also adds properties that enable editing, and interaction with
 this node.  Optional argument TEXT is a preformatted string."
   (if (semantic-tag-p stoken)
-      (let ((peer (oref class peer)))
+      (let ((peer (oref class peer))
+	    (mm (oref cogre-graph major-mode)))
 	(save-excursion
 	  ;; Visit that tag's home so we get the correct mechanism for
 	  ;; converting to a prototype.
 	  (if (semantic-tag-file-name stoken)
-	      (semantic-go-to-tag stoken)
+	      (progn
+		(semantic-go-to-tag stoken)
+		(setq mm major-mode))
 	    (when (and peer (cogre-peer-source-file peer))
 	      (set-buffer (semantic-find-file-noselect
 			   (cogre-peer-source-file peer)))
-	      ))
-	  ;; disable images during the format.  Images will mess up
-	  ;; the fancy formatting.
-	  (let ((semantic-format-use-images-flag nil)
-		(parent (and (cogre-peer-semantic-child-p peer)
-			     (oref peer :tag))))
-	  (semantic-format-tag-uml-concise-prototype stoken parent t))))
+	      (setq mm major-mode)
+	      )))
+	;; disable images during the format.  Images will mess up
+	;; the fancy formatting.
+	(let ((semantic-format-use-images-flag nil)
+	      (major-mode mm)
+	      (parent (and (cogre-peer-semantic-child-p peer)
+			   (oref peer :tag))))
+	  (semantic-format-tag-uml-concise-prototype stoken parent t)))
     (error "Unknown element cogre-class node attribute or method.")))
 
 (defmethod cogre-node-slots ((class cogre-class))
