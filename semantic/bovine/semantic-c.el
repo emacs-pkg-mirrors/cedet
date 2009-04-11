@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.114 2009/04/10 11:53:19 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.115 2009/04/11 16:51:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1122,13 +1122,18 @@ handled.  A class is abstract iff it's destructor is virtual."
    (t (semantic-tag-abstract-p-default tag parent))))
 
 (defun semantic-c-dereference-typedef (type scope &optional type-declaration)
-  "If TYPE is a typedef, get TYPE's type by name or tag, and return."         
+  "If TYPE is a typedef, get TYPE's type by name or tag, and return.
+SCOPE is not used, and TYPE-DECLARATION is used only if TYPE is not a typedef."
   (if (and (eq (semantic-tag-class type) 'type)
            (string= (semantic-tag-type type) "typedef"))
       (let ((dt (semantic-tag-get-attribute type :typedef)))
         (cond ((and (semantic-tag-p dt)
                     (not (semantic-analyze-tag-prototype-p dt)))
-               (list dt dt))
+	       ;; In this case, DT was declared directly.  We need
+	       ;; to clone DT and apply a filename to it.
+	       (let* ((fname (semantic-tag-file-name type))
+		      (def (semantic-tag-copy dt nil fname)))
+		 (list def def)))
               ((stringp dt) (list dt (semantic-tag dt 'type)))
               ((consp dt) (list (car dt) dt))))
 
