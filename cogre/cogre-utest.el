@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-utest.el,v 1.8 2009/04/09 01:06:19 zappo Exp $
+;; X-RCS: $Id: cogre-utest.el,v 1.9 2009/04/11 06:19:49 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -109,6 +109,33 @@ Link is created with the specified TYPE."
     (call-interactively 'cogre-new-link)
     ))
 
+;;; Test graphs derived from source
+;;
+;;;###autoload
+(defun cogre-utest-quick-class ()
+  "Test the quick-class function."
+  (interactive)
+  (let* ((lib (locate-library "cogre"))
+	 (testfile
+	  (expand-file-name "tests/testclasses.hh"
+			    (file-name-directory lib))))
+    (save-excursion
+      (set-buffer (find-file-noselect testfile))
+      (cogre-uml-quick-class "Subclass")
+      ;; Make sure we are in a graph.
+      (unless (cogre-base-graph-p cogre-graph)
+	(error "Test cogre-uml-quick-class did not createa graph"))
+      ;; Test the elements of the graph.
+      (let ((expectednodes '("Subclass"
+			     "MyBaseclass"
+			     "SpecificClass"
+			     "OtherClass"
+			     "AltClass")))
+	(dolist (C expectednodes)
+	  (unless (cogre-find-node-by-name C)
+	    (error "Could not find expected node %S" C)))
+	))))
+    
 
 (provide 'cogre-utest)
 ;;; cogre-utest.el ends here
