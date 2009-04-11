@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.27 2009/04/01 04:38:08 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-fcn.el,v 1.28 2009/04/11 16:50:09 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -236,14 +236,15 @@ used by the analyzer debugger."
 (defun semantic-analyze-dereference-metatype-stack (type scope &optional type-declaration)
   "Dereference metatypes repeatedly until we hit a real TYPE.
 Uses `semantic-analyze-dereference-metatype'.
-Argument SCOPE is the scope object with additional items in which to search."
+Argument SCOPE is the scope object with additional items in which to search.
+Optional argument TYPE-DECLARATION is how TYPE was found referenced."
   (let ((lasttype type)
         (lasttypedeclaration type-declaration)
 	(nexttype (semantic-analyze-dereference-metatype type scope type-declaration))
 	(idx 0))
     (catch 'metatype-recursion
       (while (and nexttype (not (eq (car nexttype) lasttype)))
-	(setq lasttype (car nexttype) 
+	(setq lasttype (car nexttype)
 	      lasttypedeclaration (cadr nexttype))
 	(setq nexttype (semantic-analyze-dereference-metatype lasttype scope lasttypedeclaration))
 	(setq idx (1+ idx))
@@ -267,7 +268,7 @@ Just a name, or short tag will be ok.  It will be expanded here.
 SCOPE is the scope object with additional items in which to search for names."
   (catch 'default-behavior
     (let* ((ans-tuple (:override
-                       ;; Nothing fancy, just return type be default.
+                       ;; Nothing fancy, just return type by default.
                        (throw 'default-behavior (list type type-declaration))))           
            (ans-type (car ans-tuple))
            (ans-type-declaration (cadr ans-tuple)))      
