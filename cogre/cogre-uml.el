@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.28 2009/04/11 06:54:00 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.29 2009/04/11 12:54:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -129,6 +129,13 @@ is a package, it is ( \"<package>\" \"name\")."
 	(cogre-string-merge-faces 1 (+ (length p) 1) 'italic s)
 	(list s (oref node object-name)))
     (list (oref node object-name))))
+
+(defmethod cogre-augment-element-menu ((node cogre-scoped-node) menu)
+  "For NODE, augment the current element MENU.
+Return the modified element."
+  (append (call-next-method node menu)
+	  '( [ "Repackage" cogre-set-scoped-node-package t ]
+	     )))
 
 ;;;###autoload
 (defclass cogre-class (cogre-scoped-node)
