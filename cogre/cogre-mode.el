@@ -175,18 +175,34 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     [ "Aggregate" cogre-select-a-link t]
     ))
 
-(easy-menu-define
-  cogre-mode-update-popup-menu cogre-popup-map "Connected Graph Update Menu"
-  '("Update"
+(defvar cogre-node-base-menu
+  '("Update Node"
     [ "Rename" cogre-set-element-name t ]
-    [ "View/Edit" cogre-activate-element t ]    
+    [ "View/Edit" cogre-activate-element t ]
     [ "Update Node from Peer" cogre-update-node-from-source (cogre-node-with-peer) ]
     "---"
     [ "Kill Node" cogre-kill-element (cogre-current-element) ]
     [ "Copy Node" cogre-copy-element (cogre-current-element) ]
-    [ "Yank Node or Tag" cogre-yank-element (cogre-killring-active) ]
     [ "Delete" cogre-delete (cogre-current-element) ]
-    ))
+    )
+    "List of basic items for a Menu on a Node.")
+
+(easy-menu-define
+  cogre-node-update-popup-menu cogre-popup-map "Connected Graph Update Menu"
+  cogre-node-base-menu)
+
+(defvar cogre-link-base-menu
+  '("Update Link"
+    [ "View/Edit" cogre-activate-element t ]
+    [ "Update Node from Peer" cogre-update-node-from-source (cogre-node-with-peer) ]
+    "---"
+    [ "Delete" cogre-delete (cogre-current-element) ]
+    )
+    "List of basic items for a Menu on a Link.")
+
+(easy-menu-define
+  cogre-link-update-popup-menu cogre-popup-map "Connected Graph Update Menu"
+  cogre-link-base-menu)
 
 (defvar cogre-tool-bar-map
   (let ((tool-bar-map (make-sparse-keymap)))
@@ -242,7 +258,7 @@ Argument MENU-DEF is the easy-menu definition."
    (easy-menu-create-menu
     "Change Forms"
     (let* ((obj (cogre-current-element))
-	   (newmenu (if obj (oref obj menu))))
+	   (newmenu (cogre-augment-element-menu obj nil)))
       (append  '( [ "Name" cogre-set-element-name (cogre-current-element) ]
 		  [ "View/Edit" cogre-activate-element (cogre-current-element) ]
 		  )
@@ -294,7 +310,7 @@ If it is already drawing a graph, then don't convert."
 	  )
       ;; Else, just initialize into a graph.
       (let ((name (file-name-sans-extension (buffer-file-name))))
-	(setq cogre-graph (cogre-graph name :name name))
+	(setq cogre-graph (cogre-base-graph name :name name))
 	(oset cogre-graph file (buffer-file-name)))
       )
     (set-buffer-modified-p nil) ))
@@ -535,10 +551,26 @@ It will redraw the links too."
 (defun cogre-set-element-name (node name)
   "Set the name of the current NODE to NAME."
   (interactive (let ((e (cogre-node-at-point-interactive)))
-		 (list e  (read-string "New Name: " ""
-				       nil (oref e object-name)))))
+		 (let ((name (oref e object-name)))
+		 (list e  (read-string "New Name: " name)))))
   (cogre-erase node)
   (oset node object-name (cogre-unique-name cogre-graph name))
+  (when (interactive-p)
+    (cogre-render-node-after-erase node)
+    (cogre-goto-element node)
+    ;; If the user changes the name, update the peer.
+    (let ((peer (oref node peer)))
+      (when peer (cogre-peer-update-from-element peer node)))
+    )
+  )
+
+(defun cogre-set-scoped-node-package (node package)
+  "Set the package name of the current NODE to PACKAGE."
+  (interactive (let ((e (cogre-node-at-point-interactive)))
+		 (let ((name (oref e package-name)))
+		 (list e  (read-string "New Name: " name)))))
+  (cogre-erase node)
+  (oset node package-name package)
   (when (interactive-p)
     (cogre-render-node-after-erase node)
     (cogre-goto-element node)
@@ -784,10 +816,30 @@ Pops up a context menu of various activities to perform."
       (picture-mouse-set-point event)
       (sit-for 0)
       (let ((node (cogre-current-element (point))))
-	(if node
-	    (popup-menu cogre-mode-update-popup-menu)
+	(cond
+	 ((cogre-node-child-p node)
+	  (let ((extramenu (cogre-augment-element-menu node nil)))
+	    (if (not extramenu)
+		(popup-menu cogre-node-update-popup-menu)
+	      ;; Merge menus, and pop up the new one.
+	      (let ((newmenu nil))
+		(dolist (M (cdr cogre-node-base-menu))
+		  (push M newmenu)
+		  (when (and (stringp M) (string= M "---"))
+		    ;; Add new entries here.
+		    (dolist (NM extramenu)
+		      (push NM newmenu))
+		    (push "---" newmenu)
+		    ))
+		;; No convert the fabricated menu into a temporary popup.
+		(popup-menu
+		 (easy-menu-create-menu (car cogre-node-base-menu) (nreverse newmenu)))
+		))))
+	 ((cogre-link-child-p node)
+	  (popup-menu cogre-link-update-popup-menu))
+	 (t
 	  (popup-menu cogre-mode-create-popup-menu)))
-      )
+	))
     (select-window startwin)))
 
 (provide 'cogre-mode)
