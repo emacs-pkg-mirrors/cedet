@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-semantic.el,v 1.5 2009/04/11 06:19:26 zappo Exp $
+;; X-RCS: $Id: cogre-semantic.el,v 1.6 2009/04/11 06:53:31 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -212,10 +212,12 @@ an existing COGRE node, see @TODO - do that."
 The parent to CLASS, CLASS, and all of CLASSes children will be shown."
   (interactive (list (cogre-read-class-name)))
   
-  (let* ((brute (semanticdb-brute-deep-find-tags-by-name class))
-	 (byclass (semanticdb-find-tags-by-class 'type brute))
-	 (striped (semanticdb-strip-find-results byclass t))
-	 (classes (semantic-find-tags-by-type "class" striped))
+  (message "Building UML diagram for %S" class)
+
+  (let* ((brute (semanticdb-brute-deep-find-tags-by-name class (current-buffer)))
+	 (byclass (when brute (semanticdb-find-tags-by-class 'type brute)))
+	 (stripped (when byclass (semanticdb-strip-find-results byclass t)))
+	 (classes (when stripped (semantic-find-tags-by-type "class" stripped)))
 	 (class-tok (car classes))
 	 (parent (semantic-tag-type-superclasses class-tok))
 	 (ptags nil)
@@ -225,6 +227,9 @@ The parent to CLASS, CLASS, and all of CLASSes children will be shown."
 	   (semanticdb-find-tags-subclasses-of-type
 	    (semantic-tag-name class-tok) (current-buffer))))
 	 )
+
+    (unless class-tok
+      (error "Could not find class %S" class))
 
     (save-excursion
       ;; Go to our token, and then look up the parents.
