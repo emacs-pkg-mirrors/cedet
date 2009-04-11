@@ -53,8 +53,8 @@
     :versionsource '("cogre.el")
     :aux-packages '("eieio" "semantic" "semantic-el" "inversion" "speedbar" "srecode")
     )
-   (ede-proj-target-elisp "tests"
-    :name "tests"
+   (ede-proj-target-elisp "utests"
+    :name "utests"
     :path ""
     :source '("cogre-utest.el")
     )
