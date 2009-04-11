@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.27 2009/04/11 06:13:16 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.28 2009/04/11 06:54:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,6 +31,7 @@
 ;; ASCII to draw UML diagrams.
 
 (require 'cogre)
+(eval-when-compile (require 'cogre-semantic))
 
 ;;; Code:
 ;;;###autoload
@@ -181,7 +182,8 @@ this node.  Optional argument TEXT is a preformatted string."
 	;; the fancy formatting.
 	(let ((semantic-format-use-images-flag nil)
 	      (major-mode mm)
-	      (parent (and (cogre-peer-semantic-child-p peer)
+	      (parent (and (class-p 'cogre-peer-semantic)
+			   (cogre-peer-semantic-child-p peer)
 			   (oref peer :tag))))
 	  (semantic-format-tag-uml-concise-prototype stoken parent t)))
     (error "Unknown element cogre-class node attribute or method.")))
