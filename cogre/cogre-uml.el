@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.25 2009/04/10 01:40:11 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.26 2009/04/11 00:25:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -163,12 +163,22 @@ within them.  Classes can have attribute links, and class hierarchy links.")
 It also adds properties that enable editing, and interaction with
 this node.  Optional argument TEXT is a preformatted string."
   (if (semantic-tag-p stoken)
-      (save-excursion
-	;; Visit that tag's home so we get the correct mechanism for
-	;; converting to a prototype.
-	(when (semantic-tag-file-name stoken)
-	  (semantic-go-to-tag stoken))
-	(semantic-format-tag-uml-concise-prototype stoken nil t))
+      (let ((peer (oref class peer)))
+	(save-excursion
+	  ;; Visit that tag's home so we get the correct mechanism for
+	  ;; converting to a prototype.
+	  (if (semantic-tag-file-name stoken)
+	      (semantic-go-to-tag stoken)
+	    (when (and peer (cogre-peer-source-file peer))
+	      (set-buffer (semantic-find-file-noselect
+			   (cogre-peer-source-file peer)))
+	      ))
+	  ;; disable images during the format.  Images will mess up
+	  ;; the fancy formatting.
+	  (let ((semantic-format-use-images-flag nil)
+		(parent (and (cogre-peer-semantic-child-p peer)
+			     (oref peer :tag))))
+	  (semantic-format-tag-uml-concise-prototype stoken parent t))))
     (error "Unknown element cogre-class node attribute or method.")))
 
 (defmethod cogre-node-slots ((class cogre-class))
