@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.42 2009/04/11 06:12:29 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.43 2009/04/11 12:54:13 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -187,15 +187,6 @@ Elements must be erased before any graphical fields are changed.")
      "The object-name of this node.
 Node object-names must be unique within the current graph so that save
 references in links can be restored.")
-   (menu :initform nil
-	 :type list
-	 :allocation :class
-	 :documentation
-	 "List of menu items in Easymenu format of changeable things.
-Any given element may have several entries of details which are
-modifiable.
-Examples could be Add/Removing/Renaming slots, or changing linkages."
-	 )
    (peer :initarg :peer
 	 :initform nil
 	 :type (or null cogre-element-peer)
@@ -519,6 +510,11 @@ customizing the object, or performing some complex task."
     (set-buffer cogre-custom-originating-graph-buffer)
     (cogre-render-buffer g t))
   )
+
+(defmethod cogre-augment-element-menu ((node cogre-graph-element) menu)
+  "For NODE, augment the current element MENU.
+Return the modified element."
+  nil)
 
 (defmethod cogre-add-element ((graph cogre-base-graph) elt)
   "Add to GRAPH a new element ELT."
