@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-ascii.el,v 1.2 2009/03/31 08:52:54 zappo Exp $
+;; X-RCS: $Id: cogre-ascii.el,v 1.3 2009/04/11 06:09:43 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -42,6 +42,8 @@
     
     ;; Reset the drawing routines.
     (let ((cogre-node-rebuild-method 'cogre-node-rebuild-ascii)
+	  ;; Need this for rendering.
+	  (cogre-graph g)
 	  )
 
       ;; Force the redraw
