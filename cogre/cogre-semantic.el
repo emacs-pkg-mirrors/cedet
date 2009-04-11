@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-semantic.el,v 1.4 2009/04/09 03:01:43 zappo Exp $
+;; X-RCS: $Id: cogre-semantic.el,v 1.5 2009/04/11 06:19:26 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -37,7 +37,16 @@
 
 ;;; Code:
 
-;;; PEERS
+;;; GRAPH PEERS
+;;
+;; The graph peer for Semantic will contain information needed for
+;; code generation, such as files and what-not.
+(defclass cogre-peer-project-semantic (cogre-element-peer)
+  (
+   )
+  "Peer for graph objects intended for use with Semantic element peers.")
+
+;;; TAG PEERS
 ;;
 ;; The peers can represent a Semantic tag, and keep it up to date.
 
@@ -50,6 +59,11 @@
    )
   "A peer containing a Semantic class.")
 
+(defmethod cogre-peer-source-file ((peer cogre-peer-semantic))
+  "Does this peer have a source file?"
+  (with-slots (tag) peer
+    (semantic-tag-file-name tag)))
+
 (defclass cogre-peer-semantic-class (cogre-peer-semantic)
   (
    )
@@ -59,12 +73,29 @@
   "Update the PEER object, and NODE from environment."
   (let ((tag (oref peer tag))
 	)
-    ;; Find the original tag and get it.
-
-    ;; Update node based one what we learned.
     (save-excursion
-      ;; This makes sure that our methods are setup correctly.
       (semantic-go-to-tag tag)
+      ;; Force a refresh if needed.
+      (semantic-fetch-tags)
+      ;; Make sure we find the original.
+      (let ((newtag (semantic-current-tag))
+	    (replace nil))
+	;; Are they basically the same?
+	(if (semantic-tag-similar-p tag newtag)
+	    (setq replace t)
+	  ;; Maybe we missed because the code moved around?
+	  (let ((tagsearch (semantic-deep-find-tags-by-name (semantic-tag-name tag))))
+	    (setq tagsearch
+		  (semantic--find-tags-by-function
+		   (lambda (T) (semantic-tag-similar-p T tag))
+		   tagsearch))
+	    (setq newtag (car tagsearch)))
+	  (when (and newtag (semantic-tag-similar-p tag newtag))
+	    (setq replace t)))
+	(when replace
+	  (oset peer :tag (semantic-tag-copy newtag nil t))
+	  (setq tag (oref peer :tag))))
+      ;; Update node based one what we learned.
       (let ((slots (semantic-tag-type-members tag))
 	    (extmeth (semantic-tag-external-member-children tag t))
 	    attrib method)
@@ -223,8 +254,11 @@ The parent to CLASS, CLASS, and all of CLASSes children will be shown."
 	(make-instance 'cogre-inherit :start cn :end CT))))
       
     ;; Run the layout engine.
-    (cogre-layout)
-
+    (condition-case nil
+	(cogre-layout)
+      (error
+       (message "Layout engine failed. You need to install Graphviz.")
+       ))
     ))
 
 (provide 'cogre-semantic)
