@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-utest.el,v 1.9 2009/04/11 06:19:49 zappo Exp $
+;; X-RCS: $Id: cogre-utest.el,v 1.10 2009/04/11 06:54:19 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -121,6 +121,7 @@ Link is created with the specified TYPE."
 			    (file-name-directory lib))))
     (save-excursion
       (set-buffer (find-file-noselect testfile))
+      (semantic-fetch-tags)
       (cogre-uml-quick-class "Subclass")
       ;; Make sure we are in a graph.
       (unless (cogre-base-graph-p cogre-graph)
