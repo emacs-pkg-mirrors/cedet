@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.41 2009/04/10 01:39:08 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.42 2009/04/11 06:12:29 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -104,10 +104,14 @@ Subclasses should define slots to store their data."
   "Update the PEER object, from the ELEMENT data, changing the environment."
   nil)
 
+(defmethod cogre-peer-source-file ((peer cogre-element-peer))
+  "Does this peer have a source file?"
+  nil)
+
 ;;; GRAPH Classes
 ;;
 ;;;###autoload
-(defclass cogre-graph (eieio-persistent)
+(defclass cogre-base-graph (eieio-persistent)
   ((extension :initform ".cgr") ;; Override the default
    (name :initarg :name
 	 :initform "NewGraph"
@@ -126,13 +130,26 @@ displayed in.")
 	 :type (or null cogre-element-peer)
 	 :documentation
 	 "The peer for this graph.")
+   (major-mode :initarg :major-mode
+	       :initform fundamental-mode
+	       :type symbol
+	       :custom (choice (const emacs-lisp-mode)
+			       (const c++-mode)
+			       (const c-mode)	
+			       (const java-mode)
+			       ;; Any other useful modes?
+			       (symbol)
+			       )
+	       :documentation
+	       "Mode used for any mode-specific function calls.
+Used when calling some mode-local functions.")
    (detail :initarg :detail
 	   :initform 0
 	   :type number
-	   :custom (choice (const 0 :tag "Max Detail")
-			   (const 1 :tag "Less Detail")
-			   (const 2 :tag "Not Much Detail")
-			   (const 3 :tag "No Detail"))
+	   :custom (choice (const :tag "Max Detail"      0 )
+			   (const :tag "Less Detail"     1 )
+			   (const :tag "Not Much Detail" 2 )
+			   (const :tag "No Detail"       3 ))
 	   :documentation
 	   "A flag for items being rendered on how much detail to show.
 A 0 means to show everything.
@@ -149,7 +166,7 @@ A 3 means just the package and name.")
 a connected graph contains a series of nodes and links which are
 rendered in a buffer, or serialized to disk.")
 
-(defmethod initialize-instance ((G cogre-graph) fields)
+(defmethod initialize-instance ((G cogre-base-graph) fields)
   "Initialize ELT's name before the main FIELDS are initialized."
   (call-next-method)
   (oset G buffer (current-buffer))
@@ -186,7 +203,7 @@ Examples could be Add/Removing/Renaming slots, or changing linkages."
 	 "The peer for this graph.")
    )
   "A Graph Element.
-Graph elements are anything that is drawn into a `cogre-graph'.
+Graph elements are anything that is drawn into a `cogre-base-graph'.
 Graph elements have a method for marking themselves dirty."
   :abstract t)
 
@@ -319,7 +336,7 @@ Optional argument GRAPH-CLASS indicates the type of graph to create."
   (switch-to-buffer (get-buffer-create (concat "*Graph " name "*")))
   (let ((newgraph (if graph-class
 		      (funcall graph-class name :name name)
-		    (cogre-graph name :name name))))
+		    (cogre-base-graph name :name name))))
     (setq cogre-graph newgraph)
     ;;(toggle-read-only 1)
     (require 'cogre-mode)
@@ -458,6 +475,20 @@ This function can also be a method.
 Returns a list of return values from each call of function."
   (mapcar function (oref graph elements)))
 
+;;; Peer handling
+;;
+(defun cogre-update-graph-from-peers (graph)
+  "Update GRAPH, and all elements from any source peers."
+  ;; First, update the graph...
+  (let ((peer (oref graph peer)))
+    (when peer (cogre-peer-update-from-source peer graph)))
+  ;; Now update all the elements.
+  (cogre-map-graph-elements
+   graph (lambda (E)
+	   (let ((peer (oref E peer)))
+	     (when peer (cogre-peer-update-from-source peer E)))))
+  )
+
 ;;; State Management
 ;;
 (defvar cogre-custom-originating-graph-buffer nil
@@ -482,18 +513,18 @@ customizing the object, or performing some complex task."
     (cogre-render-buffer cogre-graph t))
   )
 
-(defmethod eieio-done-customizing ((g cogre-graph))
+(defmethod eieio-done-customizing ((g cogre-base-graph))
   "Finish customizing a graph element."
   (save-excursion
     (set-buffer cogre-custom-originating-graph-buffer)
     (cogre-render-buffer g t))
   )
 
-(defmethod cogre-add-element ((graph cogre-graph) elt)
+(defmethod cogre-add-element ((graph cogre-base-graph) elt)
   "Add to GRAPH a new element ELT."
   (object-add-to-list graph 'elements elt t))
 
-(defmethod cogre-delete-element ((graph cogre-graph) elt)
+(defmethod cogre-delete-element ((graph cogre-base-graph) elt)
   "Delete from GRAPH the element ELT."
   (object-remove-from-list graph 'elements elt))
 
@@ -502,7 +533,7 @@ customizing the object, or performing some complex task."
 If GRAPH is nil, use the current graph."
   (object-assoc name :object-name (oref (or graph cogre-graph) elements)))
 
-(defmethod cogre-unique-name ((graph cogre-graph) name)
+(defmethod cogre-unique-name ((graph cogre-base-graph) name)
   "Within GRAPH, make NAME unique."
   (let ((newname name)
 	(obj (cogre-find-node-by-name name graph))
@@ -541,7 +572,7 @@ Argument FIELDS are ignored."
 
 ;;; Buffer Rendering
 ;;
-(defmethod cogre-render-buffer ((graph cogre-graph) &optional erase)
+(defmethod cogre-render-buffer ((graph cogre-base-graph) &optional erase)
   "Render the current graph GRAPH.
 If optional argument ERASE is non-nil, then erase the buffer,
 and render everything.  If ERASE is nil, then only redraw items
@@ -962,11 +993,11 @@ Reverses `cogre-graph-pre-serialize'."
 ;;
 ;; Save and restore graphs to disk
 
-(defmethod cogre-save ((graph cogre-graph))
+(defmethod cogre-save ((graph cogre-base-graph))
   "Save the current graph."
   (cogre-map-elements 'cogre-element-pre-serialize graph)
   (unwind-protect
-      (eieio-persistent-save cogre-graph)
+      (eieio-persistent-save graph)
     (cogre-map-elements 'cogre-element-post-serialize graph))
   t)
 
