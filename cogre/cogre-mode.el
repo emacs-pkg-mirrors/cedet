@@ -77,6 +77,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     (define-key km "N" 'cogre-new-node)
     (define-key km "L" 'cogre-new-link)
     (define-key km "D" 'cogre-delete)
+    (define-key km "U" 'cogre-update-node-from-source)
     ;; Changing and Setting Defaults
     (define-key km "\C-c\C-n" 'cogre-default-node)
     (define-key km "\C-c\C-l" 'cogre-default-link)
@@ -132,14 +133,17 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     ( "Edit..."
       [ "Kill Node" cogre-kill-element (cogre-current-element) ]
       [ "Copy Node" cogre-copy-element (cogre-current-element) ]
-      [ "Yank Node or Tag" cogre-yank-element (not (ring-empty-p senator-tag-ring)) ]
+      [ "Yank Node or Tag" cogre-yank-element (cogre-killring-active) ]
       [ "Delete" cogre-delete (cogre-current-element) ])
+    ( "Update..."
+      [ "Update Graph from Peers" cogre-update-graph-from-source t ]
+      [ "Update Element from Peer" cogre-update-node-from-source (cogre-node-with-peer) ])
     [ "Customize Graph" cogre-customize-graph t]
     [ "PS Print" cogre-export-dot-postscript-print t ]
     ("Export to..."
-     [ "ASCII" cogre-export-ascii t ]
-     [ "DOT" cogre-export-dot t ]
-     [ ".png" cogre-export-dot-png t ]
+     [ "ASCII Art" cogre-export-ascii t ]
+     [ "Graphviz DOT" cogre-export-dot t ]
+     [ ".png Image" cogre-export-dot-png t ]
      )
     ))
 
@@ -149,12 +153,14 @@ Argument OLDFUN is removed NEWFUN is substituted in."
 (easy-menu-define
   cogre-mode-create-popup-menu cogre-popup-map "Connected Graph Insert Menu"
   '("Insert"
+    [ "Node" cogre-new-node t]
+    "---"
     [ "Class" cogre-new-node t]
     [ "Package" cogre-new-node t]
     [ "Instance" cogre-new-node t]
     [ "Note" cogre-new-node t]
-    [ "Node" cogre-new-node t]
     "---"
+    [ "Yank Node or Tag" cogre-yank-element (not (ring-empty-p senator-tag-ring)) ]
     [ "Customize Graph" cogre-customize-graph t]
     ))
 
@@ -162,6 +168,8 @@ Argument OLDFUN is removed NEWFUN is substituted in."
   cogre-mode-new-link-popup-menu cogre-popup-map "New Link Menu"
   '("New Link Type"
     [ "Link" cogre-select-a-link t]
+    [ "Update Link from Peer" cogre-update-node-from-source (cogre-node-with-peer) ]
+    "---"
     [ "Arrow" cogre-select-a-link t]
     [ "Inherit" cogre-select-a-link t]
     [ "Aggregate" cogre-select-a-link t]
@@ -172,10 +180,12 @@ Argument OLDFUN is removed NEWFUN is substituted in."
   '("Update"
     [ "Rename" cogre-set-element-name t ]
     [ "View/Edit" cogre-activate-element t ]    
+    [ "Update Node from Peer" cogre-update-node-from-source (cogre-node-with-peer) ]
     "---"
     [ "Kill Node" cogre-kill-element (cogre-current-element) ]
     [ "Copy Node" cogre-copy-element (cogre-current-element) ]
-    [ "Yank Node or Tag" cogre-yank-element (not (ring-empty-p senator-tag-ring)) ]
+    [ "Yank Node or Tag" cogre-yank-element (cogre-killring-active) ]
+    [ "Delete" cogre-delete (cogre-current-element) ]
     ))
 
 (defvar cogre-tool-bar-map
@@ -193,7 +203,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
   "The tool-bar used for COGRE mode.")
 
 
-(defmethod cogre-insert-class-list ((graph cogre-graph))
+(defmethod cogre-insert-class-list ((graph cogre-base-graph))
   "Return a list of classes GRAPH will accept."
   (eieio-build-class-alist 'cogre-graph-element))
 
@@ -310,6 +320,17 @@ If it is already drawing a graph, then don't convert."
     (require 'eieio-custom)
     (customize-object cogre-graph)
     (setq cogre-custom-originating-graph-buffer b)))
+
+;;; Menu Helper
+;;
+(defun cogre-killring-active ()
+  "Return non-nil if there is a tag in the kill ring."
+  (not (ring-empty-p senator-tag-ring)))
+
+(defun cogre-node-with-peer ()
+  "Return no-nil if there is a node with a peer under the cursor."
+  (let* ((node (cogre-current-element (point))))
+    (and node (oref node peer))))
 
 ;;; Interactive utility functions
 ;;
@@ -521,9 +542,35 @@ It will redraw the links too."
   (when (interactive-p)
     (cogre-render-node-after-erase node)
     (cogre-goto-element node)
+    ;; If the user changes the name, update the peer.
+    (let ((peer (oref node peer)))
+      (when peer (cogre-peer-update-from-element peer node)))
     )
   )
 
+(defun cogre-update-node-from-source (node)
+  "Update the current NODE from its source.
+The source is defined by the peer belonging to NODE."
+  (interactive (list (cogre-node-at-point-interactive)))
+  (let ((peer (oref node peer)))
+    (if (not peer)
+	(message "No peer to update from.")
+      (cogre-erase node)
+      (cogre-peer-update-from-source peer node)
+      (cogre-render-node-after-erase node)
+      (cogre-goto-element node)
+      )))
+
+(defun cogre-update-graph-from-source ()
+  "Update the current graph from its sources."
+  (interactive)
+  ;; Do the update.
+  (cogre-update-graph-from-peers cogre-graph)
+  ;; Now refresh the graph.
+  (cogre-refresh))
+
+;;; Node Movement
+;;
 (defun cogre-move-node (x y &optional node)
   "Set a node to postion X, Y.
 If NODE is not provided, then calculate from current position."
@@ -531,8 +578,8 @@ If NODE is not provided, then calculate from current position."
   (let ((inhibit-point-motion-hooks t)
 	(e (or node (cogre-current-element (point)))))
     (cogre-erase e)
-    (if (<= x 0) (setq x 1))
-    (if (<= y 0) (setq y 1))
+    (if (<= x 0) (setq x 0))
+    (if (<= y 0) (setq y 0))
     (cogre-move e x y)
     (let ((pos (oref e position)))
       (picture-goto-coordinate (aref pos 0) (aref pos 1)))
