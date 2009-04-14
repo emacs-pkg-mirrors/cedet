@@ -72,7 +72,7 @@ int WITH_CONT () { };
 
 int tail int_arg(q) {}
 
-/* TEST: macros used impropertly. */
+/* TEST: macros used improperly. */
 #define tail_fail tail_with_args_and_long_name(q)
 
 int tail_fcn tail_fail(q);
@@ -113,6 +113,15 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(foo,bar)
   int foo_bar_func(int a) { }
 
 _GLIBCXX_END_NESTED_NAMESPACE;
+
+/* TEST: Recursion prevention.  CPP doesn't allow even 1 level of recursion. */
+#define STARTMACRO MACROA
+#define MACROA MACROB
+#define MACROB MACROA
+
+int STARTMACRO () {
+
+}
 
 
 /* END */
