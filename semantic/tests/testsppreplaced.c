@@ -81,7 +81,10 @@ namespace foo { namespace bar {
   } 
 }
 
+/* TEST: Recursion prevention.  CPP doesn't allow even 1 level of recursion. */
+int MACROA () {
 
+}
 
 
 /* End */
