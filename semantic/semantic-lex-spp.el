@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.38 2009/03/15 02:49:59 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.39 2009/04/14 22:59:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -95,6 +95,37 @@ added and removed from this symbol table.")
   "A stack of obarrays for temporarilly scoped macro values.")
 (make-variable-buffer-local 'semantic-lex-spp-dynamic-macro-symbol-obarray-stack)
 
+(defvar semantic-lex-spp-expanded-macro-stack nil
+  "The stack of lexical SPP macros we have expanded.")
+;; The above is not buffer local.  Some macro expansions need to be
+;; dumped into a secondary buffer for re-lexing.
+
+;;; NON-RECURSIVE MACRO STACK
+;; C Pre-processor does not allow recursive macros.  Here are some utils
+;; for managing the symbol stack of where we've been.
+
+(defmacro semantic-lex-with-macro-used (name &rest body)
+  "With the macro NAME currently being expanded, execute BODY.
+Pushes NAME into the macro stack.  The above stack is checked
+by `semantic-lex-spp-symbol' to not return true for any symbol
+currently being expanded."
+  `(unwind-protect
+       (progn
+	 (push ,name semantic-lex-spp-expanded-macro-stack)
+	 ,@body)
+     (pop semantic-lex-spp-expanded-macro-stack)))
+(put 'semantic-lex-with-macro-used 'lisp-indent-function 1)
+
+(add-hook
+ 'edebug-setup-hook
+ #'(lambda ()
+
+     (def-edebug-spec semantic-lex-with-macro-used
+       (symbolp def-body)
+       )
+
+     ))
+
 ;;; MACRO TABLE UTILS
 ;;
 ;; The dynamic macro table is a buffer local variable that is modified
@@ -108,7 +139,11 @@ The searcy priority is:
   2. PROJECT specified symbols.
   3. SYSTEM specified symbols."
   (and
+   ;; Only strings...
    (stringp name)
+   ;; Make sure we don't recurse.
+   (not (member name semantic-lex-spp-expanded-macro-stack))
+   ;; Do the check of the various tables.
    (or
     ;; DYNAMIC
     (and (arrayp semantic-lex-spp-dynamic-macro-symbol-obarray)
@@ -266,7 +301,9 @@ START is (point-min).
 END is not used."
   (when (= start (point-min))
     (setq semantic-lex-spp-dynamic-macro-symbol-obarray nil
-	  semantic-lex-spp-dynamic-macro-symbol-obarray-stack nil)
+	  semantic-lex-spp-dynamic-macro-symbol-obarray-stack nil
+	  ;; This shouldn't not be nil, but reset just in case.
+	  semantic-lex-spp-expanded-macro-stack nil)
     ))
 
 ;;; MACRO EXPANSION: Simple cases
@@ -523,11 +560,12 @@ and what valid VAL values are."
 	      (setq val-tmp (cdr val-tmp))
 	      )
 
-	    ;; Don't recurse directly into this same fcn, because it is
-	    ;; convenient to have plain string replacements too.
-	    (semantic-lex-spp-macro-to-macro-stream
-	     (symbol-value txt-macro-or-nil)
-	     beg end AV)
+	    (semantic-lex-with-macro-used txt
+	      ;; Don't recurse directly into this same fcn, because it is
+	      ;; convenient to have plain string replacements too.
+	      (semantic-lex-spp-macro-to-macro-stream
+	       (symbol-value txt-macro-or-nil)
+	       beg end AV))
 	    ))
 
 	 ;; This is a HACK for the C parser.  The 'macros text
@@ -682,23 +720,32 @@ STR occurs in the current buffer between BEG and END."
 	    val (symbol-value sym)
 	    count 0)
 
-      ;; Do direct replacements of single value macros of macros.
-      ;; This solves issues with a macro containing one symbol that
-      ;; is another macro, and get arg lists passed around.
-      (while (and val (consp val)
-		  (semantic-lex-token-p (car val))
-		  (eq (length val) 1)
-		  (eq (semantic-lex-token-class (car val)) 'symbol)
-		  (semantic-lex-spp-symbol-p (semantic-lex-token-text (car val)))
-		  (< count 10)
-		  )
-	(setq str (semantic-lex-token-text (car val)))
-	(setq sym (semantic-lex-spp-symbol str)
-	      val (symbol-value sym))
-	(setq count (1+ count))
-	)
+      (let ((semantic-lex-spp-expanded-macro-stack
+	     semantic-lex-spp-expanded-macro-stack))
 
-      (semantic-lex-spp-anlyzer-do-replace sym val beg end))
+	(semantic-lex-with-macro-used str
+	  ;; Do direct replacements of single value macros of macros.
+	  ;; This solves issues with a macro containing one symbol that
+	  ;; is another macro, and get arg lists passed around.
+	  (while (and val (consp val)
+		      (semantic-lex-token-p (car val))
+		      (eq (length val) 1)
+		      (eq (semantic-lex-token-class (car val)) 'symbol)
+		      (semantic-lex-spp-symbol-p (semantic-lex-token-text (car val)))
+		      (< count 10)
+		      )
+	    (setq str (semantic-lex-token-text (car val)))
+	    (setq sym (semantic-lex-spp-symbol str)
+		  val (symbol-value sym))
+	    ;; Prevent recursion
+	    (setq count (1+ count))
+	    ;; This prevents a different kind of recursion.
+	    (push str semantic-lex-spp-expanded-macro-stack)
+	    )
+
+	  (semantic-lex-spp-anlyzer-do-replace sym val beg end))
+
+	))
      ;; Anything else.
      (t
       ;; A regular keyword.
