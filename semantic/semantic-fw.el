@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.75 2009/03/08 16:17:11 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.76 2009/04/16 11:06:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -425,7 +425,7 @@ calling this one."
   "Call `find-file-noselect' with various features turned off.
 Use this when referencing a file that will be soon deleted.
 FILE, NOWARN, RAWFILE, and WILDCARDS are passed into `find-file-noselect'"
-  (let* ((recentf-exclude '(ignore))
+  (let* ((recentf-exclude '( (lambda (f) t) ))
 	 ;; This is a brave statement.  Don't waste time loading in
 	 ;; lots of modes.  Especially decoration mode can waste a lot
 	 ;; of time for a buffer we intend to kill.
