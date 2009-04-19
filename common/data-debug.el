@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.22 2009/04/19 16:00:38 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.23 2009/04/19 16:18:38 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -37,7 +37,8 @@
 ;;   (interactive) ;; function not normally interactive
 ;;   (let ((stuff (do-stuff)))
 ;;     (when (interactive-p)
-;;       (data-debug-show-stuff stuff "myStuff"))))
+;;       (data-debug-show-stuff stuff "myStuff"))
+;;     stuff))
 
 (require 'font-lock)
 ;;; Code:
