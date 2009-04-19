@@ -304,7 +304,10 @@ If it is already drawing a graph, then don't convert."
     (if (and (buffer-file-name) (file-exists-p (buffer-file-name)))
 	(let ((cogre-loading-from-file t))
 	  ;; Convert this file into a graph.
-	  (setq cogre-graph (eieio-persistent-read (buffer-file-name)))
+	  (condition-case nil
+	      (setq cogre-graph (eieio-persistent-read (buffer-file-name)))
+	    (error (fundamental-mode)
+		   (error "Not a COGRE graph file")))
 	  (oset cogre-graph file (buffer-file-name))
 	  (cogre-map-elements 'cogre-element-post-serialize)
 	  )
