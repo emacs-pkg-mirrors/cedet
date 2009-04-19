@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-semantic.el,v 1.7 2009/04/19 00:01:07 zappo Exp $
+;; X-RCS: $Id: cogre-semantic.el,v 1.8 2009/04/19 00:02:10 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -97,9 +97,9 @@ Goes to the original location of TAG, and tries to re-find that tag."
 
 (defmethod cogre-peer-update-from-source ((peer cogre-peer-semantic-class) node)
   "Update the PEER object, and NODE from environment."
-  (let ((tag (oref peer tag))
-	(newtag (cogre-refresh-tag))
-	)
+  (let* ((tag (oref peer tag))
+	 (newtag (cogre-refresh-tag tag))
+	 )
 
     (when newtag
       (oset peer :tag (semantic-tag-copy newtag nil t))
