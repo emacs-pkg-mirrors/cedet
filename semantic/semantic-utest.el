@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.11 2009/03/01 04:39:11 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.12 2009/04/22 02:07:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -478,6 +478,7 @@ Pre-fill the buffer with CONTENTS."
     (set-buffer buff)
     (setq buffer-offer-save nil)
     (font-lock-mode -1) ;; Font lock has issues in Emacs 23
+    (toggle-read-only -1) ;; In case /tmp doesn't exist.
     (erase-buffer)
     (insert contents)
     ;(semantic-fetch-tags) ;JAVE could this go here?
