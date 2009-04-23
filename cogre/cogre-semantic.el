@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cogre-semantic.el,v 1.8 2009/04/19 00:02:10 zappo Exp $
+;; X-RCS: $Id: cogre-semantic.el,v 1.9 2009/04/23 03:28:09 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 ;; To convert nodes into tags, see `cogre-convert.el'.
 
 (require 'semantic)
+(require 'cogre-srecode)
 (require 'cogre)
 
 ;;; Code:
@@ -176,6 +177,96 @@ an existing COGRE node, see @TODO - do that."
     )
    (t
     (error "COGRE can only convert language datatypes into class nodes"))))
+
+;;; SEMANTIC TAG GENERATOR
+;;
+;; Convert a graph into a set of Semantic Tags.   Different utilties
+;; will be needed to convert these tags into source code.
+(defun cogre-export-semantic (&optional m-mode)
+  "Export the current COGRE graph to a set of Semantic Tags.
+This command will just display the generated tags.
+Use different utilities to convert these tags to into code.
+Optional argument M-MODE specifies the mode to have active
+while creating the tags."
+  (interactive)
+  (when (not (eieio-object-p cogre-graph)) (error "No graph to export"))
+
+  (let* ((g cogre-graph)
+	 (tags nil)
+	 )
+
+    (setq tags
+	  (if m-mode
+	      (with-mode-local-symbol m-mode
+		(cogre-export-semantic-method g))
+	    ;; Else, no mode, use whatever...
+	    (cogre-export-semantic-method g)))
+
+    (if (interactive-p)
+	;; Dump the output.
+	(data-debug-show-stuff tags "CogreSemanticTagExport")
+      tags)))
+
+(defmethod cogre-export-semantic-method ((g cogre-base-graph))
+  "Convert G into Semantic Tag for a typed language."
+  (save-excursion
+    (set-buffer (oref g buffer))
+    ;; Sort the graph into a nested a tree.
+    (let ((tree (cogre-uml-sort-for-lineage g))
+	  (out nil))
+      ;; Each entry in TREE is:
+      ;; ( CLASS SUPER1 SUPER2 ... )
+      (dolist (E tree) 
+	(let* ((node (car E))
+	       (name (oref node :object-name))
+	       (parents (mapcar (lambda (P)
+				  (oref P :object-name))
+				(cdr E)))
+	       (attrib (oref node attributes))
+	       (method (oref node methods))
+	       )
+	  (let ((tag (semantic-tag-new-type
+		      name "class"
+		      (append method attrib)
+		      (list parents))))
+	    (push tag out))
+	  ))
+      (nreverse out))))
+
+;;; CODE GENERATOR
+;;
+;; Generate code from a graph.  Convert into Semantic tags, then
+;; output into a source file.
+;;
+;;;###autoload
+(defun cogre-export-code (file)
+  "Export the current graph into source-code in FILE.
+Uses `cogre-export-semantic' to convert into Semantic tags.
+Uses `cogre-srecode-setup' to setup SRecode for code generation."
+  (interactive "FOutput File: ")
+  (let* ((newfilebuff (find-file-noselect file))
+	 (mode (save-excursion (set-buffer newfilebuff)
+			       major-mode))
+	 (tags (cogre-export-semantic mode))
+	 )
+    ;; Load our tables.
+    (cogre-srecode-load-tables)
+    (srecode-load-tables-for-mode mode)
+
+    ;; Switch to this new buffer.
+    (switch-to-buffer newfilebuff)
+
+    (when (= (point-min) (point-max))
+      ;; Start it out.
+      (srecode-insert "file:empty"))
+
+    ;; Insert all the tags.
+    (dolist (T tags)
+      (let ((me (srecode-semantic-insert-tag T)))
+	(goto-char me))
+      )
+    
+    ))
 
 ;;; USER-UTILITY
 ;; 
