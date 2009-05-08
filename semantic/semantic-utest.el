@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-utest.el,v 1.13 2009/04/23 21:43:02 zappo Exp $
+;; X-RCS: $Id: semantic-utest.el,v 1.14 2009/05/08 13:11:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,9 +32,14 @@
 (require 'cedet-utests)
 (require 'semantic)
 
+(defvar semantic-utest-temp-directory (if (fboundp 'temp-directory)
+					  (temp-directory)
+					temporary-file-directory)
+  "Temporary directory to use when creating files.")
+
 (defun semantic-utest-fname (name)
   "Create a filename for NAME in /tmp."
-  (expand-file-name name temporary-file-directory))
+  (expand-file-name name semantic-utest-temp-directory))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Data for C tests
