@@ -206,15 +206,17 @@ Argument OLDFUN is removed NEWFUN is substituted in."
 
 (defvar cogre-tool-bar-map
   (let ((tool-bar-map (make-sparse-keymap)))
-    (tool-bar-add-item "cogre-node" 'cogre-new-node 'node)
-    (tool-bar-add-item "cogre-class" 'cogre-new-node 'class)
-    (tool-bar-add-item "cogre-package" 'cogre-new-node 'package)
-    (tool-bar-add-item "cogre-instance" 'cogre-new-node 'instance)
-    (tool-bar-add-item "cogre-note" 'cogre-new-node 'note)
-    (tool-bar-add-item "cogre-link" 'cogre-new-link 'link)
-    (tool-bar-add-item "cogre-arrow" 'cogre-new-link 'arrow)
-    (tool-bar-add-item "cogre-isa" 'cogre-new-link 'inherit)
-    (tool-bar-add-item "cogre-hasa" 'cogre-new-link 'aggregate)
+    (when (fboundp 'tool-bar-add-item)
+      (tool-bar-add-item "cogre-node" 'cogre-new-node 'node)
+      (tool-bar-add-item "cogre-class" 'cogre-new-node 'class)
+      (tool-bar-add-item "cogre-package" 'cogre-new-node 'package)
+      (tool-bar-add-item "cogre-instance" 'cogre-new-node 'instance)
+      (tool-bar-add-item "cogre-note" 'cogre-new-node 'note)
+      (tool-bar-add-item "cogre-link" 'cogre-new-link 'link)
+      (tool-bar-add-item "cogre-arrow" 'cogre-new-link 'arrow)
+      (tool-bar-add-item "cogre-isa" 'cogre-new-link 'inherit)
+      (tool-bar-add-item "cogre-hasa" 'cogre-new-link 'aggregate)
+      )
     tool-bar-map)
   "The tool-bar used for COGRE mode.")
 
@@ -275,7 +277,8 @@ Argument MENU-DEF is the easy-menu definition."
   (setq major-mode 'cogre-mode
 	mode-name "Cogre")
   (use-local-map cogre-mode-map)
-  (set (make-local-variable 'tool-bar-map) cogre-tool-bar-map)
+  (when cogre-tool-bar-map
+    (set (make-local-variable 'tool-bar-map) cogre-tool-bar-map))
   (setq truncate-lines t)
   (setq indent-tabs-mode nil)
   (buffer-disable-undo)
