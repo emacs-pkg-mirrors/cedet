@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.16 2009/05/14 01:39:00 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.17 2009/05/14 01:41:52 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -85,7 +85,7 @@ This lexer ignores comments and whitespace, and will return
 syntax as specified by the syntax table."
   semantic-lex-ignore-whitespace
   semantic-lex-ignore-newline
-  semantic-lex-symbol-or-keyword
+  semantic-lex-scheme-symbol
   semantic-lex-charquote
   semantic-lex-paren-or-list
   semantic-lex-close-paren
