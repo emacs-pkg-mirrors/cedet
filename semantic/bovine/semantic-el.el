@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.51 2009/04/18 16:24:41 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.52 2009/05/28 02:33:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -517,7 +517,7 @@ into Emacs Lisp's memory."
 Optional argument NOSNARF is ignored."
   (let ((d (semantic-tag-docstring tag)))
     (when (not d)
-      (cond ((semantic-tag-buffer tag)
+      (cond ((semantic-tag-with-position-p tag)
 	     ;; Doc isn't in the tag itself.  Lets pull it out of the
 	     ;; sources.
 	     (let ((semantic-elisp-store-documentation-in-tag t))
