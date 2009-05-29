@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.43 2009/04/11 12:54:13 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.44 2009/05/29 01:18:32 zappo Exp $
 
 (defvar cogre-version "0.8"
   "Current version of Cogre.")
@@ -515,6 +515,11 @@ customizing the object, or performing some complex task."
   "For NODE, augment the current element MENU.
 Return the modified element."
   nil)
+
+(defmethod cogre-augment-element-menu ((node cogre-node) menu)
+  "For NODE, augment the current element MENU.
+Return the modified element."
+  '( [ "Rename" cogre-set-element-name t ] ))
 
 (defmethod cogre-add-element ((graph cogre-base-graph) elt)
   "Add to GRAPH a new element ELT."
