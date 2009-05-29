@@ -574,7 +574,7 @@ It will redraw the links too."
   "Set the package name of the current NODE to PACKAGE."
   (interactive (let ((e (cogre-node-at-point-interactive)))
 		 (let ((name (oref e package-name)))
-		 (list e  (read-string "New Name: " name)))))
+		 (list e  (read-string "New Package Name: " name)))))
   (cogre-erase node)
   (oset node package-name package)
   (when (interactive-p)
