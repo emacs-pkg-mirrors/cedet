@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.44 2009/05/29 01:18:32 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.45 2009/05/30 13:40:42 zappo Exp $
 
-(defvar cogre-version "0.8"
+(defvar cogre-version "1.0pre7"
   "Current version of Cogre.")
 
 ;; This file is not part of GNU Emacs.
@@ -518,8 +518,7 @@ Return the modified element."
 
 (defmethod cogre-augment-element-menu ((node cogre-node) menu)
   "For NODE, augment the current element MENU.
-Return the modified element."
-  '( [ "Rename" cogre-set-element-name t ] ))
+Return the modified element." nil)
 
 (defmethod cogre-add-element ((graph cogre-base-graph) elt)
   "Add to GRAPH a new element ELT."
@@ -999,6 +998,14 @@ Reverses `cogre-graph-pre-serialize'."
   (cogre-map-elements 'cogre-element-pre-serialize graph)
   (unwind-protect
       (eieio-persistent-save graph)
+    (cogre-map-elements 'cogre-element-post-serialize graph))
+  t)
+
+(defmethod cogre-write-save-text ((graph cogre-base-graph))
+  "Write GRAPH to standard-output as save text."
+  (cogre-map-elements 'cogre-element-pre-serialize graph)
+  (unwind-protect
+      (object-write graph (oref cogre-graph file-header-line))
     (cogre-map-elements 'cogre-element-post-serialize graph))
   t)
 
