@@ -293,6 +293,9 @@ Argument MENU-DEF is the easy-menu definition."
   (font-lock-mode -1)
   ;; Force the redraw AFTER disabling font lock
   (cogre-render-buffer cogre-graph t)
+  ;; If someone changes the major mode, be sure to convert everything
+  ;; back into plain-text save file.
+  (add-hook 'change-major-mode-hook 'cogre-switch-to-save-text t t)
   )
 (put 'cogre-mode 'semantic-match-any-mode t)
 
@@ -332,6 +335,24 @@ If it is already drawing a graph, then don't convert."
   (set-buffer-modified-p nil)
   (clear-visited-file-modtime)
   t)
+
+(defun cogre-switch-to-save-text ()
+  "Convert the current graph to the text we save."
+  (if (not cogre-graph)
+      (message "No graph to conver to text when switching modes")
+
+    ;; Setup the objects to have a file name.
+    (when (and (buffer-file-name (current-buffer))
+	       (not (slot-boundp cogre-graph 'file)))
+      (oset cogre-graph file (buffer-file-name (current-buffer))))
+    ;; Clear out all the graph text
+    (erase-buffer)
+    ;; Write the text into this buffer.
+    (let ((standard-output (current-buffer)))
+      (cogre-write-save-text cogre-graph)
+      )
+    (goto-char (point-min))
+    ))
 
 ;;; Customzize the graph
 ;;
