@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.16 2009/04/19 00:35:08 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.17 2009/06/24 21:54:16 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -743,7 +743,7 @@ invoked interactively."
       (help-setup-xref
        (list 'mode-local-describe-bindings-1 buffer-or-mode)
        interactive-p))
-    (with-output-to-temp-buffer "*Help*"
+    (with-output-to-temp-buffer (help-buffer) ; "*Help*"
       (with-current-buffer standard-output
         (mode-local-describe-bindings-2 buffer-or-mode)))))
 
