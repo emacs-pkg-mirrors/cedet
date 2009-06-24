@@ -19,7 +19,7 @@ EMACS=emacs
 EMACSFLAGS=-batch --no-site-file
 examples_MISC=semantic-skel.el skeleton.by
 languages_LISP=semantic-c.el semantic-el.el semantic-make.el semantic-scm.el semantic-java.el semantic-erlang.el semantic-gcc.el
-VERSION=2.0pre6
+VERSION=2.0pre7
 DISTDIR=$(top)semantic-$(VERSION)/bovine
 
 

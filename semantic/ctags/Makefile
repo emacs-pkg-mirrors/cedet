@@ -13,7 +13,7 @@ ctags_LISP=semantic-ectag-util.el semantic-ectag-lang.el semantic-ectag-parse.el
 EMACS=emacs
 EMACSFLAGS=-batch --no-site-file
 LOADPATH= ../bovine/ ../../eieio/ ../ ../../common/
-VERSION=2.0pre6
+VERSION=2.0pre7
 DISTDIR=$(top)semantic-$(VERSION)/ctags
 
 
