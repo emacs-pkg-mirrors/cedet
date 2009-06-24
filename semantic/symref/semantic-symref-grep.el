@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-grep.el,v 1.6 2009/03/08 15:36:07 zappo Exp $
+;; X-RCS: $Id: semantic-symref-grep.el,v 1.7 2009/06/24 23:13:40 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -29,7 +29,9 @@
 ;; can be used in small projects to find symbol references.
 
 (require 'semantic-symref)
-(require 'grep)
+(condition-case nil
+    (require 'grep)
+  (error nil))
 
 ;;; Code:
 
