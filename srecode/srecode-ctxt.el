@@ -123,11 +123,10 @@ after point."
 
 (defun srecode-calculate-context-default ()
   "Generic method for calculating a context for srecode."
-  (semantic-fetch-tags)
-
   (if (= (point-min) (point-max))
       (list "file" "empty")
 
+    (semantic-fetch-tags)
     (let ((ct (semantic-find-tag-by-overlay))
 	  )
       (cond ((or (not ct)
