@@ -19,7 +19,15 @@ cedet-1.0pre6.tar.gz</a>.
 <a href="http://cedet.wiki.sourceforge.net/1.0+pre6+Tested+Configurations">
 tested configuration page</a> by adding your own platform information.
 
+<p><b>Please Note:</b>
 
+<p>If you encounter build problems with a CEDET release, those issues
+  may have already been fixed in CVS!  CEDET has an active community
+  of users that help identify and fix these issues quickly.  You can check the
+  <a href="https://sourceforge.net/mailarchive/forum.php?forum_name=cedet-devel">
+  mailing list archives</a> or just try the
+  <a href="https://sourceforge.net/scm/?type=cvs&group_id=17886">
+  CVS viersion</a> directly.
 
 
 
