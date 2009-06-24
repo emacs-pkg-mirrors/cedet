@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: eieio-perftest.el,v 1.3 2008/12/15 00:55:08 zappo Exp $
+;; X-RCS: $Id: eieio-perftest.el,v 1.4 2009/06/24 23:17:46 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -52,6 +52,13 @@
 
 ;;; Timing Functions
 ;;
+(defun eieio-perftest-elapsed-time (start end)
+  "Copied from elp.el.  Was elp-elapsed-time.
+Argument START and END bound the time being calculated."
+  (+ (* (- (car end) (car start)) 65536.0)
+     (- (car (cdr end)) (car (cdr start)))
+     (/ (- (car (cdr (cdr end))) (car (cdr (cdr start)))) 1000000.0)))
+
 ;;;###autoload
 (defun eieio-perftest-methodcall ()
   "Test and time performance of method invocation."
@@ -68,7 +75,7 @@
       (assert (= (eieio-perftest-meth-1 one) 3))
       (setq idx (1+ idx)))
     (setq end (current-time))
-    (setq gen (semantic-elapsed-time start end))
+    (setq gen (eieio-perftest-elapsed-time start end))
 
     (eieio-defgeneric-reset-generic-form-primary-only 'eieio-perftest-meth-1)
     (setq start (current-time))
@@ -77,7 +84,7 @@
       (assert (= (eieio-perftest-meth-1 one) 3))
       (setq idx (1+ idx)))
     (setq end (current-time))
-    (setq prim (semantic-elapsed-time start end))
+    (setq prim (eieio-perftest-elapsed-time start end))
 
     (let ((pcentf (* 100.0 (- 1 (/ prim gen))))
 	  (pcents (* 100.0 (- 1 (/ gen prim))))
@@ -107,7 +114,7 @@
       (assert (= (eieio-perftest-meth-2 two) 2))
       (setq idx (1+ idx)))
     (setq end (current-time))
-    (setq gen (semantic-elapsed-time start end))
+    (setq gen (eieio-perftest-elapsed-time start end))
 
     (eieio-defgeneric-reset-generic-form-primary-only 'eieio-perftest-meth-2)
     (setq start (current-time))
@@ -116,7 +123,7 @@
       (assert (= (eieio-perftest-meth-2 two) 2))
       (setq idx (1+ idx)))
     (setq end (current-time))
-    (setq prim (semantic-elapsed-time start end))
+    (setq prim (eieio-perftest-elapsed-time start end))
 
     (eieio-defgeneric-reset-generic-form-primary-only-one 'eieio-perftest-meth-2)
     (setq start (current-time))
@@ -125,7 +132,7 @@
       (assert (= (eieio-perftest-meth-2 two) 2))
       (setq idx (1+ idx)))
     (setq end (current-time))
-    (setq one (semantic-elapsed-time start end))
+    (setq one (eieio-perftest-elapsed-time start end))
 
     (let ((pcentf (* 100.0 (- 1 (/ prim gen))))
 	  (pcents (* 100.0 (- 1 (/ gen prim))))
