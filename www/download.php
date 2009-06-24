@@ -27,7 +27,7 @@ tested configuration page</a> by adding your own platform information.
   <a href="https://sourceforge.net/mailarchive/forum.php?forum_name=cedet-devel">
   mailing list archives</a> or just try the
   <a href="https://sourceforge.net/scm/?type=cvs&group_id=17886">
-  CVS viersion</a> directly.
+  CVS version</a> directly.
 
 
 
