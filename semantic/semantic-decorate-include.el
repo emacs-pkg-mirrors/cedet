@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.23 2009/04/23 03:17:36 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.24 2009/06/24 21:53:45 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -318,7 +318,7 @@ Argument EVENT is the mouse clicked event."
 	 (file (semantic-dependency-tag-file tag))
 	 (table (when file
 		  (semanticdb-file-table-object file t))))
-    (with-output-to-temp-buffer "*Help*"
+    (with-output-to-temp-buffer (help-buffer) ; "*Help*"
       (princ "Include File: ")
       (princ (semantic-format-tag-name tag nil t))
       (princ "\n")
@@ -415,7 +415,7 @@ Argument EVENT is the mouse clicked event."
   (interactive)
   (let ((tag (semantic-current-tag))
 	(mm major-mode))
-    (with-output-to-temp-buffer "*Help*"
+    (with-output-to-temp-buffer (help-buffer) ; "*Help*"
       (princ "Include File: ")
       (princ (semantic-format-tag-name tag nil t))
       (princ "\n\n")
@@ -495,7 +495,7 @@ Argument EVENT describes the event that caused this function to be called."
 Argument EVENT is the mouse clicked event."
   (interactive)
   (let ((tag (semantic-current-tag)))
-    (with-output-to-temp-buffer "*Help*"
+    (with-output-to-temp-buffer (help-buffer); "*Help*"
       (princ "Include File: ")
       (princ (semantic-format-tag-name tag nil t))
       (princ "\n")
@@ -573,7 +573,7 @@ Argument EVENT describes the event that caused this function to be called."
 	 (tags (semantic-fetch-tags))
 	 (inc (semantic-find-tags-by-class 'include table))
 	 )
-    (with-output-to-temp-buffer "*Help*"
+    (with-output-to-temp-buffer (help-buffer) ;"*Help*"
       (princ "Include Summary for File: ")
       (princ (file-truename (buffer-file-name)))
       (princ "\n")
