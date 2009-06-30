@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.37 2009/06/24 21:55:04 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.38 2009/06/30 21:44:36 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -160,7 +160,9 @@ Optional HEADERFCN should be called to insert a few bits of info first."
 		  (princ (cdr (car doc)))))
 	    (terpri)
 	    (terpri))
-	  (setq methods (cdr methods)))))
+	  (setq methods (cdr methods))))))
+  (save-excursion
+    (set-buffer (help-buffer))
     (buffer-string)))
 
 (defun eieio-describe-class-slots (class)
@@ -375,7 +377,9 @@ Also extracts information about all methods specific to this generic."
 	    (setq gm (cdr gm))
 	    (terpri)
 	    (terpri)))
-	(setq i (1+ i))))
+	(setq i (1+ i)))))
+  (save-excursion
+    (set-buffer (help-buffer))
     (buffer-string)))
 
 (defun eieio-lambda-arglist (func)
