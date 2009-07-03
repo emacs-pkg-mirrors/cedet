@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.27 2009/04/07 00:31:40 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.28 2009/07/03 11:30:33 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -57,7 +57,10 @@ not been set, use values from the parent."
   "If a slot OBJECT in this CLASS is unbound, try to inherit, or throw a signal.
 SLOT-NAME, is the offending slot.  FN is the function signalling the error."
   (if (slot-boundp object 'parent-instance)
+      ;; It may not look like it, but this line recurses back into this
+      ;; method if the parent instance's slot is unbound.
       (eieio-oref (oref object parent-instance) slot-name)
+    ;; Throw the regular signal.
     (call-next-method)))
 
 (defmethod clone ((obj eieio-instance-inheritor) &rest params)
@@ -81,6 +84,21 @@ All slots are unbound, except those initialized with PARAMS."
     (if params (shared-initialize nobj (if passname (cdr params) params)))
     (oset nobj parent-instance obj)
     nobj))
+
+(defmethod eieio-instance-inheritor-slot-boundp ((object eieio-instance-inheritor)
+						slot)
+  "Non-nil if the instance inheritor OBJECT's SLOT is bound.
+See `slot-boundp' for for details on binding slots.
+The instance inheritor uses unbound slots as a way cascading cloned
+slot values, so testing for a slot being bound requires extra steps
+for this kind of object."
+  (if (slot-boundp object slot)
+      ;; If it is regularly bound, return t.
+      t
+    (if (slot-boundp object 'parent-instance)
+	(eieio-instance-inheritor-slot-boundp (oref object parent-instance)
+					      slot)
+      nil)))
 
 
 ;;; eieio-instance-tracker
