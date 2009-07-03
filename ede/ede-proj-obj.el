@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-obj.el,v 1.14 2009/05/16 13:15:38 zappo Exp $
+;; RCS: $Id: ede-proj-obj.el,v 1.15 2009/07/03 11:35:17 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@
   (;; Give this a new default
    (configuration-variables :initform ("debug" . (("CFLAGS" . "-g")
 						  ("LDFLAGS" . "-g"))))
+   ;; @TODO - add an include path.
    (availablecompilers :initform (ede-gcc-compiler
 				  ede-g++-compiler
 				  ede-gfortran-compiler
@@ -237,7 +238,7 @@ file.")
 (defmethod ede-proj-makefile-insert-variables ((this ede-object-compiler))
   "Insert variables needed by the compiler THIS."
   (call-next-method)
-  (if (slot-boundp this 'dependencyvar)
+  (if (eieio-instance-inheritor-slot-boundp this 'dependencyvar)
       (with-slots (dependencyvar) this
 	  (insert (car dependencyvar) "=")
 	  (let ((cd (cdr dependencyvar)))
