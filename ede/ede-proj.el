@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.59 2009/03/08 12:54:29 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.60 2009/07/03 11:35:30 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -562,7 +562,7 @@ Converts all symbols into the objects to be used."
 	  (unless link
 	    ;; No linker stands out!  Loop over our linkers and pull out
 	    ;; the first that has no source type requirement.
-	    (while (and avail (not (slot-boundp (car avail) 'sourcetype)))
+	    (while (and avail (not (eieio-instance-inheritor-slot-boundp (car avail) 'sourcetype)))
 	      (setq avail (cdr avail)))
 	    (setq link (cdr avail)))))
       ;; Return the disovered linkers
