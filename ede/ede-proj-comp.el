@@ -1,10 +1,10 @@
 ;;; ede-proj-comp.el --- EDE Generic Project compiler/rule driver
 
-;;;  Copyright (C) 1999, 2000, 2001, 2004, 2005, 2007  Eric M. Ludlam
+;;;  Copyright (C) 1999, 2000, 2001, 2004, 2005, 2007, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-comp.el,v 1.10 2007/03/18 16:40:36 zappo Exp $
+;; RCS: $Id: ede-proj-comp.el,v 1.11 2009/07/03 11:34:36 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -252,7 +252,7 @@ This will prevent rules from creating duplicate variables or rules."
 
 (defmethod ede-proj-makefile-insert-variables ((this ede-compilation-program))
   "Insert variables needed by the compiler THIS."
-  (if (slot-boundp this 'variables)
+  (if (eieio-instance-inheritor-slot-boundp this 'variables)
       (with-slots (variables) this
 	(mapcar
 	 (lambda (var)
