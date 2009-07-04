@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.32 2009/03/12 22:44:42 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.33 2009/07/04 13:52:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,7 +48,7 @@
    )
   "A table for returning search results from Emacs.")
 
-(defmethod semanticdb-refresh-table ((obj semanticdb-table-emacs-lisp))
+(defmethod semanticdb-refresh-table ((obj semanticdb-table-emacs-lisp) &optional force)
   "Do not refresh Emacs Lisp table.
 It does not need refreshing."
   nil)
