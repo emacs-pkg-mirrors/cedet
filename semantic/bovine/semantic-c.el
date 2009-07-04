@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.116 2009/04/18 12:16:49 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.117 2009/07/04 13:53:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -127,7 +127,9 @@ part of the preprocessor map.")
 	      (when table
 		(when (semanticdb-needs-refresh-p table)
 		  (condition-case nil
-		      (semanticdb-refresh-table table)
+		      ;; Call with FORCE, as the file is very likely to
+		      ;; not be in a buffer.
+		      (semanticdb-refresh-table table t)
 		    (error nil)))
 		(setq filemap (append filemap (oref table lexical-table)))
 		)
