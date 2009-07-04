@@ -1,10 +1,10 @@
 ;;; semanticdb-search.el --- Searching through semantic databases.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2008 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.16 2008/09/11 02:10:45 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.17 2009/07/04 13:52:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,7 +66,7 @@
 Examples include search results from external sources such as from
 Emacs' own symbol table, or from external libraries.")
 
-(defmethod semanticdb-refresh-table ((obj semanticdb-search-results-table))
+(defmethod semanticdb-refresh-table ((obj semanticdb-search-results-table) &optional force)
   "If the tag list associated with OBJ is loaded, refresh it.
 This will call `semantic-fetch-tags' if that file is in memory."
   nil)
