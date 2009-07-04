@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.133 2009/03/19 00:47:13 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.134 2009/07/04 13:51:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -510,10 +510,13 @@ other than :table."
 
 ;;; REFRESH
 
-(defmethod semanticdb-refresh-table ((obj semanticdb-table))
+(defmethod semanticdb-refresh-table ((obj semanticdb-table) &optional force)
   "If the tag list associated with OBJ is loaded, refresh it.
+Optional argument FORCE will force a refresh even if the file in question
+is not in a buffer.  Avoid using FORCE for most uses, as an old cache
+may be sufficient for the general case.  Forced updates can be slow.
 This will call `semantic-fetch-tags' if that file is in memory."
-  (when (semanticdb-in-buffer-p obj)
+  (when (or (semanticdb-in-buffer-p obj) force)
     (save-excursion
       (semanticdb-set-buffer obj)
       (semantic-fetch-tags))))
