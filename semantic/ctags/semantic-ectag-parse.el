@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-parse.el,v 1.15 2009/03/16 09:39:08 ottalex Exp $
+;; X-RCS: $Id: semantic-ectag-parse.el,v 1.16 2009/07/05 15:37:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -236,17 +236,17 @@ parents running forward, such as namespace/namespace/class"
          (type nil)
 
          (class-sym (cond
-                     ((member class '(function variable label program))
+                     ((member class '(function variable label program value))
                       class)
                      ((eq class 'prototype)
                       (setq prototype t)
                       'function)
-                     ((member class '(namespace class struct union enum typedef))
+                     ((member class '(namespace class trait struct union enum typedef))
                       (setq type (symbol-name class))
                       'type)
                      ((eq class 'member)
                       'variable)
-                     ((eq class 'include)
+                     ((member class '(include import))
                       'include)
                      ((or (eq class 'macro) (eq class 'define))
                       (setq const t)
