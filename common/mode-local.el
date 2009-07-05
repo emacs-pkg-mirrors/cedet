@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.18 2009/07/05 15:47:19 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.19 2009/07/05 19:30:29 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -106,13 +106,26 @@ walk through.  It defaults to `buffer-list'."
            (when (or (not predicate) (funcall predicate))
              (funcall function))))))
 
+(defun mode-local-equivalent-mode-p (mode)
+  "Is the major-mode in the current buffer equivalent to a mode in MODES."
+  (let ((modes nil))
+    (while mode
+      (setq modes (cons mode modes)
+	    mode  (get-mode-local-parent mode)))
+    modes))
+
 (defun mode-local-map-mode-buffers (function modes)
   "Run FUNCTION on every file buffer with major mode in MODES.
 MODES can be a symbol or a list of symbols.
 FUNCTION does not have arguments."
   (or (listp modes) (setq modes (list modes)))
   (mode-local-map-file-buffers
-   function #'(lambda () (memq major-mode modes))))
+   function #'(lambda () 
+		(let ((mm (mode-local-equivalent-mode-p major-mode))
+		      (ans nil))
+		  (while (and (not ans) mm)
+		    (setq ans (memq (car mm) modes)
+			  mm (cdr mm)) )))))
 
 ;;; Hook machinery
 ;;
@@ -134,7 +147,7 @@ which mode local bindings have been activated."
 (defun mode-local-post-major-mode-change ()
   "`post-command-hook' run when there is a `major-mode' change.
 This makes sure mode local init type stuff can occur."
-  (remove-hook 'post-command-hook 'mode-local-post-major-mode-change)
+  (remove-hook 'post-command-hook 'mode-local-post-major-mode-change nil)
   (let ((buffers mode-local-changed-mode-buffers))
     (setq mode-local-changed-mode-buffers nil)
     (mode-local-map-file-buffers
@@ -149,9 +162,9 @@ This makes sure mode local init type stuff can occur."
 (defun mode-local-on-major-mode-change ()
   "Function called in `change-major-mode-hook'."
   (add-to-list 'mode-local-changed-mode-buffers (current-buffer))
-  (add-hook 'post-command-hook 'mode-local-post-major-mode-change))
+  (add-hook 'post-command-hook 'mode-local-post-major-mode-change t nil))
 
-(add-hook 'find-file-hooks 'mode-local-post-major-mode-change)
+(add-hook 'find-file-hooks 'mode-local-on-major-mode-change)
 (add-hook 'change-major-mode-hook 'mode-local-on-major-mode-change)
 
 ;;; Mode lineage
