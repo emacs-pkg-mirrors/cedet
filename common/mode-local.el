@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.19 2009/07/05 19:30:29 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.20 2009/07/05 20:39:33 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -164,7 +164,7 @@ This makes sure mode local init type stuff can occur."
   (add-to-list 'mode-local-changed-mode-buffers (current-buffer))
   (add-hook 'post-command-hook 'mode-local-post-major-mode-change t nil))
 
-(add-hook 'find-file-hooks 'mode-local-on-major-mode-change)
+(add-hook 'find-file-hooks 'mode-local-post-major-mode-change)
 (add-hook 'change-major-mode-hook 'mode-local-on-major-mode-change)
 
 ;;; Mode lineage
