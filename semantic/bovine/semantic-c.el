@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.117 2009/07/04 13:53:19 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.118 2009/07/05 19:28:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -62,6 +62,8 @@ This function does not do any hidden buffer changes."
   )
 
 ;;; Code:
+(define-child-mode c++-mode c-mode
+  "`c++-mode' uses the same parser as `c-mode'.")
 
 
 ;;; Include Paths
@@ -130,7 +132,8 @@ part of the preprocessor map.")
 		      ;; Call with FORCE, as the file is very likely to
 		      ;; not be in a buffer.
 		      (semanticdb-refresh-table table t)
-		    (error nil)))
+		    (error (message "Error updating tables for %S"
+				    (object-name table)))))
 		(setq filemap (append filemap (oref table lexical-table)))
 		)
 	      ))))
@@ -1382,9 +1385,6 @@ DO NOT return the list of tags encompassing point."
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
 ;;;###autoload
 (add-hook 'c++-mode-hook 'semantic-default-c-setup)
-
-(define-child-mode c++-mode c-mode
-  "`c++-mode' uses the same parser as `c-mode'.")
 
 ;;; SETUP QUERY
 ;;
