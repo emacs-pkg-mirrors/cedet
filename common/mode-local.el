@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.17 2009/06/24 21:54:16 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.18 2009/07/05 15:47:19 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -164,7 +164,7 @@ local variables have been defined."
   ;; Refresh mode bindings to get mode local variables inherited from
   ;; PARENT. To work properly, the following should be called after
   ;; PARENT mode local variables have been defined.
-  (mode-local-map-mode-buffers mode 'activate-mode-local-bindings))
+  (mode-local-map-mode-buffers #'activate-mode-local-bindings mode))
 
 (defsubst get-mode-local-parent (mode)
   "Return the mode parent of the major mode MODE.
@@ -842,7 +842,7 @@ invoked interactively."
 (defun mode-local-setup-edebug-specs ()
   "Define edebug specification for mode local macros."
   (def-edebug-spec setq-mode-local
-    (symbolp (&rest symbolp form))
+    (symbolp &rest symbolp form)
     )
   (def-edebug-spec defvar-mode-local
     (&define symbolp name def-form [ &optional stringp ] )
