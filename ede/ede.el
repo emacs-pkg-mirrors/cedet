@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.135 2009/05/16 13:50:24 zappo Exp $
+;; RCS: $Id: ede.el,v 1.136 2009/07/07 00:42:41 zappo Exp $
 (defconst ede-version "1.0pre7"
   "Current version of the Emacs EDE.")
 
@@ -914,6 +914,12 @@ Optional argument NAME is the name to give this project."
 			     r)
 			   )
 			  nil t)))
+  ;; Make sure we have a valid directory
+  (when (not (file-exists-p default-directory))
+    (error "Cannot create project in non-existant directory %s" default-directory))
+  (when (not (file-writable-p default-directory))
+    (error "No write permissions for %s" default-directory))
+  ;; Create the project
   (let* ((obj (object-assoc type 'name ede-project-class-files))
 	 (nobj (let ((f (oref obj file))
 		     (pf (oref obj proj-file)))
@@ -1612,21 +1618,21 @@ Optional argument OBJ is an object to find the parent of."
 			default-directory))
 	     (updir (ede-up-directory thisdir)))
         (when updir
-          ;; If there was no root, perhaps we can derive it from
-          ;; updir now.
-          (let ((root (or root (ede-directory-get-toplevel-open-project updir))))
-            (or
-             ;; This lets us find a subproject under root based on updir.
+	  ;; If there was no root, perhaps we can derive it from
+	  ;; updir now.
+	  (let ((root (or root (ede-directory-get-toplevel-open-project updir))))
+	    (or
+	     ;; This lets us find a subproject under root based on updir.
 	     (and root
 		  (ede-find-subproject-for-directory root updir))
-             ;; Try the all structure based search.
-             (ede-directory-get-open-project updir)
-             ;; Load up the project file as a last resort.
-             ;; Last resort since it uses file-truename, and other
-             ;; slow features.
-             (and (ede-directory-project-p updir)
-                  (ede-load-project-file
-                   (file-name-as-directory updir))))))))))
+	     ;; Try the all structure based search.
+	     (ede-directory-get-open-project updir)
+	     ;; Load up the project file as a last resort.
+	     ;; Last resort since it uses file-truename, and other
+	     ;; slow features.
+	     (and (ede-directory-project-p updir)
+		  (ede-load-project-file
+		   (file-name-as-directory updir))))))))))
 
 (defun ede-current-project (&optional dir)
   "Return the current project file.
