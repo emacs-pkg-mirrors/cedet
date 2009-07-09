@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.20 2009/07/05 20:39:33 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.21 2009/07/09 00:59:49 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -125,7 +125,8 @@ FUNCTION does not have arguments."
 		      (ans nil))
 		  (while (and (not ans) mm)
 		    (setq ans (memq (car mm) modes)
-			  mm (cdr mm)) )))))
+			  mm (cdr mm)) )
+		  ans))))
 
 ;;; Hook machinery
 ;;
