@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.21 2009/07/09 00:59:49 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.22 2009/07/11 00:33:56 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -330,28 +330,40 @@ variables.
 If MODE is not specified it defaults to current `major-mode'.
 Return the alist of buffer-local variables that have been changed.
 Elements are (SYMBOL . PREVIOUS-VALUE), describing one variable."
-  (let (modes table old-locals)
-    (unless mode
-      (set (make-local-variable 'mode-local--init-mode) major-mode)
-      (setq mode major-mode))
-    ;; Get MODE's parents & MODE in the right order.
-    (while mode
-      (setq modes (cons mode modes)
-            mode  (get-mode-local-parent mode)))
-    ;; Activate mode bindings following parent modes order.
-    (dolist (mode modes)
-      (when (setq table (get mode 'mode-local-symbol-table))
-        (mapatoms
-         #'(lambda (var)
-             (when (get var 'mode-variable-flag)
-               (let ((v (intern (symbol-name var))))
-                 ;; Save the current buffer-local value of the
-                 ;; mode-local variable.
-                 (and (local-variable-p v (current-buffer))
-                      (push (cons v (symbol-value v)) old-locals))
-                 (set (make-local-variable v) (symbol-value var)))))
-         table)))
-    old-locals))
+  ;; Hack -
+  ;; do not do this if we are inside set-auto-mode as we may be in
+  ;; an initialization race condition.
+  (if load-file-name
+      ;; We are inside set-auto-mode, as this is an argument that is
+      ;; vaguely unique.
+      
+      ;; This will make sure that when everything is over, this will get
+      ;; called and we won't be under set-auto-mode anymore.
+      (mode-local-on-major-mode-change)
+
+    ;; Do the normal thing.
+    (let (modes table old-locals)
+      (unless mode
+	(set (make-local-variable 'mode-local--init-mode) major-mode)
+	(setq mode major-mode))
+      ;; Get MODE's parents & MODE in the right order.
+      (while mode
+	(setq modes (cons mode modes)
+	      mode  (get-mode-local-parent mode)))
+      ;; Activate mode bindings following parent modes order.
+      (dolist (mode modes)
+	(when (setq table (get mode 'mode-local-symbol-table))
+	  (mapatoms
+	   #'(lambda (var)
+	       (when (get var 'mode-variable-flag)
+		 (let ((v (intern (symbol-name var))))
+		   ;; Save the current buffer-local value of the
+		   ;; mode-local variable.
+		   (and (local-variable-p v (current-buffer))
+			(push (cons v (symbol-value v)) old-locals))
+		   (set (make-local-variable v) (symbol-value var)))))
+	   table)))
+      old-locals)))
 
 (defun deactivate-mode-local-bindings (&optional mode)
   "Deactivate variables defined locally in MODE and its parents.
