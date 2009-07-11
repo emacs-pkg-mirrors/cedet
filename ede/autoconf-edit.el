@@ -1,10 +1,10 @@
 ;;; autoconf-edit.el --- Keymap for autoconf
 
-;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;  Copyright (C) 1998, 1999, 2000, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: autoconf-edit.el,v 1.8 2005/09/30 20:16:17 zappo Exp $
+;; RCS: $Id: autoconf-edit.el,v 1.9 2009/07/11 13:05:15 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -172,6 +172,30 @@ items such as CHECK_HEADERS."
 	  (point))
       (goto-char op)
       nil)))
+
+(defun autoconf-parameter-strip (param)
+  "Strip the parameter PARAM  of whitespace and misc characters."
+  (when (string-match "^\\s-*\\[?\\s-*" param)
+    (setq param (substring param (match-end 0))))
+  (when (string-match "\\s-*\\]?\\s-*$" param)
+    (setq param (substring param 0  (match-beginning 0))))
+  param)
+
+(defun autoconf-parameters-for-macro (macro)
+  "Retrieve the parameters to MACRO.
+Returns a list of the arguments passed into MACRO as strings."
+  (save-excursion
+    (when (autoconf-find-last-macro macro)
+      (forward-sexp 1)
+      (mapcar
+       #'autoconf-parameter-strip
+       (when (looking-at "(")
+	 (let* ((start (+ (point) 1))
+		(end (save-excursion
+		       (forward-sexp 1)
+		       (- (point) 1)))
+		(ans (buffer-substring-no-properties start end)))
+	   (split-string ans "," t)))))))
 
 (defun autoconf-position-for-macro (macro)
   "Position the cursor where a new MACRO could be inserted.
