@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.77 2009/05/16 11:45:58 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.78 2009/07/12 13:55:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -421,6 +421,9 @@ where ACTION is one of 'scanned, 'duplicate, 'lost.
 and TAG is a clone of the include tag that was found.")
 (make-variable-buffer-local 'semanticdb-find-scanned-include-tags)
 
+(defvar semanticdb-implied-include-tags nil
+  "Include tags implied for all files of a given mode.")
+
 (defun semanticdb-find-translate-path-includes--internal (path)
   "Internal implementation of `semanticdb-find-translate-path-includes-default'.
 This routine does not depend on the cache, but will always derive
@@ -435,7 +438,9 @@ a new path from the provided PATH."
 	nexttable)
     (cond ((null path)
 	   (semantic-refresh-tags-safe)
-	   (setq includetags (semantic-find-tags-included (current-buffer))
+	   (setq includetags (append
+			      (semantic-find-tags-included (current-buffer))
+			      semanticdb-implied-include-tags)
 		 curtable semanticdb-current-table
 		 incfname (buffer-file-name))
 	   )
