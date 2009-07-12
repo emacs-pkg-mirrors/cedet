@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-utest-c.el,v 1.3 2009/04/14 23:00:33 zappo Exp $
+;; X-RCS: $Id: semantic-utest-c.el,v 1.4 2009/07/12 13:48:58 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -37,6 +37,7 @@
   (dolist (fp semantic-utest-c-comparisons)
     (let* ((sem (locate-library "semantic"))
 	   (sdir (file-name-directory sem))
+	   (semantic-lex-c-nested-namespace-ignore-second nil)
 	   (tags-actual
 	    (save-excursion
 	      (set-buffer (find-file-noselect (expand-file-name (concat "tests/" (car fp)) sdir)))
