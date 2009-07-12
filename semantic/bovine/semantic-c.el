@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.118 2009/07/05 19:28:46 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.119 2009/07/12 13:49:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -434,6 +434,13 @@ Go to the next line."
 			   (list 'prefix-fake)))))
   (setq semantic-lex-end-point (point)))
 
+(defcustom semantic-lex-c-nested-namespace-ignore-second t
+  "Should _GLIBCXX_BEGIN_NESTED_NAMESPACE ignore the second namespace?
+It is really there, but if a majority of uses is to squeeze out
+the second namespace in use, then it should not be included."
+  :group 'semantic
+  :type 'boolean)
+
 (define-lex-regex-analyzer semantic-lex-c-namespace-begin-nested-macro
   "Handle G++'s namespace macros which the pre-processor can't handle."
   "\\(_GLIBCXX_BEGIN_NESTED_NAMESPACE\\)(\\s-*\\(\\(?:\\w\\|\\s_\\)+\\)\\s-*,\\s-*\\(\\(?:\\w\\|\\s_\\)+\\)\\s-*)"
@@ -458,19 +465,25 @@ Go to the next line."
       ;; If we can't find a matching end, then create the fake list.
       (when (re-search-forward "_GLIBCXX_END_NESTED_NAMESPACE" nil t)
 	(setq end (point))
-	(semantic-lex-push-token
-	 (semantic-lex-token 'semantic-list start end
-			     ;; We'll depend on a quick hack
-			     (list 'prefix-fake-plus
-				   (semantic-lex-token 'NAMESPACE 
-						       sym-end sym2-start
-						       "namespace")
-				   (semantic-lex-token 'symbol
-						       sym2-start sym2-end
-						       ms2)
-				   (semantic-lex-token 'semantic-list start end
-						       (list 'prefix-fake)))
-			     ))
+	(if semantic-lex-c-nested-namespace-ignore-second
+	    ;; The same as _GLIBCXX_BEGIN_NAMESPACE
+	    (semantic-lex-push-token
+	     (semantic-lex-token 'semantic-list start end
+				 (list 'prefix-fake)))
+	  ;; Do both the top and second level namespace
+	  (semantic-lex-push-token
+	   (semantic-lex-token 'semantic-list start end
+			       ;; We'll depend on a quick hack
+			       (list 'prefix-fake-plus
+				     (semantic-lex-token 'NAMESPACE 
+							 sym-end sym2-start
+							 "namespace")
+				     (semantic-lex-token 'symbol
+							 sym2-start sym2-end
+							 ms2)
+				     (semantic-lex-token 'semantic-list start end
+							 (list 'prefix-fake)))
+			       )))
 	)))
   (setq semantic-lex-end-point (point)))
 
