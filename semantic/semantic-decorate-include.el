@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.24 2009/06/24 21:53:45 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.25 2009/07/12 14:26:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -319,6 +319,8 @@ Argument EVENT is the mouse clicked event."
 	 (table (when file
 		  (semanticdb-file-table-object file t))))
     (with-output-to-temp-buffer (help-buffer) ; "*Help*"
+      (help-setup-xref (list #'semantic-decoration-include-describe)
+		       (interactive-p))
       (princ "Include File: ")
       (princ (semantic-format-tag-name tag nil t))
       (princ "\n")
@@ -416,6 +418,8 @@ Argument EVENT is the mouse clicked event."
   (let ((tag (semantic-current-tag))
 	(mm major-mode))
     (with-output-to-temp-buffer (help-buffer) ; "*Help*"
+      (help-setup-xref (list #'semantic-decoration-unknown-include-describe)
+		       (interactive-p))
       (princ "Include File: ")
       (princ (semantic-format-tag-name tag nil t))
       (princ "\n\n")
@@ -496,6 +500,9 @@ Argument EVENT is the mouse clicked event."
   (interactive)
   (let ((tag (semantic-current-tag)))
     (with-output-to-temp-buffer (help-buffer); "*Help*"
+      (help-setup-xref (list #'semantic-decoration-unparsed-include-describe)
+		       (interactive-p))
+
       (princ "Include File: ")
       (princ (semantic-format-tag-name tag nil t))
       (princ "\n")
@@ -574,6 +581,9 @@ Argument EVENT describes the event that caused this function to be called."
 	 (inc (semantic-find-tags-by-class 'include table))
 	 )
     (with-output-to-temp-buffer (help-buffer) ;"*Help*"
+      (help-setup-xref (list #'semantic-decoration-all-include-summary)
+		       (interactive-p))
+
       (princ "Include Summary for File: ")
       (princ (file-truename (buffer-file-name)))
       (princ "\n")
