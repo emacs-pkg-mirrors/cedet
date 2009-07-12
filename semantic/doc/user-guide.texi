@@ -1496,6 +1496,16 @@ To create a customizable include path for a major @var{mode}, use the
 macro @dfn{defcustom-mode-local-semantic-dependency-system-include-path}.
 @end deffn
 
+@defun semanticdb-implied-include-tags
+@anchor{semanticdb-implied-include-tags}
+Include tags implied for all files of a given mode.
+Set this variable with @dfn{defvar-mode-local} for a particular mode so
+that any symbols that exist for all files for that mode are included.
+
+Note: This could be used as a way to write a file in a langauge
+to declare all the built-ins for that language.
+@end defun
+
 For a bit more on include paths, see the
 @inforef{Search Optimization, Search Optimization section, semantic}.
 
