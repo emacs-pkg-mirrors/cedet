@@ -710,6 +710,19 @@ This implies that some blocks of code will not be parsed based on the
 values of the conditions in the #if blocks.
 @end deffn
 
+
+@defun semantic-lex-c-nested-namespace-ignore-second
+@anchor{semantic-lex-c-nested-namespace-ignore-second}
+Should _@var{GLIBCXX_BEGIN_NESTED_NAMESPACE} ignore the second namespace?
+It is really there, but if a majority of uses is to squeeze out
+the second namespace in use, then it should not be included.
+
+If you are having problems with smart completion and @var{STL} templates,
+it may that this is set incorrectly.  After changing the value
+of this flag, you will need to delete any semanticdb cache files
+that may have been incorrectly parsed.
+@end defun
+
 @section System Include path
 
 If you want the code-completion to work with C++ system header file,
