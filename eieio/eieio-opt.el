@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.38 2009/06/30 21:44:36 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.39 2009/07/12 14:24:06 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -81,6 +81,8 @@ If CLASS is actually an object, then also display current values of that obect.
 Optional HEADERFCN should be called to insert a few bits of info first."
   (interactive (list (eieio-read-class "Class: ")))
   (with-output-to-temp-buffer (help-buffer) ;"*Help*"
+    (help-setup-xref (list #'eieio-describe-class class headerfcn)
+		     (interactive-p))
 
     (when headerfcn (funcall headerfcn))
 
@@ -317,6 +319,8 @@ Also extracts information about all methods specific to this generic."
   (if (not (generic-p generic))
       (signal 'wrong-type-argument '(generic-p generic)))
   (with-output-to-temp-buffer (help-buffer) ; "*Help*"
+    (help-setup-xref (list #'eieio-describe-generic generic) (interactive-p))
+
     (prin1 generic)
     (princ " is a generic function")
     (when (generic-primary-only-p generic)
