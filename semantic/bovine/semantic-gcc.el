@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.12 2009/03/06 11:39:07 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.13 2009/07/12 15:04:33 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -25,11 +25,13 @@
 ;; GCC stores things in special places.  These functions will query
 ;; GCC, and set up the preprocessor and include paths.
 
+(require 'semantic-dep)
 ;;; Code:
 
-(defun semantic-gcc-query (gcc-cmd &rest gcc-option)
-  "Query gcc.  Return a list of configurations.
-GCC-CMD is an optional command to execute instead of \"gcc\""
+(defun semantic-gcc-query (gcc-cmd &rest gcc-options)
+  "Return program output to both standard output and standard error.
+GCC-CMD is the program to execute and GCC-OPTIONS are the options
+to give to the program."
   ;; $ gcc -v
   ;;
   (let ((buff (get-buffer-create " *gcc-query*")))
@@ -37,11 +39,11 @@ GCC-CMD is an optional command to execute instead of \"gcc\""
       (set-buffer buff)
       (erase-buffer)
       (condition-case nil
-          (apply 'call-process gcc-cmd nil buff nil gcc-option)
+          (apply 'call-process gcc-cmd nil (cons buff t) nil gcc-options)
 	(error ;; Some bogus directory for the first time perhaps?
 	 (let ((default-directory (expand-file-name "~/")))
 	   (condition-case nil
-               (apply 'call-process gcc-cmd nil buff nil gcc-option)
+               (apply 'call-process gcc-cmd nil (cons buff t) nil gcc-options)
 	     (error ;; gcc doesn't exist???
 	      nil)))))
       (prog1
@@ -49,8 +51,44 @@ GCC-CMD is an optional command to execute instead of \"gcc\""
 	(kill-buffer buff)
         ))))
 
+;;(semantic-gcc-get-include-paths "c")
+;;(semantic-gcc-get-include-paths "c++")
+(defun semantic-gcc-get-include-paths (lang)
+  "Return include paths as gcc use them for language LANG."
+  (let* ((gcc-cmd (cond
+                   ((string= lang "c") "gcc")
+                   ((string= lang "c++") "c++")
+                   (t (if (stringp lang)
+                          (error "Unknown lang: %s" lang)
+                        (error "LANG=%S, should be a string" lang)))))
+         (gcc-output (semantic-gcc-query gcc-cmd "-v" "-E" "-x" lang null-device))
+         (lines (split-string gcc-output "\n"))
+         (include-marks 0)
+         (inc-mark "#include ")
+         (inc-mark-len (length "#include "))
+         inc-path)
+    ;;(message "gcc-output=%s" gcc-output)
+    (dolist (line lines)
+      (when (> (length line) 1)
+        (if (= 0 include-marks)
+            (when (and (> (length line) inc-mark-len)
+                       (string= inc-mark (substring line 0 inc-mark-len)))
+              (setq include-marks (1+ include-marks)))
+          (let ((chars (append line nil)))
+            (when (= 32 (nth 0 chars))
+              (let ((path (substring line 1)))
+                (when (file-accessible-directory-p path)
+                  (when (if (memq system-type '(windows-nt))
+                            (/= ?/ (nth 1 chars))
+                          (= ?/ (nth 1 chars)))
+                    (add-to-list 'inc-path
+                                 (expand-file-name (substring line 1))
+                                 t)))))))))
+    inc-path))
+
+
 (defun semantic-cpp-defs (str)
-  "Convert CPP output STR into an list of cons cells, representing defines for C++ language"
+  "Convert CPP output STR into a list of cons cells with defines for C++."
   (let ((lines (split-string str "\n"))
         (lst nil))
     (dolist (L lines)
@@ -66,7 +104,8 @@ GCC-CMD is an optional command to execute instead of \"gcc\""
 	)
     (dolist (L lines)
       ;; For any line, what do we do with it?
-      (cond ((string-match "Configured with\\(:\\)" L)
+      (cond ((or (string-match "Configured with\\(:\\)" L)
+		 (string-match "\\(:\\)\\s-*[^ ]*configure " L))
 	     (let* ((parts (substring L (match-end 1)))
 		    (opts (cedet-split-string parts " " t))
 		    )
@@ -77,9 +116,10 @@ GCC-CMD is an optional command to execute instead of \"gcc\""
 		   (push (cons sym val) fields)
 		   ))
 	       ))
-	    ((string-match "gcc version" L)
-	     (let ((parts (split-string L " ")))
-	       (push (cons 'version (nth 2 parts)) fields)))
+	    ((string-match "gcc[ -][vV]ersion" L)
+	     (let* ((vline (substring L (match-end 0)))
+		    (parts (split-string vline " ")))
+	       (push (cons 'version (nth 1 parts)) fields)))
 	    ((string-match "Target: " L)
 	     (let ((parts (split-string L " ")))
 	       (push (cons 'target (nth 1 parts)) fields)))
@@ -97,33 +137,59 @@ It should also include other symbols GCC was compiled with.")
 
 ;;;###autoload
 (defun semantic-gcc-setup (&optional gcc-cmd)
-  "Setup Semantic C parsing based on GCC output.
+  "Setup Semantic C/C++ parsing based on GCC output.
 Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
   (interactive)
   (let* ((fields (or semantic-gcc-setup-data
                      (semantic-gcc-fields (semantic-gcc-query "gcc" "-v"))))
-         (defines (semantic-cpp-defs (semantic-gcc-query "cpp" "-E" "-dM" "-x" "c++" "/dev/null")))
+         (defines (semantic-cpp-defs (semantic-gcc-query "cpp" "-E" "-dM" "-x" "c++" null-device)))
 	 (ver (cdr (assoc 'version fields)))
 	 (host (or (cdr (assoc 'target fields))
+		   (cdr (assoc '--target fields))
 		   (cdr (assoc '--host fields))))
 	 (prefix (cdr (assoc '--prefix fields)))
-	 (try-paths (list "/usr/include" (concat prefix "/include")
-			  (concat prefix "/include/c++/" ver)
-			  (concat prefix "/include/c++/" ver "/" host )
-			  )))
+         ;; gcc output supplied paths
+         (c-include-path (semantic-gcc-get-include-paths "c"))
+         (c++-include-path (semantic-gcc-get-include-paths "c++")))
     ;; Remember so we don't have to call GCC twice.
     (setq semantic-gcc-setup-data fields)
+    (unless c-include-path
+      ;; Fallback to guesses
+      (let* ( ;; env vars include dirs, see http://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html
+	     (cpath (split-string (getenv "CPATH") path-separator))
+	     (c_include_path (split-string (getenv "C_INCLUDE_PATH") path-separator))
+	     (cpp_include_path (split-string (getenv "CPP_INCLUDE_PATH") path-separator))
+	     ;; gcc include dirs
+	     (gcc-exe (locate-file "gcc" exec-path exec-suffixes 'executable))
+	     (gcc-root (expand-file-name ".." (file-name-directory gcc-exe)))
+	     (gcc-include (expand-file-name "include" gcc-root))
+	     (gcc-include-c++ (expand-file-name "c++" gcc-include))
+	     (gcc-include-c++-ver (expand-file-name ver gcc-include-c++))
+	     (gcc-include-c++-ver-host (expand-file-name host gcc-include-c++-ver)))
+        (setq c-include-path
+              (remove-if-not 'file-accessible-directory-p
+                             (list "/usr/include" gcc-include)))
+        (setq c++-include-path
+              (remove-if-not 'file-accessible-directory-p
+                             (list "/usr/include"
+                                   gcc-include
+                                   gcc-include-c++
+                                   gcc-include-c++-ver
+                                   gcc-include-c++-ver-host)))))
+
+    ;;; Fix-me: I think this part might have been a misunderstanding, but I am not sure.
     ;; If this option is specified, try it both with and without prefix, and with and without host
-    (if (assoc '--with-gxx-include-dir fields)
-        (let ((gxx-include-dir (cdr (assoc '--with-gxx-include-dir fields))))
-          (nconc try-paths (list gxx-include-dir
-                                 (concat prefix gxx-include-dir)
-                                 (concat gxx-include-dir "/" host)
-                                 (concat prefix gxx-include-dir "/" host)))))
-    ;; Now setup include paths - only for those that are accessible
-    (dolist (D (remove-if-not 'file-accessible-directory-p
-                              (remove-duplicates try-paths :test 'string=)))
-      (semantic-add-system-include D 'c-mode)
+    ;; (if (assoc '--with-gxx-include-dir fields)
+    ;;     (let ((gxx-include-dir (cdr (assoc '--with-gxx-include-dir fields))))
+    ;;       (nconc try-paths (list gxx-include-dir
+    ;;                              (concat prefix gxx-include-dir)
+    ;;                              (concat gxx-include-dir "/" host)
+    ;;                              (concat prefix gxx-include-dir "/" host)))))
+
+    ;; Now setup include paths etc
+    (dolist (D (semantic-gcc-get-include-paths "c"))
+      (semantic-add-system-include D 'c-mode))
+    (dolist (D (semantic-gcc-get-include-paths "c++"))
       (semantic-add-system-include D 'c++-mode)
       (let ((cppconfig (concat D "/bits/c++config.h")))
         ;; Presumably there will be only one of these files in the try-paths list...
@@ -187,6 +253,12 @@ Target: x86_64-redhat-linux
 Configured with: ../configure --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --enable-shared --enable-threads=posix --enable-checking=release --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-libgcj-multifile --enable-languages=c,c++,objc,obj-c++,java,fortran,ada --enable-java-awt=gtk --disable-dssi --enable-plugin --with-java-home=/usr/lib/jvm/java-1.4.2-gcj-1.4.2.0/jre --with-cpu=generic --host=x86_64-redhat-linux
 Thread model: posix
 gcc version 4.1.2 20080704 (Red Hat 4.1.2-44)"
+    ;; David Engster's german gcc on ubuntu 4.3
+    "Es werden eingebaute Spezifikationen verwendet.
+Ziel: i486-linux-gnu
+Konfiguriert mit: ../src/configure -v --with-pkgversion='Ubuntu 4.3.2-1ubuntu12' --with-bugurl=file:///usr/share/doc/gcc-4.3/README.Bugs --enable-languages=c,c++,fortran,objc,obj-c++ --prefix=/usr --enable-shared --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --enable-nls --with-gxx-include-dir=/usr/include/c++/4.3 --program-suffix=-4.3 --enable-clocale=gnu --enable-libstdcxx-debug --enable-objc-gc --enable-mpfr --enable-targets=all --enable-checking=release --build=i486-linux-gnu --host=i486-linux-gnu --target=i486-linux-gnu
+Thread-Modell: posix
+gcc-Version 4.3.2 (Ubuntu 4.3.2-1ubuntu12)"
     )
   "A bunch of sample gcc -v outputs from different machines.")
 
@@ -206,6 +278,7 @@ gcc version 2.95.2 19991024 (release)"
       (let* ((fields (semantic-gcc-fields S))
 	     (v (cdr (assoc 'version fields)))
 	     (h (or (cdr (assoc 'target fields))
+		    (cdr (assoc '--target fields))
 		    (cdr (assoc '--host fields))))
 	     (p (cdr (assoc '--prefix fields)))
 	     )
