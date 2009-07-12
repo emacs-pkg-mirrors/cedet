@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic tag tables
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.138 2008/11/28 03:02:55 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.139 2009/07/12 14:29:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -309,6 +309,7 @@ If TAG is not specified, use the tag at point."
 	)
 
     (with-output-to-temp-buffer (help-buffer)
+      (help-setup-xref (list #'semantic-describe-buffer) (interactive-p))
       (with-current-buffer standard-output
 	(princ "Semantic Configuration in ")
 	(princ (buffer-name buff))
