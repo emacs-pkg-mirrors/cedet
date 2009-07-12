@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.13 2009/07/12 15:04:33 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.14 2009/07/12 15:11:57 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -136,9 +136,8 @@ This is an alist, and should include keys of:
 It should also include other symbols GCC was compiled with.")
 
 ;;;###autoload
-(defun semantic-gcc-setup (&optional gcc-cmd)
-  "Setup Semantic C/C++ parsing based on GCC output.
-Optional argument GCC-CMD is an optional command to use instead of \"gcc\"."
+(defun semantic-gcc-setup ()
+  "Setup Semantic C/C++ parsing based on GCC output."
   (interactive)
   (let* ((fields (or semantic-gcc-setup-data
                      (semantic-gcc-fields (semantic-gcc-query "gcc" "-v"))))
@@ -300,6 +299,14 @@ gcc version 2.95.2 19991024 (release)"
 	))
     (if (not fail) (message "Tests passed."))
     ))
+
+;;;###autoload
+(defun semantic-gcc-test-output-parser-this-machine ()
+  "Test the output parser against the machine currently running Emacs."
+  (interactive)
+  (let ((semantic-gcc-test-strings (list (semantic-gcc-query "gcc" "-v"))))
+    (semantic-gcc-test-output-parser))
+  )
 
 (provide 'semantic-gcc)
 ;;; semantic-gcc.el ends here
