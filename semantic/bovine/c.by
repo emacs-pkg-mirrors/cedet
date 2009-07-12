@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.57 2009/04/18 12:15:51 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.58 2009/07/12 21:37:28 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -203,6 +203,8 @@ codeblock
   : define
   | codeblock-var-or-fun
   | type ;; type is less likely to be used here.
+  | using ;; Using  statements are ok.
+    (TAG (car (car $1)) 'using :type (car $1))
   ;
 
 extern-c-contents
