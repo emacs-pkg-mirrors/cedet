@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.119 2009/07/12 13:49:28 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.120 2009/07/15 23:56:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -437,7 +437,12 @@ Go to the next line."
 (defcustom semantic-lex-c-nested-namespace-ignore-second t
   "Should _GLIBCXX_BEGIN_NESTED_NAMESPACE ignore the second namespace?
 It is really there, but if a majority of uses is to squeeze out
-the second namespace in use, then it should not be included."
+the second namespace in use, then it should not be included.
+
+If you are having problems with smart completion and STL templates,
+it may that this is set incorrectly.  After changing the value
+of this flag, you will need to delete any semanticdb cache files
+that may have been incorrectly parsed."
   :group 'semantic
   :type 'boolean)
 
@@ -1292,6 +1297,16 @@ DO NOT return the list of tags encompassing point."
 	)
       (setq tagsaroundpoint (cdr tagsaroundpoint))
       )
+    ;; If in a function...
+    (when (and (semantic-tag-of-class-p (car tagsaroundpoint) 'function)
+	       ;; ...search for using statements in the local scope...
+	       (setq tmp (semantic-find-tags-by-class
+			  'using 
+			  (semantic-get-local-variables))))
+      ;; ... and add them.
+      (setq tagreturn 
+	    (append tagreturn
+		    (mapcar 'semantic-tag-type tmp))))
     ;; Return the stuff
     tagreturn
     ))
