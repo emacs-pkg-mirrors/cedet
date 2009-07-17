@@ -63,3 +63,12 @@ namespace bread_name {
 
 #endif
 
+// Code from David Engster
+
+namespace somestuff {
+  class OneClass {
+  public:
+    void aFunc();
+    int anInt;
+  };
+}
