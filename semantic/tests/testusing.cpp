@@ -50,3 +50,22 @@ namespace panda {
     return 0;
   }
 }
+
+// Local using statements
+// Code from David Engster
+
+void func2()
+{
+  using namespace somestuff;
+  OneClass f;
+  f.//-3-
+    ; //#3# ( "aFunc" "anInt" )
+}
+
+void func3()
+{
+  using somestuff::OneClass;
+  OneClass f;
+  f.//-4-
+    ; //#4# ( "aFunc" "anInt" )
+}
