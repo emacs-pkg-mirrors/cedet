@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.22 2009/07/11 00:33:56 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.23 2009/07/17 02:32:16 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -333,7 +333,8 @@ Elements are (SYMBOL . PREVIOUS-VALUE), describing one variable."
   ;; Hack -
   ;; do not do this if we are inside set-auto-mode as we may be in
   ;; an initialization race condition.
-  (if load-file-name
+  (if (or  (and (featurep 'emacs) (boundp 'keep-mode-if-same))
+	   (and (featurep 'xemacs) (boundp 'just-from-file-name)))
       ;; We are inside set-auto-mode, as this is an argument that is
       ;; vaguely unique.
       
