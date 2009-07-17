@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.136 2009/07/07 00:42:41 zappo Exp $
+;; RCS: $Id: ede.el,v 1.137 2009/07/17 02:00:04 zappo Exp $
 (defconst ede-version "1.0pre7"
   "Current version of the Emacs EDE.")
 
@@ -258,6 +258,14 @@ For Automake based projects, each directory is treated as a project.")
 	       :group tools
 	       :documentation "List of tool cache configurations in this project.
 This allows any tool to create, manage, and persist project-specific settings.")
+   (mailinglist :initarg :mailinglist
+		:initform ""
+		:type string
+		:custom string
+		:label "Mailing List Address"
+		:group name
+		:documentation
+		"An email address where users might send email for help.")
    (web-site-url :initarg :web-site-url
 		 :initform ""
 		 :type string
@@ -1873,10 +1881,11 @@ Return the first non-nil value returned by PROC."
 	     )
 	   (oref project local-variables))))
 
-(defun ede-set (variable value)
+(defun ede-set (variable value &optional proj)
   "Set the project local VARIABLE to VALUE.
 If VARIABLE is not project local, just use set."
-  (let ((p (ede-current-project)) a)
+  (let ((p (or proj (ede-current-project)))
+	a)
     (if (and p (setq a (assoc variable (oref p local-variables))))
 	(progn
 	  (setcdr a value)
