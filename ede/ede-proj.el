@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.60 2009/07/03 11:35:30 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.61 2009/07/18 16:57:53 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -332,8 +332,8 @@ Argument TARGET is the project we are completing customization on."
   (let ((f (ede-convert-path this (buffer-file-name buffer))))
     (or (string= (file-name-nondirectory (oref this file)) f)
 	(string= (ede-proj-dist-makefile this) f)
-	(string-match "Makefile\\(\\.\\(in\\|am\\)\\)?" f)
-	(string-match "config\\(ure\\.in\\|\\.stutus\\)?" f)
+	(string-match "Makefile\\(\\.\\(in\\|am\\)\\)?$" f)
+	(string-match "config\\(ure\\.in\\|\\.stutus\\)?$" f)
 	)))
 
 (defmethod ede-buffer-mine ((this ede-proj-target) buffer)
