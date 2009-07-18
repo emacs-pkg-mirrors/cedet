@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.45 2009/07/18 16:44:42 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.46 2009/07/18 17:00:43 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -36,8 +36,6 @@
 ;; information during edits, automatically updating the automake file
 ;; where appropriate.
 
-;;; History:
-;; 
 
 (eval-and-compile
   ;; Compatibility for makefile mode.
@@ -50,11 +48,12 @@
   (require 'ede "ede.el"))
 
 (require 'ede-make)
+(require 'makefile-edit)
 
 (eval-when-compile (require 'ede-speedbar "ede-speedbar.el"))
 (eval-when-compile (require 'compile))
 
-;; customization stuff
+;;; Code:
 (defgroup project-am nil
   "File and tag browser frame."
   :group 'tools
@@ -332,7 +331,7 @@ Argument COMMAND is the command to use when compiling."
   (let* ((default-directory (project-am-find-topmost-level default-directory)))
     (compile command)))
 
-(defmethod project-compile-project ((obj project-am-makefile) 
+(defmethod project-compile-project ((obj project-am-makefile)
 				    &optional command)
   "Compile the entire current project.
 Argument COMMAND is the command to use when compiling."
@@ -650,7 +649,7 @@ DIR is the directory to apply to new targets."
       ;; Ok, now lets look at all our sub-projects.
       (mapc (lambda (sp)
  	      (let* ((subdir (file-name-as-directory
- 			      (expand-file-name 
+ 			      (expand-file-name
  			       sp (file-name-directory (oref this :file)))))
  		     (submake (expand-file-name
  			       "Makefile.am"
@@ -665,7 +664,7 @@ DIR is the directory to apply to new targets."
  			     submake
  			     'file osubproj))
  		  (if (not tmp)
- 		      (setq tmp 
+ 		      (setq tmp
  			    (condition-case nil
  				;; In case of problem, ignore it.
  				(project-am-load-makefile subdir)
@@ -891,94 +890,6 @@ files in the project."
     ;; return it
     out))
 
-
-;;; Makefile editing and scanning commands
-;;
-;; Formatting of a makefile
-;;
-;; 1) Creating an automakefile, stick in a top level comment about
-;;    being created by emacs
-;; 2) Leave order of variable contents alone, except for SOURCE
-;;    SOURCE always keep in the order of .c, .h, the other stuff.
-
-;; personal reference until I'm done
-; makefile-fill-paragraph -- refill a macro w/ backslashes
-; makefile-insert-macro -- insert "foo = "
-
-(defun makefile-beginning-of-command ()
-  "Move the the beginning of the current command."
-  (interactive)
-  (if (save-excursion
-	(forward-line -1)
-	(makefile-line-continued-p))
-      (forward-line -1))
-  (beginning-of-line)
-  (if (not (makefile-line-continued-p))
-      nil
-    (while (and (makefile-line-continued-p)
-		(not (bobp)))
-      (forward-line -1))
-    (forward-line 1)))
-
-(defun makefile-end-of-command ()
-  "Move the the beginning of the current command."
-  (interactive)
-  (end-of-line)
-  (while (and (makefile-line-continued-p)
-	      (not (eobp)))
-    (forward-line 1)
-    (end-of-line)))
-
-(defun makefile-line-continued-p ()
-  "Return non-nil if the current line ends in continuation."
-  (save-excursion
-    (end-of-line)
-    (= (preceding-char) ?\\)))
-
-;;; Programatic editing of a Makefile
-;;
-(defun makefile-move-to-macro (macro &optional next)
-  "Move to the definition of MACRO.  Return t if found.
-If NEXT is non-nil, move to the next occurance of MACRO."
-  (let ((oldpt (point)))
-    (when (not next) (goto-char (point-min)))
-    (if (re-search-forward (concat "^\\s-*" macro "\\s-*[+:?]?=") nil t)
-	t
-      (goto-char oldpt)
-      nil)))
-
-(defun makefile-navigate-macro (stop-before)
-  "In a list of files, move forward until STOP-BEFORE is reached.
-STOP-BEFORE is a regular expression matching a file name."
-  (save-excursion
-    (makefile-beginning-of-command)
-    (let ((e (save-excursion
-	       (makefile-end-of-command)
-	       (point))))
-      (if (re-search-forward stop-before nil t)
-	  (goto-char (match-beginning 0))
-	(goto-char e)))))
-
-(defun makefile-macro-file-list (macro)
-  "Return a list of all files in MACRO."
-  (save-excursion
-    (goto-char (point-min))
-    (let ((lst nil))
-      (while (makefile-move-to-macro macro t)
-	(let ((e (save-excursion
-		   (makefile-end-of-command)
-		   (point))))
-	  (while (re-search-forward "\\s-**\\([-a-zA-Z0-9./_@$%()]+\\)\\s-*" e t)
-	    (let ((var nil)(varexp nil)
-		  (match (buffer-substring-no-properties
-			  (match-beginning 1)
-			  (match-end 1))))
-	      (if (not (setq var (project-am-extract-varname match)))
-		  (setq lst (cons match lst))
-		(setq varexp (makefile-macro-file-list var))
-		(dolist (V varexp)
-		  (setq lst (cons V lst))))))))
-      (nreverse lst))))
 
 ;;; Configure.in queries.
 ;;
@@ -987,7 +898,7 @@ STOP-BEFORE is a regular expression matching a file name."
   "List of possible configure files to look in for project info.")
 
 (defun project-am-autoconf-file (dir)
-  "Return the name of the autoconf file to use in dir."
+  "Return the name of the autoconf file to use in DIR."
   (let ((ans nil))
     (dolist (L project-am-autoconf-file-options)
       (when (file-exists-p (expand-file-name L dir))
