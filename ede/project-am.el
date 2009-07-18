@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.44 2009/07/18 16:38:35 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.45 2009/07/18 16:44:42 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -94,15 +94,15 @@
     ("headerinst" project-am-header-inst "include_HEADERS")
     ("headerpkg" project-am-header-pkg "pkginclude_HEADERS")
     ("headerpkg" project-am-header-chk "check_HEADERS")
-    ;; XXX check scan-for-targets, set name to info_TEXINFOS
     ("texinfo" project-am-texinfo "info_TEXINFOS" t)
     ("man" project-am-man "man_MANS")
     ("lisp" project-am-lisp "lisp_LISP")
-    ;; ("ltlibcustom" project-am-lib ".*?_LTLIBRARIES" t)
     ;; for other global files track EXTRA_
     ("extrabin" project-am-program "EXTRA_PROGRAMS" t)
     ("builtsrcs" project-am-built-src "BUILT_SOURCES")
     ("extradist" project-am-extra-dist "EXTRA_DIST")
+    ;; Custom libraries targets?
+    ;; ("ltlibcustom" project-am-lib ".*?_LTLIBRARIES" t)
     )
   "Alist of type names and the type of object to create for them.
 Each entry is of th form:
