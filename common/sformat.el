@@ -27,6 +27,12 @@
 ;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
 ;;
 
+;;; NOTE:
+;;
+;; For CEDET 1.0, I am attempting to GET RID of the use of SFormat in
+;; preference for SRecode, a much improved customizable formatting
+;; system.
+
 ;;; Commentary:
 ;;
 ;; In some applications configuration strings have % options in them
@@ -46,7 +52,7 @@
 ;; and substring) to quickly scan over plain text, and then a slower
 ;; character by character scan to handle tokens.
 
-;;; $Id: sformat.el,v 1.2 2009/01/10 00:21:12 zappo Exp $
+;;; $Id: sformat.el,v 1.3 2009/07/18 01:43:53 zappo Exp $
 ;;
 ;; History
 ;;
