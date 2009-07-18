@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.120 2009/07/15 23:56:12 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.121 2009/07/18 12:16:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -724,7 +724,7 @@ the regular parser."
 	     (setq mb (cdr mb)))
 	   ret))
 	((listp (car tag))
-	 (cond ((eq (semantic-tag-class tag) 'variable)
+	 (cond ((semantic-tag-of-class-p tag 'variable)
 		;; The name part comes back in the form of:
 		;; ( NAME NUMSTARS BITS ARRAY ASSIGN )
 		(let ((vl nil)
@@ -765,7 +765,7 @@ the regular parser."
 					       (semantic-tag-overlay tag))
 		    (setq lst (cdr lst)))
 		  vl))
-	       ((eq (semantic-tag-class tag) 'type)
+	       ((semantic-tag-of-class-p tag 'type)
 		;; We may someday want to add an extra check for a type
 		;; of type "typedef".
 		;; Each elt of NAME is ( STARS NAME )
@@ -800,7 +800,7 @@ the regular parser."
 		    (setq names (cdr names)))
 		  vl))
 	       ((and (listp (car tag))
-		     (eq (semantic-tag-class (car tag)) 'variable))
+		     (semantic-tag-of-class-p (car tag) 'variable))
 		;; Argument lists come in this way.  Append all the expansions!
 		(let ((vl nil))
 		  (while tag
@@ -809,6 +809,7 @@ the regular parser."
 			  tag (cdr tag)))
 		  vl))
 	       (t nil)))
+	;; Default, don't change the tag.
 	(t nil)))
 
 (defvar-mode-local c-mode semantic-tag-expand-function 'semantic-expand-c-tag
@@ -852,8 +853,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 			       (string= (car (nth 2 tokenpart)) (car tokenpart)))
 			  )
 		      (not (car (nth 3 tokenpart)))))
-		(fcnpointer (and (string-match "^\\*" (car tokenpart))
-				 (string-match "[a-z][A-Z]" (car tokenpart))))
+		(fcnpointer (string-match "^\\*" (car tokenpart)))
 		(fnname (if fcnpointer
 			    (substring (car tokenpart) 1)
 			  (car tokenpart)))
