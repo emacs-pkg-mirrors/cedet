@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.43 2009/07/12 02:21:52 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.44 2009/07/18 16:38:35 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -79,16 +79,30 @@
 (defconst project-am-type-alist
   '(("bin" project-am-program "bin_PROGRAMS" t)
     ("sbin" project-am-program "sbin_PROGRAMS" t)
-    ("libs" project-am-lib "noinst_LIBS" t)
-    ("lib" project-am-lib "noinst_LIBRARIES" t)
-    ("ltlib" project-am-lib "noinst_LTLIBRARIES" t)
-    ("libraries" project-am-lib "noinst_LIBRARIES" t)
-    ("ltlibraries" project-am-lib "noinst_LTLIBRARIES" t)
+    ("noinstbin" project-am-program "noinst_PROGRAMS" t)
+    ("checkbin" project-am-program "check_PROGRAMS" t)
+    ("lib" project-am-lib "lib_LIBS" t)
+    ("libraries" project-am-lib "lib_LIBRARIES" t)
+    ("librariesnoinst" project-am-lib "noinst_LIBRARIES" t)
+    ("pkglibraries" project-am-lib "pkglib_LIBRARIES" t)
+    ("checklibs" project-am-lib "check_LIBRARIES" t)
+    ("ltlibraries" project-am-lib "lib_LTLIBRARIES" t)
+    ("ltlibrariesnoinst" project-am-lib "noinst_LTLIBRARIES" t)
+    ("pkgltlibraries" project-am-lib "pkglib_LTLIBRARIES" t)
+    ("checkltlibs" project-am-lib "check_LTLIBRARIES" t)
     ("headernoinst" project-am-header-noinst "noinst_HEADERS")
-    ("headerinst" project-am-header-inst "pgkinclude_HEADERS")
+    ("headerinst" project-am-header-inst "include_HEADERS")
+    ("headerpkg" project-am-header-pkg "pkginclude_HEADERS")
+    ("headerpkg" project-am-header-chk "check_HEADERS")
+    ;; XXX check scan-for-targets, set name to info_TEXINFOS
     ("texinfo" project-am-texinfo "info_TEXINFOS" t)
     ("man" project-am-man "man_MANS")
     ("lisp" project-am-lisp "lisp_LISP")
+    ;; ("ltlibcustom" project-am-lib ".*?_LTLIBRARIES" t)
+    ;; for other global files track EXTRA_
+    ("extrabin" project-am-program "EXTRA_PROGRAMS" t)
+    ("builtsrcs" project-am-built-src "BUILT_SOURCES")
+    ("extradist" project-am-extra-dist "EXTRA_DIST")
     )
   "Alist of type names and the type of object to create for them.
 Each entry is of th form:
@@ -125,6 +139,14 @@ question lists other variables that need to be looked up.")
   ()
   "A group of header files that are not installed.")
 
+(defclass project-am-header-pkg (project-am-header)
+  ()
+  "A group of header files that are not installed.")
+
+(defclass project-am-header-chk (project-am-header)
+  ()
+  "A group of header files that are not installed.")
+
 (defclass project-am-lib (project-am-objectcode)
   nil
   "A top level library to build")
@@ -142,6 +164,15 @@ question lists other variables that need to be looked up.")
 (defclass project-am-man (project-am-target)
   nil
   "A top level man file to build.")
+
+;; For generic files tracker like EXTRA_DIST
+(defclass project-am-built-src (project-am-target)
+  ()
+  "A group of Emacs Lisp programs to byte compile.")
+
+(defclass project-am-extra-dist (project-am-target)
+  ()
+  "A group of Emacs Lisp programs to byte compile.")
 
 (defclass project-am-makefile (ede-project)
   ((targets :initarg :targets
@@ -670,15 +701,36 @@ DIR is the directory to apply to new targets."
 
 (defmethod project-rescan ((this project-am-man))
   "Rescan object THIS."
-  nil)
+  (oset this :source (makefile-macro-file-list (project-am-macro this))))
 
 (defmethod project-rescan ((this project-am-lisp))
   "Rescan the lisp sources."
   (oset this :source (makefile-macro-file-list (project-am-macro this))))
 
 (defmethod project-rescan ((this project-am-header))
-  "Rescan the Header sources."
+  "Rescan the Header sources for object THIS."
   (oset this :source (makefile-macro-file-list (project-am-macro this))))
+
+(defmethod project-rescan ((this project-am-built-src))
+  "Rescan built sources for object THIS."
+  (oset this :source (makefile-macro-file-list "BUILT_SOURCES")))
+
+(defmethod project-rescan ((this project-am-extra-dist))
+  "Rescan object THIS."
+  (oset this :source (makefile-macro-file-list "EXTRA_DIST")))
+  ;; NOTE: The below calls 'file' then checks that it is some sort of
+  ;; text file.  The  file command may not be available on all platforms
+  ;; and some files may not exist yet.  (ie - auto-generated)
+
+  ;;(mapc
+  ;; (lambda (f)
+  ;;   ;; prevent garbage to be parsed, could we use :aux ?
+  ;;   (if (and (not (member f (oref this :source)))
+  ;;	      (string-match-p "ASCII\\|text"
+  ;;			      (shell-command-to-string
+  ;;			       (concat "file " f))))
+  ;;	 (oset this :source (cons f (oref this :source)))))
+  ;; (makefile-macro-file-list "EXTRA_DIST")))
 
 (defmethod project-am-macro ((this project-am-objectcode))
   "Return the default macro to 'edit' for this object type."
@@ -690,15 +742,23 @@ DIR is the directory to apply to new targets."
 
 (defmethod project-am-macro ((this project-am-header-inst))
   "Return the default macro to 'edit' for this object."
-  "pgkinclude_HEADERS")
+  "include_HEADERS")
+
+(defmethod project-am-macro ((this project-am-header-pkg))
+  "Return the default macro to 'edit' for this object."
+  "pkginclude_HEADERS")
+
+(defmethod project-am-macro ((this project-am-header-chk))
+  "Return the default macro to 'edit' for this object."
+  "check_HEADERS")
 
 (defmethod project-am-macro ((this project-am-texinfo))
   "Return the default macro to 'edit' for this object type."
-  (concat (oref this :name) "_TEXINFOS"))
+  (concat (file-name-sans-extension (oref this :name)) "_TEXINFOS"))
 
 (defmethod project-am-macro ((this project-am-man))
   "Return the default macro to 'edit' for this object type."
-  (concat (oref this :name) "_MANS"))
+  (oref this :name))
 
 (defmethod project-am-macro ((this project-am-lisp))
   "Return the default macro to 'edit' for this object."
