@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: makefile-edit.el,v 1.1 2009/07/18 16:59:14 zappo Exp $
+;; X-RCS: $Id: makefile-edit.el,v 1.2 2009/07/22 11:30:37 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -105,17 +105,25 @@ STOP-BEFORE is a regular expression matching a file name."
 	(let ((e (save-excursion
 		   (makefile-end-of-command)
 		   (point))))
-	  (while (re-search-forward "\\s-**\\([-a-zA-Z0-9./_@$%()]+\\)\\s-*" e t)
+	  (while (re-search-forward "\\s-**\\([-a-zA-Z0-9./_@$%(){}]+\\)\\s-*" e t)
 	    (let ((var nil)(varexp nil)
 		  (match (buffer-substring-no-properties
 			  (match-beginning 1)
 			  (match-end 1))))
-	      (if (not (setq var (project-am-extract-varname match)))
+	      (if (not (setq var (makefile-extract-varname-from-text match)))
 		  (setq lst (cons match lst))
 		(setq varexp (makefile-macro-file-list var))
 		(dolist (V varexp)
 		  (setq lst (cons V lst))))))))
       (nreverse lst))))
+
+(defun makefile-extract-varname-from-text (text)
+  "Extract the variable name from TEXT if it is a variable reference.
+Return nil if it isn't a variable."
+  (save-match-data
+    (when (string-match "\\$\\s(\\([A-Za-z0-9_]+\\)\\s)" text)
+      (match-string 1 text))))
+
 
 (provide 'makefile-edit)
 ;;; makefile-edit.el ends here
