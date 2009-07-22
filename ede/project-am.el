@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.46 2009/07/18 17:00:43 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.47 2009/07/22 11:31:31 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -533,13 +533,6 @@ It does not check for existing project objects.  Use `project-am-load'."
   "Return a list of targets the project PROJ."
   (oref proj targets))
 
-(defun project-am-extract-varname (text)
-  "Extract the variable name from TEXT if it is a variable reference.
-Return nil if it isn't a variable."
-  (save-match-data
-    (when (string-match "\\$\\s(\\([A-Za-z0-9_]+\\)\\s)" text)
-      (match-string 1 text))))
-
 (defun project-am-scan-for-targets (currproj dir)
   "Scan the current Makefile.am for targets.
 CURRPROJ is the current project being scanned.
@@ -635,7 +628,7 @@ DIR is the directory to apply to new targets."
       ;; FIGURE THIS OUT
      
       (mapc (lambda (sp)
- 	      (let ((var (project-am-extract-varname sp))
+ 	      (let ((var (makefile-extract-varname-from-text sp))
  		    )
  		(if (not var)
  		    (setq csubprojexpanded (cons sp csubprojexpanded))
