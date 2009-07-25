@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.121 2009/07/18 12:16:18 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.122 2009/07/25 14:52:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -713,103 +713,170 @@ the regular parser."
 
 (defun semantic-expand-c-tag (tag)
   "Expand TAG into a list of equivalent tags, or nil."
-  (cond ((eq (semantic-tag-class tag) 'extern)
-	 ;; We have hit an exter "C" command with a list after it.
-	 (let* ((mb (semantic-tag-get-attribute tag :members))
-		(ret mb))
-	   (while mb
-	     (let ((mods (semantic-tag-get-attribute (car mb) :typemodifiers)))
-	       (setq mods (cons "extern" (cons "\"C\"" mods)))
-	       (semantic-tag-put-attribute (car mb) :typemodifiers mods))
-	     (setq mb (cdr mb)))
-	   ret))
-	((listp (car tag))
-	 (cond ((semantic-tag-of-class-p tag 'variable)
-		;; The name part comes back in the form of:
-		;; ( NAME NUMSTARS BITS ARRAY ASSIGN )
-		(let ((vl nil)
-		      (basety (semantic-tag-type tag))
-		      (ty "")
-		      (mods (semantic-tag-get-attribute tag :typemodifiers))
-		      (suffix "")
-		      (lst (semantic-tag-name tag))
-		      (default nil)
-		      (cur nil))
-		  (while lst
-		    (setq suffix "" ty "")
-		    (setq cur (car lst))
-		    (if (nth 2 cur)
-			(setq suffix (concat ":" (nth 2 cur))))
-		    (if (= (length basety) 1)
-			(setq ty (car basety))
-		      (setq ty basety))
-		    (setq default (nth 4 cur))
-		    (setq vl (cons
-			      (semantic-tag-new-variable
-			       (car cur) ;name
-			       ty	;type
-			       (if default
-				   (buffer-substring-no-properties
-				    (car default) (car (cdr default))))
-			       :constant-flag (semantic-tag-variable-constant-p tag)
-			       :suffix suffix
-			       :typemodifiers mods
-			       :dereference (length (nth 3 cur))
-			       :pointer (nth 1 cur)
-			       :reference (semantic-tag-get-attribute tag :reference)
-			       :documentation (semantic-tag-docstring tag) ;doc
-			       )
-			      vl))
-		    (semantic--tag-copy-properties tag (car vl))
-		    (semantic--tag-set-overlay (car vl)
-					       (semantic-tag-overlay tag))
-		    (setq lst (cdr lst)))
-		  vl))
-	       ((semantic-tag-of-class-p tag 'type)
-		;; We may someday want to add an extra check for a type
-		;; of type "typedef".
-		;; Each elt of NAME is ( STARS NAME )
-		(let ((vl nil)
-		      (names (semantic-tag-name tag)))
-		  (while names
-		    (setq vl (cons (semantic-tag-new-type
-				    (nth 1 (car names)) ; name
-				    "typedef"
-				    (semantic-tag-type-members tag)
-				    ;; parent is just tbe name of what
-				    ;; is passed down as a tag.
-				    (list
-				     (semantic-tag-name
-				      (semantic-tag-type-superclasses tag)))
-				    :pointer
-				    (let ((stars (car (car (car names)))))
-				      (if (= stars 0) nil stars))
-				    ;; This specifies what the typedef
-				    ;; is expanded out as.  Just the
-				    ;; name shows up as a parent of this
-				    ;; typedef.
-				    :typedef
-				    (semantic-tag-get-attribute tag :superclasses)
-				    ;;(semantic-tag-type-superclasses tag)
-				    :documentation
-				    (semantic-tag-docstring tag))
-				   vl))
-		    (semantic--tag-copy-properties tag (car vl))
-		    (semantic--tag-set-overlay (car vl)
-					       (semantic-tag-overlay tag))
-		    (setq names (cdr names)))
-		  vl))
-	       ((and (listp (car tag))
-		     (semantic-tag-of-class-p (car tag) 'variable))
-		;; Argument lists come in this way.  Append all the expansions!
-		(let ((vl nil))
-		  (while tag
-		    (setq vl (append (semantic-tag-components (car vl))
-				     vl)
-			  tag (cdr tag)))
-		  vl))
-	       (t nil)))
-	;; Default, don't change the tag.
+  (let ((return-list nil)
+	)
+    ;; Expand an EXTERN C first.
+    (when (eq (semantic-tag-class tag) 'extern)
+      (let* ((mb (semantic-tag-get-attribute tag :members))
+	     (ret mb))
+	(while mb
+	  (let ((mods (semantic-tag-get-attribute (car mb) :typemodifiers)))
+	    (setq mods (cons "extern" (cons "\"C\"" mods)))
+	    (semantic-tag-put-attribute (car mb) :typemodifiers mods))
+	  (setq mb (cdr mb)))
+	(setq return-list ret)))
+
+    ;; Function or variables that have a :type that is some complex
+    ;; thing, extract it, and replace it with a reference.
+    ;;
+    ;; Thus, struct A { int a; } B;
+    ;;
+    ;; will create 2 toplevel tags, one is type A, and the other variable B
+    ;; where the :type of B is just a type tag A that is a prototype, and
+    ;; the actual struct info of A is it's own toplevel tag.
+    (when (or (semantic-tag-of-class-p tag 'function)
+	      (semantic-tag-of-class-p tag 'variable))
+      (let* ((basetype (semantic-tag-type tag))
+	     (typreref nil)
+	     (tname (when (consp basetype)
+		      (semantic-tag-name basetype))))
+	;; Make tname be a string.
+	(when (consp tname) (setq tname (car (car tname))))
+	;; Is the basetype a full type with a name of its own?
+	(when (and basetype (semantic-tag-p basetype)
+		   (not (semantic-tag-prototype-p basetype))
+		   tname
+		   (not (string= tname "")))
+	  ;; a type tag referencing the type we are extracting.
+	  (setq typeref (semantic-tag-new-type
+			 (semantic-tag-name basetype)
+			 (semantic-tag-type basetype)
+			 nil nil
+			 :prototype t))
+	  ;; Convert original tag to only have a reference.
+	  (setq tag (semantic-tag-copy tag))
+	  (semantic-tag-put-attribute tag :type typeref)
+	  ;; Convert basetype to have the location information.
+	  (semantic--tag-copy-properties tag basetype)
+	  (semantic--tag-set-overlay basetype
+				     (semantic-tag-overlay tag))
+	  ;; Store the base tag as part of the return list.
+	  (setq return-list (cons basetype return-list)))))
+
+    ;; Name of the tag is a list, so expand it.  Tag lists occur
+    ;; for variables like this: int var1, var2, var3;
+    ;;
+    ;; This will expand that to 3 tags that happen to share the
+    ;; same overlay information.
+    (if (consp (semantic-tag-name tag))
+	(let ((rl (semantic-expand-c-tag-namelist tag)))
+	  (cond
+	   ;; If this returns nothing, then return nil overall
+	   ;; because that will restore the old TAG input.
+	   ((not rl) (setq return-list nil))
+	   ;; If we have a return, append it to the existing list
+	   ;; of returns.
+	   ((consp rl)
+	    (setq return-list (append rl return-list)))
+	   ))
+      ;; If we didn't have a list, but the return-list is non-empty,
+      ;; that means we still need to take our existing tag, and glom
+      ;; it onto our extracted type.
+      (if (consp return-list)
+	  (setq return-list (cons tag return-list)))
+      )
+
+    ;; Default, don't change the tag means returning nil.
+    return-list))
+
+(defun semantic-expand-c-tag-namelist (tag)
+  "Expand TAG whose name is a list into a list of tags, or nil."
+  (cond ((semantic-tag-of-class-p tag 'variable)
+	 ;; The name part comes back in the form of:
+	 ;; ( NAME NUMSTARS BITS ARRAY ASSIGN )
+	 (let ((vl nil)
+	       (basety (semantic-tag-type tag))
+	       (ty "")
+	       (mods (semantic-tag-get-attribute tag :typemodifiers))
+	       (suffix "")
+	       (lst (semantic-tag-name tag))
+	       (default nil)
+	       (cur nil))
+	   ;; Open up each name in the name list.
+	   (while lst
+	     (setq suffix "" ty "")
+	     (setq cur (car lst))
+	     (if (nth 2 cur)
+		 (setq suffix (concat ":" (nth 2 cur))))
+	     (if (= (length basety) 1)
+		 (setq ty (car basety))
+	       (setq ty basety))
+	     (setq default (nth 4 cur))
+	     (setq vl (cons
+		       (semantic-tag-new-variable
+			(car cur)	;name
+			ty		;type
+			(if default
+			    (buffer-substring-no-properties
+			     (car default) (car (cdr default))))
+			:constant-flag (semantic-tag-variable-constant-p tag)
+			:suffix suffix
+			:typemodifiers mods
+			:dereference (length (nth 3 cur))
+			:pointer (nth 1 cur)
+			:reference (semantic-tag-get-attribute tag :reference)
+			:documentation (semantic-tag-docstring tag) ;doc
+			)
+		       vl))
+	     (semantic--tag-copy-properties tag (car vl))
+	     (semantic--tag-set-overlay (car vl)
+					(semantic-tag-overlay tag))
+	     (setq lst (cdr lst)))
+	   ;; Return the list
+	   (nreverse vl)))
+	((semantic-tag-of-class-p tag 'type)
+	 ;; We may someday want to add an extra check for a type
+	 ;; of type "typedef".
+	 ;; Each elt of NAME is ( STARS NAME )
+	 (let ((vl nil)
+	       (names (semantic-tag-name tag)))
+	   (while names
+	     (setq vl (cons (semantic-tag-new-type
+			     (nth 1 (car names)) ; name
+			     "typedef"
+			     (semantic-tag-type-members tag)
+			     ;; parent is just tbe name of what
+			     ;; is passed down as a tag.
+			     (list
+			      (semantic-tag-name
+			       (semantic-tag-type-superclasses tag)))
+			     :pointer
+			     (let ((stars (car (car (car names)))))
+			       (if (= stars 0) nil stars))
+			     ;; This specifies what the typedef
+			     ;; is expanded out as.  Just the
+			     ;; name shows up as a parent of this
+			     ;; typedef.
+			     :typedef
+			     (semantic-tag-get-attribute tag :superclasses)
+			     ;;(semantic-tag-type-superclasses tag)
+			     :documentation
+			     (semantic-tag-docstring tag))
+			    vl))
+	     (semantic--tag-copy-properties tag (car vl))
+	     (semantic--tag-set-overlay (car vl)
+					(semantic-tag-overlay tag))
+	     (setq names (cdr names)))
+	   vl))
+	((and (listp (car tag))
+	      (semantic-tag-of-class-p (car tag) 'variable))
+	 ;; Argument lists come in this way.  Append all the expansions!
+	 (let ((vl nil))
+	   (while tag
+	     (setq vl (append (semantic-tag-components (car vl))
+			      vl)
+		   tag (cdr tag)))
+	   vl))
 	(t nil)))
 
 (defvar-mode-local c-mode semantic-tag-expand-function 'semantic-expand-c-tag
