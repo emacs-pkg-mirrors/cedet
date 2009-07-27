@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ectag-lang.el,v 1.9 2009/03/10 01:52:24 zappo Exp $
+;; X-RCS: $Id: semantic-ectag-lang.el,v 1.10 2009/07/27 01:37:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -39,7 +39,7 @@ can be support with this simple setup."
   (semantic-ectag-setup-parse-table)
   (setq imenu-create-index-function 'semantic-create-imenu-index))
 
-(defmacro semantic-ectag-add-languge-support (mode name kinds)
+(defmacro semantic-ectag-add-language-support (mode name kinds)
   "Add simple language support via exuberent ctags.
 MODE is the mode to support.
 NAME is the exuberent ctags language name.
@@ -52,22 +52,22 @@ KINDS are the kinds of tags to generate from exuberent ctags."
 
 ;;; MODE SUPPORT
 ;;
-(semantic-ectag-add-languge-support sh-mode "sh" "f")
-(semantic-ectag-add-languge-support asm-mode "asm" "dlmt")
-;(semantic-ectag-add-languge-support asp-mode "asp" "cfsv")
-;(semantic-ectag-add-languge-support awk-mode "awk" "f")
-(semantic-ectag-add-languge-support basic-mode "basic" "cfltvg")
-;(semantic-ectag-add-languge-support cobol-mode "cobol" "dfgpPs")
-;(semantic-ectag-add-languge-support eiffel-mode "eiffel" "cfl")
-(semantic-ectag-add-languge-support fortran-mode "fortran" "fikpstv") ; L for local variable info.
-;(semantic-ectag-add-languge-support lua-mode "lua" "f")
-(semantic-ectag-add-languge-support pascal-mode "pascal" "fp")
-(semantic-ectag-add-languge-support perl-mode "perl" "cflpsd")
-;(semantic-ectag-add-languge-support rexx-mode "rexx" "s")
-;(semantic-ectag-add-languge-support sql-mode "sql" "s")
-(semantic-ectag-add-languge-support tcl-mode "tcl" "cmp")
-;(semantic-ectag-add-languge-support vera-mode "vera" "cdfgmPTv")
-;(semantic-ectag-add-languge-support verilog-mode "verilog" "cfm")
+(semantic-ectag-add-language-support sh-mode "sh" "f")
+(semantic-ectag-add-language-support asm-mode "asm" "dlmt")
+;(semantic-ectag-add-language-support asp-mode "asp" "cfsv")
+;(semantic-ectag-add-language-support awk-mode "awk" "f")
+(semantic-ectag-add-language-support basic-mode "basic" "cfltvg")
+;(semantic-ectag-add-language-support cobol-mode "cobol" "dfgpPs")
+;(semantic-ectag-add-language-support eiffel-mode "eiffel" "cfl")
+(semantic-ectag-add-language-support fortran-mode "fortran" "fikpstv") ; L for local variable info.
+;(semantic-ectag-add-language-support lua-mode "lua" "f")
+(semantic-ectag-add-language-support pascal-mode "pascal" "fp")
+(semantic-ectag-add-language-support perl-mode "perl" "cflpsd")
+;(semantic-ectag-add-language-support rexx-mode "rexx" "s")
+;(semantic-ectag-add-language-support sql-mode "sql" "s")
+(semantic-ectag-add-language-support tcl-mode "tcl" "cmp")
+;(semantic-ectag-add-language-support vera-mode "vera" "cdfgmPTv")
+;(semantic-ectag-add-language-support verilog-mode "verilog" "cfm")
 
 ;;; BUFFER PARSING HOOKS
 ;;
@@ -100,7 +100,6 @@ semantic parser."
   (add-hook 'tcl-mode-hook 'semantic-ectag-simple-setup)
   ;;(add-hook 'vera-mode-hook 'semantic-ectag-simple-setup)
   ;;(add-hook 'verilog-mode-hook 'semantic-ectag-simple-setup)
-
   )
 
 (provide 'semantic-ectag-lang)
