@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.14 2009/07/12 15:11:57 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.15 2009/07/28 15:53:23 ottalex Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -34,22 +34,26 @@ GCC-CMD is the program to execute and GCC-OPTIONS are the options
 to give to the program."
   ;; $ gcc -v
   ;;
-  (let ((buff (get-buffer-create " *gcc-query*")))
+  (let ((buff (get-buffer-create " *gcc-query*"))
+        (old-lc-messages (getenv "LC_MESSAGES")))
     (save-excursion
       (set-buffer buff)
       (erase-buffer)
+      (setenv "LC_MESSAGES" "C")
       (condition-case nil
           (apply 'call-process gcc-cmd nil (cons buff t) nil gcc-options)
-	(error ;; Some bogus directory for the first time perhaps?
-	 (let ((default-directory (expand-file-name "~/")))
-	   (condition-case nil
+        (error ;; Some bogus directory for the first time perhaps?
+         (let ((default-directory (expand-file-name "~/")))
+           (condition-case nil
                (apply 'call-process gcc-cmd nil (cons buff t) nil gcc-options)
-	     (error ;; gcc doesn't exist???
-	      nil)))))
+             (error ;; gcc doesn't exist???
+              nil)))))
+      (setenv "LC_MESSAGES" old-lc-messages)
       (prog1
-	  (buffer-string)
-	(kill-buffer buff)
-        ))))
+          (buffer-string)
+        (kill-buffer buff)
+        )
+      )))
 
 ;;(semantic-gcc-get-include-paths "c")
 ;;(semantic-gcc-get-include-paths "c++")
@@ -100,30 +104,30 @@ to give to the program."
 (defun semantic-gcc-fields (str)
   "Convert GCC output STR into an alist of fields."
   (let ((fields nil)
-	(lines (split-string str "\n"))
-	)
+        (lines (split-string str "\n"))
+        )
     (dolist (L lines)
       ;; For any line, what do we do with it?
       (cond ((or (string-match "Configured with\\(:\\)" L)
-		 (string-match "\\(:\\)\\s-*[^ ]*configure " L))
-	     (let* ((parts (substring L (match-end 1)))
-		    (opts (cedet-split-string parts " " t))
-		    )
-	       (dolist (O (cdr opts))
-		 (let* ((data (split-string O "="))
-			(sym (intern (car data)))
-			(val (car (cdr data))))
-		   (push (cons sym val) fields)
-		   ))
-	       ))
-	    ((string-match "gcc[ -][vV]ersion" L)
-	     (let* ((vline (substring L (match-end 0)))
-		    (parts (split-string vline " ")))
-	       (push (cons 'version (nth 1 parts)) fields)))
-	    ((string-match "Target: " L)
-	     (let ((parts (split-string L " ")))
-	       (push (cons 'target (nth 1 parts)) fields)))
-	    ))
+                 (string-match "\\(:\\)\\s-*[^ ]*configure " L))
+             (let* ((parts (substring L (match-end 1)))
+                    (opts (cedet-split-string parts " " t))
+                    )
+               (dolist (O (cdr opts))
+                 (let* ((data (split-string O "="))
+                        (sym (intern (car data)))
+                        (val (car (cdr data))))
+                   (push (cons sym val) fields)
+                   ))
+               ))
+            ((string-match "gcc[ -][vV]ersion" L)
+             (let* ((vline (substring L (match-end 0)))
+                    (parts (split-string vline " ")))
+               (push (cons 'version (nth 1 parts)) fields)))
+            ((string-match "Target: " L)
+             (let ((parts (split-string L " ")))
+               (push (cons 'target (nth 1 parts)) fields)))
+            ))
     fields))
 
 (defvar semantic-gcc-setup-data nil
@@ -142,11 +146,11 @@ It should also include other symbols GCC was compiled with.")
   (let* ((fields (or semantic-gcc-setup-data
                      (semantic-gcc-fields (semantic-gcc-query "gcc" "-v"))))
          (defines (semantic-cpp-defs (semantic-gcc-query "cpp" "-E" "-dM" "-x" "c++" null-device)))
-	 (ver (cdr (assoc 'version fields)))
-	 (host (or (cdr (assoc 'target fields))
-		   (cdr (assoc '--target fields))
-		   (cdr (assoc '--host fields))))
-	 (prefix (cdr (assoc '--prefix fields)))
+         (ver (cdr (assoc 'version fields)))
+         (host (or (cdr (assoc 'target fields))
+                   (cdr (assoc '--target fields))
+                   (cdr (assoc '--host fields))))
+         (prefix (cdr (assoc '--prefix fields)))
          ;; gcc output supplied paths
          (c-include-path (semantic-gcc-get-include-paths "c"))
          (c++-include-path (semantic-gcc-get-include-paths "c++")))
@@ -155,16 +159,16 @@ It should also include other symbols GCC was compiled with.")
     (unless c-include-path
       ;; Fallback to guesses
       (let* ( ;; env vars include dirs, see http://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html
-	     (cpath (split-string (getenv "CPATH") path-separator))
-	     (c_include_path (split-string (getenv "C_INCLUDE_PATH") path-separator))
-	     (cpp_include_path (split-string (getenv "CPP_INCLUDE_PATH") path-separator))
-	     ;; gcc include dirs
-	     (gcc-exe (locate-file "gcc" exec-path exec-suffixes 'executable))
-	     (gcc-root (expand-file-name ".." (file-name-directory gcc-exe)))
-	     (gcc-include (expand-file-name "include" gcc-root))
-	     (gcc-include-c++ (expand-file-name "c++" gcc-include))
-	     (gcc-include-c++-ver (expand-file-name ver gcc-include-c++))
-	     (gcc-include-c++-ver-host (expand-file-name host gcc-include-c++-ver)))
+             (cpath (split-string (getenv "CPATH") path-separator))
+             (c_include_path (split-string (getenv "C_INCLUDE_PATH") path-separator))
+             (cpp_include_path (split-string (getenv "CPP_INCLUDE_PATH") path-separator))
+             ;; gcc include dirs
+             (gcc-exe (locate-file "gcc" exec-path exec-suffixes 'executable))
+             (gcc-root (expand-file-name ".." (file-name-directory gcc-exe)))
+             (gcc-include (expand-file-name "include" gcc-root))
+             (gcc-include-c++ (expand-file-name "c++" gcc-include))
+             (gcc-include-c++-ver (expand-file-name ver gcc-include-c++))
+             (gcc-include-c++-ver-host (expand-file-name host gcc-include-c++-ver)))
         (setq c-include-path
               (remove-if-not 'file-accessible-directory-p
                              (list "/usr/include" gcc-include)))
@@ -192,13 +196,13 @@ It should also include other symbols GCC was compiled with.")
       (semantic-add-system-include D 'c++-mode)
       (let ((cppconfig (concat D "/bits/c++config.h")))
         ;; Presumably there will be only one of these files in the try-paths list...
-	(when (file-readable-p cppconfig)
-	  ;; Add it to the symbol file
-	  (if (boundp 'semantic-lex-c-preprocessor-symbol-file)
-	      ;; Add to the core macro header list
-	      (add-to-list 'semantic-lex-c-preprocessor-symbol-file cppconfig)
-	    ;; Setup the core macro header
-	    (setq semantic-lex-c-preprocessor-symbol-file (list cppconfig)))
+        (when (file-readable-p cppconfig)
+          ;; Add it to the symbol file
+          (if (boundp 'semantic-lex-c-preprocessor-symbol-file)
+              ;; Add to the core macro header list
+              (add-to-list 'semantic-lex-c-preprocessor-symbol-file cppconfig)
+            ;; Setup the core macro header
+            (setq semantic-lex-c-preprocessor-symbol-file (list cppconfig)))
           )))
     (if (not (boundp 'semantic-lex-c-preprocessor-symbol-map))
         (setq semantic-lex-c-preprocessor-symbol-map nil))
@@ -275,28 +279,28 @@ gcc version 2.95.2 19991024 (release)"
   (let ((fail nil))
     (dolist (S semantic-gcc-test-strings)
       (let* ((fields (semantic-gcc-fields S))
-	     (v (cdr (assoc 'version fields)))
-	     (h (or (cdr (assoc 'target fields))
-		    (cdr (assoc '--target fields))
-		    (cdr (assoc '--host fields))))
-	     (p (cdr (assoc '--prefix fields)))
-	     )
-	(when (not (and v h p))
-	  (let ((strs (split-string S "\n")))
-	    (message "Test failed on %S\nV H P:\n%S %S %S" (car strs) v h p))
-	  (setq fail t))
-	))
+             (v (cdr (assoc 'version fields)))
+             (h (or (cdr (assoc 'target fields))
+                    (cdr (assoc '--target fields))
+                    (cdr (assoc '--host fields))))
+             (p (cdr (assoc '--prefix fields)))
+             )
+        (when (not (and v h p))
+          (let ((strs (split-string S "\n")))
+            (message "Test failed on %S\nV H P:\n%S %S %S" (car strs) v h p))
+          (setq fail t))
+        ))
     (dolist (S semantic-gcc-test-strings-fail)
       (let* ((fields (semantic-gcc-fields S))
-	     (v (cdr (assoc 'version fields)))
-	     (h (or (cdr (assoc '--host fields))
-		    (cdr (assoc 'target fields))))
-	     (p (cdr (assoc '--prefix fields)))
-	     )
-	(when (and v h p)
-	  (message "Negative test failed on %S" S)
-	  (setq fail t))
-	))
+             (v (cdr (assoc 'version fields)))
+             (h (or (cdr (assoc '--host fields))
+                    (cdr (assoc 'target fields))))
+             (p (cdr (assoc '--prefix fields)))
+             )
+        (when (and v h p)
+          (message "Negative test failed on %S" S)
+          (setq fail t))
+        ))
     (if (not fail) (message "Tests passed."))
     ))
 
