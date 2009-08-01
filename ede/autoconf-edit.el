@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: autoconf-edit.el,v 1.9 2009/07/11 13:05:15 zappo Exp $
+;; RCS: $Id: autoconf-edit.el,v 1.10 2009/08/01 01:33:28 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -59,16 +59,18 @@ ROOTDIR is the root directory of a given autoconf controlled project.
 PROGRAM is the program to be configured.
 TESTFILE is the file used with AC_INIT.
 configure the initial configure script using `autoconf-new-automake-string'"
-  (interactive "dRoot Dir: \nsProgram: \nsTest File: ")
+  (interactive "DRoot Dir: \nsProgram: \nsTest File: ")
   (if (bufferp rootdir)
       (set-buffer rootdir)
-    (if (not (string-match "\\(/\\|\\\\)$" rootdir))
-	(setq rootdir (concat rootdir "/")))
-    (let ((cf (concat rootdir "configure.in")))
-      (if (and (file-exists-p cf)
-	       (not (y-or-n-p (format "File %s exists.  Start Over? " cf))))
+    (let ((cf1 (expand-file-name "configure.in" rootdir))
+	  (cf2 (expand-file-name "configure.ac" rootdir)))
+      (if (and (or (file-exists-p cf1) (file-exists-p cf2))
+	       (not (y-or-n-p (format "File %s exists.  Start Over? "
+				      (if (file-exists-p cf1)
+					  cf1 cf2)
+				      ))))
 	  (error "Quit"))
-      (find-file cf)))
+      (find-file cf2)))
   ;; Note, we only ask about overwrite if a string/path is specified.
   (erase-buffer)
   (insert (format autoconf-new-automake-string testfile program)))
@@ -181,6 +183,7 @@ items such as CHECK_HEADERS."
     (setq param (substring param 0  (match-beginning 0))))
   param)
 
+;;;###autoload
 (defun autoconf-parameters-for-macro (macro)
   "Retrieve the parameters to MACRO.
 Returns a list of the arguments passed into MACRO as strings."
