@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: autoconf-edit.el,v 1.10 2009/08/01 01:33:28 zappo Exp $
+;; RCS: $Id: autoconf-edit.el,v 1.11 2009/08/08 21:33:24 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@
   "dnl Process this file with autoconf to produce a configure script
 
 AC_INIT(%s)
-AM_INIT_AUTOMAKE(%s, 0)
+AM_INIT_AUTOMAKE([%s], 0)
 AM_CONFIG_HEADER(config.h)
 
 dnl End the configure script.
