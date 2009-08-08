@@ -1,10 +1,10 @@
-;;; ede-pmake.el --- EDE Generic Project Makefile code generator.
+;; ede-pmake.el --- EDE Generic Project Makefile code generator.
 
 ;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.57 2009/04/30 01:16:06 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.58 2009/08/08 21:41:15 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -79,16 +79,16 @@ MFILENAME is the makefile to generate."
       (if (and
 	   (not (eobp))
 	   (not (looking-at "# Automatically Generated \\w+ by EDE.")))
-	  (if (not (y-or-n-p (format "Really replace %s?" mfilename)))
-	      (error "Not replacing Makefile."))
+	  (if (not (y-or-n-p (format "Really replace %s? " mfilename)))
+	      (error "Not replacing Makefile"))
 	(message "Replace EDE Makefile"))
       (erase-buffer)
       (ede-srecode-setup)
       ;; Insert a giant pile of stuff that is common between
       ;; one of our Makefiles, and a Makefile.in
-      (ede-srecode-insert 
+      (ede-srecode-insert
        "file:ede-empty"
-       "MAKETYPE" 
+       "MAKETYPE"
        (with-slots (makefile-type) this
 	 (cond ((eq makefile-type 'Makefile) "make")
 	       ((eq makefile-type 'Makefile.in) "autoconf")
@@ -255,7 +255,8 @@ Execute BODY in a location where a value can be placed."
 ;;
 ;;;###autoload
 (defun ede-pmake-varname (obj)
-  "Convert OBJ into a variable name name, which converts .  to _."
+  "Convert OBJ into a variable name name.
+Change .  to _ in the variable name."
   (let ((name (oref obj name)))
     (while (string-match "\\." name)
       (setq name (replace-match "_" nil t name)))
@@ -303,7 +304,7 @@ NOTE: Not yet in use!  This is part of an SRecode conversion of
 ;	       (if (assoc (car c) conf-table)
 ;		   (let ((vdict (srecode-dictionary-add-section-dictionary
 ;				 ldict "VALUE")))
-;		     (srecode-dictionary-set-value 
+;		     (srecode-dictionary-set-value
 ;		      vdict "VAL" (cdr (assoc (car c) conf-table)))
 ;		     (setq conf-done (cons (car c) conf-done))))
 ;	       (let ((vdict (srecode-dictionary-add-section-dictionary
