@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.61 2009/07/18 16:57:53 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.62 2009/08/08 21:44:10 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -638,18 +638,18 @@ Optional argument FORCE will force items to be regenerated."
       (ede-proj-makefile-create-maybe this (ede-proj-dist-makefile this))
     (require 'ede-pmake)
     (ede-proj-makefile-create this (ede-proj-dist-makefile this)))
-  (if (ede-proj-automake-p this)
-      (progn 
-	(require 'ede-pconf)
-	;; If the user wants to force this, do it some other way?
-	(ede-proj-configure-synchronize this)
-	;; Now run automake to fill in the blanks, autoconf, and other
-	;; auto thingies so that we can just say "make" when done.
-	
-	))
   ;; Rebuild all subprojects
   (ede-map-subprojects
    this (lambda (sproj) (ede-proj-setup-buildenvironment sproj force)))
+  ;; Autoconf projects need to do other kinds of initializations.
+  (when (and (ede-proj-automake-p this)
+	     (eq this (ede-toplevel this)))
+    (require 'ede-pconf)
+    ;; If the user wants to force this, do it some other way?
+    (ede-proj-configure-synchronize this)
+    ;; Now run automake to fill in the blanks, autoconf, and other
+    ;; auto thingies so that we can just say "make" when done.
+    )
   )
 
 
