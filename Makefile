@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.24 2009/06/24 23:15:18 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.25 2009/08/08 21:48:32 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -145,7 +145,9 @@ utest:
 	$(EMACS) $(EMACSFLAGS) -l "common/cedet.el" -f cedet-utest-batch
 
 itest:
-	cd tests; ./cit-test.sh
+	cd tests; ./cit-test.sh Make
+	cd tests; ./cit-test.sh Automake
+	cd tests; ./cit-test.sh GNUStep
 
 ### Install info files
 ## Thanks Stefano Sabatini for the info install patch.
