@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cit-uml.el,v 1.1 2009/05/30 14:17:20 zappo Exp $
+;; X-RCS: $Id: cit-uml.el,v 1.2 2009/08/08 21:53:08 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -43,7 +43,7 @@
    )
   "Tags to be inserted into main.")
 
-(defun cit-fill-uml ()
+(defun cit-fill-uml (make-type)
   "Fill a buffer with code based on a UML representation."
   
   ;; 5 a) Read in the cogre UML file.
@@ -58,7 +58,7 @@
 
   ;; 5 c) Compile sources.
   ;;  This needs a few EDE steps.
-  (ede-new "Make" "UML")
+  (ede-new make-type "UML")
   (ede-new-target "UML" "program" "n")
   (ede-add-file "UML")
 
