@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 13 Jun 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-c.el,v 1.7 2009/01/24 03:46:40 zappo Exp $
+;; X-RCS: $Id: wisent-c.el,v 1.8 2009/08/09 02:04:43 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -256,8 +256,8 @@ Change class of IDENTIFIER tokens that are typedef to TYPEDEFNAME."
   "Run `wisent-c-lexer' on current buffer."
   (interactive)
   (semantic-lex-init)
-  (setq semantic-flex-keywords-obarray wisent-c-keyword-table
-        semantic-lex-types-obarray wisent-c-token-table
+  (setq semantic-flex-keywords-obarray wisent-c-wy--keyword-table
+	semantic-lex-types-obarray wisent-c-wy--token-table
         semantic-lex-depth nil
         semantic-lex-analyzer 'wisent-c-lexer)
   (let ((token-stream
