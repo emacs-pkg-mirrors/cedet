@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.78 2009/07/12 13:55:05 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.79 2009/08/09 01:21:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -422,7 +422,12 @@ and TAG is a clone of the include tag that was found.")
 (make-variable-buffer-local 'semanticdb-find-scanned-include-tags)
 
 (defvar semanticdb-implied-include-tags nil
-  "Include tags implied for all files of a given mode.")
+  "Include tags implied for all files of a given mode.
+Set this variable with `defvar-mode-local' for a particular mode so
+that any symbols that exist for all files for that mode are included.
+
+Note: This could be used as a way to write a file in a langauge
+to declare all the built-ins for that language.")
 
 (defun semanticdb-find-translate-path-includes--internal (path)
   "Internal implementation of `semanticdb-find-translate-path-includes-default'.
