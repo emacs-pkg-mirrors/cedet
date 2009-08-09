@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.15 2009/07/28 15:53:23 ottalex Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.16 2009/08/09 01:24:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -262,6 +262,12 @@ Ziel: i486-linux-gnu
 Konfiguriert mit: ../src/configure -v --with-pkgversion='Ubuntu 4.3.2-1ubuntu12' --with-bugurl=file:///usr/share/doc/gcc-4.3/README.Bugs --enable-languages=c,c++,fortran,objc,obj-c++ --prefix=/usr --enable-shared --with-system-zlib --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --enable-nls --with-gxx-include-dir=/usr/include/c++/4.3 --program-suffix=-4.3 --enable-clocale=gnu --enable-libstdcxx-debug --enable-objc-gc --enable-mpfr --enable-targets=all --enable-checking=release --build=i486-linux-gnu --host=i486-linux-gnu --target=i486-linux-gnu
 Thread-Modell: posix
 gcc-Version 4.3.2 (Ubuntu 4.3.2-1ubuntu12)"
+    ;; Damien Deville bsd
+    "Using built-in specs.
+Target: i386-undermydesk-freebsd
+Configured with: FreeBSD/i386 system compiler
+Thread model: posix
+gcc version 4.2.1 20070719  [FreeBSD]"
     )
   "A bunch of sample gcc -v outputs from different machines.")
 
@@ -285,7 +291,8 @@ gcc version 2.95.2 19991024 (release)"
                     (cdr (assoc '--host fields))))
              (p (cdr (assoc '--prefix fields)))
              )
-        (when (not (and v h p))
+	;; No longer test for prefixes.
+        (when (not (and v h))
           (let ((strs (split-string S "\n")))
             (message "Test failed on %S\nV H P:\n%S %S %S" (car strs) v h p))
           (setq fail t))
