@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.39 2009/04/14 22:59:18 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.40 2009/08/09 01:20:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -990,6 +990,8 @@ The VALUE is a spp lexical table."
       (prin1 (car sym))
       (let* ((first (car (cdr sym)))
 	     (rest (cdr sym)))
+	(when (not (listp first))
+	  (error "Error in macro \"%s\"" (car sym)))
 	(when (eq (car first) 'spp-arg-list)
 	  (princ " ")
 	  (prin1 first)
