@@ -51,6 +51,10 @@ int test_fcn () {
     ;
 }
 
+stage3_Foo foo_fcn() {
+  // Can we go "up" to foo with senator-go-to-up-reference?
+}
+
 
 // Second test from Ravikiran Rajagopal
 
