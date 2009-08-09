@@ -1,7 +1,7 @@
 ;;; semantic-tag-folding.el --- semantic decoration style to enable folding of semantic tags
 ;; Time-stamp: <2005-04-28 17:03:44 sacharya>
 
-;;; Copyright (C) 2005 Suraj Acharya
+;;; Copyright (C) 2005, 2009 Suraj Acharya
 
 ;; Author: Suraj Acharya <sacharya@cs.indiana.edu>
 
@@ -69,7 +69,7 @@
 
 
 (require 'semantic-decorate-mode)
-(require 'cl)
+(eval-when-compile (require 'cl))
 
 ;;; Code:
 
