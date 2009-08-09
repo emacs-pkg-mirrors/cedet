@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.134 2009/07/04 13:51:21 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.135 2009/08/09 01:21:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -592,6 +592,10 @@ The file associated with OBJ does not need to be in a buffer."
   ;;(oset table tags new-tags)
   ;; We do need to mark ourselves dirty.
   (semanticdb-set-dirty table)
+
+  ;; The lexical table may be modified.
+  (when (featurep 'semantic-lex-spp)
+    (oset table lexical-table (semantic-lex-spp-save-table)))
 
   ;; Incremental parser doesn't mokey around with this.
   (oset table unmatched-syntax semantic-unmatched-syntax-cache)
