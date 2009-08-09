@@ -4,7 +4,7 @@
 
 ;; Author: Marco (Bj) Bardelli <bardelli.marco@gmail.com>
 ;; Keywords: project, make, gnustep, gnustep-make
-;; RCS: $Id: ede-gnustep.el,v 1.7 2009/08/05 09:20:27 safanaj Exp $
+;; RCS: $Id: ede-gnustep.el,v 1.8 2009/08/09 01:18:04 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -300,7 +300,7 @@ This enables the creation of your target type."
 is useless, the project-rescan methods change their behavoir to scan
 GNUmakefiles, and possibly a ProjStep.ede could be created. In writer mode,
 the behavoir is the same that in any ede-proj-project, scan ProjStep.ede to
-write Makefiles".)
+write Makefiles")
 
    (makefile :initarg :makefile :initform ""
 	     :type string :documentation "GNUmakefile."
