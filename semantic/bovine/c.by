@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.58 2009/07/12 21:37:28 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.59 2009/08/13 01:26:43 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -196,15 +196,13 @@ declaration
   | extern-c
   | template
   | using
-    (TAG (car (car $1)) 'using :type (car $1))
   ;
 
 codeblock
   : define
   | codeblock-var-or-fun
   | type ;; type is less likely to be used here.
-  | using ;; Using  statements are ok.
-    (TAG (car (car $1)) 'using :type (car $1))
+  | using
   ;
 
 extern-c-contents
@@ -359,7 +357,6 @@ namespacesubparts
  ;; PUBLIC or PRIVATE bits.  Ignore them for now.
   | template
   | using
-    (TAG (car (car $1)) 'using :type (car $1))
   | ;;EMPTY
   ;
 
@@ -442,17 +439,28 @@ type
  ;; unnamed namespaces like "namespace {"
   | NAMESPACE namespaceparts
     (TYPE-TAG "unnamed" $1 $2 nil )
+ ;; David Engster: namespace alias like "namespace foo = bar;"
+  | NAMESPACE symbol EQUAL typeformbase SEMICOLON
+    (TYPE-TAG $2 $1 (list (TYPE-TAG (car $4) $1 nil nil)) nil :kind 'alias )
   ;
 
 ;; Klaus Berndl: We must parse "using namespace XXX" too
 
 ;; Using is vaguely like an include statement in the named portions
 ;; of the code.  We should probably specify a new token type for this.
+
 using
-  : USING typeformbase SEMICOLON
-    ( TYPE-TAG ,$2 "class" nil nil :prototype t)
-  | USING NAMESPACE typeformbase SEMICOLON
-    ( TYPE-TAG ,$3 "class" nil nil :prototype t)
+  : USING usingname SEMICOLON
+    (TAG (car $2) 'using :type ,$2 )
+  ;
+
+;; Jan Moringen: Differentiate between 'using' and 'using namespace'
+;; Adapted to creating type tags by EML.
+usingname
+  : typeformbase
+    (TYPE-TAG (car $1) "class" nil nil :prototype t)
+  | NAMESPACE typeformbase
+    (TYPE-TAG (car $2) "namespace" nil nil :prototype t)
   ;
 
 template
