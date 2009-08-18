@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.41 2009/08/18 01:06:41 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.42 2009/08/18 01:08:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -804,7 +804,7 @@ Parsing starts inside the parens, and ends at the end of TOKEN."
 	(toks nil))
     (save-excursion
 
-      (if (and nil (stringp (nth 1 token)))
+      (if (stringp (nth 1 token))
 	  ;; If the 2nd part of the token is a string, then we have
 	  ;; a token specifically extracted from a buffer.  Possibly
 	  ;; a different buffer.  This means we need to do something
