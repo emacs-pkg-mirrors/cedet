@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.31 2009/04/02 00:50:54 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.32 2009/08/18 03:07:03 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -584,19 +584,60 @@ whose tags can be searched when needed, OR it may be a scope object."
 	 ;; you have a copy of all methods locally.  I think.
 	 (parents (semantic-tag-type-superclasses type))
 	 ps pt
+	 (tmpscope scope)
 	 )
-    (dolist (p parents)
-      (setq ps (cond ((stringp p) p)
-		     ((and (semantic-tag-p p) (semantic-tag-prototype-p p))
-		      (semantic-tag-name p))
-		     ((and (listp p) (stringp (car p)))
-		      p))
-	    pt (condition-case nil
-		   (semantic-analyze-find-tag ps 'type scope)
-		 (error nil)))
-      (when pt
-	(funcall fcn pt)
-	(semantic-analyze-scoped-inherited-tag-map pt fcn scope)))
+    (save-excursion
+
+      ;; Create a SCOPE just for looking up the parent based on where
+      ;; the parent came from.
+      ;;
+      ;; @TODO - Should we cache these mini-scopes around in Emacs
+      ;;         for recycling later?  Should this become a helpful
+      ;;         extra routine?
+      (when (and parents (semantic-tag-with-position-p type))
+	;; If TYPE has a position, go there and get the scope.
+	(semantic-go-to-tag type)
+	
+	;; We need to make a mini scope, and only include the misc bits
+	;; that will help in finding the parent.  We don't really need
+	;; to do any of the stuff related to variables and what-not.
+	(setq tmpscope (semantic-scope-cache "mini"))
+	(let* (;; Step 1:
+	       (scopetypes (semantic-analyze-scoped-types (point)))
+	       (parents (semantic-analyze-scope-nested-tags (point) scopetypes))
+	       ;;(parentinherited (semantic-analyze-scope-lineage-tags parents scopetypes))
+	       (lscope nil)
+	       )
+	  (oset tmpscope scopetypes scopetypes)
+	  (oset tmpscope parents parents)
+	  ;;(oset tmpscope parentinheritance parentinherited)
+
+	  (when (or scopetypes parents)
+	    (setq lscope (semantic-analyze-scoped-tags scopetypes tmpscope))
+	    (oset tmpscope scope lscope))
+	  (oset tmpscope fullscope (append scopetypes lscope parents))
+	  ))
+      ;; END creating tmpscope
+      
+      ;; Look up each parent one at a time.
+      (dolist (p parents)
+	(setq ps (cond ((stringp p) p)
+		       ((and (semantic-tag-p p) (semantic-tag-prototype-p p))
+			(semantic-tag-name p))
+		       ((and (listp p) (stringp (car p)))
+			p))
+	      pt (condition-case nil
+		     (or (semantic-analyze-find-tag ps 'type tmpscope)
+			 ;; A backup hack.
+			 (semantic-analyze-find-tag ps 'type scope))
+		   (error nil)))
+
+	(when pt
+	  (funcall fcn pt)
+	  ;; Note that we pass the original SCOPE in while recursing.
+	  ;; so that the correct inheritance model is passed along.
+	  (semantic-analyze-scoped-inherited-tag-map pt fcn scope)
+	  )))
     nil))
 
 ;;; ANALYZER
