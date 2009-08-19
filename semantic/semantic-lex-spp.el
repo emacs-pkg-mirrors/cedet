@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.42 2009/08/18 01:08:05 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.43 2009/08/19 11:17:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -830,6 +830,7 @@ Use this to parse text extracted from a macro as if it came from
 the current buffer.  Since the lexer is designed to only work in
 a buffer, we need to create a new buffer, and populate it with rules
 and variable state from the current buffer."
+  ;; @TODO - will this fcn recurse?
   (let* ((buf (get-buffer-create " *SPP parse hack*"))
 	 (mode major-mode)
 	 (fresh-toks nil)
@@ -842,30 +843,32 @@ and variable state from the current buffer."
 			   semantic-lex-spp-expanded-macro-stack
 			   ))
 	 )
-    (set-buffer buf)
-    (erase-buffer)
-    ;; Below is a painful hack to make sure everything is setup correctly.
-    (when (not (eq major-mode mode))
-      (funcall mode)
-      ;; Hack in mode-local
-      (activate-mode-local-bindings)
-      ;; CHEATER!  The following 3 lines are from
-      ;; `semantic-new-buffer-fcn', but we don't want to turn
-      ;; on all the other annoying modes for this little task.
-      (setq semantic-new-buffer-fcn-was-run t)
-      (semantic-lex-init)
-      (semantic-clear-toplevel-cache)
-      (remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
-		   t)
-      ;; Second Cheat: copy key variables reguarding macro state from the
-      ;; the originating buffer we are parsing.
-      (dolist (V important-vars)
-	(set V (semantic-buffer-local-value V origbuff)))
-      )
-    (insert text)
-    (goto-char (point-min))
+    (save-excursion
+      (set-buffer buf)
+      (erase-buffer)
+      ;; Below is a painful hack to make sure everything is setup correctly.
+      (when (not (eq major-mode mode))
+	(funcall mode)
+	;; Hack in mode-local
+	(activate-mode-local-bindings)
+	;; CHEATER!  The following 3 lines are from
+	;; `semantic-new-buffer-fcn', but we don't want to turn
+	;; on all the other annoying modes for this little task.
+	(setq semantic-new-buffer-fcn-was-run t)
+	(semantic-lex-init)
+	(semantic-clear-toplevel-cache)
+	(remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
+		     t)
+	;; Second Cheat: copy key variables reguarding macro state from the
+	;; the originating buffer we are parsing.
+	(dolist (V important-vars)
+	  (set V (semantic-buffer-local-value V origbuff)))
+	)
+      (insert text)
+      (goto-char (point-min))
 
-    (setq fresh-toks (semantic-lex-spp-stream-for-macro (point-max)))
+      (setq fresh-toks (semantic-lex-spp-stream-for-macro (point-max))))
+
     (dolist (tok fresh-toks)
       (when (memq (semantic-lex-token-class tok) '(symbol semantic-list))
 	(setq toks (cons tok toks))))
