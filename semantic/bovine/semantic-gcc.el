@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.16 2009/08/09 01:24:35 zappo Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.17 2009/08/26 21:05:00 davenar Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -35,11 +35,11 @@ to give to the program."
   ;; $ gcc -v
   ;;
   (let ((buff (get-buffer-create " *gcc-query*"))
-        (old-lc-messages (getenv "LC_MESSAGES")))
+        (old-lc-messages (getenv "LC_ALL")))
     (save-excursion
       (set-buffer buff)
       (erase-buffer)
-      (setenv "LC_MESSAGES" "C")
+      (setenv "LC_ALL" "C")
       (condition-case nil
           (apply 'call-process gcc-cmd nil (cons buff t) nil gcc-options)
         (error ;; Some bogus directory for the first time perhaps?
@@ -48,7 +48,7 @@ to give to the program."
                (apply 'call-process gcc-cmd nil (cons buff t) nil gcc-options)
              (error ;; gcc doesn't exist???
               nil)))))
-      (setenv "LC_MESSAGES" old-lc-messages)
+      (setenv "LC_ALL" old-lc-messages)
       (prog1
           (buffer-string)
         (kill-buffer buff)
