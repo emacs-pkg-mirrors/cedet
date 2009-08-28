@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-gcc.el,v 1.17 2009/08/26 21:05:00 davenar Exp $
+;; X-RCS: $Id: semantic-gcc.el,v 1.18 2009/08/28 12:29:00 davenar Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -158,11 +158,7 @@ It should also include other symbols GCC was compiled with.")
     (setq semantic-gcc-setup-data fields)
     (unless c-include-path
       ;; Fallback to guesses
-      (let* ( ;; env vars include dirs, see http://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html
-             (cpath (split-string (getenv "CPATH") path-separator))
-             (c_include_path (split-string (getenv "C_INCLUDE_PATH") path-separator))
-             (cpp_include_path (split-string (getenv "CPP_INCLUDE_PATH") path-separator))
-             ;; gcc include dirs
+      (let* ( ;; gcc include dirs
              (gcc-exe (locate-file "gcc" exec-path exec-suffixes 'executable))
              (gcc-root (expand-file-name ".." (file-name-directory gcc-exe)))
              (gcc-include (expand-file-name "include" gcc-root))
