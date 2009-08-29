@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.77 2009/03/15 21:21:33 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.78 2009/08/29 20:10:05 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,7 +34,6 @@
 
 ;;; Code:
 (require 'semantic-wisent)
-(require 'sformat)
 (require 'font-lock)
 (require 'pp)
 
@@ -544,15 +543,15 @@ Typically a DEFINE expression should look like this:
       (indent-sexp))))
 
 (defconst semantic-grammar-header-template
-  "\
-;;; %F --- Generated parser support file
+  '("\
+;;; " file " --- Generated parser support file
 
-%C
+" copy "
 
-;; Author: %U <%M>
-;; Created: %D
+;; Author: " user-full-name " <" user-mail-address ">
+;; Created: " date "
 ;; Keywords: syntax
-;; X-RCS: %V
+;; X-RCS: " vcid "
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -574,23 +573,24 @@ Typically a DEFINE expression should look like this:
 ;;; Commentary:
 ;;
 ;; PLEASE DO NOT MANUALLY EDIT THIS FILE!  It is automatically
-;; generated from the grammar file %G.
-
-;;; History:
-;;
+;; generated from the grammar file " gram ".
 
 ;;; Code:
-"
-  "Generated header template.")
+")
+  "Generated header template.
+The symbols in the template are local variables in
+`semantic-grammar-header'")
 
 (defconst semantic-grammar-footer-template
-  "\
+  '("\
 
-\(provide '%L)
+\(provide '" libr ")
 
-;;; %F ends here
-"
-  "Generated footer template.")
+;;; " file " ends here
+")
+  "Generated footer template.
+The symbols in the list are local variables in
+`semantic-grammar-footer'.")
 
 (defun semantic-grammar-copyright-line ()
   "Return the grammar copyright line, or nil if not found."
@@ -613,24 +613,27 @@ Typically a DEFINE expression should look like this:
         ;; generate a new one if not found.
         (copy (or (semantic-grammar-copyright-line)
                   (concat (format-time-string ";; Copyright (C) %Y ")
-                          user-full-name))))
-    (Sformat '((?U user-full-name)
-               (?M user-mail-address)
-               (?F file)
-               (?G gram)
-               (?C copy)
-               (?D date)
-               (?V vcid))
-             semantic-grammar-header-template)))
+                          user-full-name)))
+	(out ""))
+    (dolist (S semantic-grammar-header-template)
+      (cond ((stringp S)
+	     (setq out (concat out S)))
+	    ((symbolp S)
+	     (setq out (concat out (symbol-value S))))))
+    out))
 
 (defun semantic-grammar-footer ()
   "Return text of a generated standard footer."
   (let* ((file (semantic-grammar-buffer-file
                 semantic--grammar-output-buffer))
-         (libr (file-name-sans-extension file)))
-    (Sformat '((?F file)
-               (?L libr))
-             semantic-grammar-footer-template)))
+         (libr (file-name-sans-extension file))
+	 (out ""))
+    (dolist (S semantic-grammar-footer-template)
+      (cond ((stringp S)
+	     (setq out (concat out S)))
+	    ((symbolp S)
+	     (setq out (concat out (symbol-value S))))))
+    out))
 
 (defun semantic-grammar-token-data ()
   "Return the string value of the table of lexical tokens."
@@ -1639,8 +1642,16 @@ EXPANDER is the name of the function that expands MACRO."
        (t
         (setq doc (eldoc-function-argstring expander))))
       (when doc
-        (setq doc (eldoc-docstring-format-sym-doc
-                   macro (format "==> %s %s" expander doc)))
+        (setq doc
+	      (condition-case nil
+		  (eldoc-docstring-format-sym-doc
+                   macro (format "==> %s %s" expander doc)
+		   'default)
+		;; Older emacsen w/out the third arg here.
+		(error
+		 (eldoc-docstring-format-sym-doc
+		  macro (format "==> %s %s" expander doc)))))
+		
         (eldoc-last-data-store expander doc 'function))
       doc)))
 
