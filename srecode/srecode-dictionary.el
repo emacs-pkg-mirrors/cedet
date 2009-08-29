@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-dictionary.el,v 1.10 2009/04/02 01:50:36 zappo Exp $
+;; X-RCS: $Id: srecode-dictionary.el,v 1.11 2009/08/29 01:28:22 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -44,6 +44,11 @@
 	   "The parent dictionary.
 Symbols not appearing in this dictionary will be checked against the
 parent dictionary.")
+   (origin :initarg :origin
+	   :type string
+	   :documentation
+	   "A string representing the origin of this dictionary.
+Useful only while debugging.")
    )
   "Dictionary of symbols and what they mean.
 Dictionaries are used to look up named symbols from
@@ -144,29 +149,42 @@ If BUFFER-OR-PARENT is t, then this dictionary should not be
 assocated with a buffer or parent."
   (save-excursion
     (let ((parent nil)
-	  (buffer nil))
+	  (buffer nil)
+	  (origin nil)
+	  (initfrombuff nil))
       (cond ((bufferp buffer-or-parent)
 	     (set-buffer buffer-or-parent)
-	     (setq buffer buffer-or-parent))
+	     (setq buffer buffer-or-parent
+		   origin (buffer-name buffer-or-parent)
+		   initfrombuff t))
 	    ((srecode-dictionary-child-p buffer-or-parent)
 	     (setq parent buffer-or-parent
-		   buffer (oref buffer-or-parent buffer))
+		   buffer (oref buffer-or-parent buffer)
+		   origin (concat (object-name buffer-or-parent) " in "
+				  (if buffer (buffer-name buffer)
+				    "no buffer")))
 	     (when buffer
 	       (set-buffer buffer)))
 	    ((eq buffer-or-parent t)
-	     (setq buffer nil))
+	     (setq buffer nil
+		   origin "Unspecified Origin"))
 	    (t
-	     (setq buffer (current-buffer)))
+	     (setq buffer (current-buffer)
+		   origin (concat "Unspecified.  Assume "
+				  (buffer-name buffer))
+		   initfrombuff t)
+	     )
 	    )
       (let ((dict (srecode-dictionary
 		   major-mode
 		   :buffer buffer
 		   :parent parent
 		   :namehash  (make-hash-table :test 'equal
-					       :size 20))))
-	;; Only set up the default variables if we don't have
-	;; a buffer
-	(when buffer
+					       :size 20)
+		   :origin origin)))
+	;; Only set up the default variables if we are being built
+	;; directroy for a particular buffer.
+	(when initfrombuff
 	  ;; Variables from the table we are inserting from.
 	  ;; @todo - get a better tree of tables.
 	  (let ((mt (srecode-get-mode-table major-mode))
@@ -419,7 +437,7 @@ inserted with a new editable field.")
 
 ;;; Higher level dictionary functions
 ;;
-(defun srecode-create-section-dicionary (sectiondicts STATE)
+(defun srecode-create-section-dictionary (sectiondicts STATE)
   "Create a dictionary with section entries for a template.
 The format for SECTIONDICTS is what is emitted from the template parsers.
 STATE is the current compiler state."
@@ -472,7 +490,7 @@ STATE is the current compiler state."
 	 )
     (message "Creating a dictionary took %.2f seconds."
 	     (semantic-elapsed-time start end))
-    (data-debug-new-buffer "*SRECUDE ADEBUG*")
+    (data-debug-new-buffer "*SRECODE ADEBUG*")
     (data-debug-insert-object-slots dict "*")))
 
 ;;;###autoload
