@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.122 2009/07/25 14:52:48 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.123 2009/08/29 10:52:11 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -446,6 +446,29 @@ that may have been incorrectly parsed."
   :group 'semantic
   :type 'boolean)
 
+(define-lex-regex-analyzer semantic-lex-c-VC++-begin-std-namespace
+  "Handle VC++'s definition of the std namespace."
+  "\\(_STD_BEGIN\\)"
+  (semantic-lex-push-token
+   (semantic-lex-token 'NAMESPACE (match-beginning 0) (match-end 0) "namespace"))
+  (semantic-lex-push-token
+   (semantic-lex-token 'symbol (match-beginning 0) (match-end 0) "std"))
+  (goto-char (match-end 0))
+  (let ((start (point))
+	(end 0))
+    (when (re-search-forward "_STD_END" nil t)
+      (setq end (point))
+      (semantic-lex-push-token
+       (semantic-lex-token 'semantic-list start end
+			   (list 'prefix-fake)))))
+  (setq semantic-lex-end-point (point)))
+
+(define-lex-regex-analyzer semantic-lex-c-VC++-end-std-namespace
+  "Handle VC++'s definition of the std namespace."
+  "\\(_STD_END\\)"
+  (goto-char (match-end 0))
+  (setq semantic-lex-end-point (point)))
+
 (define-lex-regex-analyzer semantic-lex-c-namespace-begin-nested-macro
   "Handle G++'s namespace macros which the pre-processor can't handle."
   "\\(_GLIBCXX_BEGIN_NESTED_NAMESPACE\\)(\\s-*\\(\\(?:\\w\\|\\s_\\)+\\)\\s-*,\\s-*\\(\\(?:\\w\\|\\s_\\)+\\)\\s-*)"
@@ -546,6 +569,8 @@ Use semantic-cpp-lexer for parsing text inside a CPP macro."
   semantic-lex-c-namespace-begin-macro
   semantic-lex-c-namespace-begin-nested-macro
   semantic-lex-c-namespace-end-macro
+  semantic-lex-c-VC++-begin-std-namespace
+  semantic-lex-c-VC++-end-std-namespace
   ;; Handle macros, symbols, and keywords
   semantic-lex-spp-replace-or-symbol-or-keyword
   semantic-lex-charquote
