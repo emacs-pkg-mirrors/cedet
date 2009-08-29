@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-map.el,v 1.15 2009/03/14 15:16:55 zappo Exp $
+;; X-RCS: $Id: srecode-map.el,v 1.16 2009/08/29 01:29:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -226,7 +226,7 @@ Optional argument RESET forces a reset of the current map."
 	)
     (message "Updating the map took %.2f seconds."
 	     (semantic-elapsed-time start end))
-    (data-debug-new-buffer "*SRECUDE ADEBUG*")
+    (data-debug-new-buffer "*SRECODE ADEBUG*")
     (data-debug-insert-stuff-list p "*")))
 
 (defun srecode-maps-dump-file-list (flist)
