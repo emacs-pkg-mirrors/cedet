@@ -114,6 +114,14 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(foo,bar)
 
 _GLIBCXX_END_NESTED_NAMESPACE;
 
+
+/* TEST: The VC++ macro hack. */
+_STD_BEGIN
+
+  int inside_std_namespace(int a) { }
+
+_STD_END
+
 /* TEST: Recursion prevention.  CPP doesn't allow even 1 level of recursion. */
 #define STARTMACRO MACROA
 #define MACROA MACROB

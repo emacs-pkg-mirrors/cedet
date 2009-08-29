@@ -81,6 +81,13 @@ namespace foo { namespace bar {
   } 
 }
 
+/* TEST: The VC++ macro hack. */
+namespace std {
+
+  int inside_std_namespace(int a) { }
+
+}
+
 /* TEST: Recursion prevention.  CPP doesn't allow even 1 level of recursion. */
 int MACROA () {
 
