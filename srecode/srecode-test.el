@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: srecode-test.el,v 1.8 2009/01/29 03:15:59 zappo Exp $
+;; X-RCS: $Id: srecode-test.el,v 1.9 2009/08/29 01:31:18 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -53,7 +53,9 @@ If there is a second !, the put the mark there.")
   "Perform the insertion and test the output.
 Assumes that the current buffer is the testing buffer."
   (erase-buffer)
-  
+
+  ;;(cedet-utest-log " * Entry %s ..." (object-print o))
+
   (insert (or (oref o pre-fill) ""))
   (goto-char (point-min))
   (let ((start nil))
@@ -106,6 +108,14 @@ Assumes that the current buffer is the testing buffer."
       (pop-to-buffer (current-buffer))
       (error "Entry %s failed!" (object-name o)))
   ))
+
+;;; ARG HANDLER
+;;
+(defun srecode-semantic-handle-:utest (dict)
+  "Add macros into the dictionary DICT for unit testing purposes."
+  (srecode-dictionary-set-value dict "UTESTVAR1" "ARG HANDLER ONE")
+  (srecode-dictionary-set-value dict "UTESTVAR2" "ARG HANDLER TWO")
+  )
 
 ;;; TEST POINTS
 ;;
@@ -204,6 +214,10 @@ VERY VERY LONG STRIN | VERY VERY LONG STRIN
 MIDDLE               |               MIDDLE
 S                    |                    S
 LAST                 |                 LAST")
+   (srecode-utest-output
+    "custom-arg-handler" :name "custom-arg-handler"
+    :output "OUTSIDE SECTION: ARG HANDLER ONE
+INSIDE SECTION: ARG HANDLER ONE")
    )
   "Test point entries for the template output tests.")
 
