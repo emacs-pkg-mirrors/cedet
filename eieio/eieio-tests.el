@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.46 2009/02/01 20:54:40 scymtym Exp $
+;; RCS: $Id: eieio-tests.el,v 1.47 2009/08/29 21:47:21 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -524,9 +524,6 @@ METHOD is the method that was attempting to be called."
 	  )
    (slot2 :type integer
 	  :initform (lambda () class-typep-var)
-	  )
-   (slot4 :type function
-	  :initform (lambda-default () 2)
 	  )
    )
   "Test different types in a class.")
