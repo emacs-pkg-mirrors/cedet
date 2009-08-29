@@ -314,7 +314,7 @@ STATE is the current compile state as an object `srecode-compile-state'."
 	 (args (semantic-tag-function-arguments tag))
 	 (binding (semantic-tag-get-attribute tag :binding))
 	 (rawdicts (semantic-tag-get-attribute tag :dictionaries))
-	 (sdicts (srecode-create-section-dicionary rawdicts STATE))
+	 (sdicts (srecode-create-section-dictionary rawdicts STATE))
 	 (addargs nil)
 	 )
 ;    (message "Compiled %s to %d codes with %d args and %d prompts."
