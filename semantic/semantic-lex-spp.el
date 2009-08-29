@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.43 2009/08/19 11:17:33 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.44 2009/08/29 18:28:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -379,42 +379,53 @@ ARGVALUES are values for any arg list, or nil."
 ;; Argument lists are saved as a lexical token at the beginning
 ;; of a replacement value.
 
-(defun semantic-lex-spp-one-token-to-txt (tok)
+(defun semantic-lex-spp-one-token-to-txt (tok &optional blocktok)
   "Convert the token TOK into a string.
 If TOK is made of multiple tokens, convert those to text.  This
 conversion is needed if a macro has a merge symbol in it that
 combines the text of two previously distinct symbols.  For
 exampe, in c:
 
-#define (a,b) a ## b;"
+#define (a,b) a ## b;
+
+If optional string BLOCKTOK matches the expanded value, then do not
+continue processing recursively."
   (let ((txt (semantic-lex-token-text tok))
 	(sym nil)
 	)
-    (cond ((and (eq (car tok) 'symbol)
-		(setq sym (semantic-lex-spp-symbol txt))
-		(not (semantic-lex-spp-macro-with-args (symbol-value sym)))
-		)
-	   ;; Now that we have a symbol,
-	   (let ((val (symbol-value sym)))
-	     (cond ((and (consp val)
-			 (symbolp (car val)))
-		    (semantic-lex-spp-one-token-to-txt val))
-		   ((and (consp val)
-			 (consp (car val))
-			 (symbolp (car (car val))))
-		    (mapconcat (lambda (subtok)
-				 (semantic-lex-spp-one-token-to-txt subtok))
-			       val
-			       ""))
-		   ;; If val is nil, that's probably wrong.
-		   ;; Found a system header case where this was true.
-		   ((null val) "")
-		   ;; Debug wierd stuff.
-		   (t (debug)))
-	     ))
-	  ((stringp txt)
-	   txt)
-	  (t nil))
+    (cond
+     ;; Recursion prevention
+     ((and (stringp blocktok) (string= txt blocktok))
+      blocktok)
+     ;; A complex symbol
+     ((and (eq (car tok) 'symbol)
+	   (setq sym (semantic-lex-spp-symbol txt))
+	   (not (semantic-lex-spp-macro-with-args (symbol-value sym)))
+	   )
+      ;; Now that we have a symbol,
+      (let ((val (symbol-value sym)))
+	(cond
+	 ;; This is another lexical token.
+	 ((and (consp val)
+	       (symbolp (car val)))
+	  (semantic-lex-spp-one-token-to-txt val txt))
+	 ;; This is a list of tokens.
+	 ((and (consp val)
+	       (consp (car val))
+	       (symbolp (car (car val))))
+	  (mapconcat (lambda (subtok)
+		       (semantic-lex-spp-one-token-to-txt subtok))
+		     val
+		     ""))
+	 ;; If val is nil, that's probably wrong.
+	 ;; Found a system header case where this was true.
+	 ((null val) "")
+	 ;; Debug wierd stuff.
+	 (t (debug)))
+	))
+     ((stringp txt)
+      txt)
+     (t nil))
     ))
 
 (defun semantic-lex-spp-macro-with-args (val)
@@ -859,11 +870,13 @@ and variable state from the current buffer."
 	(semantic-clear-toplevel-cache)
 	(remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
 		     t)
-	;; Second Cheat: copy key variables reguarding macro state from the
-	;; the originating buffer we are parsing.
-	(dolist (V important-vars)
-	  (set V (semantic-buffer-local-value V origbuff)))
 	)
+
+      ;; Second Cheat: copy key variables reguarding macro state from the
+      ;; the originating buffer we are parsing.  We need to do this every time
+      ;; since the state changes.
+      (dolist (V important-vars)
+	(set V (semantic-buffer-local-value V origbuff)))
       (insert text)
       (goto-char (point-min))
 
