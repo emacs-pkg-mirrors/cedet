@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.47 2009/08/29 21:47:21 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.48 2009/08/30 01:01:31 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -509,32 +509,6 @@ METHOD is the method that was attempting to be called."
 
 (if (slot-boundp class-a 'classslot)
     (error "Class allocatd slot thought bound when it is unbound."))
-
-
-;;; Test function type in a class
-;;
-(defvar class-typep-var 0
-  "A variable used in an initform.")
-
-(setq class-typep-var 1)
-
-(defclass class-typep ()
-  ((slot1 :type function
-	  :initform <
-	  )
-   (slot2 :type integer
-	  :initform (lambda () class-typep-var)
-	  )
-   )
-  "Test different types in a class.")
-
-(setq class-typep-var 2)
-
-(defvar ct nil)
-(setq ct (class-typep "foo"))
-
-(if (/= (oref ct slot2) 2)
-    (error "Default value for slot2 incorrect.")) 
 
 
 ;;; Inheritance status
