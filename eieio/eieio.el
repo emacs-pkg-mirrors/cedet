@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.187 2009/08/30 01:42:32 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.188 2009/08/30 01:50:29 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.2"
@@ -72,7 +72,7 @@ introduced."
 			  (if beta (format "beta%s" beta) ""))))
 
 (eval-and-compile
-;; Abount the above.  EIEIO must process it's own code when it compiles
+;; About the above.  EIEIO must process it's own code when it compiles
 ;; itself, thus, by eval-and-compiling outselves, we solve the problem.
 
 ;; Compatibility
