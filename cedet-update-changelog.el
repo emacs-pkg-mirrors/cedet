@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: cedet-update-changelog.el,v 1.7 2009/08/30 13:35:47 zappo Exp $
+;; X-RCS: $Id: cedet-update-changelog.el,v 1.8 2009/08/30 14:04:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,7 +56,11 @@
 		  dirs)
 	    pack
 	    (cdr pack)))
-    dirs)
+    (let* ((base (file-name-directory (car dirs)))
+	   (root (file-name-directory (directory-file-name base)))
+	   )
+      (setq dirs (cons (expand-file-name "tests" root) dirs)))
+    (nreverse dirs))
   "List of directories we need to change the ChangeLog in.")
 
 (defun cuc-update-changelog (dir)
