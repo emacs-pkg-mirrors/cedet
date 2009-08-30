@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.186 2009/08/30 01:01:04 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.187 2009/08/30 01:42:32 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.2"
@@ -42,16 +42,7 @@
 ;; is the only way I seem to be able to make this stuff load properly.
 
 ;; @TODO - fix :initform to be a form, not a quoted value
-;; @TODO - For API calls like `object-p', replace with something
-;;         that does not conflict with "object", meaning a lisp object.
 ;; @TODO - Prefix non-clos functions with `eieio-'.
-
-(when (featurep 'eieio)
-  (error "Do not load EIEIO twice."))
-
-(eval-when-compile
-  (when (featurep 'eieio)
-    (error "Do not byte-compile EIEIO if EIEIO is already loaded.")))
 
 (require 'cl)
 (load "cl-macs" nil t) ; No provide in this file.
@@ -137,7 +128,10 @@ execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
 (defvar eieio-initializing-object  nil
   "Set to non-nil while initializing an object.")
 
-(defconst eieio-unbound (make-symbol "unbound")
+(defconst eieio-unbound
+  (if (and (boundp 'eieio-unbound) (symbolp eieio-unbound))
+      eieio-unbound
+    (make-symbol "unbound"))
   "Uninterned symbol representing an unbound slot in an object.")
 
 ;; This is a bootstrap for eieio-default-superclass so it has a value
