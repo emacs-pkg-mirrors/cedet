@@ -4,12 +4,12 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: codegeneration
-;; X-RCS: $Id: srecode.el,v 1.6 2009/03/19 00:49:29 zappo Exp $
+;; X-RCS: $Id: srecode.el,v 1.7 2009/08/30 16:44:55 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
 
-  (defvar srecode-version "0.2"
+  (defvar srecode-version "1.0pre7"
     "Current version of the Semantic Recoder.")
 
   )
