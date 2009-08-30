@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2005, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: cedet-update-changelog.el,v 1.9 2009/08/30 14:06:02 zappo Exp $
+;; X-RCS: $Id: cedet-update-changelog.el,v 1.10 2009/08/30 14:20:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -166,7 +166,7 @@ need to be transformed into the actual values."
     (goto-char (point-min))
     (while (re-search-forward (cuc-make-search-name "joakimv")
 			      nil t)
-      (replace-match "Joakim Verona <joakimv@users.sourceforge.net>" t t))
+      (replace-match "Joakim Verona <joakim@verona.se>" t t))
     
     ))
 
