@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.185 2009/06/20 12:00:10 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.186 2009/08/30 01:01:04 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.2"
@@ -1464,26 +1464,6 @@ created by the :initarg tag."
 (defalias 'slot-value 'eieio-oref)
 (defalias 'set-slot-value 'eieio-oset)
 
-;; @TODO - DELETE THIS AFTER FAIR WARNING
-
-;; This alias is needed so that functions can be written
-;; for defaults, but still behave like lambdas.
-(defmacro lambda-default (&rest cdr)
-  "The same as `lambda' but is used as a default value in `defclass'.
-As such, the form (lambda-default ARGS DOCSTRING INTERACTIVE BODY) is
-self quoting.  This macro is meant for the sole purpose of quoting
-lambda expressions into class defaults.  Any `lambda-default'
-expression is automatically transformed into a `lambda' expression
-when copied from the defaults into a new object.  The use of
-`oref-default', however, will return a `lambda-default' expression.
-CDR is function definition and body."
-  (message "Warning: Use of `labda-default' will be obsoleted in the next version of EIEIO.")
-  ;; This definition is copied directly from subr.el for lambda
-  (list 'function (cons 'lambda-default cdr)))
-
-(put 'lambda-default 'lisp-indent-function 'defun)
-(put 'lambda-default 'byte-compile 'byte-compile-lambda-form)
-
 (defmacro oref-default (obj slot)
   "Gets the default value of OBJ (maybe a class) for SLOT.
 The default value is the value installed in a class with the :initform
@@ -1516,21 +1496,11 @@ Fills in OBJ's SLOT with it's default value."
 
 (defun eieio-default-eval-maybe (val)
   "Check VAL, and return what `oref-default' would provide."
-  ;; check for functions to evaluate
-  (if (and (listp val) (equal (car val) 'lambda))
-      (progn
-	(message "Warning: Evaluation of `lambda' initform will be obsoleted in the next version of EIEIO.")
-	(funcall val)
-	)
-    ;; check for quoted things, and unquote them
-    (if (and (listp val) (eq (car val) 'quote))
-	(car (cdr val))
-      ;; return it verbatim
-      (if (and (listp val) (eq (car val) 'lambda-default))
-	  (let ((s (copy-sequence val)))
-	    (setcar s 'lambda)
-	    s)
-	val))))
+  ;; check for quoted things, and unquote them
+  (if (and (listp val) (eq (car val) 'quote))
+      (car (cdr val))
+    ;; return it verbatim
+    val))
 
 ;;; Object Set macros
 ;;
@@ -2396,10 +2366,6 @@ not nil."
 	(pub (aref (class-v (aref obj object-class)) class-public-a)))
     (while pub
       (let ((df (eieio-oref-default obj (car pub))))
-	(if (and (listp df) (eq (car df) 'lambda-default))
-	    (progn
-	      (setq df (copy-sequence df))
-	      (setcar df 'lambda)))
 	(if (or df set-all)
 	    (eieio-oset obj (car pub) df)))
       (setq pub (cdr pub)))))
@@ -2537,11 +2503,6 @@ dynamically set from SLOTS."
 	   (slot (aref scoped-class class-public-a))
 	   (defaults (aref scoped-class class-public-d)))
       (while slot
-	(if (and (listp (car defaults))
-		 (eq 'lambda (car (car defaults))))
-	    (progn
-	      (message "Warning: Evaluation of `lambda' initform will be obsoleted in the next version of EIEIO.")
-	      (eieio-oset this (car slot) (funcall (car defaults)))))
 	(setq slot (cdr slot)
 	      defaults (cdr defaults))))
     ;; Shared initialize will parse our slots for us.
