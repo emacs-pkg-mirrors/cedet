@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-utest-c.el,v 1.4 2009/07/12 13:48:58 zappo Exp $
+;; X-RCS: $Id: semantic-utest-c.el,v 1.5 2009/08/30 12:30:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -56,7 +56,7 @@
 	  (if (semantic-tag-similar-with-subtags-p tag (car tags-expected))
 	      (setq tags-expected (cdr tags-expected))
 	    (with-mode-local c-mode
-	      (error "Tag mismatch: %s -- %s"
+	      (error "Found: >> %s << Expected: >>  %s <<"
 		     (semantic-format-tag-prototype tag nil t)
 		     (semantic-format-tag-prototype (car tags-expected) nil t)
 		     )))
