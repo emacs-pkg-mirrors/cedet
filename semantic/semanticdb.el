@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.135 2009/08/09 01:21:58 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.136 2009/08/31 01:49:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -190,6 +190,23 @@ If one doesn't exist, create it."
   ;; The abstract class will do... NOTHING!
   )
 
+
+;;; SEARCH RESULTS TABLE
+;;
+;; Needed for system databases that may not provide
+;; a semanticdb-table associated with a file.
+;;
+(defclass semanticdb-search-results-table (semanticdb-abstract-table)
+  (
+   )
+  "Table used for search results when there is no file or table association.
+Examples include search results from external sources such as from
+Emacs' own symbol table, or from external libraries.")
+
+(defmethod semanticdb-refresh-table ((obj semanticdb-search-results-table) &optional force)
+  "If the tag list associated with OBJ is loaded, refresh it.
+This will call `semantic-fetch-tags' if that file is in memory."
+  nil)
 
 ;;; CONCRETE TABLE CLASSES
 ;;

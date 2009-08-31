@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.80 2009/08/31 01:46:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.81 2009/08/31 01:49:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -171,23 +171,6 @@ the following keys:
       (and (eq access-type 'local)
 	   (memq 'project semanticdb-find-default-throttle))
       ))
-
-;;; Search Results Table
-;;
-;; Needed for system databases that may not provide
-;; a semanticdb-table associated with a file.
-;;
-(defclass semanticdb-search-results-table (semanticdb-abstract-table)
-  (
-   )
-  "Table used for search results when there is no file or table association.
-Examples include search results from external sources such as from
-Emacs' own symbol table, or from external libraries.")
-
-(defmethod semanticdb-refresh-table ((obj semanticdb-search-results-table) &optional force)
-  "If the tag list associated with OBJ is loaded, refresh it.
-This will call `semantic-fetch-tags' if that file is in memory."
-  nil)
 
 ;;; Index Class
 ;;
