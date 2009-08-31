@@ -5,7 +5,7 @@
 
 ;; Author: Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-javascript.el,v 1.2 2009/08/30 23:00:21 zappo Exp $
+;; X-RCS: $Id: semanticdb-javascript.el,v 1.3 2009/08/31 01:53:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,7 +33,6 @@
 ;; the list of tags.
 ;;
 
-(require 'semanticdb-search)
 (eval-when-compile
   ;; For generic function searching.
   (require 'eieio)

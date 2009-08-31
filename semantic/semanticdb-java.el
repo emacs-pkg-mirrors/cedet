@@ -1,11 +1,11 @@
 ;;; semanticdb-java.el --- Semantic database extensions for Java
 
-;;; Copyright (C) 2003, 2007, 2008 Eric M. Ludlam
+;;; Copyright (C) 2003, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;Joakim Verona joakim@verona.se
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-java.el,v 1.6 2009/03/11 07:43:58 joakimv Exp $
+;; X-RCS: $Id: semanticdb-java.el,v 1.7 2009/08/31 01:53:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,8 +37,6 @@
 ;;
 
 ;;see semanticdb-clojure-link-create how to start the backend.
-
-(require 'semanticdb-search)
 
 ;;; Code:
 

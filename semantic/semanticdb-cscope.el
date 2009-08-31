@@ -1,9 +1,9 @@
 ;;; semanticdb-cscope.el --- Use CSCOPE databases w/ Semantic
 
-;; Copyright (C) 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-cscope.el,v 1.3 2008/10/10 21:41:39 zappo Exp $
+;; X-RCS: $Id: semanticdb-cscope.el,v 1.4 2009/08/31 01:52:31 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -48,7 +48,6 @@
 ;;  to look at the contents of your created database.
 
 
-(require 'semanticdb-search)
 (eval-when-compile
   ;; For generic function searching.
   (require 'eieio)

@@ -1,10 +1,10 @@
 ;;; semanticdb-skel.el --- Semantic database extensions for SKEL
 
-;;; Copyright (C) 2002, 2003, 2004, 2005, 2006 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2005, 2006, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-skel.el,v 1.3 2006/07/29 15:02:49 zappo Exp $
+;; X-RCS: $Id: semanticdb-skel.el,v 1.4 2009/08/31 01:53:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,7 +30,6 @@
 ;; areas described by comments.
 ;;
 
-(require 'semanticdb-search)
 (eval-when-compile
   ;; For generic function searching.
   (require 'eieio)

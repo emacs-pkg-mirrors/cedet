@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-global.el,v 1.6 2009/04/18 16:37:17 zappo Exp $
+;; X-RCS: $Id: semanticdb-global.el,v 1.7 2009/08/31 01:53:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,7 +30,6 @@
 ;; This will work as an "omniscient" database for a given project.
 ;;
 
-(require 'semanticdb-search)
 (require 'semantic-symref-global)
 
 (eval-when-compile
