@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.59 2009/08/13 01:26:43 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.60 2009/09/01 22:24:24 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,6 +24,23 @@
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
 ;;
+
+;; TODO:  From Nate Schley
+;; >  * Can't parse signature element: "const char* const rmc_ClrTxt"
+;; >  * Can't parse signature element: "char* const dellog_ClrTxt"
+;; >  * Can't parse signature element: "const char* dellog_SetTxt"
+;; >  * Can't parse signature element: "const RmcCmdSSPADetailedStatus& status"
+;; > 
+;; > And FWIW I have seen the following argument cases not handled, even
+;; > with no leading/trailing spaces in the split:
+;; > 
+;; >  * Can't parse signature element: "const bool currentAlarmStatus"
+;; >  * Can't parse signature element: "unsigned char mode"
+;; >  * Can't parse signature element: "TskTimingTask* tsktimingtask"
+;; >  * Can't parse signature element: "unsigned char htrStatus"
+;; >  * Can't parse signature element: "char trackPower[]"
+;; >  * Can't parse signature element: "const RmcCmdMCDetailedStatus& status"
+;; >  * Can't parse signature element: "RmcBucStatus* rftBucStatus"
 
 %package semantic-c-by
 
