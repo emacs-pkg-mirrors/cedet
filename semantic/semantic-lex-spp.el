@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.44 2009/08/29 18:28:46 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.45 2009/09/02 23:45:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -721,7 +721,7 @@ Disable this only to prevent recursive expansion issues.")
 (defun semantic-lex-spp-analyzer-push-tokens-for-symbol (str beg end)
   "Push lexical tokens for the symbol or keyword STR.
 STR occurs in the current buffer between BEG and END."
-  (let (sym val)
+  (let (sym val count)
     (cond
      ;;
      ;; It is a macro.  Prepare for a replacement.
