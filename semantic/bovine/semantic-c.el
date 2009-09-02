@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.123 2009/08/29 10:52:11 davenar Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.124 2009/09/02 12:49:20 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1316,14 +1316,125 @@ TYPE-DECLARATION is passed through."
           (list type type-declaration)))
     (list type type-declaration)))
 
+;; David Engster: The following three functions deal with namespace
+;; aliases and types which are member of a namespace through a using
+;; statement. For examples, see the file semantic/tests/testusing.cpp,
+;; tests 5 and following.
+
+(defun semantic-c-dereference-namespace (type scope &optional type-declaration)
+  "Dereference namespace which might hold an 'alias' for TYPE.
+Such an alias can be created through 'using' statements in a
+namespace declaration. This function checks the namespaces in
+SCOPE for such statements."
+  (let ((scopetypes (oref scope scopetypes))
+	typename currentns tmp usingname result namespaces)
+    (when (and (semantic-tag-p type-declaration)
+	       (or (null type) (semantic-tag-prototype-p type)))
+      (setq typename (semantic-analyze-split-name (semantic-tag-name type-declaration)))
+      ;; If we already have that TYPE in SCOPE, we do nothing
+      (unless (semantic-deep-find-tags-by-name (or (car-safe typename) typename) scopetypes)
+	(if (stringp typename)
+	    ;; The type isn't fully qualified, so we have to search in all namespaces in SCOPE.
+	    (setq namespaces (semantic-find-tags-by-type "namespace" scopetypes))
+	  ;; This is a fully qualified name, so we only have to search one namespace.
+	  (setq namespaces (semanticdb-typecache-find (car typename)))
+	  ;; Make sure it's really a namespace.
+	  (if (string= (semantic-tag-type namespaces) "namespace")
+	      (setq namespaces (list namespaces))
+	    (setq namespaces nil)))
+	(setq result nil)
+	;; Iterate over all the namespaces we have to check.
+	(while (and namespaces
+		    (null result))
+	  (setq currentns (car namespaces))
+	  ;; Check if this is namespace is an alias and dereference it if necessary.
+	  (setq result (semantic-c-dereference-namespace-alias type-declaration currentns))
+	  (unless result
+	    ;; Otherwise, check if we can reach the type through 'using' statements.
+	    (setq result
+		  (semantic-c-check-type-namespace-using type-declaration currentns)))
+	  (setq namespaces (cdr namespaces)))))
+    (if result
+	;; we have found the original type
+	(list result result)
+      (list type type-declaration))))
+
+(defun semantic-c-dereference-namespace-alias (type namespace)
+  "Dereference TYPE in NAMESPACE, given that NAMESPACE is an alias.
+Checks if NAMESPACE is an alias and if so, returns a new type
+with a fully qualified name in the original namespace.  Returns
+nil if NAMESPACE is not an alias."
+  (when (eq (semantic-tag-get-attribute namespace :kind) 'alias)
+    (let ((typename (semantic-analyze-split-name (semantic-tag-name type)))
+	  ns newtype)
+      ;; Get name of namespace this one's an alias for.
+      (when
+	  (setq ns (semantic-analyze-split-name
+		    (semantic-tag-name
+		     (car (semantic-tag-get-attribute namespace :members)))))
+	;; Construct new type with name in original namespace.
+	(setq newtype
+	      (semantic-tag-clone
+	       type
+	       (semantic-analyze-unsplit-name
+		(if (listp ns)
+		    (append (butlast ns) (last typename))
+		  (append (list ns) (last typename))))))))))
+
+;; This searches a type in a namespace, following through all using
+;; statements.
+(defun semantic-c-check-type-namespace-using (type namespace)
+  "Check if TYPE is accessible in NAMESPACE through a using statement.
+Returns the original type from the namespace where it is defined,
+or nil if it cannot be found."
+  (let (usings result usingname usingtype unqualifiedname members shortname tmp)
+    ;; Get all using statements from NAMESPACE.
+    (when (and (setq usings (semantic-tag-get-attribute namespace :members))
+	       (setq usings (semantic-find-tags-by-class 'using usings)))
+      ;; Get unqualified typename.
+      (when (listp (setq unqualifiedname (semantic-analyze-split-name
+					  (semantic-tag-name type))))
+	(setq unqualifiedname (car (last unqualifiedname))))
+      ;; Iterate over all using statements in NAMESPACE.
+      (while (and usings
+		  (null result))
+	(setq usingname (semantic-analyze-split-name
+			 (semantic-tag-name (car usings)))
+	      usingtype (semantic-tag-type (semantic-tag-type (car usings))))
+	(cond
+	 ((or (string= usingtype "namespace")
+	      (stringp usingname))
+	  ;; We are dealing with a 'using [namespace] NAMESPACE;'
+	  ;; Search for TYPE in that namespace
+	  (setq result
+		(semanticdb-typecache-find usingname))
+	  (if (and result
+		   (setq members (semantic-tag-get-attribute result :members))
+		   (setq members (semantic-find-tags-by-name unqualifiedname members)))
+	      ;; TYPE is member of that namespace, so we are finished
+	      (setq result (car members))
+	    ;; otherwise recursively search in that namespace for an alias
+	    (setq result (semantic-c-check-type-namespace-using type result))
+	    (when result
+	      (setq result (semantic-tag-type result)))))
+	 ((and (string= usingtype "class")
+	       (listp usingname))
+	  ;; We are dealing with a 'using TYPE;'
+	  (when (string= unqualifiedname (car (last usingname)))
+	    ;; We have found the correct tag.
+	    (setq result (semantic-tag-type (car usings))))))
+	(setq usings (cdr usings))))
+    result))
+
 
 (define-mode-local-override semantic-analyze-dereference-metatype
   c-mode (type scope &optional type-declaration)
   "Dereference TYPE as described in `semantic-analyze-dereference-metatype'.
 Handle typedef, template instantiation, and '->' operator."
-  (let* ((dereferencer-list '(semantic-c-dereference-typedef 
+  (let* ((dereferencer-list '(semantic-c-dereference-typedef
                               semantic-c-dereference-template
-                              semantic-c-dereference-member-of))
+                              semantic-c-dereference-member-of
+			      semantic-c-dereference-namespace))
          (dereferencer (pop dereferencer-list))
          (type-tuple)
          (original-type type))
