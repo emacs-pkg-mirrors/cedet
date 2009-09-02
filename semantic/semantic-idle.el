@@ -1,10 +1,10 @@
-;;; semantic-idle.el --- Schedule parsing tasks in idle time
+;; semantic-idle.el --- Schedule parsing tasks in idle time
 
 ;;; Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.55 2009/04/24 02:18:46 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.56 2009/09/02 11:53:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -406,21 +406,21 @@ Uses `semantic-idle-work-for-on-buffer' to do the work."
 		   ))
 	       )
 
-	     ;; Save everything.
-	     (semanticdb-save-all-db-idle)
+	     (when (and (featurep 'semanticdb)
+			(semanticdb-minor-mode-p))
+	       ;; Save everything.
+	       (semanticdb-save-all-db-idle)
 
-	     ;; Parse up files near our active buffer
-	     (when semantic-idle-work-parse-neighboring-files-flag
-	       (semantic-safe "Idle Work Parse Neighboring Files: %S"
-		 (when (and (featurep 'semanticdb)
-			    (semanticdb-minor-mode-p))
+	       ;; Parse up files near our active buffer
+	       (when semantic-idle-work-parse-neighboring-files-flag
+		 (semantic-safe "Idle Work Parse Neighboring Files: %S"
 		   (set-buffer cb)
 		   (semantic-idle-scheduler-work-parse-neighboring-files))
 		 t)
-	       )
 
-	     ;; Save everything... again
-	     (semanticdb-save-all-db-idle)
+	       ;; Save everything... again
+	       (semanticdb-save-all-db-idle)
+	       )
 
 	     ;; Done w/ processing
 	     nil))))
