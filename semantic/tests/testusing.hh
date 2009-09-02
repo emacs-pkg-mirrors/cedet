@@ -64,6 +64,7 @@ namespace bread_name {
 #endif
 
 // Code from David Engster
+// Creating alias types through 'using' trickery
 
 namespace somestuff {
   class OneClass {
@@ -71,4 +72,54 @@ namespace somestuff {
     void aFunc();
     int anInt;
   };
+  struct aStruct {
+    int foo;
+    int bar;
+  };
+}
+
+namespace otherstuff {
+  // make otherstuff::OneClass an alias for somestuff::OneClass
+  using somestuff::OneClass;
+}
+
+namespace morestuff {
+  // make morestuff an alias namespace for somestuff
+  using namespace somestuff;
+  // but hide aStruct with own type
+  struct aStruct {
+    int anotherFoo;
+    int anotherBar;
+  };
+}
+
+// We can also create an alias for an alias
+namespace evenmorestuff {
+  using otherstuff::OneClass;
+}
+
+// Now with nested namespaces
+namespace outer {
+  namespace inner {
+    struct StructNested {
+      int one;
+      int two;
+    };
+    struct AnotherStruct {
+      int three;
+      int four;
+    };
+  }
+}
+
+// Elevate the first struct into 'outer'
+// so that we can access it via 'outer::StructNested'
+namespace outer {
+  using outer::inner::StructNested;
+}
+
+// Create an alias for a nested namespace
+namespace outerinner {
+  // equivalent to 'namespace outerinner = outer::inner;'
+  using namespace outer::inner;
 }
