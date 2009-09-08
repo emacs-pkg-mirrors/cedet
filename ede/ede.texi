@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.23 2009/02/27 22:13:02 zappo Exp $
+@c $Id: ede.texi,v 1.24 2009/09/08 11:32:46 davenar Exp $
 @c
 @setfilename ede.info
 @settitle Emacs Development Environment
@@ -8,7 +8,7 @@
 @ifinfo
 @format
 START-INFO-DIR-ENTRY
-* ede: (ede).       Objects for Emacs
+* ede: (ede).       Project management for Emacs
 END-INFO-DIR-ENTRY
 @end format
 @end ifinfo
