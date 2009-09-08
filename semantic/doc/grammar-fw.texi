@@ -958,7 +958,7 @@ file.
 @end table
 
 Once you have reset the value of the particular part of the grammar
-you changed, switch to a buffer that you use for testing teh grammar,
+you changed, switch to a buffer that you use for testing the grammar,
 and reinitialize that buffer.  Usually this is something like
 
 @example
