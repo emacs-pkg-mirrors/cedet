@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.61 2009/05/31 19:37:08 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.62 2009/09/11 23:41:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -126,7 +126,7 @@
       (require 'tooltip)
     (error nil))
   )
-  
+
 ;;; Code:
 
 ;;; Compatibility
@@ -603,7 +603,7 @@ Similar to `minibuffer-contents' when completing in the minibuffer."
 	  (insert (substring (semantic-tag-name tag)
 			     (length txt)))
 	  (semantic-complete-inline-exit))
-      
+
       ;; Get whatever binding RET usually has.
       (let ((fcn
 	     (condition-case nil
@@ -652,7 +652,7 @@ Similar to `minibuffer-contents' when completing in the minibuffer."
 	(setq semantic-completion-collector-engine nil
 	      semantic-completion-display-engine nil))
     (error nil))
-    
+
   ;; Remove this hook LAST!!!
   ;; This will force us back through this function if there was
   ;; some sort of error above.
@@ -719,7 +719,7 @@ a reasonable distance."
 	   (t
 	    ;; Else, show completions now
 	    (semantic-complete-inline-force-display)
-    
+
 	    ))))
     ;; If something goes terribly wrong, clean up after ourselves.
     (error (semantic-complete-inline-exit))))
@@ -850,7 +850,7 @@ Expected return values are:
      ;; Use ans1 when we have it.
      (t
       ans1))))
-	  
+
 
 
 ;;; ------------------------------------------------------------
@@ -1374,7 +1374,7 @@ which have the same name."
   (if (and (slot-boundp obj 'last-prefix)
 	   (string= (oref obj last-prefix) (semantic-completion-text))
 	   (eq last-command this-command))
-      (if (and 
+      (if (and
 	   (slot-boundp obj 'focus)
 	   (slot-boundp obj 'table)
 	   (<= (semanticdb-find-result-length (oref obj table))
@@ -1512,7 +1512,7 @@ one in the source buffer."
 
 
 ;;; Tooltip completion lister
-;; 
+;;
 ;; Written and contributed by Masatake YAMATO <jet@gyve.org>
 ;;
 ;; Modified by Eric Ludlam for
@@ -1667,7 +1667,7 @@ Return a cons cell (X . Y)"
 ;;; Ghost Text displayor
 ;;
 (defclass semantic-displayor-ghost (semantic-displayor-focus-abstract)
-				    
+
   ((ghostoverlay :type overlay
 		 :documentation
 		 "The overlay the ghost text is displayed in.")
@@ -1744,10 +1744,10 @@ completion text in ghost text."
 	     (os (substring (semantic-tag-name tag) (length lp)))
 	     (ol (oref obj ghostoverlay))
 	     )
-      
+
 	(put-text-property 0 (length os) 'face 'region os)
 
-	(semantic-overlay-put 
+	(semantic-overlay-put
 	 ol 'display (concat os (buffer-substring (point) (1+ (point)))))
 	)
       ;; Calculate text difference between contents and the focus item.
@@ -1764,6 +1764,29 @@ completion text in ghost text."
 ;;; ------------------------------------------------------------
 ;;; Specific queries
 ;;
+(defvar semantic-complete-inline-custom-type
+  (append '(radio)
+	  (mapcar
+	   (lambda (class)
+	     (let* ((C (intern (car class)))
+		    (doc (documentation-property C 'variable-documentation))
+		    (doc1 (car (split-string doc "\n")))
+		    )
+	       (list 'const
+		     :tag doc1
+		     C)))
+	   (eieio-build-class-alist semantic-displayor-abstract t))
+	  )
+  "Possible options for inlince completion displayors.
+Use this to enable custom editing.")
+
+(defcustom semantic-complete-inline-analyzer-displayor-class
+  'semantic-displayor-traditional
+  "*Class for displayor to use with inline completion."
+  :group 'semantic
+  :type semantic-complete-inline-custom-type
+  )
+
 ;;;###autoload
 (defun semantic-complete-read-tag-buffer-deep (prompt &optional
 						      default-tag
@@ -1866,7 +1889,7 @@ completion works."
 						   history)
   "Ask for a tag by name based on the current context.
 The function `semantic-analyze-current-context' is used to
-calculate the context.  `semantic-analyze-possible-completions' is used 
+calculate the context.  `semantic-analyze-possible-completions' is used
 to generate the list of possible completions.
 PROMPT is the first part of the prompt.  Additional prompt
 is added based on the contexts full prefix.
@@ -1893,30 +1916,6 @@ prompts.  these are calculated from the CONTEXT variable passed in."
      nil
      inp
      history)))
-
-(defvar semantic-complete-inline-custom-type
-  (append '(radio)
-	  (mapcar
-	   (lambda (class)
-	     (let* ((C (intern (car class)))
-		    (doc (documentation-property C 'variable-documentation))
-		    (doc1 (car (split-string doc "\n")))
-		    )
-	       (list 'const
-		     :tag doc1
-		     C)))
-	   (eieio-build-class-alist semantic-displayor-abstract t))
-	  )
-  "Possible options for inlince completion displayors.
-Use this to enable custom editing.")
-  
-(defcustom semantic-complete-inline-analyzer-displayor-class
-  'semantic-displayor-traditional
-  "*Class for displayor to use with inline completion."
-  :group 'semantic
-  :type semantic-complete-inline-custom-type
-  )
-
 
 ;;;###autoload
 (defun semantic-complete-inline-analyzer (context)
