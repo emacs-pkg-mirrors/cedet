@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.21 2008/04/01 01:51:45 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.22 2009/09/11 18:53:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -154,7 +154,7 @@ We never have local variables in Makefiles."
 	 )
     (cond ((eq class 'function)
 	   (concat name ": "
-		   (semantic--format-tag-arguments 
+		   (semantic--format-tag-arguments
 		    (semantic-tag-function-arguments tag)
 		    #'semantic-format-tag-prototype
 		    color)))

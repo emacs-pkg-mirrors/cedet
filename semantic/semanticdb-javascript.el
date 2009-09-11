@@ -5,7 +5,7 @@
 
 ;; Author: Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-javascript.el,v 1.3 2009/08/31 01:53:25 zappo Exp $
+;; X-RCS: $Id: semanticdb-javascript.el,v 1.4 2009/09/11 18:56:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -23,7 +23,7 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
-;; 
+;;
 ;;; Commentary:
 ;;
 ;; Semanticdb database for Javascript.
@@ -213,7 +213,7 @@ Return a list of tags."
   (if tags (call-next-method)
     ;; YOUR IMPLEMENTATION HERE
     (semanticdb-javascript-regexp-search regex)
-    
+
     ))
 
 (defmethod semanticdb-find-tags-for-completion-method

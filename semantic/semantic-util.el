@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.139 2009/07/12 14:29:18 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.140 2009/09/11 19:01:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -173,7 +173,7 @@ THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON."
       found)))
 (make-obsolete 'semantic-recursive-find-nonterminal-by-name
 	       "Do not use this function.")
-  
+
 ;;; Completion APIs
 ;;
 ;; These functions provide minibuffer reading/completion for lists of
@@ -337,11 +337,11 @@ If TAG is not specified, use the tag at point."
 		      semantic-after-toplevel-cache-change-hook
 		      semantic-before-toplevel-cache-flush-hook
 		      semantic-dump-parse
-		      
+
 		      )))
 	  (dolist (V vars)
 	    (semantic-describe-buffer-var-helper V buff)))
-	
+
 	(princ "\n\n")
 	(mode-local-describe-bindings-2 buff)
 	)))
@@ -370,7 +370,7 @@ Argument P is the point to search from in the current buffer."
 ;	      (semantic-find-nonterminal-by-type name strm)
 ;	      (semantic-recursive-find-nonterminal-by-name name (current-buffer))
 	      (semantic-brute-find-tag-by-position (point) strm)
-	      
+
 	      )
 ;	)
     (if res

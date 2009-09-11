@@ -351,7 +351,7 @@ already."
 	       ;; We have a table, but it needs a refresh.
 	       ;; This means we should load in that buffer.
 	       (t
-		(let ((kbuff 
+		(let ((kbuff
 		       (if open-buffers
 			   ;; Even if we keep the buffers open, don't
 			   ;; let EDE ask lots of questions.

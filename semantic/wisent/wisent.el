@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.39 2009/01/10 00:15:49 zappo Exp $
+;; X-RCS: $Id: wisent.el,v 1.40 2009/09/11 18:51:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -392,12 +392,12 @@ automaton has only one entry point."
             tokid (car wisent-input)
             wisent-loop (wisent-parse-action tokid (aref actions state)))
       (cond
-       
+
        ;; Input successfully parsed
        ;; -------------------------
        ((eq wisent-loop wisent-accept-tag)
         (setq wisent-loop nil))
-       
+
        ;; Syntax error in input
        ;; ---------------------
        ((eq wisent-loop wisent-error-tag)
@@ -423,10 +423,10 @@ automaton has only one entry point."
               (run-hook-with-args
                'wisent-discarding-token-functions wisent-input)
               (setq wisent-input (wisent-lexer)))
-          
+
           ;; Else will try to reuse lookahead token after shifting the
           ;; error token.
-          
+
           ;; Each real token shifted decrements this.
           (setq wisent-recovering wisent-parse-max-recover)
           ;; Pop the value/state stack to see if an action associated
@@ -437,7 +437,7 @@ automaton has only one entry point."
                                       choice  (assq wisent-error-term choices))
                                 (natnump (cdr choice)))))
             (setq sp (- sp 2)))
-          
+
           (if (not choice)
               ;; No 'error terminal was found.  Just terminate.
               (wisent-abort)
@@ -458,7 +458,7 @@ automaton has only one entry point."
                   (run-hook-with-args
                    'wisent-discarding-token-functions wisent-input)
                   (setq wisent-input (wisent-lexer)))))))
-       
+
        ;; Shift current token on top of the stack
        ;; ---------------------------------------
        ((natnump wisent-loop)
@@ -471,7 +471,7 @@ automaton has only one entry point."
         (aset stack (1- sp) (cdr wisent-input))
         (aset stack sp wisent-loop)
         (setq wisent-input (wisent-lexer)))
-       
+
        ;; Reduce by rule (call semantic action)
        ;; -------------------------------------
        (t

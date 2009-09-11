@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-typecache.el,v 1.39 2009/04/03 12:59:35 zappo Exp $
+;; X-RCS: $Id: semanticdb-typecache.el,v 1.40 2009/09/11 18:56:10 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -123,10 +123,10 @@ Debugging function."
   "Retrieve the typecache from the semanticdb TABLE.
 If there is no table, create one, and fill it in."
   (semanticdb-refresh-table table)
-  (let* ((idx (semanticdb-get-table-index table))	 
+  (let* ((idx (semanticdb-get-table-index table))
 	 (cache (oref idx type-cache))
 	 )
-    
+
     ;; Make sure we have a cache object in the DB index.
     (when (not cache)
       ;; The object won't change as we fill it with stuff.
@@ -302,7 +302,7 @@ Adds a filename and copies the tags."
   "Update the typecache for TABLE, and return the file-tags.
 File-tags are those that belong to this file only, and excludes
 all included files."
-  (let* (;(idx (semanticdb-get-table-index table))	 
+  (let* (;(idx (semanticdb-get-table-index table))
 	 (cache (semanticdb-get-typecache table))
 	 )
 
@@ -312,7 +312,7 @@ all included files."
 	(when tags
 	  (setq tags (semanticdb-typecache-safe-tag-list tags table))
 	  (oset cache filestream (semanticdb-typecache-merge-streams tags nil)))))
-    
+
     ;; Return our cache.
     (oref cache filestream)
     ))
@@ -355,7 +355,7 @@ a master list."
 		   (copy-sequence
 		    (semanticdb-typecache-file-tags i))))
 	    ))
-	  
+
 	;; Save...
 	(oset cache includestream incstream)))
 
@@ -523,7 +523,7 @@ If there isn't one, create it.
 	)
     (dolist (table (semanticdb-get-database-tables db))
       (when (eq lmode (oref table :major-mode))
-	(setq stream 
+	(setq stream
 	      (semanticdb-typecache-merge-streams
 	       stream
 	       (copy-sequence
@@ -582,7 +582,7 @@ If there isn't one, create it.
 	 (tc (semanticdb-typecache-for-database (oref tab parent-db)))
 	 (end (current-time))
 	 )
-    (data-debug-new-buffer "*TypeCache ADEBUG*")    
+    (data-debug-new-buffer "*TypeCache ADEBUG*")
     (message "Calculating Cache took %.2f seconds."
 	     (semantic-elapsed-time start end))
 

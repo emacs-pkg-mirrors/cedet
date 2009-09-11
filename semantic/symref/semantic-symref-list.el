@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-list.el,v 1.7 2009/03/28 12:45:48 zappo Exp $
+;; X-RCS: $Id: semantic-symref-list.el,v 1.8 2009/09/11 18:53:27 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -36,6 +36,7 @@
 (require 'pulse)
 
 ;;; Code:
+
 ;;;###autoload
 (defun semantic-symref ()
   "Find references to the current tag.
@@ -156,7 +157,7 @@ Some useful functions are found in `semantic-format-tag-functions'."
   ;; Get ready for the insert.
   (toggle-read-only -1)
   (erase-buffer)
-  
+
   ;; Insert the contents.
   (let ((lastfile nil)
 	)

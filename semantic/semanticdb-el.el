@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.34 2009/08/31 01:52:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.35 2009/09/11 18:59:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,7 +22,7 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
-;; 
+;;
 ;;; Commentary:
 ;;
 ;; There are a lot of Emacs Lisp functions and variables available for
@@ -37,8 +37,8 @@
   ;; For generic function searching.
   (require 'eieio)
   (require 'eieio-opt)
-  (require 'eieio-base)
-  )
+  (require 'eieio-base))
+
 ;;; Code:
 
 ;;; Classes:

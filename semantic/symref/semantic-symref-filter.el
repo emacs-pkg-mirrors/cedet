@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-symref-filter.el,v 1.4 2009/04/03 13:03:10 zappo Exp $
+;; X-RCS: $Id: semantic-symref-filter.el,v 1.5 2009/09/11 18:53:39 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -119,7 +119,7 @@ Depends on the SRecode Field editing API."
 
     (when (not (semantic-tag-of-class-p target 'variable))
       (error "Can only rename variables"))
-    
+
     (when (or (< (semantic-tag-start target) (semantic-tag-start tag))
 	      (> (semantic-tag-end target) (semantic-tag-end tag)))
       (error "Can only rename variables declared in %s"

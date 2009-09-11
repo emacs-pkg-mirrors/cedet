@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-mode.el,v 1.4 2009/03/14 14:01:59 zappo Exp $
+;; X-RCS: $Id: semanticdb-mode.el,v 1.5 2009/09/11 18:56:33 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -187,7 +187,7 @@ handle it later if need be."
   (when (and (semantic-active-p)
 	     semantic--buffer-cache
 	     semanticdb-current-table)
-      
+
     ;; Try to get a fast update.
     (semantic-fetch-tags-fast)
 

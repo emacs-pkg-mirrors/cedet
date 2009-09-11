@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: bovine-debug.el,v 1.4 2005/09/30 20:21:41 zappo Exp $
+;; X-RCS: $Id: bovine-debug.el,v 1.5 2009/09/11 18:55:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -21,7 +21,7 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
-;; 
+;;
 ;;; Commentary:
 ;;
 ;; Implementation of the semantic debug support framework for the
@@ -139,7 +139,7 @@ Argument CONDITION is the thrown error condition."
 
 ;;; Parser support for the debugger
 ;;
-;;;###autoload 
+;;;###autoload
 (defclass semantic-bovine-debug-parser (semantic-debug-parser)
   (
    )

@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.70 2009/04/23 21:44:07 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.71 2009/09/11 19:04:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -489,7 +489,7 @@ minor mode is enabled."
     ;; Cleanup unmatched-syntax highlighting
     (semantic-clean-unmatched-syntax-in-buffer))
   semantic-show-unmatched-syntax-mode)
-  
+
 ;;;###autoload
 (defun semantic-show-unmatched-syntax-mode (&optional arg)
   "Minor mode to highlight unmatched lexical syntax tokens.
@@ -823,7 +823,7 @@ Use the command `semantic-stickyfunc-mode' to change this variable.")
 		     (eq scrollpos t))
 		 (let ((w (when (boundp 'scroll-bar-width)
 			    (symbol-value 'scroll-bar-width))))
-		 
+
 		   (if (not w)
 		       (setq w (frame-parameter (selected-frame)
 						'scroll-bar-width)))

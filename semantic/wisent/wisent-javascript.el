@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-javascript.el,v 1.1 2008/09/04 01:58:33 zappo Exp $
+;; X-RCS: $Id: wisent-javascript.el,v 1.2 2009/09/11 18:51:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -82,7 +82,7 @@ This function overrides `get-local-variables'."
 (defun wisent-javascript-setup-parser ()
   "Setup buffer for parse."
   (wisent-javascript-jv-wy--install-parser)
-  (setq 
+  (setq
    ;; Lexical Analysis
    semantic-lex-analyzer 'javascript-lexer-jv
    semantic-lex-number-expression semantic-java-number-regexp

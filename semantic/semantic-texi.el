@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.43 2009/03/01 04:39:11 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.44 2009/09/11 19:04:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -275,7 +275,7 @@ can handle the @menu environment.")
 	    (setq done (point))
 	  ;; Skip over this block
 	  (let ((env (match-string 1)))
-	    (re-search-backward (concat "@" env))))	  
+	    (re-search-backward (concat "@" env))))
 	))
     ;; All over, post what we find.
     (if done
@@ -315,7 +315,7 @@ It would be nice to know function arguments too, but not today."
 ;;; Overrides : Formatting
 ;;
 ;; Various override to better format texi tags.
-;; 
+;;
 
 (define-mode-local-override semantic-format-tag-abbreviate
   texinfo-mode  (tag &optional parent color)
@@ -393,7 +393,7 @@ Optional argument POINT is where to look for the environment."
   (append (mapcar (lambda (a) (car a)) texinfo-section-list)
 	  (condition-case nil
 	      texinfo-environments
-	    (error 
+	    (error
 	     ;; XEmacs doesn't use the above.  Split up its regexp
 	     (split-string texinfo-environment-regexp "\\\\|\\|\\^@\\\\(\\|\\\\)")
 	     ))

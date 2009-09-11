@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-debug.el,v 1.7 2009/02/25 19:41:35 zappo Exp $
+;; X-RCS: $Id: semanticdb-debug.el,v 1.8 2009/09/11 19:00:35 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -22,7 +22,7 @@
 
 ;;; Commentary:
 ;;
-;; Various routines for debugging SemanticDB issues, or viewing 
+;; Various routines for debugging SemanticDB issues, or viewing
 ;; semanticdb state.
 
 (require 'semanticdb)
