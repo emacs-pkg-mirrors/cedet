@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-doc.el,v 1.13 2009/01/10 18:43:31 zappo Exp $
+;; X-RCS: $Id: semantic-doc.el,v 1.14 2009/09/11 23:38:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -84,7 +84,7 @@ just the lexical token and not the string."
 	;; of a function.
 	(semantic-doc-snarf-comment-for-tag nosnarf)))
     ))
-  
+
 (make-obsolete-overload 'semantic-find-documentation
                         'semantic-documentation-for-tag)
 

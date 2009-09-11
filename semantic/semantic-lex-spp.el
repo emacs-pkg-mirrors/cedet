@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.45 2009/09/02 23:45:28 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.46 2009/09/11 23:35:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,7 +28,7 @@
 ;;
 ;; A pre-processor identifies lexical syntax mixed in with another language
 ;; and replaces some keyword tokens with streams of alternate tokens.
-;; 
+;;
 ;; If you use SPP in your language, be sure to specify this in your
 ;; semantic language setup function:
 ;;
@@ -63,11 +63,11 @@
 ;;
 ;; #define NN namespace nn {
 ;; #define NN_END }
-;; 
+;;
 ;; NN
 ;;   int mydecl() {}
 ;; NN_END
-;; 
+;;
 
 (require 'semantic-lex)
 
@@ -248,7 +248,7 @@ REPLACEMENT a string that would be substituted in for NAME."
       (setq spec  (car specs)
             specs (cdr specs))
       (semantic-lex-spp-symbol-set
-       (car spec) 
+       (car spec)
        (cdr spec)
        semantic-lex-spp-macro-symbol-obarray))
     semantic-lex-spp-macro-symbol-obarray))
@@ -346,7 +346,7 @@ ARGVALUES are values for any arg list, or nil."
      (semantic-lex-token (or (semantic-lex-keyword-p val) 'symbol)
 			 beg end
 			 val)))
-   
+
    ;; Ok, the rest of these are various types of syntax.
    ;; Conveniences for users that type in their symbol table.
    ((semantic-lex-spp-extract-regex-and-compare
@@ -442,7 +442,7 @@ that will somehow gain a much longer token stream.
 ARGVALUES are values for any arg list, or nil.
 See comments in code for information about how token streams are processed
 and what valid VAL values are."
-  
+
   ;; A typical VAL value might be either a stream of tokens.
   ;; Tokens saved into a macro stream always includes the text from the
   ;; buffer, since the locations specified probably don't represent
@@ -598,7 +598,7 @@ and what valid VAL values are."
 	   (semantic-lex-token (semantic-lex-token-class v) beg end txt))
 	  )
 	 )))
-      
+
     ;; CASE 2: The arg list we pushed onto the symbol table
     ;;         must now be removed.
     (dolist (A arglist)
@@ -1187,7 +1187,7 @@ If BUFFER is not provided, use the current buffer."
 (add-hook
  'edebug-setup-hook
  #'(lambda ()
-     
+
      (def-edebug-spec define-lex-spp-macro-declaration-analyzer
        (&define name stringp stringp form def-body)
        )
@@ -1201,7 +1201,7 @@ If BUFFER is not provided, use the current buffer."
        )
      ))
 
-  
+
 (provide 'semantic-lex-spp)
 
 ;;; semantic-lex-spp.el ends here

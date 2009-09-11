@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.60 2008/06/10 00:43:28 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.61 2009/09/11 23:34:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,7 +28,7 @@
 ;; Convert a tag table into speedbar buttons.
 
 ;;; TODO:
-;; 
+;;
 ;; Use semanticdb to find which semanticdb-table is being used for each
 ;; file/tag.  Replace `semantic-sb-with-tag-buffer' to instead call
 ;; children with the new `with-mode-local' instead.
@@ -145,7 +145,7 @@ Optional PREFIX is used to specify special marker characters."
     ;; version of Emacs 21 CVS
     (put-text-property start end 'invisible t)
     ))
-  
+
 (defun semantic-sb-speedbar-data-line (depth button text &optional
 					     text-fun text-data)
   "Insert a semantic token data element.

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.85 2009/04/10 11:52:38 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.86 2009/09/11 23:41:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,7 +58,7 @@
 ;;       the scope.  The scopetypes need to have the scope extracted
 ;;       in a way that honors the type of inheritance.
 ;; nest/nested - When one tag is contained entirely in another.
-;; 
+;;
 ;; context - A semantic datatype representing a point in a buffer.
 ;;
 ;; constriant - If a context specifies a specific datatype is needed,
@@ -169,7 +169,7 @@ Return data methods identify the requred type by the return value
 of the parent function.")
 
 ;;; METHODS
-;; 
+;;
 ;; Simple methods against the context classes.
 ;;
 (defmethod semantic-analyze-type-constraint
@@ -314,7 +314,7 @@ Optional argument THROWSYM specifies a symbol the throw on non-recoverable error
 	      (when tmptype
 		(semantic-tag-file-name tmptype)))
 	     (slots nil))
-	
+
 	;; Get the children
 	(setq slots (semantic-analyze-scoped-type-parts tmptype scope))
 
@@ -466,7 +466,7 @@ to provide a large number of non-cached analysis for filtering symbols."
 	;;(setq end (current-time))
 	;;(message "hookfcn took %.5f sec" (semantic-elapsed-time LLstart end))
 	)
-	
+
 	)))
 
 ;;; MAIN ANALYSIS
@@ -513,7 +513,7 @@ if a cached copy of the return object is found."
 		(semantic-analyze-pop-to-context answer)
 	      (message "No Context."))
 	    ))
-      
+
 	answer))))
 
 (defun semantic-analyze-current-context-default (position)
@@ -551,7 +551,7 @@ Returns an object based on symbol `semantic-analyze-context'."
     ;;
 
     ;; Step 2 a:
-   
+
     (setq function (semantic-ctxt-current-function))
 
     (when function
@@ -647,7 +647,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 			     assign scope))
 	     (error (semantic-analyze-push-error err)
 		    nil)))
-	  
+
       (setq context-return
 	    (semantic-analyze-context-assignment
 	     "assignment"
@@ -659,7 +659,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 	     :prefixclass prefixclass
 	     :prefixtypes prefixtypes
 	     :errors semantic-analyze-error-stack)))
-	  
+
      ;; TODO: Identify return value condition.
      ;;((setq return .... what to do?)
      ;;  ...)
@@ -684,7 +684,7 @@ Returns an object based on symbol `semantic-analyze-context'."
     context-return))
 
 
-;;; DEBUG OUTPUT 
+;;; DEBUG OUTPUT
 ;;
 ;; Friendly output of a context analysis.
 ;;

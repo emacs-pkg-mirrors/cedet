@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-tag-write.el,v 1.4 2009/01/10 00:09:51 zappo Exp $
+;; X-RCS: $Id: semantic-tag-write.el,v 1.5 2009/09/11 23:34:08 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -55,7 +55,7 @@ INDENT is the amount of indentation to use for this tag."
     ;; Attributes
     (cond ((not attr)
 	   (princ " nil"))
-	  
+
 	  ((= (length attr) 2) ;; One item
 	   (princ " (")
 	   (semantic-tag-write-one-attribute attr indent)
@@ -123,7 +123,7 @@ If optional DONTADDNEWLINE is non-nil, then don't add a newline."
   (princ ")")
   (princ (make-string indent ? ))
   )
-  
+
 
 ;; Writing out random stuff.
 (defun semantic-tag-write-one-attribute (attrs indent)

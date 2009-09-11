@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.24 2009/03/22 17:28:37 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.25 2009/09/11 23:36:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -243,7 +243,7 @@ Optional IDX is an index into LIST to apply IDXFACE instead."
 	(setq list (cdr list)
 	      count (1+ count)))
       )))
-		 
+
 (defun semantic-ia-sb-completion-list (list face function)
   "Create some speedbar buttons from LIST.
 Each button will use FACE, and be activated with FUNCTION."

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.27 2009/04/09 02:57:15 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.28 2009/09/11 23:38:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -840,7 +840,7 @@ Optional argument ARG is the number of iterations to run."
 	  (benchmark-run-compiled
 	      1000 (semantic-find-tags-by-name-regexp "^method"
 						      "test/test.cpp")))
-    
+
     (message "Name [new old] [ %.3f %.3f ] Complete [newc/new old] [ %.3f/%.3f %.3f ]"
 	     (car f-name) (car b-name)
 	     (car f-comp) (car f-regex)

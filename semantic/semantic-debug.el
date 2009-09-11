@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003, 2004, 2005, 2008 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.17 2008/12/30 22:40:12 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.18 2009/09/11 23:40:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -21,7 +21,7 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
-;; 
+;;
 ;;; Commentary:
 ;;
 ;; To provide better support for debugging parsers, this framework
@@ -44,6 +44,7 @@
 (inversion-require 'eieio "0.18beta1")
 
 ;;; Code:
+
 ;;;###autoload
 (defvar semantic-debug-parser-source nil
   "For any buffer, the file name (no path) of the parser.
@@ -148,7 +149,7 @@ These buffers are brought into view when layout occurs.")
 	  )
       ;; Set the number of lines to 1/3, or the size of the data buffer.
       (if (< cnt lines) (setq cnt lines))
-      
+
       (split-window-vertically cnt)
       (switch-to-buffer (oref iface data-buffer))
       )
@@ -182,7 +183,7 @@ NONTERM is the name of the rule currently being processed that shows up
 as a nonterminal (or tag) in the source buffer.
 If RULE and MATCH indicies are specified, highlight those also."
   (set-buffer (oref iface :parser-buffer))
-  
+
   (let* ((rules (semantic-find-tags-by-class 'nonterminal (current-buffer)))
 	 (nt (semantic-find-first-tag-by-name nonterm rules))
 	 (o nil)
@@ -190,7 +191,7 @@ If RULE and MATCH indicies are specified, highlight those also."
     (when nt
       ;; I know it is the first symbol appearing in the body of this token.
       (goto-char (semantic-tag-start nt))
-	
+
       (setq o (semantic-make-overlay (point) (progn (forward-sexp 1) (point))))
       (semantic-overlay-put o 'face 'highlight)
 
@@ -272,12 +273,12 @@ on different types of return values."
 
 (defmethod semantic-debug-frame-highlight ((frame semantic-debug-frame))
   "Highlight one parser frame."
-  
+
   )
 
 (defmethod semantic-debug-frame-info ((frame semantic-debug-frame))
   "Display info about this one parser frame."
-  
+
   )
 
 ;;; Major Mode
@@ -299,7 +300,7 @@ on different types of return values."
     (define-key km "b" 'semantic-debug-set-breakpoint)
     ;; Some boring bindings.
     (define-key km "e" 'eval-expression)
-   
+
     km)
   "Keymap used when in semantic-debug-node.")
 
@@ -316,7 +317,7 @@ Argument ONOFF is non-nil when we are entering debug mode.
 	  (use-local-map semantic-debug-mode-map)
 	  ;; Make the buffer read only
 	  (toggle-read-only 1)
-	  
+
 	  (set-buffer (oref iface source-buffer))
 	  ;; Use our map in the source buffer also
 	  (use-local-map semantic-debug-mode-map)

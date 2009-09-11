@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.77 2009/05/16 11:45:33 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.78 2009/09/11 23:37:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -60,7 +60,7 @@
       (defalias 'semantic-overlay-move            'set-extent-endpoints)
       (defalias 'semantic-overlay-delete          'delete-extent)
       (defalias 'semantic-overlays-at
-        (lambda (pos) 
+        (lambda (pos)
 	  (condition-case nil
 	      (extent-list nil pos pos)
 	    (error nil))
@@ -92,7 +92,7 @@
 	(while (popup-up-p) (dispatch-event (next-event))))
       )
   ;; Emacs Bindings
-  (defalias 'semantic-buffer-local-value      'buffer-local-value) 
+  (defalias 'semantic-buffer-local-value      'buffer-local-value)
   (defalias 'semantic-overlay-live-p          'overlay-buffer)
   (defalias 'semantic-make-overlay            'make-overlay)
   (defalias 'semantic-overlay-put             'overlay-put)

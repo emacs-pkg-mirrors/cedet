@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-decorate-include.el,v 1.25 2009/07/12 14:26:57 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-include.el,v 1.26 2009/09/11 23:39:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -61,7 +61,7 @@ Used by the decoration style: `semantic-decoration-on-includes'."
   semantic-decoration-on-include-menu
   semantic-decoration-on-include-map
   "Include Menu"
-  (list 
+  (list
    "Include"
    (semantic-menu-item
     ["What Is This?" semantic-decoration-include-describe
@@ -101,7 +101,7 @@ Used by the decoration style: `semantic-decoration-on-includes'."
     ["Remove a System Include Path" semantic-remove-system-include
      :active t
      :help "Add an include path for this session." ])
-   ;;["" semantic-decoration-include- 
+   ;;["" semantic-decoration-include-
    ;; :active t
    ;; :help "" ]
    ))
@@ -242,7 +242,7 @@ Used by the decoration style: `semantic-decoration-on-unparsed-includes'."
     ["Remove a System Include Path" semantic-remove-system-include
      :active t
      :help "Add an include path for this session." ])
-   ;;["" semantic-decoration-unparsed-include- 
+   ;;["" semantic-decoration-unparsed-include-
    ;; :active t
    ;; :help "" ]
    ))
@@ -575,7 +575,7 @@ Argument EVENT describes the event that caused this function to be called."
 (defun semantic-decoration-all-include-summary ()
   "Provide a general summary for the state of all includes."
   (interactive)
-  
+
   (let* ((table semanticdb-current-table)
 	 (tags (semantic-fetch-tags))
 	 (inc (semantic-find-tags-by-class 'include table))
@@ -756,4 +756,5 @@ If TABLE is not in a buffer, do nothing."
 
 
 (provide 'semantic-decorate-include)
+
 ;;; semantic-decorate-include.el ends here

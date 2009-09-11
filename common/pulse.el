@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: pulse.el,v 1.12 2009/04/02 13:11:07 zappo Exp $
+;; X-RCS: $Id: pulse.el,v 1.13 2009/09/11 23:44:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -44,7 +44,7 @@
 ;; `pulse-momentary-highlight-overlay' - Pulse an overlay
 ;;      These three functions will just blink the specified area if
 ;;      the version of Emacs you are using doesn't support pulsing.
-;;    
+;;
 ;; `pulse-line-hook-function' - A simple function that can be used in a
 ;;      hook that will pulse whatever line the cursor is on.
 ;;
@@ -293,7 +293,7 @@ Optional argument FACE specifies the fact to do the highlighting."
 
     ;; Clear the variable.
     (setq pulse-momentary-overlay nil))
-    
+
   ;; Reset the pulsing face.
   (pulse-reset-face)
 

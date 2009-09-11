@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-complete.el,v 1.14 2009/04/01 04:40:39 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-complete.el,v 1.15 2009/09/11 23:43:07 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -170,7 +170,7 @@ Argument CONTEXT is an object specifying the locally derived context."
 		 completetext
 		 (semantic-analyze-scoped-type-parts completetexttype scope)
 		 ))
-	      
+
       ;; No type based on the completetext.  This is a free-range
       ;; var or function.  We need to expand our search beyond this
       ;; scope into semanticdb, etc.
@@ -186,7 +186,7 @@ Argument CONTEXT is an object specifying the locally derived context."
 
     (let ((origc c)
 	  (dtname (semantic-tag-name desired-type)))
-	
+
       ;; Reset c.
       (setq c nil)
 
@@ -199,7 +199,7 @@ Argument CONTEXT is an object specifying the locally derived context."
 	 ((semantic-tag-get-attribute (car origc) :operator-flag)
 	  nil
 	  )
-	 
+
 	 ;; If we are completing from within some prefix,
 	 ;; then we want to exclude constructors and destructors
 	 ((and completetexttype
@@ -227,7 +227,7 @@ Argument CONTEXT is an object specifying the locally derived context."
 	      (if (and att (semantic-tag-type-members att))
 		  (setq c (cons (car origc) c))))
 	    )
-	   
+
 	   ) ; cond
 	  ); desired type
 
@@ -270,7 +270,6 @@ Argument CONTEXT is an object specifying the locally derived context."
 
     c))
 
-
-
 (provide 'semantic-analyze-complete)
+
 ;;; semantic-analyze-complete.el ends here

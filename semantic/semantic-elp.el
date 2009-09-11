@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-elp.el,v 1.16 2009/04/02 01:18:33 zappo Exp $
+;; X-RCS: $Id: semantic-elp.el,v 1.17 2009/09/11 23:38:25 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -388,14 +388,14 @@ Argument POINT is where to get the data from."
   (let* ((elpd (oref data sorted))
 	 (spaces (make-string (- (length prefix) 2) ? ))
 	 )
-    (data-debug-insert-simple-thing 
+    (data-debug-insert-simple-thing
      "Calls\t Total Time\t Avg Time/Call\tName"
      spaces " " 'underline)
     (dolist (d elpd)
       (when (> (aref d 0) 0) ;; We had some calls
 	(let ((start (point))
 	      (end nil))
-	  (data-debug-insert-simple-thing 
+	  (data-debug-insert-simple-thing
 	   (format " % 4d\t% 2.7f\t% 2.7f\t%s"
 		   (aref d 0) (aref d 1) (aref d 2) (aref d 3))
 	   spaces " " nil)
@@ -426,7 +426,7 @@ Ignore the usual, and format a nice table."
   (data-debug-insert-thing (oref data :total)
 			   prefix
 			   "Total Time Spent: ")
-  
+
   (let ((s (oref data sort))
 	)
     ;; Show how it's sorted:
@@ -516,7 +516,7 @@ Argument POINT is where the text is."
 		   "Times for calculating the completions.")
    )
   "Results from a profile run.")
-  
+
 ;;; ELP hackery.
 ;;
 
@@ -690,7 +690,7 @@ The expectation is that you will edit this fcn with different
     ;; Path translation
     (semantic-elp-include-path-enable)
     (setq totalstart (current-time))
-    
+
     (setq ans (semanticdb-find-tags-by-name-regexp "task" nil))
 
     (setq totalstop (current-time))

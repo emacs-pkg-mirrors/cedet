@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.32 2009/08/18 03:07:03 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.33 2009/09/11 23:34:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -40,7 +40,7 @@
 ;; a) Convert each datatype into the real datatype tag
 ;; b) Convert namespaces into the list of contents of the namespace.
 ;; c) Merge all existing scopes together into one search list.
-;; 
+;;
 ;; Step 3: Local variables
 ;;
 ;; a) Local variables are in the master search list.
@@ -269,7 +269,7 @@ are from nesting data types."
 	    (setq returnlist (nreverse returnlist))
 	    ))
 	)
-	
+
       ;; Only do this level of analysis for functions.
       (when (eq (semantic-tag-class tag) 'function)
 	;; Step 2:
@@ -290,7 +290,7 @@ are from nesting data types."
 			       searchname
 			     (list searchname)))
 		   (fullsearchname nil)
-		   
+
 		   (miniscope (semantic-scope-cache "mini"))
 		   ptag)
 
@@ -442,7 +442,7 @@ implicit \"object\"."
 ;;------------------------------------------------------------
 (define-overloadable-function  semantic-analyze-scope-calculate-access (type scope)
   "Calculate the access class for TYPE as defined by the current SCOPE.
-Access is related to the :parents in SCOPE.  If type is a member of SCOPE 
+Access is related to the :parents in SCOPE.  If type is a member of SCOPE
 then access would be 'private.  If TYPE is inherited by a member of SCOPE,
 the access would be 'protected.  Otherwise, access is 'public")
 
@@ -516,7 +516,7 @@ PROTECTION specifies the type of access requested, such as 'public or 'private."
 	   (fname (semantic-tag-file-name type))
 	   ;; EXTMETH are externally defined methods that are still
 	   ;; a part of this class.
-	
+
 	   ;; @TODO - is this line needed??  Try w/out for a while
 	   ;; @note - I think C++ says no.  elisp might, but methods
 	   ;;         look like defuns, so it makes no difference.
@@ -597,7 +597,7 @@ whose tags can be searched when needed, OR it may be a scope object."
       (when (and parents (semantic-tag-with-position-p type))
 	;; If TYPE has a position, go there and get the scope.
 	(semantic-go-to-tag type)
-	
+
 	;; We need to make a mini scope, and only include the misc bits
 	;; that will help in finding the parent.  We don't really need
 	;; to do any of the stuff related to variables and what-not.
@@ -618,7 +618,7 @@ whose tags can be searched when needed, OR it may be a scope object."
 	  (oset tmpscope fullscope (append scopetypes lscope parents))
 	  ))
       ;; END creating tmpscope
-      
+
       ;; Look up each parent one at a time.
       (dolist (p parents)
 	(setq ps (cond ((stringp p) p)
@@ -674,7 +674,7 @@ The class returned from the scope calculation is variable
 	    (condition-case nil
 		(oset scopecache localvar (semantic-get-all-local-variables))
 	      (error nil))
-	  
+
 	  (let* (;; Step 1:
 		 (scopetypes (semantic-analyze-scoped-types point))
 		 (parents (semantic-analyze-scope-nested-tags point scopetypes))
@@ -707,7 +707,7 @@ The class returned from the scope calculation is variable
 		  (setq scope (when (or scopetypes parents)
 				(semantic-analyze-scoped-tags scopetypes scopecache))
 			)))
-	      
+
 	      ;; Fill out the scope.
 	      (oset scopecache scope scope)
 	      (oset scopecache fullscope (append scopetypes scope parents))
@@ -767,7 +767,7 @@ hits in order, with the first tag being in the closest scope."
 		    (when (cdr namesplit)
 		      (setq typescoperaw (semantic-tag-type-members
 					  (car ans)))))
-		  
+
 		  (setq namesplit (cdr namesplit)))
 		;; Once done, store the current typecache lookup
 		(oset scope typescope

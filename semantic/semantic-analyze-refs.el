@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-analyze-refs.el,v 1.6 2009/01/09 23:04:04 zappo Exp $
+;; X-RCS: $Id: semantic-analyze-refs.el,v 1.7 2009/09/11 23:42:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -62,7 +62,7 @@ Returns a class with information about TAG.
 Optional argument DB is a database.  It will be used to help
 locate TAG.
 
-Use `semantic-analyze-current-tag' to debug this fcn.")  
+Use `semantic-analyze-current-tag' to debug this fcn.")
 
 (defun semantic-analyze-tag-references-default (tag &optional db)
   "Analyze the references for TAG.
@@ -140,7 +140,7 @@ containment, as opposed to reference."
   (if (not (oref scope parents))
       ;; If this tag has some named parent, but is not
       (semantic--analyze-refs-full-lookup-simple tag)
-  
+
     ;; We have some sort of lineage we need to consider when we do
     ;; our side lookup of tags.
     (semantic--analyze-refs-full-lookup-with-parents tag scope)
@@ -212,7 +212,7 @@ TAG should be the tag currently under point."
     ;; and compare the named-parent, and also dive into the next item of
     ;; plist.
     (while (and plist brute)
-    
+
       ;; Find direct matches
       (let* ((direct (semantic--analyze-refs-find-child-in-find-results
 		      brute (semantic-tag-name tag) classmatch))
@@ -252,7 +252,7 @@ Only works for tags in the global namespace."
 	(when (and (not brute) (not noerror))
 	  ;; An error, because tag under point ought to be found.
 	  (error "Cannot find any references to %s in wide search" name))
-	
+
 	(let* ((classmatch (semantic-tag-class tag))
 	       (RES
 		(semanticdb-find-tags-collector
@@ -261,11 +261,11 @@ Only works for tags in the global namespace."
 		   ;; @todo - Add parent check also.
 		   )
 		 brute nil)))
-	  
+
 	  (when (and (not RES) (not noerror))
 	    (error "Cannot find any definitions for %s in wide search"
 		   (semantic-tag-name tag)))
-	  
+
 	  ;; Return the matching tags and databases.
 	  RES)))
 
@@ -312,7 +312,6 @@ Only works for tags in the global namespace."
     (semantic-momentary-highlight-tag target))
   )
 
-
-
 (provide 'semantic-analyze-refs)
+
 ;;; semantic-analyze-refs.el ends here

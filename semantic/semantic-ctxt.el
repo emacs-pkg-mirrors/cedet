@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.55 2009/04/02 00:48:40 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.56 2009/09/11 23:40:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -153,7 +153,7 @@ Return non-nil if there is no upper context."
 
 ;;; Local Variables
 ;;
-;; 
+;;
 (define-overloadable-function semantic-get-local-variables (&optional point)
   "Get the local variables based on POINT's context.
 Local variables are returned in Semantic tag format.

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.13 2009/01/28 19:39:44 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.14 2009/09/11 23:38:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -102,7 +102,7 @@ keep semantic data structures up to date."
 	      (setq-mode-local ,mode
 			       semantic-dependency-system-include-path
 			       val)
-	      (when (fboundp 
+	      (when (fboundp
 		     'semantic-decoration-unparsed-include-do-reset)
 		(mode-local-map-mode-buffers
 		 'semantic-decoration-unparsed-include-do-reset
@@ -194,7 +194,7 @@ macro `defcustom-mode-local-semantic-dependency-system-include-path'."
       (locate-file file path))
 
   ;; Else, older version of Emacs.
-  
+
   (defsubst semantic--dependency-find-file-on-path (file path)
     "Return an expanded file name for FILE on PATH."
     (let ((p path)
