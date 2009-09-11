@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.124 2009/09/02 12:49:20 davenar Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.125 2009/09/11 18:55:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -231,7 +231,7 @@ Return the the defined symbol as a special spp lex token."
   (skip-chars-forward " \t")
   (if (eolp)
       nil
-    (let* ((name (buffer-substring-no-properties 
+    (let* ((name (buffer-substring-no-properties
 		  (match-beginning 1) (match-end 1)))
 	   (with-args (save-excursion
 			(goto-char (match-end 0))
@@ -401,7 +401,7 @@ case, we must skip it since it is the ELSE part."
     (cons (buffer-substring-no-properties (match-beginning 1)
 					  (match-end 1))
 	  nil))
-  
+
 
 (define-lex-regex-analyzer semantic-lex-c-ignore-ending-backslash
   "Skip backslash ending a line.
@@ -417,7 +417,7 @@ Go to the next line."
 	 (sym-end (match-end 2))
 	 (ms (buffer-substring-no-properties sym-start sym-end)))
     ;; Push the namespace keyword.
-    (semantic-lex-push-token 
+    (semantic-lex-push-token
      (semantic-lex-token 'NAMESPACE (match-beginning 0) nsend "namespace"))
     ;; Push the name.
     (semantic-lex-push-token
@@ -481,7 +481,7 @@ that may have been incorrectly parsed."
 	 (sym2-end (match-end 3))
 	 (ms2 (buffer-substring-no-properties sym2-start sym2-end)))
     ;; Push the namespace keyword.
-    (semantic-lex-push-token 
+    (semantic-lex-push-token
      (semantic-lex-token 'NAMESPACE (match-beginning 0) nsend "namespace"))
     ;; Push the name.
     (semantic-lex-push-token
@@ -503,7 +503,7 @@ that may have been incorrectly parsed."
 	   (semantic-lex-token 'semantic-list start end
 			       ;; We'll depend on a quick hack
 			       (list 'prefix-fake-plus
-				     (semantic-lex-token 'NAMESPACE 
+				     (semantic-lex-token 'NAMESPACE
 							 sym-end sym2-start
 							 "namespace")
 				     (semantic-lex-token 'symbol
@@ -614,7 +614,7 @@ Use semantic-cpp-lexer for parsing text inside a CPP macro."
   semantic-lex-punctuation
   semantic-lex-default-action)
 
-(define-mode-local-override semantic-parse-region c-mode 
+(define-mode-local-override semantic-parse-region c-mode
   (start end &optional nonterminal depth returnonerror)
   "Calls 'semantic-parse-region-default', except in a macro expansion.
 MACRO expansion mode is handled through the nature of Emacs's non-lexical
@@ -644,7 +644,7 @@ as for the parent."
 		   )
 	      (progn
 		(setq depth 0)
-		
+
 		;; This is a copy of semantic-parse-region-default where we
 		;; are doing something special with the lexication of the
 		;; contents of the semantic-list token.  Stuff not used by C
@@ -668,7 +668,7 @@ as for the parent."
 
 	    ;; It was not a macro expansion, nor a special semantic-list.
 	    ;; Do old thing.
-	    (semantic-parse-region-default start end 
+	    (semantic-parse-region-default start end
 					   nonterminal depth
 					   returnonerror)
 	    )))
@@ -762,7 +762,7 @@ the regular parser."
     (when (or (semantic-tag-of-class-p tag 'function)
 	      (semantic-tag-of-class-p tag 'variable))
       (let* ((basetype (semantic-tag-type tag))
-	     (typreref nil)
+	     (typeref nil)
 	     (tname (when (consp basetype)
 		      (semantic-tag-name basetype))))
 	;; Make tname be a string.
@@ -1056,9 +1056,9 @@ Argument COLOR adds color to the text."
 	      (setq defaulttype typename)
 	    (setq defaulttype (concat typetype " " typename))))
       (setq defaulttype (semantic-format-tag-type-default tag color)))
-      
+
     ;; Colorize
-    (when color 
+    (when color
       (setq defaulttype (semantic--format-colorize-text defaulttype 'type)))
 
     ;; Add refs, ptrs, etc
@@ -1089,7 +1089,7 @@ and collecting tags based on the labels we see along the way."
 		   ("private" . 3)))
 	  )
       (dolist (tag table)
-	(cond 
+	(cond
 	 ((semantic-tag-of-class-p tag 'label)
 	  (setq curprot (cdr (assoc (semantic-tag-name tag) alist)))
 	  )
@@ -1261,7 +1261,7 @@ DEF-LIST is the template information.
 SPEC-LIST is the template specifier of the datatype instantiated."
   (when (and (car def-list) (car spec-list))
 
-    (when (and (string= (semantic-tag-type (car def-list)) "class") 
+    (when (and (string= (semantic-tag-type (car def-list)) "class")
                (string= (semantic-tag-name tag) (semantic-tag-name (car def-list))))
       (semantic-tag-set-name tag (semantic-tag-name (car spec-list))))
 
@@ -1311,7 +1311,7 @@ SCOPE is the current local scope to perform searches in.
 TYPE-DECLARATION is passed through."
   (if semantic-c-member-of-autocast
       (let ((operator (car (semantic-find-tags-by-name "->" (semantic-analyze-scoped-type-parts type)))))
-        (if operator 
+        (if operator
             (list (semantic-tag-get-attribute operator :type) (semantic-tag-get-attribute operator :type))
           (list type type-declaration)))
     (list type type-declaration)))
@@ -1440,13 +1440,13 @@ Handle typedef, template instantiation, and '->' operator."
          (original-type type))
     (while dereferencer
       (setq type-tuple (funcall dereferencer type scope type-declaration)
-            type (car type-tuple) 
-            type-declaration (cadr type-tuple))      
+            type (car type-tuple)
+            type-declaration (cadr type-tuple))
       (if (not (eq type original-type))
-          ;; we found a new type so break the dereferencer loop now ! 
-          ;; (we will be recalled with the new type expanded by 
+          ;; we found a new type so break the dereferencer loop now !
+          ;; (we will be recalled with the new type expanded by
           ;; semantic-analyze-dereference-metatype-stack).
-          (setq dereferencer nil)        
+          (setq dereferencer nil)
         ;; no new type found try the next dereferencer :
         (setq dereferencer (pop dereferencer-list)))))
     (list type type-declaration))
@@ -1504,10 +1504,10 @@ DO NOT return the list of tags encompassing point."
     (when (and (semantic-tag-of-class-p (car tagsaroundpoint) 'function)
 	       ;; ...search for using statements in the local scope...
 	       (setq tmp (semantic-find-tags-by-class
-			  'using 
+			  'using
 			  (semantic-get-local-variables))))
       ;; ... and add them.
-      (setq tagreturn 
+      (setq tagreturn
 	    (append tagreturn
 		    (mapcar 'semantic-tag-type tmp))))
     ;; Return the stuff
@@ -1573,7 +1573,7 @@ DO NOT return the list of tags encompassing point."
 (defvar-mode-local c-mode imenu-create-index-function 'semantic-create-imenu-index
   "Imenu index function for C.")
 
-(defvar-mode-local c-mode semantic-type-relation-separator-character 
+(defvar-mode-local c-mode semantic-type-relation-separator-character
   '("." "->" "::")
   "Separator characters between something of a given type, and a field.")
 
@@ -1591,7 +1591,7 @@ DO NOT return the list of tags encompassing point."
                                             (?< ".")
                                             )
         )
-  
+
   (setq semantic-lex-analyzer #'semantic-c-lexer)
   (add-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook nil t)
   )
