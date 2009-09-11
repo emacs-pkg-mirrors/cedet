@@ -4,15 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.213 2009/04/18 16:29:18 zappo Exp $
-
-(eval-and-compile
-  ;; Other package depend on this value at compile time via inversion.
-
-  (defvar semantic-version "2.0pre7"
-    "Current version of Semantic.")
-
-  )
+;; X-RCS: $Id: semantic.el,v 1.214 2009/09/11 19:01:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +30,11 @@
 ;; The semantic API provides an interface to a series of different parser
 ;; implementations.  Each parser outputs a parse tree in a similar format
 ;; designed to handle typical functional and object oriented languages.
+
+(eval-and-compile
+  ;; Other package depend on this value at compile time via inversion.
+  (defvar semantic-version "2.0pre7"
+    "Current version of Semantic."))
 
 (require 'working)
 (require 'assoc)
@@ -126,7 +123,7 @@ compound tag and turn it into two tags, one for A, and the other for B.")
   "A cache of the fully parsed buffer.
 If no significant changes have been made (based on the state) then
 this is returned instead of re-parsing the buffer.
- 
+
   DO NOT USE THIS VARIABLE IN PROGRAMS.
 
 If you need a tag list, use `semantic-fetch-tags'.  If you need the
@@ -569,7 +566,7 @@ was marked unparseable, then do nothing, and return the cache."
           (res nil))
      (garbage-collect)
      (cond
-   
+
 ;;;; Try the incremental parser to do a fast update.
      ((semantic-parse-tree-needs-update-p)
       (setq res (semantic-parse-changes))
@@ -586,7 +583,7 @@ was marked unparseable, then do nothing, and return the cache."
         (run-hook-with-args ;; Let hooks know the updated tags
          'semantic-after-partial-cache-change-hook res))
       )
-   
+
 ;;;; Parse the whole system.
      ((semantic-parse-tree-needs-rebuild-p)
       (let ((working-status-dynamic-type
@@ -613,7 +610,7 @@ was marked unparseable, then do nothing, and return the cache."
       ;; Set up the cache with the new results
       (semantic--set-buffer-cache res)
       ))))
-  
+
   ;; Always return the current parse tree.
   semantic--buffer-cache)
 
@@ -650,7 +647,7 @@ Does nothing if the current buffer doesn't need reparsing."
 		    nil)
 	      ;; If we are here, it is because the lexical step failed,
 	      ;; proably due to unterminated lists or something like that.
-	    
+
 	      ;; We do nothing, and just wait for the next idle timer
 	      ;; to go off.  In the meantime, remember this, and make sure
 	      ;; no other idle services can get executed.
@@ -827,8 +824,8 @@ a START and END part."
 
 (provide 'semantic)
 
-;;; semantic.el ends here
-
 ;; Semantic-util is a part of the semantic API.  Include it last
 ;; because it depends on semantic.
 (require 'semantic-util)
+
+;;; semantic.el ends here
