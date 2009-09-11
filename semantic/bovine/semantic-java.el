@@ -5,7 +5,7 @@
 ;;;   David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.18 2009/09/11 13:57:21 zappo Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.19 2009/09/11 18:54:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -27,9 +27,6 @@
 ;;; Commentary:
 ;;
 ;; Common function for Java parsers.
-
-;;; History:
-;; 
 
 ;;; Code:
 (require 'semantic)
@@ -455,7 +452,7 @@ removed from the result list."
              #'(lambda (k p)
                  (if (memq 'variable (plist-get p 'usage))
                      k)))))
-  
+
   )
 
 (provide 'semantic-java)
