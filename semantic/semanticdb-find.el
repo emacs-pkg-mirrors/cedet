@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.81 2009/08/31 01:49:35 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.82 2009/09/11 18:58:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,7 +22,7 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
-;; 
+;;
 ;;; Commentary:
 ;;
 ;; Databases of various forms can all be searched.
@@ -179,12 +179,12 @@ the following keys:
 ;; This should allow searches to start running faster.
 (defclass semanticdb-find-search-index (semanticdb-abstract-search-index)
   ((include-path :initform nil
-		 :documentation 
+		 :documentation
 		 "List of semanticdb tables from the include path.")
    (type-cache :initform nil
 	       :documentation
 	       "Cache of all the data types accessible from this file.
-Includes all types from all included files, merged namespaces, and 
+Includes all types from all included files, merged namespaces, and
 expunge duplicates.")
    )
   "Concrete search index for `semanticdb-find'.
@@ -208,7 +208,7 @@ This class will cache data derived during various searches.")
   (semantic-reset idx)
   ;; Notify dependants by clearning their indicies.
   (semanticdb-notify-references
-   (oref idx table) 
+   (oref idx table)
    (lambda (tab me)
      (semantic-reset (semanticdb-get-table-index tab))))
   )
@@ -222,7 +222,7 @@ This class will cache data derived during various searches.")
 	(semantic-reset idx)
 	;; Notify dependants by clearning their indicies.
 	(semanticdb-notify-references
-	 (oref idx table) 
+	 (oref idx table)
 	 (lambda (tab me)
 	   (semantic-reset (semanticdb-get-table-index tab))))
 	)
@@ -305,6 +305,14 @@ Default action as described in `semanticdb-find-translate-path'."
 	(semanticdb-find-translate-path-brutish-default path)
       (semanticdb-find-translate-path-includes-default path))))
 
+;;;###autoload
+(define-overloadable-function semanticdb-find-table-for-include (includetag &optional table)
+  "For a single INCLUDETAG found in TABLE, find a `semanticdb-table' object
+INCLUDETAG is a semantic TAG of class 'include.
+TABLE is a semanticdb table that identifies where INCLUDETAG came from.
+TABLE is optional if INCLUDETAG has an overlay of :filename attribute."
+  )
+
 (defun semanticdb-find-translate-path-brutish-default (path)
   "Translate PATH into a list of semantic tables.
 Default action as described in `semanticdb-find-translate-path'."
@@ -382,7 +390,7 @@ Default action as described in `semanticdb-find-translate-path'."
   (let ((table (cond ((null path)
 		      semanticdb-current-table)
 		     ((bufferp path)
-		      (semantic-buffer-local-value 'semanticdb-current-table path))			
+		      (semantic-buffer-local-value 'semanticdb-current-table path))
 		     ((and (stringp path) (file-exists-p path))
 		      (semanticdb-file-table-object path t))
 		     ((semanticdb-abstract-table-child-p path)
@@ -467,12 +475,12 @@ a new path from the provided PATH."
 	   (when includetags
 	     ;; If we have some tags, derive a table from them.
 	     ;; else we will do nothing, so the table is useless.
-	     
+
 	     ;; @todo - derive some tables
 	     (message "Need to derive tables for %S in translate-path-includes--default."
 		      path)
 	   )))
-    
+
     ;; Make sure each found include tag has an originating file name associated
     ;; with it.
     (when incfname
@@ -587,14 +595,7 @@ isn't in memory yet."
   "Load an unloaded file in FILENAME using the default semanticdb loader."
   (semanticdb-file-table-object filename))
 
-;;;###autoload
-(define-overloadable-function semanticdb-find-table-for-include (includetag &optional table)
-  "For a single INCLUDETAG found in TABLE, find a `semanticdb-table' object
-INCLUDETAG is a semantic TAG of class 'include.
-TABLE is a semanticdb table that identifies where INCLUDETAG came from.
-TABLE is optional if INCLUDETAG has an overlay of :filename attribute."
-  )
-
+;; The creation of the overload occurs above.
 (defun semanticdb-find-table-for-include-default (includetag &optional table)
   "Default implementation of `semanticdb-find-table-for-include'.
 Uses `semanticdb-current-database-list' as the search path.
@@ -633,7 +634,7 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
      ;;
      ;; If the name is relative, then it should be findable as relative
      ;; to the source file that this tag originated in, and be fast.
-     ;; 
+     ;;
      ((and (semanticdb-find-throttle-active-p 'local)
 	   (file-exists-p (expand-file-name name originfiledir)))
 
@@ -729,7 +730,7 @@ for details on how this list is derived."
     (data-debug-new-buffer "*SEMANTICDB FTP ADEBUG*")
     (message "Search of tags took %.2f seconds."
 	     (semantic-elapsed-time start end))
-    
+
     (data-debug-insert-stuff-list p "*")))
 
 (defun semanticdb-find-test-translate-path-no-loading (&optional arg)
@@ -751,7 +752,7 @@ for details on how this list is derived."
     (data-debug-new-buffer "*SEMANTICDB FTP ADEBUG*")
     (message "Search of tags took %.2f seconds."
 	     (semantic-elapsed-time start end))
-    
+
     (data-debug-insert-stuff-list p "*")))
 
 (defun semanticdb-find-adebug-lost-includes ()
@@ -766,7 +767,7 @@ Examines the variable `semanticdb-find-lost-includes'."
     (if (not lost)
 	(message "There are no unknown includes for %s"
 		 (buffer-name))
-    
+
       (data-debug-new-buffer "*SEMANTICDB lost-includes ADEBUG*")
       (data-debug-insert-tag-list lost "*")
       )))
@@ -828,7 +829,7 @@ Examines the variable `semanticdb-find-lost-includes'."
     (if (not scanned)
 	(message "There are no includes scanned %s"
 		 (buffer-name))
-    
+
       (data-debug-new-buffer "*SEMANTICDB scanned-includes ADEBUG*")
       (data-debug-insert-stuff-list scanned "*")
       )))
