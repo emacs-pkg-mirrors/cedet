@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-locate.el,v 1.8 2009/02/27 04:59:25 zappo Exp $
+;; X-RCS: $Id: ede-locate.el,v 1.9 2009/09/11 23:44:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -219,6 +219,7 @@ variable `cedet-global-command'.")
 (defmethod initialize-instance ((loc ede-locate-global)
 				&rest slots)
   "Make sure that we can use GNU Global."
+  (require 'cedet-global)
   ;; Get ourselves initialized.
   (call-next-method)
   ;; Do the checks.
@@ -233,6 +234,7 @@ variable `cedet-global-command'.")
 (defmethod ede-locate-ok-in-project :static ((loc ede-locate-global)
 					     root)
   "Is it ok to use this project type under ROOT."
+  (require 'cedet-global)
   (cedet-gnu-global-version-check)
   (let* ((default-directory root)
 	 (newroot (cedet-gnu-global-root)))
@@ -243,6 +245,7 @@ variable `cedet-global-command'.")
   "Locate with LOC occurances of FILESUBSTRING under PROJECTROOT.
 Searches are done under the current root of the EDE project
 that crated this ede locat object."
+  (require 'cedet-global)
   (let ((default-directory (oref loc root)))
     (cedet-gnu-global-expand-filename filesubstring)))
 
@@ -260,6 +263,7 @@ file name searching variable `cedet-idutils-file-command'.")
   ;; Get ourselves initialized.
   (call-next-method)
   ;; Do the checks.
+  (require 'cedet-idutils)
   (cedet-idutils-version-check)
   (when (not (cedet-idutils-support-for-directory (oref loc root)))
     (error "Cannot use IDUtils in %s"
@@ -269,6 +273,7 @@ file name searching variable `cedet-idutils-file-command'.")
 (defmethod ede-locate-ok-in-project :static ((loc ede-locate-idutils)
 					     root)
   "Is it ok to use this project type under ROOT."
+  (require 'cedet-idutils)
   (cedet-idutils-version-check)
   (when (cedet-idutils-support-for-directory root)
     root))
@@ -278,6 +283,7 @@ file name searching variable `cedet-idutils-file-command'.")
   "Locate with LOC occurances of FILESUBSTRING under PROJECTROOT.
 Searches are done under the current root of the EDE project
 that crated this ede locat object."
+  (require 'cedet-idutils)
   (let ((default-directory (oref loc root)))
     (cedet-idutils-expand-filename filesubstring)))
 
