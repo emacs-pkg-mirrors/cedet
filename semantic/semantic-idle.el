@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.56 2009/09/02 11:53:20 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.57 2009/09/11 23:35:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,6 +39,7 @@
 ;; automatically caches the created context, so it is shared amongst
 ;; all idle modes that will need it.
 
+(require 'semantic-ctxt)
 (require 'semantic-util-modes)
 (require 'timer)
 
@@ -255,7 +256,7 @@ And also manages services that depend on tag values."
                                                  b))
                                         (buffer-list)))))
 	   safe ;; This safe is not used, but could be.
-           others 
+           others
 	   mode)
       (when (semantic-idle-scheduler-enabled-p)
         (save-excursion
@@ -316,7 +317,7 @@ And also manages services that depend on tag values."
   (let ((debug-on-error t))
     (semantic-idle-core-handler)
     ))
-  
+
 (defun semantic-idle-scheduler-function ()
   "Function run when after `semantic-idle-scheduler-idle-time'.
 This function will reparse the current buffer, and if successful,
@@ -563,7 +564,7 @@ Does nothing if the current buffer doesn't need reparsing."
 			nil)
 		  ;; If we are here, it is because the lexical step failed,
 		  ;; proably due to unterminated lists or something like that.
-	    
+
 		  ;; We do nothing, and just wait for the next idle timer
 		  ;; to go off.  In the meantime, remember this, and make sure
 		  ;; no other idle services can get executed.
@@ -577,7 +578,7 @@ Does nothing if the current buffer doesn't need reparsing."
 	      (error (setq semantic-after-idle-scheduler-reparse-hooks nil))))
 	  ;; Return if we are lexically safe (from prog1)
 	  lexically-safe)))
-  
+
     ;; After updating the tags, handle any pending decorations for this
     ;; buffer.
     (semantic-decorate-flush-pending-decorations (current-buffer))
@@ -691,11 +692,11 @@ minor mode is enabled.")
        (semantic-add-minor-mode ',mode
 				""	; idle schedulers are quiet?
 				,map)
-    
+
        (defun ,func ()
 	 ,doc
 	 ,@forms)
-    
+
        )))
 (put 'define-semantic-idle-service 'lisp-indent-function 1)
 
@@ -703,7 +704,6 @@ minor mode is enabled.")
 ;;; SUMMARY MODE
 ;;
 ;; A mode similar to eldoc using semantic
-(require 'semantic-ctxt)
 
 (defcustom semantic-idle-summary-function
   'semantic-format-tag-summarize-with-file
@@ -760,9 +760,9 @@ by semanticdb as a time-saving measure."
       ;; use whicever has success first.
       (or
        (semantic-idle-summary-current-symbol-keyword)
-       
+
        (semantic-idle-summary-current-symbol-info-context)
-       
+
        (semantic-idle-summary-current-symbol-info-brutish)
        ))))
 
