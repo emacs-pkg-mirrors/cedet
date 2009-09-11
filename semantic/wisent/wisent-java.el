@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.50 2009/01/24 03:47:19 zappo Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.51 2009/09/11 18:52:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,9 +28,6 @@
 
 ;;; Commentary:
 ;;
-
-;;; History:
-;; 
 
 ;;; Code:
 
