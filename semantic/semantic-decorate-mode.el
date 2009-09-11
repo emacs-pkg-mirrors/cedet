@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.26 2008/09/07 11:19:10 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.27 2009/09/11 23:39:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -216,24 +216,12 @@ Flush functions from `semantic-decorate-pending-decoration-hooks'."
     (run-hooks 'semantic-decorate-pending-decoration-hooks)
     ;; Always reset the hooks
     (setq semantic-decorate-pending-decoration-hooks nil)))
-  
+
 
 ;;; DECORATION MODE
 ;;
 ;; Generic mode for handling basic highlighting and decorations.
 ;;
-
-;;;###autoload
-(defun global-semantic-decoration-mode (&optional arg)
-  "Toggle global use of option `semantic-decoration-mode'.
-Decoration mode turns on all active decorations as specified
-by `semantic-decoration-styles'.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  (interactive "P")
-  (setq global-semantic-decoration-mode
-        (semantic-toggle-minor-mode-globally
-         'semantic-decoration-mode arg)))
 
 ;;;###autoload
 (defcustom global-semantic-decoration-mode nil
@@ -247,6 +235,18 @@ When this mode is activated, decorations specified by
   :initialize 'custom-initialize-default
   :set (lambda (sym val)
          (global-semantic-decoration-mode (if val 1 -1))))
+
+;;;###autoload
+(defun global-semantic-decoration-mode (&optional arg)
+  "Toggle global use of option `semantic-decoration-mode'.
+Decoration mode turns on all active decorations as specified
+by `semantic-decoration-styles'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  (interactive "P")
+  (setq global-semantic-decoration-mode
+        (semantic-toggle-minor-mode-globally
+         'semantic-decoration-mode arg)))
 
 (defcustom semantic-decoration-mode-hook nil
   "*Hook run at the end of function `semantic-decoration-mode'."
