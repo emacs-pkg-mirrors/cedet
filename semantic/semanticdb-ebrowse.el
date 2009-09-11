@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>, Joakim Verona
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.22 2009/01/10 01:30:51 zappo Exp $
+;; X-RCS: $Id: semanticdb-ebrowse.el,v 1.23 2009/09/11 19:00:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -80,6 +80,40 @@ be searched."
   :group 'semanticdb
   :type 'string)
 
+;;; SEMANTIC Database related Code
+;;; Classes:
+(defclass semanticdb-table-ebrowse (semanticdb-table)
+  ((major-mode :initform c++-mode)
+   (ebrowse-tree :initform nil
+		 :initarg :ebrowse-tree
+		 :documentation
+		 "The raw ebrowse tree for this file."
+		 )
+   (global-extract :initform nil
+		   :initarg :global-extract
+		   :documentation
+		   "Table of ebrowse tags specific to this file.
+This table is compisited from the ebrowse *Globals* section.")
+   )
+  "A table for returning search results from ebrowse.")
+
+(defclass semanticdb-project-database-ebrowse
+  (semanticdb-project-database)
+  ((new-table-class :initform semanticdb-table-ebrowse
+		    :type class
+		    :documentation
+		    "New tables created for this database are of this class.")
+   (system-include-p :initform nil
+		     :initarg :system-include
+		     :documentation
+		     "Flag indicating this database represents a system include directory.")
+   (ebrowse-struct :initform nil
+		   :initarg :ebrowse-struct
+		   )
+   )
+  "Semantic Database deriving tags using the EBROWSE tool.
+EBROWSE is a C/C++ parser for use with `ebrowse' Emacs program.")
+
 (defun semanticdb-ebrowse-C-file-p (file)
   "Is FILE a C or C++ file?"
   (or (string-match semanticdb-ebrowse-file-match file)
@@ -119,11 +153,11 @@ is specified by `semanticdb-default-save-directory'."
       ;; to get the file names.
 
 
-      (mapcar (lambda (f)
-		(when (semanticdb-ebrowse-C-file-p f)
-		  (insert f)
-		  (insert "\n")))
-	      files)
+      (mapc (lambda (f)
+	      (when (semanticdb-ebrowse-C-file-p f)
+		(insert f)
+		(insert "\n")))
+	    files)
       ;; Cleanup the ebrowse output buffer.
       (save-excursion
 	(set-buffer (get-buffer-create "*EBROWSE OUTPUT*"))
@@ -193,41 +227,7 @@ warn instead."
 	    (delete-file BFLB))
 	  )))))
 
-;;; SEMANTIC Database related Code
-;;; Classes:
-(defclass semanticdb-table-ebrowse (semanticdb-table)
-  ((major-mode :initform c++-mode)
-   (ebrowse-tree :initform nil
-		 :initarg :ebrowse-tree
-		 :documentation
-		 "The raw ebrowse tree for this file."
-		 )
-   (global-extract :initform nil
-		   :initarg :global-extract
-		   :documentation
-		   "Table of ebrowse tags specific to this file.
-This table is compisited from the ebrowse *Globals* section.")
-   )
-  "A table for returning search results from ebrowse.")
-
-(defclass semanticdb-project-database-ebrowse
-  (semanticdb-project-database)
-  ((new-table-class :initform semanticdb-table-ebrowse
-		    :type class
-		    :documentation
-		    "New tables created for this database are of this class.")
-   (system-include-p :initform nil
-		     :initarg :system-include
-		     :documentation
-		     "Flag indicating this database represents a system include directory.")
-   (ebrowse-struct :initform nil
-		   :initarg :ebrowse-struct
-		   )
-   )
-  "Semantic Database deriving tags using the EBROWSE tool.
-EBROWSE is a C/C++ parser for use with `ebrowse' Emacs program.")
-
-;JAVE this just instantiates a default empty ebrowse struct? 
+;JAVE this just instantiates a default empty ebrowse struct?
 ; how would new instances wind up here?
 ; the ebrowse class isnt singleton, unlike the emacs lisp one
 (defvar-mode-local c++-mode semanticdb-project-system-databases
@@ -331,7 +331,7 @@ If there is no database for DIRECTORY available, then
       ;; add ourselves to the include list for C++.
       (semantic-add-system-include directory 'c++-mode)
       (semantic-add-system-include directory 'c-mode)
-      
+
       db)))
 
 (defmethod semanticdb-ebrowse-strip-trees  ((dbe semanticdb-project-database-ebrowse)
@@ -352,7 +352,7 @@ If there is no database for DIRECTORY available, then
              (filename (or (ebrowse-cs-source-file class)
 			   (ebrowse-cs-file class)))
 	     )
-	(cond 
+	(cond
 	 ((ebrowse-globals-tree-p tree)
 	  ;; We have the globals tree.. save this special.
 	  (semanticdb-ebrowse-add-globals-to-table dbe tree)
@@ -403,7 +403,7 @@ If there is no database for DIRECTORY available, then
 				     (vector defpoint defpoint)))
 	(setq toks (cons nt toks)))
       (setq fns (cdr fns)))
-    
+
     ))
 
 (defun semanticdb-ebrowse-add-tree-to-table (dbe tree &optional fname baseclasses)
@@ -418,7 +418,7 @@ Optional argument BASECLASSES specifyies a baseclass to the tree being provided.
   ;; 3) Fabricate a tag proxy for CLASS
   ;; 4) Add it to the namespace
   ;; 5) Add subclasses
-    
+
   ;; 1 - Find the filename
   (if (not fname)
       (setq fname (or (ebrowse-cs-source-file (ebrowse-ts-class tree))
@@ -691,7 +691,7 @@ All systems are different.  Ask questions along the way."
     (error "Please make your default buffer be a C or C++ file, then
 run the test again..")
     )
-  
+
   )
 
 (defun semanticdb-ebrowse-dump ()
