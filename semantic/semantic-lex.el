@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.54 2009/02/26 03:11:12 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.55 2009/09/11 23:33:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -118,32 +118,32 @@
 ;; automatically generated from a grammar file based on some
 ;; predetermined attributes. For now these two attributes are
 ;; recognized :
-;; 
+;;
 ;; * matchdatatype : define the kind of lexical analyzer. That is :
-;; 
+;;
 ;;   - regexp : define a regexp analyzer (see
 ;;     `define-lex-regex-type-analyzer')
-;; 
+;;
 ;;   - string : define a string analyzer (see
 ;;     `define-lex-string-type-analyzer')
-;; 
+;;
 ;;   - block : define a block type analyzer (see
 ;;     `define-lex-block-type-analyzer')
-;; 
+;;
 ;;   - sexp : define a sexp analyzer (see
 ;;     `define-lex-sexp-type-analyzer')
-;; 
+;;
 ;;   - keyword : define a keyword analyzer (see
 ;;     `define-lex-keyword-type-analyzer')
-;; 
+;;
 ;; * syntax : define the syntax that matches a syntactic
 ;;   expression. When syntax is matched the corresponding type
 ;;   analyzer is entered and the resulting match data will be
 ;;   interpreted based on the kind of analyzer (see matchdatatype
 ;;   above).
-;; 
+;;
 ;; The following lexical types are predefined :
-;; 
+;;
 ;; +-------------+---------------+--------------------------------+
 ;; | type        | matchdatatype | syntax                         |
 ;; +-------------+---------------+--------------------------------+
@@ -154,26 +154,26 @@
 ;; | number      | regexp        | semantic-lex-number-expression |
 ;; | block       | block         | "\\s(\\|\\s)"                  |
 ;; +-------------+---------------+--------------------------------+
-;; 
+;;
 ;; In a grammar you must use a %type expression to automatically generate
 ;; the corresponding analyzers of that type.
-;; 
+;;
 ;; Here is an example to auto-generate punctuation analyzers
-;; with 'matchdatatype and 'syntax predefined (see table above) 
-;; 
+;; with 'matchdatatype and 'syntax predefined (see table above)
+;;
 ;; %type <punctuation> ;; will auto-generate this kind of analyzers
-;; 
+;;
 ;; It is equivalent to write :
-;; 
+;;
 ;; %type  <punctuation> syntax "\\(\\s.\\|\\s$\\|\\s'\\)+" matchdatatype string
-;; 
+;;
 ;; ;; Some punctuations based on the type defines above
-;; 
+;;
 ;; %token <punctuation> NOT         "!"
 ;; %token <punctuation> NOTEQ       "!="
 ;; %token <punctuation> MOD         "%"
 ;; %token <punctuation> MODEQ       "%="
-;; 
+;;
 
 ;;; On the Semantic 1.x lexer
 ;;
@@ -316,6 +316,38 @@ PROPERTY set."
      #'(lambda (symbol) (setq keywords (cons symbol keywords)))
      property)
     keywords))
+
+;;; Inline functions:
+
+(defsubst semantic-lex-token-bounds (token)
+  "Fetch the start and end locations of the lexical token TOKEN.
+Return a pair (START . END)."
+  (if (not (numberp (car (cdr token))))
+      (cdr (cdr token))
+    (cdr token)))
+
+(defsubst semantic-lex-token-start (token)
+  "Fetch the start position of the lexical token TOKEN.
+See also the function `semantic-lex-token'."
+  (car (semantic-lex-token-bounds token)))
+
+(defsubst semantic-lex-token-end (token)
+  "Fetch the end position of the lexical token TOKEN.
+See also the function `semantic-lex-token'."
+  (cdr (semantic-lex-token-bounds token)))
+
+(defsubst semantic-lex-unterminated-syntax-detected (syntax)
+  "Inside a lexical analyzer, use this when unterminated syntax was found.
+Argument SYNTAX indicates the type of syntax that is unterminated.
+The job of this function is to move (point) to a new logical location
+so that analysis can continue, if possible."
+  (goto-char
+   (funcall semantic-lex-unterminated-syntax-end-function
+	    syntax
+	    (car semantic-lex-analysis-bounds)
+	    (cdr semantic-lex-analysis-bounds)
+	    ))
+  (setq semantic-lex-end-point (point)))
 
 ;;; Type table handling.
 ;;
@@ -1015,23 +1047,6 @@ variable after calling `semantic-lex-push-token'."
 See also the function `semantic-lex-token'."
   (car token))
 
-(defsubst semantic-lex-token-bounds (token)
-  "Fetch the start and end locations of the lexical token TOKEN.
-Return a pair (START . END)."
-  (if (not (numberp (car (cdr token))))
-      (cdr (cdr token))
-    (cdr token)))
-
-(defsubst semantic-lex-token-start (token)
-  "Fetch the start position of the lexical token TOKEN.
-See also the function `semantic-lex-token'."
-  (car (semantic-lex-token-bounds token)))
-
-(defsubst semantic-lex-token-end (token)
-  "Fetch the end position of the lexical token TOKEN.
-See also the function `semantic-lex-token'."
-  (cdr (semantic-lex-token-bounds token)))
-
 (defsubst semantic-lex-token-text (token)
   "Fetch the text associated with the lexical token TOKEN.
 See also the function `semantic-lex-token'."
@@ -1089,20 +1104,7 @@ Optional argument DEPTH is the depth to scan into lists."
 ;; Created analyzers become variables with the code associated with them
 ;; as the symbol value.  These analyzers are assembled into a lexer
 ;; to create new lexical analyzers.
-;; 
-(defsubst semantic-lex-unterminated-syntax-detected (syntax)
-  "Inside a lexical analyzer, use this when unterminated syntax was found.
-Argument SYNTAX indicates the type of syntax that is unterminated.
-The job of this function is to move (point) to a new logical location
-so that analysis can continue, if possible."
-  (goto-char
-   (funcall semantic-lex-unterminated-syntax-end-function
-	    syntax
-	    (car semantic-lex-analysis-bounds)
-	    (cdr semantic-lex-analysis-bounds)
-	    ))
-  (setq semantic-lex-end-point (point)))
-
+;;
 (defcustom semantic-lex-debug-analyzers nil
   "Non nil means to debug analyzers with syntax protection.
 Only in effect if `debug-on-error' is also non-nil."
@@ -1777,7 +1779,7 @@ If there is no error, then the last value of FORMS is returned."
 (add-hook
  'edebug-setup-hook
  #'(lambda ()
-     
+
      (def-edebug-spec define-lex
        (&define name stringp (&rest symbolp))
        )
@@ -1796,7 +1798,7 @@ If there is no error, then the last value of FORMS is returned."
      (def-edebug-spec semantic-lex-catch-errors
        (symbolp def-body)
        )
-     
+
      ))
 
 ;;; Compatibility with Semantic 1.x lexical analysis
