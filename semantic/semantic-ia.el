@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.31 2009/03/06 16:39:04 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.32 2009/09/11 23:36:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,6 +64,27 @@ buffer where the completion was requested.  COMPLETONS is the list
 of semantic tag names that provide logical completions from that
 location.")
 (make-variable-buffer-local 'semantic-ia-cache)
+
+;;; COMPLETION HELPER
+;;
+;; This overload function handles inserting a tag
+;; into a buffer for these local completion routines.
+;;
+;; By creating the functions as overloadable, it can be
+;; customized.  For example, the default will put a paren "("
+;; character after function names.  For Lisp, it might check
+;; to put a "(" in front of a function name.
+
+(define-overloadable-function semantic-ia-insert-tag (tag)
+  "Insert TAG into the current buffer based on completion.")
+
+(defun semantic-ia-insert-tag-default (tag)
+  "Insert TAG into the current buffer based on completion."
+  (insert (semantic-tag-name tag))
+  (let ((tt (semantic-tag-class tag)))
+    (cond ((eq tt 'function)
+	   (insert "("))
+	  (t nil))))
 
 (defun semantic-ia-get-completions (context point)
   "Fetch the completion of CONTEXT at POINT.
@@ -147,6 +168,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
   "Complete the current symbol via a menu based at POINT.
 Completion options are calculated with `semantic-analyze-possible-completions'."
   (interactive "d")
+  (require 'imenu)
   (let* ((a (semantic-analyze-current-context point))
 	 (syms (semantic-ia-get-completions a point))
 	 )
@@ -179,27 +201,6 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 	  (delete-region (car (oref a bounds)) (cdr (oref a bounds)))
 	  (semantic-ia-insert-tag ans))
 	))))
-
-;;; COMPLETION HELPER
-;;
-;; This overload function handles inserting a tag
-;; into a buffer for these local completion routines.
-;;
-;; By creating the functions as overloadable, it can be
-;; customized.  For example, the default will put a paren "("
-;; character after function names.  For Lisp, it might check
-;; to put a "(" in front of a function name.
-
-(define-overloadable-function semantic-ia-insert-tag (tag)
-  "Insert TAG into the current buffer based on completion.")
-
-(defun semantic-ia-insert-tag-default (tag)
-  "Insert TAG into the current buffer based on completion."
-  (insert (semantic-tag-name tag))
-  (let ((tt (semantic-tag-class tag)))
-    (cond ((eq tt 'function)
-	   (insert "("))
-	  (t nil))))
 
 ;;; Completions Tip
 ;;
@@ -321,7 +322,7 @@ origin of the code at point."
      ((semantic-tag-p first)
       ;; We have a match.  Just go there.
       (semantic-ia--fast-jump-helper first))
-     
+
      ((semantic-tag-p second)
       ;; Because FIRST failed, we should visit our second tag.
       ;; HOWEVER, the tag we actually want that was only an unfound
@@ -378,7 +379,7 @@ See `semantic-ia-fast-jump' for details on how it works.
     ;; If PF, the prefix is non-nil, then the last element is either
     ;; a string (incomplete type), or a semantic TAG.  If it is a TAG
     ;; then we should be able to find DOC for it.
-    (cond 
+    (cond
      ((stringp (car pf))
       (message "Incomplete symbol name."))
      ((semantic-tag-p (car pf))
@@ -416,7 +417,7 @@ parts of the parent classes are displayed."
   ;; When looking for a tag of any name there are a couple ways to do
   ;; it.  The simple `semanticdb-find-tag-by-...' are simple, and
   ;; you need to pass it the exact name you want.
-  ;; 
+  ;;
   ;; The analyzer function `semantic-analyze-tag-name' will take
   ;; more complex names, such as the cpp symbol foo::bar::baz,
   ;; and break it up, and dive through the namespaces.
