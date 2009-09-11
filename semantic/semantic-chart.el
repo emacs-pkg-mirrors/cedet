@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.14 2009/01/20 02:32:10 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.15 2009/09/11 23:41:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -65,9 +65,9 @@ Each bar represents how many toplevel tags in TAGTABLE
 exist in each database entry.
 TAGTABLE is passed to `semantic-something-to-tag-table'."
   (interactive)
-  (if (or (not (fboundp 'semanticdb-minor-mode-p))
-	  (not (semanticdb-minor-mode-p)))
-      (error "Semanticdb is not enabled"))
+  (unless (and (fboundp 'semanticdb-minor-mode-p)
+	       (semanticdb-minor-mode-p))
+    (error "Semanticdb is not enabled"))
   (let* ((db semanticdb-current-database)
 	 (dbt (semanticdb-get-database-tables db))
 	 (names (mapcar 'car
@@ -166,7 +166,7 @@ items are charted.  TAGTABLE is passedto
 		       (list plen tclen fslen lvarlen)
 		       "Number of tags")
     ))
-	 
+
 
 
 (provide 'semantic-chart)
