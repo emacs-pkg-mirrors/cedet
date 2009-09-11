@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.23 2009/07/17 02:32:16 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.24 2009/09/11 23:44:53 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -106,6 +106,12 @@ walk through.  It defaults to `buffer-list'."
            (when (or (not predicate) (funcall predicate))
              (funcall function))))))
 
+(defsubst get-mode-local-parent (mode)
+  "Return the mode parent of the major mode MODE.
+Return nil if MODE has no parent."
+  (or (get mode 'mode-local-parent)
+      (get mode 'derived-mode-parent)))
+
 (defun mode-local-equivalent-mode-p (mode)
   "Is the major-mode in the current buffer equivalent to a mode in MODES."
   (let ((modes nil))
@@ -120,7 +126,7 @@ MODES can be a symbol or a list of symbols.
 FUNCTION does not have arguments."
   (or (listp modes) (setq modes (list modes)))
   (mode-local-map-file-buffers
-   function #'(lambda () 
+   function #'(lambda ()
 		(let ((mm (mode-local-equivalent-mode-p major-mode))
 		      (ans nil))
 		  (while (and (not ans) mm)
@@ -179,12 +185,6 @@ local variables have been defined."
   ;; PARENT. To work properly, the following should be called after
   ;; PARENT mode local variables have been defined.
   (mode-local-map-mode-buffers #'activate-mode-local-bindings mode))
-
-(defsubst get-mode-local-parent (mode)
-  "Return the mode parent of the major mode MODE.
-Return nil if MODE has no parent."
-  (or (get mode 'mode-local-parent)
-      (get mode 'derived-mode-parent)))
 
 (defmacro define-child-mode (mode parent &optional docstring)
   "Make major mode MODE inherits behavior from PARENT mode.
@@ -337,7 +337,7 @@ Elements are (SYMBOL . PREVIOUS-VALUE), describing one variable."
 	   (and (featurep 'xemacs) (boundp 'just-from-file-name)))
       ;; We are inside set-auto-mode, as this is an argument that is
       ;; vaguely unique.
-      
+
       ;; This will make sure that when everything is over, this will get
       ;; called and we won't be under set-auto-mode anymore.
       (mode-local-on-major-mode-change)
