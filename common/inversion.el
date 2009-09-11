@@ -3,13 +3,7 @@
 ;;; Copyright (C) 2002, 2003, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.35 2009/02/19 03:41:23 zappo Exp $
-
-;;; Code:
-(defvar inversion-version "1.3"
-  "Current version of InVersion.")
-(defvar inversion-incompatible-version "0.1alpha1"
-  "An earlier release which is incompatible with this release.")
+;; X-RCS: $Id: inversion.el,v 1.36 2009/09/11 23:45:29 zappo Exp $
 
 ;; InVersion is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -36,7 +30,7 @@
 ;; and (as side effect) have a flexible way of getting a desired feature set.
 ;;
 ;; If you would like to use this package to satisfy dependency replace this:
-;; 
+;;
 ;; (require 'spiffy)
 ;;
 ;; with this:
@@ -64,15 +58,22 @@
 ;;     (defun inversion-test (p v)
 ;;       (string= v (symbol-value
 ;; 		  (intern-soft (concat (symbol-string p) "-version"))))))
-;; 
+;;
 ;; Or modify to specify `inversion-require' instead.
 ;;
 ;; TODO:
 ;;  Offer to download newer versions of a package.
 
 ;;; History:
-;; 
+;;
 ;; Sept 3, 2002:  First general publication.
+
+;;; Code:
+
+(defvar inversion-version "1.3"
+  "Current version of InVersion.")
+(defvar inversion-incompatible-version "0.1alpha1"
+  "An earlier release which is incompatible with this release.")
 
 (defconst inversion-decoders
   '(
