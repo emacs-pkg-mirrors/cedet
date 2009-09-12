@@ -34,8 +34,7 @@
 
 
 ;;; Code:
-(defvar cedet-edebug-prin1-extensions
-  nil
+(defvar cedet-edebug-prin1-extensions nil
   "An alist of of code that can extend PRIN1 for edebug.
 Each entry has the value: (CONDITION . PRIN1COMMAND).")
 
@@ -73,7 +72,8 @@ print methods for very large complex objects."
 
   ;; Call the auto-generated version.
   ;; This is not going to be available at compile time.
-  (cedet-edebug-prin1-to-string-inner object noescape))
+  (with-no-warnings
+    (cedet-edebug-prin1-to-string-inner object noescape)))
 
 
 (defun cedet-edebug-add-print-override (testfcn printfcn)
