@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-adebug.el,v 1.27 2009/09/11 23:43:22 zappo Exp $
+;; X-RCS: $Id: semantic-adebug.el,v 1.28 2009/09/12 02:32:12 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -33,9 +33,13 @@
 ;;
 ;; Allow interactive navigation of the analysis process, tags, etc.
 
+(require 'eieio)
 (require 'data-debug)
-(require 'eieio-datadebug)
-(require 'semantic-analyze)
+(require 'semantic)
+(require 'semantic-tag)
+(require 'semantic-format)
+(eval-when-compile
+  (require 'semanticdb-find))
 
 ;;; Code:
 
@@ -309,37 +313,6 @@ Display the results as a debug list."
 	     (semantic-elapsed-time start end))
 
     (data-debug-insert-find-results fr "*")))
-
-;;;###autoload
-(defun semantic-adebug-analyze (&optional ctxt)
-  "Perform `semantic-analyze-current-context'.
-Display the results as a debug list.
-Optional argument CTXT is the context to show."
-  (interactive)
-  (let ((start (current-time))
-	(ctxt (or ctxt (semantic-analyze-current-context)))
-	(end (current-time)))
-    (if (not ctxt)
-	(message "No Analyzer Results")
-      (message "Analysis  took %.2f seconds."
-	       (semantic-elapsed-time start end))
-      (semantic-analyze-pulse ctxt)
-      (if ctxt
-	  (progn
-	    (data-debug-new-buffer "*Analyzer ADEBUG*")
-	    (data-debug-insert-object-slots ctxt "]"))
-	(message "No Context to analyze here.")))))
-
-;;;###autoload
-(defun semantic-adebug-edebug-expr (expr)
-  "Dump out the contets of some expression EXPR in edebug with adebug."
-  (interactive "sExpression: ")
-  (let ((v (eval (read expr))))
-    (if (not v)
-	(message "Expression %s is nil." expr)
-      (data-debug-new-buffer "*expression ADEBUG*")
-      (data-debug-insert-thing v "?" "")
-      )))
 
 ;;;###autoload
 (defun semanticdb-debug-file-tag-check (startfile)
