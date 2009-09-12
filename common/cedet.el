@@ -7,7 +7,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.35 2009/08/30 16:47:24 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.36 2009/09/12 12:04:55 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -59,17 +59,16 @@
 ;;
 ;;   (load-file "<INSTALL-PATH>/cedet/common/cedet.el")
 ;;
-;; If you want to turn on useful or all Semantic features by default,
-;; respectively add:
+;; Once loaded, you can enable additional feature.  For example,
+;; this will enable some basic and advance features:
 ;;
-;;   (setq semantic-load-turn-useful-things-on t)
-;; or
-;;   (setq semantic-load-turn-everything-on t)
-;;
-;; before loading this file, like this:
-;;
-;;   (setq semantic-load-turn-useful-things-on t)
 ;;   (load-file "<INSTALL-PATH>/cedet/common/cedet.el")
+;;   (global-ede-mode t)
+;;   (semantic-load-enable-code-helpers)
+;;   (global-srecode-minor-mode 1)
+;;
+;; See the INSTALL file for more.
+
 ;;
 ;; That's it!
 ;;
