@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.23 2009/04/19 16:18:38 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.24 2009/09/12 00:01:00 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -41,6 +41,11 @@
 ;;     stuff))
 
 (require 'font-lock)
+(require 'ring)
+(require 'eieio)
+(eval-when-compile
+  (require 'semantic-tag))
+
 ;;; Code:
 
 ;;; Compatibility
@@ -183,7 +188,7 @@ PREBUTTONTEXT is some text between prefix and the overlay list button."
   "Insert all the parts of BUFFER.
 PREFIX specifies what to insert at the start of each line."
   (let ((attrprefix (concat (make-string (length prefix) ? ) "# "))
-	(proplist 
+	(proplist
 	 (list :filename (buffer-file-name buffer)
 	       :live (buffer-live-p buffer)
 	       :modified (buffer-modified-p buffer)
@@ -406,7 +411,7 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
   )
 
 
-;;; Hash-table 
+;;; Hash-table
 ;;
 
 ;;;###autoload
@@ -414,10 +419,10 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
   "Insert the contents of HASH-TABLE inserting PREFIX before each element."
   (maphash
    (lambda (key value)
-     (data-debug-insert-thing 
+     (data-debug-insert-thing
       key prefix
       (dd-propertize "key " 'face font-lock-comment-face))
-     (data-debug-insert-thing 
+     (data-debug-insert-thing
       value prefix
       (dd-propertize "val " 'face font-lock-comment-face)))
    hash-table))
@@ -440,7 +445,7 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
   "Insert HASH-TABLE as expandable button with recursive prefix PREFIX and PREBUTTONTEXT in front of the button text."
   (let ((string (dd-propertize (format "%s" hash-table)
 			    'face 'font-lock-keyword-face)))
-    (insert (dd-propertize 
+    (insert (dd-propertize
 	     (concat prefix prebuttontext string)
 	     'ddebug        hash-table
 	     'ddebug-indent (length prefix)
@@ -638,11 +643,11 @@ PREBUTTONTEXT is some text between prefix and the stuff vector button."
       (data-debug-insert-thing
        (symbol-value symbol)
        (concat (make-string indent ? ) "> ")
-       (concat 
+       (concat
 	(dd-propertize "value"
 		    'face 'font-lock-comment-face)
 	" ")))
-    (data-debug-insert-property-list 
+    (data-debug-insert-property-list
      (symbol-plist symbol)
      (concat (make-string indent ? ) "> "))
     (goto-char start))
@@ -660,7 +665,7 @@ PREBUTTONTEXT is some text between prefix and the stuff vector button."
 		(dd-propertize (concat "'" (symbol-name symbol))
 			    'face 'font-lock-variable-name-face))
 	       (t (format "'%s" symbol)))))
-    (insert (dd-propertize 
+    (insert (dd-propertize
 	     (concat prefix prebuttontext string)
 	     'ddebug          symbol
 	     'ddebug-indent   (length prefix)
@@ -774,7 +779,7 @@ FACE is the face to use."
 
     ;; find results
     (semanticdb-find-results-p . data-debug-insert-find-results-button)
-   
+
     ;; Elt of a find-results
     ((lambda (thing) (and (listp thing)
 			  (semanticdb-abstract-table-child-p (car thing))
@@ -819,7 +824,7 @@ FACE is the face to use."
 
     ;; Widgets
     (widgetp . data-debug-insert-widget)
-     
+
     ;; List of stuff
     (listp . data-debug-insert-stuff-list-button)
 
@@ -869,7 +874,7 @@ If PARENT is non-nil, it is somehow related as a parent to thing."
     (modify-syntax-entry ?\` "'"     table) ;; Prefix ` (backquote)
     (modify-syntax-entry ?\' "'"     table) ;; Prefix ' (quote)
     (modify-syntax-entry ?\, "'"     table) ;; Prefix , (comma)
-    
+
     table)
   "Syntax table used in data-debug macro buffers.")
 
