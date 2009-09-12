@@ -1,7 +1,7 @@
 ;;; cedet-edebug.el --- Special EDEBUG augmentation code
 
 ;;;
-;; Copyright (C) 2003, 2004, 2007, 2008 Eric M. Ludlam
+;; Copyright (C) 2003, 2004, 2007, 2008, 2009 Eric M. Ludlam
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,6 +32,10 @@
 ;; This package provides a way to extend some aspects of edebug, such as value
 ;; printing.
 
+(eval-when-compile
+  (require 'edebug)
+  (require 'debug)
+  )
 
 ;;; Code:
 (defvar cedet-edebug-prin1-extensions nil
