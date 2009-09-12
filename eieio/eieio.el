@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.188 2009/08/30 01:50:29 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.189 2009/09/12 02:34:00 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.2"
@@ -2766,6 +2766,9 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 					    (or (class-p (car object)) (eieio-object-p (car object))))
 				      '(cedet-edebug-prin1-recurse object) )
      ))
+
+(eval-after-load "data-debug"
+  '(require 'eieio-datadebug))
 
 ;;; Interfacing with imenu in emacs lisp mode
 ;;    (Only if the expression is defined)
