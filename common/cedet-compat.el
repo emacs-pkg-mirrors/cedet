@@ -6,7 +6,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Keywords: compatibility
-;; X-RCS: $Id: cedet-compat.el,v 1.4 2009/01/10 01:29:08 zappo Exp $
+;; X-RCS: $Id: cedet-compat.el,v 1.5 2009/09/12 00:03:59 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -136,6 +136,18 @@ Copied verbatim from Emacs 23 CVS version subr.el."
   ;; For newer emacs, then the cedet-split-string is the same
   ;; as the built-in one.
   (defalias 'cedet-split-string 'split-string))
+
+
+;;;###autoload
+(when (not (fboundp 'with-no-warnings))
+  (put 'with-no-warnings 'lisp-indent-function 0)
+  (defun with-no-warnings (&rest body)
+    "Copied from `with-no-warnings' in Emacs 23.
+Like `progn', but prevents compiler warnings in the body.
+Note: Doesn't work if this version is being loaded."
+    ;; The implementation for the interpreter is basically trivial.
+    (car (last body))))
+
 
 (provide 'cedet-compat)
 
