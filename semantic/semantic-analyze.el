@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.86 2009/09/11 23:41:51 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.87 2009/09/12 02:32:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -682,6 +682,28 @@ Returns an object based on symbol `semantic-analyze-context'."
 
     ;; Return our context.
     context-return))
+
+
+;; Adebug output
+;;;###autoload
+(defun semantic-adebug-analyze (&optional ctxt)
+  "Perform `semantic-analyze-current-context'.
+Display the results as a debug list.
+Optional argument CTXT is the context to show."
+  (interactive)
+  (let ((start (current-time))
+	(ctxt (or ctxt (semantic-analyze-current-context)))
+	(end (current-time)))
+    (if (not ctxt)
+	(message "No Analyzer Results")
+      (message "Analysis  took %.2f seconds."
+	       (semantic-elapsed-time start end))
+      (semantic-analyze-pulse ctxt)
+      (if ctxt
+	  (progn
+	    (data-debug-new-buffer "*Analyzer ADEBUG*")
+	    (data-debug-insert-object-slots ctxt "]"))
+	(message "No Context to analyze here.")))))
 
 
 ;;; DEBUG OUTPUT
