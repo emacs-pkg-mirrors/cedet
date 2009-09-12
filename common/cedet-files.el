@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-files.el,v 1.4 2009/02/04 23:28:28 zappo Exp $
+;; X-RCS: $Id: cedet-files.el,v 1.5 2009/09/12 00:01:50 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -97,7 +97,7 @@ specific conversions during tests."
       (when (string-match "^!" file)
 	(setq file (concat "//" (substring file 1))))
       )
-    
+
     file))
 
 ;;; Tests
