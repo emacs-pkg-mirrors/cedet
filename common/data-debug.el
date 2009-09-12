@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: data-debug.el,v 1.24 2009/09/12 00:01:00 zappo Exp $
+;; X-RCS: $Id: data-debug.el,v 1.25 2009/09/12 02:31:14 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -42,9 +42,6 @@
 
 (require 'font-lock)
 (require 'ring)
-(require 'eieio)
-(eval-when-compile
-  (require 'semantic-tag))
 
 ;;; Code:
 
@@ -384,18 +381,9 @@ PREBUTTONTEXT is some text between prefix and the stuff list button."
 		      (ring-size ring)))
 	 (ringthing
 	  (if (= (ring-length ring) 0) nil (ring-ref ring 0)))
-	 (tip (format "Ring max-size %d, length %d.  Full of: %S"
+	 (tip (format "Ring max-size %d, length %d."
 		      (ring-size ring)
-		      (ring-length ring)
-		      (cond ((stringp ringthing)
-			     "strings")
-			    ((semantic-tag-p ringthing)
-			     "tags")
-			    ((eieio-object-p ringthing)
-			     "eieio objects")
-			    ((listp ringthing)
-			     "List of somethin'")
-			    (t "stuff"))))
+		      (ring-length ring)))
 	 )
     (insert prefix prebuttontext str)
     (setq end (point))
@@ -767,25 +755,6 @@ FACE is the face to use."
     ;; nil
     (null . data-debug-insert-nil)
 
-    ;; eieio object
-    ((lambda (thing) (object-p thing)) . data-debug-insert-object-button)
-
-    ;; tag
-    (semantic-tag-p . data-debug-insert-tag)
-
-    ;; taglist
-    ((lambda (thing) (and (listp thing) (semantic-tag-p (car thing)))) .
-     data-debug-insert-tag-list-button)
-
-    ;; find results
-    (semanticdb-find-results-p . data-debug-insert-find-results-button)
-
-    ;; Elt of a find-results
-    ((lambda (thing) (and (listp thing)
-			  (semanticdb-abstract-table-child-p (car thing))
-			  (semantic-tag-p (cdr thing)))) .
-			  data-debug-insert-db-and-tag-button)
-
     ;; Overlay
     (data-debug-overlay-p . data-debug-insert-overlay-button)
 
@@ -833,6 +802,22 @@ FACE is the face to use."
     )
   "Alist of methods used to insert things into an Ddebug buffer.")
 
+;; An augmentation function for the thing alist.
+(defun data-debug-add-specialized-thing (predicate fcn)
+  "Add a new specialized thing to display with data-debug.
+PREDICATE is a function that returns t if a thing is this new type.
+FCN is a function that will display stuff in the data debug buffer."
+  (let ((entry (cons predicate fcn))
+	;; Specialized entries show up AFTER nil,
+	;; but before listp, vectorp, symbolp, and
+	;; other general things.  Splice it into
+	;; the beginning.
+	(first (nthcdr 0 data-debug-thing-alist))
+	(second (nthcdr 1 data-debug-thing-alist))
+      )
+  (when (not (member entry data-debug-thing-alist))
+    (setcdr first (cons entry second)))))
+
 ;; uber insert method
 ;;;###autoload
 (defun data-debug-insert-thing (thing prefix prebuttontext &optional parent)
@@ -858,7 +843,7 @@ If PARENT is non-nil, it is somehow related as a parent to thing."
 ;;; MAJOR MODE
 ;;
 ;; The Ddebug major mode provides an interactive space to explore
-;; the current state of semantic's parsing and analysis
+;; complicated data structures.
 ;;
 (defgroup data-debug nil
   "data-debug group."
@@ -1051,7 +1036,7 @@ Do nothing if already expanded."
 
 ;;; DEBUG COMMANDS
 ;;
-;; Various commands to output aspects of the current semantic environment.
+;; Various commands for displaying complex data structures.
 
 ;;;###autoload
 (defun data-debug-edebug-expr (expr)
