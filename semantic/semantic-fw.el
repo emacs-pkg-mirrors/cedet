@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.78 2009/09/11 23:37:47 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.79 2009/09/12 02:34:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -535,6 +535,30 @@ FILE, NOWARN, RAWFILE, and WILDCARDS are passed into `find-file-noselect'"
      (def-edebug-spec semantic-exit-on-input
        (quote def-body)
        )
+
+     ))
+
+;;; Interfacing with data-debug
+;;
+(eval-after-load "data-debug"
+  '(progn
+;;; Augment data-debug
+     ;;
+     ;; A tag
+     (data-debug-add-specialized-thing #'semantic-tag-p
+				       #'data-debug-insert-tag)
+     ;; A taglist
+     (data-debug-add-specialized-thing (lambda (thing) (and (listp thing) (semantic-tag-p (car thing))))
+				       #'data-debug-insert-tag-list-button)
+     ;; Find results
+     (data-debug-add-specialized-thing #'semanticdb-find-results-p
+				       #'data-debug-insert-find-results-button)
+     ;; Find results elements.
+     (data-debug-add-specialized-thing (lambda (thing) 
+					 (and (listp thing)
+					      (semanticdb-abstract-table-child-p (car thing))
+					      (semantic-tag-p (cdr thing))))
+				       #'data-debug-insert-db-and-tag-button)
 
      ))
 
