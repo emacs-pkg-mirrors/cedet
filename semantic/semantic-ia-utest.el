@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-ia-utest.el,v 1.30 2009/08/18 03:07:34 zappo Exp $
+;; X-RCS: $Id: semantic-ia-utest.el,v 1.31 2009/09/13 11:43:53 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -84,41 +84,42 @@ Argument ARG specifies which set of tests to run.
 
 	;; Run the tests.
 	(let ((fb (find-buffer-visiting (car fl)))
-	      (b (semantic-find-file-noselect (car fl) t)))
+	      (b (semantic-ia-utest-ffns (car fl))))
 
-	  ;; Run the test on it.
-	  (save-excursion
-	    (set-buffer b)
-
-	    ;; This line will also force the include, scope, and typecache.
-	    (semantic-clear-toplevel-cache)
-	    ;; Force tags to be parsed.
-	    (semantic-fetch-tags)
-
-	    (semantic-ia-utest-log "  ** Starting tests in %s"
-				   (buffer-name))
-	    
-	    (when (or (not arg) (= arg 1))
-	      (semantic-ia-utest-buffer))
-	    
-	    (when (or (not arg) (= arg 2))
+	  (when b
+	    ;; Run the test on it.
+	    (save-excursion
 	      (set-buffer b)
-	      (semantic-ia-utest-buffer-refs))
 
-	    (when (or (not arg) (= arg 3))
-	      (set-buffer b)
-	      (semantic-sr-utest-buffer-refs))
+	      ;; This line will also force the include, scope, and typecache.
+	      (semantic-clear-toplevel-cache)
+	      ;; Force tags to be parsed.
+	      (semantic-fetch-tags)
 
-	    (when (or (not arg) (= arg 4))
-	      (set-buffer b)
-	      (semantic-src-utest-buffer-refs))
+	      (semantic-ia-utest-log "  ** Starting tests in %s"
+				     (buffer-name))
 
-	    (semantic-ia-utest-log "  ** Completed tests in %s\n"
-				   (buffer-name))
-	    )
+	      (when (or (not arg) (= arg 1))
+		(semantic-ia-utest-buffer))
+
+	      (when (or (not arg) (= arg 2))
+		(set-buffer b)
+		(semantic-ia-utest-buffer-refs))
+
+	      (when (or (not arg) (= arg 3))
+		(set-buffer b)
+		(semantic-sr-utest-buffer-refs))
+
+	      (when (or (not arg) (= arg 4))
+		(set-buffer b)
+		(semantic-src-utest-buffer-refs))
+
+	      (semantic-ia-utest-log "  ** Completed tests in %s\n"
+				     (buffer-name))
+	      ))
 
 	  ;; If it wasn't already in memory, whack it.
-	  (when (not fb)
+	  (when (and b (not fb))
 	    (kill-buffer b))
 	  )
 	(setq fl (cdr fl)))
@@ -132,6 +133,34 @@ Argument ARG specifies which set of tests to run.
 	(error "Failures found during analyzer unit tests"))
       ))
   )
+
+(defun semantic-ia-utest-ffns (file)
+  "Call `semantic-find-file-noselect' on FILE safely.
+Be robust to non CC modes throwing errors.
+Return a buffer if successful, or nil if error.
+If the error occurs w/ a C or C++ file, rethrow the error."
+  (condition-case e
+      (let ((buff (semantic-find-file-noselect file t)))
+	;; Make current for tests...
+	(save-excursion
+	  (set-buffer buff)
+	  ;; Was semantic initialized?
+	  (if (semantic-active-p)
+	      buff
+	    ;; No support?
+	    (error "No semantic support."))
+	  ))
+    (error
+     (let ((fe (file-name-extension file)))
+       (cond ((or (string= fe ".c") (string= fe ".cpp"))
+	      ;; Rethrow for C, no tolerance for error.
+	      (error e))
+	     (t
+	      (message
+	       "Skipping tests for %s due to missing underlying mode support."
+	       file)
+	      nil))))
+    ))
 
 (defun semantic-ia-utest-buffer ()
   "Run analyzer completion unit-test pass in the current buffer."
@@ -166,14 +195,14 @@ Argument ARG specifies which set of tests to run.
       (save-excursion
 
 	(goto-char p)
-	
+
 	(let* ((ctxt (semantic-analyze-current-context))
 	       (acomp
 		(condition-case nil
 		    (semantic-analyze-possible-completions ctxt)
 		  (error nil))))
 	  (setq actual (mapcar 'semantic-tag-name acomp)))
-	
+
 	(goto-char a)
 
 	(let ((bss (buffer-substring-no-properties (point) (point-at-eol))))
@@ -197,7 +226,7 @@ Argument ARG specifies which set of tests to run.
 
       (setq p nil a nil)
       (setq idx (1+ idx)))
-    
+
     (if fail
 	(progn
 	  (semantic-ia-utest-log
@@ -270,7 +299,7 @@ Argument ARG specifies which set of tests to run.
 		   ;; Does it match?
 		   (when (not (semantic-equivalent-tag-p ct2 newstart))
 		     (throw 'failed t))
-		   
+
 		   ;; Can we double-jump?
 		   (setq ref2 (semantic-analyze-tag-references ct)
 			 impl2 (semantic-analyze-refs-impl ref2 t)
@@ -284,7 +313,7 @@ Argument ARG specifies which set of tests to run.
 				    (car proto) (car proto2)))))
 		     (throw 'failed t))
 		   )
-	       
+
 	       ;; Else, no matches at all, so another fail.
 	       (throw 'failed t)
 	       )))
@@ -305,9 +334,9 @@ Argument ARG specifies which set of tests to run.
 
 	(setq p nil)
 	(setq idx (1+ idx))
-	
+
 	))
-    
+
     (if fail
 	(progn
 	  (semantic-ia-utest-log
@@ -380,7 +409,7 @@ Argument ARG specifies which set of tests to run.
 			     (semantic-symref-result-get-tags actual-result))
 			    'string<)))
 
-      
+
 	(if (equal desired actual)
 	    ;; We passed
 	    (setq pass (cons idx pass))
@@ -407,7 +436,7 @@ Argument ARG specifies which set of tests to run.
 
       (setq idx (1+ idx))
       (setq tag nil))
-    
+
     (if fail
 	(progn
 	  (semantic-ia-utest-log
@@ -463,7 +492,7 @@ Argument ARG specifies which set of tests to run.
 			 (list (buffer-name) idx)
 			 )
 	    )
-      
+
 	(if (equal desired actual)
 	    ;; We passed
 	    (setq pass (cons idx pass))
@@ -482,7 +511,7 @@ Argument ARG specifies which set of tests to run.
 
       (setq idx (1+ idx))
       )
-    
+
     (if fail
 	(progn
 	  (semantic-ia-utest-log
