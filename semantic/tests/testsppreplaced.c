@@ -93,5 +93,8 @@ int MACROA () {
 
 }
 
+/* TEST: Fancy concat/recursive macros */
+int ABtest;
+
 
 /* End */
