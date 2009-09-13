@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.34 2009/09/13 11:16:05 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.35 2009/09/13 11:17:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -68,7 +68,7 @@ COLOR indicates that the generated text should be colored using
 
 ;;;###autoload
 (semantic-varalias-obsolete 'semantic-token->text-functions
-                            'semantic-format-tag-functions)
+			    'semantic-format-tag-functions)
 ;;;###autoload
 (defvar semantic-format-tag-custom-list
   (append '(radio)
@@ -79,7 +79,7 @@ COLOR indicates that the generated text should be colored using
 Use this variable in the :type field of a customizable variable.")
 
 (semantic-varalias-obsolete 'semantic-token->text-custom-list
-                            'semantic-format-tag-custom-list)
+			    'semantic-format-tag-custom-list)
 
 (defcustom semantic-format-use-images-flag ezimage-use-images
   "Non-nil means semantic format functions use images.
@@ -125,7 +125,7 @@ Faces used are generated in `font-lock' for consistency, and will not
 be used unless font lock is a feature.")
 
 (semantic-varalias-obsolete 'semantic-face-alist
-                            'semantic-format-face-alist)
+			    'semantic-format-face-alist)
 
 
 
@@ -143,7 +143,7 @@ for details on adding new types."
     text))
 
 (make-obsolete 'semantic-colorize-text
-               'semantic--format-colorize-text)
+	       'semantic--format-colorize-text)
 
 (defun semantic--format-colorize-merge-text (precoloredtext face-class)
   "Apply onto PRECOLOREDTEXT a color associated with FACE-CLASS.
@@ -398,14 +398,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors.")
 Optional argument PARENT is the parent type if TAG is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((proto (semantic-format-tag-prototype tag nil color))
-         (names (if parent
-                    semantic-symbol->name-assoc-list-for-type-parts
-                  semantic-symbol->name-assoc-list))
-         (tsymb (semantic-tag-class tag))
-         (label (capitalize (or (cdr-safe (assoc tsymb names))
-                                (symbol-name tsymb)))))
+	 (names (if parent
+		    semantic-symbol->name-assoc-list-for-type-parts
+		  semantic-symbol->name-assoc-list))
+	 (tsymb (semantic-tag-class tag))
+	 (label (capitalize (or (cdr-safe (assoc tsymb names))
+				(symbol-name tsymb)))))
     (if color
-        (setq label (semantic--format-colorize-text label 'label)))
+	(setq label (semantic--format-colorize-text label 'label)))
     (concat label ": " proto)))
 
 ;;;###autoload
@@ -419,7 +419,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors.")
 Optional argument PARENT is the parent type if TAG is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((proto (semantic-format-tag-prototype tag nil color))
-         (file (semantic-tag-file-name tag))
+	 (file (semantic-tag-file-name tag))
 	 )
     ;; Nothing for tag?  Try parent.
     (when (and (not file) (and parent))
@@ -492,14 +492,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	 (type (if (member class '(function variable type))
 		   (semantic-format-tag-type tag color)))
 	 (args (if (member class '(function type))
-                   (semantic--format-tag-arguments
-                    (if (eq class 'function)
-                        (semantic-tag-function-arguments tag)
+		   (semantic--format-tag-arguments
+		    (if (eq class 'function)
+			(semantic-tag-function-arguments tag)
 		      (list "")
-                      ;;(semantic-tag-type-members tag)
+		      ;;(semantic-tag-type-members tag)
 		      )
-                    #'semantic-format-tag-prototype
-                    color)))
+		    #'semantic-format-tag-prototype
+		    color)))
 	 (const (semantic-tag-get-attribute tag :constant-flag))
 	 (tm (semantic-tag-get-attribute tag :typemodifiers))
 	 (mods (append
@@ -557,14 +557,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	      ")"))
      ((eq class 'variable)
       (let* ((deref (semantic-tag-get-attribute
-                     tag :dereference))
-             (array "")
-             )
-        (while (and deref (/= deref 0))
-          (setq array (concat array "[]")
-                deref (1- deref)))
-        (concat (semantic-format-tag-name tag parent color)
-                array)))
+		     tag :dereference))
+	     (array "")
+	     )
+	(while (and deref (/= deref 0))
+	  (setq array (concat array "[]")
+		deref (1- deref)))
+	(concat (semantic-format-tag-name tag parent color)
+		array)))
      (t
       (semantic-format-tag-abbreviate tag parent color)))))
 
