@@ -4,7 +4,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002, 2005, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-comp.el,v 1.15 2009/07/27 11:32:06 zappo Exp $
+;; RCS: $Id: eieio-comp.el,v 1.16 2009/09/13 11:31:55 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -76,8 +76,7 @@ that is called but rarely.  Argument FORM is the body of the method."
 	 (lamparams (byte-compile-defmethod-param-convert params))
 	 (arg1 (car params))
 	 (class (if (listp arg1) (nth 1 arg1) nil))
-	 (my-outbuffer (if (eval-when-compile
-			     (string-match "XEmacs" emacs-version))
+	 (my-outbuffer (if (eval-when-compile (featurep 'xemacs))
 			   byte-compile-outbuffer 
 			 (condition-case nil
 			     bytecomp-outbuffer
