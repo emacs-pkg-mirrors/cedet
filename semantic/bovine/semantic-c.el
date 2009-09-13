@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.125 2009/09/11 18:55:21 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.126 2009/09/13 12:44:04 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1366,20 +1366,29 @@ with a fully qualified name in the original namespace.  Returns
 nil if NAMESPACE is not an alias."
   (when (eq (semantic-tag-get-attribute namespace :kind) 'alias)
     (let ((typename (semantic-analyze-split-name (semantic-tag-name type)))
-	  ns newtype)
-      ;; Get name of namespace this one's an alias for.
+	  ns nstype originaltype newtype)
+      ;; Make typename unqualified
+      (if (listp typename)
+	  (setq typename (last typename))
+	(setq typename (list typename)))
       (when
-	  (setq ns (semantic-analyze-split-name
-		    (semantic-tag-name
-		     (car (semantic-tag-get-attribute namespace :members)))))
+	  (and
+	   ;; Get original namespace and make sure TYPE exists there.
+	   (setq ns (semantic-tag-name
+		     (car (semantic-tag-get-attribute namespace :members))))
+	   (setq nstype (semanticdb-typecache-find ns))
+	   (setq originaltype (semantic-find-tags-by-name
+			       (car typename)
+			       (semantic-tag-get-attribute nstype :members))))
 	;; Construct new type with name in original namespace.
+	(setq ns (semantic-analyze-split-name ns))
 	(setq newtype
 	      (semantic-tag-clone
-	       type
+	       (car originaltype)
 	       (semantic-analyze-unsplit-name
 		(if (listp ns)
-		    (append (butlast ns) (last typename))
-		  (append (list ns) (last typename))))))))))
+		    (append ns typename)
+		  (append (list ns) typename)))))))))
 
 ;; This searches a type in a namespace, following through all using
 ;; statements.
