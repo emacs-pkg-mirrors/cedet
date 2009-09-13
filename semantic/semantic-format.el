@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.33 2009/05/08 11:12:27 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.34 2009/09/13 11:16:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,29 +94,6 @@ Images can be used as icons instead of some types of text strings."
 (defvar semantic-format-parent-separator "::"
   "Text used to separate names when between namespaces/classes and functions.")
 (make-variable-buffer-local 'semantic-format-parent-separator)
-
-(defun semantic-test-all-format-tag-functions (&optional arg)
-  "Test all outputs from `semantic-format-tag-functions'.
-Output is generated from the function under `point'.
-Optional argument ARG specifies not to use color."
-  (interactive "P")
-  (semantic-fetch-tags)
-  (let* ((tag (semantic-current-tag))
-	 (par (semantic-current-tag-parent))
-	 (fns semantic-format-tag-functions))
-    (with-output-to-temp-buffer "*format-tag*"
-      (princ "Tag->format function tests:")
-      (while fns
-	(princ "\n")
-	(princ (car fns))
-	(princ ":\n ")
-	(let ((s (funcall (car fns) tag par (not arg))))
-	  (save-excursion
-	    (set-buffer "*format-tag*")
-	    (goto-char (point-max))
-	    (insert s)))
-	(setq fns (cdr fns))))
-      ))
 
 (defvar semantic-format-face-alist
   `( (function . font-lock-function-name-face)
@@ -756,6 +733,32 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	(setq text (semantic--format-uml-post-colorize text tag parent)))
     text
     ))
+
+
+;;; Test routines
+;;
+(defun semantic-test-all-format-tag-functions (&optional arg)
+  "Test all outputs from `semantic-format-tag-functions'.
+Output is generated from the function under `point'.
+Optional argument ARG specifies not to use color."
+  (interactive "P")
+  (semantic-fetch-tags)
+  (let* ((tag (semantic-current-tag))
+	 (par (semantic-current-tag-parent))
+	 (fns semantic-format-tag-functions))
+    (with-output-to-temp-buffer "*format-tag*"
+      (princ "Tag->format function tests:")
+      (while fns
+	(princ "\n")
+	(princ (car fns))
+	(princ ":\n ")
+	(let ((s (funcall (car fns) tag par (not arg))))
+	  (save-excursion
+	    (set-buffer "*format-tag*")
+	    (goto-char (point-max))
+	    (insert s)))
+	(setq fns (cdr fns))))
+      ))
 
 
 ;;; Compatibility and aliases
