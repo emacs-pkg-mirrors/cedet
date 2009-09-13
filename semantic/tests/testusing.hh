@@ -123,3 +123,8 @@ namespace outerinner {
   // equivalent to 'namespace outerinner = outer::inner;'
   using namespace outer::inner;
 }
+
+// Create namespace alias
+namespace alias_for_somestuff = somestuff;
+// Same for nested namespace
+namespace alias_for_outerinner = outer::inner;

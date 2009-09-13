@@ -130,3 +130,28 @@ void func8()
   g.//-10-
     ; //#10# ( "four" "three" )
 }
+
+// Check convetional namespace aliases
+// - fully qualified -
+void func9()
+{
+  alias_for_somestuff::OneClass c;
+  c.//-11-
+    ; //#11# ( "aFunc" "anInt" )
+  alias_for_outerinner::AnotherStruct s;
+  s. //-12-
+    ; //#12# ( "four" "three" )
+}
+
+// - unqualified -
+void func10()
+{
+  using namespace alias_for_somestuff;
+  OneClass c2;
+  c2.//-13-
+    ; //#13# ( "aFunc" "anInt" )
+  using namespace alias_for_outerinner;
+  AnotherStruct s2;
+  s2.//-14-
+    ; //#14# ( "four" "three" )
+}
