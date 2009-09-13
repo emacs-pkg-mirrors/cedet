@@ -131,5 +131,15 @@ int STARTMACRO () {
 
 }
 
+/* TEST: Fancy concat/recursive macros */
+#define CONCAT(x,y)     x##y
+#define PASTE(x,y)      CONCAT(x,y)
+#define OBJ(fn)         PASTE(PREFIX, fn)
+#define PREFIX          PASTE(A,B)
+
+int 
+OBJ(test)     /* expands to ABtest */
+  ;
+
 
 /* END */
