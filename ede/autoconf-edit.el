@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: autoconf-edit.el,v 1.11 2009/08/08 21:33:24 zappo Exp $
+;; RCS: $Id: autoconf-edit.el,v 1.12 2009/09/14 02:33:08 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -100,7 +100,7 @@ configure the initial configure script using `autoconf-new-automake-string'"
     "AC_PROG_YACC"
     "AC_CHECK_PROG"
     "AC_CHECK_PROGS"
-    "AM_PROG_LIBTOOL"
+    "AC_PROG_LIBTOOL"
     ;; Libraries
     "AC_CHECK_LIB"
     "AC_PATH_XTRA"
