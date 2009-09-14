@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: ede-pconf.el,v 1.15 2009/08/08 21:39:07 zappo Exp $
+;; RCS: $Id: ede-pconf.el,v 1.16 2009/09/14 02:33:54 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -99,29 +99,12 @@ don't do it.  A value of nil means to just do it.")
     ;; Now save
     (save-buffer)
     ;; Verify aclocal
-    (if (not (file-exists-p (ede-expand-filename (ede-toplevel this)
-						 "aclocal.m4" t)))
-	(setq postcmd "aclocal;autoconf;autoheader;")
-      ;; Verify the configure script...
-      (if (not (ede-expand-filename (ede-toplevel this)
-				    "configure"))
-	  (setq postcmd "aclocal;autoconf;autoheader;")
-	(if (not (ede-expand-filename (ede-toplevel this) "config.h.in"))
-	    (setq postcmd "aclocal;autoconf;autoheader;")
-	  (setq postcmd "aclocal;autoconf;"))))
-    ;; Verify Makefile.in, and --add-missing files (cheaply)
-    (setq add-missing (ede-map-any-target-p this
-					    'ede-proj-configure-add-missing))
-    (if (not (ede-expand-filename (ede-toplevel this) "Makefile.in"))
-	(progn
-	  (setq postcmd (concat postcmd "automake"))
-	  (if (or (not (ede-expand-filename (ede-toplevel this) "COPYING"))
-		  add-missing)
-	      (setq postcmd (concat postcmd " --add-missing")))
-	  (setq postcmd (concat postcmd ";")))
-      (if (or (not (ede-expand-filename (ede-toplevel this) "COPYING"))
-	      add-missing)
-	  (setq postcmd (concat postcmd "automake --add-missing;"))))
+    (setq postcmd "aclocal;")
+    ;; Always add missing files as needed.
+    (setq postcmd (concat postcmd "automake --add-missing;"))
+
+    ;; Always do autoreconf
+    (setq postcmd (concat postcmd "autoreconf;"))
     ;; Verify a bunch of files that are required by automake.
     (ede-proj-configure-test-required-file this "AUTHORS")
     (ede-proj-configure-test-required-file this "NEWS")
@@ -180,7 +163,9 @@ don't do it.  A value of nil means to just do it.")
   "Tweak the configure file (current buffer) to accomodate THIS."
   ;; Check the compilers belonging to THIS, and call the autoconf
   ;; setup for those compilers.
-  (mapc 'ede-proj-tweak-autoconf (ede-proj-compilers this)))
+  (mapc 'ede-proj-tweak-autoconf (ede-proj-compilers this))
+  (mapc 'ede-proj-tweak-autoconf (ede-proj-linkers this))
+  )
 
 (defmethod ede-proj-flush-autoconf ((this ede-proj-target))
   "Flush the configure file (current buffer) to accomodate THIS.
