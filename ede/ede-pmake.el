@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.58 2009/08/08 21:41:15 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.59 2009/09/14 02:31:17 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -619,7 +619,7 @@ This allows customization of how these elements appear."
 	    (setq out
 		  (concat out "$(" (ede-compiler-intermediate-object-variable
 				    (car c)
-				    (ede-pmake-varname this)) ")")
+				    (ede-proj-makefile-target-name this)) ")")
 		  c (cdr c)))
 	  out)
       (let ((sv (ede-proj-makefile-sourcevar this))
