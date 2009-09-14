@@ -1,10 +1,10 @@
 ;;; ede-proj-shared.el --- EDE Generic Project shared library support
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-shared.el,v 1.9 2005/09/30 20:17:12 zappo Exp $
+;; RCS: $Id: ede-proj-shared.el,v 1.10 2009/09/14 02:32:24 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -35,7 +35,10 @@
 (defclass ede-proj-target-makefile-shared-object
   (ede-proj-target-makefile-program)
   ((availablecompilers :initform (ede-gcc-shared-compiler
-				  ede-gcc-libtool-shared-compiler))
+				  ede-gcc-libtool-shared-compiler
+				  ede-g++-shared-compiler
+				  ede-g++-libtool-shared-compiler
+				  ))
    (ldflags :custom (repeat (string :tag "Libtool flag"))
 	    :documentation
 	    "Additional flags to add when linking this shared library.
@@ -54,7 +57,8 @@ Use ldlibs to add addition libraries.")
 ;			   "$(CC_SHARED) -shared $(CFLAGS) $(LDFLAGS) -L. -o $@ $^")
 ;			  )
 ;	 :commands '("$(C_SHARED_LINK) %s")
-	 :autoconf '("AM_PROG_LIBTOOL")
+	 ;; @TODO - addative modification of autoconf.
+	 :autoconf '("AC_PROG_LIBTOOL")
 	 )
   "Compiler for C sourcecode.")
 
@@ -68,9 +72,38 @@ Use ldlibs to add addition libraries.")
 		      )
 	 :commands '("$(LTLINK) $^"
 		     )
-	 :autoconf '("AM_PROG_LIBTOOL")
+	 :autoconf '("AC_PROG_LIBTOOL")
 	 )
   "Compiler for C sourcecode.")
+
+(defvar ede-g++-shared-compiler
+  (clone ede-g++-compiler
+	 "ede-c++-shared-compiler"
+	 :name "gcc -shared"
+	 :variables '(("CXX_SHARED" . "g++")
+		      ("CXX_SHARED_COMPILE" .
+		       "$(CXX_SHARED) -shared $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)"))
+	 ;; @TODO - addative modification of autoconf.
+	 :autoconf '("AC_PROG_LIBTOOL")
+	 )
+  "Compiler for C sourcecode.")
+
+(defvar ede-g++-libtool-shared-compiler
+  (clone ede-g++-shared-compiler
+	 "ede-c++-shared-compiler-libtool"
+	 :name "libtool"
+	 :variables '(("CXX" "g++")
+		      ("LIBTOOL" . "$(SHELL) libtool")
+		      ("LTCOMPILE" . "$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)")
+		      ("LTLINK" . "$(LIBTOOL) --mode=link $(CXX) $(CFLAGS) $(LDFLAGS) -L. -o $@")
+		      )
+	 :commands '("$(LTLINK) $^"
+		     )
+	 :autoconf '("AC_PROG_LIBTOOL")
+	 )
+  "Compiler for C sourcecode.")
+
+;;; @TODO - C++ versions of the above.
 
 (when nil
   		 
