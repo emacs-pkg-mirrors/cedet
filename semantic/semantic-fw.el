@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.79 2009/09/12 02:34:50 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.80 2009/09/15 00:18:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -455,9 +455,10 @@ FILE, NOWARN, RAWFILE, and WILDCARDS are passed into `find-file-noselect'"
 	 ;; ... or eval variables
 	 (enable-local-eval nil)
 	 )
-    (if (featurep 'xemacs)
-	(find-file-noselect file nowarn rawfile)
-      (find-file-noselect file nowarn rawfile wildcards))
+    (save-match-data
+      (if (featurep 'xemacs)
+	  (find-file-noselect file nowarn rawfile)
+	(find-file-noselect file nowarn rawfile wildcards)))
     ))
 
 
