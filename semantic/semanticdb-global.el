@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-global.el,v 1.8 2009/09/11 18:57:39 zappo Exp $
+;; X-RCS: $Id: semanticdb-global.el,v 1.9 2009/09/15 00:19:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -225,13 +225,15 @@ If optional arg STANDARDFILE is non nil, use a standard file w/ global enabled."
 
   (save-excursion
     (when standardfile
-      (set-buffer (find-file-noselect semanticdb-test-gnu-global-startfile)))
+      (save-match-data
+	(set-buffer (find-file-noselect semanticdb-test-gnu-global-startfile))))
 
     (condition-case err
 	(semanticdb-enable-gnu-global-in-buffer)
       (error (if standardfile
 		 (error err)
-	       (set-buffer (find-file-noselect semanticdb-test-gnu-global-startfile))
+	       (save-match-data
+		 (set-buffer (find-file-noselect semanticdb-test-gnu-global-startfile)))
 	       (semanticdb-enable-gnu-global-in-buffer))))
 
     (let* ((db (semanticdb-project-database-global "global"))
