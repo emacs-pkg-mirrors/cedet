@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.136 2009/08/31 01:49:51 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.137 2009/09/15 00:20:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -268,7 +268,9 @@ If the buffer is in memory, return that buffer."
 If the buffer is in memory, return that buffer.
 If the buffer is not in memory, load it with `find-file-noselect'."
   (or (semanticdb-in-buffer-p obj)
-      (find-file-noselect (semanticdb-full-filename obj) t)))
+      ;; Save match data to protect against odd stuff in mode hooks.
+      (save-match-data
+	(find-file-noselect (semanticdb-full-filename obj) t))))
 
 (defmethod semanticdb-set-buffer ((obj semanticdb-table))
   "Set the current buffer to be a buffer owned by OBJ.
