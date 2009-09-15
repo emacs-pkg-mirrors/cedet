@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.140 2009/09/11 19:01:27 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.141 2009/09/15 00:19:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,19 +66,20 @@ If FILE is not loaded, check to see if `semanticdb' feature exists,
    and use it to get tags from files not in memory.
 If FILE is not loaded, and semanticdb is not available, find the file
    and parse it."
-  (if (find-buffer-visiting file)
-      (save-excursion
-	(set-buffer (find-buffer-visiting file))
-	(semantic-fetch-tags))
-    ;; File not loaded
-    (if (and (fboundp 'semanticdb-minor-mode-p)
-	     (semanticdb-minor-mode-p))
-	;; semanticdb is around, use it.
-	(semanticdb-file-stream file)
-      ;; Get the stream ourselves.
-      (save-excursion
-	(set-buffer (find-file-noselect file))
-	(semantic-fetch-tags)))))
+  (save-match-data
+    (if (find-buffer-visiting file)
+	(save-excursion
+	  (set-buffer (find-buffer-visiting file))
+	  (semantic-fetch-tags))
+      ;; File not loaded
+      (if (and (fboundp 'semanticdb-minor-mode-p)
+	       (semanticdb-minor-mode-p))
+	  ;; semanticdb is around, use it.
+	  (semanticdb-file-stream file)
+	;; Get the stream ourselves.
+	(save-excursion
+	  (set-buffer (find-file-noselect file))
+	  (semantic-fetch-tags))))))
 
 (semantic-alias-obsolete 'semantic-file-token-stream
 			 'semantic-file-tag-table)
@@ -158,7 +159,8 @@ THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON."
 	(let ((fn (semantic-dependency-tag-file (car includelist))))
 	  (if (and fn (not (member fn unfound)))
 	      (save-excursion
-		(set-buffer (find-file-noselect fn))
+		(save-match-data
+		  (set-buffer (find-file-noselect fn)))
 		(message "Scanning %s" (buffer-file-name))
 		(setq stream (semantic-fetch-tags))
 		(setq found (semantic-find-first-tag-by-name name stream))
