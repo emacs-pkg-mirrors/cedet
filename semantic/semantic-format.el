@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.35 2009/09/13 11:17:47 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.36 2009/09/15 00:18:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -452,7 +452,8 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
     (when (and (not doc) (not buf) fname)
       ;; If there is no doc, and no buffer, but we have a filename,
       ;; lets try again.
-      (setq buf (find-file-noselect fname))
+      (save-match-data
+	(setq buf (find-file-noselect fname)))
       (setq doc (semantic-tag-docstring tag buf)))
     (when (not doc)
       (setq doc (semantic-documentation-for-tag tag))
