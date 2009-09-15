@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.71 2009/09/11 19:06:14 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.72 2009/09/15 00:19:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -194,7 +194,8 @@ Return nil if there is no buffer for this tag."
       ;; TAG has an originating file, read that file into a buffer, and
       ;; return it.
      (if (semantic--tag-get-property tag :filename)
-	 (find-file-noselect (semantic--tag-get-property tag :filename))
+	 (save-match-data
+	   (find-file-noselect (semantic--tag-get-property tag :filename)))
        ;; TAG is not in Emacs right now, no buffer is available.
        ))))
 
