@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.126 2009/09/13 12:44:04 davenar Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.127 2009/09/16 10:59:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -677,6 +677,8 @@ as for the parent."
 				   depth returnonerror)
     ))
 
+;; @TODO - Should this be recursive?!?
+;; @TODO - Could this re-use semantic-lex-spp-lex-text-string somehow?
 (defun semantic-c-parse-lexical-token (lexicaltoken nonterminal depth
 						    returnonerror)
   "Do a region parse on the contents of LEXICALTOKEN.
@@ -698,18 +700,19 @@ the regular parser."
       (set-buffer buf)
       (erase-buffer)
       (when (not (eq major-mode mode))
-	(funcall mode)
-	;; Hack in mode-local
-	(activate-mode-local-bindings)
-	;; CHEATER!  The following 3 lines are from
-	;; `semantic-new-buffer-fcn', but we don't want to turn
-	;; on all the other annoying modes for this little task.
-	(setq semantic-new-buffer-fcn-was-run t)
-	(semantic-lex-init)
-	(semantic-clear-toplevel-cache)
-	(remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
-		     t)
-	)
+	(save-match-data
+	  (funcall mode)
+	  ;; Hack in mode-local
+	  (activate-mode-local-bindings)
+	  ;; CHEATER!  The following 3 lines are from
+	  ;; `semantic-new-buffer-fcn', but we don't want to turn
+	  ;; on all the other annoying modes for this little task.
+	  (setq semantic-new-buffer-fcn-was-run t)
+	  (semantic-lex-init)
+	  (semantic-clear-toplevel-cache)
+	  (remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
+		       t)
+	  ))
       ;; Get the macro symbol table right.
       (setq semantic-lex-spp-dynamic-macro-symbol-obarray spp-syms)
       ;; (message "%S" macros)
