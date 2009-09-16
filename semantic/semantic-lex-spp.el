@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.47 2009/09/12 11:56:07 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.48 2009/09/16 10:57:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -863,20 +863,23 @@ and variable state from the current buffer."
       (erase-buffer)
       ;; Below is a painful hack to make sure everything is setup correctly.
       (when (not (eq major-mode mode))
-	(funcall mode)
-	;; Hack in mode-local
-	(activate-mode-local-bindings)
-	;; CHEATER!  The following 3 lines are from
-	;; `semantic-new-buffer-fcn', but we don't want to turn
-	;; on all the other annoying modes for this little task.
-	(setq semantic-new-buffer-fcn-was-run t)
-	(semantic-lex-init)
-	(semantic-clear-toplevel-cache)
-	(remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
-		     t)
-	)
+	(save-match-data
+	  (funcall mode)
 
-      ;; Second Cheat: copy key variables reguarding macro state from the
+	  ;; Hack in mode-local
+	  (activate-mode-local-bindings)
+
+	  ;; CHEATER!  The following 3 lines are from
+	  ;; `semantic-new-buffer-fcn', but we don't want to turn
+	  ;; on all the other annoying modes for this little task.
+	  (setq semantic-new-buffer-fcn-was-run t)
+	  (semantic-lex-init)
+	  (semantic-clear-toplevel-cache)
+	  (remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
+		       t)
+	  ))
+
+      ;; Second Cheat: copy key variables regarding macro state from the
       ;; the originating buffer we are parsing.  We need to do this every time
       ;; since the state changes.
       (dolist (V important-vars)
