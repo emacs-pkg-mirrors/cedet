@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.127 2009/09/16 10:59:35 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.128 2009/09/17 22:42:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -677,8 +677,9 @@ as for the parent."
 				   depth returnonerror)
     ))
 
-;; @TODO - Should this be recursive?!?
-;; @TODO - Could this re-use semantic-lex-spp-lex-text-string somehow?
+(defvar semantic-c-parse-token-hack-depth 0
+  "Current depth of recursive calls to `semantic-c-parse-lexical-token'")
+
 (defun semantic-c-parse-lexical-token (lexicaltoken nonterminal depth
 						    returnonerror)
   "Do a region parse on the contents of LEXICALTOKEN.
@@ -687,7 +688,9 @@ The text of the token is inserted into a different buffer, and
 parsed there.
 Argument NONTERMINAL, DEPTH, and RETURNONERROR are passed into
 the regular parser."
-  (let* ((buf (get-buffer-create " *C parse hack*"))
+  (let* ((semantic-c-parse-token-hack-depth (1+ semantic-c-parse-token-hack-depth))
+	 (buf (get-buffer-create (format " *C parse hack %d*"
+					 semantic-c-parse-token-hack-depth)))
 	 (mode major-mode)
 	 (spp-syms semantic-lex-spp-dynamic-macro-symbol-obarray)
 	 (stream nil)
