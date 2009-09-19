@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: srecode.texi,v 1.16 2009/03/29 16:11:37 zappo Exp $
+@c $Id: srecode.texi,v 1.17 2009/09/19 01:35:18 zappo Exp $
 @c
 @c %**start of header
 @setfilename srecode.info
@@ -252,7 +252,7 @@ simple access to different templates or template applications.
 
 The key prefix is @key{C-c /}.
 
-If the variable @code{srecode-takeover-INS-key} is set, the the key
+If the variable @code{srecode-takeover-INS-key} is set, then the key
 @key{<insert>} can also be used.
 
 The most important key is bound to @code{srecode-insert} which is
@@ -286,14 +286,18 @@ Determine how to ask for a dictionary value when inserting a template.
 Only the @var{ASK} style inserter will query the user for a value.
 Dictionary value references that ask begin with the ? character.
 Possible values are:
-  @code{'ask}   - Prompt in the minibuffer as the value is inserted.
-  @code{'field} - Use the dictionary macro name as the inserted value,
-           and place a field there.  Matched fields change together.
+@table @code
+@item ask
+Prompt in the minibuffer as the value is inserted.
+@item field
+Use the dictionary macro name as the inserted value,
+and place a field there.  Matched fields change together.
+@end table
 
 @var{NOTE}: The field feature does not yet work with XEmacs.
 @end defun
 
-Field editing mode is supported in newever versions of Emacs.  You
+Field editing mode is supported in newer versions of Emacs.  You
 will not be prompted to fill in values while the template is
 inserted.  Instead, short regions will be highlighted, and the cursor
 placed in a field.  Typing in the field will then fill in the value.
@@ -506,7 +510,7 @@ The documentation string is optional.  This documentation string will
 be used to aid users in selecting which template they want to use.
 
 The code that makes up the raw template occurs between the lines that
-contain the text ``----''.
+contain the text "-----".
 
 @menu
 * Template Section Dictionaries::  Template Scoped Macro values
@@ -542,7 +546,7 @@ template to a subordinate template where some value is not known.
 From the Emacs Lisp default template file, a syntax table is just a
 variable with a specialized value.
 
-If a variable is declared like this:
+If a variable is declared like this (where $ is the escape character):
 
 @example
 template variable :el
@@ -667,7 +671,7 @@ dictionary, then the text between the # and / macros will also be
 inserted.
 
 All the text and macros within a section are either not shown at all
-(if that section is not 'visible') or the section is is show one time
+(if that section is not 'visible') or the section is shown one time
 for each dictionary added to that symbol.
 @xref{Developing Template Functions}.
 @refill
@@ -701,9 +705,9 @@ If there is no @{@{^@}@}, then the text will not be inserted.
 @node Contexts
 @section Context
 
-Each template belongs to a context.  When promting for a template
-by name, the name is prefixed by the current context.  If there is no
-context, it defaults to @code{declaration}.
+Each template belongs to a context.  When promting for a template by
+name, such as with @kbd{C-c / /}, the name is prefixed by the current
+context.  If there is no context, it defaults to @code{declaration}.
 
 You can change context like this:
 
@@ -735,7 +739,7 @@ temlate foo
 creates two @code{foo} templates.  The first one is when in context
 C1.  The second is available in context C2.
 
-This is useful if there are multiple ways to declair something like a
+This is useful if there are multiple ways to declare something like a
 function or variable that differ only by where it is in the syntax of
 the lanugage.  The name @code{foo} is not ambiguous because each is in
 a different context.
@@ -881,12 +885,18 @@ are just showing a section.
 @refill
 
 Each dictionary added will automatically get values for positional macros
-which will enable @var{sections} to be enabled.
+which will enable @var{sections} to be shown.
 
- * @var{first} - The first entry in the table.
- * @var{notfirst} - Not the first entry in the table.
- * @var{last} - The last entry in the table
- * @var{notlast} - Not the last entry in the table.
+@table @var
+@item first
+The first entry in the table.
+@item notfirst
+Not the first entry in the table.
+@item last
+The last entry in the table
+@item notlast
+Not the last entry in the table.
+@end table
 
 Adding a new dictionary will alter these values in previously
 inserted dictionaries.
@@ -1155,7 +1165,7 @@ The fourth item in the kill ring.
 @subsubsection Argument :tag
 
 The :tag argument is filled in with information from Semantic.
-The tag in question is queried from the senator tag ring, or pressed
+The tag in question is queried from the senator tag ring, or passed
 in from @srecode{} utilities that use tags in templates.
 
 @table @code
@@ -1327,15 +1337,15 @@ For example:
 
   ;; Read in a template name.
   (interactive (list (srecode-read-template-name "Template Name: ")))
-  (if (not srecode-table)
+  (if (not (srecode-table))
       (error "No template table found for mode %s" major-mode))
-  (let ((temp (srecode-template-get-table srecode-table template-name))
+  (let ((temp (srecode-template-get-table (srecode-table) template-name))
 
-       ;; Creawte a new dictionary
-	(newdict (srecode-create-dictionary)))
+        ;; Create a new dictionary
+        (newdict (srecode-create-dictionary)))
 
     (if (not temp)
-	(error "No Template named %s" template-name))
+        (error "No Template named %s" template-name))
 
     ;; Add some values into the dictionary!
     (srecode-dictionary-set-value newdict "FOO" (my-get-value-of-foo))
@@ -1370,6 +1380,47 @@ Lets look at the key functions involved above:
 Completing read for Semantic Recoder template names.
 @var{prompt} is used to query for the name of the template desired.
 @end defun
+
+@section Template Lookup
+
+Even if your program does not query the user for a template name, you
+will need to locate a template.  First, you need to locate the table
+to look the template up in.
+
+@defun srecode-table &optional mode
+@anchor{srecode-table}
+Return the currently active Semantic Recoder table for this buffer.
+Optional argument @var{MODE} specifies the mode table to use.
+@end defun
+
+
+@defun srecode-template-get-table tab template-name &optional context application
+@anchor{srecode-template-get-table}
+Find in the template in mode table @var{TAB}, the template with @var{TEMPLATE-NAME}.
+Optional argument @var{CONTEXT} specifies a context a particular template
+would belong to.
+Optional argument @var{APPLICATION} restricts searches to only template tables
+belonging to a specific application.  If @var{APPLICATION} is @code{nil}, then only
+tables that do not belong to an application will be searched.
+@end defun
+
+For purposes of an @srecode{} application, it is important to decide
+what to call yoru application, and use that with this method call.
+
+@section Creating dictionaries
+
+Several dictionary calls are made in this example, including:
+@table @code
+@item srecode-create-dictionary
+@item srecode-dictionary-set-value
+@item srecode-dictionary-show-section
+@item srecode-dictionary-add-section-dictionary
+@end table
+
+These are documented more fully @ref{Dictionaries}.
+
+Also used is @code{srecode-resolve-arguments}.  To learn more about
+that, see @ref{Argument Resolution}.
 
 @section Template Insertion Commands
 
