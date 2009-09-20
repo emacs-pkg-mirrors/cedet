@@ -383,7 +383,7 @@ If END-NAME is specified, and the input string"
 				 (match-end 0)))
 	       (namestart (match-end 0))
 	       (junk (string-match regexend what namestart))
-	       end tail name)
+	       end tail name key)
 	  ;; Add string to compiled output
 	  (when (> (length prefix) 0)
 	    (setq comp (cons prefix comp)))
@@ -452,6 +452,7 @@ If END-NAME is specified, and the input string"
   "Parse the inserter TXT with the current STATE.
 Return an inserter object."
   (let ((key (aref txt 0))
+	name
 	)
     (if (and (or (< key ?A) (> key ?Z))
 	     (or (< key ?a) (> key ?z)) )
