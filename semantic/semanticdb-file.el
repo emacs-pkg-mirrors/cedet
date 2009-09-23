@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.46 2009/09/11 18:59:05 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.47 2009/09/23 01:33:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -203,12 +203,17 @@ If SUPRESS-QUESTIONS, then do not ask to create the directory."
 	   ;; @TODO - If it was never set up... what should we do ?
 	   nil)
 	  ((file-exists-p dest) t)
-	  (supress-questions nil)
-	  ((y-or-n-p (format "Create directory %s for SemanticDB? "
-			     dest))
+	  ((or supress-questions
+	       (and (boundp 'semanticdb--inhibit-make-directory)
+		    semanticdb--inhibit-make-directory))
+	   nil)
+	  ((y-or-n-p (format "Create directory %s for SemanticDB? " dest))
 	   (make-directory dest t)
 	   t)
-	  (t nil))
+	  (t 
+	   (if (boundp 'semanticdb--inhibit-make-directory)
+               (setq semanticdb--inhibit-make-directory t))
+	   nil))
     ))
 
 (defmethod semanticdb-save-db ((DB semanticdb-project-database-file)
