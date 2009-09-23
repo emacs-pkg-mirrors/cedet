@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.142 2009/04/23 22:32:17 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.143 2009/09/23 01:10:49 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -455,8 +455,7 @@ type context exists at point."
 (defun senator-find-tag-for-completion (prefix)
   "Find all tags with a name starting with PREFIX.
 Uses `semanticdb' when available."
-  (let ((tagsa nil)
-        (tagsb nil))
+  (let ((tagsa nil))
     (when (and (featurep 'semantic-analyze))
       (let ((ctxt (semantic-analyze-current-context)))
         (when ctxt
@@ -464,17 +463,16 @@ Uses `semanticdb' when available."
               (setq tagsa (semantic-analyze-possible-completions
                            ctxt))
             (error nil)))))
-
+    
     (if tagsa
         tagsa
       ;; If the analyzer fails, then go into boring completion
-      (setq tagsb
-            (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-                ;; semanticdb version returns a list of (DB-TABLE . TAG-LIST)
-                (semanticdb-deep-find-tags-for-completion prefix)
-              ;; semantic version returns a TAG-LIST
-              (semantic-deep-find-tags-for-completion prefix (current-buffer))))
-      (semanticdb-fast-strip-find-results tagsb))))
+      (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+	  (semanticdb-fast-strip-find-results
+	   ;; semanticdb version returns a list of (DB-TABLE . TAG-LIST)
+	   (semanticdb-deep-find-tags-for-completion prefix))
+	;; semantic version returns a TAG-LIST
+	(semantic-deep-find-tags-for-completion prefix (current-buffer))))))
 
 ;;; Senator stream searching functions: no more supported.
 ;;
