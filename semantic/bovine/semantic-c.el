@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.128 2009/09/17 22:42:59 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.129 2009/09/24 02:11:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -277,7 +277,7 @@ values of the conditions in the #if blocks."
 (defun semantic-c-skip-conditional-section ()
   "Skip one section of a conditional.
 Moves forward to a matching #elif, #else, or #endif.
-Movers completely over balanced #if blocks."
+Moves completely over balanced #if blocks."
   (let ((done nil))
     ;; (if (looking-at "^\\s-*#if")
     ;; (semantic-lex-spp-push-if (point))
@@ -704,7 +704,12 @@ the regular parser."
       (erase-buffer)
       (when (not (eq major-mode mode))
 	(save-match-data
-	  (funcall mode)
+
+	  ;; Protect against user hooks throwing errors.
+	  (condition-case nil
+	      (funcall mode)
+	    (error nil))
+
 	  ;; Hack in mode-local
 	  (activate-mode-local-bindings)
 	  ;; CHEATER!  The following 3 lines are from
