@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex-spp.el,v 1.48 2009/09/16 10:57:11 zappo Exp $
+;; X-CVS: $Id: semantic-lex-spp.el,v 1.49 2009/09/24 02:10:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -864,7 +864,11 @@ and variable state from the current buffer."
       ;; Below is a painful hack to make sure everything is setup correctly.
       (when (not (eq major-mode mode))
 	(save-match-data
-	  (funcall mode)
+
+	  ;; Protect against user-hooks that throw errors.
+	  (condition-case nil
+	      (funcall mode)
+	    (error nil))
 
 	  ;; Hack in mode-local
 	  (activate-mode-local-bindings)
