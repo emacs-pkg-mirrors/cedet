@@ -1,10 +1,10 @@
 ;;; eieio-testsinvoke.el -- eieio tests for method invokation
 
 ;;;
-;; Copyright (C) 2005, 2008 Eric M. Ludlam
+;; Copyright (C) 2005, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-test-methodinvoke.el,v 1.8 2008/09/15 00:21:45 zappo Exp $
+;; RCS: $Id: eieio-test-methodinvoke.el,v 1.9 2009/09/28 02:17:11 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -347,3 +347,44 @@
   (message "%S" eieio-test-method-order-list)
   (eieio-test-match ans)
   )
+
+;;; Jan's methodinvoke order w/ multiple inheritance and :after methods.
+;;
+(defclass Ja ()
+  ())
+
+(defmethod initialize-instance :after ((this Ja) &rest slots)
+  (message "+Ja")
+
+  (when (next-method-p)
+    (call-next-method))
+
+  (message "-Ja"))
+
+(defclass Jb ()
+  ())
+
+(defmethod initialize-instance :after ((this Jb) &rest slots)
+  (message "+Jb")
+
+  (when (next-method-p)
+    (call-next-method))
+
+  (message "-Jb"))
+
+(defclass Jc (Jb)
+  ())
+
+(defclass Jd (Jc Ja)
+  ())
+
+(defmethod initialize-instance ((this Jd) &rest slots)
+  (message "+Jd")
+
+  (when (next-method-p)
+    (call-next-method))
+
+  (message "-Jd"))
+
+(Jd "test")
+
