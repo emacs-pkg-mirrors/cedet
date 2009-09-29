@@ -6,7 +6,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Keywords: compatibility
-;; X-RCS: $Id: cedet-compat.el,v 1.5 2009/09/12 00:03:59 zappo Exp $
+;; X-RCS: $Id: cedet-compat.el,v 1.6 2009/09/29 02:02:28 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -78,6 +78,17 @@ If string STR1 is greater, the value is a positive number N;
               ((< i2 end2) (1- (- start1 i1)))
               (t)))
     ))
+
+)
+
+(if (not (fboundp 'booleanp))
+
+;; XEmacs does not have booleanp, which is used as a :type specifier for
+;; some slots of some classes in EIEIO.  Define it here.
+;;;###autoload
+(defun boolean-p (bool)
+  "Return non-nil if BOOL is nil or t."
+  (or (null bool) (eq bool t)))
 
 )
 
