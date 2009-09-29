@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.141 2009/09/15 00:19:37 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.142 2009/09/29 01:31:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -331,8 +331,8 @@ If TAG is not specified, use the tag at point."
 
 	(princ "\nGeneral configuration items:\n")
 	(let ((vars '(semantic-inhibit-functions
-		      semantic-init-hooks
-		      semantic-init-db-hooks
+		      semantic-init-hook
+		      semantic-init-db-hook
 		      semantic-unmatched-syntax-hook
 		      semantic--before-fetch-tags-hook
 		      semantic-after-toplevel-bovinate-hook
