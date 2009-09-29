@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.40 2009/01/20 02:28:09 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.41 2009/09/29 01:29:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -113,9 +113,12 @@ Functions must take one argument representing an overlay being moved.")
 Functions are called before the overlay is deleted, and after the
 incremental reparse.")
 
-(defvar semantic-edits-incremental-reparse-failed-hooks nil
-  "Hooks run after the incremental parser fails.
+(defvar semantic-edits-incremental-reparse-failed-hook nil
+  "Hook run after the incremental parser fails.
 When this happens, the buffer is marked as needing a full reprase.")
+
+(semantic-varalias-obsolete 'semantic-edits-incremental-reparse-failed-hooks
+                          'semantic-edits-incremental-reparse-failed-hook)
 
 ;;;###autoload
 (defcustom semantic-edits-verbose-flag nil
@@ -472,7 +475,7 @@ a 'semantic-parse-changes-failed exception with value t."
   (when semantic-edits-verbose-flag
     (working-temp-message "Force full reparse (%s)"
 			  (buffer-name (current-buffer))))
-  (run-hooks 'semantic-edits-incremental-reparse-failed-hooks))
+  (run-hooks 'semantic-edits-incremental-reparse-failed-hook))
 
 ;;;###autoload
 (defun semantic-edits-incremental-parser ()
