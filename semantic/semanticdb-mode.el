@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semanticdb-mode.el,v 1.5 2009/09/11 18:56:33 zappo Exp $
+;; X-RCS: $Id: semanticdb-mode.el,v 1.6 2009/09/29 01:33:06 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -47,17 +47,20 @@
          (global-semanticdb-minor-mode (if val 1 -1))
          (custom-set-default sym val)))
 
-(defcustom semanticdb-mode-hooks nil
-  "*Hooks run whenever `global-semanticdb-minor-mode' is run.
+(defcustom semanticdb-mode-hook nil
+  "Hook run whenever `global-semanticdb-minor-mode' is run.
 Use `semanticdb-minor-mode-p' to determine if the mode has been turned
 on or off."
   :group 'semanticdb
   :type 'hook)
 
+(semantic-varalias-obsolete 'semanticdb-mode-hooks
+                          'semanticdb-mode-hook)
+
 ;;; Start/Stop database use
 ;;
 (defvar semanticdb-hooks
-  '((semanticdb-semantic-init-hook-fcn semantic-init-db-hooks)
+  '((semanticdb-semantic-init-hook-fcn semantic-init-db-hook)
     (semanticdb-synchronize-table semantic-after-toplevel-cache-change-hook)
     (semanticdb-partial-synchronize-table semantic-after-partial-cache-change-hook)
     (semanticdb-revert-hook before-revert-hook)
@@ -101,7 +104,7 @@ If ARG is nil, then toggle."
 	(funcall fn (car (cdr (car h))) (car (car h)))
 	(setq h (cdr h)))
       ;; Call a hook
-      (run-hooks 'semanticdb-mode-hooks))
+      (run-hooks 'semanticdb-mode-hook))
     ))
 
 (defun semanticdb-toggle-global-mode ()
@@ -119,7 +122,7 @@ Update the environment of Semantic enabled buffers accordingly."
 ;; Functions used in hooks to keep SemanticDB operating.
 ;;
 (defun semanticdb-semantic-init-hook-fcn ()
-  "Function saved in `semantic-init-db-hooks'.
+  "Function saved in `semantic-init-db-hook'.
 Sets up the semanticdb environment."
   ;; Only initialize semanticdb if we have a file name.
   ;; There is no reason to cache a tag table if there is no
