@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.214 2009/09/11 19:01:12 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.215 2009/09/29 01:32:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -258,18 +258,25 @@ setup to use Semantic."
   :group 'semantic
   :type 'hook)
 
-(defvar semantic-init-hooks nil
-  "*Hooks run when a buffer is initialized with a parsing table.")
+(defvar semantic-init-hook nil
+  "Hook run when a buffer is initialized with a parsing table.")
 
-(defvar semantic-init-mode-hooks nil
-  "*Hooks run when a buffer of a particular mode is initialized.")
-(make-variable-buffer-local 'semantic-init-mode-hooks)
+(defvar semantic-init-mode-hook nil
+  "Hook run when a buffer of a particular mode is initialized.")
+(make-variable-buffer-local 'semantic-init-mode-hook)
 
-(defvar semantic-init-db-hooks nil
-  "Hooks run when a buffer is initialized with a parsing table for DBs.
+(defvar semantic-init-db-hook nil
+  "Hook run when a buffer is initialized with a parsing table for DBs.
 This hook is for database functions which intend to swap in a tag table.
 This guarantees that the DB will go before other modes that require
 a parse of the buffer.")
+
+(semantic-varalias-obsolete 'semantic-init-hooks
+                          'semantic-init-hook)
+(semantic-varalias-obsolete 'semantic-init-mode-hooks
+                          'semantic-init-mode-hook)
+(semantic-varalias-obsolete 'semantic-init-db-hooks
+                          'semantic-init-db-hook)
 
 (defvar semantic-new-buffer-fcn-was-run nil
   "Non nil after `semantic-new-buffer-fcn' has been executed.")
@@ -309,17 +316,17 @@ to use Semantic, and `semantic-init-hook' is run."
     ;; Force this buffer to have its cache refreshed.
     (semantic-clear-toplevel-cache)
     ;; Call DB hooks before regular init hooks
-    (run-hooks 'semantic-init-db-hooks)
+    (run-hooks 'semantic-init-db-hook)
     ;; Set up semantic modes
-    (run-hooks 'semantic-init-hooks)
+    (run-hooks 'semantic-init-hook)
     ;; Set up major-mode specific semantic modes
-    (run-hooks 'semantic-init-mode-hooks)
+    (run-hooks 'semantic-init-mode-hook)
     ))
 
 (add-hook 'mode-local-init-hook 'semantic-new-buffer-fcn)
 
 ;; Test the above hook.
-;;(add-hook 'semantic-init-hooks (lambda () (message "init for semantic")))
+;;(add-hook 'semantic-init-hook (lambda () (message "init for semantic")))
 
 (defun semantic-fetch-tags-fast ()
   "For use in a hook.  When only a partial reparse is needed, reparse."
