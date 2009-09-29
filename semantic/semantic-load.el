@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.67 2009/03/10 00:35:14 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.68 2009/09/29 01:31:06 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -109,11 +109,11 @@ This includes `semantic-load-enable-minimum-features' plus:
 
   (when (and (eq window-system 'x)
 	     (locate-library "imenu"))
-    (add-hook 'semantic-init-hooks (lambda ()
-				     (condition-case nil
-					 (imenu-add-to-menubar
-					  semantic-load-imenu-string)
-				       (error nil)))))
+    (add-hook 'semantic-init-hook (lambda ()
+				    (condition-case nil
+					(imenu-add-to-menubar
+					 semantic-load-imenu-string)
+				      (error nil)))))
 
   (global-semantic-idle-summary-mode 1)
 
@@ -169,8 +169,8 @@ This includes all features of `semantic-load-enable-gaudy-code-helpers' plus:
   (semantic-toggle-decoration-style "semantic-decoration-on-protected-members" t)
 
   (if (fboundp #'which-func-mode)
-      (add-hook 'semantic-init-hooks (lambda ()
-				       (which-func-mode 1))))
+      (add-hook 'semantic-init-hook (lambda ()
+				      (which-func-mode 1))))
   )
 
 (defun semantic-load-enable-semantic-debugging-helpers ()
