@@ -5,7 +5,7 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05,06,07,08,09 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.190 2009/09/28 02:16:30 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.191 2009/09/29 02:05:06 zappo Exp $
 ;; Keywords: OO, lisp
 
 (defvar eieio-version "1.2"
@@ -1415,12 +1415,6 @@ Argument FN is the function calling this verifier."
   (if (and (eq value eieio-unbound) (not eieio-skip-typecheck))
       (slot-unbound instance (object-class instance) slotname fn)
     value))
-
-;;; Missing types that are useful to me.
-;;
-(defun boolean-p (bool)
-  "Return non-nil if BOOL is nil or t."
-  (or (null bool) (eq bool t)))
 
 ;;; Get/Set slots in an object.
 ;;
