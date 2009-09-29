@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-global.el,v 1.9 2009/09/15 00:19:53 zappo Exp $
+;; X-RCS: $Id: semanticdb-global.el,v 1.10 2009/09/29 01:32:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,9 +56,9 @@ in a GNU Global supported hierarchy."
   (when (stringp mode)
     (setq mode (intern mode)))
 
-  (let ((ih (mode-local-value mode 'semantic-init-mode-hooks)))
+  (let ((ih (mode-local-value mode 'semantic-init-mode-hook)))
     (eval `(setq-mode-local
-	    ,mode semantic-init-mode-hooks
+	    ,mode semantic-init-mode-hook
 	    (cons 'semanticdb-enable-gnu-global-hook ih))))
 
   )
