@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.71 2009/09/11 19:04:16 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.72 2009/09/29 01:31:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,7 +101,7 @@ Only minor modes that are locally enabled are shown in the mode line."
                 ml (cdr ml))
           (when (and (symbol-value mm)
                      ;; Only show local minor mode status
-                     (not (memq mm semantic-init-hooks)))
+                     (not (memq mm semantic-init-hook)))
             (and ms
                  (symbolp ms)
                  (setq ms (symbol-value ms)))
@@ -183,26 +183,26 @@ function used to toggle the mode."
   (or (and (fboundp mode) (assq mode minor-mode-alist))
       (error "Semantic minor mode %s not found" mode))
   (if (not arg)
-      (if (memq mode semantic-init-hooks)
+      (if (memq mode semantic-init-hook)
 	  (setq arg -1)
 	(setq arg 1)))
   ;; Add or remove the MODE toggle function from
-  ;; `semantic-init-hooks'.  Then turn MODE on or off in every
+  ;; `semantic-init-hook'.  Then turn MODE on or off in every
   ;; Semantic enabled buffer.
   (cond
    ;; Turn off if ARG < 0
    ((< arg 0)
-    (remove-hook 'semantic-init-hooks mode)
+    (remove-hook 'semantic-init-hook mode)
     (semantic-map-buffers #'(lambda () (funcall mode -1)))
     nil)
    ;; Turn on if ARG > 0
    ((> arg 0)
-    (add-hook 'semantic-init-hooks mode)
+    (add-hook 'semantic-init-hook mode)
     (semantic-map-buffers #'(lambda () (funcall mode 1)))
     t)
    ;; Otherwise just check MODE state
    (t
-    (memq mode semantic-init-hooks))
+    (memq mode semantic-init-hook))
    ))
 
 ;;;;
@@ -599,8 +599,8 @@ minor mode is enabled."
         (semantic-make-local-hook 'semantic-edits-new-change-hooks)
         (add-hook 'semantic-edits-new-change-hooks
                   'semantic-show-parser-state-marker nil t)
-	(semantic-make-local-hook 'semantic-edits-incremental-reparse-failed-hooks)
-	(add-hook 'semantic-edits-incremental-reparse-failed-hooks
+	(semantic-make-local-hook 'semantic-edits-incremental-reparse-failed-hook)
+	(add-hook 'semantic-edits-incremental-reparse-failed-hook
 		  'semantic-show-parser-state-marker nil t)
 	(semantic-make-local-hook 'semantic-after-partial-cache-change-hook)
 	(add-hook 'semantic-after-partial-cache-change-hook
@@ -617,11 +617,11 @@ minor mode is enabled."
 	(add-hook 'semantic-after-auto-parse-hooks
 		  'semantic-show-parser-state-marker nil t)
 
-	(semantic-make-local-hook 'semantic-before-idle-scheduler-reparse-hooks)
-	(add-hook 'semantic-before-idle-scheduler-reparse-hooks
+	(semantic-make-local-hook 'semantic-before-idle-scheduler-reparse-hook)
+	(add-hook 'semantic-before-idle-scheduler-reparse-hook
 		  'semantic-show-parser-state-auto-marker nil t)
-	(semantic-make-local-hook 'semantic-after-idle-scheduler-reparse-hooks)
-	(add-hook 'semantic-after-idle-scheduler-reparse-hooks
+	(semantic-make-local-hook 'semantic-after-idle-scheduler-reparse-hook)
+	(add-hook 'semantic-after-idle-scheduler-reparse-hook
 		  'semantic-show-parser-state-marker nil t)
         )
     ;; Remove parts of mode line
@@ -630,7 +630,7 @@ minor mode is enabled."
     ;; Remove hooks
     (remove-hook 'semantic-edits-new-change-hooks
 		 'semantic-show-parser-state-marker t)
-    (remove-hook 'semantic-edits-incremental-reparse-failed-hooks
+    (remove-hook 'semantic-edits-incremental-reparse-failed-hook
 		 'semantic-show-parser-state-marker t)
     (remove-hook 'semantic-after-partial-cache-change-hook
 		 'semantic-show-parser-state-marker t)
@@ -642,9 +642,9 @@ minor mode is enabled."
     (remove-hook 'semantic-after-auto-parse-hooks
 		 'semantic-show-parser-state-marker t)
 
-    (remove-hook 'semantic-before-idle-scheduler-reparse-hooks
+    (remove-hook 'semantic-before-idle-scheduler-reparse-hook
 		 'semantic-show-parser-state-auto-marker t)
-    (remove-hook 'semantic-after-idle-scheduler-reparse-hooks
+    (remove-hook 'semantic-after-idle-scheduler-reparse-hook
 		 'semantic-show-parser-state-marker t)
     )
   semantic-show-parser-state-mode)
