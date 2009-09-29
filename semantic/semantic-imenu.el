@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.58 2008/10/19 11:37:46 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.59 2009/09/29 01:30:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -472,7 +472,7 @@ Optional argument PARENT is a tag parent of STREAM."
                  'imenu-update-menubar))))))))
 
 (defun semantic-imenu-semanticdb-hook ()
-  "Function to be called from `semanticdb-mode-hooks'.
+  "Function to be called from `semanticdb-mode-hook'.
 Clears all imenu menus that may be depending on the database."
   (semantic-map-buffers
    #'(lambda ()
@@ -482,7 +482,7 @@ Clears all imenu menus that may be depending on the database."
        ;; Clear imenu cache to redraw the imenu.
        (semantic-imenu-flush-fcn))))
 
-(add-hook 'semanticdb-mode-hooks 'semantic-imenu-semanticdb-hook)
+(add-hook 'semanticdb-mode-hook 'semantic-imenu-semanticdb-hook)
 
 ;;; Interactive Utilities
 ;;
