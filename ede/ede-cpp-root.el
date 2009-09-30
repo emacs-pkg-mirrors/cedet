@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-cpp-root.el,v 1.20 2009/03/05 02:39:05 zappo Exp $
+;; X-RCS: $Id: ede-cpp-root.el,v 1.21 2009/09/30 23:49:52 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -500,8 +500,8 @@ Also set up the lexical preprocessor map."
 	 (when (not table)
 	   (message "Cannot find file %s in project." F))
 	 (when (and table (semanticdb-needs-refresh-p table))
-	   (semanticdb-refresh-table table))
-	 (setq spp (append spp (oref table lexical-table)))))
+	   (semanticdb-refresh-table table)
+	   (setq spp (append spp (oref table lexical-table))))))
      (oref this spp-files))
     spp))
 
