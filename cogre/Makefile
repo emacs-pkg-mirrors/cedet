@@ -10,23 +10,23 @@ top=
 ede_FILES=Project.ede Makefile
 
 wy_SEMANTIC_GRAMMAR=wisent-dot.wy
+LOADPATH= ../common/
+COGRE_LISP=cogre.el cogre-uml.el cogre-periodic.el cogre-ascii.el cogre-srecode.el cogre-convert.el cogre-layout.el cogre-semantic.el
+EMACSFLAGS=-batch --no-site-file
 EMACS=emacs
 LOADPATH= ../ede/ ../common/ ../semantic/ ../eieio/\
     ../semantic/wisent/  ../srecode/ ../speedbar/ ../semantic/bovine/
 wy_SEMANTIC_GRAMMAR_EL=wisent-dot-wy.el
-EMACS=emacs
 LOADDEFS=cogre-loaddefs.el
 LOADDIRS=.
 init_LISP=cogre-load.el
-EMACS=emacs
-EMACSFLAGS=-batch --no-site-file
+ELISPPRELOAD= cedet-compat
 dot_LISP=wisent-dot.el cogre-dot-mode.el
 Mode_LISP=cogre-mode.el
 info_TEXINFOS=cogre.texi
 MAKEINFO=makeinfo
 misc_MISC=INSTALL ChangeLog
 hacks_LISP=picture-hack.el
-COGRE_LISP=cogre.el cogre-uml.el cogre-periodic.el cogre-ascii.el cogre-srecode.el cogre-convert.el cogre-layout.el cogre-semantic.el
 utests_LISP=cogre-utest.el
 icons_MISC=cogre-class.xpm cogre-hasa.xpm cogre-isa.xpm cogre-package.xpm cogre-node.xpm cogre-instance.xpm cogre-arrow.xpm cogre-link.xpm cogre-note.xpm
 VERSION=1.0pre7
@@ -61,6 +61,9 @@ init: $(init_LISP)
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
+	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
@@ -70,6 +73,9 @@ dot: $(dot_LISP)
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
+	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
@@ -78,6 +84,9 @@ Mode: $(Mode_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
@@ -103,6 +112,9 @@ COGRE: $(COGRE_LISP)
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
+	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
@@ -111,6 +123,9 @@ utests: $(utests_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
