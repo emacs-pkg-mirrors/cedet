@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.81 2009/09/29 01:29:53 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.82 2009/10/01 01:56:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -92,7 +92,6 @@
 	(while (popup-up-p) (dispatch-event (next-event))))
       )
   ;; Emacs Bindings
-  (defalias 'semantic-buffer-local-value      'buffer-local-value)
   (defalias 'semantic-overlay-live-p          'overlay-buffer)
   (defalias 'semantic-make-overlay            'make-overlay)
   (defalias 'semantic-overlay-put             'overlay-put)
@@ -115,6 +114,13 @@
   (defun semantic-event-window (event)
     "Extract the window from EVENT."
     (car (car (cdr event))))
+
+  (if (> emacs-major-version 21)
+      (defalias 'semantic-buffer-local-value 'buffer-local-value)
+
+    (defun semantic-buffer-local-value (sym &optional buf)
+      "Get the value of SYM from buffer local variable in BUF."
+      (cdr (assoc sym (buffer-local-variables buf)))))
   )
 
 (if (and (not (featurep 'xemacs))
