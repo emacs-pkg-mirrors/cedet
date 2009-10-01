@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.72 2009/09/29 01:31:32 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.73 2009/10/01 02:28:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1168,12 +1168,12 @@ current tag declaration."
 ;;;###autoload
 (defun semantic-highlight-func-mode (&optional arg)
   "Minor mode to highlight the first line of the current tag.
-Enables/disables making the header line of functions sticky.
+Enables/disables making current function firstline light up.
 A function (or other tag class specified by
-`semantic-stickfunc-sticky-classes') is highlighted, meaning the
+`semantic-stickyfunc-sticky-classes') is highlighted, meaning the
 first line which describes the rest of the construct.
 
-See `semantic-stickfunc-mode' for putting a function in the
+See `semantic-stickyfunc-mode' for putting a function in the
 header line.  This mode recycles the stickyfunc configuration
 classes list.
 
