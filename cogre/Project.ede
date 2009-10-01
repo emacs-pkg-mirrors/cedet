@@ -19,17 +19,21 @@
     :name "init"
     :path ""
     :source '("cogre-load.el")
+    :compiler 'ede-emacs-preload-compiler
+    :pre-load-packages '("cedet-compat")
     )
    (ede-proj-target-elisp "dot"
     :name "dot"
     :path ""
     :source '("wisent-dot.el" "cogre-dot-mode.el")
+    :compiler 'ede-emacs-preload-compiler
     :aux-packages '("wisent" "mode-local")
     )
    (ede-proj-target-elisp "Mode"
     :name "Mode"
     :path ""
     :source '("cogre-mode.el")
+    :compiler 'ede-emacs-preload-compiler
     )
    (ede-proj-target-makefile-info "info"
     :name "info"
@@ -51,12 +55,14 @@
     :path ""
     :source '("cogre.el" "cogre-uml.el" "cogre-periodic.el" "cogre-ascii.el" "cogre-srecode.el" "cogre-convert.el" "cogre-layout.el" "cogre-semantic.el")
     :versionsource '("cogre.el")
+    :compiler 'ede-emacs-preload-compiler
     :aux-packages '("eieio" "semantic" "semantic-el" "inversion" "speedbar" "srecode")
     )
    (ede-proj-target-elisp "utests"
     :name "utests"
     :path ""
     :source '("cogre-utest.el")
+    :compiler 'ede-emacs-preload-compiler
     )
    (ede-proj-target-makefile-miscelaneous "icons"
     :name "icons"
