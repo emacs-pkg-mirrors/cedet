@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.59 2009/09/14 02:31:17 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.60 2009/10/01 02:23:25 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -114,7 +114,7 @@ MFILENAME is the makefile to generate."
 				  targ))))
 	  ;; Distribution variables
 	  (ede-compiler-begin-unique
-	    (mapcar 'ede-proj-makefile-insert-variables targ))
+	    (mapc 'ede-proj-makefile-insert-variables targ))
 	  ;; Only add the distribution stuff in when depth != 0
 	  (let ((top  (ede-toplevel this))
 		(tmp this)
@@ -236,20 +236,32 @@ MFILENAME is the makefile to generate."
   "Add VARNAME into the current Makefile.
 Execute BODY in a location where a value can be placed."
   `(let ((addcr t) (v ,varname))
-       (if (re-search-backward (concat "^" v "\\s-*=") nil t)
-	   (progn
-	     (ede-pmake-end-of-variable)
-	     (if (< (current-column) 40)
-		 (if (and (/= (preceding-char) ?=)
-			  (/= (preceding-char) ? ))
-		     (insert " "))
-	       (insert "\\\n   "))
-	     (setq addcr nil))
-	 (insert v "="))
+     (if (re-search-backward (concat "^" v "\\s-*=") nil t)
+	 (progn
+	   (ede-pmake-end-of-variable)
+	   (if (< (current-column) 40)
+	       (if (and (/= (preceding-char) ?=)
+			(/= (preceding-char) ? ))
+		   (insert " "))
+	     (insert "\\\n   "))
+	   (setq addcr nil))
+       (insert v "="))
+     ,@body
+     (if addcr (insert "\n"))
+     (goto-char (point-max))))
+(put 'ede-pmake-insert-variable-shared 'lisp-indent-function 1)
+
+(defmacro ede-pmake-insert-variable-once (varname &rest body)
+  "Add VARNAME into the current Makefile if it doesn't exist.
+Execute BODY in a location where a value can be placed."
+  `(let ((addcr t) (v ,varname))
+     (unless (re-search-backward (concat "^" v "\\s-*=") nil t)
+       (insert v "=")
        ,@body
        (if addcr (insert "\n"))
-       (goto-char (point-max))))
-(put 'ede-pmake-insert-variable-shared 'lisp-indent-function 1)
+       (goto-char (point-max)))
+     ))
+(put 'ede-pmake-insert-variable-once 'lisp-indent-function 1)
 
 ;;; SOURCE VARIABLE NAME CONSTRUCTION
 ;;
