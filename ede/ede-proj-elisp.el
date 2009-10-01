@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.39 2009/10/01 00:30:30 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.40 2009/10/01 02:24:22 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -53,7 +53,8 @@ load path."
 		      :custom (repeat string)
 		      :documentation "Additional packages to pre-load.
 Each package name will be loaded with `require'.
-Each package's directory should also appear in :aux-packages via a package name.")
+Each package's directory should also appear in :aux-packages via a package name.
+You must use the `ede-emacs-preload-compiler' if you provide values in this slot.")
    )
   "This target consists of a group of lisp files.
 A lisp target may be one general program with many separate lisp files in it.")
