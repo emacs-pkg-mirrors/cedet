@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.137 2009/07/17 02:00:04 zappo Exp $
+;; RCS: $Id: ede.el,v 1.138 2009/10/03 19:15:08 zappo Exp $
 (defconst ede-version "1.0pre7"
   "Current version of the Emacs EDE.")
 
@@ -473,11 +473,13 @@ Do not set this to non-nil globally.  It is used internally.")
       )))
 
 ;;; Get the cache usable.
-(add-hook 'kill-emacs-hook 'ede-save-cache)
-(when (not noninteractive)
-  ;; No need to load the EDE cache if we aren't interactive.
-  ;; This occurs during batch byte-compiling of other tools.
-  (ede-load-cache))
+
+;; @TODO - Remove this cache setup, or use this for something helpful.
+;;(add-hook 'kill-emacs-hook 'ede-save-cache)
+;;(when (not noninteractive)
+;;  ;; No need to load the EDE cache if we aren't interactive.
+;;  ;; This occurs during batch byte-compiling of other tools.
+;;  (ede-load-cache))
 
 
 ;;; Important macros for doing commands.
@@ -633,7 +635,9 @@ Argument MENU-DEF is the menu definition to use."
     "Target Forms"
     (let ((obj (or ede-selected-object ede-object)))
       (append
-       '([ "Add File" ede-add-file (ede-current-project) ]
+       '([ "Add File" ede-add-file
+	   (and (ede-current-project)
+		(oref (ede-current-project) targets)) ]
 	 [ "Remove File" ede-remove-file
 	   (and ede-object
 		(or (listp ede-object)
@@ -1916,6 +1920,7 @@ If VARIABLE is not project local, just use set."
 
 ;;; Lame stuff
 ;;
+;; @todo - Can I remove this?
 (defun ede-or (arg)
   "Do `or' like stuff to ARG because you can't apply `or'."
   (while (and arg (not (car arg)))
