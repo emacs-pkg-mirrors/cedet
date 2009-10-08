@@ -4,7 +4,7 @@
 
 ;; Author: Marco (Bj) Bardelli <bardelli.marco@gmail.com>
 ;; Keywords: project, make, gnustep, gnustep-make
-;; RCS: $Id: ede-gnustep.el,v 1.9 2009/09/22 00:01:35 safanaj Exp $
+;; RCS: $Id: ede-gnustep.el,v 1.10 2009/10/08 21:11:31 safanaj Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -71,6 +71,10 @@
   (require 'ede)
   (require 'ede-proj)
   (require 'makefile-edit)
+  ;; to easy parsing of GNUmakefiles
+  (require 'semantic)
+  (require 'semantic-find)
+  (require 'semantic-tag-file)
   )
 
 (unless (fboundp 'string-file-contents)
@@ -328,9 +332,6 @@ GNUmakefiles, and possibly a ProjStep.ede could be created. In writer mode,
 the behavoir is the same that in any ede-proj-project, scan ProjStep.ede to
 write Makefiles")
 
-   (makefile :initarg :makefile :initform ""
-	     :type string :documentation "GNUmakefile."
-	     :group (make settings))
    (init-variables
     :initarg :init-variables
     :initform nil
@@ -392,6 +393,12 @@ The variable GNUSTEP_INSTALLATION_DOMAIN is set at this value.")
 	     :group make
 	     :documentation "The auxilliary makefile for additional variables.
 Included just before the specific target files.")
+   (included-makefiles :initarg :included-makefiles
+		       :type (or null list)
+		       :custom (repeat (string :tag "Makefile"))
+		       :group make
+		       :documentation "The auxilliary makefile for targets rules.
+Included common and specific target files.")
    (postamble :initarg :postamble
 	     :initform '("GNUmakefile.postamble")
 	     :type (or null list)
@@ -460,7 +467,7 @@ making a tar file.")
 				   :project-mode 'scanner
 				   :directory (file-name-as-directory dir)
 				   :file (expand-file-name prj-file dir)
-				   :makefile (file-name-nondirectory mf)
+;				   :makefile (file-name-nondirectory mf)
 				   ;; bind :targets
 				   :targets nil))
 	   (oset proj-obj :project-mode 'scanner)))
@@ -924,7 +931,8 @@ Argument COMMAND is the command to use for compiling the target."
 ;; FIX XXX
 (defmethod ede-proj-dist-makefile ((this ede-step-project))
   "Return the name of the Makefile with the DIST target in it for THIS."
-  (concat (file-name-directory (oref this file)) "GNUmakefile"))
+  (or (ede-gnustep-get-valid-makefile (oref this directory))
+      (concat (file-name-directory (oref this file)) "GNUmakefile")))
 
 ;; (defun ede-proj-regenerate ()
 ;;   "Regenerate Makefiles for and edeproject project."
@@ -957,6 +965,39 @@ Optional argument FORCE will force items to be regenerated."
 
 ;;; Lower level overloads
 ;;
+;; utils using semantic for parsing.
+(defsubst ede-gnustep-semantic-tags-named ()
+  (semantic--find-tags-by-function
+   '(lambda (tag)(string-match "_NAME$" (car tag)))
+   (current-buffer)))
+
+(defsubst ede-gnustep-semantic-tags-subprojects ()
+  (semantic--find-tags-by-function
+   '(lambda (tag)(string-match "^SUBPROJECTS$" (car tag)))
+   (current-buffer)))
+
+(defsubst ede-gnustep-semantic-tags-included-files ()
+  (semantic--find-tags-by-function
+   '(lambda (tag)(eq 'include (cadr tag)))
+   (current-buffer)))
+
+(defsubst ede-gnustep-semantic-tags-all-variables ()
+  (semantic--find-tags-by-function
+   '(lambda (tag)(eq 'variable (cadr tag)))
+   (current-buffer)))
+
+(defsubst ede-gnustep-semantic-value-for-tag (tag)
+  (cadr (caddr tag)))
+
+(defun ede-gnustep-semantic-tag-for-value (name)
+  (let ((tags (semantic-fetch-tags))(found nil))
+    (while (and tags (not found))
+      (and (member name (ede-gnustep-semantic-value-for-tag (car tags)))
+	   (setq found (car tags)))
+      (setq tags (cdr tags)))
+    found))
+
+
 ;; maybe require some makefile utils
 (defmethod project-rescan ((this ede-step-project))
   "Rescan the EDE proj project THIS."
@@ -998,82 +1039,95 @@ Optional argument FORCE will force items to be regenerated."
 
 	;; Scanner-mode
 	((eq 'scanner (oref this project-mode))
-	 (let ((mf (or (and (not (string= "" (oref this :makefile)))
-			    (oref this :makefile))
-		       (ede-gnustep-get-valid-makefile (oref this :directory))))
+	 (let ((mf (ede-gnustep-get-valid-makefile (oref this :directory)))
 	       (otargets (oref this targets))
 	       (osubproj (oref this subproj))
 	       (pn (oref this :name)) (ntargets nil) (nsubproj nil))
 	   (when mf
-	     (oset this :makefile (file-name-nondirectory mf))
+;	     (oset this :makefile (file-name-nondirectory mf))
 	     (with-temp-buffer
 	       (insert-file-contents 
 		(expand-file-name mf (oref this :directory)))
 	       (goto-char (point-min))
-	       (mapc
-		;; Map all the different types
-		(lambda (typecar)
-		  (let ((macro (nth 2 typecar))
-			(class (nth 1 typecar))
-			)
-		    (let ((tmp nil)(targets (makefile-macro-file-list macro)))
-		      (setq targets (remove-duplicates targets :test 'equal))
-		      (while targets
-			(setq tmp (object-assoc (car targets) 'name otargets))
-			(when (not tmp)
-			  (if (eq class 'ede-step-project)
-			      ;; I found a sub project.
-			      (let ((spdir
-				     (file-name-as-directory
-				      (expand-file-name (car targets)(oref this :directory)))) mf)
-				(when (and
-				       (file-directory-p spdir)
-				       (setq mf (ede-gnustep-get-valid-makefile spdir)))
-				  ;; For each project id found, see if we need to recycle,
-				  ;; and if we do not, then make a new one.  Check the deep
-				  ;; rescan value for behavior patterns.
-				  (setq tmp (object-assoc spdir 'directory osubproj))
-				  (unless tmp
-				    (setq tmp
-					  (condition-case nil
-					      ;; In case of problem, ignore it.
-					      (ede-step-project
-					       (car targets) :name (car targets)
-					       :project-mode 'scanner
-					       :directory spdir
-					       :file (expand-file-name "ProjStep.ede" spdir)
-					       :makefile (file-name-nondirectory mf)
-					       :targets nil)
-					    (error nil)))
-				    ;; new subproject
+	       (let ((named (ede-gnustep-semantic-tags-named))
+		     (subprojs (ede-gnustep-semantic-tags-subprojects))
+		     (included (ede-gnustep-semantic-tags-included-files))
+		     (allvariables (ede-gnustep-semantic-tags-all-variables))
+		     inst-domain)
+		 (oset this included-makefiles included)
+		 (setq inst-domain 
+		       (ede-gnustep-semantic-value-for-tag
+			(assoc "GNUSTEP_INSTALLATION_DOMAIN" allvariables)))
+		 (cond ((string= "USER" inst-domain)(oset this installation-domain 'user))
+		       ((string= "SYSTEM" inst-domain)(oset this installation-domain 'system))
+		       ((string= "NETWORK" inst-domain)(oset this installation-domain 'network))
+		       (t (oset this installation-domain 'local)))
+		 (mapc
+		  ;; Map all the different types
+		  (lambda (typecar)
+		    (let ((macro (nth 2 typecar))
+			  (class (nth 1 typecar))
+			  )
+		      (let ((tmp nil)(targets (makefile-macro-file-list macro)))
+			(setq targets (remove-duplicates targets :test 'equal))
+			(while targets
+			  (setq tmp (object-assoc (car targets) 'name otargets))
+			  (when (not tmp)
+			    (if (eq class 'ede-step-project)
+				;; I found a sub project.
+				(let ((spdir
+				       (file-name-as-directory
+					(expand-file-name (car targets)(oref this :directory)))) mf)
+				  (when (and
+					 (file-directory-p spdir)
+					 (setq mf (ede-gnustep-get-valid-makefile spdir)))
+				    ;; For each project id found, see if we need to recycle,
+				    ;; and if we do not, then make a new one.  Check the deep
+				    ;; rescan value for behavior patterns.
+				    (setq tmp (object-assoc spdir 'directory osubproj))
+				    (unless tmp
+				      (setq tmp
+					    (condition-case nil
+						;; In case of problem, ignore it.
+						(ede-step-project
+						 (car targets) :name (car targets)
+						 :project-mode 'scanner
+						 :directory spdir
+						 :file (expand-file-name "ProjStep.ede" spdir)
+						 :targets nil)
+					      (error nil)))
+				      ;; new subproject
 				      (and (ede-step-project-child-p tmp)
 					   (setq nsubproj (cons tmp nsubproj))))
-				  (when tmp
-				    ;; force to be a subproject and in scanner mode
-;				    (oset tmp rootproj (or (oref this rootproj) this))
-				    (oset tmp project-mode 'scanner)
-				    ;; rescan subproj after, in tail
-				    ;; (if ede-deep-rescan (project-rescan tmp))
-				    )))
-			    
-			    ;; I found a non-subproject target.
-			    (setq tmp (apply class (car targets) :name (car targets)
-					     :path (oref this :directory) nil))
-			    (setq ntargets (cons tmp ntargets))
-			    ))
-			;; If we have tmp, then rescan it only if deep mode.
-			(if (and ede-deep-rescan (ede-step-target-child-p tmp))
-			    (project-rescan tmp))
-			(setq targets (cdr targets))))))
-		ede-step-target-alist)
-	       ) ;; close temp buffer, we don't need makefile-macro-file-list
-	     (oset this :targets (append ntargets otargets))
-	     (oset this subproj (append nsubproj osubproj))
-	     (ede-step-save this)
-	     (if ede-deep-rescan
-		 (dolist (SP (oref this subproj))
-		   (project-rescan SP)))
-	     )))))
+				    (when tmp
+				      ;; force to be a subproject and in scanner mode
+					;				    (oset tmp rootproj (or (oref this rootproj) this))
+				      (oset tmp project-mode 'scanner)
+				      ;; rescan subproj after, in tail
+				      ;; (if ede-deep-rescan (project-rescan tmp))
+				      )))
+			      
+			      ;; I found a non-subproject target.
+			      (setq tmp (apply class (car targets) :name (car targets)
+					       :path (oref this :directory)
+					       :makefile (ede-gnustep-get-valid-makefile
+							  (oref this :directory))
+					       nil))
+			      (setq ntargets (cons tmp ntargets))
+			      ))
+			  ;; If we have tmp, then rescan it only if deep mode.
+			  (if (and ede-deep-rescan (ede-step-target-child-p tmp))
+			      (project-rescan tmp))
+			  (setq targets (cdr targets))))))
+		  ede-step-target-alist)
+		 ) ;; close temp buffer, we don't need makefile-macro-file-list
+	       (oset this :targets (append ntargets otargets))
+	       (oset this subproj (append nsubproj osubproj))
+	       (ede-step-save this)
+	       (if ede-deep-rescan
+		   (dolist (SP (oref this subproj))
+		     (project-rescan SP)))
+	       ))))))
 
 (defmethod project-rescan ((this ede-step-target) &optional readstream)
   "Rescan target THIS from the read list READSTREAM."
