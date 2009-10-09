@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: ede-pconf.el,v 1.16 2009/09/14 02:33:54 zappo Exp $
+;; RCS: $Id: ede-pconf.el,v 1.17 2009/10/09 19:45:16 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -98,13 +98,8 @@ don't do it.  A value of nil means to just do it.")
        (ede-map-targets this 'ede-proj-tweak-autoconf)))
     ;; Now save
     (save-buffer)
-    ;; Verify aclocal
-    (setq postcmd "aclocal;")
-    ;; Always add missing files as needed.
-    (setq postcmd (concat postcmd "automake --add-missing;"))
+    (setq postcmd "autoreconf -i;")
 
-    ;; Always do autoreconf
-    (setq postcmd (concat postcmd "autoreconf;"))
     ;; Verify a bunch of files that are required by automake.
     (ede-proj-configure-test-required-file this "AUTHORS")
     (ede-proj-configure-test-required-file this "NEWS")
