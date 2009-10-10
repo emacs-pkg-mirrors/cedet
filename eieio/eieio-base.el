@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.28 2009/07/03 11:30:33 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.29 2009/10/10 15:10:00 davenar Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -275,7 +275,11 @@ instance."
 			(eieio-persistent-path-relative this file)
 		      (file-name-nondirectory cfn)))
 	      (object-write this (oref this file-header-line)))
-	    (let ((backup-inhibited (not (oref this do-backups))))
+	    (let ((backup-inhibited (not (oref this do-backups)))
+		  (cs (car (find-coding-systems-region
+			    (point-min) (point-max)))))
+	      (unless (eq cs 'undecided)
+		(setq buffer-file-coding-system cs))
 	      ;; Old way - write file.  Leaves message behind.
 	      ;;(write-file cfn nil)
 	      
