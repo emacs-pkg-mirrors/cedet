@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.58 2009/09/29 01:30:19 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.59 2009/10/13 03:17:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -897,9 +897,10 @@ visible, then highlight it."
 	       ))))
     nil))
 
+
 (define-semantic-idle-service semantic-idle-tag-highlight
   "Highlight the tag, and references of the symbol under point.
-Call `semantic-analyze-current-context' to find the reference tag.
+Call `semantic-analyze-current-context' to find the refer ence tag.
 Call `semantic-symref-hits-in-region' to identify local references."
   (when (semantic-idle-summary-useful-context-p)
     (let* ((ctxt (semantic-analyze-current-context))
@@ -920,7 +921,7 @@ Call `semantic-symref-hits-in-region' to identify local references."
 	   target (lambda (start end prefix)
 		    (when (/= start (car Hbounds))
 		      (pulse-momentary-highlight-region
-		       start end))
+		       start end semantic-idle-summary-highlight-face))
 		    (semantic-throw-on-input 'symref-highlight)
 		    )
 	   (semantic-tag-start tag)
