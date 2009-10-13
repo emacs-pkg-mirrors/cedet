@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.36 2009/09/11 23:45:29 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.37 2009/10/13 03:22:14 zappo Exp $
 
 ;; InVersion is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -77,10 +77,10 @@
 
 (defconst inversion-decoders
   '(
-    (alpha  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*alpha\\([0-9]+\\)?$" 3)
-    (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*beta\\([0-9]+\\)?$" 3)
+    (alpha  "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*\\.?alpha\\([0-9]+\\)?$" 3)
+    (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*\\.?beta\\([0-9]+\\)?$" 3)
     (beta   "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*(beta\\([0-9]+\\)?)" 3)
-    (prerelease "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*pre\\([0-9]+\\)?$" 3)
+    (prerelease "^\\([0-9]+\\)\\.\\([0-9]+\\)\\s-*\\.?pre\\([0-9]+\\)?$" 3)
     (full   "^\\([0-9]+\\)\\.\\([0-9]+\\)$" 2)
     (fullsingle "^\\([0-9]+\\)$" 1)
     (patch  "^\\([0-9]+\\)\\.\\([0-9]+\\) (patch \\([0-9]+\\))" 3)
