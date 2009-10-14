@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.62 2009/08/08 21:44:10 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.63 2009/10/14 02:27:00 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@
 	      :custom (repeat (string :tag "File"))
 	      :label "Auxiliary Source Files"
 	      :group (default source)
-	      :documentation "Auxilliary source files included in this target.
+	      :documentation "Auxiliary source files included in this target.
 Each of these is considered equivalent to a source file, but it is not
 distributed, and each should have a corresponding rule to build it.")
    (dirty :initform nil
@@ -351,7 +351,7 @@ Argument TARGET is the project we are completing customization on."
 			       &optional name type autoadd)
   "Create a new target in THIS based on the current buffer."
   (let* ((name (or name (read-string "Name: " "")))
-	 (type (or type 
+	 (type (or type
 		   (completing-read "Type: " ede-proj-target-alist
 				    nil t nil '(ede-proj-target-history . 1))))
 	 (ot nil)
@@ -364,7 +364,7 @@ Argument TARGET is the project we are completing customization on."
 	 )
 
     (when (not fcn)
-      (error "Unknown target type %s for EDE Project." type))
+      (error "Unknown target type %s for EDE Project" type))
 
     (setq ot (funcall fcn name :name name
 		      :path (ede-convert-path this default-directory)
@@ -453,9 +453,10 @@ FILE must be massaged by `ede-convert-path'."
 	     (not (y-or-n-p "Dist file already exists.  Rebuild? ")))
 	(error "Try `ede-update-version' before making a distribution"))
     (ede-proj-setup-buildenvironment this)
-    (if (string= pm "Makefile.am") (setq pm "Makefile"))
-    (compile (concat ede-make-command " -f " pm " dist"))
-    ))
+    (if (string= (file-name-nondirectory pm) "Makefile.am")
+	(setq pm (expand-file-name "Makefile"
+				   (file-name-directory pm))))
+    (compile (concat ede-make-command " -f " pm " dist"))))
 
 (defmethod project-dist-files ((this ede-proj-project))
   "Return a list of files that constitutes a distribution of THIS project."
@@ -470,7 +471,9 @@ Argument COMMAND is the command to use when compiling."
   (let ((pm (ede-proj-dist-makefile proj))
 	(default-directory (file-name-directory (oref proj file))))
     (ede-proj-setup-buildenvironment proj)
-    (if (string= pm "Makefile.am") (setq pm "Makefile"))
+    (if (string= (file-name-nondirectory pm) "Makefile.am")
+	(setq pm (expand-file-name "Makefile"
+				   (file-name-directory pm))))
     (compile (concat ede-make-command" -f " pm " all"))))
 
 ;;; Target type specific compilations/debug
@@ -567,7 +570,7 @@ Converts all symbols into the objects to be used."
 	    (setq link (cdr avail)))))
       ;; Return the disovered linkers
       link)))
-    
+
 
 ;;; Target type specific autogenerating gobbldegook.
 ;;
@@ -599,11 +602,11 @@ Converts all symbols into the objects to be used."
 	 (concat (file-name-directory (oref this file))
 		 "Makefile.am"))
 	((eq (oref this makefile-type) 'Makefile.in)
-	 (concat (file-name-directory (oref this file))
-		 "Makefile.in"))
+	 (expand-file-name "Makefile.in"
+			   (file-name-directory (oref this file))))
 	((object-assoc "Makefile" 'makefile (oref this targets))
-	 (concat (file-name-directory (oref this file))
-		 "Makefile"))
+	 (expand-file-name "Makefile"
+			   (file-name-directory (oref this file))))
 	(t
 	 (let ((targets (oref this targets)))
 	   (while (and targets
@@ -612,8 +615,8 @@ Converts all symbols into the objects to be used."
 			     'ede-proj-target-makefile)))
 	     (setq targets (cdr targets)))
 	   (if targets (oref (car targets) makefile)
-	     (concat (file-name-directory (oref this file))
-		     "Makefile"))))))
+	     (expand-file-name "Makefile"
+			       (file-name-directory (oref this file))))))))
 
 (defun ede-proj-regenerate ()
   "Regenerate Makefiles for and edeproject project."
@@ -654,7 +657,7 @@ Optional argument FORCE will force items to be regenerated."
 
 
 ;;; Lower level overloads
-;;  
+;;
 (defmethod project-rescan ((this ede-proj-project))
   "Rescan the EDE proj project THIS."
   (let ((root (or (ede-project-root this) this))
@@ -662,7 +665,7 @@ Optional argument FORCE will force items to be regenerated."
     (setq ede-projects (delq root ede-projects))
     (ede-proj-load (ede-project-root-directory root))
     ))
-	
+
 (defmethod project-rescan ((this ede-proj-target) readstream)
   "Rescan target THIS from the read list READSTREAM."
   (setq readstream (cdr (cdr readstream))) ;; constructor/name
