@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-obj.el,v 1.15 2009/07/03 11:35:17 zappo Exp $
+;; RCS: $Id: ede-proj-obj.el,v 1.16 2009/10/14 01:55:00 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -48,11 +48,12 @@
 				  ;; fortran or pascal can be added here
 				  ))
    (availablelinkers :initform (ede-g++-linker
-				;; Add more linker thingies here.
+				ede-cc-linker
 				ede-ld-linker
 				ede-gfortran-linker
+				;; Add more linker thingies here.
 				))
-   (sourcetype :initform (ede-source-c 
+   (sourcetype :initform (ede-source-c
 			  ede-source-c++
 			  ede-source-f77
 			  ede-source-f90
@@ -108,6 +109,16 @@ file.")
    :makedepends t
    :uselinker t)
   "Compiler for C sourcecode.")
+
+(defvar ede-cc-linker
+  (ede-linker
+   "ede-cc-linker"
+   :name "cc"
+   :sourcetype '(ede-source-c)
+   :variables  '(("C_LINK" . "$(CC) $(CFLAGS) $(LDFLAGS) -L."))
+   :commands '("$(C_LINK) -o $@ $^")
+   :objectextention "")
+   "Linker for C sourcecode.")
 
 (defvar ede-source-c++
   (ede-sourcecode "ede-source-c++"
