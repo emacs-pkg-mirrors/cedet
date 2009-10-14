@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-obj.el,v 1.16 2009/10/14 01:55:00 zappo Exp $
+;; RCS: $Id: ede-proj-obj.el,v 1.17 2009/10/14 02:18:42 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 ;;
-;; Handles a supperclass of target types which create object code in
+;; Handles a superclass of target types which create object code in
 ;; and EDE Project file.
 
 (require 'ede-proj)
@@ -158,10 +158,8 @@ file.")
    :name "g++"
    ;; Only use this linker when c++ exists.
    :sourcetype '(ede-source-c++)
-   :variables  '(("CXX_LINK" .
-		  "$(CXX) $(CFLAGS) $(LDFLAGS) -L. -o $@")
-		 )
-   :commands '("$(CXX_LINK) $^")
+   :variables  '(("CXX_LINK" . "$(CXX) $(CFLAGS) $(LDFLAGS) -L."))
+   :commands '("$(CXX_LINK) -o $@ $^")
    :autoconf '("AC_PROG_CXX")
    :objectextention "")
   "Linker needed for c++ programs.")
@@ -223,10 +221,8 @@ file.")
    "ede-gfortran-linker"
    :name "gfortran"
    :sourcetype '(ede-source-f90 ede-source-f77)
-   :variables  '(("F90_LINK" .
-		  "$(F90) $(CFLAGS) $(LDFLAGS) -L. -o $@")
-		 )
-   :commands '("$(F90_LINK) $^")
+   :variables  '(("F90_LINK" . "$(F90) $(CFLAGS) $(LDFLAGS) -L."))
+   :commands '("$(F90_LINK) -o $@ $^")
    :objectextention "")
   "Linker needed for Fortran programs.")
 
@@ -237,10 +233,8 @@ file.")
    "ede-ld-linker"
    :name "ld"
    :variables  '(("LD" . "ld")
-		 ("LD_LINK" .
-		  "$(LD) $(LDFLAGS) -L. -o $@")
-		 )
-   :commands '("$(LD_LINK) $^")
+		 ("LD_LINK" . "$(LD) $(LDFLAGS) -L."))
+   :commands '("$(LD_LINK) -o $@ $^")
    :objectextention "")
   "Linker needed for c++ programs.")
 
