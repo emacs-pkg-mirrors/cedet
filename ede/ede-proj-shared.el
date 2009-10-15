@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-shared.el,v 1.12 2009/10/15 02:51:48 zappo Exp $
+;; RCS: $Id: ede-proj-shared.el,v 1.13 2009/10/15 03:02:58 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -196,10 +196,7 @@ We need to override -program which has an LDADD element."
   "Return the name of the main target for THIS target."
   ;; We need some platform gunk to make the .so change to .sl, or .a,
   ;; depending on the platform we are going to compile against.
-  (concat "lib" (ede-name this)   
-	  (if (eq (oref (ede-target-parent this) makefile-type) 'Makefile.am)
-	      ".la"
-	    ".so")))
+  (concat "lib" (ede-name this) ".la"))
 
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-shared-object))
   "Return the variable name for THIS's sources."
