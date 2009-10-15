@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-shared.el,v 1.11 2009/10/09 19:49:22 zappo Exp $
+;; RCS: $Id: ede-proj-shared.el,v 1.12 2009/10/15 02:51:48 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,11 +34,15 @@
 ;;; Code:
 (defclass ede-proj-target-makefile-shared-object
   (ede-proj-target-makefile-program)
-  ((availablecompilers :initform (ede-gcc-shared-compiler
-				  ede-gcc-libtool-shared-compiler
-				  ede-g++-shared-compiler
+  ((availablecompilers :initform (ede-gcc-libtool-shared-compiler
+				  ;;ede-gcc-shared-compiler
 				  ede-g++-libtool-shared-compiler
+				  ;;ede-g++-shared-compiler
 				  ))
+   (availablelinkers :initform (ede-cc-linker-libtool
+				ede-g++-linker-libtool
+				;; Add more linker thingies here.
+				))
    (ldflags :custom (repeat (string :tag "Libtool flag"))
 	    :documentation
 	    "Additional flags to add when linking this shared library.
@@ -66,15 +70,36 @@ Use ldlibs to add addition libraries.")
   (clone ede-gcc-shared-compiler
 	 "ede-c-shared-compiler-libtool"
 	 :name "libtool"
-	 :variables '(("LIBTOOL" . "$(SHELL) libtool")
+	 :variables '(("LIBTOOL" . "libtool")
 		      ("LTCOMPILE" . "$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)")
 		      ("LTLINK" . "$(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) -L. -o $@")
 		      )
-	 :commands '("$(LTLINK) $^"
-		     )
+	 :rules (list (ede-makefile-rule
+		       "cc-inference-rule-libtool"
+		       :target "%.o"
+		       :dependencies "%.c"
+		       :rules '("@echo '$(LTCOMPILE) -o $@ $<'; \\"
+				"$(LTCOMPILE) -o $@ $<"
+				)
+		       ))
 	 :autoconf '("AC_PROG_LIBTOOL")
 	 )
   "Compiler for C sourcecode.")
+
+(defvar ede-cc-linker-libtool
+  (clone ede-cc-linker
+   "ede-cc-linker-libtool"
+   :name "cc shared"
+   ;; Only use this linker when c++ exists.
+   :sourcetype '(ede-source-c++)
+   :variables  '(
+		 ("LIBTOOL" . "libtool")
+		 ("LTLINK" . "$(LIBTOOL) --tag=CPP --mode=link $(CPP) $(CFLAGS) $(LDFLAGS) -L. -o $@")
+		 )
+   :commands '("$(LTLINK) -o $@ $^")
+   :autoconf '("AC_PROG_LIBTOOL")
+   :objectextention ".la")
+  "Linker needed for c++ programs.")
 
 (defvar ede-g++-shared-compiler
   (clone ede-g++-compiler
@@ -93,15 +118,35 @@ Use ldlibs to add addition libraries.")
 	 "ede-c++-shared-compiler-libtool"
 	 :name "libtool"
 	 :variables '(("CXX" "g++")
-		      ("LIBTOOL" . "$(SHELL) libtool")
-		      ("LTCOMPILE" . "$(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)")
-		      ("LTLINK" . "$(LIBTOOL) --mode=link $(CXX) $(CFLAGS) $(LDFLAGS) -L. -o $@")
+		      ("LIBTOOL" . "libtool")
+		      ("LTCOMPILE" . "$(LIBTOOL) --tag=CXX --mode=compile $(CXX) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)")
 		      )
-	 :commands '("$(LTLINK) $^"
-		     )
+	 :rules (list (ede-makefile-rule
+		       "c++-inference-rule-libtool"
+		       :target "%.o"
+		       :dependencies "%.c"
+		       :rules '("@echo '$(LTCOMPILE) -o $@ $<'; \\"
+				"$(LTCOMPILE) -o $@ $<"
+				)
+		       ))
 	 :autoconf '("AC_PROG_LIBTOOL")
 	 )
   "Compiler for C sourcecode.")
+
+(defvar ede-g++-linker-libtool
+  (clone ede-g++-linker
+   "ede-g++-linker-libtool"
+   :name "g++"
+   ;; Only use this linker when c++ exists.
+   :sourcetype '(ede-source-c++)
+   :variables  '(
+		 ("LIBTOOL" . "libtool")
+		 ("LTLINK" . "$(LIBTOOL) --tag=CXX --mode=link $(CXX) $(CFLAGS) $(LDFLAGS) -L. -o $@")
+		 )
+   :commands '("$(LTLINK) -o $@ $^")
+   :autoconf '("AC_PROG_LIBTOOL")
+   :objectextention ".la")
+  "Linker needed for c++ programs.")
 
 ;;; @TODO - C++ versions of the above.
 
@@ -155,13 +200,12 @@ We need to override -program which has an LDADD element."
 	  (if (eq (oref (ede-target-parent this) makefile-type) 'Makefile.am)
 	      ".la"
 	    ".so")))
- 
+
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-shared-object))
   "Return the variable name for THIS's sources."
   (if (eq (oref (ede-target-parent this) makefile-type) 'Makefile.am)
       (concat "lib" (oref this name) "_la_SOURCES")
     (call-next-method)))
-  
 
 (provide 'ede-proj-shared)
 
