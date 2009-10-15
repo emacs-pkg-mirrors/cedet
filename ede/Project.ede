@@ -14,24 +14,29 @@
     :name "init"
     :path ""
     :source '("ede-load.el")
+    :compiler 'ede-emacs-preload-compiler
+    :pre-load-packages '("cedet-compat")
     )
    (ede-proj-target-elisp "ede"
     :name "ede"
     :path ""
-    :source '("ede.el" "ede-dired.el" "ede-source.el" "ede-util.el" "ede-system.el" "ede-speedbar.el" "ede-srecode.el" "ede-files.el" "ede-locate.el" "ede-make.el")
+    :source '("ede.el" "ede-dired.el" "ede-source.el" "ede-util.el" "ede-system.el" "ede-speedbar.el" "ede-srecode.el" "ede-files.el" "ede-locate.el" "ede-make.el" "ede-shell.el")
     :versionsource '("ede.el")
+    :compiler 'ede-emacs-preload-compiler
     :aux-packages '("eieio" "speedbar" "cedet-files" "srecode")
     )
    (ede-proj-target-elisp "proj-project"
     :name "proj-project"
     :path ""
     :source '("ede-proj.el" "ede-pmake.el" "ede-pconf.el" "ede-proj-elisp.el" "ede-proj-misc.el" "ede-proj-obj.el" "ede-proj-prog.el" "ede-proj-archive.el" "ede-proj-shared.el" "ede-proj-info.el" "ede-proj-scheme.el" "ede-proj-aux.el" "ede-proj-comp.el")
+    :compiler 'ede-emacs-preload-compiler
     :aux-packages '("eieio" "speedbar" "cedet-files" "srecode")
     )
    (ede-proj-target-elisp "projects"
     :name "projects"
     :path ""
     :source '("project-am.el" "ede-simple.el" "ede-cpp-root.el" "ede-emacs.el" "ede-linux.el")
+    :compiler 'ede-emacs-preload-compiler
     :aux-packages '("eieio" "cedet-files")
     )
    (ede-proj-target-elisp "aux-lisp"
