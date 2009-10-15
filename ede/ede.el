@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.138 2009/10/03 19:15:08 zappo Exp $
+;; RCS: $Id: ede.el,v 1.139 2009/10/15 17:35:09 zappo Exp $
 (defconst ede-version "1.0pre7"
   "Current version of the Emacs EDE.")
 
@@ -199,6 +199,9 @@ which files this object is interested in."
 	 :initform ( [ "Debug target" ede-debug-target
 		       (and ede-object
 			    (obj-of-class-p ede-object ede-target)) ]
+		     [ "Run target" ede-run-target
+		       (and ede-object
+			    (obj-of-class-p ede-object ede-target)) ]
 		     )
 	 :documentation "Menu specialized to this type of target."
 	 :accessor ede-object-menu)
@@ -335,7 +338,8 @@ and target specific elements such as build variables.")
 		    :group (settings)
 		    :documentation "Project local variables")
    (keybindings :allocation :class
-		:initform (("D" . ede-debug-target))
+		:initform (("D" . ede-debug-target)
+			   ("R" . ede-run-target))
 		:documentation "Keybindings specialized to this type of target."
 		:accessor ede-object-keybindings)
    (menu :allocation :class
@@ -546,6 +550,7 @@ Argument LIST-O-O is the list of objects to choose from."
     (define-key pmap "c" 'ede-compile-target)
     (define-key pmap "\C-c" 'ede-compile-selected)
     (define-key pmap "D" 'ede-debug-target)
+    (define-key pmap "R" 'ede-run-target)
     ;; bind our submap into map
     (define-key map "\C-c." pmap)
     map)
@@ -1115,6 +1120,11 @@ Optional argument FORCE forces the file to be removed without asking."
   (interactive)
   (ede-invoke-method 'project-debug-target))
 
+(defun ede-run-target ()
+  "Debug the current buffer's assocated target."
+  (interactive)
+  (ede-invoke-method 'project-run-target))
+
 (defun ede-make-dist ()
   "Create a distribution from the current project."
   (interactive)
@@ -1358,6 +1368,10 @@ Argument COMMAND is the command to use for compiling the target."
 (defmethod project-debug-target ((obj ede-target))
   "Run the current project target OBJ in a debugger."
   (error "debug-target not supported by %s" (object-name obj)))
+
+(defmethod project-run-target ((obj ede-target))
+  "Run the current project target OBJ."
+  (error "run-target not supported by %s" (object-name obj)))
 
 ;;;###autoload
 (defmethod project-make-dist ((this ede-project))
