@@ -1,10 +1,10 @@
 ;;; ede-proj-%NAME%.el --- EDE Generic Project ...
 
-;;;  Copyright (C) 1999, 2000, 2001, 2008  Eric M. Ludlam
+;;;  Copyright (C) 1999, 2000, 2001, 2008, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-skel.el,v 1.13 2008/06/28 14:36:13 zappo Exp $
+;; RCS: $Id: ede-proj-skel.el,v 1.14 2009/10/15 17:38:18 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -208,6 +208,10 @@
 ;; If you don't support debugging, don't forget to also remove
 ;; any specialized keybindings and menu items in the class definition.
 (defmethod project-debug-target ((obj ede-proj-target-%NAME%))
+  "Run the current target OBJ in an debugger."
+  (%do-stuff%))
+
+(defmethod project-run-target ((obj ede-proj-target-%NAME%))
   "Run the current target OBJ in an debugger."
   (%do-stuff%))
 
