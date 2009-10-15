@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cit-cpp.el,v 1.6 2009/09/14 02:38:13 zappo Exp $
+;; X-RCS: $Id: cit-cpp.el,v 1.7 2009/10/15 02:55:46 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -164,29 +164,40 @@
   (cit-compile-and-wait)
   )
 
-(defun cit-remove-and-do-shared-lib ()
+(defun cit-remove-and-do-shared-lib (make-type)
   "Remove bar.cpp from the current project.
-Create a new shared lib with bar.cpp in it."
-  (when (string= make-type "Automake")
+Create a new shared lib with bar.cpp in it.
+Argument MAKE-TYPE is the type of make project to create."
+  (find-file (cit-file "src/bar.cpp"))
+  ;; Whack the file
+  (ede-remove-file t)
+  (kill-buffer (current-buffer))
+  (delete-file (cit-file "src/bar.cpp"))
 
-    (find-file (cit-file "src/bar.cpp"))
-    ;; Whack the file
-    (ede-remove-file t)
+  ;; Create a new shared lib target, and add bar.cpp to it.
+  (find-file (cit-file "lib/bar.cpp"))
+  (cit-srecode-fill-with-stuff "lib/bar.cpp" cit-src-cpp-tags)
+  (ede-new make-type "Libs")
+  (ede-new-target "testlib" "sharedobject" "n")
+  (ede-add-file "testlib")
 
-    ;; Create a new shared lib target, and add bar.cpp to it.
-    (ede-new-target "testlib" "sharedobject" "n")
-    (ede-add-file "testlib")
+  ;; 1 g) build the sources.
+  ;; Direct compile to test that make fails properly.
+  (compile ede-make-command)
+  ;; @todo - verify make error status
+  (while compilation-in-progress
+    (accept-process-output)
+    (sit-for 1))
 
-    ;; 1 g) build the sources.
-    ;; Direct compile to test that make fails properly.
-    (compile ede-make-command)
-    ;; @todo - verify make error status
-    (while compilation-in-progress
-      (accept-process-output)
-      (sit-for 1))
+  (let ((p (ede-current-project)))
+    (if (string= make-type "Automake")
+	(oset p :variables '( ( "AM_CPPFLAGS" . "-I../include") ))
+      (oset p :variables '( ( "CPPFLAGS" . "-I../include") )))
+    (ede-commit-project p)
+    )
 
-    (cit-compile-and-wait)
-    ))
+  (cit-compile-and-wait)
+  )
 
 (provide 'cit-cpp)
 ;;; cit-cpp.el ends here
