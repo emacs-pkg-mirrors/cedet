@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-shell.el,v 1.1 2009/10/15 16:31:32 zappo Exp $
+;; X-RCS: $Id: ede-shell.el,v 1.2 2009/10/15 17:34:04 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -35,7 +35,8 @@
 COMMAND is a text string representing the thing to be run."
   (let* ((name (ede-name target))
 	 (buff (get-buffer-create (format "*EDE Shell %s" name)))
-	 (dd (ede-expand-filename target "")))
+	 (cp (ede-target-parent target))
+	 (dd (oref cp :directory)))
     ;; Show the new buffer.
     (when (not (get-buffer-window buff))
       (switch-to-buffer-other-window buff t))
