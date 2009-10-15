@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: ede-pconf.el,v 1.17 2009/10/09 19:45:16 zappo Exp $
+;; RCS: $Id: ede-pconf.el,v 1.18 2009/10/15 03:31:52 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -41,21 +41,22 @@ don't do it.  A value of nil means to just do it.")
 
 (defmethod ede-proj-configure-test-required-file ((this ede-proj-project) file)
   "For project THIS, test that the file FILE exists, or create it."
-  (when (not (ede-expand-filename (ede-toplevel this) file))
-    (save-excursion
-      (find-file (ede-expand-filename (ede-toplevel this) file t))
-      (cond ((string= file "AUTHORS")
-	     (insert (user-full-name) " <" (user-login-name) ">"))
-	    ((string= file "NEWS")
-	     (insert "NEWS file for " (ede-name this)))
-	    (t (insert "\n")))
-      (save-buffer)
-      (when
-	  (and (eq ede-pconf-create-file-query 'ask)
-	       (not (eq ede-pconf-create-file-query 'never))
-	       (not (y-or-n-p
-		     (format "I had to create the %s file for you.  Ok? " file)))
-	       (error "Quit"))))))
+  (let ((f (ede-expand-filename (ede-toplevel this) file t)))
+    (when (not (file-exists-p f))
+      (save-excursion
+	(find-file f)
+	(cond ((string= file "AUTHORS")
+	       (insert (user-full-name) " <" (user-login-name) ">"))
+	      ((string= file "NEWS")
+	       (insert "NEWS file for " (ede-name this)))
+	      (t (insert "\n")))
+	(save-buffer)
+	(when
+	    (and (eq ede-pconf-create-file-query 'ask)
+		 (not (eq ede-pconf-create-file-query 'never))
+		 (not (y-or-n-p
+		       (format "I had to create the %s file for you.  Ok? " file)))
+		 (error "Quit")))))))
 
 
 (defmethod ede-proj-configure-synchronize ((this ede-proj-project))
