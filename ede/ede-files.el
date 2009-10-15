@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-files.el,v 1.17 2009/08/08 21:34:17 zappo Exp $
+;; X-RCS: $Id: ede-files.el,v 1.18 2009/10/15 17:37:48 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -393,7 +393,7 @@ Get it from the toplevel project.  If it doesn't have one, make one."
   ;; caching values, and for locating things more robustly.
   (let ((top (ede-toplevel proj)))
     (when (not (slot-boundp top 'locate-obj))
-      (ede-enable-locate-on-project this))
+      (ede-enable-locate-on-project top))
     (oref top locate-obj)
     ))
 
