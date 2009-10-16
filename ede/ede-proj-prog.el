@@ -1,10 +1,10 @@
 ;;; ede-proj-prog.el --- EDE Generic Project program support
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2005, 2008  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2005, 2008, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-prog.el,v 1.10 2008/12/28 22:14:04 zappo Exp $
+;; RCS: $Id: ede-proj-prog.el,v 1.11 2009/10/16 18:33:04 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -67,11 +67,11 @@ Note: Not currently used.  This bug needs to be fixed.")
   "Insert bin_PROGRAMS variables needed by target THIS."
   (ede-pmake-insert-variable-shared
       (concat (ede-name this) "_LDADD")
-    (mapcar (lambda (c) (insert " -l" c)) (oref this ldlibs)))
+    (mapc (lambda (c) (insert " -l" c)) (oref this ldlibs)))
   ;; For other targets THIS depends on
   ;;
   ;; NOTE: FIX THIS
-  ;; 
+  ;;
   ;;(ede-pmake-insert-variable-shared
   ;;    (concat (ede-name this) "_DEPENDENCIES")
   ;;  (mapcar (lambda (d) (insert d)) (oref this FOOOOOOOO)))
@@ -105,6 +105,27 @@ Note: Not currently used.  This bug needs to be fixed.")
 		     (concat (symbol-name ede-debug-program-function)
 			     " " (ede-target-name obj))))
 	  (funcall ede-debug-program-function cmd))
+      (kill-buffer tb))))
+
+(defmethod project-run-target ((obj ede-proj-target-makefile-program) &optional command)
+  "Run a program target OBJ.
+Optional COMMAND is the command to run in place of asking the user."
+  (require 'ede-shell)
+  (let ((tb (get-buffer-create " *padt*"))
+	(dd (if (not (string= (oref obj path) ""))
+		(oref obj path)
+	      default-directory))
+	(cmd nil))
+    (unwind-protect
+	(progn
+	  (set-buffer tb)
+	  (setq default-directory dd)
+	  (setq cmd (or command
+			(read-from-minibuffer
+			 "Run (like this): "
+			 (concat "./" (ede-target-name obj)))))
+	  (ede-shell-run-something obj cmd)
+	  )
       (kill-buffer tb))))
 
 
