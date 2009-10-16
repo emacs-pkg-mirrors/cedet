@@ -25,7 +25,9 @@
     :path ""
     :source '("srecode.el" "srecode-mode.el" "srecode-compile.el" "srecode-insert.el" "srecode-template-mode.el" "srecode-semantic.el" "srecode-load.el" "srecode-template.el" "srecode-dictionary.el" "srecode-args.el" "srecode-table.el" "srecode-filters.el" "srecode-find.el" "srecode-ctxt.el" "srecode-getset.el" "srecode-cpp.el" "srecode-expandproto.el" "srecode-el.el" "srecode-srt.el" "srecode-texi.el" "srecode-map.el" "srecode-extract.el" "srecode-java.el" "srecode-fields.el")
     :versionsource '("srecode.el")
+    :compiler 'ede-emacs-preload-compiler
     :aux-packages '("semantic" "wisent" "semantic-grammar" "semantic-el" "inversion" "eieio" "speedbar")
+    :pre-load-packages '("cedet-compat")
     )
    (ede-proj-target-makefile-info "doc"
     :name "doc"
@@ -36,11 +38,13 @@
     :name "tests"
     :path ""
     :source '("srecode-test.el" "srecode-test-getset.el")
+    :compiler 'ede-emacs-preload-compiler
     )
    (ede-proj-target-elisp "document"
     :name "document"
     :path ""
     :source '("srecode-document.el" "srecode-document-vars.el")
+    :compiler 'ede-emacs-preload-compiler
     )
    )
   :metasubproject 't
