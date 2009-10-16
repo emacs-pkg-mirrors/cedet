@@ -24,6 +24,8 @@
     :name "languages"
     :path ""
     :source '("semantic-c.el" "semantic-el.el" "semantic-make.el" "semantic-scm.el" "semantic-java.el" "semantic-erlang.el" "semantic-gcc.el")
+    :compiler 'ede-emacs-preload-compiler
+    :pre-load-packages '("cedet-compat")
     )
    )
   )
