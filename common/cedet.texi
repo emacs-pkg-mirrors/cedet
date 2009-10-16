@@ -644,7 +644,7 @@ Once installed, you can jump right in to writing your Lisp and
 @node C++ Features
 @chapter C++ Features
 
-If you are using @cedet{} With C++, then there are a few C++ specific
+If you are using @cedet{} with C or C++, then there are a few C/C++ specific
 options you may need to update.
 
 @section C Pre-processor
@@ -739,11 +739,18 @@ and will update all files when you use custom to do it.
 
 @section EDE Setup
 
-For large C++ programs, it is important to setup @ede{} for it. 
+For large C or C++ programs, it is important to setup @ede{} for it. 
 While @ede{} can be used to create makefiles and such using Automake,
 @ede{} also provides a way to merely describe a project so that tools
-like @semantic{} can find your sources.  For C++, you may want to do
-this:
+like @semantic{} can find your sources.
+
+If your project already uses Automake, or if your project is Emacs or
+the Linux Kernel, there are pre-existing EDE project types that will
+automatically detect these projects.
+
+If EDE does not automatically detect your type of project, you may
+want to use the very simple @code{ede-cpp-root-project} type.  To use
+it, add this to your @file{.emacs} file, or other configuration:
 
 @example
 (global-ede-mode 1) ;; Enable EDE
