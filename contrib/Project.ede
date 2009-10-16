@@ -19,6 +19,8 @@
     :name "init"
     :path ""
     :source '("cedet-contrib-load.el")
+    :compiler 'ede-emacs-preload-compiler
+    :pre-load-packages '("cedet-compat")
     )
    (ede-proj-target-elisp "setup"
     :name "setup"
@@ -35,6 +37,7 @@
     :name "lisp"
     :path ""
     :source '("wisent-csharp.el" "semantic-tag-folding.el" "eassist.el" "wisent-ruby.el" "wisent-php.el" "ede-gnustep.el" "semantic-ectag-scala.el")
+    :compiler 'ede-emacs-preload-compiler
     :aux-packages '("semantic-grammar" "wisent" "inversion" "speedbar" "semantic-el")
     )
    )
