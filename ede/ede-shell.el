@@ -3,7 +3,7 @@
 ;; Copyright (C) 2009 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-shell.el,v 1.2 2009/10/15 17:34:04 zappo Exp $
+;; X-RCS: $Id: ede-shell.el,v 1.3 2009/10/16 18:32:26 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -33,8 +33,7 @@
 (defmethod ede-shell-run-something ((target ede-target) command)
   "Create a shell to run stuff for TARGET.
 COMMAND is a text string representing the thing to be run."
-  (let* ((name (ede-name target))
-	 (buff (get-buffer-create (format "*EDE Shell %s" name)))
+  (let* ((buff (ede-shell-buffer target))
 	 (cp (ede-target-parent target))
 	 (dd (oref cp :directory)))
     ;; Show the new buffer.
@@ -63,6 +62,11 @@ COMMAND is a text string representing the thing to be run."
   ;; Send the command.
   (comint-send-input)
   )
+
+(defmethod ede-shell-buffer ((target ede-target))
+  "Get the buffer for running shell commands for TARGET."
+  (let ((name (ede-name target)))
+    (get-buffer-create (format "*EDE Shell %s" name))))
 
 (provide 'ede-shell)
 
