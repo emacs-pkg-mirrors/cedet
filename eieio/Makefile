@@ -17,6 +17,9 @@ init_LISP=eieio-load.el
 EMACS=emacs
 EMACSFLAGS=-batch --no-site-file
 eieio_LISP=eieio.el eieio-comp.el eieio-opt.el eieio-custom.el eieio-doc.el eieio-base.el eieio-datadebug.el
+EMACS=emacs
+EMACSFLAGS=-batch --no-site-file
+ELISPPRELOAD= cedet-compat
 examples_LISP=chart.el eieio-speedbar.el linemark.el lmcompile.el
 eieio_info_TEXINFOS=eieio.texi
 MAKEINFO=makeinfo
@@ -53,6 +56,9 @@ eieio: $(eieio_LISP)
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
+	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
@@ -61,6 +67,9 @@ examples: $(examples_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
