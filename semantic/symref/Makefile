@@ -13,6 +13,7 @@ symref_LISP=semantic-symref.el semantic-symref-global.el semantic-symref-grep.el
 EMACS=emacs
 EMACSFLAGS=-batch --no-site-file
 LOADPATH= ../../srecode/ ../../speedbar/ ../../ede/ ../../common/ ../bovine/ ../ ../../eieio/
+ELISPPRELOAD= cedet-compat
 VERSION=2.0pre7
 DISTDIR=$(top)semantic-$(VERSION)/symref
 
@@ -25,6 +26,9 @@ symref: $(symref_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
