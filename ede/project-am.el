@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.48 2009/10/16 18:34:14 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.49 2009/10/16 19:45:29 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -51,7 +51,8 @@
 (require 'makefile-edit)
 
 (eval-when-compile (require 'ede-speedbar "ede-speedbar.el"))
-(eval-when-compile (require 'compile))
+(eval-when-compile (require 'compile)
+		   (require 'ede-shell))
 
 ;;; Code:
 (defgroup project-am nil
@@ -105,7 +106,7 @@
     )
   "Alist of type names and the type of object to create for them.
 Each entry is of th form:
-  (EMACSNAME CLASS AUToMAKEVAR INDIRECT)
+  (EMACSNAME CLASS AUTOMAKEVAR INDIRECT)
 where EMACSNAME is a name for Emacs to use.
 CLASS is the EDE target class to represent the target.
 AUTOMAKEVAR is the Automake variable to identify.  This cannot be a
@@ -188,7 +189,7 @@ question lists other variables that need to be looked up.")
 (defmethod project-add-file ((ot project-am-target))
   "Add the current buffer into a project.
 OT is the object target.  DIR is the directory to start in."
-  (let* ((target (if ede-object (error "Already assocated w/ a target")
+  (let* ((target (if ede-object (error "Already associated w/ a target")
 		   (let ((amf (project-am-load default-directory)))
 		     (if (not amf) (error "No project file"))
 		     (completing-read "Target: "
@@ -408,6 +409,7 @@ Argument COMMAND is the command to use for compiling the target."
 	(cmd nil))
     (unwind-protect
 	(progn
+	  (require 'ede-shell)
 	  (set-buffer tb)
 	  (setq default-directory dd)
 	  (setq cmd (read-from-minibuffer
@@ -491,7 +493,7 @@ Kill the makefile if it was not loaded before the load."
 	(if kb (setq fb kb)
 	  ;; We need to find-file this thing, but don't use
 	  ;; any semantic features.
-	  (let ((semantic-init-hooks nil))
+	  (let ((semantic-init-hook nil))
 	    (setq fb (find-file-noselect fn)))
 	  )
 	(set-buffer fb)
@@ -503,7 +505,7 @@ Kill the makefile if it was not loaded before the load."
 	  (lambda ()
 	    (def-edebug-spec project-am-with-makefile-current
 	      (form def-body))))
- 
+
 
 (defun project-am-load-makefile (path)
   "Convert PATH into a project Makefile, and return its project object.
@@ -640,9 +642,9 @@ DIR is the directory to apply to new targets."
       (oset this targets (nreverse ntargets))
       ;; We still have a list of targets.  For all buffers, make sure
       ;; their object still exists!
- 
+
       ;; FIGURE THIS OUT
-     
+
       (mapc (lambda (sp)
  	      (let ((var (makefile-extract-varname-from-text sp))
  		    )
@@ -654,7 +656,7 @@ DIR is the directory to apply to new targets."
  		      (setq csubprojexpanded (cons V csubprojexpanded)))))
  		))
  	    csubproj)
- 
+
       ;; Ok, now lets look at all our sub-projects.
       (mapc (lambda (sp)
  	      (let* ((subdir (file-name-as-directory
@@ -665,7 +667,7 @@ DIR is the directory to apply to new targets."
  			       subdir)))
  		(if (string= submake (oref this :file))
  		    nil	;; don't recurse.. please!
- 
+
  		  ;; For each project id found, see if we need to recycle,
  		  ;; and if we do not, then make a new one.  Check the deep
  		  ;; rescan value for behavior patterns.
@@ -790,7 +792,7 @@ nil means that this buffer belongs to no-one."
 	  (setq obj (project-am-buffer-object (car sobj) buffer)
 		sobj (cdr sobj)))
 	obj))))
-  
+
 (defmethod ede-buffer-mine ((this project-am-makefile) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (let ((efn  (expand-file-name (buffer-file-name buffer))))
@@ -816,7 +818,7 @@ nil means that this buffer belongs to no-one."
   (let ((bfn (buffer-file-name buffer)))
     (or (string= (oref this :name)  (file-name-nondirectory bfn))
 	(member (file-name-nondirectory bfn) (oref this :include)))))
-	
+
 (defmethod ede-buffer-mine ((this project-am-man) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (string= (oref this :name) (buffer-file-name buffer)))
@@ -954,6 +956,7 @@ Kill the Configure buffer if it was not already in a buffer."
     (cond
      ;; Try configure.in or configure.ac
      (conf-in
+      (require 'autoconf-edit)
       (project-am-with-config-current conf-in
 	(let ((aci (autoconf-parameters-for-macro "AC_INIT"))
 	      (aia (autoconf-parameters-for-macro "AM_INIT_AUTOMAKE"))
@@ -999,7 +1002,7 @@ Kill the Configure buffer if it was not already in a buffer."
 
 (defun project-am-package-info (dir)
   "Get the package information for directory topmost project dir over DIR.
-Calcultes the info with `project-am-extract-package-info'."
+Calculates the info with `project-am-extract-package-info'."
   (let ((top (ede-toplevel)))
     (when top (setq dir (oref top :directory)))
     (project-am-extract-package-info dir)))
