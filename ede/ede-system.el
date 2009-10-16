@@ -1,10 +1,10 @@
 ;;; ede-system.el --- EDE working with the system (VC, FTP, ETC)
 
-;;;  Copyright (C) 2001, 2002, 2003  Eric M. Ludlam
+;;;  Copyright (C) 2001, 2002, 2003, 2009  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, vc
-;; RCS: $Id: ede-system.el,v 1.5 2005/09/30 20:17:25 zappo Exp $
+;; RCS: $Id: ede-system.el,v 1.6 2009/10/16 18:33:59 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -133,6 +133,6 @@ Download tramp, and use /r:machine: for names on remote sites w/out FTP access."
   (let ((top (ede-toplevel-project-or-nil default-directory)))
     (vc-directory top nil)))
 
-(provide 'ede-cvs)
+(provide 'ede-system)
 
-;;; ede-cvs.el ends here
+;;; ede-system.el ends here
