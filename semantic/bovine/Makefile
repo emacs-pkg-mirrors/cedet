@@ -10,13 +10,13 @@ top=../
 ede_FILES=Project.ede Makefile
 
 by_SEMANTIC_GRAMMAR=c.by make.by scheme.by erlang.by
+ELISPPRELOAD= cedet-compat
+EMACSFLAGS=-batch --no-site-file
 EMACS=emacs
 LOADPATH= ../../ede/ ../../common/ ../ ../../eieio/\
     ../wisent/ ../../speedbar/
 by_SEMANTIC_GRAMMAR_EL=semantic-c-by.el semantic-make-by.el semantic-scm-by.el semantic-erlang-by.el
 bovinator_LISP=semantic-bovine.el bovine-grammar.el bovine-debug.el bovine-grammar-macros.el
-EMACS=emacs
-EMACSFLAGS=-batch --no-site-file
 examples_MISC=semantic-skel.el skeleton.by
 languages_LISP=semantic-c.el semantic-el.el semantic-make.el semantic-scm.el semantic-java.el semantic-erlang.el semantic-gcc.el
 VERSION=2.0pre7
@@ -53,6 +53,9 @@ languages: $(languages_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
