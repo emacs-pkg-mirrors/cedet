@@ -10,17 +10,16 @@ top=
 ede_FILES=Project.ede Makefile
 
 misc_AUX=ChangeLog
+wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-ruby.wy wisent-php.wy
+EMACSFLAGS=-batch --no-site-file
+LOADPATH= ../ede/ ../common/ ../semantic/ ../eieio/
 EMACS=emacs
-LOADPATH= ../common/  ../ede/ ../semantic/ ../eieio/\
-    ../semantic/bovine/ ../speedbar/ ../semantic/wisent/
+LOADPATH= ../common/  ../semantic/bovine/ ../speedbar/ ../semantic/wisent/ ../semantic/
 LOADDEFS=contrib-loaddefs.el
 LOADDIRS=.
 init_LISP=cedet-contrib-load.el
-EMACS=emacs
-EMACSFLAGS=-batch --no-site-file
+ELISPPRELOAD= cedet-compat
 setup_LISP=cedet-contrib.el
-wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-ruby.wy wisent-php.wy
-EMACS=emacs
 wy_SEMANTIC_GRAMMAR_EL=wisent-csharp-wy.el wisent-ruby-wy.el wisent-php-wy.el
 lisp_LISP=wisent-csharp.el semantic-tag-folding.el eassist.el wisent-ruby.el wisent-php.el ede-gnustep.el semantic-ectag-scala.el
 VERSION=1.0pre7
@@ -44,6 +43,9 @@ init: $(init_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
@@ -72,6 +74,9 @@ lisp: $(lisp_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	for preload in ${ELISPPRELOAD}; do \
+	   echo "(load \"$$preload\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
