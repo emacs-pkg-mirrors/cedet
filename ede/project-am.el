@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.47 2009/07/22 11:31:31 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.48 2009/10/16 18:34:14 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -399,6 +399,22 @@ Argument COMMAND is the command to use for compiling the target."
 		     (concat (symbol-name project-am-debug-target-function)
 			     " " (ede-target-name obj))))
 	  (funcall project-am-debug-target-function cmd))
+      (kill-buffer tb))))
+
+(defmethod project-run-target ((obj project-am-objectcode))
+  "Run the current project target in comint buffer."
+  (let ((tb (get-buffer-create " *padt*"))
+	(dd (oref obj path))
+	(cmd nil))
+    (unwind-protect
+	(progn
+	  (set-buffer tb)
+	  (setq default-directory dd)
+	  (setq cmd (read-from-minibuffer
+		     "Run (like this): "
+		     (concat (ede-target-name obj))))
+	  (ede-shell-run-something obj cmd)	  
+	  )
       (kill-buffer tb))))
 
 (defmethod project-make-dist ((this project-am-target))
