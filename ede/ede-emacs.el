@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-emacs.el,v 1.8 2009/01/20 02:36:08 zappo Exp $
+;; X-RCS: $Id: ede-emacs.el,v 1.9 2009/10/16 03:45:06 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -46,7 +46,8 @@ DIR is the directory to search from."
 	(ans nil))
     (while (and projs (not ans))
       (let ((root (ede-project-root-directory (car projs))))
-	(when (string-match (concat "^" (regexp-quote root)) dir)
+	(when (string-match (concat "^" (regexp-quote root))
+			    (file-name-as-directory dir))
 	  (setq ans (car projs))))
       (setq projs (cdr projs)))
     ans))
@@ -68,19 +69,44 @@ DIR is the directory to search from."
 	      base))))))
 
 (defun ede-emacs-version (dir)
-  "Find the Emacs version for the Emacs src in DIR."
-  (let ((buff (get-buffer-create " *emacs-query*")))
+  "Find the Emacs version for the Emacs src in DIR.
+Return a tuple of ( EMACSNAME . VERSION )."
+  (let ((buff (get-buffer-create " *emacs-query*"))
+	(emacs "Emacs")
+	(ver ""))
     (save-excursion
       (set-buffer buff)
       (erase-buffer)
       (setq default-directory (file-name-as-directory dir))
-      (call-process "egrep" nil buff nil "-n" "-e" "^version=" "Makefile")
+      ;(call-process "egrep" nil buff nil "-n" "-e" "^version=" "Makefile")
+      (call-process "egrep" nil buff nil "-n" "-e" "AC_INIT" "configure.in")
       (goto-char (point-min))
-      (re-search-forward "version=\\([0-9.]+\\)")
-      (prog1
-	  (match-string 1)
-	(kill-buffer buff)
-	))))
+      ;(re-search-forward "version=\\([0-9.]+\\)")
+      (cond
+       ;; Maybe XEmacs?
+       ((file-exists-p "version.sh")
+	(setq emacs "XEmacs")
+	(insert-file-contents "version.sh")
+	(goto-char (point-min))
+	(re-search-forward "emacs_major_version=\\([0-9]+\\)
+emacs_minor_version=\\([0-9]+\\)
+emacs_beta_version=\\([0-9]+\\)")
+	(setq ver (concat (match-string 1) "."
+			  (match-string 2) "."
+			  (match-string 3)))
+	)
+       ;; Insert other Emacs here...
+
+       ;; Vaguely recent version of GNU Emacs?
+       (t
+	(insert-file-contents "configure.in")
+	(goto-char (point-min))
+	(re-search-forward "AC_INIT(emacs,\\s-*\\([0-9.]+\\)\\s-*)")
+	(setq ver (match-string 1))
+	)
+       )
+      ;; Return a tuple
+      (cons emacs ver))))
 
 ;;;###autoload
 (defun ede-emacs-load (dir &optional rootproj)
@@ -90,11 +116,13 @@ Argument DIR is the directory it is created for.
 ROOTPROJ is nil, since there is only one project."
   (or (ede-emacs-file-existing dir)
       ;; Doesn't already exist, so lets make one.
-      (ede-emacs-project "Emacs"
-			 :name (concat "Emacs" (ede-emacs-version dir))
-			 :directory dir
-			 :file (expand-file-name "src/emacs.c"
-						 dir))
+      (let* ((vertuple (ede-emacs-version dir)))
+	(ede-emacs-project (car vertuple)
+			   :name (car vertuple)
+			   :version (cdr vertuple)
+			   :directory (file-name-as-directory dir)
+			   :file (expand-file-name "src/emacs.c"
+						   dir)))
       (ede-add-project-to-global-list this)
       )
   )
