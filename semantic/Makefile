@@ -9,11 +9,11 @@
 top=
 ede_FILES=Project.ede Makefile
 
-LOADPATH= ctags/ wisent/ bovine/  ../ede/ ../common/ ./ ../eieio/
 EMACSFLAGS=-batch --no-site-file
 EMACS=emacs
-LOADPATH= ../common/  symref/  ../speedbar/ ../ede/ ../eieio/\
-   
+LOADPATH= ../common/  ctags/ wisent/ bovine/\
+    symref/  ../speedbar/ ../ede/ ../eieio/\
+    ./
 LOADDEFS=semantic-loaddefs.el
 LOADDIRS=. bovine wisent ctags symref
 init_LISP=semantic-load.el

@@ -12,9 +12,9 @@ ede_FILES=Project.ede Makefile
 misc_AUX=ChangeLog
 wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-ruby.wy wisent-php.wy
 EMACSFLAGS=-batch --no-site-file
-LOADPATH= ../ede/ ../common/ ../semantic/ ../eieio/
 EMACS=emacs
-LOADPATH= ../common/  ../semantic/bovine/ ../speedbar/ ../semantic/wisent/ ../semantic/
+LOADPATH= ../common/  ../ede/ ../semantic/ ../eieio/\
+    ../semantic/bovine/ ../speedbar/ ../semantic/wisent/
 LOADDEFS=contrib-loaddefs.el
 LOADDIRS=.
 init_LISP=cedet-contrib-load.el
