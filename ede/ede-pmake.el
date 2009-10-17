@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.61 2009/10/15 03:32:46 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.62 2009/10/17 02:04:10 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -239,8 +239,11 @@ MFILENAME is the makefile to generate."
   "Add VARNAME into the current Makefile.
 Execute BODY in a location where a value can be placed."
   `(let ((addcr t) (v ,varname))
-     (if (re-search-backward (concat "^" v "\\s-*=") nil t)
+     (if (save-excursion
+	   (goto-char (point-max))
+	   (re-search-backward (concat "^" v "\\s-*=") nil t))
 	 (progn
+	   (goto-char (match-end 0))
 	   (ede-pmake-end-of-variable)
 	   (if (< (current-column) 40)
 	       (if (and (/= (preceding-char) ?=)
