@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.130 2009/10/18 15:30:19 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.131 2009/10/18 19:07:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -712,9 +712,7 @@ the regular parser."
 	     (if (y-or-n-p
 		  (format "There was an error initializing %s in buffer \"%s\". Debug your hooks? "
 			  mode (buffer-name)))
-		 (progn
-		   (find-file "~/.emacs")
-		   (error "Debug your hooks"))
+		 (semantic-c-debug-mode-init mode)
 	       (message "Macro parsing state may be broken...")
 	       (sit-for 1))))
 	  ) ; save match data
@@ -756,6 +754,41 @@ the regular parser."
       )
     stream))
 
+(defvar semantic-c-debug-mode-init-last-mode nil
+  "The most recent mode needing debugging.")
+
+(defun semantic-c-debug-mode-init (mm)
+  "Debug mode init for major mode MM after we're done parsing now."
+  (interactive (list semantic-c-debug-mode-init-last-mode))
+  (if (interactive-p)
+      ;; Do the debug.
+      (progn
+	(switch-to-buffer (get-buffer-create "*MODE HACK TEST*"))
+	(let ((debug-on-error t))
+	  (funcall mm)))
+
+    ;; Notify about the debug
+    (setq semantic-c-debug-mode-init-last-mode mm)
+
+    (add-hook 'post-command-hook 'semantic-c-debug-mode-init-pch)))
+
+(defun semantic-c-debug-mode-init-pch ()
+  "Notify user about needing to debug their major mode hooks."
+  (let ((mm semantic-c-debug-mode-init-last-mode))
+    (switch-to-buffer-other-window
+     (get-buffer-create "*MODE HACK TEST*"))
+    (erase-buffer)
+    (insert "A failure occured while parsing your buffers.
+
+The failure occured while attempting to initialize " (symbol-name mm) " in a
+buffer not associated with a file.  To debug this problem, type
+
+M-x semantic-c-debug-mode-init
+
+now.
+")
+    (remove-hook 'post-command-hook 'semantic-c-debug-mode-init-pch)))
+  
 (defun semantic-expand-c-tag (tag)
   "Expand TAG into a list of equivalent tags, or nil."
   (let ((return-list nil)
