@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.129 2009/09/24 02:11:06 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.130 2009/10/18 15:30:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -708,19 +708,28 @@ the regular parser."
 	  ;; Protect against user hooks throwing errors.
 	  (condition-case nil
 	      (funcall mode)
-	    (error nil))
-
-	  ;; Hack in mode-local
-	  (activate-mode-local-bindings)
-	  ;; CHEATER!  The following 3 lines are from
-	  ;; `semantic-new-buffer-fcn', but we don't want to turn
-	  ;; on all the other annoying modes for this little task.
-	  (setq semantic-new-buffer-fcn-was-run t)
-	  (semantic-lex-init)
-	  (semantic-clear-toplevel-cache)
-	  (remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
-		       t)
-	  ))
+	    (error
+	     (if (y-or-n-p
+		  (format "There was an error initializing %s in buffer \"%s\". Debug your hooks? "
+			  mode (buffer-name)))
+		 (progn
+		   (find-file "~/.emacs")
+		   (error "Debug your hooks"))
+	       (message "Macro parsing state may be broken...")
+	       (sit-for 1))))
+	  ) ; save match data
+	
+	;; Hack in mode-local
+	(activate-mode-local-bindings)
+	;; CHEATER!  The following 3 lines are from
+	;; `semantic-new-buffer-fcn', but we don't want to turn
+	;; on all the other annoying modes for this little task.
+	(setq semantic-new-buffer-fcn-was-run t)
+	(semantic-lex-init)
+	(semantic-clear-toplevel-cache)
+	(remove-hook 'semantic-lex-reset-hooks 'semantic-lex-spp-reset-hook
+		     t)
+	)
       ;; Get the macro symbol table right.
       (setq semantic-lex-spp-dynamic-macro-symbol-obarray spp-syms)
       ;; (message "%S" macros)
