@@ -43,6 +43,14 @@ int myFcn1 P_((a,b));
 int myFcn2 P__((int a, int b));
 int myFcn3 (int a, int b);
 
+/* TEST: Macro replacement for very long argument lists. (See xdisp.c in Emacs) */
+int myFcn4 P__((int a,
+		int b,
+		int c,
+		int d,
+		int e,
+		int f));
+
 /* TEST: Multiple args to a macro. */
 #define MULTI_ARGS(name, field1, field2, field3) struct name { int field1; int field2; int field3; }
 

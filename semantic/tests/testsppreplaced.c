@@ -32,6 +32,9 @@ int myFcn1 ();
 int myFcn2 (int a, int b);
 int myFcn3 (int a, int b);
 
+/* TEST: Macro replacement for very long argument lists. (See xdisp.c in Emacs) */
+int myFcn4 (int a, int b, int c, int d, int e, int f);
+
 /* TEST: Multiple args to a macro. */
 struct ma_struct { int moose; int penguin; int emu; };
 
