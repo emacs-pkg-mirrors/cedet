@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.62 2009/09/11 23:41:07 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.63 2009/10/23 01:21:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,7 +38,7 @@
 ;; quickly without resorting to "show me every possible option now".
 ;;
 ;; In addition, some symbol names will appear in multiple locations.
-;; If it is important to distiguish, then a way to provide a choice
+;; If it is important to distinguish, then a way to provide a choice
 ;; over these locations is important as well.
 ;;
 ;; Beyond brute force offers for completion of plain strings,
@@ -57,7 +57,7 @@
 ;;
 ;; Here, we will treat each section separately (excluding D)
 ;; They can then be strung together in user-visible commands to
-;; fullfill specific needs.
+;; fulfil specific needs.
 ;;
 ;; COLLECTORS:
 ;;
@@ -214,7 +214,7 @@ Keeps STRINGS only in the history.")
 Argument COLLECTOR is an object which can be used to to calculate
 a list of possible hits.  See `semantic-completion-collector-engine'
 for details on COLLECTOR.
-Argumeng DISPLAYOR is an object used to display a list of possible
+Argument DISPLAYOR is an object used to display a list of possible
 completions for a given prefix.  See`semantic-completion-display-engine'
 for details on DISPLAYOR.
 PROMPT is a string to prompt with.
@@ -751,7 +751,7 @@ DO NOT CALL THIS IF THE INLINE COMPLETION ENGINE IS NOT ACTIVE."
 Argument COLLECTOR is an object which can be used to to calculate
 a list of possible hits.  See `semantic-completion-collector-engine'
 for details on COLLECTOR.
-Argumeng DISPLAYOR is an object used to display a list of possible
+Argument DISPLAYOR is an object used to display a list of possible
 completions for a given prefix.  See`semantic-completion-display-engine'
 for details on DISPLAYOR.
 BUFFER is the buffer in which completion will take place.
@@ -1777,7 +1777,7 @@ completion text in ghost text."
 		     C)))
 	   (eieio-build-class-alist semantic-displayor-abstract t))
 	  )
-  "Possible options for inlince completion displayors.
+  "Possible options for inline completion displayors.
 Use this to enable custom editing.")
 
 (defcustom semantic-complete-inline-analyzer-displayor-class
@@ -1894,7 +1894,7 @@ to generate the list of possible completions.
 PROMPT is the first part of the prompt.  Additional prompt
 is added based on the contexts full prefix.
 CONTEXT is the semantic analyzer context to start with.
-HISTORY is a symbol representing a variable to stor the history in.
+HISTORY is a symbol representing a variable to store the history in.
 usually a default-tag and initial-input are available for completion
 prompts.  these are calculated from the CONTEXT variable passed in."
   (if (not context) (setq context (semantic-analyze-current-context (point))))
