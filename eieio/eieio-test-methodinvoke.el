@@ -4,7 +4,7 @@
 ;; Copyright (C) 2005, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-test-methodinvoke.el,v 1.9 2009/09/28 02:17:11 zappo Exp $
+;; RCS: $Id: eieio-test-methodinvoke.el,v 1.10 2009/11/19 01:17:49 scymtym Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -26,7 +26,7 @@
 ;;
 
 ;;; Commentary:
-;;  
+;;
 ;; Test method invocation order.  From the common lisp reference
 ;; manual:
 ;;
@@ -45,11 +45,17 @@
 ;;   used to determine whether a next method exists. If
 ;;   call-next-method is not used, only the most specific primary
 ;;   method is called.
-;;   
+;;
 ;; - All the :after methods are called, in most-specific-last order.
 ;;   Their values are ignored.  An error is signaled if
 ;;   call-next-method is used in a :after method.
 ;;
+;;
+;; Also test behavior of `call-next-method'. From clos.org::
+;;
+;; QUOTE:
+;; When call-next-method is called with no arguments, it passes the
+;; current method's original arguments to the next method.
 
 (defvar eieio-test-method-order-list nil
   "List of symbols stored during method invocation.")
@@ -67,6 +73,13 @@
   (if (equal rightanswer eieio-test-method-order-list)
       t
     (error "eieio-test-methodinvoke.el: Test Failed!")))
+
+(defvar eieio-test-call-next-method-arguments nil
+  "List of passed to methods during execution of `call-next-method'.")
+
+(defun eieio-test-arguments-for (class)
+  "Returns arguments passed to method of CLASS during `call-next-method'."
+  (cdr (assoc class eieio-test-call-next-method-arguments)))
 
 ;;; This Example was submitted by darkman:
 ;;
@@ -262,7 +275,7 @@
   )
 
 ;;; Diamond Test
-;; 
+;;
 ;; For a diamond shaped inheritance structure, (call-next-method) can break.
 ;; As such, there are two possible orders.
 
@@ -388,3 +401,56 @@
 
 (Jd "test")
 
+;;; call-next-method with replacement argument across a simple class hierarchy.
+;;
+
+(defclass CNM-0 ()
+  ())
+
+(defclass CNM-1-1 (CNM-0)
+  ())
+
+(defclass CNM-1-2 (CNM-0)
+  ())
+
+(defclass CNM-2 (CNM-1-1 CNM-1-2)
+  ())
+
+(defmethod CNM-M ((this CNM-0) args)
+  (push (cons 'CNM-0 (copy-sequence args))
+	eieio-test-call-next-method-arguments)
+  (when (next-method-p)
+    (call-next-method
+     this (cons 'CNM-0 args))))
+
+(defmethod CNM-M ((this CNM-1-1) args)
+  (push (cons 'CNM-1-1 (copy-sequence args))
+	eieio-test-call-next-method-arguments)
+  (when (next-method-p)
+    (call-next-method
+     this (cons 'CNM-1-1 args))))
+
+(defmethod CNM-M ((this CNM-1-2) args)
+  (push (cons 'CNM-1-2 (copy-sequence args))
+	eieio-test-call-next-method-arguments)
+  (when (next-method-p)
+    (call-next-method)))
+
+(defmethod CNM-M ((this CNM-2) args)
+  (push (cons 'CNM-2 (copy-sequence args))
+	eieio-test-call-next-method-arguments)
+  (when (next-method-p)
+    (call-next-method
+     this (cons 'CNM-2 args))))
+
+(let ((eieio-test-call-next-method-arguments nil))
+  (CNM-M (CNM-2 "") '(INIT))
+  (unless (and (equal (eieio-test-arguments-for 'CNM-0)
+		      '(CNM-1-1 CNM-2 INIT))
+	       (equal (eieio-test-arguments-for 'CNM-1-1)
+		      '(CNM-2 INIT))
+	       (equal (eieio-test-arguments-for 'CNM-1-2)
+		      '(CNM-1-1 CNM-2 INIT))
+	       (equal (eieio-test-arguments-for 'CNM-2)
+		      '(INIT)))
+    (error "eieio-test-methodinvoke.el: Test Failed!")))
