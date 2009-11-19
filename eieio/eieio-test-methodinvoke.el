@@ -4,7 +4,7 @@
 ;; Copyright (C) 2005, 2008, 2009 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-test-methodinvoke.el,v 1.10 2009/11/19 01:17:49 scymtym Exp $
+;; RCS: $Id: eieio-test-methodinvoke.el,v 1.11 2009/11/19 01:20:25 scymtym Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -51,7 +51,7 @@
 ;;   call-next-method is used in a :after method.
 ;;
 ;;
-;; Also test behavior of `call-next-method'. From clos.org::
+;; Also test behavior of `call-next-method'. From clos.org:
 ;;
 ;; QUOTE:
 ;; When call-next-method is called with no arguments, it passes the
@@ -401,7 +401,7 @@
 
 (Jd "test")
 
-;;; call-next-method with replacement argument across a simple class hierarchy.
+;;; call-next-method with replacement arguments across a simple class hierarchy.
 ;;
 
 (defclass CNM-0 ()
