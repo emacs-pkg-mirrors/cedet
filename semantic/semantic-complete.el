@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.63 2009/10/23 01:21:12 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.64 2009/11/22 13:56:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -243,7 +243,7 @@ HISTORY is a symbol representing a variable to story the history in."
       (if (string-match ":" prompt)
 	  (setq prompt (concat
 			(substring prompt 0 (match-beginning 0))
-			" (" default-as-string ")"
+			" (default " default-as-string ")"
 			(substring prompt (match-beginning 0))))
 	(setq prompt (concat prompt " (" default-as-string "): "))))
     ;;
@@ -528,8 +528,13 @@ if INLINE, then completion is happening inline in a buffer."
 	(semantic-displayor-set-completions
 	 displayor
 	 (or
-	  (and (not (eq na 'displayend))
-	       (semantic-collector-current-exact-match collector))
+	  ;; For the below - This caused problems for Cong Yiddong
+	  ;; when experimenting with the completion engine.  I don't
+	  ;; remember what the problem was though, and I wasn't sure why
+	  ;; the below two lines were there since they obviously added
+	  ;; some odd behavior.  -EML	  
+	  ;(and (not (eq na 'displayend))
+	  ;     (semantic-collector-current-exact-match collector))
 	  (semantic-collector-all-completions collector contents))
 	 contents)
 	;; Ask the displayor to display them.
@@ -2001,14 +2006,14 @@ completion works."
   (interactive)
   (message "%S"
    (semantic-format-tag-prototype
-    (semantic-complete-read-tag-project "Symbol: ")
+    (semantic-complete-read-tag-project "Jump to symbol: ")
     )))
 
 ;;;###autoload
 (defun semantic-complete-jump-local ()
   "Jump to a semantic symbol."
   (interactive)
-  (let ((tag (semantic-complete-read-tag-buffer-deep "Symbol: ")))
+  (let ((tag (semantic-complete-read-tag-buffer-deep "Jump to symbol: ")))
     (when (semantic-tag-p tag)
       (push-mark)
       (goto-char (semantic-tag-start tag))
