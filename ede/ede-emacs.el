@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: ede-emacs.el,v 1.9 2009/10/16 03:45:06 zappo Exp $
+;; X-RCS: $Id: ede-emacs.el,v 1.10 2009/11/22 13:31:40 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -231,12 +231,19 @@ All files need the macros from lisp.h!"
 	 (root (ede-project-root proj))
 	 (table (semanticdb-file-table-object
 		 (ede-expand-filename root "lisp.h")))
+	 (config (semanticdb-file-table-object
+		  (ede-expand-filename root "config.h")))
 	 filemap
 	 )
     (when table
       (when (semanticdb-needs-refresh-p table)
 	(semanticdb-refresh-table table))
       (setq filemap (append filemap (oref table lexical-table)))
+      )
+    (when config
+      (when (semanticdb-needs-refresh-p config)
+	(semanticdb-refresh-table config))
+      (setq filemap (append filemap (oref config lexical-table)))
       )
     filemap
     ))
