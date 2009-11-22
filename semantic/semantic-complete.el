@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.64 2009/11/22 13:56:10 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.65 2009/11/22 13:56:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -528,7 +528,7 @@ if INLINE, then completion is happening inline in a buffer."
 	(semantic-displayor-set-completions
 	 displayor
 	 (or
-	  ;; For the below - This caused problems for Cong Yiddong
+	  ;; For the below - This caused problems for Chong Yidong
 	  ;; when experimenting with the completion engine.  I don't
 	  ;; remember what the problem was though, and I wasn't sure why
 	  ;; the below two lines were there since they obviously added
