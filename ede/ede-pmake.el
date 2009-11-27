@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.62 2009/10/17 02:04:10 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.63 2009/11/27 16:36:49 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -433,9 +433,9 @@ sources variable."
 	(link (ede-proj-linkers this))
 	(name (ede-proj-makefile-target-name this))
 	(src (oref this source)))
+    (ede-proj-makefile-insert-object-variables (car comp) name src)
     (while comp
       (ede-compiler-only-once (car comp)
-	(ede-proj-makefile-insert-object-variables (car comp) name src)
 	(ede-proj-makefile-insert-variables (car comp)))
       (setq comp (cdr comp)))
     (while link
