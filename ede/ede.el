@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.139 2009/10/15 17:35:09 zappo Exp $
+;; RCS: $Id: ede.el,v 1.140 2009/11/27 16:37:26 zappo Exp $
 (defconst ede-version "1.0pre7"
   "Current version of the Emacs EDE.")
 
@@ -1849,12 +1849,19 @@ Return the first non-nil value returned by PROC."
 (defun ede-apply-preprocessor-map ()
   "Apply preprocessor tables onto the current buffer."
   (when (and ede-object (boundp 'semantic-lex-spp-macro-symbol-obarray))
-    (let ((map (ede-preprocessor-map ede-object)))
+    (let* ((objs ede-object)
+	   (map (ede-preprocessor-map (if (consp objs)
+					  (car objs)
+					objs))))
       (when map
 	;; We can't do a require for the below symbol.
 	(setq semantic-lex-spp-project-macro-symbol-obarray
 	      (semantic-lex-make-spp-table map))
-	))))
+	)
+      (when (consp objs)
+	(message "Choosing preprocessor syms for project %s"
+		 (object-name (car objs))))
+      )))
 
 (defmethod ede-system-include-path ((this ede-project))
   "Get the system include path used by project THIS."
