@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.131 2009/10/18 19:07:19 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.132 2009/11/27 17:02:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -291,6 +291,7 @@ Moves completely over balanced #if blocks."
       (cond
        ((looking-at "^\\s-*#\\s-*if")
 	;; We found a nested if.  Skip it.
+	;; @TODO - can we use the new c-scan-conditionals
 	(c-forward-conditional 1))
        ((looking-at "^\\s-*#\\s-*elif")
 	;; We need to let the preprocessor analize this one.
@@ -1759,6 +1760,24 @@ DO NOT return the list of tags encompassing point."
 	  (princ (cdr S))
 	  (princ "\n")
 	  ))
+
+      (when (arrayp semantic-lex-spp-project-macro-symbol-obarray)
+	(princ "\n  Project symbol map:\n")
+	(princ "      Your project symbol map is derived from the EDE object:\n      ")
+	(princ (object-print ede-object))
+	(princ "\n\n")
+	(let ((macros nil))
+	  (mapatoms
+	   #'(lambda (symbol)
+	       (setq macros (cons symbol macros)))
+	   semantic-lex-spp-project-macro-symbol-obarray)
+	  (dolist (S macros)
+	    (princ "    ")
+	    (princ (symbol-name S))
+	    (princ " = ")
+	    (princ (symbol-value S))
+	    (princ "\n")
+	    )))
 
       (princ "\n\n  Use: M-x semantic-lex-spp-describe RET\n")
       (princ "\n  to see the complete macro table.\n")
