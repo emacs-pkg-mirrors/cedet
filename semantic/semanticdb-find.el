@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.83 2009/10/16 19:57:14 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.84 2009/12/02 18:08:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -724,7 +724,6 @@ for details on how this list is derived."
   (interactive "P")
   (semantic-fetch-tags)
   (require 'data-debug)
-  (require 'adebug)
   (let ((start (current-time))
 	(p (semanticdb-find-translate-path nil arg))
 	(end (current-time))
