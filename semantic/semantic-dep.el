@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-dep.el,v 1.14 2009/09/11 23:38:51 zappo Exp $
+;; X-RCS: $Id: semantic-dep.el,v 1.15 2009/12/19 04:22:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -219,7 +219,8 @@ provided mode, not from the current major mode."
 	       mode 'semantic-dependency-system-include-path))
 	(edesys (when (and (featurep 'ede) ede-minor-mode
 			   ede-object)
-		  (ede-system-include-path ede-object)))
+		  (ede-system-include-path
+		   (if (listp ede-object) (car ede-object) ede-object))))
 	(locp (mode-local-value
 	       mode 'semantic-dependency-include-path))
 	(found nil))
