@@ -1,12 +1,12 @@
 ;;; wisent-calc.wy --- Grammar of the infix notation calculator
 
-;; Copyright (C) 2002, 2003 David Ponce
+;; Copyright (C) 2002, 2003, 2009 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.wy,v 1.8 2005/09/30 20:23:00 zappo Exp $
+;; X-RCS: $Id: wisent-calc.wy,v 1.9 2009/12/22 01:55:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -96,7 +96,7 @@ exp:
         semantic-lex-syntax-modifications
         '((?\; ".") (?\= ".") (?\+ ".")
           (?\- ".") (?\* ".") (?\/ ".")
-          (?\^ ".") (?\( ".") (?\) ".")
+          (?^ ".") (?\( ".") (?\) ".")
           )
         )
   )
