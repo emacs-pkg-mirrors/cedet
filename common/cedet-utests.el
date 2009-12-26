@@ -3,7 +3,7 @@
 ;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: cedet-utests.el,v 1.20 2009/04/11 06:55:23 zappo Exp $
+;; X-RCS: $Id: cedet-utests.el,v 1.21 2009/12/26 21:39:05 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -91,6 +91,7 @@
 	 (semantic-test-throw-on-input))))
 
     ("semantic: gcc: output parse test" . semantic-gcc-test-output-parser)
+    ("wisent calculator" . wisent-calc-utest)
     ;;
     ;; SRECODE
     ;;
