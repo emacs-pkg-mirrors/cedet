@@ -1,12 +1,12 @@
 ;;; wisent-calc.el --- Infix notation calculator
 
-;; Copyright (C) 2001, 2002, 2003, 2004 David Ponce
+;; Copyright (C) 2001, 2002, 2003, 2004, 2009 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.18 2005/09/30 20:22:55 zappo Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.19 2009/12/26 21:35:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -80,10 +80,58 @@ Parse INPUT string and output the result of computation."
     (wisent-calc-setup-parser)
     (semantic-lex-init)
     (insert input)
-    (let ((wisent-lex-istream (semantic-lex-buffer)))
-      (message "%s -> %s" input
-               (wisent-parse semantic--parse-table 'wisent-lex))
-      )))
+    (let* ((wisent-lex-istream (semantic-lex-buffer))
+	   (answer (wisent-parse semantic--parse-table 'wisent-lex)))
+      (if (interactive-p)
+	  (message "%s -> %s" input answer))
+      answer)))
+
+;; Misc handy fcns
+(defun wisent-calc-factorial (integer)
+  "Compute factorial of an INTEGER.
+Borrowed from the Emacs manual."
+  (if (= 1 integer) 1
+    (* integer (wisent-calc-factorial (1- integer)))))
+
+(defun wisent-calc-not (num)
+  "Compute a NOT operation of an NUMber.
+If NUM is 0, return 1. If NUM is not 0, return 0."
+  (if (= 0 num) 1 0))
+
+(defun wisent-calc-= (num1 num2)
+  "Compute a if NUM1 equal NUM2.
+Return 1 if equal, 0 if not equal."
+  (if (= num1 num2) 1 0))
+
+;;; TEST SUITE:
+(defvar wisent-calc-test-expressions
+  '(
+    ;; Basic
+    ("1+1" . 2) ("2*2" . 4) ("12/3" . 4) ("3-2" . 1)
+    ("2^3" . 8) ("!4" . 24) ("2=3" . 0)  ("2=2" . 1)
+    ("~0" . 1)  ("~1" . 0)
+    ;; Precidence
+    ("1+2*3" . 7) ("1+2-1" . 2) ("6/2+1" . 4) ("2^2+1" . 5)
+    ("-3+2" . -1) ("-3*2" . -6) ("!3*2" . 12) ("2+2=4" . 1)
+    ("~2=0" . 1)
+    ;; grouping
+    ("(2+3)*2" . 10) ("2*(4-3)" . 2) ("1+2^(2+1)" . 9) ("~(2=0)" . 1)
+    ;; Misc goofy
+    ("1+2*4-7/4^3" . 9)
+    )
+  "List of expressions and answers to test all the features.")
+
+(defun wisent-calc-utest ()
+  "Test the wisent calculator."
+  (interactive)
+  (dolist (X wisent-calc-test-expressions)
+    (let* ((exp (car X))
+	   (ans (cdr X))
+	   (act  (string-to-number (wisent-calc exp))))
+      (when (not (eq act ans))
+	(error "Failed: %S == %d, but should be %d"
+	       exp act ans))))
+  )
 
 (provide 'wisent-calc)
 
