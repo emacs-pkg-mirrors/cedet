@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.19 2009/12/26 21:35:37 zappo Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.20 2009/12/26 21:38:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -70,6 +70,7 @@
   wisent-calc-lex-punctuation
   semantic-lex-default-action)
 
+;;;###autoload
 (defun wisent-calc (input)
   "Infix desktop calculator.
 Parse INPUT string and output the result of computation."
@@ -121,6 +122,7 @@ Return 1 if equal, 0 if not equal."
     )
   "List of expressions and answers to test all the features.")
 
+;;;###autoload
 (defun wisent-calc-utest ()
   "Test the wisent calculator."
   (interactive)
