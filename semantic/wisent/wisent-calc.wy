@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.wy,v 1.9 2009/12/22 01:55:15 zappo Exp $
+;; X-RCS: $Id: wisent-calc.wy,v 1.10 2009/12/26 21:34:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,6 +43,8 @@
 %left '-' '+'
 %left '*' '/'
 %left NEG     ;; negation--unary minus
+%left FACT    ;; Factorial
+%left NOT
 %right '^'    ;; exponentiation
 
 %%
@@ -66,7 +68,9 @@ exp:
     NUM
     (string-to-number $1)
   | exp '=' exp
-    (= $1 $3)
+    (wisent-calc-= $1 $3)
+  | '~' exp %prec NOT
+    (wisent-calc-not $2)
   | exp '+' exp
     (+ $1 $3)
   | exp '-' exp
@@ -77,6 +81,8 @@ exp:
     (/ $1 $3)
   | '-' exp %prec NEG
     (- $2)
+  | '!' exp %prec FACT
+    (wisent-calc-factorial $2)
   | exp '^' exp
     (expt $1 $3)
   | '(' exp ')'
@@ -97,6 +103,7 @@ exp:
         '((?\; ".") (?\= ".") (?\+ ".")
           (?\- ".") (?\* ".") (?\/ ".")
           (?^ ".") (?\( ".") (?\) ".")
+	  (?! ".") (?~ ".")
           )
         )
   )
