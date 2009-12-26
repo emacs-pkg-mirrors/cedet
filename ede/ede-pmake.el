@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.63 2009/11/27 16:36:49 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.64 2009/12/26 22:41:09 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -377,10 +377,14 @@ NOTE: Not yet in use!  This is part of an SRecode conversion of
 	  conf-table))
   (let* ((top "")
 	 (tmp this))
+    ;; Use relativistic paths for subdirs.
     (while (ede-parent-project tmp)
       (setq tmp (ede-parent-project tmp)
 	    top (concat "../" top)))
-    (insert "\ntop=" top))
+    ;; If this is the top, then use CURDIR.
+    (if (string= top "")
+	(insert "\ntop=\"$(CURDIR)\"/")
+      (insert "\ntop=" top)))
   (insert "\nede_FILES=" (file-name-nondirectory (oref this file)) " "
 	  (file-name-nondirectory (ede-proj-dist-makefile this)) "\n"))
 
