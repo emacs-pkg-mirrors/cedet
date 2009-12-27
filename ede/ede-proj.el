@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.64 2009/10/15 17:38:32 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.65 2009/12/27 03:35:40 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -445,15 +445,13 @@ FILE must be massaged by `ede-convert-path'."
 
 (defmethod project-make-dist ((this ede-proj-project))
   "Build a distribution for the project based on THIS target."
-  ;; I'm a lazy bum, so I'll make a makefile for doing this sort
-  ;; of thing, and rely only on that small section of code.
   (let ((pm (ede-proj-dist-makefile this))
 	(df (project-dist-files this)))
     (if (and (file-exists-p (car df))
 	     (not (y-or-n-p "Dist file already exists.  Rebuild? ")))
 	(error "Try `ede-update-version' before making a distribution"))
     (ede-proj-setup-buildenvironment this)
-    (if (string= (file-name-nondirectory pm) "Makefile.am")
+    (if (ede-proj-automake-p this)
 	(setq pm (expand-file-name "Makefile"
 				   (file-name-directory pm))))
     (compile (concat ede-make-command " -f " pm " dist"))))
@@ -471,7 +469,7 @@ Argument COMMAND is the command to use when compiling."
   (let ((pm (ede-proj-dist-makefile proj))
 	(default-directory (file-name-directory (oref proj file))))
     (ede-proj-setup-buildenvironment proj)
-    (if (string= (file-name-nondirectory pm) "Makefile.am")
+    (if (ede-proj-automake-p proj)
 	(setq pm (expand-file-name "Makefile"
 				   (file-name-directory pm))))
     (compile (concat ede-make-command" -f " pm " all"))))
