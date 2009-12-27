@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.141 2009/12/22 01:35:35 zappo Exp $
+;; RCS: $Id: ede.el,v 1.142 2009/12/27 03:36:00 zappo Exp $
 (defconst ede-version "1.0pre7"
   "Current version of the Emacs EDE.")
 
@@ -1128,7 +1128,7 @@ Optional argument FORCE forces the file to be removed without asking."
 (defun ede-make-dist ()
   "Create a distribution from the current project."
   (interactive)
-  (let ((ede-object (ede-current-project)))
+  (let ((ede-object (ede-toplevel)))
     (ede-invoke-method 'project-make-dist)))
 
 ;;; Customization
