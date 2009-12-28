@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-doc.el,v 1.14 2009/09/11 23:38:37 zappo Exp $
+;; X-RCS: $Id: semantic-doc.el,v 1.15 2009/12/28 14:18:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -63,6 +63,7 @@ If nosnarf if 'lex, then only return the lex token."
 	  ;; Not sure yet.  Fill in something clever later....
 	  nil))))))
 
+;;;###autoload
 (defun semantic-documentation-comment-preceeding-tag (&optional tag nosnarf)
   "Find a comment preceeding TAG.
 If TAG is nil.  use the tag under point.
