@@ -3,7 +3,7 @@
 ;; Copyright (C) 2007, 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <eric@siege-engine.com>
-;; X-RCS: $Id: semantic-scope.el,v 1.34 2009/10/08 15:32:01 zappo Exp $
+;; X-RCS: $Id: semantic-scope.el,v 1.35 2009/12/28 14:19:28 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -595,6 +595,8 @@ whose tags can be searched when needed, OR it may be a scope object."
       ;;         for recycling later?  Should this become a helpful
       ;;         extra routine?
       (when (and parents (semantic-tag-with-position-p type))
+	;; @NOTE - Does this save-excursion prevent the calculated
+	;; scope from working properly in any cases?
 	(save-excursion
 	  ;; If TYPE has a position, go there and get the scope.
 	  (semantic-go-to-tag type)
