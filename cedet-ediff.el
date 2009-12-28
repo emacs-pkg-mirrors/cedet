@@ -1,9 +1,9 @@
 ;;; cedet-ediff --- Ediffing utilities for CEDET maintenance.
 
-;;; Copyright (C) 2008 Eric M. Ludlam
+;;; Copyright (C) 2008, 2009 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: cedet-ediff.el,v 1.1 2009/10/14 02:31:22 zappo Exp $
+;; X-RCS: $Id: cedet-ediff.el,v 1.2 2009/12/28 14:17:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -65,10 +65,12 @@
   '(
     ;; CEDET regexp    .    Emacs regexp
     ("ede/ede-" . "cedet/ede/")
+    ("ede/project-am.el" . "cedet/ede/project-am.el")
     ("ede/ede\\.el" . "cedet/ede\\.el")
     ("srecode/srecode-" . "cedet/srecode")
     ("ede/srecode\\.el" . "cedet/srecode\\.el")
     ("semantic/semantic-" . "cedet/semantic/")
+    ("semantic/semanticdb-" . "cedet/semantic/db-")
     ("common/" . "cedet/")
     )
   "Map files names in the CEDET repository to files in the Emacs repository.")
